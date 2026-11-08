@@ -33,7 +33,8 @@ printf '%s\n' "$PACKAGE/$ACTIVITY" > "$OUT/launch-component.txt"
 printf 'source=%s\n' "${GITHUB_SHA:-unknown}" > "$OUT/ci-source.txt"
 
 # Android CLI may return 0 despite a text-level failure; check both.
-if ! timeout 180s adb install -r "$APK" > "$OUT/install.txt" 2>&1; then
+# Previous 212 MB full APK took >8 minutes to install on hosted x86_64; allow 15 minutes.
+if ! timeout 900s adb install -r "$APK" > "$OUT/install.txt" 2>&1; then
   fail "adb install command failed"
 fi
 grep -Eq '^Success[[:space:]]*$' "$OUT/install.txt" || fail "adb install did not report Success"
