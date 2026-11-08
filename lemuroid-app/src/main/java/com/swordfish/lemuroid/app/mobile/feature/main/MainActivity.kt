@@ -21,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -54,6 +56,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsScreen
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsViewModel
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometry
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
@@ -179,8 +182,18 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             }
 
             val coverGameId = rememberSaveable { mutableStateOf<Int?>(null) }
+            val geometry = LocalCartridgeGeometry.current
+            val pickupSource = remember { mutableStateOf<Rect?>(null) }
+            val dismissCover = {
+                geometry.selectedId = null
+                coverGameId.value = null
+                pickupSource.value = null
+            }
             val onGameClick = { game: Game ->
-                coverGameId.value = game.id
+                if (coverGameId.value == null) {
+                    pickupSource.value = geometry.cells[game.id]
+                    coverGameId.value = game.id
+                }
             }
 
             val onGameFavoriteToggle = { game: Game, isFavorite: Boolean ->
@@ -197,6 +210,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     .value
 
             Scaffold(
+                modifier = if (coverGameId.value != null) Modifier.clearAndSetSemantics {} else Modifier,
                 topBar = {
                     MainTopBar(
                         currentRoute = currentRoute,
@@ -376,9 +390,10 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 CartridgeDetailHost(
                     gameId = id,
                     database = retrogradeDb,
-                    onDismiss = { coverGameId.value = null },
+                    sourceBounds = pickupSource.value,
+                    onDismiss = dismissCover,
                     onOpen = { game ->
-                        coverGameId.value = null
+                        dismissCover()
                         gameInteractor.onGamePlay(game)
                     },
                     onChangeCover = gameInteractor::onSetCustomCoverUri,

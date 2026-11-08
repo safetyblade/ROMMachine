@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,8 +32,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -42,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.R
@@ -57,8 +63,10 @@ fun CartridgeLibraryTheme(
     content: @Composable () -> Unit,
 ) {
     val materials = shelfMaterials(appearance)
+    val geometry = remember { CartridgeGeometry() }
     androidx.compose.runtime.CompositionLocalProvider(
         LocalShelfAppearance provides appearance,
+        LocalCartridgeGeometry provides geometry,
         LocalShelfMaterials provides materials,
     ) {
         MaterialTheme(
@@ -118,7 +126,13 @@ fun CartridgeSpine(
     onLongClick: () -> Unit = {},
     pink: Boolean = LocalShelfAppearance.current.edition == "pink",
     width: Dp = 72.dp,
+    registerGeometry: Boolean = true,
 ) {
+    val geometry = LocalCartridgeGeometry.current
+    val owner = remember(game.id) { Any() }
+    DisposableEffect(game.id, registerGeometry) {
+        onDispose { if (registerGeometry) geometry.remove(game.id, owner) }
+    }
     var focused by remember { mutableStateOf(false) }
     val scale = width.value / 94f
     val ink = if (pink) Color(0xFF54253F) else Color(0xFFEDF6F2)
@@ -126,6 +140,10 @@ fun CartridgeSpine(
         modifier =
             modifier
                 .size(94.dp * scale, 340.dp * scale)
+                .onGloballyPositioned {
+                    if (registerGeometry) geometry.update(game.id, owner, Rect(it.positionInRoot(), it.size.toSize()))
+                }
+                .graphicsLayer { alpha = if (registerGeometry && geometry.selectedId == game.id) 0f else 1f }
                 .onFocusChanged { focused = it.isFocused }
                 .border(
                     if (focused) 3.dp else 0.dp,
