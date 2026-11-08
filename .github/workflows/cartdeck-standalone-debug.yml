@@ -64,6 +64,11 @@ jobs:
           git rev-parse HEAD | tee standalone-evidence/commit-sha.txt
           git submodule status --recursive | tee standalone-evidence/submodule-shas.txt
           version_code=$((2000 + GITHUB_RUN_NUMBER))
+          if [ "$version_code" -le 2001 ]; then
+            echo "::error::CARTDECK development APK must upgrade baseline v2001; refuse rollback or reinstall version" >&2
+            exit 1
+          fi
+          echo "CARTDECK_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "$version_code" | tee standalone-evidence/version-code.txt
           ./gradlew :lemuroid-app:assembleFreeBundleDebug \
             -Pcartdeck.dev.standaloneId=true \
@@ -83,6 +88,7 @@ jobs:
           du -b "$apk" | tee standalone-evidence/size.txt
           "${ANDROID_HOME}/build-tools/34.0.0/aapt" dump badging "$apk" | tee standalone-evidence/aapt-badging.txt
           grep -F "package: name='dev.prestwich.cartdeck.debug'" standalone-evidence/aapt-badging.txt
+          grep -F "versionCode='$CARTDECK_VERSION_CODE'" standalone-evidence/aapt-badging.txt
           grep -Ei 'application-label.*CARTDECK' standalone-evidence/aapt-badging.txt
           "${ANDROID_HOME}/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" | tee standalone-evidence/signing.txt
           grep -F 'Signer #1 certificate SHA-256 digest:' standalone-evidence/signing.txt
