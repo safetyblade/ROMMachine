@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Havaittu</string>
     <string name="settings_bios_category_not_detected">Tuettu</string>
     <string name="settings_title_reset_settings">Tehdasasetusten palautus</string>
-    <string name="settings_description_reset_settings">Nollaa Lemuroid tehdasasetuksiinsa</string>
+    <string name="settings_description_reset_settings">Nollaa CARTDECK tehdasasetuksiinsa</string>
     <string name="settings_title_advanced_settings">Edistyneet asetukset</string>
     <string name="settings_description_advanced_settings">Näytä lisäasetukset</string>
     <string name="settings_title_low_latency_audio">Suosi alhaisen latenssin ääntä</string>
@@ -81,13 +81,13 @@
     <string name="game_context_menu_restart">Käynnistä Uudelleen</string>
     <string name="game_context_menu_create_shortcut">Kiinnitä käynnistettäväksi</string>
     <string name="home_notification_title">Ota ilmoitukset käyttöön</string>
-    <string name="home_notification_message">Lemuroid käyttää ilmoituksia ilmoittaakseen sinulle, milloin peli tai operaatio on käynnissä taustalla.</string>
+    <string name="home_notification_message">CARTDECK käyttää ilmoituksia ilmoittaakseen sinulle, milloin peli tai operaatio on käynnissä taustalla.</string>
     <string name="home_notification_action">Aktivoi</string>
     <string name="home_microphone_title">Ota mikrofoni käyttöön</string>
     <string name="home_microphone_message">Nintendo DS -pelit voivat käyttää mikrofonia tarjotakseen joitakin toimintoja.</string>
     <string name="home_microphone_action">Aktivoi</string>
     <string name="home_empty_title">Valitse ROMien hakemisto</string>
-    <string name="home_empty_message">Lemuroid tarvitsee skannata ROM -tiedostoja sisältävän hakemiston.\nTämä saattaa kestää jopa muutaman minuutin.</string>
+    <string name="home_empty_message">CARTDECK tarvitsee skannata ROM -tiedostoja sisältävän hakemiston.\nTämä saattaa kestää jopa muutaman minuutin.</string>
     <string name="home_empty_action">Valitse Hakemisto</string>
     <string name="home_notification_desmume_deprecated_title">DeSmuME eläkkeellä pian</string>
     <string name="home_notification_desmume_deprecated_message">Tallenna pelissä vaihtaaksesi melonDS:ään, ja edistymisesi siirtyy eteenpäin. Tallenna valtiot pysyvät sidottuna DeSmuMEen.</string>
@@ -161,7 +161,7 @@
         \n\u2022 Mene Lemuroidin asetuksiin ja suorita tehdas nollaus
         \n\n Jos mikään yllä olevista teoksista ei toimi, saattaa olla mahdollista, että tämä laite ei tue tätä peliä/ydintä.
     </string>
-    <string name="error_message_incompatible_state">Tallennustila ei ole yhteensopiva nykyisen ydinversion kanssa. Lataa uusin pelin sisäinen tallennus tai käytä aiempaa Lemuroid-versiota.</string>
+    <string name="error_message_incompatible_state">Tallennustila ei ole yhteensopiva nykyisen ydinversion kanssa. Lataa uusin pelin sisäinen tallennus tai käytä aiempaa CARTDECK-versiota.</string>
     <string name="shader_filter_names_auto">Automaattinen</string>
     <string name="shader_filter_names_sharp">Terävä</string>
     <string name="shader_filter_names_smooth">Pehmeä</string>
