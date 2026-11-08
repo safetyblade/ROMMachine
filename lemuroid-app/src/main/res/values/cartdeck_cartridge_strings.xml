@@ -9,4 +9,5 @@
     <string name="cartdeck_scanning">Adding cartridges… Your library stays available.</string>
     <string name="cartdeck_home_intro">Your games. Your cartridge shelf.</string>
     <string name="cartdeck_cartridge_unavailable">This cartridge is no longer in your library.</string>
+    <string name="cartdeck_library">Library</string>
 </resources>

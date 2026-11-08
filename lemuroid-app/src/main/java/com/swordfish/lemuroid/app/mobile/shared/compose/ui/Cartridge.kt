@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.shared.compose.ui
 
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -27,18 +28,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -81,6 +83,17 @@ fun cartridgeSystemLabel(systemId: String): String =
         else -> systemId.uppercase()
     }
 
+/** Presentation only: never write a shortened title to the library record. */
+fun shelfPresentationTitle(title: String): String =
+    title
+        .replace(
+            Regex("""\s*\((?:USA|Europe|Japan|World|En(?:,[A-Za-z]+)*|Rev[ .][^)]*)\)\s*$""", RegexOption.IGNORE_CASE),
+            "",
+        )
+        .replace(Regex("""\s*\[(?:!|v[0-9.]+)\]\s*$""", RegexOption.IGNORE_CASE), "")
+        .trim()
+        .ifEmpty { title }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CartridgeSpine(
@@ -89,9 +102,10 @@ fun CartridgeSpine(
     modifier: Modifier = Modifier,
     onLongClick: () -> Unit = {},
     pink: Boolean = false,
+    width: Dp = 72.dp,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val scale = width.value / 94f
     val ink = if (pink) Color(0xFF54253F) else Color(0xFFEDF6F2)
     Box(
         modifier =
@@ -122,11 +136,11 @@ fun CartridgeSpine(
         )
         // Layout is measured sideways before rotation, keeping the title inside its 46×171 window.
         Box(
-            Modifier.offset(24.dp * scale, 82.dp * scale).size(46.dp * scale, 171.dp * scale),
+            Modifier.offset(24.dp * scale, 82.dp * scale).size(46.dp * scale, 171.dp * scale).clipToBounds(),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                game.displayName(),
+                shelfPresentationTitle(game.displayName()),
                 modifier = Modifier.requiredSize(171.dp * scale, 46.dp * scale).rotate(-90f).padding(horizontal = 6.dp),
                 color = if (pink) Color(0xFFFFF3F7) else ink,
                 style = MaterialTheme.typography.labelLarge,
@@ -146,6 +160,22 @@ fun CartridgeSpine(
     }
 }
 
+fun cartridgeArtworkRequest(
+    context: Context,
+    game: Game,
+    revision: Int,
+): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(game.displayCoverUrl())
+        .memoryCacheKey("${game.id}:${game.displayCoverUrl()}:$revision")
+        .memoryCachePolicy(
+            if (game.customCoverUri != null) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED,
+        )
+        .diskCachePolicy(
+            if (game.customCoverUri != null) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED,
+        )
+        .build()
+
 @Composable
 fun CartridgeFront(
     game: Game,
@@ -164,20 +194,14 @@ fun CartridgeFront(
             painterResource(
                 if (pink) R.drawable.cartdeck_pink_fallback_atlas else R.drawable.cartdeck_original_fallback_atlas,
             )
-        // Only existing local user artwork: no new scraping or bundled game art.
+        // Preserve the existing custom > indexed > original fallback artwork contract.
         AsyncImage(
-            model =
-                ImageRequest.Builder(LocalContext.current)
-                    .data(game.customCoverUri)
-                    .memoryCacheKey("${game.customCoverUri}:$artworkRevision")
-                    .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
-                    .diskCachePolicy(coil.request.CachePolicy.DISABLED)
-                    .build(),
+            model = cartridgeArtworkRequest(LocalContext.current, game, artworkRevision),
             contentDescription = null,
             fallback = fallback,
             error = fallback,
             placeholder = fallback,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier =
                 Modifier.offset(
                     unit * 40,

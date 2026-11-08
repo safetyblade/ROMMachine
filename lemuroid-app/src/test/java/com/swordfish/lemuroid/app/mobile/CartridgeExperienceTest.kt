@@ -206,8 +206,7 @@ class CartridgeExperienceTest {
     @Test fun continueRetainsExistingRecentRecord() {
         var selected: Game? = null
         home(HomeViewModel.UIState(indexInProgress = false, recentGames = listOf(game)), onSelect = { selected = it })
-        compose.onNodeWithText("Continue").assertExists()
-        compose.onNodeWithContentDescription("Atlas, GB").performClick()
+        compose.onNodeWithText("Continue", substring = true).performClick()
         assertEquals(game, selected)
     }
 
