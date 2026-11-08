@@ -68,6 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           {
+            python3 scripts/ci/test_bootstrap_gradle.py
             python3 scripts/ci/test_build_retry.py
             python3 scripts/audit_cartdeck_brand.py
             python3 -m unittest discover design/cartdeck-v03 -p 'test_dpad_consistency.py'
