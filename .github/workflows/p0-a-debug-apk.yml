@@ -257,7 +257,8 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euo pipefail
+            # android-emulator-runner executes this script with /bin/sh, not bash.
+            set -eu
             mkdir -p emulator-evidence
             trap 'adb logcat -d > emulator-evidence/logcat.txt 2>&1 || true' EXIT
             adb install -r artifacts/cartdeck-p0-a-freeBundle-debug.apk | tee emulator-evidence/install.txt
