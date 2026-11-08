@@ -173,7 +173,13 @@ val generateCartdeckNativeAssets by tasks.registering(Exec::class) {
     outputs.file(layout.buildDirectory.file("generated/cartdeck-native/native-assets-manifest.json"))
 }
 android.sourceSets.getByName("main").res.srcDir(cartdeckNativeResourceDir)
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }.configureEach {
+// Gradle 8+ validates every consumer of a generated resources directory.
+// AGP resource-path mapping reads the same output before mergeResources runs.
+tasks.matching {
+    (it.name.startsWith("merge") && it.name.endsWith("Resources")) ||
+        (it.name.startsWith("map") && it.name.endsWith("SourceSetPaths")) ||
+        (it.name.startsWith("parse") && it.name.endsWith("LocalResources"))
+}.configureEach {
     dependsOn(generateCartdeckNativeAssets)
 }
 
