@@ -7,14 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,8 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
@@ -52,6 +48,7 @@ fun CartridgeDetailHost(
     onOpen: (Game) -> Unit,
     onChangeCover: (Game, String) -> Unit,
     onResetCover: (Game) -> Unit,
+    sourceBounds: androidx.compose.ui.geometry.Rect? = null,
 ) {
     val record =
         remember(gameId, database) {
@@ -69,21 +66,25 @@ fun CartridgeDetailHost(
                 .map { revision -> revision to database.gameDao().selectById(gameId) }.flowOn(Dispatchers.IO)
         }.collectAsState(initial = 0 to null)
     val game = record.value.second
-    // Dialog also owns Back while the database record is loading.
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.large) {
-            if (game == null) {
-                Column(Modifier.padding(24.dp)) {
-                    if (record.value.first == 0) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text(stringResource(R.string.cartdeck_cartridge_unavailable))
-                    }
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.cartdeck_back_to_shelf)) }
+    CartridgePickup(
+        gameId,
+        game,
+        record.value.first > 0,
+        sourceBounds,
+        onDismiss,
+        artworkRevision = record.value.first,
+    ) { front, close ->
+        if (game == null) {
+            Column(Modifier.padding(24.dp)) {
+                if (record.value.first == 0) {
+                    CircularProgressIndicator()
+                } else {
+                    Text(stringResource(R.string.cartdeck_cartridge_unavailable))
                 }
-            } else {
-                CartridgeDetail(game, onDismiss, onOpen, onChangeCover, onResetCover, record.value.first)
+                TextButton(onClick = close) { Text(stringResource(R.string.cartdeck_back_to_shelf)) }
             }
+        } else {
+            CartridgeDetail(game, close, onOpen, onChangeCover, onResetCover, record.value.first, front)
         }
     }
 }
@@ -96,6 +97,7 @@ fun CartridgeDetail(
     onChangeCover: (Game, String) -> Unit,
     onResetCover: (Game) -> Unit,
     artworkRevision: Int = 0,
+    frontModifier: Modifier = Modifier,
 ) {
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -113,7 +115,7 @@ fun CartridgeDetail(
         }
         Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
         Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
-        CartridgeFront(game, artworkRevision = artworkRevision)
+        CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
         Button(
             onClick = {
                 if (!opening) {

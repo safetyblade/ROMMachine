@@ -401,6 +401,7 @@ fun ShelfBoard(
                     scaleY = 1.04f
                 },
                 width = width,
+                registerGeometry = false,
             )
         }
     }
