@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CARTDECK D-pad visual master"><title>CARTDECK D-pad visual master</title><defs><linearGradient id="face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42505F"/><stop offset="1" stop-color="#17212C"/></linearGradient></defs><circle cx="64" cy="64" r="61" fill="#0C141C" stroke="#657585" stroke-width="2"/><circle cx="64" cy="62" r="55" fill="url(#face)" stroke="#0F1722" stroke-width="5"/><path d="M49 16H79V49H112V79H79V112H49V79H16V49H49Z" fill="#111B26" stroke="#647487" stroke-width="3" stroke-linejoin="round"/><path d="M49 47H79V79H49Z" fill="#263440"/><path d="M61 54H67V70H61Z" fill="#496273"/><path d="M56 62H72" stroke="#496273" stroke-width="5"/><g fill="#5B7A89"><path d="M64 25L57 36H71Z"/><path d="M64 103L57 92H71Z"/><path d="M25 64L36 57V71Z"/><path d="M103 64L92 57V71Z"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CARTDECK machined cross D-pad">
+  <title>CARTDECK machined cross D-pad</title>
+  <desc>Compact chamfered directional cross without circular mounting plate. Two discreet directional bars and a tactile centre hub, consistent with the approved Original and Pink device concepts.</desc>
+  <!-- Single immutable cross silhouette. Appearance is selected by cosmetic edition tokens. -->
+  <path id="cd-dpad-cross" data-cd-fill="button" data-cd-stroke="secondaryHi"
+        d="M48 9 H80 L83 12 V44 H116 L119 47 V81 L116 84 H83 V116 L80 119 H48 L45 116 V84 H12 L9 81 V47 L12 44 H45 V12 Z"
+        fill="#111923" stroke="#626F7A" stroke-width="2.7" stroke-linejoin="bevel"/>
+  <path id="cd-dpad-upper-bar" data-cd-stroke="secondaryHi" d="M56 31 H72"
+        fill="none" stroke="#626F7A" stroke-width="2.7" stroke-linecap="square"/>
+  <path id="cd-dpad-lower-bar" data-cd-stroke="secondaryHi" d="M56 97 H72"
+        fill="none" stroke="#626F7A" stroke-width="2.7" stroke-linecap="square"/>
+  <circle id="cd-dpad-centre" data-cd-fill="button" data-cd-stroke="secondaryHi"
+          cx="64" cy="64" r="7.1" fill="#111923" stroke="#626F7A" stroke-width="2.7"/>
+</svg>

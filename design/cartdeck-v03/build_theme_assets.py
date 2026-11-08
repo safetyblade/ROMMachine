@@ -10,11 +10,6 @@ OUT = ROOT / "generated"
 LOCKED = ["schema","identityVersion","brand","presentation","controls","systems","guardrails"]
 
 MAP = {
- "dpad-master.svg":{
-  "#0C141C":"bezel","#657585":"secondaryHi","#42505F":"secondaryHi",
-  "#17212C":"button","#0F1722":"bezel","#111B26":"button",
-  "#647487":"secondaryHi","#263440":"secondary","#496273":"accentLo","#5B7A89":"accent"
- },
  "action-a-master.svg":{
   "#70F2E2":"accentHi","#159A96":"accentLo","#101B25":"bezel",
   "#556575":"secondaryHi","#C7FFF3":"onChassis","#14615F":"accentLo","#102F35":"onAccent"
@@ -41,7 +36,8 @@ def main():
  files=sorted((ROOT/"editions").glob("*.json"))
  assert files, "No edition manifests found"
  base=json.loads((ROOT/"editions/original.json").read_text(encoding="utf-8"))
- masters={key:(SRC/key).read_text(encoding="utf-8") for key in MAP}
+ masters={"dpad-master.svg":(SRC/"dpad-master.svg").read_text(encoding="utf-8")}
+ masters.update({key:(SRC/key).read_text(encoding="utf-8") for key in MAP})
  for f in files:
   m=json.loads(f.read_text(encoding="utf-8"))
   for key in LOCKED:
@@ -60,9 +56,24 @@ def main():
    "accentLo":mix(e["accent"],"#000000",.28),
    "onAccent":"#102229" if ratio("#102229",e["accent"])>=ratio("#FFFFFF",e["accent"]) else "#FFFFFF"}
   folder=OUT/e["id"]; folder.mkdir(parents=True,exist_ok=True)
-  for name,changes in MAP.items():
+  for name in masters:
    result=masters[name]
-   for old,new in changes.items():result=result.replace(old,tokens[new])
+   if name=="dpad-master.svg":
+    doc=ET.fromstring(result)
+    if any(node.tag.endswith("circle") and float(node.attrib.get("r",0))>9 for node in doc.iter()):
+     raise ValueError("D-pad circular backing plate is not approved")
+    if not any(node.attrib.get("id")=="cd-dpad-cross" for node in doc.iter()):
+     raise ValueError("Approved compact cross is missing")
+    for node in doc.iter():
+     for color_attr,target_attr in (("data-cd-fill","fill"),("data-cd-stroke","stroke")):
+      token=node.attrib.get(color_attr)
+      if token:
+       if token not in tokens: raise ValueError(f"Unknown D-pad token: {token}")
+       node.set(target_attr,tokens[token])
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    result=ET.tostring(doc,encoding="unicode")
+   else:
+    for old,new in MAP[name].items(): result=result.replace(old,tokens[new])
    ET.fromstring(result)
    if paths(result)!=paths(masters[name]):raise ValueError(f"{e['id']}: vector path geometry changed")
    (folder/name).write_text(result,encoding="utf-8")
