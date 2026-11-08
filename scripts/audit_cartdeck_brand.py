@@ -45,6 +45,18 @@ def check() -> None:
     assert 'resValue("string", "lemuroid_name", "CARTDECK")' in gradle
 
     strings = content("lemuroid-app/src/main/res/values/strings.xml")
+    assert '<string name="cartdeck_launch_title">CARTDECK</string>' in strings
+    assert '<string name="cartdeck_launch_byline">by prestwich.dev</string>' in strings
+    intro = content(
+        "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/main/CartdeckLaunchSignature.kt"
+    )
+    assert "R.string.cartdeck_launch_title" in intro
+    assert "R.string.cartdeck_launch_byline" in intro
+    main_activity = content(
+        "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/main/MainActivity.kt"
+    )
+    assert "CartdeckLaunchSignature()" in main_activity
+    assert "delay(650)" in main_activity
     assert not re.search(r"\bLemuroid\b", strings), "Main English UI still displays Lemuroid"
     for translated in RES.glob("values*/strings.xml"):
         local_text = translated.read_text(encoding="utf-8")
