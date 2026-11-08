@@ -13,6 +13,21 @@ android {
         versionCode = 252
         versionName = "1.17.0" // Always remember to update Cores Tag!
         applicationId = "com.swordfish.lemuroid"
+
+        // P0 test-only overrides. No override means the original production configuration.
+        // Keep the existing package ID and test-signing certificate between updates.
+        providers.gradleProperty("cartdeck.p0.testVersionCode").orNull?.let { value ->
+            val testCode = value.toIntOrNull()
+            require(testCode != null && testCode > 252 && testCode <= 2100000000) {
+                "cartdeck.p0.testVersionCode must be an integer above 252."
+            }
+            versionCode = testCode
+        }
+        if (providers.gradleProperty("cartdeck.p0.phoneArm64Only").orNull == "true") {
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
+        }
     }
     flavorDimensions += listOf("opensource", "cores")
 
