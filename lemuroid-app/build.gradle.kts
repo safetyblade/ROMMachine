@@ -149,6 +149,35 @@ android {
     namespace = "com.swordfish.lemuroid"
 }
 
+// ASSET-H1 — generated, compile-time Android resource source set.
+// Editable SVGs/edition JSON in design/ are the only design masters.
+// The app does not use these new Drawables until separate P1 screen PRs.
+val cartdeckNativeResourceDir = layout.buildDirectory.dir("generated/cartdeck-native/res")
+val generateCartdeckNativeAssets by tasks.registering(Exec::class) {
+    group = "cartdeck"
+    description = "Generate Original/Pink native vectors and semantic colours from editable CARTDECK SVGs"
+    workingDir = rootProject.projectDir
+    commandLine(
+        providers.gradleProperty("cartdeck.assets.python").orElse("python3").get(),
+        "scripts/generate_cartdeck_native_assets.py",
+        "--output",
+        cartdeckNativeResourceDir.get().asFile.absolutePath,
+    )
+    inputs.file(rootProject.file("scripts/generate_cartdeck_native_assets.py"))
+    inputs.files(
+        fileTree(rootProject.file("design/cartdeck-v03")) { include("**/*.svg", "**/*.json", "**/*.py") },
+        fileTree(rootProject.file("design/cartdeck-v04")) { include("**/*.svg", "**/*.json", "**/*.py") },
+        fileTree(rootProject.file("design/cartdeck-v05")) { include("**/*.svg", "**/*.json", "**/*.py") },
+    )
+    outputs.dir(cartdeckNativeResourceDir)
+    outputs.file(layout.buildDirectory.file("generated/cartdeck-native/native-assets-manifest.json"))
+}
+android.sourceSets.getByName("main").res.srcDir(cartdeckNativeResourceDir)
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }.configureEach {
+    dependsOn(generateCartdeckNativeAssets)
+}
+
+
 dependencies {
     implementation(project(":retrograde-util"))
     implementation(project(":retrograde-app-shared"))
