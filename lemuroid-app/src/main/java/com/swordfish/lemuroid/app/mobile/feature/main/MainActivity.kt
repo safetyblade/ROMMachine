@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -76,6 +77,7 @@ import dagger.Provides
 import de.charlex.compose.material3.HtmlText
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -123,7 +125,23 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
         setContent {
             val navController = rememberNavController()
-            MainScreen(navController)
+            // Only a new cold entry shows the launch mark; do not flash it again
+            // after activity recreation, rotation or restoring a saved screen.
+            val showingLaunchBrand = remember { mutableStateOf(savedInstanceState == null) }
+
+            LaunchedEffect(Unit) {
+                if (showingLaunchBrand.value) {
+                    delay(650)
+                    showingLaunchBrand.value = false
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                MainScreen(navController)
+                if (showingLaunchBrand.value) {
+                    CartdeckLaunchSignature()
+                }
+            }
         }
     }
 
