@@ -19,7 +19,6 @@ import java.io.FileOutputStream
  *   - Cleanup is trivial: delete the file when the game or the custom artwork is removed.
  */
 class CustomCoverManager(private val appContext: Context) {
-
     /** Returns (and creates if necessary) the directory for custom covers. */
     fun getCoversDirectory(): File =
         File(appContext.getExternalFilesDir(null), "custom-covers").apply {
@@ -37,8 +36,10 @@ class CustomCoverManager(private val appContext: Context) {
     }
 
     /** Build the cover file path for a given game id and extension. */
-    private fun coverFileForGame(gameId: Int, extension: String): File =
-        File(getCoversDirectory(), "cover_$gameId.$extension")
+    private fun coverFileForGame(
+        gameId: Int,
+        extension: String,
+    ): File = File(getCoversDirectory(), "cover_$gameId.$extension")
 
     /**
      * Copies the image at [sourceUri] into private storage and returns the local
@@ -47,7 +48,10 @@ class CustomCoverManager(private val appContext: Context) {
      * Any previously stored cover for this game is deleted first so that
      * switching from e.g. a .jpg to a .webp doesn't leave an orphan.
      */
-    suspend fun importCover(gameId: Int, sourceUri: Uri): String =
+    suspend fun importCover(
+        gameId: Int,
+        sourceUri: Uri,
+    ): String =
         withContext(Dispatchers.IO) {
             // Remove any existing cover regardless of its extension
             deleteCoversForGameId(gameId)
@@ -81,7 +85,7 @@ class CustomCoverManager(private val appContext: Context) {
      * This ensures cleanup works regardless of which image format was used.
      */
     private fun deleteCoversForGameId(gameId: Int) {
-        val prefix = "cover_${gameId}."
+        val prefix = "cover_$gameId."
         getCoversDirectory().listFiles()
             ?.filter { it.name.startsWith(prefix) }
             ?.forEach { file ->

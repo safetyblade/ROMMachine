@@ -52,8 +52,8 @@ data class Game(
     val customName: String? = null,
     val customCoverUri: String? = null,
 ) : Serializable {
-
     fun displayName(): String = customName ?: title
+
     fun displayCoverUrl(): String? = customCoverUri ?: coverFrontUrl
 
     companion object {
