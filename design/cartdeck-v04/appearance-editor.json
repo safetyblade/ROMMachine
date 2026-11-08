@@ -1,0 +1,124 @@
+{
+  "schema": "cartdeck.personalEdition/1.0",
+  "status": "design-contract-not-implemented",
+  "basePresets": [
+    "original",
+    "pink"
+  ],
+  "proofOnlyPresets": [
+    "green",
+    "mono"
+  ],
+  "defaultPreset": "original",
+  "designer": {
+    "label": "Customise Your CARTDECK",
+    "entry": "Settings > Appearance & Edition > Customise",
+    "steps": [
+      "Choose a preset",
+      "Adjust shell, bezel, buttons and accent",
+      "Preview shelf, cover, gameplay and pressed controls",
+      "Check contrast and focus",
+      "Save as personal edition"
+    ],
+    "exportImportDeferred": true
+  },
+  "editable": {
+    "chassis": {
+      "label": "Shell",
+      "type": "color"
+    },
+    "secondary": {
+      "label": "Side rails and trim",
+      "type": "color"
+    },
+    "bezel": {
+      "label": "Screen bezel",
+      "type": "color"
+    },
+    "glass": {
+      "label": "Display surround",
+      "type": "color"
+    },
+    "button": {
+      "label": "Button material",
+      "type": "color"
+    },
+    "accent": {
+      "label": "Signature light / accent",
+      "type": "color"
+    },
+    "onChassis": {
+      "label": "Shell text",
+      "type": "contrast-aware-color"
+    },
+    "onButton": {
+      "label": "Button labels",
+      "type": "contrast-aware-color"
+    },
+    "focus": {
+      "label": "Focus ring",
+      "type": "contrast-aware-color"
+    }
+  },
+  "locked": [
+    "brand/cslot geometry",
+    "wordmark geometry",
+    "chassis proportions",
+    "dpad cross path",
+    "face button geometry",
+    "touch input mapping",
+    "system video dimensions and ROM identity",
+    "save data and file paths",
+    "boot choreography",
+    "accessibility preferences"
+  ],
+  "architecture": {
+    "presetSource": "design/cartdeck-v03/editions/<id>.json",
+    "userOverrideStorage": "Android application preference store, versioned record",
+    "userOverridesAreCosmeticOnly": true,
+    "editorIsOffline": true,
+    "makeComposeColorsReactive": true,
+    "doNotApplyGlobalTintToMultilayerVectors": true,
+    "invalidConfigFallback": "original",
+    "reset": "restore selected base preset",
+    "neverModifyGameAssets": true,
+    "androidVectorExportsArePresetFallbackOnly": true
+  },
+  "accessibility": {
+    "textContrastMinimum": 4.5,
+    "componentAndFocusContrastMinimum": 3,
+    "highContrastOverrideWins": true,
+    "reducedMotionOverrideWins": true,
+    "minimumTouchDp": 48,
+    "colorBlindPreviewRecommended": true
+  },
+  "preview": [
+    "shelf-spine",
+    "front-cover-case",
+    "console-portrait-GB",
+    "console-portrait-PS1",
+    "console-landscape-GBA",
+    "touch-pressed",
+    "focus-disabled",
+    "pause-menu"
+  ],
+  "qa": [
+    "changing color does not create a new emulator renderer",
+    "changing colour does not reset game/save state",
+    "four-face PS1 stays usable in custom theme",
+    "off-line edition retained after app restart and update",
+    "invalid/low-contrast colours repaired or rejected without data loss"
+  ],
+  "sampleGreen": {
+    "chassis": "#9BC7A8",
+    "secondary": "#446F5C",
+    "bezel": "#163B36",
+    "glass": "#102F28",
+    "button": "#194437",
+    "accent": "#D4F47D",
+    "onChassis": "#153629",
+    "onButton": "#F2FFE6",
+    "focus": "#D4F47D",
+    "approval": "visual demonstration only, not shipped"
+  }
+}

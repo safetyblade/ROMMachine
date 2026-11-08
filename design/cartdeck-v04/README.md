@@ -17,7 +17,8 @@ Built from the approved Sienna/Cassia CARTDECK Original/Pink device direction, J
 - `catalog.json`: material-aware assets and immutable inherited identity.
 - `system-viewports.json`: one CARTDECK shell for all systems, aspect-correct video, styling-only profile selection. PS1 must work in the *same portrait shell* as GB/GBA; optional extra controls do not redesign the console.
 - `shelf-journey.json`: **Book spine → Cover/detail → Open/Resume**, independent customizable cover and local-only artwork.
-- `build_assets.py`: generates recoloured SVG sources for each edition. Master geometry never changes with colour. `test_assets.py`: checks catalog, shell, PS1, shelf behaviour and inherited D-pad.
+- `build_assets.py`: generates recoloured SVG sources for each edition. `export_android_vectors.py`: validates Android VectorDrawable previews for Original/Pink without changing gameplay. `test_assets.py` and `test_android_export.py` validate catalog, shell, PS1, bookshelf, inherited D-pad and exported native geometry.
+- `appearance-editor.json`: future **in-app personal palette editor**. Players can create a custom Green or other finish from an existing preset without touching hardware geometry, game rendering, core mapping or saves. Native custom palettes must be drawn reactively in Compose (not limited to pre-exported vectors).
 
 ## Asset implementation policy
 Every SVG is an editable **design master**, not an Android-ready runtime Drawable. Use a reviewed Compose Canvas/VectorDrawable conversion with versioned assets; do not load raw SVG from an APK and presume Android native support. All colour-swappable surfaces use `data-cd-fill`/`data-cd-stroke`; colour token IDs must match the authoritative edition JSON (no direct hex search-replace of geometry). Decorations are independent of PadKit input hit zones. A/B/X/Y labels are rendered as text or separate glyph layers, not permanently baked into the button face.
