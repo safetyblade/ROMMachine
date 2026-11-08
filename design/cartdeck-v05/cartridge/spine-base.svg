@@ -1,6 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 94 340" role="img" aria-label="CARTDECK universal sideways cartridge spine"><title>CARTDECK universal sideways cartridge spine</title><path data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430" d="M22 5H72L90 23V317L72 335H22L4 317V23Z" stroke-width="4" stroke-linejoin="round"/>
-<path data-cd-fill="secondary" fill="#1C2430" stroke="none" d="M24 16H70L78 24V317L70 325H24L16 317V24Z"/>
-<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M22 32V68M72 32V68M22 273V310M72 273V310" stroke-width="3.7" stroke-linecap="round"/>
-<rect data-cd-fill="glass" fill="#09131B" data-cd-stroke="bezel" stroke="#0D1721" x="24" y="82" width="46" height="171" rx="7" stroke-width="2"/>
-
-<path fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" d="M31 17H63" stroke-width="2" stroke-opacity=".3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 94 340" role="img" aria-label="CARTDECK Arc-Rail machined cartridge spine candidate v0.5.2">
+<title>CARTDECK Arc-Rail machined spine</title>
+<desc>Original CARTDECK cartridge, shared physical geometry across GB/GBC/GBA and future systems; decorative machine-etched shoulders, side rails and lower status segments do not alter text, badge or hit zones.</desc>
+<path id="cd-spine-outer" d="M22 5H72L90 23V317L72 335H22L4 317V23Z" stroke-width="4" stroke-linejoin="round" data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430"/>
+<path id="cd-spine-inset" d="M24 16H70L78 24V317L70 325H24L16 317V24Z" data-cd-fill="secondary" fill="#1C2430" stroke="none"/>
+<path id="cd-spine-shoulder-facets" d="M5 23L22 5L29 17L17 29Z M89 23L72 5L65 17L77 29Z" data-cd-fill="bezel" fill="#0D1721" stroke="none"/>
+<path id="cd-spine-crest" d="M28 17H66M23 22L29 17M71 22L65 17" stroke-width="2.5" stroke-linecap="round" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2"/>
+<path id="cd-spine-rails" d="M22 32V68M72 32V68M22 273V310M72 273V310" stroke-width="3.7" stroke-linecap="round" fill="none" data-cd-stroke="accent" stroke="#4ED8C4"/>
+<path id="cd-spine-hardware-track" d="M14 97V246M80 97V246" stroke-width="4" stroke-linecap="square" fill="none" data-cd-stroke="bezel" stroke="#0D1721"/>
+<path id="cd-spine-satin-highlights" d="M17 100V243M77 100V243" stroke-width="1.8" stroke-opacity=".38" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2"/>
+<path id="cd-spine-crest-grooves" d="M22 73H72M27 77H67" stroke-width="1.8" stroke-linecap="round" fill="none" data-cd-stroke="accent" stroke="#4ED8C4"/>
+<rect id="cd-spine-label-window" x="24" y="82" width="46" height="171" rx="7" stroke-width="2" data-cd-fill="glass" fill="#09131B" data-cd-stroke="bezel" stroke="#0D1721"/>
+<path id="cd-spine-panel-seam" d="M21 261H73" stroke-width="2.0" stroke-linecap="round" fill="none" data-cd-stroke="bezel" stroke="#0D1721"/>
+<path id="cd-spine-lower-inlay" d="M20 310H74M20 313H74" stroke-width="1.6" stroke-opacity=".33" stroke-linecap="round" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2"/>
+<rect id="cd-spine-marker-one" x="25" y="318" width="11" height="3" rx="1.2" data-cd-fill="accent" fill="#4ED8C4" stroke="none"/>
+<rect id="cd-spine-marker-two" x="41" y="318" width="11" height="3" rx="1.2" data-cd-fill="accent" fill="#4ED8C4" stroke="none"/>
+<rect id="cd-spine-marker-three" x="57" y="318" width="11" height="3" rx="1.2" data-cd-fill="accent" fill="#4ED8C4" stroke="none"/>
+</svg>
