@@ -70,6 +70,14 @@ Error: The process '/usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager
 - **Minimal remedy:** remove that action only and run hosted `sdkmanager` directly to accept licences/install the project-declared SDK packages. Do not change AGP, Kotlin, Gradle, emulator cores or Android app source speculatively.
 - **Status:** No compile attempt, APK, launch or game test completed in this run. A replacement CI run must prove the remedy.
 
+### Second remote attempt — hosted SDK binary not on PATH
+
+- **Run:** https://github.com/safetyblade/ROMMachine/actions/runs/42455273266
+- **Observed:** checkout and JDK setup passed. The first command in the hosted SDK step, `command -v sdkmanager`, returned exit 1 with no other output. **Gradle was again not invoked.**
+- **Cause:** removing the failing SDK setup action also removed its PATH setup, while the base runner SDK remained under `/usr/local/lib/android/sdk` (path confirmed in first run).
+- **Minimal remedy:** explicitly use the runner's existing `/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager`, set `ANDROID_HOME` and export the command-line-tool path for later steps. No source or dependency changes.
+- **Status:** Debug APK still not available. Check the replacement run's step log before declaring a compile success.
+
 ## 3. CI evidence to complete (not yet verified)
 
 Workflow: `.github/workflows/p0-a-debug-apk.yml`; build output: `lemuroid-app/build/outputs/apk/**`. It must publish only an internal GitHub Actions **debug** artifact and evidence, never a Release.
