@@ -1,0 +1,61 @@
+{
+  "schema": "cartdeck.edition/1.0",
+  "identityVersion": "cartdeck-dna/1",
+  "brand": {
+    "id": "cartdeck",
+    "mark": "../brand/cslot-master.svg",
+    "wordmark": "../brand/cartdeck-wordmark-master.svg",
+    "boot": "wake-slot-mark-game/v1"
+  },
+  "presentation": {
+    "default": "console",
+    "choices": [
+      "console",
+      "fullscreen",
+      "floating"
+    ],
+    "tv": "fullscreen",
+    "userPreferencePriority": true,
+    "minimumTargetDp": 48
+  },
+  "controls": {
+    "dpad": "../controls/dpad-master.svg",
+    "actionA": "../controls/action-a-master.svg",
+    "actionB": "../controls/action-b-master.svg",
+    "hitZonesNotDerivedFromVectors": true
+  },
+  "systems": {
+    "gb": [
+      160,
+      144
+    ],
+    "gbc": [
+      160,
+      144
+    ],
+    "gba": [
+      240,
+      160
+    ]
+  },
+  "guardrails": {
+    "noCoreChanges": true,
+    "noSaveMigration": true,
+    "noInputRemapping": true,
+    "noNetworkDependency": true
+  },
+  "edition": {
+    "id": "mono",
+    "name": "Mono",
+    "status": "reference-only",
+    "chassis": "#E4E4DB",
+    "secondary": "#A0A5A7",
+    "bezel": "#30363D",
+    "accent": "#2D363E",
+    "onChassis": "#27313A",
+    "button": "#293038",
+    "onButton": "#FAFAF4",
+    "focus": "#FAFAF4",
+    "glass": "#12191C"
+  }
+}

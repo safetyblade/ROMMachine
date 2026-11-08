@@ -1,0 +1,61 @@
+{
+  "schema": "cartdeck.edition/1.0",
+  "identityVersion": "cartdeck-dna/1",
+  "brand": {
+    "id": "cartdeck",
+    "mark": "../brand/cslot-master.svg",
+    "wordmark": "../brand/cartdeck-wordmark-master.svg",
+    "boot": "wake-slot-mark-game/v1"
+  },
+  "presentation": {
+    "default": "console",
+    "choices": [
+      "console",
+      "fullscreen",
+      "floating"
+    ],
+    "tv": "fullscreen",
+    "userPreferencePriority": true,
+    "minimumTargetDp": 48
+  },
+  "controls": {
+    "dpad": "../controls/dpad-master.svg",
+    "actionA": "../controls/action-a-master.svg",
+    "actionB": "../controls/action-b-master.svg",
+    "hitZonesNotDerivedFromVectors": true
+  },
+  "systems": {
+    "gb": [
+      160,
+      144
+    ],
+    "gbc": [
+      160,
+      144
+    ],
+    "gba": [
+      240,
+      160
+    ]
+  },
+  "guardrails": {
+    "noCoreChanges": true,
+    "noSaveMigration": true,
+    "noInputRemapping": true,
+    "noNetworkDependency": true
+  },
+  "edition": {
+    "id": "pink",
+    "name": "Pink",
+    "status": "approved-direction",
+    "chassis": "#F2A9C9",
+    "secondary": "#C873A0",
+    "bezel": "#743D5A",
+    "accent": "#8D315E",
+    "onChassis": "#54253F",
+    "button": "#793653",
+    "onButton": "#FFF3F7",
+    "focus": "#FFF3F7",
+    "glass": "#251525"
+  }
+}
