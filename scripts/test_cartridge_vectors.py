@@ -27,7 +27,12 @@ class CartridgeVectorTests(unittest.TestCase):
         for name in ('front_base', 'spine_base'):
             source = ROOT / f'design/cartdeck-v05/cartridge/{name.replace("_", "-")}.svg'
             svg = ET.parse(source).getroot()
-            self.assertEqual(svg[1].get('d'), self.vector('original', name)[0].get(A + 'pathData'))
+            # SVG may carry <title> and <desc> metadata ahead of its geometry.
+            # Compare the first actual path, not a brittle child index.
+            svg_ns = '{http://www.w3.org/2000/svg}'
+            outer = next((node for node in svg if node.tag == svg_ns + 'path'), None)
+            self.assertIsNotNone(outer, f'Missing outer silhouette in {source}')
+            self.assertEqual(outer.get('d'), self.vector('original', name)[0].get(A + 'pathData'))
 
     def test_original_fallback_is_native_vector_and_edition_tinted(self):
         original = self.vector('original', 'fallback_atlas')

@@ -1,0 +1,100 @@
+{
+  "schema": "cartdeck.shelfPresentation/0.5.2",
+  "status": "design-candidate-needs-Sienna-Cassia-owner-review",
+  "assetVersion": "cartdeck-v05.2",
+  "inherits": "design/cartdeck-v05/cartridge-family.json",
+  "immutable": {
+    "outerCartridgePath": "M22 5H72L90 23V317L72 335H22L4 317V23Z",
+    "sourceSpine": [
+      94,
+      340
+    ],
+    "front": [
+      320,
+      390
+    ],
+    "systemBadges": "one same geometry for all supported systems",
+    "touchInputUnaffected": true,
+    "perGameDataUnaffected": true
+  },
+  "appearance": {
+    "spineCandidate": "cartridge/spine-base.svg",
+    "railCandidate": "cartridge/shelf-rail.svg",
+    "accentTokens": [
+      "chassis",
+      "secondary",
+      "bezel",
+      "glass",
+      "accent",
+      "onChassis"
+    ],
+    "gameArtwork": "no user art tint or offline metadata edit",
+    "editionGeometryIdentical": true
+  },
+  "layout": {
+    "phoneReferenceWidthDp": 393,
+    "phoneSafeHorizontalPaddingDp": 12,
+    "spineDisplayWidthDp": 69,
+    "spineDisplayHeightDp": 249.5744680851,
+    "gapDp": 3,
+    "targetVisibleSpines": 5,
+    "baseline": "all cartridge soles aligned on one visible rail",
+    "scaleBodyWithFontScale": false,
+    "minimumTouchWidthDp": 48,
+    "scaledTitleBehavior": "truncate/ellipsize within window; full name and system on cover and TalkBack",
+    "selectedHighlight": "draw outside silhouette without affecting layout",
+    "stableGameIdKeys": true,
+    "scrollRestoration": true
+  },
+  "home": {
+    "tagline": "none",
+    "populatedHeader": "CARTDECK or Library only",
+    "primarySurface": "one shelf",
+    "continue": "compact last-played action; not a second tall duplicate shelf",
+    "addCartridgesEmpty": "prominent",
+    "addCartridgesPopulated": "compact header icon/action",
+    "emptyAndScanning": "preserve existing permissions/import state"
+  },
+  "artwork": {
+    "priority": [
+      "game.customCoverUri",
+      "game.coverFrontUrl",
+      "original CARTDECK fallback Atlas"
+    ],
+    "codeApi": "game.displayCoverUrl()",
+    "cachedSource": "existing Coil/image loader; respect offline failure",
+    "defaultFit": "contain",
+    "userSelectableCropFuture": true,
+    "forceRemoteFetch": false,
+    "resetReturnsIndexedWhenAvailable": true
+  },
+  "selection": {
+    "gesture": "press lift rotate/face reveal settle",
+    "motionBudgetMs": {
+      "press": 70,
+      "lift": 140,
+      "face": 190,
+      "settle": 95,
+      "totalMax": 550
+    },
+    "anchor": "clicked spine's actual bounds and game ID",
+    "noIntermediatePlainDialogFlash": true,
+    "noCoreDelay": true,
+    "openAction": "explicit only",
+    "back": "restore same shelf scroll and selection",
+    "accessibility": "reduced-motion instant static detail, preserve focus and semantics",
+    "resilience": "rapid taps, orientation and process restoration never mismatch game identity"
+  },
+  "detail": {
+    "title": "one readable title not repeated in hardware",
+    "system": "badge at front and concise metadata",
+    "contentHeight": "fit within safe screen with reachable Open/Change Cover",
+    "coverOriginalSource": "reuse original indexed artwork URL",
+    "noThirdPartyBundledAssets": true
+  },
+  "delivery": [
+    "P1-A1R-1 restore artwork plus align and quiet home",
+    "P1-A1R-2 physical motion and decorated spine"
+  ],
+  "issue": 40
+}

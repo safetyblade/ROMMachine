@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 46" role="img" aria-label="CARTDECK shared cartridge shelf baseline rail">
+<title>CARTDECK shared shelf rail</title>
+<path id="cd-shelf-back" d="M8 7H392L399 14V42H1V14Z" data-cd-fill="secondary" fill="#1C2430" stroke="none"/>
+<rect id="cd-shelf-track" x="7" y="11" width="386" height="9" rx="4.5" data-cd-fill="bezel" fill="#0D1721" stroke="none"/>
+<path id="cd-shelf-accent" d="M18 12H382" stroke-width="2.4" stroke-opacity=".55" fill="none" data-cd-stroke="accent" stroke="#4ED8C4"/>
+<rect id="cd-shelf-foot" x="0" y="22" width="400" height="22" rx="3" data-cd-fill="chassis" fill="#303B49" stroke="none"/>
+<path id="cd-shelf-bottom" d="M0 29H400" stroke-width="2.2" stroke-opacity=".28" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2"/>
+</svg>
