@@ -1,0 +1,106 @@
+{
+  "schema": "cartdeck.bookshelfPalette/1.0",
+  "status": "design-source-implementation-pending",
+  "sourceOfTruth": "../cartdeck-v03/editions/<edition>.json",
+  "identity": "One engineered CARTDECK shelf structure for all editions and all systems",
+  "geometry": {
+    "browse": "vertical-scroll-only",
+    "display": "sideways cartridge spines in horizontally arranged rows",
+    "sharedRailPerRow": true,
+    "sectionsAndEmptySlots": true,
+    "homeHasOneRack": true,
+    "favouritesAndSearchSeparate": true
+  },
+  "roles": {
+    "roomBackdrop": "Outside stacked shelf structure",
+    "shelfBackboard": "Recessed panel behind each row and between slots",
+    "shelfDeck": "Horizontal support beneath each cartridge row",
+    "shelfLip": "Machined rail's front edge",
+    "shelfGroove": "Deep inset channel along each rail",
+    "edgeHighlight": "Fine decorative machined line",
+    "shelfShadow": "Soft shelf depth/shadow",
+    "sectionDivider": "Section separators",
+    "vacantCell": "Reserved, deliberately unoccupied slot",
+    "sectionText": "Labels and captions on backboard",
+    "focusOutline": "Keyboard focus, drag destination or empty-slot border",
+    "interactionAccent": "Drag pickup, drop preview and active accents"
+  },
+  "editions": {
+    "original": {
+      "materials": {
+        "backboard": "Smoked graphite inset",
+        "rail": "Satin gunmetal / machined cool edge",
+        "trim": "Teal active glow"
+      },
+      "tokens": {
+        "roomBackdrop": "#0B131B",
+        "shelfBackboard": "#14212D",
+        "shelfDeck": "#293847",
+        "shelfLip": "#485B6C",
+        "shelfGroove": "#0C1923",
+        "edgeHighlight": "#5D7885",
+        "shelfShadow": "#060C12",
+        "sectionDivider": "#334653",
+        "vacantCell": "#1D2C39",
+        "sectionText": "#EAF4F2",
+        "focusOutline": "#4ED8C4",
+        "interactionAccent": "#4ED8C4"
+      }
+    },
+    "pink": {
+      "materials": {
+        "backboard": "Smoked berry inset",
+        "rail": "Anodised rose satin alloy",
+        "trim": "Pearl-pink active glow"
+      },
+      "tokens": {
+        "roomBackdrop": "#221722",
+        "shelfBackboard": "#382536",
+        "shelfDeck": "#69445D",
+        "shelfLip": "#9E6B88",
+        "shelfGroove": "#261827",
+        "edgeHighlight": "#D99CBA",
+        "shelfShadow": "#140C15",
+        "sectionDivider": "#765069",
+        "vacantCell": "#4B3045",
+        "sectionText": "#FFF3F7",
+        "focusOutline": "#FFE5F1",
+        "interactionAccent": "#FFD5E7"
+      }
+    }
+  },
+  "nativeRendering": {
+    "useComposeSemanticTokens": true,
+    "deriveFromApprovedEdition": true,
+    "doNotFlattenShelfIntoSingleBitmap": true,
+    "noUserCoverArtTint": true,
+    "noGameViewportChanges": true,
+    "visualDepth": "Subtle bevel, rail edge, inset shadow and restrained light; hardware not flat cards",
+    "onCustomTheme": "Derive from selected chassis/bezel/secondary/accent, permit shelf overrides with contrast tests and persist outside ROM/saves",
+    "sameGeometryAcrossEditions": true,
+    "doNotScaleCartridgeBodyWithFontScale": true,
+    "selectionAndFocus": "High-contrast interactive strokes; never rely on the decorative edgeHighlight",
+    "contrastTargets": {
+      "sectionLabelToBackboard": 4.5,
+      "focusToBackboard": 3,
+      "focusToVacantCell": 3,
+      "dragAccentToBackboard": 3
+    },
+    "reducedMotion": "No flicker; static finishes and clear focus",
+    "touchTargetMinimumDp": 48
+  },
+  "sources": {
+    "rail": "../cartdeck-v05/cartridge/shelf-rail.svg",
+    "spine": "../cartdeck-v05/cartridge/spine-base.svg",
+    "editionPalettes": "../cartdeck-v03/editions/"
+  },
+  "review": {
+    "design": "Sienna",
+    "experience": "Cassia",
+    "native": "Elliot",
+    "architecture": "Daniel",
+    "qa": "Marcus",
+    "currentCodexIssue": 43,
+    "previousScreenshotDefectsIssue": 40
+  }
+}

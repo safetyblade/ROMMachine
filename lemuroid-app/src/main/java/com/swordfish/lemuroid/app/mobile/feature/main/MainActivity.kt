@@ -48,6 +48,8 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevi
 import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevicesSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsScreen
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsViewModel
@@ -148,7 +150,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun MainScreen(navController: NavHostController) {
-        CartridgeLibraryTheme {
+        val shelfViewModel: ShelfViewModel = viewModel(factory = ShelfViewModel.Factory(applicationContext))
+        val shelfAppearance = shelfViewModel.state.collectAsState().value.layout?.appearance ?: ShelfAppearance()
+        CartridgeLibraryTheme(appearance = shelfAppearance) {
             val navBackStackEntry = navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry.value?.destination
             val currentRoute =
@@ -211,6 +215,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
+                            shelfViewModel = shelfViewModel,
                             modifier = Modifier.padding(padding),
                             viewModel =
                                 viewModel(

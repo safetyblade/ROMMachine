@@ -1,0 +1,221 @@
+package com.swordfish.lemuroid.app.mobile.feature.shelf
+
+import java.security.MessageDigest
+import java.util.UUID
+
+/** Presentation state only. Never use cells as ROM, game or save records. */
+data class ShelfCell(
+    val id: String = UUID.randomUUID().toString(),
+    val gameKey: String? = null,
+    val titleHint: String = "",
+    val emptyRow: Boolean = false,
+)
+
+data class ShelfSection(val id: String, val title: String, val cells: List<ShelfCell> = emptyList())
+
+data class ShelfAppearance(
+    val edition: String = "original",
+    val custom: Map<String, Long> = emptyMap(),
+    val highContrast: Boolean = false,
+    val reducedMotion: Boolean = false,
+)
+
+data class ShelfLayout(
+    val version: Int = 1,
+    val revision: Long = 0,
+    val sections: List<ShelfSection> = listOf(ShelfSection(UNSORTED, "Unsorted")),
+    val appearance: ShelfAppearance = ShelfAppearance(),
+) {
+    companion object {
+        const val UNSORTED = "unsorted"
+    }
+
+    fun validate(): ShelfLayout {
+        require(version == 1) { "Unsupported shelf format $version" }
+        require(sections.any { it.id == UNSORTED })
+        require(sections.map { it.id }.distinct().size == sections.size)
+        require(sections.all { it.title.isNotBlank() && it.title.length <= 80 })
+        val cells = sections.flatMap { it.cells }
+        require(cells.map { it.id }.distinct().size == cells.size)
+        require(cells.mapNotNull { it.gameKey }.distinct().size == cells.count { it.gameKey != null })
+        require(cells.none { it.emptyRow && it.gameKey != null })
+        return this
+    }
+
+    /** Missing cartridges keep their cells. New identities append without compacting spaces. */
+    fun reconcile(games: Map<String, String>): ShelfLayout {
+        val existing = sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
+        val additions =
+            games.filterKeys { it !in existing }.map { (key, title) ->
+                ShelfCell(id = "game:$key", gameKey = key, titleHint = title)
+            }
+        return copy(
+            sections =
+                sections.map { section ->
+                    section.copy(
+                        cells =
+                            section.cells.map { cell ->
+                                cell.copy(titleHint = games[cell.gameKey] ?: cell.titleHint)
+                            } + if (section.id == UNSORTED) additions else emptyList(),
+                    )
+                },
+        ).validate()
+    }
+
+    fun createSection(title: String): ShelfLayout =
+        copy(sections = sections + ShelfSection(UUID.randomUUID().toString(), checkedTitle(title))).validate()
+
+    fun renameSection(
+        id: String,
+        title: String,
+    ): ShelfLayout =
+        copy(sections = sections.map { if (it.id == id) it.copy(title = checkedTitle(title)) else it }).validate()
+
+    fun moveSection(
+        id: String,
+        delta: Int,
+    ): ShelfLayout {
+        val list = sections.toMutableList()
+        val index = list.indexOfFirst { it.id == id }
+        require(index >= 0)
+        val target = (index + delta).coerceIn(list.indices)
+        list.add(target, list.removeAt(index))
+        return copy(sections = list).validate()
+    }
+
+    fun deleteSection(id: String): ShelfLayout {
+        require(id != UNSORTED) { "Unsorted is the safe home for rehomed cartridges" }
+        val removed = sections.first { it.id == id }
+        return copy(
+            sections =
+                sections.filterNot { it.id == id }.map {
+                    if (it.id == UNSORTED) it.copy(cells = it.cells + removed.cells) else it
+                },
+        ).validate()
+    }
+
+    fun insertSpace(
+        sectionId: String,
+        beforeCellId: String? = null,
+        row: Boolean = false,
+    ): ShelfLayout =
+        copy(
+            sections =
+                sections.map { section ->
+                    if (section.id != sectionId) {
+                        section
+                    } else {
+                        val list = section.cells.toMutableList()
+                        val target = beforeCellId?.let { id -> list.indexOfFirst { it.id == id } } ?: list.size
+                        require(target >= 0)
+                        list.add(target, ShelfCell(emptyRow = row))
+                        section.copy(cells = list)
+                    }
+                },
+        ).validate()
+
+    /** Drop on a vacancy swaps it with the source; gaps never collapse accidentally. */
+    fun moveCell(
+        cellId: String,
+        sectionId: String,
+        beforeCellId: String? = null,
+    ): ShelfLayout {
+        val sourceSection = sections.first { section -> section.cells.any { it.id == cellId } }
+        val source = sourceSection.cells.first { it.id == cellId }
+        require(sections.any { it.id == sectionId })
+        if (cellId == beforeCellId) return this
+        val destination = sections.first { it.id == sectionId }.cells.firstOrNull { it.id == beforeCellId }
+        if (destination != null && destination.gameKey == null && !destination.emptyRow) {
+            return copy(
+                sections =
+                    sections.map { section ->
+                        section.copy(
+                            cells =
+                                section.cells.map { cell ->
+                                    when (cell.id) {
+                                        source.id -> destination
+                                        destination.id -> source
+                                        else -> cell
+                                    }
+                                },
+                        )
+                    },
+            ).validate()
+        }
+        val without = sections.map { it.copy(cells = it.cells.filterNot { cell -> cell.id == cellId }) }
+        return copy(
+            sections =
+                without.map { section ->
+                    if (section.id != sectionId) {
+                        section
+                    } else {
+                        val list = section.cells.toMutableList()
+                        val target = beforeCellId?.let { id -> list.indexOfFirst { it.id == id } } ?: list.size
+                        require(target >= 0)
+                        list.add(target, source)
+                        section.copy(cells = list)
+                    }
+                },
+        ).validate()
+    }
+
+    fun removeSpace(cellId: String): ShelfLayout {
+        val cell = sections.flatMap { it.cells }.first { it.id == cellId }
+        require(cell.gameKey == null) { "Cartridges cannot be deleted through shelf editing" }
+        return copy(
+            sections =
+                sections.map {
+                    it.copy(
+                        cells =
+                            it.cells.filterNot {
+                                    cell ->
+                                cell.id == cellId
+                            },
+                    )
+                },
+        ).validate()
+    }
+
+    private fun checkedTitle(title: String): String = title.trim().also { require(it.isNotEmpty() && it.length <= 80) }
+}
+
+/** Stable through Room ID churn. This hashes identity; it never rewrites the source URI. */
+fun shelfGameKey(
+    system: String,
+    fileUri: String,
+): String =
+    MessageDigest.getInstance("SHA-256")
+        .digest((system + "\u0000" + fileUri).toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+
+/** Explicit empty rows remain full rows at every screen width. */
+data class ShelfRow(
+    val key: String,
+    val sectionId: String,
+    val cells: List<ShelfCell>,
+    val intentionalEmpty: Boolean = false,
+)
+
+fun ShelfSection.rows(columns: Int): List<ShelfRow> {
+    require(columns >= 1)
+    val rows = mutableListOf<ShelfRow>()
+    val pending = mutableListOf<ShelfCell>()
+
+    fun flush() {
+        if (pending.isNotEmpty()) {
+            rows += ShelfRow("$id:${pending.first().id}", id, pending.toList())
+            pending.clear()
+        }
+    }
+    cells.forEach { cell ->
+        if (cell.emptyRow) {
+            flush()
+            rows += ShelfRow("$id:${cell.id}", id, listOf(cell), intentionalEmpty = true)
+        } else {
+            pending += cell
+            if (pending.size == columns) flush()
+        }
+    }
+    flush()
+    return rows
+}

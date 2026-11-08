@@ -8,8 +8,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfBoard
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
+import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeArtworkRequest
@@ -37,6 +42,60 @@ class CartridgeV1RepairTest {
             coverFrontUrl = "https://existing.invalid/atlas.png",
             lastIndexedAt = 0,
         )
+
+    @Test fun verticalShelfStacksRowsAndRetainsFullAccessibleTitles() {
+        val games = (1..12).map { game.copy(id = it, title = "Cartridge $it", fileUri = "content://rom/$it") }
+        val layout =
+            ShelfLayout().reconcile(
+                games.associate {
+                    shelfGameKey(it.systemId, it.fileUri) to it.displayName()
+                },
+            )
+        compose.setContent {
+            CartridgeLibraryTheme {
+                ShelfBoard(
+                    layout,
+                    games,
+                    {},
+                    {},
+                )
+            }
+        }
+        val first = compose.onNodeWithContentDescription("Cartridge 1, GB").getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithContentDescription("Cartridge 2, GB").getUnclippedBoundsInRoot()
+        val sixth = compose.onNodeWithContentDescription("Cartridge 6, GB").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue(second.left > first.left)
+        org.junit.Assert.assertTrue(sixth.top > first.top)
+        org.junit.Assert.assertTrue((first.right - first.left).value >= 48f)
+    }
+
+    @Test fun nativeDragSwapsIntoPersistentVacancyWithoutSelectingGame() {
+        val identity = shelfGameKey(game.systemId, game.fileUri)
+        val initial = ShelfLayout().reconcile(mapOf(identity to game.title)).insertSpace(ShelfLayout.UNSORTED)
+        val layout = mutableStateOf(initial)
+        var selections = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                ShelfBoard(
+                    layout.value,
+                    listOf(game),
+                    { selections++ },
+                    {},
+                    arrange = true,
+                    onEdit = { layout.value = it(layout.value) },
+                )
+            }
+        }
+        val cartridge = compose.onNodeWithContentDescription("Atlas, GB")
+        val gap = compose.onNodeWithContentDescription("Reserved empty shelf space")
+        val delta = gap.fetchSemanticsNode().boundsInRoot.center - cartridge.fetchSemanticsNode().boundsInRoot.center
+        cartridge.performTouchInput { swipe(center, center + delta, 500) }
+        compose.runOnIdle {
+            assertEquals(0, selections)
+            assertEquals(null, layout.value.sections.single().cells.first().gameKey)
+            assertEquals(identity, layout.value.sections.single().cells[1].gameKey)
+        }
+    }
 
     @Test fun originalArtworkAndCustomPrecedenceSurviveReset() {
         val context = ApplicationProvider.getApplicationContext<Application>()
