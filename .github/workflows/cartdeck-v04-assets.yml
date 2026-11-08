@@ -6,10 +6,17 @@ on:
       - 'design/cartdeck-v04/**'
       - 'design/cartdeck-v05/**'
       - '.github/workflows/cartdeck-v04-assets.yml'
+      - 'scripts/generate_cartdeck_native_assets.py'
+      - 'scripts/ci/test_cartdeck_native_assets.py'
+      - 'lemuroid-app/build.gradle.kts'
+      - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/shared/compose/ui/CartdeckEditionTokens.kt'
   push:
     paths:
       - 'design/cartdeck-v03/**'
       - 'design/cartdeck-v04/**'
+      - 'design/cartdeck-v05/**'
+      - 'scripts/generate_cartdeck_native_assets.py'
+      - 'scripts/ci/test_cartdeck_native_assets.py'
 jobs:
   verify-assets:
     runs-on: ubuntu-latest
@@ -30,5 +37,19 @@ jobs:
         run: python design/cartdeck-v04/export_android_vectors.py
       - name: Verify parseable native vectors and edition-safe geometry
         run: python -m unittest discover design/cartdeck-v04 -p 'test_android_export.py'
+      - name: Generate native Android resource source set and provenance manifest
+        run: python scripts/generate_cartdeck_native_assets.py --output lemuroid-app/build/generated/cartdeck-native/res
+      - name: Verify Original/Pink parity, 4.5:1 text contrast, 3:1 focus and stable output
+        run: python -m unittest discover scripts/ci -p 'test_cartdeck_native_assets.py' -v
+      - name: Archive native asset source-to-resource traceability for Sienna and Daniel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartdeck-asset-h1-evidence-${{ github.run_id }}
+          path: |
+            lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json
+            lemuroid-app/build/generated/cartdeck-native/res/values/cartdeck_edition_colors.xml
+          if-no-files-found: warn
+          retention-days: 30
       - name: Ensure generated files did not alter tracked masters
         run: git diff --exit-code -- design/cartdeck-v03 design/cartdeck-v04 design/cartdeck-v05
