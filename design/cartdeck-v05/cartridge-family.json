@@ -2,7 +2,7 @@
   "schema": "cartdeck.cartridgeFamily/1.0",
   "name": "CARTDECK Arc-Rail",
   "approvedDirectionBy": "Cassia Rowan / Jonathan Prestwich",
-  "state": "design-candidate-awaiting-asset-lock",
+  "state": "design-v0.5.1-visual-approval-pending",
   "brandMaster": "../cartdeck-v03/brand/cslot-master.svg",
   "geometryLocked": {
     "front": [
@@ -37,10 +37,32 @@
       "height": 28
     },
     "badgeInSpine": {
-      "x": 17,
-      "y": 271,
-      "width": 60,
-      "height": 34
+      "x": 13,
+      "y": 273,
+      "width": 68,
+      "height": 30
+    },
+    "brandInFront": {
+      "mark": {
+        "x": 42,
+        "y": 30,
+        "width": 25,
+        "height": 25
+      },
+      "wordmark": {
+        "x": 81,
+        "y": 32,
+        "width": 168,
+        "height": 24
+      }
+    },
+    "brandInSpine": {
+      "mark": {
+        "x": 35,
+        "y": 33,
+        "width": 24,
+        "height": 24
+      }
     }
   },
   "layers": {
@@ -122,6 +144,19 @@
     "artWindowContainOrCropUserChoice": true,
     "nonblockingTransition": true,
     "reduceMotionFallback": "static cover detail",
-    "touchInputIndependentOfArtwork": true
+    "touchInputIndependentOfArtwork": true,
+    "badgeDrawPolicy": "Single shared Compose badge component, not double-drawn sockets or aspect-distorted stretched SVG; use front/spine layout bounds",
+    "badgeTextColourToken": "onButton",
+    "badgeBorderColourToken": "focus",
+    "artFrameContrastToken": "focus",
+    "shellSelectionOutlineToken": "onChassis",
+    "labelTextRules": {
+      "front": "Full game title in accessible detail text; fallback image may include original title treatment",
+      "spine": "Single title in vertical spine window with ellipsis when necessary; full title + system announced via TalkBack",
+      "systemBadge": "Uppercase GB/GBC/GBA and later PS1 as plain text; never use manufacturer marks"
+    },
+    "coverFitDefault": "contain",
+    "coverFitCustomOption": "crop, with user approval",
+    "reducedMotionFallback": "static selected front, no forced transition"
   }
 }
