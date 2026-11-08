@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - qa/cartdeck-emulator-continuity
+      - qa/cartdeck-emulator-kvm-fix
 
 permissions:
   contents: read
@@ -103,6 +104,22 @@ jobs:
           cp "${apks[0]}" qa/apks/candidate-universal.apk
           sha256sum qa/apks/*.apk > qa/evidence/universal-apk-checksums.txt
 
+      - name: Enable and verify KVM hardware acceleration on Linux hosted runner
+        run: |
+          set -euo pipefail
+          # GitHub-hosted Ubuntu exposes /dev/kvm but the runner user is not
+          # a member of its group. Without this the emulator falls back to
+          # software emulation (observed 17-minute boot and launch timeout).
+          test -c /dev/kvm || {
+            echo "::error::KVM unavailable on this runner; do not run false-green emulator QA"
+            exit 1
+          }
+          sudo chmod 0666 /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm || {
+            echo "::error::Runner cannot access KVM after permission fix"
+            exit 1
+          }
+          stat -c 'KVM device mode=%a owner=%U group=%G' /dev/kvm | tee qa/evidence/kvm-access.txt
       - name: "Android emulator: same-signature in-place update and home screenshots"
         uses: reactivecircus/android-emulator-runner@v2
         with:
