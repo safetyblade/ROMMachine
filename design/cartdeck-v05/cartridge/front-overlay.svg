@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 390" role="img" aria-label="CARTDECK cartridge universal chrome and badge overlay"><title>CARTDECK cartridge universal chrome and badge overlay</title><path fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" d="M66 30H254" stroke-width="2" stroke-opacity=".22"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M56 85H264" stroke-width="2.7" stroke-opacity=".75"/>
+<rect fill="none" data-cd-stroke="accent" stroke="#4ED8C4" x="40" y="113" width="240" height="200" rx="8" stroke-width="2.2"/>
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="accent" stroke="#4ED8C4" x="215" y="330" width="78" height="28" rx="14" stroke-width="2.1"/>
+<circle data-cd-fill="accent" fill="#4ED8C4" stroke="none" cx="43" cy="346" r="4"/>
+<circle data-cd-fill="accent" fill="#4ED8C4" stroke="none" cx="55" cy="346" r="4"/></svg>

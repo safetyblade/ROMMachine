@@ -5,7 +5,8 @@
     "identity": "../cartdeck-v03/brand/",
     "dpad": "../cartdeck-v03/controls/dpad-master.svg",
     "editions": "../cartdeck-v03/editions/",
-    "notes": "Do not duplicate approved identity vectors"
+    "notes": "Do not duplicate approved identity vectors; v04 shelf/book-spine and cover-case superseded by v05 unified cartridge family for new app implementation.",
+    "cartridgeFamily": "../cartdeck-v05/cartridge-family.json"
   },
   "semanticTokens": [
     "chassis",
@@ -44,10 +45,12 @@
       "controls/stylus.svg"
     ],
     "shelf": [
-      "shelf/book-spine.svg",
-      "shelf/cover-case.svg",
-      "shelf/cover-placeholder.svg",
-      "shelf/cartridge-edge.svg"
+      "../cartdeck-v05/cartridge/spine-base.svg",
+      "../cartdeck-v05/cartridge/front-base.svg",
+      "../cartdeck-v05/cartridge/front-overlay.svg",
+      "../cartdeck-v05/cartridge/system-badge.svg",
+      "../cartdeck-v05/cartridge/fallback-atlas.svg",
+      "../cartdeck-v05/cartridge/back-base.svg"
     ],
     "boot": [
       "boot/slot-pulse.svg",

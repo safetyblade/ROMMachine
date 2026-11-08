@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" role="img" aria-label="CARTDECK original abstract atlas fallback cover artwork"><title>CARTDECK original abstract atlas fallback cover artwork</title><rect data-cd-fill="glass" fill="#09131B" stroke="none" x="0" y="0" width="240" height="200" rx="8"/>
+<path data-cd-fill="secondary" fill="#1C2430" stroke="none" d="M0 162L48 123L96 153L146 83L194 128L240 101V200H0Z"/>
+<path data-cd-fill="chassis" fill="#303B49" stroke="none" d="M0 182L55 150L112 176L181 137L240 165V200H0Z"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M9 146L46 116L82 143M109 129L144 77L183 119M186 122L216 94L236 104" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle data-cd-fill="accent" fill="#4ED8C4" stroke="none" cx="199" cy="48" r="14"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M15 36H88M15 46H56M128 24H152M30 80H60" stroke-width="2.2" stroke-linecap="round" stroke-opacity=".5"/></svg>
