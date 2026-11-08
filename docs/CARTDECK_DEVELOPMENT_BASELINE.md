@@ -15,7 +15,7 @@
 - Debug signing certificate SHA-256: `ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8`
 - Build evidence: https://github.com/safetyblade/ROMMachine/actions/runs/42461321501
 - Verified baseline file and provenance: https://drive.google.com/drive/folders/1OJASR9jpRrsqQLSoYOglFwmovpGJ6Z27
-- User acceptance: installed and opens correctly on user's Android phone. Most initial behaviours appear to pass. **This is a user-confirmed launch baseline, not independent full regression acceptance.**
+- Owner acceptance: installed and opens correctly on the user's Android phone; controlled Drive QA record CD-QA-OWNER-02 also confirms GBA gameplay state is retained after fully closing and reopening the CARTDECK standalone preview and prior rebranded app. **These are owner-observed launch/session-reopen passes, not independent full GB/GBC/GBA, cartridge SRAM, manual save-state or upgrade regression acceptance.**
 
 ## Accepted issue at baseline
 
