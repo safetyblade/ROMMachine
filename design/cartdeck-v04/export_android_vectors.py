@@ -52,7 +52,7 @@ def append_shapes(svg,vector,colors):
         if element in ("path","rect","circle"):
             data={"path":node.get("d"),"rect":rounded_rect(node),"circle":circle(node)}[element]
             if not data: raise ValueError("Empty path data")
-            output=ET.SubElement(vector,f"{{{ANDROID}}}path")
+            output=ET.SubElement(vector,"path")
             output.set(f"{{{ANDROID}}}pathData",data)
             for svg_key,android_key in (("fill","fillColor"),("stroke","strokeColor")):
                 value=style.get(svg_key,"none")
