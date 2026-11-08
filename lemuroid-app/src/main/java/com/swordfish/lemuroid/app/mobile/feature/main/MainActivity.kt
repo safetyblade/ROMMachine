@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,7 @@ import dagger.Provides
 import de.charlex.compose.material3.HtmlText
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -122,7 +124,19 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
         setContent {
             val navController = rememberNavController()
-            MainScreen(navController)
+            val showingLaunchBrand = remember { mutableStateOf(true) }
+
+            LaunchedEffect(Unit) {
+                delay(650)
+                showingLaunchBrand.value = false
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                MainScreen(navController)
+                if (showingLaunchBrand.value) {
+                    CartdeckLaunchSignature()
+                }
+            }
         }
     }
 
