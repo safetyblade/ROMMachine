@@ -103,7 +103,7 @@ jobs:
           cp "${apks[0]}" qa/apks/candidate-universal.apk
           sha256sum qa/apks/*.apk > qa/evidence/universal-apk-checksums.txt
 
-      - name: Android emulator: same-signature in-place update and home screenshots
+      - name: "Android emulator: same-signature in-place update and home screenshots"
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
