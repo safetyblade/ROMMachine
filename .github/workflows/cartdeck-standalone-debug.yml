@@ -9,6 +9,7 @@ on:
       - 'lemuroid-app/**'
       - 'design/cartdeck-v03/**'
       - 'scripts/audit_cartdeck_brand.py'
+      - 'gradle/wrapper/**'
       - '.github/workflows/cartdeck-standalone-debug.yml'
   workflow_dispatch:
 
