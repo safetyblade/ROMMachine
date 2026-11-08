@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="CARTDECK movable analog-stick cap, artwork not input hit area">
+<title>CARTDECK movable analog-stick cap, artwork not input hit area</title>
+<circle data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" cx="50" cy="53" r="47" stroke-width="2" />
+<circle data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" cx="50" cy="47" r="39" stroke-width="1.8" />
+<circle  data-cd-stroke="secondary" stroke="#1C2430" cx="50" cy="47" r="33" fill="none" stroke-width="2" />
+<path  data-cd-stroke="onButton" stroke="#EDF6F2" d="M27 33Q50 22 74 33" fill="none" stroke-width="3" stroke-opacity=".35" />
+</svg>

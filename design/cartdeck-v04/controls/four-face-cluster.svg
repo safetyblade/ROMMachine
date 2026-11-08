@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="CARTDECK four-face visual arrangement for PS1 and SNES">
+<title>CARTDECK four-face visual arrangement for PS1 and SNES</title>
+<circle data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" cx="96" cy="34" r="28" stroke-width="3" />
+<circle data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" cx="158" cy="96" r="28" stroke-width="3" />
+<circle data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" cx="96" cy="158" r="28" stroke-width="3" />
+<circle data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" cx="34" cy="96" r="28" stroke-width="3" />
+</svg>

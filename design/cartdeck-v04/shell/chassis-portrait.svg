@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 680" role="img" aria-label="CARTDECK portrait shell geometry with separate screen and control overlays">
+<title>CARTDECK portrait shell geometry with separate screen and control overlays</title>
+<path data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430" d="M36 7H324Q346 7 353 32V628Q353 665 319 673H41Q7 665 7 628V32Q14 7 36 7Z" stroke-width="5" />
+<path  data-cd-stroke="accent" stroke="#4ED8C4" d="M24 62V31Q27 18 45 18H76" fill="none" stroke-width="5" />
+<path  data-cd-stroke="accent" stroke="#4ED8C4" d="M284 18H316Q334 18 339 37V59" fill="none" stroke-width="5" />
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="22" y="59" width="316" height="306" rx="26" stroke-width="3" />
+<rect data-cd-fill="glass" fill="#09131B" data-cd-stroke="accent" stroke="#4ED8C4" x="42" y="83" width="276" height="255" rx="8" stroke-width="2.5" />
+<rect  data-cd-stroke="accent" stroke="#4ED8C4" x="292" y="45" width="22" height="5" rx="2.5" fill="none" />
+<path  data-cd-stroke="secondary" stroke="#1C2430" d="M42 630H97M263 630H318" stroke-width="3" stroke-linecap="round" fill="none" />
+</svg>

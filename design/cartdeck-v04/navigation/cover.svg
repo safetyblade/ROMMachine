@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CARTDECK cover detail navigation icon">
+<title>CARTDECK cover detail navigation icon</title>
+<rect data-cd-fill="chassis" fill="#303B49" data-cd-stroke="accent" stroke="#4ED8C4" x="12" y="5" width="40" height="54" rx="5" stroke-width="2.5" />
+<rect data-cd-fill="glass" fill="#09131B"  x="17" y="11" width="30" height="33" rx="2" />
+<path  data-cd-stroke="onChassis" stroke="#EDF6F2" d="M19 50H42" fill="none" stroke-width="3" />
+</svg>

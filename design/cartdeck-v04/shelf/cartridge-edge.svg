@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 66" role="img" aria-label="CARTDECK cartridge lip / insert transition geometry">
+<title>CARTDECK cartridge lip / insert transition geometry</title>
+<path data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" d="M14 4H286Q296 4 296 18V48Q296 62 282 62H18Q4 62 4 48V18Q4 4 14 4Z" stroke-width="3" />
+<rect data-cd-fill="chassis" fill="#303B49" data-cd-stroke="accent" stroke="#4ED8C4" x="14" y="14" width="272" height="38" rx="8" stroke-width="2" />
+<path  data-cd-stroke="onChassis" stroke="#EDF6F2" d="M38 24H262" fill="none" stroke-opacity=".35" stroke-width="2" />
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 730 390" role="img" aria-label="CARTDECK landscape shell geometry with consistent hardware identity">
+<title>CARTDECK landscape shell geometry with consistent hardware identity</title>
+<path data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430" d="M52 7H678Q717 7 723 47V342Q717 382 678 382H52Q13 382 7 342V47Q13 7 52 7Z" stroke-width="5" />
+<path  data-cd-stroke="accent" stroke="#4ED8C4" d="M17 86V52Q18 21 52 21H87M643 21H677Q712 21 713 53V85" fill="none" stroke-width="5" />
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="162" y="32" width="407" height="326" rx="25" stroke-width="3" />
+<rect data-cd-fill="glass" fill="#09131B" data-cd-stroke="accent" stroke="#4ED8C4" x="183" y="52" width="366" height="280" rx="7" stroke-width="2" />
+</svg>
