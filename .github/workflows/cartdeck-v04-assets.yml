@@ -8,6 +8,7 @@ on:
       - '.github/workflows/cartdeck-v04-assets.yml'
       - 'scripts/generate_cartdeck_native_assets.py'
       - 'scripts/ci/test_cartdeck_native_assets.py'
+      - 'scripts/ci/check_cartdeck_native_aapt2.sh'
       - 'lemuroid-app/build.gradle.kts'
       - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/shared/compose/ui/CartdeckEditionTokens.kt'
   push:
@@ -41,6 +42,12 @@ jobs:
         run: python scripts/generate_cartdeck_native_assets.py --output lemuroid-app/build/generated/cartdeck-native/res
       - name: Verify Original/Pink parity, 4.5:1 text contrast, 3:1 focus and stable output
         run: python -m unittest discover scripts/ci -p 'test_cartdeck_native_assets.py' -v
+      - name: Compile generated CARTDECK resources through Android AAPT2 (no Gradle)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/ci/check_cartdeck_native_aapt2.sh
+          bash scripts/ci/check_cartdeck_native_aapt2.sh
       - name: Archive native asset source-to-resource traceability for Sienna and Daniel
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,6 +56,7 @@ jobs:
           path: |
             lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json
             lemuroid-app/build/generated/cartdeck-native/res/values/cartdeck_edition_colors.xml
+            lemuroid-app/build/generated/cartdeck-native/aapt2-evidence/
           if-no-files-found: warn
           retention-days: 30
       - name: Ensure generated files did not alter tracked masters
