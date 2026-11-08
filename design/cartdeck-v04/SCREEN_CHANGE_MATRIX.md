@@ -19,7 +19,7 @@
 | 15 | Fullscreen gameplay | MobileGameScreen | No shell, correct aspect game, controller available; reliable Pause/Back | none required | P1-C |
 | 16 | Floating gameplay | MobileGameScreen + TouchControllerSettingsManager | Game-first, adjustable translucent controls & reset; all mandatory keys reachable | control library | P1-C |
 | 17 | Pause/menu & saves | GameMenuHomeScreen | Resume/Save State/Load State/Controls/Display/Exit, in-game SRAM distinct from manual state | pause/display glyphs | P1-C/D |
-| 18 | Display & edition picker | SettingsScreen / new preference route | Console Shell default; Original/Pink finish selector; Green/Mono not shipped unless approved; accessibility preferences priority | v03 editions + v04 catalog | P1-C |
+| 18 | Display & edition picker | SettingsScreen / new preference route | Console Shell default; Original/Pink selector; personal colour editor for shell/bezel/button/accent with live preview and contrast checks; Green/Mono preset prototypes remain unapproved; accessibility preferences take priority | v03 editions + v04 catalog + appearance-editor.json | P1-C |
 | 19 | Cartridge/storage/backup | Settings / SAF / save sync | Keep existing import, save and permission mechanics; add future export only in separately approved feature | shelf icons | Future |
 | 20 | Error/recovery | scan/core/game crash views | CARTDECK error style with actions, never cosmetic failure destroys launch/save data | same tokens | P1-D |
 | 21 | Android TV | existing TV activities | Controller-first fullscreen/TV library, no virtual touch, system frame optional | same brand / layout rules | P1-D |
