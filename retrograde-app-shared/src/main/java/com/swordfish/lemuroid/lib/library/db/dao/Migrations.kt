@@ -4,6 +4,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object Migrations {
+    val VERSION_10_11: Migration =
+        object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                createTitleSearchIndex(database)
+            }
+        }
+
     val VERSION_8_9: Migration =
         object : Migration(8, 9) {
             override fun migrate(database: SupportSQLiteDatabase) {
