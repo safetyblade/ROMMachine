@@ -54,6 +54,22 @@ java -version
 
 If that Gradle task is absent, run `./gradlew :lemuroid-app:tasks --all` and record the actual task and error. Do **not** silently substitute a dynamic/Play/release variant.
 
+### First remote build attempt — failed in SDK setup (not Gradle)
+
+- **Run:** https://github.com/safetyblade/ROMMachine/actions/runs/42455131571
+- **Commit:** `168db6277cf12b1799042dfaf85da2818a594cdc`
+- **Command:** workflow `P0-A Android debug APK`, before Gradle task.
+- **Observed:** recursive checkout and Java 17 setup passed; `android-actions/setup-android@v3` exited 1 after invoking `sdkmanager tools`. Exact log excerpts:
+
+```text
+Warning: Failed to find package 'tools'
+Error: The process '/usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager' failed with exit code 1
+```
+
+- **Cause:** the action attempted an obsolete Android SDK package, even though GitHub hosted `ubuntu-24.04` already exposes Android SDK command-line tools in `/usr/local/lib/android/sdk`.
+- **Minimal remedy:** remove that action only and run hosted `sdkmanager` directly to accept licences/install the project-declared SDK packages. Do not change AGP, Kotlin, Gradle, emulator cores or Android app source speculatively.
+- **Status:** No compile attempt, APK, launch or game test completed in this run. A replacement CI run must prove the remedy.
+
 ## 3. CI evidence to complete (not yet verified)
 
 Workflow: `.github/workflows/p0-a-debug-apk.yml`; build output: `lemuroid-app/build/outputs/apk/**`. It must publish only an internal GitHub Actions **debug** artifact and evidence, never a Release.
