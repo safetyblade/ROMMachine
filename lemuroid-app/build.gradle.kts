@@ -14,6 +14,14 @@ android {
         versionName = "1.17.0" // Always remember to update Cores Tag!
         applicationId = "com.swordfish.lemuroid"
 
+        // CARTDECK standalone preview: a distinct install from the inherited P0
+        // test app, so old library data and saves remain untouched. This property
+        // is used ONLY for an internal debug APK; it is not the public release ID
+        // or permission to reuse inherited debug signing for production.
+        if (providers.gradleProperty("cartdeck.dev.standaloneId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck"
+        }
+
         // P0 test-only overrides. No override means the original production configuration.
         // Keep the existing package ID and test-signing certificate between updates.
         providers.gradleProperty("cartdeck.p0.testVersionCode").orNull?.let { value ->
