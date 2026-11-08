@@ -26,6 +26,10 @@ One Actions artifact, **CARTDECK_STANDALONE_ARM64_DEBUG**, contains one `CARTDEC
 
 Historical Actions runs remain available as audit evidence. Obsolete definitions are removed; their old run history is not deleted. No tag-triggered public release workflow remains.
 
+## Verified hosted run and transport follow-up
+
+PR #38 passed in [run 42471433483](https://github.com/safetyblade/ROMMachine/actions/runs/42471433483), producing one verified v2012 APK and 19 passing framework tests. After merge, the first master run hit HTTP 503 on the browser distribution redirect. A fresh probe returned an upstream refused-stream reset from github.com, while the official release asset API succeeded. Bootstrap now falls back to that official API for the same version/asset, validates the release identity, and still requires the original pinned full-archive SHA-256. No new Gradle version or weakened verification is involved.
+
 ## Local validation
 
 The consolidated command passed full root ktlintCheck, all 19 Compose/Robolectric tests (0 failures/skips), and the standalone ARM64 debug build. The brand/design/native checks and AAPT2 resource compilation passed. The four retry-policy tests passed; the APK verifier rejected an incorrect version and a second APK, then accepted and staged the valid signed standalone APK. A fresh Gradle archive download matched the pinned official SHA-256; a repeat bootstrap verified and reused that archive.

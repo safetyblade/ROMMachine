@@ -19,9 +19,39 @@ verify() { printf '%s  %s\n' "$checksum" "$1" | sha256sum --check --status; }
 if [[ ! -f "$archive" ]] || ! verify "$archive"; then
   partial="$archive.part"
   trap 'rm -f "$partial"' EXIT
-  curl --fail --location --silent --show-error \
-    --retry 4 --retry-all-errors --retry-delay 3 \
-    --connect-timeout 15 --max-time 180 "$url" -o "$partial"
+  if ! curl --fail --location --silent --show-error \
+    --retry 1 --retry-all-errors --retry-delay 3 \
+    --connect-timeout 15 --max-time 180 "$url" -o "$partial"; then
+    echo 'Browser distribution route failed; resolving the same official release through GitHub API.'
+    metadata="$cache/release-$version.json"
+    curl --fail --location --silent --show-error \
+      --retry 3 --retry-all-errors --retry-delay 3 --connect-timeout 15 --max-time 60 \
+      "https://api.github.com/repos/gradle/gradle-distributions/releases/tags/v$version" -o "$metadata"
+    asset_url="$(python3 - "$metadata" "$version" <<'PYCODE'
+import json
+import re
+import sys
+release = json.load(open(sys.argv[1]))
+version = sys.argv[2]
+assert release['tag_name'] == 'v' + version, 'Unexpected Gradle release'
+name = 'gradle-' + version + '-bin.zip'
+assets = [asset for asset in release['assets'] if asset['name'] == name]
+assert len(assets) == 1, 'Expected one official binary distribution'
+asset = assets[0]
+assert asset['browser_download_url'] == (
+    'https://github.com/gradle/gradle-distributions/releases/download/v' + version + '/' + name
+), 'Unexpected distribution origin'
+assert re.fullmatch(
+    r'https://api\.github\.com/repos/gradle/gradle-distributions/releases/assets/[0-9]+', asset['url']
+), 'Unexpected asset API origin'
+print(asset['url'])
+PYCODE
+)"
+    curl --fail --location --silent --show-error \
+      --header 'Accept: application/octet-stream' \
+      --retry 3 --retry-all-errors --retry-delay 3 --connect-timeout 15 --max-time 180 \
+      "$asset_url" -o "$partial"
+  fi
   verify "$partial" || { echo 'Gradle checksum mismatch; refusing this download.' >&2; exit 1; }
   mv "$partial" "$archive"
   trap - EXIT
