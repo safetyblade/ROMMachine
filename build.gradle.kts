@@ -3,6 +3,16 @@ import com.android.build.gradle.BaseExtension
 buildscript {
     repositories {
         google()
+        // CI fallback: cached upstream Kotlin compiler binary only. Do not move
+        // Android SDK, app, emulator or other dependency groups to this mirror.
+        // The Maven Central Kotlin 2.0.21 large-JAR download currently redirects
+        // through a GitHub release and returns HTTP 504 on GitHub runners.
+        maven {
+            url = uri("https://maven.wso2.org/nexus/content/repositories/central/")
+            content {
+                includeModule("org.jetbrains.kotlin", "kotlin-compiler-embeddable")
+            }
+        }
         mavenCentral()
     }
     dependencies {
