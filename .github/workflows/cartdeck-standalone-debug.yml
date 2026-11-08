@@ -1,0 +1,119 @@
+name: CARTDECK standalone preview APK
+
+# Device-first CARTDECK preview, separate from inherited P0/Lemuroid test package.
+# Not a public release. Does not establish licence/security/device QA clearance.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'lemuroid-app/**'
+      - 'design/cartdeck-v03/**'
+      - 'scripts/audit_cartdeck_brand.py'
+      - '.github/workflows/cartdeck-standalone-debug.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartdeck-standalone-preview-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standalone-android-debug:
+    name: Assemble standalone CARTDECK ARM64 debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - name: Checkout project and pinned emulator submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure installed Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$manager"
+          echo "ANDROID_HOME=$root" >> "$GITHUB_ENV"
+          printf '%s\n' "$root/cmdline-tools/latest/bin" "$root/platform-tools" >> "$GITHUB_PATH"
+          "$manager" --sdk_root="$root" --licenses < <(yes)
+          "$manager" --sdk_root="$root" --install "platform-tools" "platforms;android-35" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate approved visual identity
+        run: python3 scripts/audit_cartdeck_brand.py
+
+      - name: Build standalone package with opt-in Android application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          mkdir -p standalone-evidence standalone-apk
+          git rev-parse HEAD | tee standalone-evidence/commit-sha.txt
+          git submodule status --recursive | tee standalone-evidence/submodule-shas.txt
+          version_code=$((2000 + GITHUB_RUN_NUMBER))
+          echo "$version_code" | tee standalone-evidence/version-code.txt
+          ./gradlew :lemuroid-app:assembleFreeBundleDebug \
+            -Pcartdeck.dev.standaloneId=true \
+            -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p0.testVersionCode="$version_code" \
+            --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee standalone-evidence/build.log
+
+      - name: Verify install identity, signing, checksum and native libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find lemuroid-app/build/outputs/apk/freeBundle/debug -type f -name '*.apk' | sort)
+          test "${#apks[@]}" -eq 1
+          apk="standalone-apk/CARTDECK_STANDALONE_ARM64_DEBUG.apk"
+          cp "${apks[0]}" "$apk"
+          sha256sum "$apk" | tee standalone-evidence/sha256.txt
+          du -b "$apk" | tee standalone-evidence/size.txt
+          "${ANDROID_HOME}/build-tools/34.0.0/aapt" dump badging "$apk" | tee standalone-evidence/aapt-badging.txt
+          grep -F "package: name='dev.prestwich.cartdeck.debug'" standalone-evidence/aapt-badging.txt
+          grep -Ei 'application-label.*CARTDECK' standalone-evidence/aapt-badging.txt
+          "${ANDROID_HOME}/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" | tee standalone-evidence/signing.txt
+          grep -F 'Signer #1 certificate SHA-256 digest:' standalone-evidence/signing.txt
+          # This is *inherited debug-only signing*, NOT a prestwich.dev-owned release key.
+          grep -Fi 'ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8' standalone-evidence/signing.txt
+          python3 scripts/p0_apk_inventory.py "$apk" standalone-evidence
+          if grep -qE 'lib/(x86|x86_64|armeabi-v7a)/' standalone-evidence/native-libraries.tsv; then
+            echo "::error::Non-ARM64 emulator library found in phone APK" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('standalone-apk/CARTDECK_STANDALONE_ARM64_DEBUG.apk')
+          assert p.stat().st_size < 100 * 1024 * 1024, 'APK exceeds Drive controlled upload limit'
+          PY
+          echo "THIS PREVIEW DOES NOT IMPORT/DELETE EXISTING APP SAVES. Do not uninstall old app." | tee standalone-evidence/save-migration-warning.txt
+
+      - name: Publish standalone CARTDECK debug APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartdeck-standalone-arm64-${{ github.run_id }}
+          path: standalone-apk/CARTDECK_STANDALONE_ARM64_DEBUG.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish build provenance and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartdeck-standalone-evidence-${{ github.run_id }}
+          path: standalone-evidence/
+          if-no-files-found: warn
+          retention-days: 30
