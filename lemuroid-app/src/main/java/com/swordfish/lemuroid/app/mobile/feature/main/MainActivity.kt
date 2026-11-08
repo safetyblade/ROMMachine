@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -49,7 +50,7 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSetti
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsScreen
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsViewModel
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
@@ -63,9 +64,9 @@ import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.core.CoresSelection
 import com.swordfish.lemuroid.lib.injection.PerActivity
-import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.MetaSystemID
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -129,7 +130,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun MainScreen(navController: NavHostController) {
-        AppTheme {
+        CartridgeLibraryTheme {
             val navBackStackEntry = navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry.value?.destination
             val currentRoute =
@@ -155,8 +156,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 selectedGameState.value = game
             }
 
+            val coverGameId = rememberSaveable { mutableStateOf<Int?>(null) }
             val onGameClick = { game: Game ->
-                gameInteractor.onGamePlay(game)
+                coverGameId.value = game.id
             }
 
             val onGameFavoriteToggle = { game: Game, isFavorite: Boolean ->
@@ -345,6 +347,20 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                 }
+            }
+
+            coverGameId.value?.let { id ->
+                CartridgeDetailHost(
+                    gameId = id,
+                    database = retrogradeDb,
+                    onDismiss = { coverGameId.value = null },
+                    onOpen = { game ->
+                        coverGameId.value = null
+                        gameInteractor.onGamePlay(game)
+                    },
+                    onChangeCover = gameInteractor::onSetCustomCoverUri,
+                    onResetCover = gameInteractor::onClearCustomCoverUri,
+                )
             }
 
             MainGameContextActions(

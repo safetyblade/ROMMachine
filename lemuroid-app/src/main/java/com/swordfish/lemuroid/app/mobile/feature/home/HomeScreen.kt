@@ -6,16 +6,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -24,11 +28,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameCard
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
 import com.swordfish.lemuroid.common.displayDetailsSettingsScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -82,7 +87,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeScreen(
+internal fun HomeScreen(
     modifier: Modifier = Modifier,
     state: HomeViewModel.UIState,
     onGameClicked: (Game) -> Unit,
@@ -99,21 +104,32 @@ private fun HomeScreen(
                 .padding(top = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Image(painterResource(R.drawable.cartdeck_original_cslot_master), null, Modifier.size(36.dp))
+            Text(
+                text = stringResource(R.string.cartdeck_home_intro),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        }
+        Button(
+            onClick = onSetDirectoryClicked,
+            enabled = !state.indexInProgress,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
+        if (state.indexInProgress) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+            Text(stringResource(R.string.cartdeck_scanning), modifier = Modifier.padding(horizontal = 16.dp))
+        }
         AnimatedVisibility(state.showNoNotificationPermissionCard) {
             HomeNotification(
                 titleId = R.string.home_notification_title,
                 messageId = R.string.home_notification_message,
                 actionId = R.string.home_notification_action,
                 onAction = onEnableNotificationsClicked,
-            )
-        }
-        AnimatedVisibility(state.showNoGamesCard) {
-            HomeNotification(
-                titleId = R.string.home_empty_title,
-                messageId = R.string.home_empty_message,
-                actionId = R.string.home_empty_action,
-                onAction = onSetDirectoryClicked,
-                enabled = !state.indexInProgress,
             )
         }
         AnimatedVisibility(state.showNoMicrophonePermissionCard) {
@@ -133,7 +149,7 @@ private fun HomeScreen(
             )
         }
         HomeRow(
-            stringResource(id = R.string.recent),
+            stringResource(id = R.string.cartdeck_continue),
             state.recentGames,
             onGameClicked,
             onGameLongClick,
@@ -145,7 +161,7 @@ private fun HomeScreen(
             onGameLongClick,
         )
         HomeRow(
-            stringResource(id = R.string.discover),
+            stringResource(id = R.string.cartdeck_shelf),
             state.discoveryGames,
             onGameClicked,
             onGameLongClick,
@@ -175,16 +191,13 @@ private fun HomeRow(
             modifier =
                 Modifier
                     .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = PaddingValues(16.dp),
         ) {
             items(games.size, key = { games[it].id }) { index ->
                 val game = games[index]
-                LemuroidGameCard(
-                    modifier =
-                        Modifier
-                            .widthIn(0.dp, 144.dp)
-                            .animateItem(),
+                CartridgeSpine(
+                    modifier = Modifier.animateItem(),
                     game = game,
                     onClick = { onGameClicked(game) },
                     onLongClick = { onGameLongClick(game) },
@@ -212,8 +225,8 @@ private fun HomeNotification(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = stringResource(titleId),

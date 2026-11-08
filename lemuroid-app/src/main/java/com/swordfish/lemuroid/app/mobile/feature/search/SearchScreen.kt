@@ -7,7 +7,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,8 +17,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgePagedShelf
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidEmptyView
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameListRow
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 @Composable
@@ -83,21 +82,7 @@ private fun SearchResultsView(
     onGameLongClick: (Game) -> Unit,
     onGameFavoriteToggle: (Game, Boolean) -> Unit,
 ) {
-    LazyColumn(modifier = modifier) {
-        items(games.itemCount, key = { games[it]?.id ?: it }) { index ->
-            val game = games[index] ?: return@items
-
-            LemuroidGameListRow(
-                modifier = Modifier.animateItem(),
-                game = game,
-                onClick = { onGameClick(game) },
-                onLongClick = { onGameLongClick(game) },
-                onFavoriteToggle = { isFavorite ->
-                    onGameFavoriteToggle(game, isFavorite)
-                },
-            )
-        }
-    }
+    CartridgePagedShelf(games, onGameClick, onGameLongClick, modifier, onGameFavoriteToggle)
 }
 
 @Composable
