@@ -1,6 +1,6 @@
 # CARTDECK — visible brand migration (P1-BR1)
 
-**Status:** Feature branch only; Android compile, install, launch and save persistence not yet verified for this change.
+**Status:** Visible identity source merged through PR #11; locale and static-audit follow-up in draft PR #20. Android compile, install, launch and save persistence not yet verified for the complete rebrand.
 **Source branch:** `feature/cartdeck-visible-rebrand`.
 **Owner:** Cassia Rowan (experience); Elliot Shaw (engineering); Daniel Mercer (migration review); Sienna Vale (art); Marcus Reid (QA).
 
