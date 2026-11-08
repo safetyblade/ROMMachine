@@ -12,6 +12,11 @@ V03 = ROOT.parent / "cartdeck-v03"
 DEST = ROOT / "generated"
 COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
+def mix(a, b, ratio):
+    av = [int(a[i:i+2], 16) for i in (1, 3, 5)]
+    bv = [int(b[i:i+2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x * (1-ratio) + y * ratio):02X}" for x, y in zip(av, bv))
+
 def main():
     catalog = json.loads((ROOT / "catalog.json").read_text(encoding="utf-8"))
     source = set()
@@ -34,6 +39,10 @@ def main():
         for k in catalog["semanticTokens"]:
             if not COLOR.match(edition.get(k, "")):
                 raise ValueError(f"Missing or invalid cosmetic token {cfg.name}:{k}")
+        tokens = dict(edition)
+        tokens["secondaryHi"] = mix(edition["secondary"], edition["onChassis"], 0.28)
+        tokens["accentHi"] = mix(edition["accent"], "#FFFFFF", 0.21)
+        tokens["accentLo"] = mix(edition["accent"], "#000000", 0.28)
         out = DEST / cfg.stem
         for p in sorted(source):
             if p.suffix != ".svg":
@@ -47,9 +56,9 @@ def main():
                 for token_attr, style_attr in (("data-cd-fill", "fill"), ("data-cd-stroke", "stroke")):
                     key = node.attrib.get(token_attr)
                     if key:
-                        if key not in edition:
+                        if key not in tokens:
                             raise ValueError(f"Undeclared token {key} in {p}")
-                        node.set(style_attr,edition[key])
+                        node.set(style_attr,tokens[key])
             tree.write(dest, encoding="unicode", xml_declaration=False)
         print(f"PASS: {cfg.stem} edition visuals generated ({len(source)} source assets)")
     print("Design source only. Android needs Compose rendering / reviewed VectorDrawable conversion.")
