@@ -4,7 +4,7 @@ Choose games from a cartridge-inspired library, play with responsive on-screen c
 
 The project is currently under development. Console-specific virtual shells, original boot animations, full-screen presentation and controller features are being implemented and verified in controlled stages.
 
-CARTDECK is based on open-source Lemuroid and LibretroDroid technology, with credits and licence information supplied in source documentation.
+Open-source component credits and licences are supplied in the accompanying source documentation.
 
 CARTDECK does not provide games or firmware. You must supply game files you are legally permitted to use.
 
