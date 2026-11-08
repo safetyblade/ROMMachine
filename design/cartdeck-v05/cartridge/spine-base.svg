@@ -2,5 +2,5 @@
 <path data-cd-fill="secondary" fill="#1C2430" stroke="none" d="M24 16H70L78 24V317L70 325H24L16 317V24Z"/>
 <path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M22 32V68M72 32V68M22 273V310M72 273V310" stroke-width="3.7" stroke-linecap="round"/>
 <rect data-cd-fill="glass" fill="#09131B" data-cd-stroke="bezel" stroke="#0D1721" x="24" y="82" width="46" height="171" rx="7" stroke-width="2"/>
-<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="accent" stroke="#4ED8C4" x="17" y="271" width="60" height="34" rx="15" stroke-width="2"/>
+
 <path fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" d="M31 17H63" stroke-width="2" stroke-opacity=".3"/></svg>
