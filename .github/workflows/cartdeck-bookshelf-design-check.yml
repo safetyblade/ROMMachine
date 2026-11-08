@@ -1,0 +1,20 @@
+name: CARTDECK Bookshelf Palette Design Check
+on:
+  pull_request:
+    paths:
+      - 'design/cartdeck-v06/**'
+      - '.github/workflows/cartdeck-bookshelf-design-check.yml'
+  push:
+    paths:
+      - 'design/cartdeck-v06/**'
+      - '.github/workflows/cartdeck-bookshelf-design-check.yml'
+jobs:
+  verify-shelf-palette:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test colour tokens, contrast and vertical shelf contract
+        run: python -m unittest discover design/cartdeck-v06 -p 'test_bookshelf_palette.py' -v
