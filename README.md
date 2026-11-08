@@ -1,61 +1,49 @@
-# Lemuroid
+# CARTDECK
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-     alt="Get it on F-Droid"
-     height="80">](https://f-droid.org/packages/com.swordfish.lemuroid/)
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
-     alt="Get it on Google Play"
-     height="80">](https://play.google.com/store/apps/details?id=com.swordfish.lemuroid)
+**CARTDECK by prestwich.dev** is a native Android retro-gaming project built around an original virtual-console experience: **cartridge shelf → boot → play → suspend → resume**.
 
-## Description
+The app is under active development. The Android implementation currently builds on the existing Lemuroid/LibretroDroid code and emulator-core infrastructure. Source availability does **not** establish that every advertised console or feature has passed CARTDECK device QA. **There is no authorised public CARTDECK release yet.**
 
-Lemuroid is an open-source emulation project for Android based on Libretro. Its main goal is ease of use, good Android integration and a great user experience.
+## Product principles
 
-It originated from a rib of [Retrograde](https://github.com/retrograde/retrograde-android), but graduated to a standalone project integrating [LibretroDroid](https://github.com/Swordfish90/LibretroDroid).
+- A distinctive original C-slot identity, cartridge-inspired browsing and optional virtual handheld shell.
+- Simple, offline-first game importing and resume; no integrated ROM catalogue.
+- Preserve reliable battery-backed game saves, save states, controller support and input latency above visual effects.
+- A clean default device presentation with optional floating controls and full-screen gameplay.
+- Phone/tablet first; retain a controller-first Android TV pathway.
 
-|Screen 1|Screen 2|Screen 3|
-|---|---|---|
-|![Screen1](https://github.com/Swordfish90/Lemuroid/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg)|![Screen2](https://github.com/Swordfish90/Lemuroid/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg)|![Screen3](https://github.com/Swordfish90/Lemuroid/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg)|
+### Current engineering gate
 
-### Supported Systems:
-- Atari 2600 (A26) ([stella](https://docs.libretro.com/library/stella/))
-- Atari 7800 (A78) ([prosystem](https://docs.libretro.com/library/prosystem/))
-- Atari Lynx (Lynx) ([handy](https://docs.libretro.com/library/handy/))
-- Nintendo (NES) ([fceumm](https://docs.libretro.com/library/fceumm/))
-- Super Nintendo (SNES) ([snes9x](https://docs.libretro.com/library/snes9x/))
-- Game Boy (GB) ([gambatte](https://docs.libretro.com/library/gambatte/))
-- Game Boy Color (GBC) ([gambatte](https://docs.libretro.com/library/gambatte/))
-- Game Boy Advance (GBA) ([mgba](https://docs.libretro.com/library/mgba/))
-- Sega Genesis (aka Megadrive) ([genesis_plus_gx](https://docs.libretro.com/library/genesis_plus_gx/))
-- Sega CD (aka Mega CD) ([genesis_plus_gx](https://docs.libretro.com/library/genesis_plus_gx/))
-- Sega Master System (SMS) ([genesis_plus_gx](https://docs.libretro.com/library/genesis_plus_gx/))
-- Sega Game Gear (GG) ([genesis_plus_gx](https://docs.libretro.com/library/genesis_plus_gx/))
-- Nintendo 64 (N64) ([mupen64plus](https://docs.libretro.com/library/mupen64plus/))
-- PlayStation (PSX) ([PCSX-ReARMed](https://docs.libretro.com/library/pcsx_rearmed/))
-- PlayStation Portable (PSP) ([ppsspp](https://docs.libretro.com/library/ppsspp/))
-- FinalBurn Neo (Arcade) ([fbneo](https://github.com/libretro/FBNeo/))
-- Nintendo DS (NDS) ([desmume](https://docs.libretro.com/library/desmume/)/[MelonDS](https://docs.libretro.com/library/melonds/))
-- NEC PC Engine (PCE) ([beetle_pce_fast](https://docs.libretro.com/library/beetle_pce_fast/))
-- Neo Geo Pocket (NGP) ([mednafen_ngp](https://docs.libretro.com/library/beetle_neopop/))
-- Neo Geo Pocket Color (NGC) ([mednafen_ngp](https://docs.libretro.com/library/beetle_neopop/))
-- WonderSwan (WS) ([beetle_cygne](https://docs.libretro.com/library/beetle_cygne/))
-- WonderSwan Color (WSC) ([beetle_cygne](https://docs.libretro.com/library/beetle_cygne/))
-- Nintendo 3DS (3DS) ([citra](https://docs.libretro.com/library/citra/))
+**P0: GB / GBC / GBA playable debug APK and independent save-persistence verification.**
 
-### Features:
-- Android TV support
-- Automatically save and restore game states.
-- ROMs scanning and indexing
-- Optimized touch controls
-- Quick save/load
-- Support for Zipped ROMs
-- Display simulation (LCD/CRT)
-- Gamepad support
-- Local multiplayer
-- Tilt input
-- Customizable touch controls (size and position)
-- Cloud save sync
-- HD mode
+The existing package ID and test signing are intentionally preserved during P0 for in-place upgrade/save testing. Replacing them with a permanent CARTDECK identity requires a separate migration and QA gate. Unverified features should not be presented as released.
 
-### Languages:
-You can help translate Lemuroid in your native language by going here: https://crowdin.com/project/lemuroid
+## Building
+
+This project uses the existing Gradle wrapper and a recursive core submodule.
+
+```sh
+git clone --recurse-submodules https://github.com/safetyblade/ROMMachine.git
+cd ROMMachine
+./gradlew :lemuroid-app:assembleFreeBundleDebug
+```
+
+Actual build requirements, Android SDK/NDK compatibility and packaging evidence are recorded in `docs/P0_BASELINE.md` and `docs/PHONE_TESTING.md`. The module and application namespaces retain historical names until migration is approved. See `.github/workflows/p0-a-debug-apk.yml` for controlled debug build steps.
+
+## Brand sources
+
+Approved original CARTDECK vector artwork and colour editions are in `design/cartdeck-v03/`. The Android launcher C-slot and TV lockup vector resources are located in `lemuroid-app/src/main/res/`. Original/Pink are the approved directions; Mono/Green remain demonstration/reference editions unless separately approved.
+
+The UI/icon integration is deliberately separate from emulator, core, ROM scanning and save code. Review `docs/CARTDECK_BRAND_MIGRATION.md` before further package/branding changes.
+
+## Source lineage and licences
+
+CARTDECK is developed from [Lemuroid](https://github.com/Swordfish90/Lemuroid) by Swordfish90, based on [LibretroDroid](https://github.com/Swordfish90/LibretroDroid), which builds on the [Libretro](https://www.libretro.com/) emulator ecosystem and multiple independent emulation cores. Additional original Lemuroid attribution, source notices and the GPL text remain in this repository. See `COPYING`, `THIRD_PARTY_NOTICES.md`, and the CARTDECK Drive Source & Licensing Register for core-by-core due diligence.
+
+Rebranding does not change or eliminate upstream licence obligations. No commercial copyrighted ROMs, proprietary console firmware, or unlicensed manufacturer artwork are included or authorised by this project.
+
+## Controlled delivery records
+
+[Project folder (Google Drive)](https://drive.google.com/drive/folders/1O4Bc1p9IAEkiSWCPuauhtDEirGYX0r_1) · [Project foundation](docs/PROJECT_FOUNDATION.md) · [P0 baseline](docs/P0_BASELINE.md) · [Phone upgrade protocol](docs/PHONE_TESTING.md).
+
+**Product Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Studio Governance:** Helena Ward.
