@@ -3,7 +3,6 @@ name: CARTDECK APK
 # One pipeline, one signed standalone ARM64 debug APK. No release publishing.
 on:
   pull_request:
-    branches: [master]
   push:
     branches: [master]
   workflow_dispatch:
@@ -74,6 +73,7 @@ jobs:
             python3 -m unittest discover design/cartdeck-v03 -p 'test_dpad_consistency.py'
             python3 -m unittest discover design/cartdeck-v04 -p 'test_assets.py'
             python3 -m unittest discover design/cartdeck-v05 -p 'test_cartridge_family.py'
+            python3 -m unittest discover design/cartdeck-v06 -p 'test_bookshelf_palette.py'
             python3 design/cartdeck-v04/build_assets.py
             python3 design/cartdeck-v04/export_android_vectors.py
             python3 -m unittest discover design/cartdeck-v04 -p 'test_android_export.py'
