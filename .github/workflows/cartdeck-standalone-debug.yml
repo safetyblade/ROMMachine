@@ -8,6 +8,9 @@ on:
     paths:
       - 'lemuroid-app/**'
       - 'design/cartdeck-v03/**'
+      - 'design/cartdeck-v05/**'
+      - 'scripts/export_cartridge_vectors.py'
+      - 'scripts/test_cartridge_vectors.py'
       - 'scripts/audit_cartdeck_brand.py'
       - '.github/workflows/cartdeck-standalone-debug.yml'
   workflow_dispatch:
@@ -75,6 +78,28 @@ jobs:
             -Pcartdeck.p0.phoneArm64Only=true \
             -Pcartdeck.p0.testVersionCode="$version_code" \
             --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee standalone-evidence/build.log
+
+      - name: Test native cartridge interactions (Robolectric, not device acceptance)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/test_cartridge_vectors.py
+          ./gradlew :lemuroid-app:testFreeBundleDebugUnitTest \
+            -Pcartdeck.dev.standaloneId=true \
+            -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p0.testVersionCode="$CARTDECK_VERSION_CODE" \
+            --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee standalone-evidence/unit-tests.log
+
+      - name: Retain native test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartdeck-cartridge-tests-${{ github.run_id }}
+          path: |
+            lemuroid-app/build/test-results/testFreeBundleDebugUnitTest/
+            lemuroid-app/build/reports/tests/testFreeBundleDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Verify install identity, signing, checksum and native libraries
         shell: bash

@@ -1,0 +1,12 @@
+<resources>
+    <string name="cartdeck_open">Open</string>
+    <string name="cartdeck_change_cover">Change Cover</string>
+    <string name="cartdeck_reset_cover">Reset Cover</string>
+    <string name="cartdeck_back_to_shelf">Back to shelf</string>
+    <string name="cartdeck_add_cartridges">Add Cartridges</string>
+    <string name="cartdeck_shelf">Cartridge Shelf</string>
+    <string name="cartdeck_continue">Continue</string>
+    <string name="cartdeck_scanning">Adding cartridges… Your library stays available.</string>
+    <string name="cartdeck_home_intro">Your games. Your cartridge shelf.</string>
+    <string name="cartdeck_cartridge_unavailable">This cartridge is no longer in your library.</string>
+</resources>
