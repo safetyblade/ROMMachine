@@ -1,3 +1,6 @@
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.OutputDirectory
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -136,6 +139,7 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.maxHeapSize = "1536m" }
     }
 
     buildFeatures {
@@ -156,31 +160,42 @@ android {
 // ASSET-H1 — generated, compile-time Android resource source set.
 // Editable SVGs/edition JSON in design/ are the only design masters.
 // The app does not use these new Drawables until separate P1 screen PRs.
-val cartdeckNativeResourceDir = layout.buildDirectory.dir("generated/cartdeck-native/res")
-val generateCartdeckNativeAssets by tasks.registering(Exec::class) {
-    group = "cartdeck"
-    description = "Generate Original/Pink native vectors and semantic colours from editable CARTDECK SVGs"
-    workingDir = rootProject.projectDir
-    commandLine(
-        providers.gradleProperty("cartdeck.assets.python").orElse("python3").get(),
-        "scripts/generate_cartdeck_native_assets.py",
-        "--output",
-        cartdeckNativeResourceDir.get().asFile.absolutePath,
-    )
-    inputs.file(rootProject.file("scripts/generate_cartdeck_native_assets.py"))
-    inputs.files(
-        fileTree(rootProject.file("design/cartdeck-v03")) { include("**/*.svg", "**/*.json", "**/*.py") },
-        fileTree(rootProject.file("design/cartdeck-v04")) { include("**/*.svg", "**/*.json", "**/*.py") },
-        fileTree(rootProject.file("design/cartdeck-v05")) { include("**/*.svg", "**/*.json", "**/*.py") },
-    )
-    outputs.dir(cartdeckNativeResourceDir)
-    outputs.file(layout.buildDirectory.file("generated/cartdeck-native/native-assets-manifest.json"))
-}
-android.sourceSets.getByName("main").res.srcDir(cartdeckNativeResourceDir)
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }.configureEach {
-    dependsOn(generateCartdeckNativeAssets)
+abstract class GenerateCartdeckNativeAssets : Exec() {
+    @get:OutputDirectory
+    abstract val resourceDirectory: DirectoryProperty
 }
 
+androidComponents.onVariants { variant ->
+    val capitalizedVariant = variant.name.replaceFirstChar { it.uppercase() }
+    val generator =
+        tasks.register<GenerateCartdeckNativeAssets>("generate${capitalizedVariant}CartdeckNativeAssets") {
+            group = "cartdeck"
+            description = "Generate Original/Pink vectors and semantic colours for ${variant.name}"
+            workingDir = rootProject.projectDir
+            val stagingResources = layout.buildDirectory.dir("generated/cartdeck-native/${variant.name}/res")
+            commandLine(
+                providers.gradleProperty("cartdeck.assets.python").orElse("python3").get(),
+                "scripts/generate_cartdeck_native_assets.py",
+                "--output",
+                stagingResources.get().asFile.absolutePath,
+            )
+            outputs.dir(layout.buildDirectory.dir("generated/cartdeck-native/${variant.name}"))
+            // Keep the generator's dedicated /res safety guard while using AGP's managed output path.
+            doLast {
+                project.sync {
+                    from(stagingResources)
+                    into(resourceDirectory)
+                }
+            }
+            inputs.file(rootProject.file("scripts/generate_cartdeck_native_assets.py"))
+            inputs.files(
+                fileTree(rootProject.file("design/cartdeck-v03")) { include("**/*.svg", "**/*.json", "**/*.py") },
+                fileTree(rootProject.file("design/cartdeck-v04")) { include("**/*.svg", "**/*.json", "**/*.py") },
+                fileTree(rootProject.file("design/cartdeck-v05")) { include("**/*.svg", "**/*.json", "**/*.py") },
+            )
+        }
+    variant.sources.res?.addGeneratedSourceDirectory(generator) { it.resourceDirectory }
+}
 
 dependencies {
     testImplementation("junit:junit:4.13.2")

@@ -28,7 +28,7 @@ cd ROMMachine
 ./gradlew :lemuroid-app:assembleFreeBundleDebug
 ```
 
-Actual build requirements, Android SDK/NDK compatibility and packaging evidence are recorded in `docs/P0_BASELINE.md` and `docs/PHONE_TESTING.md`. The module and application namespaces retain historical names until migration is approved. See `.github/workflows/p0-a-debug-apk.yml` for controlled debug build steps.
+Actual build requirements, Android SDK/NDK compatibility and packaging evidence are recorded in `docs/P0_BASELINE.md` and `docs/PHONE_TESTING.md`. The module and application namespaces retain historical names until migration is approved. See `.github/workflows/cartdeck-standalone-debug.yml` for the single standalone ARM64 debug APK workflow. See `docs/engineering/CI_SINGLE_APK.md` for validation and failure-review details.
 
 ## Brand sources
 

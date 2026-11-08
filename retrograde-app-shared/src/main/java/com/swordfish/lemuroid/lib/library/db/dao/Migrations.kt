@@ -54,9 +54,7 @@ object Migrations {
             }
         }
 
-    private fun migrateGamesTableToVersion10(
-        database: SupportSQLiteDatabase,
-    ) {
+    private fun migrateGamesTableToVersion10(database: SupportSQLiteDatabase) {
         database.execSQL(
             "ALTER TABLE games ADD COLUMN customName TEXT DEFAULT NULL",
         )

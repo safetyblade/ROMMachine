@@ -39,34 +39,38 @@ internal data class CartdeckEditionTokens(
 
 /** Resolve a palette on demand; the caller's Compose state owns reactivity. */
 internal fun Context.resolveCartdeckEdition(edition: CartdeckEditionPreset): CartdeckEditionTokens {
-    fun nativeColor(@ColorRes resource: Int): Color = Color(ContextCompat.getColor(this, resource))
+    fun nativeColor(
+        @ColorRes resource: Int,
+    ): Color = Color(ContextCompat.getColor(this, resource))
 
     return when (edition) {
-        CartdeckEditionPreset.ORIGINAL -> CartdeckEditionTokens(
-            chassis = nativeColor(R.color.cartdeck_original_chassis),
-            secondary = nativeColor(R.color.cartdeck_original_secondary),
-            bezel = nativeColor(R.color.cartdeck_original_bezel),
-            glass = nativeColor(R.color.cartdeck_original_glass),
-            button = nativeColor(R.color.cartdeck_original_button),
-            accent = nativeColor(R.color.cartdeck_original_accent),
-            onChassis = nativeColor(R.color.cartdeck_original_on_chassis),
-            onButton = nativeColor(R.color.cartdeck_original_on_button),
-            focus = nativeColor(R.color.cartdeck_original_focus),
-            focusOnChassis = nativeColor(R.color.cartdeck_original_focus_on_chassis),
-            focusOnSecondary = nativeColor(R.color.cartdeck_original_focus_on_secondary),
-        )
-        CartdeckEditionPreset.PINK -> CartdeckEditionTokens(
-            chassis = nativeColor(R.color.cartdeck_pink_chassis),
-            secondary = nativeColor(R.color.cartdeck_pink_secondary),
-            bezel = nativeColor(R.color.cartdeck_pink_bezel),
-            glass = nativeColor(R.color.cartdeck_pink_glass),
-            button = nativeColor(R.color.cartdeck_pink_button),
-            accent = nativeColor(R.color.cartdeck_pink_accent),
-            onChassis = nativeColor(R.color.cartdeck_pink_on_chassis),
-            onButton = nativeColor(R.color.cartdeck_pink_on_button),
-            focus = nativeColor(R.color.cartdeck_pink_focus),
-            focusOnChassis = nativeColor(R.color.cartdeck_pink_focus_on_chassis),
-            focusOnSecondary = nativeColor(R.color.cartdeck_pink_focus_on_secondary),
-        )
+        CartdeckEditionPreset.ORIGINAL ->
+            CartdeckEditionTokens(
+                chassis = nativeColor(R.color.cartdeck_original_chassis),
+                secondary = nativeColor(R.color.cartdeck_original_secondary),
+                bezel = nativeColor(R.color.cartdeck_original_bezel),
+                glass = nativeColor(R.color.cartdeck_original_glass),
+                button = nativeColor(R.color.cartdeck_original_button),
+                accent = nativeColor(R.color.cartdeck_original_accent),
+                onChassis = nativeColor(R.color.cartdeck_original_on_chassis),
+                onButton = nativeColor(R.color.cartdeck_original_on_button),
+                focus = nativeColor(R.color.cartdeck_original_focus),
+                focusOnChassis = nativeColor(R.color.cartdeck_original_focus_on_chassis),
+                focusOnSecondary = nativeColor(R.color.cartdeck_original_focus_on_secondary),
+            )
+        CartdeckEditionPreset.PINK ->
+            CartdeckEditionTokens(
+                chassis = nativeColor(R.color.cartdeck_pink_chassis),
+                secondary = nativeColor(R.color.cartdeck_pink_secondary),
+                bezel = nativeColor(R.color.cartdeck_pink_bezel),
+                glass = nativeColor(R.color.cartdeck_pink_glass),
+                button = nativeColor(R.color.cartdeck_pink_button),
+                accent = nativeColor(R.color.cartdeck_pink_accent),
+                onChassis = nativeColor(R.color.cartdeck_pink_on_chassis),
+                onButton = nativeColor(R.color.cartdeck_pink_on_button),
+                focus = nativeColor(R.color.cartdeck_pink_focus),
+                focusOnChassis = nativeColor(R.color.cartdeck_pink_focus_on_chassis),
+                focusOnSecondary = nativeColor(R.color.cartdeck_pink_focus_on_secondary),
+            )
     }
 }
