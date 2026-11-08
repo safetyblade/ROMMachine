@@ -1,49 +1,11 @@
-Lemuroid is an open-source emulator based on Libretro. It's designed to work on a wide range of devices, from phones to TVs, and to provide the best user experience on Android. It's completely free and without ads.
+CARTDECK by prestwich.dev transforms an Android device into a personalised retro-gaming console.
 
+Choose games from a cartridge-inspired library, play with responsive on-screen controls or a gamepad, and keep your in-game progress.
 
-Supported Systems:
+The project is currently under development. Console-specific virtual shells, original boot animations, full-screen presentation and controller features are being implemented and verified in controlled stages.
 
-- Atari 2600 (A26)
-- Atari 7800 (A78)
-- Atari Lynx (Lynx)
-- Nintendo (NES)
-- Super Nintendo (SNES)
-- Game Boy (GB)
-- Game Boy Color (GBC)
-- Game Boy Advance (GBA)
-- Sega Genesis (aka Megadrive)
-- Sega CD (aka Mega CD)
-- Sega Master System (SMS)
-- Sega Game Gear (GG)
-- Nintendo 64 (N64)
-- PlayStation (PSX)
-- PlayStation Portable (PSP)
-- FinalBurn Neo (Arcade)
-- Nintendo DS (NDS)
-- NEC PC Engine (PCE)
-- Neo Geo Pocket (NGP)
-- Neo Geo Pocket Color (NGC)
-- WonderSwan (WS)
-- WonderSwan Color (WSC)
-- Nintendo 3DS (3DS)
+CARTDECK is based on open-source Lemuroid and LibretroDroid technology, with credits and licence information supplied in source documentation.
 
+CARTDECK does not provide games or firmware. You must supply game files you are legally permitted to use.
 
-Features:
-
-- Automatically save and restore game states
-- ROMs scanning and indexing
-- Optimized touch controls
-- Quick save/load with slots
-- Support for zipped ROMs
-- Display simulation (LCD/CRT)
-- Fast-forward support
-- Gamepad support
-- Tilt to stick support
-- Touch control customization (size and position)
-- Cloud save sync
-- No ads
-- Local multiplayer (connect multiple gamepads to the same device)
-
-Keep in mind not every device can emulate every console. A very powerful one is required for more recent systems such as PSP and DS and 3DS.
-
-This application does not contain any games. You need to provide your own legally owned ROM files.
+NOT A PUBLIC RELEASE LISTING — pending independent device QA, branding approval, core licensing and store compliance.
