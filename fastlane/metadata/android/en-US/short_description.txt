@@ -1,1 +1,1 @@
-All in one emulator on Android
+A virtual retro gaming console for Android
