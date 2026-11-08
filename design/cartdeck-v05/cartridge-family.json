@@ -1,0 +1,127 @@
+{
+  "schema": "cartdeck.cartridgeFamily/1.0",
+  "name": "CARTDECK Arc-Rail",
+  "approvedDirectionBy": "Cassia Rowan / Jonathan Prestwich",
+  "state": "design-candidate-awaiting-asset-lock",
+  "brandMaster": "../cartdeck-v03/brand/cslot-master.svg",
+  "geometryLocked": {
+    "front": [
+      320,
+      390
+    ],
+    "spine": [
+      94,
+      340
+    ],
+    "badge": [
+      84,
+      32
+    ],
+    "artWindow": {
+      "x": 40,
+      "y": 113,
+      "width": 240,
+      "height": 200,
+      "radius": 8
+    },
+    "spineTitle": {
+      "x": 24,
+      "y": 82,
+      "width": 46,
+      "height": 171
+    },
+    "badgeInFront": {
+      "x": 215,
+      "y": 330,
+      "width": 78,
+      "height": 28
+    },
+    "badgeInSpine": {
+      "x": 17,
+      "y": 271,
+      "width": 60,
+      "height": 34
+    }
+  },
+  "layers": {
+    "front": [
+      "cartridge/front-base.svg",
+      "user-art-or-original-fallback within artWindow",
+      "cartridge/front-overlay.svg",
+      "canonical C-slot brand mark + CARTDECK wordmark as applicable",
+      "runtime system badge text + title"
+    ],
+    "spine": [
+      "cartridge/spine-base.svg",
+      "canonical C-slot mark appropriately scaled",
+      "runtime sideways spine title",
+      "runtime system badge text"
+    ],
+    "back": [
+      "cartridge/back-base.svg",
+      "runtime metadata without protected branding"
+    ]
+  },
+  "systems": {
+    "GB": {
+      "label": "GB",
+      "name": "Game Boy"
+    },
+    "GBC": {
+      "label": "GBC",
+      "name": "Game Boy Color"
+    },
+    "GBA": {
+      "label": "GBA",
+      "name": "Game Boy Advance"
+    },
+    "PSX": {
+      "label": "PS1",
+      "name": "PlayStation-era compatibility"
+    }
+  },
+  "systemAffectsGeometry": false,
+  "editionSource": "../cartdeck-v03/editions/",
+  "approvedEditions": [
+    "original",
+    "pink"
+  ],
+  "nonShippingDemonstrations": [
+    "green",
+    "mono"
+  ],
+  "tokenIds": [
+    "chassis",
+    "secondary",
+    "bezel",
+    "glass",
+    "button",
+    "accent",
+    "onChassis",
+    "onButton",
+    "focus"
+  ],
+  "libraryFlow": [
+    "sideways shelf spine",
+    "front cover detail",
+    "change/reset local user cover if desired",
+    "explicit Open/Resume",
+    "existing game launch"
+  ],
+  "userArtPolicy": {
+    "acceptLocalSuppliedArtwork": true,
+    "noBundledCommercialGameArtwork": true,
+    "noExternalScraping": true,
+    "preserveGameId": true,
+    "originalFallback": "cartridge/fallback-atlas.svg"
+  },
+  "runtime": {
+    "composeOrReviewedVectorDrawable": true,
+    "systemAndTitleAreTextOverlays": true,
+    "allGamesUseIdenticalCartridgeGeometry": true,
+    "artWindowContainOrCropUserChoice": true,
+    "nonblockingTransition": true,
+    "reduceMotionFallback": "static cover detail",
+    "touchInputIndependentOfArtwork": true
+  }
+}

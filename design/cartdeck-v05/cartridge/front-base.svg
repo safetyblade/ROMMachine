@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 390" role="img" aria-label="Original CARTDECK cartridge universal front chassis"><title>Original CARTDECK cartridge universal front chassis</title><path data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430" d="M46 6H266L313 52V342Q313 373 282 383H38Q7 374 7 343V48Z" stroke-width="5" stroke-linejoin="round"/>
+<path data-cd-fill="secondary" fill="#1C2430" stroke="none" d="M48 15H265L294 46H27Z"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M28 62V96M291 62V96" stroke-width="6" stroke-linecap="round"/>
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="26" y="101" width="268" height="226" rx="18" stroke-width="3"/>
+<rect data-cd-fill="glass" fill="#09131B" stroke="none" x="40" y="113" width="240" height="200" rx="8"/>
+<path data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" d="M23 343H297L285 367H35Z" stroke-width="2"/>
+<path fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" d="M52 349H155" stroke-width="2" stroke-opacity=".38"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M232 349H267" stroke-width="4" stroke-linecap="round"/>
+<path fill="none" data-cd-stroke="accent" stroke="#4ED8C4" d="M37 23L49 11M271 11L283 23" stroke-width="4"/></svg>
