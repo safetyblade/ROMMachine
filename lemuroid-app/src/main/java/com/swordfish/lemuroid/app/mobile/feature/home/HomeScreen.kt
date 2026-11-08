@@ -7,11 +7,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,6 +27,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -37,6 +42,8 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
 import com.swordfish.lemuroid.common.displayDetailsSettingsScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlin.math.floor
+import kotlin.math.max
 
 @Composable
 fun HomeScreen(
@@ -111,15 +118,21 @@ internal fun HomeScreen(
         ) {
             Image(painterResource(R.drawable.cartdeck_original_cslot_master), null, Modifier.size(36.dp))
             Text(
-                text = stringResource(R.string.cartdeck_home_intro),
+                text = stringResource(R.string.cartdeck_library),
                 style = MaterialTheme.typography.headlineSmall,
             )
         }
-        Button(
-            onClick = onSetDirectoryClicked,
-            enabled = !state.indexInProgress,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
+        if (state.showNoGamesCard) {
+            Button(
+                onClick = onSetDirectoryClicked,
+                enabled = !state.indexInProgress,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
+        } else {
+            TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                Text(stringResource(R.string.cartdeck_add_cartridges))
+            }
+        }
         if (state.indexInProgress) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
             Text(stringResource(R.string.cartdeck_scanning), modifier = Modifier.padding(horizontal = 16.dp))
@@ -148,21 +161,14 @@ internal fun HomeScreen(
                 onAction = onOpenCoreSelection,
             )
         }
+        state.recentGames.firstOrNull()?.let { recent ->
+            TextButton(onClick = { onGameClicked(recent) }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(), maxLines = 2)
+            }
+        }
         HomeRow(
-            stringResource(id = R.string.cartdeck_continue),
-            state.recentGames,
-            onGameClicked,
-            onGameLongClick,
-        )
-        HomeRow(
-            stringResource(id = R.string.favorites),
-            state.favoritesGames,
-            onGameClicked,
-            onGameLongClick,
-        )
-        HomeRow(
-            stringResource(id = R.string.cartdeck_shelf),
-            state.discoveryGames,
+            stringResource(R.string.cartdeck_shelf),
+            (state.recentGames + state.favoritesGames + state.discoveryGames).distinctBy { it.id },
             onGameClicked,
             onGameLongClick,
         )
@@ -177,31 +183,29 @@ private fun HomeRow(
     onGameClicked: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
 ) {
-    if (games.isEmpty()) {
-        return
-    }
-
+    if (games.isEmpty()) return
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-        )
-        LazyRow(
-            modifier =
-                Modifier
-                    .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            contentPadding = PaddingValues(16.dp),
-        ) {
-            items(games.size, key = { games[it].id }) { index ->
-                val game = games[index]
-                CartridgeSpine(
-                    modifier = Modifier.animateItem(),
-                    game = game,
-                    onClick = { onGameClicked(game) },
-                    onLongClick = { onGameLongClick(game) },
-                )
+        Text(title, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp))
+        BoxWithConstraints {
+            val columns = max(1, floor((maxWidth.value - 32f) / 72f).toInt())
+            val cellWidth = ((maxWidth.value - 32f - (columns - 1) * 4f) / columns).dp
+            Column {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    items(games.size, key = { games[it].id }) { index ->
+                        val game = games[index]
+                        CartridgeSpine(
+                            game = game,
+                            width = cellWidth,
+                            onClick = { onGameClicked(game) },
+                            onLongClick = { onGameLongClick(game) },
+                        )
+                    }
+                }
+                Box(Modifier.fillMaxWidth().height(8.dp).background(MaterialTheme.colorScheme.surfaceVariant))
             }
         }
     }
