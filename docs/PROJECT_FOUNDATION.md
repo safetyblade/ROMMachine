@@ -1,7 +1,8 @@
-# ROM Machine / Cartkin — Project Foundation (Draft)
+# CARTDECK — Native Android Project Foundation (Active)
 
-Status: Project approved; name under review (Cartkin rejected); new provisional shortlist CartDeck / CartShell / CartPort
-Product director: Helena Ward
+Status: Active project | Name CARTDECK approved 2026-11-08 | Owner Jonathan Prestwich
+Project director and console experience lead: Cassia Rowan
+Studio governance: Helena Ward
 Product owner: Jonathan Prestwich
 Engineering lead: Elliot Shaw
 Design: Sienna Vale
@@ -12,7 +13,7 @@ Base branch: master
 ## Product vision
 A polished, offline-first native Android home for legally obtained retro games. Users import files from their device, see a welcoming library, press Play, and reliably resume. Phone and tablet first; preserve Android TV/controller capability without making TV the first-release acceptance blocker.
 
-**Product name:** Pending approval. Cartkin and ROMKIN were rejected. Working shortlist: CartDeck (preferred), CartShell, CartPort; ROM Machine remains repository name until approval.
+**Approved product name:** CARTDECK by prestwich.dev. ROMMachine remains the repository name pending a separately approved GitHub rename.
 Do not change the app ID, package name, app icons, store listing, or release signing until product naming approval. Do not use Nintendo/Pokémon marks in app branding.
 
 ## Source foundation and constraints
@@ -20,7 +21,7 @@ Do not change the app ID, package name, app icons, store listing, or release sig
 - Preserve its ROM scanner, game library, LibretroDroid integration, gamepad, save and core handling until verified alternatives exist.
 - Existing modules include lemuroid-app, lemuroid-touchinput, retrograde-app-shared, bundled-cores, and an upstream lemuroid-cores submodule.
 - Root tooling currently declares Android Gradle Plugin 8.4.0, and wrapper uses Gradle 8.10.2. Do not mass-upgrade until the baseline compiles.
-- Original app ID is com.swordfish.lemuroid; proposed fresh ID after approval is dev.prestwich.cartkin.
+- Original app ID is com.swordfish.lemuroid; proposed fresh ID after approval is dev.prestwich.CARTDECK.
 - The source currently has inherited release-signing credentials/configuration. Do not use upstream signing credentials. Generate a dedicated key, keep it out of the repository, and source credentials from secured CI secrets.
 - Maintain Lemuroid copyright notices, source attribution and applicable GPLv3 obligations. Audit each bundled core, redistribution rights, third-party artwork, and dynamic download practices before release.
 - Do not ship copyrighted commercial ROMs, copyrighted game art or proprietary BIOS files without necessary rights.
@@ -85,9 +86,20 @@ The app must feel like playing on a real piece of gaming hardware. The emulator 
 - Design three sketches: (a) physical virtual handheld gameplay; (b) cartridge shelf/insert flow; (c) Android TV living-room console flow.
 - Define optional hardware shell and full-screen immersive modes, including how the device controls map to touch/gamepad.
 - Motion and haptics should be optional and lightweight; accessibility includes adjustable button sizes and high-contrast modes.
-- Brand/icon study: CartDeck (preferred), CartShell, CartPort. Product owner approval before implementation.
+- Brand/icon study: CARTDECK (approved). Product owner approval before implementation.
 
 ### Repository independence
 - Repository is presently based on Lemuroid. If confirmed as a fork, prefer GitHub's Leave fork network when eligible. The operation is irreversible and removes GitHub PR/issue metadata; preserve the content of the documentation branch / PR #1 before detaching. All upstream copyright attribution and licences continue to apply, even after detachment.
 - Github Issues is a separately configurable repository feature and does not require detachment.
 - If detachment is unavailable, use a separate clean repository and migrate the relevant code/history with a mirror push. Keep the old fork until migration/CI verified.
+
+## PROJECT CONTROL — GOOGLE DRIVE
+Project folder: https://drive.google.com/drive/folders/1O4Bc1p9IAEkiSWCPuauhtDEirGYX0r_1
+00 — Controlled project record: https://docs.google.com/document/d/1PT4hNMylTfM2OIuWYBy-Ezd5kTXdae1I4A50g4poUX4/edit
+01 — Delivery roadmap: https://docs.google.com/document/d/1wlURBkCoASXTAOFbXrNQWzODEbnVuMJBUz4l68Vac4Q/edit
+02 — Source/licensing research register: https://docs.google.com/document/d/1GVPPHmMar0iSsPlDNYT1f9_lVWSKDqx4dLf4LorJWk0/edit
+03 — Device-first console UX: https://docs.google.com/document/d/1qpLQiUYQ9bAazeZI8T4zZWOo8A3p5Ffux3CO35Abp9k/edit
+04 — QA and release gates: https://docs.google.com/document/d/1XyX6RQCXp02yXLZxU2iqodnGKzaD2e8a9dY0w-pEnZI/edit
+05 — Cassia Rowan lead role/revive: https://docs.google.com/document/d/1pK_16WC59D9k2VbBrtt5B5LQN0_vgMXL7B_08JpMmvc/edit
+
+Do not treat any roadmap or source research description as a passed APK test. User confirms the Lemuroid fork was detached 2026-11-08; verify repository metadata, PR history, issues settings and branch state live.
