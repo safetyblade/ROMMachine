@@ -46,6 +46,11 @@ def check() -> None:
 
     strings = content("lemuroid-app/src/main/res/values/strings.xml")
     assert not re.search(r"\bLemuroid\b", strings), "Main English UI still displays Lemuroid"
+    for translated in RES.glob("values*/strings.xml"):
+        local_text = translated.read_text(encoding="utf-8")
+        assert not re.search(r"\bLemuroid\b", local_text), (
+            f"Old public product name remains in translated UI: {translated}"
+        )
 
     base_icon = icon_resource(RES / "mipmap-anydpi/cartdeck_launcher.xml", "vector")
     round_icon = icon_resource(RES / "mipmap-anydpi/cartdeck_launcher_round.xml", "vector")

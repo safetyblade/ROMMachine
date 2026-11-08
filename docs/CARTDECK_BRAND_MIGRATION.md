@@ -1,6 +1,6 @@
 # CARTDECK — visible brand migration (P1-BR1)
 
-**Status:** Feature branch only; Android compile, install, launch and save persistence not yet verified for this change.
+**Status:** Visible identity source merged through PR #11; locale and static-audit follow-up in draft PR #20. Android compile, install, launch and save persistence not yet verified for the complete rebrand.
 **Source branch:** `feature/cartdeck-visible-rebrand`.
 **Owner:** Cassia Rowan (experience); Elliot Shaw (engineering); Daniel Mercer (migration review); Sienna Vale (art); Marcus Reid (QA).
 
@@ -16,7 +16,7 @@
 - Main manifest launcher `@mipmap/cartdeck_launcher`, round icon, and TV banner `@drawable/cartdeck_tv_banner`.
 - Adaptive icon foreground and monochrome for modern Android; fallback vector resources for older Android.
 - Visible application label from Gradle build type: `CARTDECK` or `CARTDECK Debug`. Legacy `lemuroid_name` resource key remains as an alias with CARTDECK value in case code still references it.
-- Main default English UI strings: reset, help, notifications, ROM import/loading and recovery wording.
+- Main English and all 26 translated Android resource sets: reset, help, notifications, ROM import/loading and recovery wording. Translation content otherwise preserved; only the fixed product name was replaced.
 - Root README and draft Fastlane English title and description are now CARTDECK-first.
 - Upstream credits retained in `THIRD_PARTY_NOTICES.md` and existing licence text.
 - All original emulation, touch-control hit zones, saves, core bindings and ROM scanner code unchanged.
@@ -26,7 +26,7 @@
 - `com.swordfish.lemuroid` (Android application ID / namespace), `.debug` test variant, inherited internal classes, `lemuroid_*` resource identifiers and modules. **Changing these during the existing v1015→v1016 phone-test chain could orphan data, URI grants, ROM library records, saves and install/upgrade continuity.**
 - Existing deep-link scheme `lemuroid:` (part of the compatibility contract). Existing shortcuts must be inventoried and migrated before changing it.
 - Binary native core assets, source packages, upstream copyright notices, `COPYING` and historical commits/PRs. Upstream attribution cannot be scrubbed for visual consistency.
-- Existing unverified third-party screenshots, Fastlane image resources and other locales. These require a dedicated inventory and replacement using approved original visual material before any store publication.
+- Existing unverified third-party screenshots and Fastlane image resources. These require a dedicated inventory and replacement using approved original visual material before any store publication. Android text translations were product-name refreshed but require native UI review for localised presentation.
 - Virtual D-pad/buttons and in-game shell artwork. Sienna's v0.3.1 corrected D-pad source remains in `design/cartdeck-v03/`; **do not** replace native input code or touch hit zones merely to rebrand.
 
 ## Acceptance checklist
@@ -35,7 +35,7 @@
 2. Android builds both freeBundleDebug and the P0 phone ARM64 variant and APK resources show CARTDECK logo/label/banner.
 3. Install branded APK **over** a prior P0 debug build with the same package and signing certificate, higher versionCode; never uninstall. Confirm saved games, manual states, games list and persisted ROM permissions survive.
 4. Verify Android 8–latest launcher adaptive/fallback appearance, Android TV banner resolution and overscan, light/dark/system monochrome icon support.
-5. Check user-visible help, settings, crash messages, notifications, startup/home, installed-app label, shortcuts and in-game pause/title surfaces. Check non-English locales and dynamic overlays.
+5. Check user-visible help, settings, crash messages, notifications, startup/home, installed-app label, shortcuts and in-game pause/title surfaces. Automated checks require no 'Lemuroid' display name in all 26 translated Android strings; independently inspect select localised builds and dynamic overlays.
 6. Verify C-slot matches approved source and Pink is not accidentally treated as approved global default. Confirm legal attribution remains accessible through distribution/source notices.
 7. Inspect actual APK using `aapt2 dump resources` or Android inspection, screenshot both phone and TV. No experience sign-off from source review alone.
 
