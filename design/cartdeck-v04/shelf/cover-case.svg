@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 314 424" role="img" aria-label="CARTDECK editable game cover case, transparent area populated by user's art">
+<title>CARTDECK editable game cover case, transparent area populated by user's art</title>
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="3" y="3" width="308" height="418" rx="23" stroke-width="5" />
+<rect data-cd-fill="chassis" fill="#303B49" data-cd-stroke="accent" stroke="#4ED8C4" x="14" y="16" width="286" height="394" rx="15" stroke-width="2" />
+<rect data-cd-fill="glass" fill="#09131B" data-cd-stroke="secondary" stroke="#1C2430" x="29" y="35" width="256" height="320" rx="6" stroke-width="2" />
+<path  data-cd-stroke="onChassis" stroke="#EDF6F2" d="M28 368H286" stroke-opacity=".35" fill="none" stroke-width="2" />
+<rect data-cd-fill="accent" fill="#4ED8C4"  x="29" y="377" width="98" height="9" rx="4.5" />
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="245" y="374" width="40" height="22" rx="8" stroke-width="1.5" />
+</svg>

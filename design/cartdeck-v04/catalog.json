@@ -1,0 +1,72 @@
+{
+  "schema": "cartdeck.assetCatalog/1.0",
+  "status": "design-source-not-shipping",
+  "sourceOfTruth": {
+    "identity": "../cartdeck-v03/brand/",
+    "dpad": "../cartdeck-v03/controls/dpad-master.svg",
+    "editions": "../cartdeck-v03/editions/",
+    "notes": "Do not duplicate approved identity vectors"
+  },
+  "semanticTokens": [
+    "chassis",
+    "secondary",
+    "bezel",
+    "accent",
+    "onChassis",
+    "button",
+    "onButton",
+    "focus",
+    "glass"
+  ],
+  "assetGroups": {
+    "brand": {
+      "sources": [
+        "../cartdeck-v03/brand/cslot-master.svg",
+        "../cartdeck-v03/brand/cartdeck-wordmark-master.svg"
+      ],
+      "locked": true
+    },
+    "shell": [
+      "shell/chassis-portrait.svg",
+      "shell/chassis-landscape.svg",
+      "shell/screen-bezel.svg"
+    ],
+    "controls": [
+      "../cartdeck-v03/controls/dpad-master.svg",
+      "controls/button-face.svg",
+      "controls/four-face-cluster.svg",
+      "controls/six-face-cluster.svg",
+      "controls/shoulder.svg",
+      "controls/trigger.svg",
+      "controls/analog-base.svg",
+      "controls/analog-cap.svg",
+      "controls/start-select-pill.svg",
+      "controls/stylus.svg"
+    ],
+    "shelf": [
+      "shelf/book-spine.svg",
+      "shelf/cover-case.svg",
+      "shelf/cover-placeholder.svg",
+      "shelf/cartridge-edge.svg"
+    ],
+    "boot": [
+      "boot/slot-pulse.svg",
+      "../cartdeck-v03/brand/cslot-master.svg"
+    ],
+    "navigation": [
+      "navigation/shelf.svg",
+      "navigation/cover.svg",
+      "navigation/insert.svg",
+      "navigation/edit-cover.svg",
+      "navigation/display.svg",
+      "navigation/pause.svg"
+    ]
+  },
+  "rendererBoundary": {
+    "svgFilesAreDesignMasters": true,
+    "androidRequiresComposeCanvasOrVectorDrawableExport": true,
+    "nativeHitZonesFromPadKit": true,
+    "editorDoesNotAlterInputs": true,
+    "userCoverArtLocalOnly": true
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "cartdeck.shelfJourney/1.0",
+  "defaultLibraryPresentation": "sideways-spines",
+  "sequence": [
+    "spine-shelf",
+    "cover-detail",
+    "open-or-resume",
+    "existing-game-launch"
+  ],
+  "back": [
+    "cover-detail -> spine-shelf",
+    "cover-edit -> cover-detail"
+  ],
+  "selectedGameDoesNotLaunchImmediately": true,
+  "emptyLibraryAction": "existing SAF folder-picker",
+  "spine": {
+    "asset": "shelf/book-spine.svg",
+    "title": "vertical render text",
+    "systemBadge": true,
+    "sort": [
+      "recent",
+      "alphabetical",
+      "system",
+      "manual"
+    ],
+    "focus": true
+  },
+  "detail": {
+    "asset": "shelf/cover-case.svg",
+    "customCover": "existing CustomCoverManager integration",
+    "placeholder": "shelf/cover-placeholder.svg",
+    "primaryAction": "Open",
+    "secondary": "Resume when available",
+    "tertiary": "Customize Cover",
+    "metadata": [
+      "title",
+      "system",
+      "last played"
+    ],
+    "saveMetadataSeparate": true
+  },
+  "coverEditor": {
+    "sourceTypes": [
+      "licensed local image",
+      "original CARTDECK fallback"
+    ],
+    "options": [
+      "crop",
+      "zoom",
+      "position",
+      "display title",
+      "system label",
+      "reset"
+    ],
+    "mustNotAlterRomTitleOrDbGameId": true,
+    "localOnly": true,
+    "keepCopyrightedUserArtOutOfRepository": true
+  },
+  "transition": {
+    "spineRotateOrSlide": "reduced motion alternative required",
+    "nonblocking": true
+  }
+}

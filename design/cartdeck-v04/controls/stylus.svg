@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 54" role="img" aria-label="CARTDECK optional stylus symbol">
+<title>CARTDECK optional stylus symbol</title>
+<path data-cd-fill="button" fill="#111923" data-cd-stroke="secondary" stroke="#1C2430" d="M14 27L41 15H141L155 27L141 39H41Z" stroke-width="2.4" />
+<path data-cd-fill="accent" fill="#4ED8C4"  d="M14 27L41 15L41 39Z" />
+<path  data-cd-stroke="onButton" stroke="#EDF6F2" d="M56 21H132" fill="none" stroke-opacity=".35" stroke-width="2" />
+</svg>

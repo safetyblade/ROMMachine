@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 256" role="img" aria-label="CARTDECK sideways bookshelf cartridge spine, title layered at runtime">
+<title>CARTDECK sideways bookshelf cartridge spine, title layered at runtime</title>
+<rect data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" x="2" y="3" width="80" height="251" rx="9" stroke-width="3" />
+<path data-cd-fill="chassis" fill="#303B49" data-cd-stroke="accent" stroke="#4ED8C4" d="M14 5H73V250H14Z" stroke-width="1.8" />
+<path  data-cd-stroke="onChassis" stroke="#EDF6F2" d="M19 20V235" fill="none" stroke-width="2" stroke-opacity=".42" />
+<rect data-cd-fill="accent" fill="#4ED8C4"  x="19" y="14" width="50" height="7" rx="2" />
+<rect data-cd-fill="accent" fill="#4ED8C4"  x="19" y="232" width="50" height="7" rx="2" />
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-label="CARTDECK original unlicensed fallback cover art">
+<title>CARTDECK original unlicensed fallback cover art</title>
+<rect data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" x="2" y="2" width="252" height="316" rx="7" stroke-width="3" />
+<path data-cd-fill="chassis" fill="#303B49"  d="M0 248L95 119L165 203L256 87V320H0Z" />
+<path  data-cd-stroke="accent" stroke="#4ED8C4" d="M37 58H218M37 76H151M38 265H217" stroke-width="4" fill="none" stroke-opacity=".55" />
+<circle data-cd-fill="accent" fill="#4ED8C4"  cx="198" cy="75" r="18" />
+</svg>

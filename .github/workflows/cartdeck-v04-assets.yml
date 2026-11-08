@@ -1,0 +1,27 @@
+name: Cartdeck visual asset catalog
+on:
+  pull_request:
+    paths:
+      - 'design/cartdeck-v03/**'
+      - 'design/cartdeck-v04/**'
+      - '.github/workflows/cartdeck-v04-assets.yml'
+  push:
+    paths:
+      - 'design/cartdeck-v03/**'
+      - 'design/cartdeck-v04/**'
+jobs:
+  verify-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate earlier identity geometry
+        run: python -m unittest discover design/cartdeck-v03 -p 'test_dpad_consistency.py'
+      - name: Validate universal catalog and shelf interaction contracts
+        run: python -m unittest discover design/cartdeck-v04 -p 'test_assets.py'
+      - name: Generate per-edition cosmetic SVGs
+        run: python design/cartdeck-v04/build_assets.py
+      - name: Ensure generated files did not alter tracked masters
+        run: git diff --exit-code -- design/cartdeck-v03 design/cartdeck-v04

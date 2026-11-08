@@ -1,0 +1,196 @@
+{
+  "schema": "cartdeck.systemViewports/1.0",
+  "editionIndependent": true,
+  "shell": {
+    "id": "cartdeck-handheld-v1",
+    "sameDeviceForAllSystems": true,
+    "frame": "shell/screen-bezel.svg",
+    "portrait": "shell/chassis-portrait.svg",
+    "landscape": "shell/chassis-landscape.svg"
+  },
+  "screen": {
+    "viewportStableOuterFrame": true,
+    "source": "core-reported-current-geometry",
+    "fit": "contain",
+    "allowStretch": false,
+    "allowCrop": false,
+    "letterboxOrPillarbox": true,
+    "resetCoreOnModeChange": false,
+    "preferredFallbacks": {
+      "gb": [
+        160,
+        144
+      ],
+      "gbc": [
+        160,
+        144
+      ],
+      "gba": [
+        240,
+        160
+      ],
+      "psx": [
+        4,
+        3
+      ],
+      "snes": [
+        4,
+        3
+      ],
+      "nes": [
+        4,
+        3
+      ],
+      "genesis": [
+        4,
+        3
+      ],
+      "psp": [
+        16,
+        9
+      ]
+    },
+    "psxMayReportOtherRatios": true
+  },
+  "controlPresentation": {
+    "twoFace": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "twoFaceShoulder": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "L",
+        "R",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "fourFace": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "X",
+        "Y",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "fourFaceShoulder": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "X",
+        "Y",
+        "L",
+        "R",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "fourFaceDualAnalog": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "X",
+        "Y",
+        "L1",
+        "L2",
+        "R1",
+        "R2",
+        "stickLeft",
+        "stickRight",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "sixFace": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "C",
+        "X",
+        "Y",
+        "Z",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "stylusTwoScreen": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "X",
+        "Y",
+        "L",
+        "R",
+        "stylus",
+        "start",
+        "select",
+        "menu"
+      ],
+      "specialLayout": "preserve two game displays independently"
+    },
+    "keyboard": {
+      "visible": [
+        "dpad",
+        "A",
+        "B",
+        "menu",
+        "keyboard"
+      ],
+      "specialLayout": "keyboard optional"
+    }
+  },
+  "systems": {
+    "GB": "twoFace",
+    "GBC": "twoFace",
+    "GBA": "twoFaceShoulder",
+    "NES": "twoFace",
+    "SNES": "fourFaceShoulder",
+    "PSX": "fourFaceShoulder",
+    "PSXDualShock": "fourFaceDualAnalog",
+    "Genesis3": "twoFace",
+    "Genesis6": "sixFace",
+    "SMS": "twoFace",
+    "PSP": "fourFaceDualAnalog",
+    "NDS": "stylusTwoScreen"
+  },
+  "presentationModes": {
+    "phoneDefault": "console",
+    "tabletDefault": "console",
+    "tvDefault": "fullscreen",
+    "userOptions": [
+      "console",
+      "fullscreen",
+      "floating"
+    ],
+    "ps1InHandheldShellSupported": true
+  },
+  "guardrails": [
+    "visual profile is not input mapping",
+    "preserve PadKit key IDs and gestures",
+    "never modify save state or ROM paths",
+    "game image ratio never changed by edition",
+    "touch targets at least 48dp",
+    "all necessary controls remain reachable"
+  ]
+}

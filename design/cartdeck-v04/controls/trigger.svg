@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" role="img" aria-label="CARTDECK shoulder trigger for L2/R2">
+<title>CARTDECK shoulder trigger for L2/R2</title>
+<path data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="secondary" stroke="#1C2430" d="M14 25Q14 12 30 12H135Q147 12 147 24L129 83Q126 90 117 90H29Q14 90 14 76Z" stroke-width="2.8" />
+<path data-cd-fill="button" fill="#111923" data-cd-stroke="accent" stroke="#4ED8C4" d="M24 31Q24 23 35 23H132L118 76H35Q24 76 24 66Z" stroke-width="2" />
+<path  data-cd-stroke="onButton" stroke="#EDF6F2" d="M35 31H118" fill="none" stroke-width="3" stroke-opacity=".4" />
+</svg>
