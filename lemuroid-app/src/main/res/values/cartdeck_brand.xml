@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Original edition shell palette; Pink is a selectable future visual edition. -->
+    <color name="cartdeck_launcher_background">#303B49</color>
+    <color name="cartdeck_brand_accent">#4ED8C4</color>
+    <color name="cartdeck_brand_on_chassis">#EDF6F2</color>
+</resources>
