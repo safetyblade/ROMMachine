@@ -23,5 +23,9 @@ jobs:
         run: python -m unittest discover design/cartdeck-v04 -p 'test_assets.py'
       - name: Generate per-edition cosmetic SVGs
         run: python design/cartdeck-v04/build_assets.py
+      - name: Convert approved colours to Android VectorDrawable previews
+        run: python design/cartdeck-v04/export_android_vectors.py
+      - name: Verify parseable native vectors and edition-safe geometry
+        run: python -m unittest discover design/cartdeck-v04 -p 'test_android_export.py'
       - name: Ensure generated files did not alter tracked masters
         run: git diff --exit-code -- design/cartdeck-v03 design/cartdeck-v04
