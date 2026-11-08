@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,8 +32,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -42,36 +47,54 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
-/** Original/Pink tokens from v03. Library-only: gameplay themes remain independent. */
 @Composable
-fun CartridgeLibraryTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme =
-            darkColorScheme(
-                primary = Color(0xFF4ED8C4),
-                onPrimary = Color(0xFF09131B),
-                background = Color(0xFF0D1721),
-                surface = Color(0xFF1C2430),
-                surfaceVariant = Color(0xFF303B49),
-                onBackground = Color(0xFFEDF6F2),
-                onSurface = Color(0xFFEDF6F2),
-                onSurfaceVariant = Color(0xFFEDF6F2),
-                secondary = Color(0xFF4ED8C4),
-                primaryContainer = Color(0xFF303B49),
-                onPrimaryContainer = Color(0xFFEDF6F2),
-                secondaryContainer = Color(0xFF303B49),
-                onSecondaryContainer = Color(0xFF4ED8C4),
-                tertiary = Color(0xFF4ED8C4),
-                onTertiary = Color(0xFF09131B),
-                surfaceTint = Color(0xFF4ED8C4),
-            ),
-        content = content,
-    )
+fun CartridgeLibraryTheme(
+    appearance: ShelfAppearance = ShelfAppearance(),
+    content: @Composable () -> Unit,
+) {
+    val materials = shelfMaterials(appearance)
+    val geometry = remember { CartridgeGeometry() }
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalShelfAppearance provides appearance,
+        LocalCartridgeGeometry provides geometry,
+        LocalShelfMaterials provides materials,
+    ) {
+        MaterialTheme(
+            colorScheme =
+                darkColorScheme(
+                    primary = materials.interactionAccent,
+                    onPrimary =
+                        com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
+                            materials.roomBackdrop,
+                            listOf(materials.interactionAccent),
+                            4.5f,
+                        ),
+                    background = materials.roomBackdrop,
+                    surface = materials.shelfBackboard,
+                    surfaceVariant = materials.shelfDeck,
+                    onBackground = materials.sectionText,
+                    onSurface = materials.sectionText,
+                    onSurfaceVariant = materials.sectionText,
+                    secondary = materials.interactionAccent,
+                    primaryContainer = materials.shelfBackboard,
+                    onPrimaryContainer = materials.sectionText,
+                    secondaryContainer = materials.shelfBackboard,
+                    onSecondaryContainer = materials.interactionAccent,
+                    surfaceTint = materials.interactionAccent,
+                ),
+            content = content,
+        )
+    }
 }
 
 fun cartridgeSystemLabel(systemId: String): String =
@@ -101,9 +124,15 @@ fun CartridgeSpine(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: () -> Unit = {},
-    pink: Boolean = false,
+    pink: Boolean = LocalShelfAppearance.current.edition == "pink",
     width: Dp = 72.dp,
+    registerGeometry: Boolean = true,
 ) {
+    val geometry = LocalCartridgeGeometry.current
+    val owner = remember(game.id) { Any() }
+    DisposableEffect(game.id, registerGeometry) {
+        onDispose { if (registerGeometry) geometry.remove(game.id, owner) }
+    }
     var focused by remember { mutableStateOf(false) }
     val scale = width.value / 94f
     val ink = if (pink) Color(0xFF54253F) else Color(0xFFEDF6F2)
@@ -111,6 +140,10 @@ fun CartridgeSpine(
         modifier =
             modifier
                 .size(94.dp * scale, 340.dp * scale)
+                .onGloballyPositioned {
+                    if (registerGeometry) geometry.update(game.id, owner, Rect(it.positionInRoot(), it.size.toSize()))
+                }
+                .graphicsLayer { alpha = if (registerGeometry && geometry.selectedId == game.id) 0f else 1f }
                 .onFocusChanged { focused = it.isFocused }
                 .border(
                     if (focused) 3.dp else 0.dp,
@@ -123,13 +156,17 @@ fun CartridgeSpine(
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
     ) {
         Image(
-            painterResource(if (pink) R.drawable.cartdeck_pink_spine_base else R.drawable.cartdeck_original_spine_base),
+            cartridgePainter(
+                if (pink) R.drawable.cartdeck_pink_spine_base else R.drawable.cartdeck_original_spine_base,
+                pink,
+            ),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
         )
         Image(
-            painterResource(
+            cartridgePainter(
                 if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
+                pink,
             ),
             contentDescription = null,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 35.dp * scale).size(28.dp * scale),
@@ -180,13 +217,16 @@ fun cartridgeArtworkRequest(
 fun CartridgeFront(
     game: Game,
     modifier: Modifier = Modifier,
-    pink: Boolean = false,
+    pink: Boolean = LocalShelfAppearance.current.edition == "pink",
     artworkRevision: Int = 0,
 ) {
     BoxWithConstraints(modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(320f / 390f)) {
         val unit = maxWidth / 320f
         Image(
-            painterResource(if (pink) R.drawable.cartdeck_pink_front_base else R.drawable.cartdeck_original_front_base),
+            cartridgePainter(
+                if (pink) R.drawable.cartdeck_pink_front_base else R.drawable.cartdeck_original_front_base,
+                pink,
+            ),
             null,
             Modifier.fillMaxSize(),
         )
@@ -209,15 +249,17 @@ fun CartridgeFront(
                 ).size(unit * 240, unit * 200).clip(RoundedCornerShape(unit * 8)),
         )
         Image(
-            painterResource(
+            cartridgePainter(
                 if (pink) R.drawable.cartdeck_pink_front_overlay else R.drawable.cartdeck_original_front_overlay,
+                pink,
             ),
             null,
             Modifier.fillMaxSize(),
         )
         Image(
-            painterResource(
+            cartridgePainter(
                 if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
+                pink,
             ),
             null,
             Modifier.offset(unit * 40, unit * 38).size(unit * 40),

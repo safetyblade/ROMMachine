@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -23,7 +24,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -254,7 +255,7 @@ class CartridgeExperienceTest {
                 )
             }
         }
-        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(15)
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription("Cartridge 16, GB"))
         compose.onNodeWithContentDescription("Cartridge 16, GB").assertExists()
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithContentDescription("Cartridge 16, GB").assertExists()

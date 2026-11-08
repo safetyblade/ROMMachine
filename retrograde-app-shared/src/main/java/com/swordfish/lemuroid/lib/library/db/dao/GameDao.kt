@@ -30,6 +30,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GameDao {
+    @Query("SELECT * FROM games ORDER BY COALESCE(customName, title) COLLATE NOCASE, id")
+    fun selectShelfGames(): Flow<List<Game>>
+
     @Query("SELECT * FROM games WHERE id = :id")
     suspend fun selectById(id: Int): Game?
 
