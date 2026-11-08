@@ -37,13 +37,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android command-line tools
-        uses: android-actions/setup-android@v3
-
-      - name: Install project-declared Android SDK packages
+      # ubuntu-24.04 already provides sdkmanager. setup-android@v3 attempted
+      # the removed Android SDK package 'tools' in run 42455131571.
+      - name: Verify hosted SDK and install project-declared packages
         shell: bash
         run: |
           set -euo pipefail
+          command -v sdkmanager
+          sdkmanager --version
+          sdkmanager --licenses < <(yes)
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;34.0.0"
 
       - name: Configure Gradle wrapper
