@@ -35,6 +35,18 @@ class CartdeckAssetContractTests(unittest.TestCase):
         self.assertEqual(x["sequence"][1],"cover-detail")
         self.assertTrue(x["selectedGameDoesNotLaunchImmediately"])
         self.assertTrue(x["coverEditor"]["localOnly"])
+    def test_personal_edition_editor_cannot_change_identity_or_emulation(self):
+        e=json.loads((ROOT/"appearance-editor.json").read_text())
+        manifest=json.loads((ROOT.parent/"cartdeck-v03"/"editions/original.json").read_text())
+        self.assertTrue(e["architecture"]["userOverridesAreCosmeticOnly"])
+        self.assertTrue(e["architecture"]["neverModifyGameAssets"])
+        self.assertEqual(e["defaultPreset"],"original")
+        self.assertIn("ps1",e["preview"][3].lower())
+        self.assertEqual(set(e["editable"]),set(manifest["edition"])-{"id","name","status"})
+        self.assertGreaterEqual(e["accessibility"]["textContrastMinimum"],4.5)
+        self.assertGreaterEqual(e["accessibility"]["minimumTouchDp"],48)
+        self.assertIn("save data and file paths",e["locked"])
+
     def test_canonical_brand_and_dpad_not_duplicated(self):
         d=ROOT.parent/"cartdeck-v03"/"controls/dpad-master.svg"
         self.assertIn('id="cd-dpad-cross"',d.read_text())
