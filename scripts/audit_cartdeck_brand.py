@@ -79,6 +79,31 @@ def check() -> None:
             f"{path} differs from the approved C-slot mark geometry"
         )
 
+    # Every foreground/scan/core/save notification must use a safe monochrome
+    # status-bar icon. The legacy upstream tiny icon must never be referenced.
+    notification_source = content(
+        "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/shared/NotificationsManager.kt"
+    )
+    assert notification_source.count(
+        ".setSmallIcon(R.drawable.ic_cartdeck_notification)"
+    ) == 4, "All four notification types must use the CARTDECK mark"
+    assert "ic_lemuroid_tiny" not in notification_source
+    for source in (ROOT / "lemuroid-app/src/main").rglob("*.kt"):
+        assert "R.drawable.ic_lemuroid_tiny" not in source.read_text(encoding="utf-8"), (
+            f"Upstream tiny notification icon still referenced by: {source}"
+        )
+    notification_icon = icon_resource(RES / "drawable/ic_cartdeck_notification.xml", "vector")
+    assert notification_icon.get(A + "width") == "24dp"
+    assert notification_icon.get(A + "height") == "24dp"
+    small_paths = [el for el in notification_icon if el.tag == "path"]
+    assert len(small_paths) == 2
+    assert [norm(el.get(A + "pathData")) for el in small_paths] == [
+        norm(path) for path in official_paths
+    ], "Notification icon must use approved original C-slot path geometry"
+    for el in small_paths:
+        assert el.get(A + "fillColor") == "#00000000", "Small icon must be transparent"
+        assert el.get(A + "strokeColor") == "#FFFFFFFF", "Small icon must be white for system tint"
+
     banner = icon_resource(RES / "drawable/cartdeck_tv_banner.xml", "vector")
     banner_paths = [e.get(A + "pathData") for e in banner.iter() if e.tag == "path"]
     lockup = ET.fromstring(content("design/cartdeck-v03/brand/logo-lockup-master.svg"))
