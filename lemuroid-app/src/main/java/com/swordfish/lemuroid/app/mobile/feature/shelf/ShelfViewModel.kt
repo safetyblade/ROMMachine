@@ -97,7 +97,14 @@ class ShelfViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             serial.withLock {
                 val previous = undo.lastOrNull() ?: return@withLock
-                runCatching { store.update { previous.copy(revision = it.revision).reconcile(identities) } }
+                runCatching {
+                    store.update {
+                        previous.copy(
+                            revision = it.revision,
+                            appearance = it.appearance,
+                        ).reconcile(identities)
+                    }
+                }
                     .onSuccess {
                             (_, after) ->
                         undo.removeLast()

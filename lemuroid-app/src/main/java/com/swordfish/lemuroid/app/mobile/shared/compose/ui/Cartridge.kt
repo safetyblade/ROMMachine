@@ -3,13 +3,17 @@ package com.swordfish.lemuroid.app.mobile.shared.compose.ui
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -117,6 +121,72 @@ fun shelfPresentationTitle(title: String): String =
         .trim()
         .ifEmpty { title }
 
+/** Source SVG geometry stays fixed across editions; Green uses generated ASSET-H1 vectors. */
+private fun cartridgeAsset(
+    edition: String,
+    part: String,
+): Int =
+    when (edition to part) {
+        "pink" to "spine" -> R.drawable.cartdeck_pink_spine_base
+        "pink" to "front" -> R.drawable.cartdeck_pink_front_base
+        "pink" to "overlay" -> R.drawable.cartdeck_pink_front_overlay
+        "pink" to "fallback" -> R.drawable.cartdeck_pink_fallback_atlas
+        "green" to "spine" -> R.drawable.cartdeck_h1_green_spine_base
+        "green" to "front" -> R.drawable.cartdeck_h1_green_front_base
+        "green" to "overlay" -> R.drawable.cartdeck_h1_green_front_overlay
+        "green" to "fallback" -> R.drawable.cartdeck_h1_green_fallback_atlas
+        "pink" to "mark" -> R.drawable.cartdeck_pink_cslot_master
+        else ->
+            when (part) {
+                "spine" -> R.drawable.cartdeck_original_spine_base
+                "front" -> R.drawable.cartdeck_original_front_base
+                "overlay" -> R.drawable.cartdeck_original_front_overlay
+                "fallback" -> R.drawable.cartdeck_original_fallback_atlas
+                else -> R.drawable.cartdeck_original_cslot_master
+            }
+    }
+
+/** Actual canonical cartridge vectors shown against shelf materials, with no game artwork. */
+@Composable
+fun CartdeckAppearancePreview(
+    appearance: ShelfAppearance,
+    modifier: Modifier = Modifier,
+    height: Dp = 152.dp,
+) {
+    val materials = shelfMaterials(appearance)
+    val edition = appearance.edition
+    val scale = height.value / 152f
+    androidx.compose.runtime.CompositionLocalProvider(LocalShelfAppearance provides appearance) {
+        Box(
+            modifier =
+                modifier.fillMaxWidth().height(height)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(materials.shelfBackboard),
+        ) {
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp * scale),
+                horizontalArrangement = Arrangement.spacedBy(12.dp * scale),
+            ) {
+                repeat(3) {
+                    Image(
+                        painter = cartridgePainter(cartridgeAsset(edition, "spine"), edition),
+                        contentDescription = null,
+                        modifier = Modifier.size(35.dp * scale, 127.dp * scale),
+                    )
+                }
+            }
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(13.dp * scale)
+                    .background(materials.shelfDeck),
+            )
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(5.dp * scale)
+                    .background(materials.shelfLip),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CartridgeSpine(
@@ -128,6 +198,13 @@ fun CartridgeSpine(
     width: Dp = 72.dp,
     registerGeometry: Boolean = true,
 ) {
+    val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
+    val cartridgeInk =
+        when (edition) {
+            "pink" -> Color(0xFFFFF3F7)
+            "green" -> Color(0xFFF2FFE6)
+            else -> Color(0xFFEDF6F2)
+        }
     val geometry = LocalCartridgeGeometry.current
     val owner = remember(game.id) { Any() }
     DisposableEffect(game.id, registerGeometry) {
@@ -135,7 +212,6 @@ fun CartridgeSpine(
     }
     var focused by remember { mutableStateOf(false) }
     val scale = width.value / 94f
-    val ink = if (pink) Color(0xFF54253F) else Color(0xFFEDF6F2)
     Box(
         modifier =
             modifier
@@ -157,16 +233,16 @@ fun CartridgeSpine(
     ) {
         Image(
             cartridgePainter(
-                if (pink) R.drawable.cartdeck_pink_spine_base else R.drawable.cartdeck_original_spine_base,
-                pink,
+                cartridgeAsset(edition, "spine"),
+                edition,
             ),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
         )
         Image(
             cartridgePainter(
-                if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
-                pink,
+                cartridgeAsset(edition, "mark"),
+                edition,
             ),
             contentDescription = null,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 35.dp * scale).size(28.dp * scale),
@@ -179,7 +255,7 @@ fun CartridgeSpine(
             Text(
                 shelfPresentationTitle(game.displayName()),
                 modifier = Modifier.requiredSize(171.dp * scale, 46.dp * scale).rotate(-90f).padding(horizontal = 6.dp),
-                color = if (pink) Color(0xFFFFF3F7) else ink,
+                color = cartridgeInk,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -189,7 +265,7 @@ fun CartridgeSpine(
             cartridgeSystemLabel(game.systemId),
             modifier = Modifier.offset(17.dp * scale, 276.dp * scale).width(60.dp * scale),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = if (pink) Color(0xFFFFF3F7) else ink,
+            color = cartridgeInk,
             style = MaterialTheme.typography.labelMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -220,19 +296,26 @@ fun CartridgeFront(
     pink: Boolean = LocalShelfAppearance.current.edition == "pink",
     artworkRevision: Int = 0,
 ) {
+    val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
+    val cartridgeInk =
+        when (edition) {
+            "pink" -> Color(0xFFFFF3F7)
+            "green" -> Color(0xFFF2FFE6)
+            else -> Color(0xFFEDF6F2)
+        }
     BoxWithConstraints(modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(320f / 390f)) {
         val unit = maxWidth / 320f
         Image(
             cartridgePainter(
-                if (pink) R.drawable.cartdeck_pink_front_base else R.drawable.cartdeck_original_front_base,
-                pink,
+                cartridgeAsset(edition, "front"),
+                edition,
             ),
             null,
             Modifier.fillMaxSize(),
         )
         val fallback =
             painterResource(
-                if (pink) R.drawable.cartdeck_pink_fallback_atlas else R.drawable.cartdeck_original_fallback_atlas,
+                cartridgeAsset(edition, "fallback"),
             )
         // Preserve the existing custom > indexed > original fallback artwork contract.
         AsyncImage(
@@ -250,16 +333,16 @@ fun CartridgeFront(
         )
         Image(
             cartridgePainter(
-                if (pink) R.drawable.cartdeck_pink_front_overlay else R.drawable.cartdeck_original_front_overlay,
-                pink,
+                cartridgeAsset(edition, "overlay"),
+                edition,
             ),
             null,
             Modifier.fillMaxSize(),
         )
         Image(
             cartridgePainter(
-                if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
-                pink,
+                cartridgeAsset(edition, "mark"),
+                edition,
             ),
             null,
             Modifier.offset(unit * 40, unit * 38).size(unit * 40),
@@ -267,14 +350,19 @@ fun CartridgeFront(
         Text(
             "CARTDECK",
             modifier = Modifier.offset(unit * 90, unit * 48),
-            color = if (pink) Color(0xFF54253F) else Color(0xFFEDF6F2),
+            color =
+                when (edition) {
+                    "pink" -> Color(0xFF54253F)
+                    "green" -> Color(0xFF153629)
+                    else -> Color(0xFFEDF6F2)
+                },
             style = MaterialTheme.typography.labelLarge,
         )
         Text(
             cartridgeSystemLabel(game.systemId),
             modifier = Modifier.offset(unit * 215, unit * 334).width(unit * 78),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = if (pink) Color(0xFFFFF3F7) else Color(0xFFEDF6F2),
+            color = cartridgeInk,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
