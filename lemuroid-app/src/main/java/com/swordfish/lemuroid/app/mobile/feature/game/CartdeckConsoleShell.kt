@@ -100,18 +100,23 @@ internal fun CartdeckConsoleShell(
             val left = 25.dp.toPx()
             val end = size.width * 0.20f
             val lightY = 19.dp.toPx()
-            drawLine(
-                color = tokens.accent.copy(alpha = 0.6f),
-                start = Offset(left, lightY),
-                end = Offset(end, lightY),
-                strokeWidth = 2.dp.toPx(),
-            )
-            drawLine(
-                color = tokens.accent.copy(alpha = 0.6f),
-                start = Offset(size.width - end, lightY),
-                end = Offset(size.width - left, lightY),
-                strokeWidth = 2.dp.toPx(),
-            )
+            // Never paint decorative shell lighting over a maximised viewport.
+            // The old fixed top clearance guaranteed room for this detail;
+            // screen-first layouts may intentionally remove that clearance.
+            if (hole == null || hole.top > lightY + 2.dp.toPx()) {
+                drawLine(
+                    color = tokens.accent.copy(alpha = 0.6f),
+                    start = Offset(left, lightY),
+                    end = Offset(end, lightY),
+                    strokeWidth = 2.dp.toPx(),
+                )
+                drawLine(
+                    color = tokens.accent.copy(alpha = 0.6f),
+                    start = Offset(size.width - end, lightY),
+                    end = Offset(size.width - left, lightY),
+                    strokeWidth = 2.dp.toPx(),
+                )
+            }
             drawLine(
                 color = tokens.secondary,
                 start = Offset(left, size.height - 30.dp.toPx()),
