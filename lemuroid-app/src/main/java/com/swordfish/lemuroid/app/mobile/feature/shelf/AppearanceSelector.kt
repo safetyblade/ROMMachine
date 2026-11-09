@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -56,13 +56,14 @@ import java.util.UUID
 @Composable
 private fun presetRoles(id: String): Map<String, Color> {
     val ctx = LocalContext.current
-    val t = ctx.resolveCartdeckEdition(
-        when (id) {
-            "pink" -> CartdeckEditionPreset.PINK
-            "green" -> CartdeckEditionPreset.GREEN
-            else -> CartdeckEditionPreset.ORIGINAL
-        },
-    )
+    val t =
+        ctx.resolveCartdeckEdition(
+            when (id) {
+                "pink" -> CartdeckEditionPreset.PINK
+                "green" -> CartdeckEditionPreset.GREEN
+                else -> CartdeckEditionPreset.ORIGINAL
+            },
+        )
     val s = canonicalShelfMaterials(id)
     return mapOf(
         "chassis" to t.chassis, "secondary" to t.secondary, "bezel" to t.bezel,
@@ -77,62 +78,79 @@ private fun presetRoles(id: String): Map<String, Color> {
     )
 }
 
-private val roles = linkedMapOf(
-    "Cartridge" to listOf(
-        "chassis" to "Chassis", "secondary" to "Side rails", "bezel" to "Bezel",
-        "glass" to "Screen surround", "button" to "Buttons", "accent" to "Accent",
-    ),
-    "Shelf" to listOf(
-        "roomBackdrop" to "Room", "shelfBackboard" to "Back panel",
-        "shelfDeck" to "Rail deck", "shelfLip" to "Rail lip",
-        "shelfGroove" to "Groove", "edgeHighlight" to "Machined edge",
-        "shelfShadow" to "Shadow", "sectionDivider" to "Divider",
-        "vacantCell" to "Empty slot",
-    ),
-    "Lighting" to listOf(
-        "focus" to "Cartridge focus", "focusOutline" to "Shelf focus",
-        "interactionAccent" to "Active lighting",
-    ),
-    "Text & contrast" to listOf(
-        "onChassis" to "Shell lettering", "onButton" to "Button lettering",
-        "sectionText" to "Shelf lettering",
-    ),
-)
+private val roles =
+    linkedMapOf(
+        "Cartridge" to
+            listOf(
+                "chassis" to "Chassis", "secondary" to "Side rails", "bezel" to "Bezel",
+                "glass" to "Screen surround", "button" to "Buttons", "accent" to "Accent",
+            ),
+        "Shelf" to
+            listOf(
+                "roomBackdrop" to "Room", "shelfBackboard" to "Back panel",
+                "shelfDeck" to "Rail deck", "shelfLip" to "Rail lip",
+                "shelfGroove" to "Groove", "edgeHighlight" to "Machined edge",
+                "shelfShadow" to "Shadow", "sectionDivider" to "Divider",
+                "vacantCell" to "Empty slot",
+            ),
+        "Lighting" to
+            listOf(
+                "focus" to "Cartridge focus", "focusOutline" to "Shelf focus",
+                "interactionAccent" to "Active lighting",
+            ),
+        "Text & contrast" to
+            listOf(
+                "onChassis" to "Shell lettering", "onButton" to "Button lettering",
+                "sectionText" to "Shelf lettering",
+            ),
+    )
 
 private fun colourHex(color: Color): String = "#%06X".format(color.toArgb() and 0xFFFFFF)
+
 private fun longColour(color: Color): Long = color.toArgb().toLong() and 0xFFFFFFFFL
 
 /** Curated choices in the controlled design/cartdeck-v07/material-swatches.json. */
 private fun suggestions(role: String): List<Color> {
-    val group = when (role) {
-        "chassis", "secondary" -> "chassis"
-        "bezel", "button", "glass" -> "button"
-        "shelfBackboard", "roomBackdrop", "shelfGroove", "shelfShadow", "vacantCell" -> "back"
-        "shelfDeck", "shelfLip", "sectionDivider" -> "deck"
-        else -> "accent"
-    }
-    val hex = when (group) {
-        "chassis" -> listOf("#303B49", "#F2A9C9", "#9BC7A8", "#28435C", "#D9D1C8", "#9F91C6")
-        "button" -> listOf("#111923", "#793653", "#194437", "#26374A", "#51443E", "#413450")
-        "back" -> listOf("#14212D", "#382536", "#163127", "#142B3F", "#332D42", "#3F332A")
-        "deck" -> listOf("#293847", "#69445D", "#315443", "#334A61", "#665747", "#5C4F71")
-        else -> listOf("#4ED8C4", "#FFE5F1", "#D4F47D", "#F2C879", "#A3C5FF", "#F5B0A1")
-    }
+    val group =
+        when (role) {
+            "chassis", "secondary" -> "chassis"
+            "bezel", "button", "glass" -> "button"
+            "shelfBackboard", "roomBackdrop", "shelfGroove", "shelfShadow", "vacantCell" -> "back"
+            "shelfDeck", "shelfLip", "sectionDivider" -> "deck"
+            else -> "accent"
+        }
+    val hex =
+        when (group) {
+            "chassis" -> listOf("#303B49", "#F2A9C9", "#9BC7A8", "#28435C", "#D9D1C8", "#9F91C6")
+            "button" -> listOf("#111923", "#793653", "#194437", "#26374A", "#51443E", "#413450")
+            "back" -> listOf("#14212D", "#382536", "#163127", "#142B3F", "#332D42", "#3F332A")
+            "deck" -> listOf("#293847", "#69445D", "#315443", "#334A61", "#665747", "#5C4F71")
+            else -> listOf("#4ED8C4", "#FFE5F1", "#D4F47D", "#F2C879", "#A3C5FF", "#F5B0A1")
+        }
     return hex.map { Color(android.graphics.Color.parseColor(it)) }
 }
 
 @Composable
-private fun EditionOption(id: String, checked: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun EditionOption(
+    id: String,
+    checked: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
     val title = id.replaceFirstChar { it.uppercase() }
     val samples = presetRoles(id)
     Column(
-        modifier = modifier.border(
-            if (checked) 2.dp else 1.dp,
-            if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-            RoundedCornerShape(12.dp),
-        ).clickable(onClick = onClick)
-            .semantics { selected = checked; contentDescription = title + " edition" }
-            .padding(6.dp),
+        modifier =
+            modifier.border(
+                if (checked) 2.dp else 1.dp,
+                if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(12.dp),
+            ).clickable(onClick = onClick)
+                .semantics {
+                    selected = checked
+                    contentDescription = title + " edition"
+                }
+                .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
@@ -140,8 +158,10 @@ private fun EditionOption(id: String, checked: Boolean, modifier: Modifier, onCl
         Text(if (checked) "✓ " + title else title, style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             listOf("chassis", "shelfBackboard", "shelfDeck", "accent").forEach { key ->
-                Box(Modifier.size(13.dp).background(samples.getValue(key), CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                Box(
+                    Modifier.size(13.dp).background(samples.getValue(key), CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
             }
         }
     }
@@ -168,14 +188,23 @@ private fun ColourPicker(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         chunk.forEach { color ->
                             Column(
-                                modifier = Modifier.padding(5.dp).clickable { onChoose(color) }
-                                    .semantics { contentDescription = "Colour " + colourHex(color) },
+                                modifier =
+                                    Modifier.padding(5.dp).clickable { onChoose(color) }
+                                        .semantics { contentDescription = "Colour " + colourHex(color) },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                Box(Modifier.size(48.dp).background(color, CircleShape)
-                                    .border(if (color == current) 3.dp else 1.dp,
-                                        if (color == current) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.outline, CircleShape))
+                                Box(
+                                    Modifier.size(48.dp).background(color, CircleShape)
+                                        .border(
+                                            if (color == current) 3.dp else 1.dp,
+                                            if (color == current) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.outline
+                                            },
+                                            CircleShape,
+                                        ),
+                                )
                                 Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -185,8 +214,13 @@ private fun ColourPicker(
                     Text(if (advanced) "Hide precise colour" else "Precise colour (hex)")
                 }
                 if (advanced) {
-                    OutlinedTextField(value = typed, onValueChange = { typed = it.take(7) },
-                        label = { Text("Hex") }, isError = !valid, singleLine = true)
+                    OutlinedTextField(
+                        value = typed,
+                        onValueChange = { typed = it.take(7) },
+                        label = { Text("Hex") },
+                        isError = !valid,
+                        singleLine = true,
+                    )
                     TextButton(enabled = valid, onClick = {
                         onChoose(Color(android.graphics.Color.parseColor(typed)))
                     }) { Text("Use colour") }
@@ -225,8 +259,15 @@ fun ShelfAppearanceEditor(
     val original = presetRoles("original")
     val pink = presetRoles("pink")
     val green = presetRoles("green")
-    val draft = ShelfAppearance(edition, overrides.toMap(), highContrast, reducedMotion,
-        named.toList(), if (modified) null else selectedId)
+    val draft =
+        ShelfAppearance(
+            edition,
+            overrides.toMap(),
+            highContrast,
+            reducedMotion,
+            named.toList(),
+            if (modified) null else selectedId,
+        )
 
     fun choosePreset(id: String) {
         edition = id
@@ -245,19 +286,30 @@ fun ShelfAppearanceEditor(
         warning = null
     }
 
-    fun changeColour(role: String, value: Color) {
+    fun changeColour(
+        role: String,
+        value: Color,
+    ) {
         val proposed = overrides.toMap() + (role to longColour(value))
         val surface = shelfMaterials(ShelfAppearance(edition, proposed, highContrast, reducedMotion))
-        val unsafe = when (role) {
-            "sectionText" -> colorContrast(value, surface.shelfBackboard) < 4.5f
-            "focusOutline" -> colorContrast(value, surface.shelfBackboard) < 3f ||
-                colorContrast(value, surface.vacantCell) < 3f
-            "onChassis" -> colorContrast(value,
-                Color(proposed["chassis"]?.toInt() ?: base.getValue("chassis").toArgb())) < 4.5f
-            "onButton" -> colorContrast(value,
-                Color(proposed["button"]?.toInt() ?: base.getValue("button").toArgb())) < 4.5f
-            else -> false
-        }
+        val unsafe =
+            when (role) {
+                "sectionText" -> colorContrast(value, surface.shelfBackboard) < 4.5f
+                "focusOutline" ->
+                    colorContrast(value, surface.shelfBackboard) < 3f ||
+                        colorContrast(value, surface.vacantCell) < 3f
+                "onChassis" ->
+                    colorContrast(
+                        value,
+                        Color(proposed["chassis"]?.toInt() ?: base.getValue("chassis").toArgb()),
+                    ) < 4.5f
+                "onButton" ->
+                    colorContrast(
+                        value,
+                        Color(proposed["button"]?.toInt() ?: base.getValue("button").toArgb()),
+                    ) < 4.5f
+                else -> false
+            }
         if (unsafe) {
             warning = "This colour has insufficient contrast on that surface."
             return
@@ -285,8 +337,12 @@ fun ShelfAppearanceEditor(
                 ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("original", "pink", "green").forEach { id ->
-                            EditionOption(id, checked = edition == id && selectedId == null,
-                                modifier = Modifier.weight(1f), onClick = { choosePreset(id) })
+                            EditionOption(
+                                id,
+                                checked = edition == id && selectedId == null,
+                                modifier = Modifier.weight(1f),
+                                onClick = { choosePreset(id) },
+                            )
                         }
                     }
                     CartdeckAppearancePreview(draft, height = 143.dp)
@@ -296,26 +352,34 @@ fun ShelfAppearanceEditor(
                     if (expandedEditor) {
                         roles.forEach { (group, tokens) ->
                             TextButton(onClick = {
-                                if (group in expandedGroups) expandedGroups.remove(group)
-                                else expandedGroups.add(group)
+                                if (group in expandedGroups) {
+                                    expandedGroups.remove(group)
+                                } else {
+                                    expandedGroups.add(group)
+                                }
                             }) { Text(if (group in expandedGroups) "▾ " + group else "▸ " + group) }
                             if (group in expandedGroups) {
                                 tokens.forEach { (key, label) ->
                                     val color = overrides[key]?.let { Color(it.toInt()) } ?: base.getValue(key)
-                                    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        Row(Modifier.weight(1f).clickable { picker = key }
-                                            .semantics {
-                                                contentDescription = label + ", " + colourHex(color) + ", change colour"
-                                            }.padding(vertical = 5.dp),
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Row(
+                                            Modifier.weight(1f).clickable { picker = key }
+                                                .semantics {
+                                                    contentDescription = label + ", " + colourHex(color) + ", change colour"
+                                                }.padding(vertical = 5.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            Box(Modifier.size(44.dp).background(color, RoundedCornerShape(8.dp))
-                                                .border(
-                                                    1.dp,
-                                                    MaterialTheme.colorScheme.outline,
-                                                    RoundedCornerShape(8.dp),
-                                                ),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Box(
+                                                Modifier.size(44.dp).background(color, RoundedCornerShape(8.dp))
+                                                    .border(
+                                                        1.dp,
+                                                        MaterialTheme.colorScheme.outline,
+                                                        RoundedCornerShape(8.dp),
+                                                    ),
                                             )
                                             Column {
                                                 Text(label, style = MaterialTheme.typography.bodyMedium)
@@ -324,14 +388,18 @@ fun ShelfAppearanceEditor(
                                         }
                                         if (overrides.containsKey(key)) {
                                             TextButton(onClick = {
-                                                overrides.remove(key); modified = true
+                                                overrides.remove(key)
+                                                modified = true
                                             }) { Text("Reset") }
                                         }
                                     }
                                 }
                             }
                         }
-                        TextButton(onClick = { overrides.clear(); modified = true }) {
+                        TextButton(onClick = {
+                            overrides.clear()
+                            modified = true
+                        }) {
                             Text("Reset custom colours")
                         }
                     }
@@ -341,37 +409,57 @@ fun ShelfAppearanceEditor(
                     }
                     if (expandedNames) {
                         named.forEach { item ->
-                            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 TextButton(onClick = { chooseProfile(item) }, modifier = Modifier.weight(1f)) {
-                                    Text(if (selectedId == item.id && !modified) "✓ " + item.name else item.name,
-                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        if (selectedId == item.id && !modified) "✓ " + item.name else item.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
                                 TextButton(onClick = {
-                                    renameTargetId = item.id; typedName = item.name; nameAction = "rename"
+                                    renameTargetId = item.id
+                                    typedName = item.name
+                                    nameAction = "rename"
                                 }) { Text("Rename") }
                                 TextButton(onClick = {
-                                    val copy = item.copy(id = UUID.randomUUID().toString(),
-                                        name = item.name.take(50) + " Copy",
-                                        createdAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis())
+                                    val copy =
+                                        item.copy(
+                                            id = UUID.randomUUID().toString(),
+                                            name = item.name.take(50) + " Copy",
+                                            createdAt = System.currentTimeMillis(),
+                                            updatedAt = System.currentTimeMillis(),
+                                        )
                                     named.add(copy)
                                     chooseProfile(copy)
                                 }) { Text("Copy") }
                                 TextButton(onClick = {
                                     named.remove(item)
-                                    if (selectedId == item.id) { selectedId = null; modified = true }
+                                    if (selectedId == item.id) {
+                                        selectedId = null
+                                        modified = true
+                                    }
                                 }) { Text("Delete") }
                             }
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { typedName = ""; nameAction = "create" }) { Text("Save as new") }
+                        TextButton(onClick = {
+                            typedName = ""
+                            nameAction = "create"
+                        }) { Text("Save as new") }
                         if (selectedId != null && modified) {
                             TextButton(onClick = {
                                 val i = named.indexOfFirst { it.id == selectedId }
                                 if (i >= 0) {
-                                    named[i] = named[i].copy(baseEdition = edition, custom = overrides.toMap(),
-                                        updatedAt = System.currentTimeMillis())
+                                    named[i] =
+                                        named[i].copy(
+                                            baseEdition = edition, custom = overrides.toMap(),
+                                            updatedAt = System.currentTimeMillis(),
+                                        )
                                     modified = false
                                 }
                             }) { Text("Update selected") }
@@ -382,45 +470,66 @@ fun ShelfAppearanceEditor(
                         Text(if (expandedAccessibility) "▾ Accessibility" else "▸ Accessibility")
                     }
                     if (expandedAccessibility) {
-                        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(highContrast, { highContrast = it }); Text("High contrast")
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(highContrast, { highContrast = it })
+                            Text("High contrast")
                         }
-                        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(reducedMotion, { reducedMotion = it }); Text("Reduce motion")
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(reducedMotion, { reducedMotion = it })
+                            Text("Reduce motion")
                         }
                     }
                     warning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     Spacer(Modifier.height(10.dp))
                 }
                 HorizontalDivider()
-                Row(Modifier.fillMaxWidth().heightIn(min = 60.dp),
-                    horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
-                    TextButton(onClick = { onSave(draft); onDismiss() }) { Text("Apply") }
+                    TextButton(onClick = {
+                        onSave(draft)
+                        onDismiss()
+                    }) { Text("Apply") }
                 }
             }
         }
     }
 
     picker?.let { role ->
-        ColourPicker(role, overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
+        ColourPicker(
+            role,
+            overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
             listOf(original.getValue(role), pink.getValue(role), green.getValue(role)),
-            onChoose = { changeColour(role, it) }, onDismiss = { picker = null })
+            onChoose = { changeColour(role, it) },
+            onDismiss = { picker = null },
+        )
     }
     if (nameAction != null) {
-        val collision = named.any {
-            it.name.equals(typedName.trim(), ignoreCase = true) &&
-                (nameAction != "rename" || it.id != renameTargetId)
-        }
+        val collision =
+            named.any {
+                it.name.equals(typedName.trim(), ignoreCase = true) &&
+                    (nameAction != "rename" || it.id != renameTargetId)
+            }
         AlertDialog(
             onDismissRequest = { nameAction = null },
             title = { Text(if (nameAction == "rename") "Rename appearance" else "Save custom appearance") },
             text = {
                 Column {
-                    OutlinedTextField(value = typedName, onValueChange = { typedName = it.take(60) },
-                        label = { Text("Name") }, singleLine = true)
+                    OutlinedTextField(
+                        value = typedName,
+                        onValueChange = { typedName = it.take(60) },
+                        label = { Text("Name") },
+                        singleLine = true,
+                    )
                     if (collision) Text("Name already used", color = MaterialTheme.colorScheme.error)
                 }
             },
@@ -428,11 +537,20 @@ fun ShelfAppearanceEditor(
                 TextButton(enabled = typedName.trim().isNotEmpty() && !collision, onClick = {
                     if (nameAction == "rename") {
                         val i = named.indexOfFirst { it.id == renameTargetId }
-                        if (i >= 0) named[i] = named[i].copy(name = typedName.trim(),
-                            updatedAt = System.currentTimeMillis())
+                        if (i >= 0) {
+                            named[i] =
+                                named[i].copy(
+                                    name = typedName.trim(),
+                                    updatedAt = System.currentTimeMillis(),
+                                )
+                        }
                     } else {
-                        val item = NamedAppearance(name = typedName.trim(), baseEdition = edition,
-                            custom = overrides.toMap())
+                        val item =
+                            NamedAppearance(
+                                name = typedName.trim(),
+                                baseEdition = edition,
+                                custom = overrides.toMap(),
+                            )
                         named.add(item)
                         selectedId = item.id
                         modified = false

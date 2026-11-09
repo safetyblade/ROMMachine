@@ -64,18 +64,23 @@ internal fun encode(layout: ShelfLayout): String =
                 put("custom", JSONObject(layout.appearance.custom))
                 put("appearanceVersion", 2)
                 put("activeProfileId", layout.appearance.activeProfileId ?: JSONObject.NULL)
-                put("profiles", JSONArray().apply {
-                    layout.appearance.profiles.forEach { profile ->
-                        put(JSONObject().apply {
-                            put("id", profile.id)
-                            put("name", profile.name)
-                            put("baseEdition", profile.baseEdition)
-                            put("custom", JSONObject(profile.custom))
-                            put("createdAt", profile.createdAt)
-                            put("updatedAt", profile.updatedAt)
-                        })
-                    }
-                })
+                put(
+                    "profiles",
+                    JSONArray().apply {
+                        layout.appearance.profiles.forEach { profile ->
+                            put(
+                                JSONObject().apply {
+                                    put("id", profile.id)
+                                    put("name", profile.name)
+                                    put("baseEdition", profile.baseEdition)
+                                    put("custom", JSONObject(profile.custom))
+                                    put("createdAt", profile.createdAt)
+                                    put("updatedAt", profile.updatedAt)
+                                },
+                            )
+                        }
+                    },
+                )
             },
         )
         put(
@@ -125,19 +130,28 @@ internal fun decode(json: String): ShelfLayout {
                 highContrast = appearance.optBoolean("highContrast"),
                 reducedMotion = appearance.optBoolean("reducedMotion"),
                 custom = custom.keys().asSequence().associateWith { custom.getLong(it) },
-                profiles = (0 until profiles.length()).map { index ->
-                    val record = profiles.getJSONObject(index)
-                    val overrides = record.optJSONObject("custom") ?: JSONObject()
-                    NamedAppearance(
-                        id = record.getString("id"),
-                        name = record.getString("name"),
-                        baseEdition = record.getString("baseEdition"),
-                        custom = overrides.keys().asSequence().associateWith { overrides.getLong(it) },
-                        createdAt = record.optLong("createdAt"),
-                        updatedAt = record.optLong("updatedAt"),
-                    )
-                },
-                activeProfileId = if (appearance.isNull("activeProfileId")) null else appearance.getString("activeProfileId"),
+                profiles =
+                    (0 until profiles.length()).map { index ->
+                        val record = profiles.getJSONObject(index)
+                        val overrides = record.optJSONObject("custom") ?: JSONObject()
+                        NamedAppearance(
+                            id = record.getString("id"),
+                            name = record.getString("name"),
+                            baseEdition = record.getString("baseEdition"),
+                            custom = overrides.keys().asSequence().associateWith { overrides.getLong(it) },
+                            createdAt = record.optLong("createdAt"),
+                            updatedAt = record.optLong("updatedAt"),
+                        )
+                    },
+                activeProfileId =
+                    if (appearance.isNull(
+                            "activeProfileId",
+                        )
+                    ) {
+                        null
+                    } else {
+                        appearance.getString("activeProfileId")
+                    },
             ),
         sections =
             (0 until sections.length()).map { index ->

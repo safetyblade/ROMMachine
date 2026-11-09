@@ -53,7 +53,10 @@ data class ShelfAppearance(
             activeProfileId = if (activeProfileId == id) null else activeProfileId,
         )
 
-    fun saveNewProfile(name: String, now: Long = System.currentTimeMillis()): ShelfAppearance {
+    fun saveNewProfile(
+        name: String,
+        now: Long = System.currentTimeMillis(),
+    ): ShelfAppearance {
         val title = name.trim()
         require(title.isNotEmpty() && title.length <= 60)
         val profile =
@@ -61,20 +64,32 @@ data class ShelfAppearance(
         return copy(profiles = profiles + profile, activeProfileId = profile.id)
     }
 
-    fun renameProfile(id: String, name: String): ShelfAppearance {
+    fun renameProfile(
+        id: String,
+        name: String,
+    ): ShelfAppearance {
         val title = name.trim()
         require(title.isNotEmpty() && title.length <= 60)
         return copy(profiles = profiles.map { if (it.id == id) it.copy(name = title) else it })
     }
 
-    fun duplicateProfile(id: String, now: Long = System.currentTimeMillis()): ShelfAppearance {
+    fun duplicateProfile(
+        id: String,
+        now: Long = System.currentTimeMillis(),
+    ): ShelfAppearance {
         val source = profiles.first { it.id == id }
         val duplicate =
-            source.copy(id = UUID.randomUUID().toString(), name = (source.name.take(50) + " Copy"),
-                createdAt = now, updatedAt = now)
+            source.copy(
+                id = UUID.randomUUID().toString(),
+                name = (source.name.take(50) + " Copy"),
+                createdAt = now,
+                updatedAt = now,
+            )
         return copy(
             profiles = profiles + duplicate,
-            edition = duplicate.baseEdition, custom = duplicate.custom, activeProfileId = duplicate.id,
+            edition = duplicate.baseEdition,
+            custom = duplicate.custom,
+            activeProfileId = duplicate.id,
         )
     }
 }
@@ -96,12 +111,16 @@ data class ShelfLayout(
         require(sections.all { it.title.isNotBlank() && it.title.length <= 80 })
         require(appearance.edition in listOf("original", "pink", "green"))
         require(appearance.profiles.map { it.id }.distinct().size == appearance.profiles.size)
-        require(appearance.profiles.all {
-            it.name.isNotBlank() && it.name.length <= 60 &&
-                it.baseEdition in listOf("original", "pink", "green")
-        })
-        require(appearance.activeProfileId == null ||
-            appearance.profiles.any { it.id == appearance.activeProfileId })
+        require(
+            appearance.profiles.all {
+                it.name.isNotBlank() && it.name.length <= 60 &&
+                    it.baseEdition in listOf("original", "pink", "green")
+            },
+        )
+        require(
+            appearance.activeProfileId == null ||
+                appearance.profiles.any { it.id == appearance.activeProfileId },
+        )
         val cells = sections.flatMap { it.cells }
         require(cells.map { it.id }.distinct().size == cells.size)
         require(cells.mapNotNull { it.gameKey }.distinct().size == cells.count { it.gameKey != null })

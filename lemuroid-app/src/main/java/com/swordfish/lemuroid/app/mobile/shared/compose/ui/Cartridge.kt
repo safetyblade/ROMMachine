@@ -6,14 +6,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -122,7 +122,10 @@ fun shelfPresentationTitle(title: String): String =
         .ifEmpty { title }
 
 /** Source SVG geometry stays fixed across editions; Green uses generated ASSET-H1 vectors. */
-private fun cartridgeAsset(edition: String, part: String): Int =
+private fun cartridgeAsset(
+    edition: String,
+    part: String,
+): Int =
     when (edition to part) {
         "pink" to "spine" -> R.drawable.cartdeck_pink_spine_base
         "pink" to "front" -> R.drawable.cartdeck_pink_front_base
@@ -133,13 +136,14 @@ private fun cartridgeAsset(edition: String, part: String): Int =
         "green" to "overlay" -> R.drawable.cartdeck_h1_green_front_overlay
         "green" to "fallback" -> R.drawable.cartdeck_h1_green_fallback_atlas
         "pink" to "mark" -> R.drawable.cartdeck_pink_cslot_master
-        else -> when (part) {
-            "spine" -> R.drawable.cartdeck_original_spine_base
-            "front" -> R.drawable.cartdeck_original_front_base
-            "overlay" -> R.drawable.cartdeck_original_front_overlay
-            "fallback" -> R.drawable.cartdeck_original_fallback_atlas
-            else -> R.drawable.cartdeck_original_cslot_master
-        }
+        else ->
+            when (part) {
+                "spine" -> R.drawable.cartdeck_original_spine_base
+                "front" -> R.drawable.cartdeck_original_front_base
+                "overlay" -> R.drawable.cartdeck_original_front_overlay
+                "fallback" -> R.drawable.cartdeck_original_fallback_atlas
+                else -> R.drawable.cartdeck_original_cslot_master
+            }
     }
 
 /** Actual canonical cartridge vectors shown against shelf materials, with no game artwork. */
@@ -154,9 +158,10 @@ fun CartdeckAppearancePreview(
     val scale = height.value / 152f
     androidx.compose.runtime.CompositionLocalProvider(LocalShelfAppearance provides appearance) {
         Box(
-            modifier = modifier.fillMaxWidth().height(height)
-                .clip(RoundedCornerShape(10.dp))
-                .background(materials.shelfBackboard),
+            modifier =
+                modifier.fillMaxWidth().height(height)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(materials.shelfBackboard),
         ) {
             Row(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp * scale),
@@ -194,11 +199,12 @@ fun CartridgeSpine(
     registerGeometry: Boolean = true,
 ) {
     val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
-    val cartridgeInk = when (edition) {
-        "pink" -> Color(0xFFFFF3F7)
-        "green" -> Color(0xFFF2FFE6)
-        else -> Color(0xFFEDF6F2)
-    }
+    val cartridgeInk =
+        when (edition) {
+            "pink" -> Color(0xFFFFF3F7)
+            "green" -> Color(0xFFF2FFE6)
+            else -> Color(0xFFEDF6F2)
+        }
     val geometry = LocalCartridgeGeometry.current
     val owner = remember(game.id) { Any() }
     DisposableEffect(game.id, registerGeometry) {
@@ -291,11 +297,12 @@ fun CartridgeFront(
     artworkRevision: Int = 0,
 ) {
     val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
-    val cartridgeInk = when (edition) {
-        "pink" -> Color(0xFFFFF3F7)
-        "green" -> Color(0xFFF2FFE6)
-        else -> Color(0xFFEDF6F2)
-    }
+    val cartridgeInk =
+        when (edition) {
+            "pink" -> Color(0xFFFFF3F7)
+            "green" -> Color(0xFFF2FFE6)
+            else -> Color(0xFFEDF6F2)
+        }
     BoxWithConstraints(modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(320f / 390f)) {
         val unit = maxWidth / 320f
         Image(
@@ -343,11 +350,12 @@ fun CartridgeFront(
         Text(
             "CARTDECK",
             modifier = Modifier.offset(unit * 90, unit * 48),
-            color = when (edition) {
-                "pink" -> Color(0xFF54253F)
-                "green" -> Color(0xFF153629)
-                else -> Color(0xFFEDF6F2)
-            },
+            color =
+                when (edition) {
+                    "pink" -> Color(0xFF54253F)
+                    "green" -> Color(0xFF153629)
+                    else -> Color(0xFFEDF6F2)
+                },
             style = MaterialTheme.typography.labelLarge,
         )
         Text(
