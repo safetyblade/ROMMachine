@@ -21,6 +21,7 @@ class DebugCoreVersionStoreTest {
         val root = Files.createTempDirectory("dc02-test-").toFile()
         try {
             val store = DebugCoreVersionStore(File(root, "store"))
+            assertFalse(store.activate("flycast", "missing"))
             val first = File(root, "first.so").apply { writeText("stable") }
             val second = File(root, "second.so").apply { writeText("candidate") }
             store.install("flycast", "v1", first, sha(first.readBytes()))
@@ -34,7 +35,7 @@ class DebugCoreVersionStoreTest {
             assertNotNull(recovered)
             assertEquals("v1", recovered?.version)
             assertTrue(recovered!!.usedFallback)
-            assertFalse(store.rollback("flycast"))
+            assertTrue(store.rollback("flycast"))
         } finally {
             root.deleteRecursively()
         }
