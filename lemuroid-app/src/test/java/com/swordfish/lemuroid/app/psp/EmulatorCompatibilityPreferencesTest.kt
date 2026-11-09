@@ -6,8 +6,8 @@ import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
 import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.runner.RunWith
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
