@@ -61,8 +61,8 @@ class ShelfLayoutTest {
         val previous = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B"))
         val incompleteIndex = previous.reconcile(mapOf("a" to "A"))
         assertEquals(previous, incompleteIndex)
-        assertEquals(listOf("a"), previous.reconcile(mapOf("a" to "A"), removeMissing = true)
-            .sections.first().cells.mapNotNull { it.gameKey })
+        val confirmed = previous.reconcile(mapOf("a" to "A"), removeMissing = true)
+        assertEquals(listOf("a"), confirmed.sections.first().cells.mapNotNull { it.gameKey })
     }
 
     @Test fun movingAcrossSectionsSwapsVacancyAndDeleteRehomesEverything() {
