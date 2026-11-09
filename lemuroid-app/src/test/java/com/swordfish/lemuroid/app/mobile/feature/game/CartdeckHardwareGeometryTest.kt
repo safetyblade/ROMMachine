@@ -24,7 +24,11 @@ class CartdeckHardwareGeometryTest {
         val video = Rect(18f, 18f, 375f, 496f)
         assertTrue(
             CartdeckHardwareGeometry.seamSegments(
-                10f, 383f, 400f, listOf(video), 4f,
+                10f,
+                383f,
+                400f,
+                listOf(video),
+                4f,
             ).isEmpty(),
         )
     }
@@ -36,7 +40,11 @@ class CartdeckHardwareGeometryTest {
         val badge = Rect(174f, 788f, 219f, 839f)
         val segments =
             CartdeckHardwareGeometry.seamSegments(
-                8f, 385f, 813f, listOf(left, right, badge), 4f,
+                8f,
+                385f,
+                813f,
+                listOf(left, right, badge),
+                4f,
             )
         val excluded = listOf(left, right, badge).map { CartdeckHardwareGeometry.expanded(it, 4f) }
         assertTrue(segments.all { it.first < it.second })

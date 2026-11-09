@@ -15,7 +15,13 @@ class CartdeckHardwareSeatPolicyTest {
         val control = Rect(320f, 310f, 365f, 360f)
         assertNull(
             CartdeckHardwareSeatPolicy.at(
-                "start", control, mapOf("start" to control), video, root, 6f, 4f,
+                "start",
+                control,
+                mapOf("start" to control),
+                video,
+                root,
+                6f,
+                4f,
             ),
         )
     }
@@ -39,7 +45,13 @@ class CartdeckHardwareSeatPolicyTest {
         val menu = Rect(337f, 600f, 370f, 640f)
         assertNull(
             CartdeckHardwareSeatPolicy.at(
-                "start", start, mapOf("start" to start, "menu" to menu), video, root, 5f, 4f,
+                "start",
+                start,
+                mapOf("start" to start, "menu" to menu),
+                video,
+                root,
+                5f,
+                4f,
             ),
         )
     }
@@ -47,6 +59,16 @@ class CartdeckHardwareSeatPolicyTest {
     @Test
     fun screenAndPhoneEdgesSuppressUnsafeSeats() {
         val analog = Rect(3f, 760f, 55f, 822f)
-        assertNull(CartdeckHardwareSeatPolicy.at("analog-left", analog, mapOf("analog-left" to analog), video, root, 7f, 4f))
+        assertNull(
+            CartdeckHardwareSeatPolicy.at(
+                "analog-left",
+                analog,
+                mapOf("analog-left" to analog),
+                video,
+                root,
+                7f,
+                4f,
+            ),
+        )
     }
 }
