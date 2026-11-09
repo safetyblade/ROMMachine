@@ -86,7 +86,11 @@ fun CoresSelectionScreen(
 }
 
 @Composable
-private fun CompatibilityEngineControls(systemId: SystemID, label: String, assetRevision: Boolean) {
+private fun CompatibilityEngineControls(
+    systemId: SystemID,
+    label: String,
+    assetRevision: Boolean,
+) {
     val context = LocalContext.current.applicationContext
     val preferences = remember(context) { EmulatorCompatibilityPreferences(context) }
     val updatedAvailable = remember(systemId, assetRevision) { preferences.available(systemId) }
