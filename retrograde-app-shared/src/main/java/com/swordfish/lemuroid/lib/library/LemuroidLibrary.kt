@@ -88,7 +88,10 @@ class LemuroidLibrary(
     }
 
     @OptIn(FlowPreview::class)
-    private suspend fun indexProviders(startedAtMs: Long, skipped: AtomicInteger) {
+    private suspend fun indexProviders(
+        startedAtMs: Long,
+        skipped: AtomicInteger,
+    ) {
         val gameMetadata = gameMetadataProvider.get()
         val enabledProviders = storageProviderRegistry.get().enabledProviders
         enabledProviders.asFlow()
