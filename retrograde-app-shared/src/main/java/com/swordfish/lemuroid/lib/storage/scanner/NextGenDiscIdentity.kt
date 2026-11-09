@@ -81,8 +81,9 @@ object NextGenDiscIdentity {
             return Result(null, "not-iso9660")
         }
         val root = extent(pvd, 156) ?: return Result(null, "invalid-root-record")
-        val rootBytes = readAt(source, root.first * 2048L, root.second.coerceAtMost(65536))
-            ?: return Result(null, "unreadable-root")
+        val rootBytes =
+            readAt(source, root.first * 2048L, root.second.coerceAtMost(65536))
+                ?: return Result(null, "unreadable-root")
 
         var index = 0
         while (index + 34 <= rootBytes.size) {
