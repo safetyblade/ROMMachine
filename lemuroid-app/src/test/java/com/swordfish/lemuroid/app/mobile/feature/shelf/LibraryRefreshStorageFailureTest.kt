@@ -3,7 +3,6 @@ package com.swordfish.lemuroid.app.mobile.feature.shelf
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.swordfish.lemuroid.lib.R as LibraryR
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import com.swordfish.lemuroid.lib.storage.local.LocalStorageProvider
@@ -17,6 +16,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import com.swordfish.lemuroid.lib.R as LibraryR
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
