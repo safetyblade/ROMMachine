@@ -45,10 +45,11 @@ class DebugCoreVersionStoreTest {
     fun rollbackSwapsValidVersionWithoutDeletingSaves() {
         val root = Files.createTempDirectory("dc02-saves-").toFile()
         try {
-            val save = File(root, "saves/slot1.vmu").apply {
-                parentFile!!.mkdirs()
-                writeText("unchanged-game-progress")
-            }
+            val save =
+                File(root, "saves/slot1.vmu").apply {
+                    parentFile!!.mkdirs()
+                    writeText("unchanged-game-progress")
+                }
             val store = DebugCoreVersionStore(File(root, "cores"))
             for (v in listOf("v1", "v2")) {
                 val source = File(root, "$v.so").apply { writeText(v) }
