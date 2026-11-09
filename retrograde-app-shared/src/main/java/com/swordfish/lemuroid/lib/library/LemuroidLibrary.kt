@@ -19,6 +19,7 @@
 
 package com.swordfish.lemuroid.lib.library
 
+import androidx.room.withTransaction
 import com.swordfish.lemuroid.common.coroutines.batchWithSizeAndTime
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
@@ -38,12 +39,14 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicInteger
 
 class LemuroidLibrary(
     private val retrogradedb: RetrogradeDatabase,
@@ -52,27 +55,44 @@ class LemuroidLibrary(
     private val biosManager: BiosManager,
     private val customCoverManager: CustomCoverManager,
 ) {
-    suspend fun indexLibrary() {
+    data class IndexSummary(val added: Int, val removed: Int, val skipped: Int)
+
+    /**
+     * A scan is authoritative ONLY after every enabled provider and directory was
+     * enumerated successfully. In particular, never prune on an IO/SAF failure
+     * or coroutine cancellation: prior games and saves must remain discoverable.
+     */
+    suspend fun indexLibrary(): IndexSummary {
         val startedAtMs = System.currentTimeMillis()
+        val before = retrogradedb.gameDao().selectShelfGames().first()
+            .map { it.systemId to it.fileUri }.toSet()
+        val skipped = AtomicInteger(0)
 
         try {
-            indexProviders(startedAtMs)
-        } catch (e: Throwable) {
-            Timber.e(e, "Library indexing stopped due to exception")
-        } finally {
-            cleanUp(startedAtMs)
+            indexProviders(startedAtMs, skipped)
+        } catch (error: Exception) {
+            Timber.e(error, "Library refresh failed; existing games will not be pruned")
+            throw error
         }
 
-        val executionTime = System.currentTimeMillis() - startedAtMs
-        Timber.i("Library indexing completed in: $executionTime ms")
+        // Cleanup follows completed enumeration, never finally/catch.
+        cleanUp(startedAtMs)
+        val after = retrogradedb.gameDao().selectShelfGames().first()
+            .map { it.systemId to it.fileUri }.toSet()
+        Timber.i("Library indexing completed in: ${System.currentTimeMillis() - startedAtMs} ms")
+        return IndexSummary(
+            added = (after - before).size,
+            removed = (before - after).size,
+            skipped = skipped.get(),
+        )
     }
 
     @OptIn(FlowPreview::class)
-    private suspend fun indexProviders(startedAtMs: Long) {
+    private suspend fun indexProviders(startedAtMs: Long, skipped: AtomicInteger) {
         val gameMetadata = gameMetadataProvider.get()
         val enabledProviders = storageProviderRegistry.get().enabledProviders
         enabledProviders.asFlow()
-            .flatMapConcat { indexSingleProvider(it, startedAtMs, gameMetadata) }
+            .flatMapConcat { indexSingleProvider(it, startedAtMs, gameMetadata, skipped) }
             .collect()
     }
 
@@ -81,11 +101,12 @@ class LemuroidLibrary(
         provider: StorageProvider,
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
+        skipped: AtomicInteger,
     ): Flow<Unit> {
         return provider.listBaseStorageFiles()
             .flatMapConcat { StorageFilesMerger.mergeDataFiles(provider, it).asFlow() }
             .batchWithSizeAndTime(MAX_BUFFER_SIZE, MAX_TIME)
-            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata) }
+            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata, skipped) }
     }
 
     private suspend fun processBatch(
@@ -93,6 +114,7 @@ class LemuroidLibrary(
         provider: StorageProvider,
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
+        skipped: AtomicInteger,
     ) = flow<Unit> {
         val entries = batch.map { fetchEntriesFromDatabase(it) }
 
@@ -103,6 +125,9 @@ class LemuroidLibrary(
             entries.filterIsInstance<ScanEntry.File>()
                 .map { buildEntryFromMetadata(it.file, provider, gameMetadata, startedAtMs) }
 
+        // Includes unrecognised files (and BIOS candidates); no false claim that
+        // every skipped item was a playable ROM.
+        skipped.addAndGet(newEntries.count { it is ScanEntry.File })
         handleNewEntries(newEntries, startedAtMs, provider)
     }
 
@@ -253,18 +278,17 @@ class LemuroidLibrary(
         provider: StorageProvider,
         baseStorageFile: BaseStorageFile,
     ): StorageFile? {
-        return runCatching { provider.getStorageFile(baseStorageFile) }
-            .getOrNull()
+        // A file read/parse failure makes enumeration incomplete. Do not
+        // silently skip it and then delete its previously indexed game.
+        return provider.getStorageFile(baseStorageFile)
     }
 
-    private fun cleanUp(startedAtMs: Long) {
-        kotlin.runCatching {
-            removeDeletedBios(startedAtMs)
-        }
-        kotlin.runCatching {
+    private suspend fun cleanUp(startedAtMs: Long) {
+        // Filesystem BIOS handling is upstream behaviour; the two library
+        // record tables must be pruned as one transaction or not at all.
+        removeDeletedBios(startedAtMs)
+        retrogradedb.withTransaction {
             removeDeletedGames(startedAtMs)
-        }
-        kotlin.runCatching {
             removeDeletedDataFiles(startedAtMs)
         }
     }
@@ -318,9 +342,8 @@ class LemuroidLibrary(
         Timber.d("Deleting games from db before: $startedAtMs")
         val games = retrogradedb.gameDao().selectByLastIndexedAtLessThan(startedAtMs)
 
-        // Clean up custom cover files before removing the database rows
-        customCoverManager.deleteCoversForGames(games)
-
+        // A refresh removes stale library rows, not user-created artwork,
+        // save RAM or states. Explicit delete/backup policy is separate.
         retrogradedb.gameDao().delete(games)
     }
 

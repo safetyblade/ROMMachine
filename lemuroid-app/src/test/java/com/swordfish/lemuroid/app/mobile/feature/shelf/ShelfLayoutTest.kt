@@ -37,6 +37,34 @@ class ShelfLayoutTest {
         assertNotEquals(a, shelfGameKey("gba", "content://rom/a"))
     }
 
+    @Test fun completeRefreshRemovesGhostCartridgesAndPreservesExplicitSpaces() {
+        val games = mapOf("a" to "A", "b" to "B", "c" to "C", "d" to "D")
+        var layout = ShelfLayout().reconcile(games)
+        layout = layout.insertSpace(ShelfLayout.UNSORTED, "game:b")
+        layout = layout.insertSpace(ShelfLayout.UNSORTED, row = true)
+        layout = layout.createSection("Fighting")
+        layout = layout.moveCell("game:d", layout.sections.last().id)
+        val sectionId = layout.sections.last().id
+        val reserved = layout.sections.first().cells.filter { it.gameKey == null }
+        val pruned = layout.reconcile(mapOf("a" to "A", "c" to "C", "d" to "D"), removeMissing = true)
+        assertEquals(listOf("a", null, "c", null), pruned.sections.first().cells.map { it.gameKey })
+        assertEquals(reserved.map { it.id }, pruned.sections.first().cells.filter { it.gameKey == null }.map { it.id })
+        assertEquals(listOf("d"), pruned.sections.last().cells.mapNotNull { it.gameKey })
+        assertEquals(sectionId, pruned.sections.last().id)
+        assertEquals(1, pruned.sections.first().rows(5).count { it.intentionalEmpty })
+        assertEquals(pruned, pruned.reconcile(mapOf("a" to "A", "c" to "C", "d" to "D"), removeMissing = true))
+        val readded = pruned.reconcile(games)
+        assertEquals("b", readded.sections.first().cells.last().gameKey)
+    }
+
+    @Test fun incompleteOrFailedRefreshDoesNotDeleteMissingCartridgeCells() {
+        val previous = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B"))
+        val incompleteIndex = previous.reconcile(mapOf("a" to "A"))
+        assertEquals(previous, incompleteIndex)
+        val confirmed = previous.reconcile(mapOf("a" to "A"), removeMissing = true)
+        assertEquals(listOf("a"), confirmed.sections.first().cells.mapNotNull { it.gameKey })
+    }
+
     @Test fun movingAcrossSectionsSwapsVacancyAndDeleteRehomesEverything() {
         var layout = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B")).createSection("Favourites")
         val target = layout.sections.last().id

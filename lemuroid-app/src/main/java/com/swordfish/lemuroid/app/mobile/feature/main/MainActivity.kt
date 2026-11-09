@@ -15,11 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -29,6 +32,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.favorites.FavoritesScreen
@@ -65,6 +70,7 @@ import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
@@ -87,6 +93,9 @@ import de.charlex.compose.material3.HtmlText
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -159,6 +168,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     private fun MainScreen(navController: NavHostController) {
         val shelfViewModel: ShelfViewModel = viewModel(factory = ShelfViewModel.Factory(applicationContext))
         val shelfState = shelfViewModel.state.collectAsState().value
+        val refreshMessages = remember { SnackbarHostState() }
+        val refreshScope = rememberCoroutineScope()
         val shelfAppearance = shelfState.layout?.appearance ?: ShelfAppearance()
         CartridgeLibraryTheme(appearance = shelfAppearance) {
             val navBackStackEntry = navController.currentBackStackEntryAsState()
@@ -234,6 +245,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
             Scaffold(
                 modifier = if (coverGameId.value != null) Modifier.clearAndSetSemantics {} else Modifier,
+                snackbarHost = { SnackbarHost(refreshMessages) },
                 topBar = {
                     MainTopBar(
                         currentRoute = currentRoute,
@@ -245,6 +257,33 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         shelfAvailable = shelfReady,
                         onToggleArrangeShelf = { arrangingShelf.value = !arrangingShelf.value },
                         onShelfAppearance = { editingAppearance.value = true },
+                        onRefreshLibrary = {
+                            val requestId = LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
+                            refreshScope.launch {
+                                try {
+                                    val outcome =
+                                        WorkManager.getInstance(applicationContext)
+                                            .getWorkInfoByIdFlow(requestId)
+                                            .filterNotNull()
+                                            .first { it.state.isFinished }
+                                    if (outcome.state == WorkInfo.State.SUCCEEDED) {
+                                        shelfViewModel.reload(clearUndo = true)
+                                        refreshMessages.showSnackbar(
+                                            getString(
+                                                R.string.cartdeck_refresh_result,
+                                                outcome.outputData.getInt("added", 0),
+                                                outcome.outputData.getInt("removed", 0),
+                                                outcome.outputData.getInt("skipped", 0),
+                                            ),
+                                        )
+                                    } else {
+                                        refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
+                                    }
+                                } catch (error: Exception) {
+                                    refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
+                                }
+                            }
+                        },
                     )
                 },
                 bottomBar = {

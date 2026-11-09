@@ -4,9 +4,15 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,12 +33,29 @@ class ShelfViewModel(context: Context) : ViewModel() {
 
     init {
         reload()
+        // The worker atomically updates shelf-layout-v1.json only after a
+        // complete scan. Observe completed work to reload its new contents,
+        // including when refresh was started outside the Home screen.
+        viewModelScope.launch {
+            WorkManager.getInstance(context.applicationContext)
+                .getWorkInfosForUniqueWorkFlow(LibraryIndexScheduler.LIBRARY_INDEX_WORK_ID)
+                .map { jobs ->
+                    jobs.filter { it.state == WorkInfo.State.SUCCEEDED }.map { it.id }.toSet()
+                }
+                .distinctUntilChanged()
+                .collect { completed ->
+                    if (completed.isNotEmpty()) reload(clearUndo = true)
+                }
+        }
     }
 
-    fun reload() {
+    fun reload(clearUndo: Boolean = false) {
         viewModelScope.launch {
             serial.withLock {
-                runCatching { store.read() }.onSuccess { mutableState.value = State(it, canUndo = undo.isNotEmpty()) }
+                runCatching { store.read() }.onSuccess {
+                    if (clearUndo) undo.clear()
+                    mutableState.value = State(it, canUndo = undo.isNotEmpty())
+                }
                     .onFailure {
                         mutableState.value =
                             State(error = "Saved shelf could not be loaded. Retry without resetting it.")

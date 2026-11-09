@@ -70,6 +70,7 @@ fun MainTopBar(
     shelfAvailable: Boolean = false,
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
+    onRefreshLibrary: () -> Unit = {},
 ) {
     Column {
         LemuroidTopAppBar(
@@ -82,6 +83,7 @@ fun MainTopBar(
             shelfAvailable = shelfAvailable,
             onToggleArrangeShelf = onToggleArrangeShelf,
             onShelfAppearance = onShelfAppearance,
+            onRefreshLibrary = onRefreshLibrary,
         )
 
         AnimatedVisibility(mainUIState.operationInProgress) {
@@ -102,6 +104,7 @@ fun LemuroidTopAppBar(
     shelfAvailable: Boolean = false,
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
+    onRefreshLibrary: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val materials = LocalShelfMaterials.current
@@ -153,6 +156,7 @@ fun LemuroidTopAppBar(
                 shelfAvailable = shelfAvailable,
                 onToggleArrangeShelf = onToggleArrangeShelf,
                 onShelfAppearance = onShelfAppearance,
+                onRefreshLibrary = onRefreshLibrary,
             )
         },
     )
@@ -203,6 +207,7 @@ fun LemuroidTopBarActions(
     shelfAvailable: Boolean = false,
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
+    onRefreshLibrary: () -> Unit = {},
 ) {
     var libraryOptionsExpanded by remember { mutableStateOf(false) }
     Row {
@@ -244,6 +249,14 @@ fun LemuroidTopBarActions(
                     expanded = libraryOptionsExpanded,
                     onDismissRequest = { libraryOptionsExpanded = false },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.cartdeck_refresh_library)) },
+                        enabled = !operationsInProgress,
+                        onClick = {
+                            libraryOptionsExpanded = false
+                            onRefreshLibrary()
+                        },
+                    )
                     DropdownMenuItem(
                         text = {
                             val titleRes =
