@@ -19,6 +19,7 @@
 
 package com.swordfish.lemuroid.lib.library
 
+import androidx.room.withTransaction
 import com.swordfish.lemuroid.common.coroutines.batchWithSizeAndTime
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
@@ -282,10 +283,14 @@ class LemuroidLibrary(
         return provider.getStorageFile(baseStorageFile)
     }
 
-    private fun cleanUp(startedAtMs: Long) {
+    private suspend fun cleanUp(startedAtMs: Long) {
+        // Filesystem BIOS handling is upstream behaviour; the two library
+        // record tables must be pruned as one transaction or not at all.
         removeDeletedBios(startedAtMs)
-        removeDeletedGames(startedAtMs)
-        removeDeletedDataFiles(startedAtMs)
+        retrogradedb.withTransaction {
+            removeDeletedGames(startedAtMs)
+            removeDeletedDataFiles(startedAtMs)
+        }
     }
 
     private fun removeDeletedBios(startedAtMs: Long) {
