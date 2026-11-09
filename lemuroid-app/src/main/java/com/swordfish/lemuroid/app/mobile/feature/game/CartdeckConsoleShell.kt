@@ -40,18 +40,10 @@ internal fun CartdeckConsoleShell(
     videoBounds: Rect?,
     rootBounds: Rect?,
     isLandscape: Boolean,
+    controlBounds: List<Rect> = emptyList(),
 ) {
-    val hole =
-        if (videoBounds != null && rootBounds != null) {
-            Rect(
-                videoBounds.left - rootBounds.left,
-                videoBounds.top - rootBounds.top,
-                videoBounds.right - rootBounds.left,
-                videoBounds.bottom - rootBounds.top,
-            ).takeIf { it.width > 0f && it.height > 0f }
-        } else {
-            null
-        }
+    val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
+    val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -96,6 +88,24 @@ internal fun CartdeckConsoleShell(
                         addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
                     }
                 drawPath(bezel, tokens.bezel)
+                // A black-glass lip outside (not on top of) actual video pixels.
+                val glassLip =
+                    Path().apply {
+                        fillType = PathFillType.EvenOdd
+                        addRoundRect(
+                            RoundRect(
+                                Rect(
+                                    display.left - 2.dp.toPx(),
+                                    display.top - 2.dp.toPx(),
+                                    display.right + 2.dp.toPx(),
+                                    display.bottom + 2.dp.toPx(),
+                                ),
+                                CornerRadius(3.dp.toPx()),
+                            ),
+                        )
+                        addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
+                    }
+                drawPath(glassLip, tokens.glass)
                 drawRoundRect(
                     color = tokens.accent.copy(alpha = 0.50f),
                     topLeft = rim.topLeft,
@@ -124,27 +134,33 @@ internal fun CartdeckConsoleShell(
                     strokeWidth = 2.dp.toPx(),
                 )
             }
+            // Decorative lower seam uses live PadKit group bounds and the
+            // protected compact badge. Neither Start nor Select is repositioned.
             val deckLineY = size.height - 30.dp.toPx()
-            if (compactSeat) {
-                // The DS footer carries a compact C-slot in a clear seam seat.
-                val gap = 33.dp.toPx()
+            val compactBadge =
+                if (compactSeat) {
+                    listOf(
+                        Rect(
+                            size.width / 2f - 40.dp.toPx(),
+                            size.height - 52.dp.toPx(),
+                            size.width / 2f + 40.dp.toPx(),
+                            size.height - 5.dp.toPx(),
+                        ),
+                    )
+                } else {
+                    emptyList()
+                }
+            CartdeckHardwareGeometry.seamSegments(
+                left = left,
+                right = size.width - left,
+                y = deckLineY,
+                exclusions = controls + compactBadge + listOfNotNull(hole),
+                clearance = 4.dp.toPx(),
+            ).forEach { (start, finish) ->
                 drawLine(
                     color = tokens.secondary,
-                    start = Offset(left, deckLineY),
-                    end = Offset(size.width / 2f - gap, deckLineY),
-                    strokeWidth = 2.dp.toPx(),
-                )
-                drawLine(
-                    color = tokens.secondary,
-                    start = Offset(size.width / 2f + gap, deckLineY),
-                    end = Offset(size.width - left, deckLineY),
-                    strokeWidth = 2.dp.toPx(),
-                )
-            } else {
-                drawLine(
-                    color = tokens.secondary,
-                    start = Offset(left, deckLineY),
-                    end = Offset(size.width - left, deckLineY),
+                    start = Offset(start, deckLineY),
+                    end = Offset(finish, deckLineY),
                     strokeWidth = 2.dp.toPx(),
                 )
             }
@@ -153,7 +169,17 @@ internal fun CartdeckConsoleShell(
             if (!isLandscape && seatFits) {
                 hole?.let { display ->
                     val detailY = display.bottom + 24.dp.toPx()
-                    if (detailY < size.height * 0.67f) {
+                    val speakerClearance =
+                        Rect(
+                            size.width * 0.19f,
+                            detailY - 6.dp.toPx(),
+                            size.width * 0.81f,
+                            detailY + 6.dp.toPx(),
+                        )
+                    if (
+                        detailY < size.height * 0.67f &&
+                        controls.none { CartdeckHardwareGeometry.intersects(it, speakerClearance) }
+                    ) {
                         for (index in 0 until 5) {
                             val offset = index * 7.dp.toPx()
                             drawCircle(
