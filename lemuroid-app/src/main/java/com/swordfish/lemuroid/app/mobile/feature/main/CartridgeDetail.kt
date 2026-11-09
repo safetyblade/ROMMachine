@@ -24,9 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
@@ -116,6 +119,7 @@ fun CartridgeDetail(
         Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
         Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
         CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
+        CartridgeEmulatorChoice(game)
         Button(
             onClick = {
                 if (!opening) {
@@ -134,5 +138,46 @@ fun CartridgeDetail(
             enabled = game.customCoverUri != null,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.cartdeck_reset_cover)) }
+    }
+}
+
+@Composable
+private fun CartridgeEmulatorChoice(game: Game) {
+    val systemId = game.systemId
+    if (systemId != SystemID.PSX && systemId != SystemID.PSP) return
+
+    val context = LocalContext.current.applicationContext
+    val preferences = remember(context) { EmulatorCompatibilityPreferences(context) }
+    // Only expose a switch when the candidate is actually packaged and the
+    // matching PSP assets have already been installed.
+    if (!remember(game.id) { preferences.available(systemId) }) return
+
+    var updated by remember(game.id) {
+        mutableStateOf(preferences.isUpdatedSelectedForGame(systemId, game.id))
+    }
+    Text(
+        if (updated) "Using updated engine for this game" else "Using previous working engine",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    OutlinedButton(
+        onClick = {
+            if (preferences.setGameEngine(systemId, game.id, !updated)) {
+                updated = !updated
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text(if (updated) "Use previous working engine" else "Try updated engine") }
+    TextButton(
+        onClick = {
+            if (preferences.restoreGameDefault(systemId, game.id)) {
+                updated = preferences.isUpdatedSelectedForGame(systemId, game.id)
+            }
+        },
+    ) { Text("Use system default") }
+    if (preferences.lastFailedCandidate(systemId, game.id) != null && !updated) {
+        Text(
+            "The updated engine could not start. The previous working engine is selected.",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
