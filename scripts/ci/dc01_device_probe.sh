@@ -42,6 +42,37 @@ adb shell -T run-as "$package" sh -c 'cat > files/dreamcast-lab/flycast_libretro
 (cd "$game_dir" && tar -cf - .) |
   adb shell -T run-as "$package" sh -c 'cd files/dreamcast-lab/game && tar -xf -' ||
   fail "disc/track staging failed"
+
+# DC-02: never destroy the previous working core. The in-app debug store
+# verifies checksums and falls back to previous.version on corruption.
+core_version="$(printenv DC01_CORE_VERSION 2>/dev/null || true)"
+if [[ -z "$core_version" ]]; then core_version="flycast-1b7c7d63"; fi
+[[ "$core_version" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] || fail "invalid core version"
+core_sha="$(sha256sum "$core" | awk '{print $1}')"
+version_root="files/dreamcast-lab/cores/flycast"
+version_dir="$version_root/versions/$core_version"
+adb shell run-as "$package" mkdir -p "$version_dir" || fail "core version directory creation denied"
+existing_sha="$(adb shell run-as "$package" cat "$version_dir/sha256.txt" 2>/dev/null | tr -d '\r\n' || true)"
+[[ -z "$existing_sha" || "$existing_sha" == "$core_sha" ]] ||
+  fail "refusing to overwrite an immutable core version with a different SHA-256"
+adb shell -T run-as "$package" sh -c "cat > '$version_dir/.core-pending'" < "$core" ||
+  fail "versioned core staging failed"
+adb shell run-as "$package" mv "$version_dir/.core-pending" "$version_dir/core.so" ||
+  fail "versioned core atomic rename failed"
+printf '%s\n' "$core_sha" |
+  adb shell -T run-as "$package" sh -c "cat > '$version_dir/sha256.txt'" ||
+  fail "core manifest staging failed"
+previous_active="$(adb shell run-as "$package" cat "$version_root/active.version" 2>/dev/null | tr -d '\r\n' || true)"
+if [[ -n "$previous_active" && "$previous_active" != "$core_version" ]]; then
+  printf '%s\n' "$previous_active" |
+    adb shell -T run-as "$package" sh -c "cat > '$version_root/previous.version'" ||
+    fail "previous core pointer staging failed"
+fi
+printf '%s\n' "$core_version" |
+  adb shell -T run-as "$package" sh -c "cat > '$version_root/active.version'" ||
+  fail "active core pointer staging failed"
+printf 'Active core=%s sha256=%s previous=%s\n' "$core_version" "$core_sha" "$previous_active" > "$out/core-selection.txt"
+
 adb logcat -c
 component="$package/com.swordfish.lemuroid.app.debug.DreamcastRuntimeProbeActivity"
 adb shell am start -W -n "$component" --es disc "$disc" > "$out/start.txt" 2>&1 ||
