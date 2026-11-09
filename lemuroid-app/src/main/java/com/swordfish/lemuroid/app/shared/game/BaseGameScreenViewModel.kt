@@ -93,6 +93,8 @@ class BaseGameScreenViewModel(
         }
     }
 
+    val systemId = system.id
+
     private val sideEffects = GameViewModelSideEffects(viewModelScope)
     val retroGameView =
         GameViewModelRetroGameView(

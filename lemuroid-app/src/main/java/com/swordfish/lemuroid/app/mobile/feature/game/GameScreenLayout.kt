@@ -17,15 +17,16 @@ object GameScreenLayout {
     fun buildConstraintSet(
         isLandscape: Boolean,
         allowTouchOverlay: Boolean,
+        portraitMode: CartdeckViewportPolicy.PortraitMode,
     ): ConstraintSet {
         return when {
-            !isLandscape -> buildConstraintSetPortrait()
+            !isLandscape -> buildConstraintSetPortrait(portraitMode)
             allowTouchOverlay -> buildConstraintSetLandscape()
             else -> buildConstraintSetLandscapeNoOverlay()
         }
     }
 
-    private fun buildConstraintSetPortrait(): ConstraintSet {
+    private fun buildConstraintSetPortrait(portraitMode: CartdeckViewportPolicy.PortraitMode): ConstraintSet {
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -36,16 +37,25 @@ object GameScreenLayout {
             val gamePadChain = createHorizontalChain(leftPad, rightPad, chainStyle = ChainStyle.SpreadInside)
 
             constrain(gameView) {
-                // Maximise the available display region for every emulator.
-                // The native LibretroDroid renderer owns the actual game aspect
-                // ratio, including DS dual screens and variable-size PS1 output.
-                // Keep only the clearance needed for CARTDECK's 15dp bezel.
                 width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-                top.linkTo(parent.top, margin = 18.dp)
-                bottom.linkTo(leftPad.top, margin = 18.dp)
-                absoluteLeft.linkTo(parent.absoluteLeft, margin = 18.dp)
-                absoluteRight.linkTo(parent.absoluteRight, margin = 18.dp)
+                if (portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD) {
+                    // One 4:3 physical screen opening. LibretroDroid preserves
+                    // GB, GBA, PSP and dynamic source aspect ratios within it.
+                    height = Dimension.ratio(CartdeckViewportPolicy.STANDARD_RATIO)
+                    top.linkTo(parent.top, margin = 84.dp)
+                    bottom.linkTo(leftPad.top, margin = 16.dp)
+                    verticalBias = 0f
+                    absoluteLeft.linkTo(parent.absoluteLeft, margin = 22.dp)
+                    absoluteRight.linkTo(parent.absoluteRight, margin = 22.dp)
+                } else {
+                    // The tested v2101 DS layout stays flexible, including
+                    // its original stylus/touch coordinate mapping.
+                    height = Dimension.fillToConstraints
+                    top.linkTo(parent.top, margin = 18.dp)
+                    bottom.linkTo(leftPad.top, margin = 18.dp)
+                    absoluteLeft.linkTo(parent.absoluteLeft, margin = 18.dp)
+                    absoluteRight.linkTo(parent.absoluteRight, margin = 18.dp)
+                }
             }
 
             constrain(bottomContainer) {

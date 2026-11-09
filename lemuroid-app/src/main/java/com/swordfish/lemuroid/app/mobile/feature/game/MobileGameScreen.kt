@@ -149,6 +149,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
         val touchControllerSettings = touchControllerSettingsState.value
         val currentControllerConfig = controllerConfigState.value
+        val portraitMode = CartdeckViewportPolicy.portraitMode(viewModel.systemId)
 
         val tiltConfiguration = viewModel.getTiltConfiguration().collectAsState(TiltConfiguration.Disabled)
         val tiltSimulatedStates = viewModel.getSimulatedTiltEvents().collectAsState(InputState())
@@ -222,6 +223,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GameScreenLayout.buildConstraintSet(
                         isLandscape,
                         currentControllerConfig?.allowTouchOverlay ?: true,
+                        portraitMode,
                     ),
             ) {
                 Box(
