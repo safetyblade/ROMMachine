@@ -46,7 +46,7 @@ class GameCubeRuntimeProbeActivity : ComponentActivity() {
             disc.canonicalFile.parentFile != gameDirectory.canonicalFile
         ) {
             reportFailure(
-                "Missing/invalid local Dolphin core or verified GameCube GCM/ISO fixture; use dc01_device_probe.sh",
+                "Invalid Dolphin core or GC disc; run gc01_device_probe.sh",
             )
             return
         }
