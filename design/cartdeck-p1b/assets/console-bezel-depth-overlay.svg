@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 852" role="img" aria-label="CARTDECK transparent shell and inset game aperture depth master">
+<title>CARTDECK transparent console bezel overdraw - screen aperture is genuinely transparent</title>
+<desc>Design-master overlay only: paint behind PadKit as noninteractive graphics, never fill the measured game viewport. Reconcile units with adaptive Compose constraints. Uses semantic palette slots and reuses the canonical C-slot as a separate brand component.</desc>
+<path id="cd-chassis-depth" data-cd-fill="chassis" fill="#303B49" fill-rule="evenodd" d="M34 33H359Q383 33 383 61V782Q383 817 356 817H37Q9 811 9 782V61Q9 33 34 33ZM37 141H356V379H37Z"/>
+<path id="cd-screen-bezel" data-cd-fill="bezel" fill="#0D1721" fill-rule="evenodd" d="M46 114H347L375 140V378L347 410H46L18 378V141ZM37 141H356V379H37Z"/>
+<path id="cd-bezel-machining" d="M50 122H342L366 145M50 400H342L366 377" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-width="4"/>
+<path id="cd-upper-rim" d="M24 92L47 60H346L369 92" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-opacity=".25" stroke-width="2"/>
+<path id="cd-lower-seam" d="M35 419H358" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-width="2"/>
+<path id="cd-corner-accents" d="M34 109L43 99M352 99L360 108M32 761L42 774M350 774L361 761" fill="none" data-cd-stroke="accent" stroke="#4ED8C4" stroke-opacity=".6" stroke-width="3"/>
+</svg>
