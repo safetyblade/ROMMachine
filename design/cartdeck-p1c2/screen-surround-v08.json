@@ -1,0 +1,114 @@
+{
+  "schema": "cartdeck.screenSurround/v0.8-draft",
+  "status": "Sienna-design-candidate-not-engineering-approved",
+  "reference": "SIENNA_SCREEN_SURROUND_V08.md",
+  "referenceHardware": "same cartdeck original chassis, Original/Pink/Green, PadKit unchanged",
+  "priorities": [
+    "preserve source pixel aspect and maximum useful image",
+    "retain all functional controls and touch mapping",
+    "thin bezel fitted to actual displayed content",
+    "always branded CARTDECK console",
+    "optional safe faceplate art on residual chassis"
+  ],
+  "sourceOfTruth": {
+    "rendering": "single existing LibretroDroid GLRetroView and viewport",
+    "aspect": "live core-reported display aspect if demonstrably available",
+    "fallbacks": "design/cartdeck-v04/system-viewports.json",
+    "note": "viewport box and actual nonblack content are not equivalent"
+  },
+  "screenClasses": {
+    "singleScreen": {
+      "examples": [
+        "GB",
+        "GBC",
+        "GBA",
+        "PSX",
+        "NES",
+        "SNES",
+        "PSP"
+      ],
+      "fit": "contain",
+      "screenOpening": "tight-to-actual-content-aspect",
+      "freeSurface": "opaque designed chassis above and below content",
+      "logo": "full wordmark seat where natural clearance allows",
+      "constraints": [
+        "no oversized black letterboxed bezel",
+        "no forced reserved header",
+        "no crop"
+      ]
+    },
+    "multiScreen": {
+      "examples": [
+        "NDS"
+      ],
+      "fit": "contain composite existing renderer",
+      "screenOpening": "full visible two-screen composite",
+      "freeSurface": "slim side rails, lower deck seam",
+      "logo": "compact C-slot first if full wordmark cannot fit",
+      "constraints": [
+        "preserve both existing screens",
+        "preserve stylus coordinates",
+        "no split GL renderer"
+      ]
+    },
+    "landscape": {
+      "examples": [
+        "PSX",
+        "GBA",
+        "NDS",
+        "PSP"
+      ],
+      "fit": "contain in safe area",
+      "screenOpening": "core aspect and safe area",
+      "freeSurface": "residual rails or shoulders",
+      "logo": "protected compact engraving",
+      "constraints": [
+        "retain existing overlay/nonoverlay PadKit",
+        "no renderer lifecycle reset"
+      ]
+    }
+  },
+  "bezel": {
+    "currentDp": 15,
+    "targetDpRange": [
+      6,
+      8
+    ],
+    "treatment": "subtle mechanical depth with restrained accent line",
+    "neverOverdrawGame": true
+  },
+  "branding": {
+    "protected": true,
+    "placements": [
+      "top free shell",
+      "between aperture and control deck",
+      "side rail",
+      "safe control deck seam"
+    ],
+    "fallback": "C-slot-only",
+    "trimUnderBrand": false
+  },
+  "futurePersonalisation": {
+    "workstream": "P1-C3 #75",
+    "patterns": [
+      "original camo",
+      "geometric",
+      "halftone"
+    ],
+    "stamps": [
+      "smiley",
+      "collector badges",
+      "player-supplied logos"
+    ],
+    "paintOnly": "clipped residual chassis surface",
+    "noReservedVideoSpace": true,
+    "implementationApproved": false
+  },
+  "approval": {
+    "siennaArtwork": false,
+    "cassiaExperience": false,
+    "owner": false,
+    "danielLiveAspectFeasibility": false,
+    "marcusDeviceQA": false
+  }
+}
