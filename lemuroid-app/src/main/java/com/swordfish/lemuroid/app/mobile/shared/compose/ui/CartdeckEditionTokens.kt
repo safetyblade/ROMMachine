@@ -8,10 +8,10 @@ import androidx.core.content.ContextCompat
 import com.swordfish.lemuroid.R
 
 /**
- * CARTDECK Original/Pink colour-only contract.
+ * CARTDECK Original/Pink/Green colour-only contract.
  *
  * Resource colours are deterministically generated from canonical editable
- * design/cartdeck-v03/editions/{original,pink}.json by ASSET-H1.
+ * design/cartdeck-v03/editions/{original,pink,green}.json by ASSET-H1.
  *
  * Consumed by the P1-A2 library hardware painters; gameplay themes remain independent.
  * It does not change Android dynamic theme, renderer, game pixel colours,
@@ -20,6 +20,7 @@ import com.swordfish.lemuroid.R
 internal enum class CartdeckEditionPreset {
     ORIGINAL,
     PINK,
+    GREEN,
 }
 
 @Immutable
@@ -71,6 +72,20 @@ internal fun Context.resolveCartdeckEdition(edition: CartdeckEditionPreset): Car
                 focus = nativeColor(R.color.cartdeck_pink_focus),
                 focusOnChassis = nativeColor(R.color.cartdeck_pink_focus_on_chassis),
                 focusOnSecondary = nativeColor(R.color.cartdeck_pink_focus_on_secondary),
+            )
+        CartdeckEditionPreset.GREEN ->
+            CartdeckEditionTokens(
+                chassis = nativeColor(R.color.cartdeck_green_chassis),
+                secondary = nativeColor(R.color.cartdeck_green_secondary),
+                bezel = nativeColor(R.color.cartdeck_green_bezel),
+                glass = nativeColor(R.color.cartdeck_green_glass),
+                button = nativeColor(R.color.cartdeck_green_button),
+                accent = nativeColor(R.color.cartdeck_green_accent),
+                onChassis = nativeColor(R.color.cartdeck_green_on_chassis),
+                onButton = nativeColor(R.color.cartdeck_green_on_button),
+                focus = nativeColor(R.color.cartdeck_green_focus),
+                focusOnChassis = nativeColor(R.color.cartdeck_green_focus_on_chassis),
+                focusOnSecondary = nativeColor(R.color.cartdeck_green_focus_on_secondary),
             )
     }
 }
