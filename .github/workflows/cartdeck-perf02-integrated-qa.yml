@@ -1,14 +1,9 @@
 name: CARTDECK PERF-02 integrated ARM64 candidate APK
 
 # Engineering QA only: the known-working cores remain the default.
+# Manual-only until an explicit source/combined-binary distribution clearance.
+# No pull_request or push trigger may publish experimental emulator binaries.
 on:
-  pull_request:
-    paths:
-      - "scripts/ci/build_ps1_upstream_core.sh"
-      - "scripts/ci/build_psp_upstream_core.sh"
-      - "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/**"
-      - "retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/**"
-      - ".github/workflows/cartdeck-perf02-integrated-qa.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,6 +16,9 @@ concurrency:
 jobs:
   candidate:
     name: Two pinned cores, in-app selection, test APK
+    # A repository variable is deliberately false/unset until Daniel clears
+    # licences, source correspondence, distribution and owner release.
+    if: ${{ vars.CARTDECK_EXPERIMENTAL_CORE_DISTRIBUTION_APPROVED == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     defaults:
