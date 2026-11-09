@@ -42,8 +42,15 @@ data class ShelfLayout(
         return this
     }
 
-    /** Missing cartridges keep their cells. New identities append without compacting spaces. */
-    fun reconcile(games: Map<String, String>): ShelfLayout {
+    /**
+     * The normal UI reconciliation retains missing items while indexing is running.
+     * Only a completely successful folder scan may remove obsolete game-linked cells.
+     * User-created vacant slots/empty rows are never pruned or moved by that cleanup.
+     */
+    fun reconcile(
+        games: Map<String, String>,
+        removeMissing: Boolean = false,
+    ): ShelfLayout {
         val existing = sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
         val additions =
             games.filterKeys { it !in existing }.map { (key, title) ->
@@ -54,9 +61,11 @@ data class ShelfLayout(
                 sections.map { section ->
                     section.copy(
                         cells =
-                            section.cells.map { cell ->
-                                cell.copy(titleHint = games[cell.gameKey] ?: cell.titleHint)
-                            } + if (section.id == UNSORTED) additions else emptyList(),
+                            section.cells
+                                .filter { cell -> !removeMissing || cell.gameKey == null || cell.gameKey in games }
+                                .map { cell ->
+                                    cell.copy(titleHint = games[cell.gameKey] ?: cell.titleHint)
+                                } + if (section.id == UNSORTED) additions else emptyList(),
                     )
                 },
         ).validate()
