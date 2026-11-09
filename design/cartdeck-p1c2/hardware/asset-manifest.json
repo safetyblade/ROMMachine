@@ -1,0 +1,1508 @@
+{
+  "schema": "cartdeck.hardwareAssetPack/1.0.0",
+  "workPackage": "P1-C2A",
+  "state": "design-review-awaiting-owner-Cassia-approval",
+  "baseBranch": "design/cartdeck-p1c2a-hardware-v10",
+  "sourceRoot": "design/cartdeck-p1c2/hardware",
+  "sourceReference": "master 10056e350073eb33f8dc9ba45a2e1ceb64555539, merged P1-C2 #78",
+  "sourceVersion": "v1.0",
+  "identity": {
+    "brand": "CARTDECK by prestwich.dev",
+    "brandMasters": [
+      "design/cartdeck-v03/brand/cslot-master.svg",
+      "design/cartdeck-v03/brand/cartdeck-wordmark-master.svg"
+    ],
+    "buttonMasters": [
+      "design/cartdeck-v03/controls/dpad-master.svg",
+      "design/cartdeck-v04/controls/button-face.svg",
+      "design/cartdeck-v04/controls/analog-base.svg",
+      "design/cartdeck-v04/controls/analog-cap.svg",
+      "design/cartdeck-v04/controls/shoulder.svg"
+    ],
+    "neverReplaceTouchHitGeometry": true,
+    "editions": [
+      "original",
+      "pink",
+      "green"
+    ],
+    "geometryIsEditionInvariant": true
+  },
+  "applicationSources": [
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/CartdeckConsoleShell.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/GameScreenLayout.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/MobileGameScreen.kt",
+    "lemuroid-touchinput/src/main/java/com/swordfish/touchinput/radial/layouts/MelonDS.kt",
+    "lemuroid-touchinput/src/main/java/com/swordfish/touchinput/radial/layouts/PSXDualShock.kt"
+  ],
+  "render": {
+    "rendererCount": 1,
+    "videoTarget": "Existing AndroidView GLRetroView.viewport — never core frame pixels or inferred non-black rect",
+    "zOrder": [
+      "opaque body background",
+      "measured game renderer",
+      "thin external bezel/glass rim clipped outside video",
+      "deck body and control seat graphics behind PadKit",
+      "decorative metal details clipped to free chassis",
+      "optional inactive glow source family",
+      "protected canonical brand on measured unoccupied seat",
+      "functional existing PadKit controls last"
+    ],
+    "allGraphicsPointerTransparent": true,
+    "cornerAndScreenEdgesKeepVideoClear": true,
+    "screenStructuralSurroundDp": 7,
+    "structuralDpTolerance": [
+      6,
+      8
+    ],
+    "screenGeometrySource": "P1-C2 #78: STANDARD allocated responsive 4:3, NDS flexible combined dual-screen, existing landscape preserved",
+    "layoutUnitRule": "Asset-local normalized units, never fixed dp for gameplay or PadKit",
+    "bodyOpaque": true,
+    "deckOpaque": true,
+    "lowerTranslucentBandForbidden": true
+  },
+  "layoutContracts": {
+    "STANDARD_4_3": {
+      "placement": "GameScreenLayout existing x=22dp margins, y=84dp top and 4:3 ratio; factual code baseline, not fixed artwork coordinates",
+      "outerBezel": "inflate measured video bounds 7dp, clip outside video aperture",
+      "brand": "protected full badge above screen if measured available space, else compact C-slot in free chassis",
+      "deck": "solid structural panel encloses/belongs behind measured left/right PadKit group bounds; upper seam segments must subtract those bounds",
+      "spareSpace": "continuous material body with speakers/rails and later optional faceplate mask; never blank translucent wash"
+    },
+    "DUAL_SCREEN": {
+      "placement": "GameScreenLayout flexible NDS x=18dp margins y=18dp top; height bounded by control groups; preserves existing combined video and DS stylus mapping",
+      "outerBezel": "same proportional structural thickness, extended along actual measured tall video bounds",
+      "brand": "compact C-slot separate from controls in lower free seat; not a button",
+      "auxStrip": "controls/ds-aux-strip.svg candidate, mic left / screen layout centre / menu right, independent badge on upper-right recess; relocate visual seat only after measuring actual PadKit controls",
+      "upperUtility": "L/R and Start/Select are functional existing PadKit elements, retain IDs/positions until Elliot checks layout",
+      "noSecondRenderer": true,
+      "controlPresetsFuture": [
+        "standard",
+        "stylus-heavy",
+        "racing",
+        "simplified",
+        "external-controller"
+      ],
+      "presetsImplementedNow": false
+    },
+    "PS1_EXPANDED": {
+      "screen": "STANDARD_4_3 or existing landscape",
+      "fourFaceSeat": "controls/abxy-seat.svg",
+      "analogSeat": "controls/analog-seat.svg one or two if mapped",
+      "additionalShoulders": "controls/shoulder-seat.svg",
+      "noDisconnectedAnalog": true,
+      "excludeSeatIfAnalogAbsent": true,
+      "gamePresetsImplementedNow": false
+    },
+    "LANDSCAPE": {
+      "screen": "Existing overlay or no-overlay allocation unchanged",
+      "brand": "compact readable protected location chosen after game/control bounds",
+      "seams": "segment around control groups, never draw through analog/face keys",
+      "fullTouchGesturePreserved": true
+    }
+  },
+  "placementMath": {
+    "inputs": [
+      "safeRootBounds",
+      "measuredGLViewportBounds",
+      "measuredPadKitControlGroupBounds",
+      "brandSeatBounds",
+      "orientation",
+      "systemControlProfile"
+    ],
+    "videoExclusion": "graphics masks subtract inflate(videoBounds,0dp); screen rim outside active viewport",
+    "buttonProtection": "for any seam/detail, allowed = freeChassis - union(controlBounds expanded 4dp, brandBounds expanded 8dp, GLViewport)",
+    "deckRegion": "compute from measured primary/secondary control bounds, add safe 10–16dp padding, clamp to root safe edges; draw deck behind, controls above",
+    "controlSeat": "map each visual seat to actual PadKit group bounds with scale uniformly contained, centre on control group; never change hit rectangles",
+    "brand": "try full seat where space; fallback compact C-slot, both with min 8dp decorative clearance; no lights under lettering",
+    "glow": "mask intersection with freeChassis and assigned region, default disabled",
+    "safeInsets": "respect Android displayCutout, status/navigation bars and edge gesture margins before painting"
+  },
+  "speakerAndIndicators": {
+    "physicalDetailOnly": true,
+    "ambientOpacity": "0.18–0.60",
+    "noneCapturesTouch": true
+  },
+  "glowZones": [
+    {
+      "id": "top-shoulder",
+      "mask": "glow/top-shoulder-mask.svg",
+      "unlit": "glow/top-shoulder-unlit.svg",
+      "on": "glow/top-shoulder-on.svg",
+      "bounds": "top shoulder free strips outside full-wordmark brand exclusion",
+      "z": 41,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    },
+    {
+      "id": "bezel-edge",
+      "mask": "glow/bezel-edge-mask.svg",
+      "unlit": "glow/bezel-edge-unlit.svg",
+      "on": "glow/bezel-edge-on.svg",
+      "bounds": "outside actual GL video rectangle; clipped to bezel ring",
+      "z": 41,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    },
+    {
+      "id": "badge",
+      "mask": "glow/badge-mask.svg",
+      "unlit": "glow/badge-unlit.svg",
+      "on": "glow/badge-on.svg",
+      "bounds": "under badge backing but never beneath C-slot/wordmark glyphs",
+      "z": 61,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    },
+    {
+      "id": "speaker-indicator",
+      "mask": "glow/speaker-indicator-mask.svg",
+      "unlit": "glow/speaker-indicator-unlit.svg",
+      "on": "glow/speaker-indicator-on.svg",
+      "bounds": "free shell region clear of PadKit groups",
+      "z": 48,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    },
+    {
+      "id": "analog-ring",
+      "mask": "glow/analog-ring-mask.svg",
+      "unlit": "glow/analog-ring-unlit.svg",
+      "on": "glow/analog-ring-on.svg",
+      "bounds": "outside active analog hit-zone; leave centre clear",
+      "z": 44,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    },
+    {
+      "id": "deck-seam",
+      "mask": "glow/deck-seam-mask.svg",
+      "unlit": "glow/deck-seam-unlit.svg",
+      "on": "glow/deck-seam-on.svg",
+      "bounds": "free seam intervals after subtracting control, DS utility and brand bounds",
+      "z": 44,
+      "defaultIlluminated": false,
+      "token": "accent",
+      "maskRule": "clip to assigned free region, exclude renderer/functional control hit zones and brand glyphs",
+      "runtimeControlsWorkstream": "P1-C3 #75"
+    }
+  ],
+  "futurePersonalisation": {
+    "parent": "#75",
+    "paintableResidualMask": "chassis/residual-faceplate-mask.svg",
+    "decalsPatternsLightingDeferred": true,
+    "loadoutsDeferred": true,
+    "oneHandPerGameControlsDeferred": true,
+    "baseShellCompleteUnlit": true
+  },
+  "assetInventory": [
+    {
+      "id": "brand.compact-cslot-seat",
+      "file": "brand/compact-cslot-seat.svg",
+      "purpose": "protected physical brand mounting; canonical SVG mark remains separate",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "brandExclusionZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 64,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose protected measured seat; re-use canonical brand vectors",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "brand.full-wordmark-seat",
+      "file": "brand/full-wordmark-seat.svg",
+      "purpose": "protected physical brand mounting; canonical SVG mark remains separate",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "brandExclusionZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 64,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose protected measured seat; re-use canonical brand vectors",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.control-deck",
+      "file": "chassis/control-deck.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": true,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.front-body",
+      "file": "chassis/front-body.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": true,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.lower-seam",
+      "file": "chassis/lower-seam.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.residual-faceplate-mask",
+      "file": "chassis/residual-faceplate-mask.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.shoulders",
+      "file": "chassis/shoulders.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.side-rail",
+      "file": "chassis/side-rail.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.upper-transition",
+      "file": "chassis/upper-transition.svg",
+      "purpose": "opaque manufactured body and measured free-surface finish",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 12,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.ab-seat",
+      "file": "controls/ab-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.abxy-seat",
+      "file": "controls/abxy-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.analog-seat",
+      "file": "controls/analog-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.dpad-seat",
+      "file": "controls/dpad-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.ds-aux-strip",
+      "file": "controls/ds-aux-strip.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.ds-microphone-seat",
+      "file": "controls/ds-microphone-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.ds-screen-layout-seat",
+      "file": "controls/ds-screen-layout-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.generic-aux-seat",
+      "file": "controls/generic-aux-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.menu-seat",
+      "file": "controls/menu-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.shoulder-seat",
+      "file": "controls/shoulder-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "controls.start-select-seat",
+      "file": "controls/start-select-seat.svg",
+      "purpose": "hardware seat only; existing PadKit control remains authoritative",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "measuredControlGroup",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 43,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "DrawBehind and position from actual PadKit group bounds; do not create touch targets",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "details.accent-slits",
+      "file": "details/accent-slits.svg",
+      "purpose": "noninteractive restrained machining/indicator",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "residualShell",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 38,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "details.fastener",
+      "file": "details/fastener.svg",
+      "purpose": "noninteractive restrained machining/indicator",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "residualShell",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 38,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "details.indicator-bars",
+      "file": "details/indicator-bars.svg",
+      "purpose": "noninteractive restrained machining/indicator",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "residualShell",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 38,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "details.recessed-panel",
+      "file": "details/recessed-panel.svg",
+      "purpose": "noninteractive restrained machining/indicator",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "residualShell",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 38,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "details.speaker-grille",
+      "file": "details/speaker-grille.svg",
+      "purpose": "noninteractive restrained machining/indicator",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "residualShell",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 38,
+      "required": false,
+      "optional": true,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.analog-ring-mask",
+      "file": "glow/analog-ring-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.analog-ring-on",
+      "file": "glow/analog-ring-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.analog-ring-unlit",
+      "file": "glow/analog-ring-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.badge-mask",
+      "file": "glow/badge-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.badge-on",
+      "file": "glow/badge-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.badge-unlit",
+      "file": "glow/badge-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.bezel-edge-mask",
+      "file": "glow/bezel-edge-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.bezel-edge-on",
+      "file": "glow/bezel-edge-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.bezel-edge-unlit",
+      "file": "glow/bezel-edge-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.deck-seam-mask",
+      "file": "glow/deck-seam-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.deck-seam-on",
+      "file": "glow/deck-seam-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.deck-seam-unlit",
+      "file": "glow/deck-seam-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.speaker-indicator-mask",
+      "file": "glow/speaker-indicator-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.speaker-indicator-on",
+      "file": "glow/speaker-indicator-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.speaker-indicator-unlit",
+      "file": "glow/speaker-indicator-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.top-shoulder-mask",
+      "file": "glow/top-shoulder-mask.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "mask",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.top-shoulder-on",
+      "file": "glow/top-shoulder-on.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "on",
+      "defaultEnabled": false,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "glow.top-shoulder-unlit",
+      "file": "glow/top-shoulder-unlit.svg",
+      "purpose": "separately toggleable optional glow art, no player controls in P1-C2A",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "glowZone",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 50,
+      "required": false,
+      "optional": true,
+      "glowCapable": true,
+      "illuminationState": "unlit",
+      "defaultEnabled": true,
+      "androidImplementation": "Named Drawable/Compose Path; emission entirely disabled until P1-C3",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.corner-trim",
+      "file": "screen/corner-trim.svg",
+      "purpose": "external screen perimeter; never active pixels",
+      "viewportCompatibility": [
+        "STANDARD_4_3"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.ds-expanded-outer",
+      "file": "screen/ds-expanded-outer.svg",
+      "purpose": "external screen perimeter; never active pixels",
+      "viewportCompatibility": [
+        "DUAL_SCREEN"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.inner-glass-lip",
+      "file": "screen/inner-glass-lip.svg",
+      "purpose": "external screen perimeter; never active pixels",
+      "viewportCompatibility": [
+        "STANDARD_4_3"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.outer-edge-finish",
+      "file": "screen/outer-edge-finish.svg",
+      "purpose": "external screen perimeter; never active pixels",
+      "viewportCompatibility": [
+        "STANDARD_4_3"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.standard-4x3-outer",
+      "file": "screen/standard-4x3-outer.svg",
+      "purpose": "external screen perimeter; never active pixels",
+      "viewportCompatibility": [
+        "STANDARD_4_3"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "onChassis"
+      ],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
+      "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    }
+  ],
+  "acceptance": {
+    "design": "48 editable SVG masters + explicit normal/off/on/mask zones + three edition previews + standard/PS1/DS dimensioned layout maps",
+    "runtime": "no Kotlin, input, save, ROM or UI change in this design PR",
+    "approval": [
+      "Jonathan",
+      "Cassia"
+    ],
+    "engineeringThen": [
+      "Daniel architecture",
+      "Elliot implementation under #74",
+      "Marcus independent device QA"
+    ]
+  }
+}
