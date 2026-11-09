@@ -36,21 +36,21 @@ class NativeAssetTests(unittest.TestCase):
             check=True,
         )
 
-    def test_only_original_pink_and_approved_single_geometry(self):
-        self.assertEqual(self.manifest["editions"], ["original", "pink"])
+    def test_only_three_approved_editions_and_approved_single_geometry(self):
+        self.assertEqual(self.manifest["editions"], ["original", "pink", "green"])
         self.assertTrue(self.manifest["systemsAsLabelsNotGeometry"])
         self.assertTrue(self.manifest["lockedRendererAndPadKit"])
         self.assertIn("Arc-Rail", self.manifest["designFamily"])
         self.assertEqual(self.manifest["cartridgeArtWindow"], {
             "x": 40, "y": 113, "width": 240, "height": 200, "radius": 8
         })
-        self.assertGreaterEqual(len(self.manifest["assets"]), 40)
+        self.assertGreaterEqual(len(self.manifest["assets"]), 60)
         names = [row["nativeResource"] for row in self.manifest["assets"]]
         self.assertEqual(len(names), len(set(names)))
-        self.assertFalse(any("green" in name or "mono" in name for name in names))
+        self.assertFalse(any("mono" in name for name in names))
         self.assertFalse(any("book_spine" in name or "cover_case" in name for name in names))
 
-    def test_native_vectors_parse_and_original_pink_geometry_match(self):
+    def test_native_vectors_parse_and_three_edition_geometry_match(self):
         by_master = {}
         for row in self.manifest["assets"]:
             source = ROOT / row["canonicalMaster"]
@@ -66,11 +66,11 @@ class NativeAssetTests(unittest.TestCase):
             self.assertTrue(all(node.get(ANDROID + "pathData") for node in root))
             by_master.setdefault(row["canonicalMaster"], set()).add(row["geometrySha256"])
         self.assertTrue(all(len(signatures) == 1 for signatures in by_master.values()))
-        self.assertEqual(len(by_master) * 2, len(self.manifest["assets"]))
+        self.assertEqual(len(by_master) * 3, len(self.manifest["assets"]))
 
     def test_corrected_dpad_has_cross_and_no_mounting_disc(self):
         matches = [r for r in self.manifest["assets"] if r["canonicalMaster"].endswith("/dpad-master.svg")]
-        self.assertEqual(len(matches), 2)
+        self.assertEqual(len(matches), 3)
         for row in matches:
             p = self.output / "drawable-nodpi" / (row["nativeResource"] + ".xml")
             root = ET.parse(p).getroot()
@@ -83,8 +83,8 @@ class NativeAssetTests(unittest.TestCase):
         resource_xml = self.output / "values/cartdeck_edition_colors.xml"
         root = ET.parse(resource_xml).getroot()
         resources = {child.attrib["name"]: child.text for child in root}
-        self.assertEqual(len(resources), 22)
-        for edition in ("original", "pink"):
+        self.assertEqual(len(resources), 33)
+        for edition in ("original", "pink", "green"):
             canonical = json.loads(
                 (ROOT / f"design/cartdeck-v03/editions/{edition}.json").read_text(encoding="utf-8")
             )["edition"]
