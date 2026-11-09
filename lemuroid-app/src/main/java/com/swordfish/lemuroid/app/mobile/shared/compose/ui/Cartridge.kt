@@ -3,10 +3,14 @@ package com.swordfish.lemuroid.app.mobile.shared.compose.ui
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -137,6 +141,44 @@ private fun cartridgeAsset(edition: String, part: String): Int =
             else -> R.drawable.cartdeck_original_cslot_master
         }
     }
+
+/** Actual canonical cartridge vectors shown against shelf materials, with no game artwork. */
+@Composable
+fun CartdeckAppearancePreview(
+    appearance: ShelfAppearance,
+    modifier: Modifier = Modifier,
+) {
+    val materials = shelfMaterials(appearance)
+    val edition = appearance.edition
+    androidx.compose.runtime.CompositionLocalProvider(LocalShelfAppearance provides appearance) {
+        Box(
+            modifier = modifier.fillMaxWidth().height(152.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(materials.shelfBackboard),
+        ) {
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                repeat(3) {
+                    Image(
+                        painter = cartridgePainter(cartridgeAsset(edition, "spine"), edition),
+                        contentDescription = null,
+                        modifier = Modifier.size(35.dp, 127.dp),
+                    )
+                }
+            }
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(13.dp)
+                    .background(materials.shelfDeck),
+            )
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(5.dp)
+                    .background(materials.shelfLip),
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
