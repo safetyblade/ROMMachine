@@ -8,18 +8,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
@@ -37,16 +37,16 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -54,10 +54,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
-import com.swordfish.lemuroid.R
 
 @Composable
 fun MainTopBar(
@@ -167,9 +167,10 @@ private fun CartdeckHomeTitle() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
-            painter = painterResource(
-                if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
-            ),
+            painter =
+                painterResource(
+                    if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
+                ),
             contentDescription = null,
             modifier = Modifier.size(30.dp),
         )
@@ -245,12 +246,13 @@ fun LemuroidTopBarActions(
                 ) {
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                stringResource(
-                                    if (arrangingShelf) R.string.cartdeck_done_arranging
-                                    else R.string.cartdeck_arrange_shelf,
-                                ),
-                            )
+                            val titleRes =
+                                if (arrangingShelf) {
+                                    R.string.cartdeck_done_arranging
+                                } else {
+                                    R.string.cartdeck_arrange_shelf
+                                }
+                            Text(stringResource(titleRes))
                         },
                         enabled = shelfAvailable,
                         onClick = {
