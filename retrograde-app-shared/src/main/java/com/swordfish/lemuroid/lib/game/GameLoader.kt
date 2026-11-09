@@ -28,9 +28,11 @@ import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.LemuroidLibrary
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
+import com.swordfish.lemuroid.lib.saves.EmulatorMigrationBackup
 import com.swordfish.lemuroid.lib.saves.SaveState
 import com.swordfish.lemuroid.lib.saves.SavesCoherencyEngine
 import com.swordfish.lemuroid.lib.saves.SavesManager
@@ -85,6 +87,37 @@ class GameLoader(
 
                 emit(LoadingState.LoadingGame)
 
+                if (isIsolatedCandidate(systemCoreConfig.coreID)) {
+                    // Fail closed: never start an experimental engine before a verified
+                    // copy of the old saves, states and PSP savedata has been retained.
+                    val previousCore =
+                        if (system.id == SystemID.PSX) CoreID.PCSX_REARMED else CoreID.PPSSPP
+                    val oldSystemDirectory = directoriesManager.getSystemDirectory()
+                    val sources =
+                        mutableListOf(
+                            EmulatorMigrationBackup.Source(
+                                directoriesManager.getSavesDirectory(),
+                                "saves",
+                            ),
+                            EmulatorMigrationBackup.Source(
+                                File(directoriesManager.getStatesDirectory(), previousCore.coreName),
+                                "states/${previousCore.coreName}",
+                            ),
+                            EmulatorMigrationBackup.Source(
+                                File(directoriesManager.getStatesPreviewDirectory(), previousCore.coreName),
+                                "state-previews/${previousCore.coreName}",
+                            ),
+                        )
+                    if (system.id == SystemID.PSP) {
+                        sources += EmulatorMigrationBackup.Source(File(oldSystemDirectory, "PPSSPP"), "system/PPSSPP")
+                        sources += EmulatorMigrationBackup.Source(File(oldSystemDirectory, "PSP"), "system/PSP")
+                    }
+                    EmulatorMigrationBackup.preserve(
+                        File(appContext.filesDir, "emulator-baseline-backups/${system.id.dbname}"),
+                        sources,
+                    )
+                }
+
                 val missingBiosFiles = biosManager.getMissingBiosFiles(systemCoreConfig, game)
                 if (missingBiosFiles.isNotEmpty()) {
                     throw GameLoaderException(GameLoaderError.MissingBiosFiles(missingBiosFiles))
@@ -124,8 +157,20 @@ class GameLoader(
                     coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
                         .toTypedArray()
 
-                val systemDirectory = directoriesManager.getSystemDirectory()
-                val savesDirectory = directoriesManager.getSavesDirectory()
+                val systemDirectory =
+                    if (systemCoreConfig.coreID == CoreID.PPSSPP_MODERN) {
+                        // Modern PPSSPP assets are version-matched and isolated from 1.15.
+                        File(appContext.filesDir, "system-engines/ppsspp_modern").apply { mkdirs() }
+                    } else {
+                        directoriesManager.getSystemDirectory()
+                    }
+                val savesDirectory =
+                    if (isIsolatedCandidate(systemCoreConfig.coreID)) {
+                        File(directoriesManager.getSavesDirectory(), "engines/${systemCoreConfig.coreID.coreName}")
+                            .apply { mkdirs() }
+                    } else {
+                        directoriesManager.getSavesDirectory()
+                    }
 
                 emit(
                     LoadingState.Ready(
@@ -149,6 +194,9 @@ class GameLoader(
                 throw GameLoaderException(GameLoaderError.Generic)
             }
         }
+
+    private fun isIsolatedCandidate(coreID: CoreID): Boolean =
+        coreID == CoreID.PCSX_REARMED_MODERN || coreID == CoreID.PPSSPP_MODERN
 
     private fun isArchitectureSupported(systemCoreConfig: SystemCoreConfig): Boolean {
         val supportedOnlyArchitectures = systemCoreConfig.supportedOnlyArchitectures ?: return true
