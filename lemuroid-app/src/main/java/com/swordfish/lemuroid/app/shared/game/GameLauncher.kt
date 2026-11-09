@@ -29,7 +29,16 @@ class GameLauncher(
 
         GlobalScope.launch {
             val system = GameSystem.findById(game.systemId)
-            val coreConfig = coresSelection.getCoreConfigForSystem(system)
+            val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
+            val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
+            val candidate = compatibility.candidateCore(system.id)
+            val coreConfig =
+                if (candidate != null && compatibility.isUpdatedRequested(system.id, game.id)) {
+                    // A distinct CoreID keeps save-states isolated. Other emulators are untouched.
+                    legacyCoreConfig.copy(coreID = candidate, statesVersion = legacyCoreConfig.statesVersion + 1)
+                } else {
+                    legacyCoreConfig
+                }
             gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
             BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
         }

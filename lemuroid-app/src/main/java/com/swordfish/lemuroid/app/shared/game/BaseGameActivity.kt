@@ -310,6 +310,11 @@ abstract class BaseGameActivity : ImmersiveActivity() {
 
     private fun performUnexpectedErrorFinish(exception: Throwable) {
         Timber.e(exception, "Handling java exception in BaseGameActivity")
+        // A caught, real crash (unlike a slow game) is sufficient to offer the
+        // old engine on the next deliberate game launch, never via a retry loop.
+        if (::game.isInitialized) {
+            EmulatorCompatibilityPreferences(applicationContext).recordConfirmedStartupFailure(game)
+        }
         val resultIntent =
             Intent().apply {
                 putExtra(PLAY_GAME_RESULT_ERROR, exception.message)
@@ -320,6 +325,12 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     private fun performErrorFinish(message: String) {
+        // Only a confirmed library/core-start failure triggers fallback; never infer
+        // an emulator failure from a slow ROM load or an ordinary in-game freeze.
+        val coreLoadMessage = getString(com.swordfish.lemuroid.ext.R.string.game_loader_error_load_core)
+        if (message == coreLoadMessage) {
+            EmulatorCompatibilityPreferences(applicationContext).recordConfirmedStartupFailure(game)
+        }
         val resultIntent =
             Intent().apply {
                 putExtra(PLAY_GAME_RESULT_ERROR, message)
