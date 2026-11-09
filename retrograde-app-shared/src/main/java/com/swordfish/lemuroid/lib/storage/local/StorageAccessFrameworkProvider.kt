@@ -53,24 +53,19 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
 
     private fun traverseDirectoryEntries(rootUri: Uri): Flow<List<BaseStorageFile>> =
         flow {
-            val directoryDocumentIds = mutableListOf<String>()
-            DocumentsContract.getTreeDocumentId(rootUri)?.let { directoryDocumentIds.add(it) }
+            // An inaccessible or invalid SAF tree is NOT an empty ROM folder.
+            // Preserve the prior library until permissions and enumeration recover.
+            val rootDocumentId = DocumentsContract.getTreeDocumentId(rootUri)
+            check(!rootDocumentId.isNullOrBlank()) { "Cannot read the selected ROM folder" }
+            val directoryDocumentIds = mutableListOf(rootDocumentId)
 
             while (directoryDocumentIds.isNotEmpty()) {
                 val currentDirectoryDocumentId = directoryDocumentIds.removeAt(0)
 
-                val result =
-                    runCatching {
-                        listBaseStorageFiles(rootUri, currentDirectoryDocumentId)
-                    }
-                if (result.isFailure) {
-                    Timber.e(result.exceptionOrNull(), "Error while listing files")
-                }
-
+                // Propagate any SAF/security/query failure. Treating it as an
+                // empty directory would erase perfectly good indexed games.
                 val (files, directories) =
-                    result.getOrDefault(
-                        listOf<BaseStorageFile>() to listOf<String>(),
-                    )
+                    listBaseStorageFiles(rootUri, currentDirectoryDocumentId)
 
                 emit(files)
                 directoryDocumentIds.addAll(directories)
@@ -95,7 +90,10 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
                 DocumentsContract.Document.COLUMN_SIZE,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
             )
-        context.contentResolver.query(childrenUri, projection, null, null, null)?.use {
+        val cursor =
+            context.contentResolver.query(childrenUri, projection, null, null, null)
+                ?: error("ROM folder could not be enumerated: $childrenUri")
+        cursor.use {
             while (it.moveToNext()) {
                 val documentId = it.getString(0)
                 val documentName = it.getString(1)
