@@ -13,12 +13,71 @@ data class ShelfCell(
 
 data class ShelfSection(val id: String, val title: String, val cells: List<ShelfCell> = emptyList())
 
+/** A named colour-only profile. Never a game, ROM, library or save record. */
+data class NamedAppearance(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val baseEdition: String,
+    val custom: Map<String, Long> = emptyMap(),
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = createdAt,
+)
+
+/**
+ * V1 edition/custom fields remain the applied palette and continue to be
+ * readable from existing shelf-layout-v1.json installs. The optional V2
+ * profiles are stored in that SAME AtomicFile, so applying and saving names
+ * is a single transaction and never touches the cartridge positions.
+ */
 data class ShelfAppearance(
     val edition: String = "original",
     val custom: Map<String, Long> = emptyMap(),
     val highContrast: Boolean = false,
     val reducedMotion: Boolean = false,
-)
+    val profiles: List<NamedAppearance> = emptyList(),
+    val activeProfileId: String? = null,
+) {
+    fun choosePreset(id: String): ShelfAppearance {
+        require(id in listOf("original", "pink", "green"))
+        return copy(edition = id, custom = emptyMap(), activeProfileId = null)
+    }
+
+    fun selectProfile(id: String): ShelfAppearance {
+        val profile = profiles.first { it.id == id }
+        return copy(edition = profile.baseEdition, custom = profile.custom, activeProfileId = id)
+    }
+
+    fun removeProfile(id: String): ShelfAppearance =
+        copy(
+            profiles = profiles.filterNot { it.id == id },
+            activeProfileId = if (activeProfileId == id) null else activeProfileId,
+        )
+
+    fun saveNewProfile(name: String, now: Long = System.currentTimeMillis()): ShelfAppearance {
+        val title = name.trim()
+        require(title.isNotEmpty() && title.length <= 60)
+        val profile =
+            NamedAppearance(name = title, baseEdition = edition, custom = custom, createdAt = now, updatedAt = now)
+        return copy(profiles = profiles + profile, activeProfileId = profile.id)
+    }
+
+    fun renameProfile(id: String, name: String): ShelfAppearance {
+        val title = name.trim()
+        require(title.isNotEmpty() && title.length <= 60)
+        return copy(profiles = profiles.map { if (it.id == id) it.copy(name = title) else it })
+    }
+
+    fun duplicateProfile(id: String, now: Long = System.currentTimeMillis()): ShelfAppearance {
+        val source = profiles.first { it.id == id }
+        val duplicate =
+            source.copy(id = UUID.randomUUID().toString(), name = (source.name.take(50) + " Copy"),
+                createdAt = now, updatedAt = now)
+        return copy(
+            profiles = profiles + duplicate,
+            edition = duplicate.baseEdition, custom = duplicate.custom, activeProfileId = duplicate.id,
+        )
+    }
+}
 
 data class ShelfLayout(
     val version: Int = 1,
@@ -35,6 +94,14 @@ data class ShelfLayout(
         require(sections.any { it.id == UNSORTED })
         require(sections.map { it.id }.distinct().size == sections.size)
         require(sections.all { it.title.isNotBlank() && it.title.length <= 80 })
+        require(appearance.edition in listOf("original", "pink", "green"))
+        require(appearance.profiles.map { it.id }.distinct().size == appearance.profiles.size)
+        require(appearance.profiles.all {
+            it.name.isNotBlank() && it.name.length <= 60 &&
+                it.baseEdition in listOf("original", "pink", "green")
+        })
+        require(appearance.activeProfileId == null ||
+            appearance.profiles.any { it.id == appearance.activeProfileId })
         val cells = sections.flatMap { it.cells }
         require(cells.map { it.id }.distinct().size == cells.size)
         require(cells.mapNotNull { it.gameKey }.distinct().size == cells.count { it.gameKey != null })
