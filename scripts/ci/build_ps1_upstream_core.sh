@@ -26,7 +26,7 @@ export LD="$toolchain/ld.lld"
 export LDFLAGS="-Wl,-z,max-page-size=16384"
 
 make -C "$work/pcsx_rearmed" -f Makefile.libretro \
-    platform=unix ARCH=arm64 DYNAREC=ari64 BUILTIN_GPU=neon \
+    platform=unix ARCH=arm64 DYNAREC=ari64 BUILTIN_GPU=neon LIBPTHREAD= \
     -j2
 core="$work/pcsx_rearmed/pcsx_rearmed_libretro.so"
 test -s "$core"
