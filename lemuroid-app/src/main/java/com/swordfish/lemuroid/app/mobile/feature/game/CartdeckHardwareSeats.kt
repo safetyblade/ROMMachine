@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -42,7 +41,10 @@ internal data class CartdeckGlowFamily(
 }
 
 internal object CartdeckHardwareResource {
-    fun seat(edition: CartdeckEditionPreset, key: String): Int? {
+    fun seat(
+        edition: CartdeckEditionPreset,
+        key: String,
+    ): Int? {
         val group =
             when {
                 key == "dpad" -> "dpad"
@@ -126,7 +128,8 @@ internal object CartdeckHardwareResource {
     /** Named, typed source access without making player-facing lighting settings. */
     fun glow(edition: CartdeckEditionPreset): Map<String, CartdeckGlowFamily> =
         when (edition) {
-            CartdeckEditionPreset.ORIGINAL -> mapOf(
+            CartdeckEditionPreset.ORIGINAL ->
+                mapOf(
                 "top-shoulder" to
                     CartdeckGlowFamily(
                         R.raw.cartdeck_c2_glow_top_shoulder_mask,
@@ -164,7 +167,8 @@ internal object CartdeckHardwareResource {
                         R.drawable.cartdeck_c2_original_glow_deck_seam_on,
                     ),
             )
-            CartdeckEditionPreset.PINK -> mapOf(
+            CartdeckEditionPreset.PINK ->
+                mapOf(
                 "top-shoulder" to
                     CartdeckGlowFamily(
                         R.raw.cartdeck_c2_glow_top_shoulder_mask,
@@ -202,7 +206,8 @@ internal object CartdeckHardwareResource {
                         R.drawable.cartdeck_c2_pink_glow_deck_seam_on,
                     ),
             )
-            CartdeckEditionPreset.GREEN -> mapOf(
+            CartdeckEditionPreset.GREEN ->
+                mapOf(
                 "top-shoulder" to
                     CartdeckGlowFamily(
                         R.raw.cartdeck_c2_glow_top_shoulder_mask,
@@ -261,7 +266,9 @@ internal object CartdeckHardwareSeatPolicy {
             proposed.left < screen.left || proposed.top < screen.top ||
             proposed.right > screen.right || proposed.bottom > screen.bottom ||
             (video != null && CartdeckHardwareGeometry.intersects(proposed, video))
-        ) return null
+        ) {
+            return null
+        }
         if (
             others.any { (id, bounds) ->
                 id != key &&
@@ -270,7 +277,9 @@ internal object CartdeckHardwareSeatPolicy {
                         CartdeckHardwareGeometry.expanded(bounds, clearance),
                     )
             }
-        ) return null
+        ) {
+            return null
+        }
         return proposed
     }
 }
@@ -510,4 +519,3 @@ internal fun CartdeckHardwareSeats(
         }
     }
 }
-
