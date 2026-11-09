@@ -103,9 +103,58 @@ class ShelfLayoutTest {
             assertEquals(invalid, path.readText())
         }
 
+    @Test fun v1AppearanceLoadsWithoutLosingSectionsCellsOrCustomColours() {
+        var old = ShelfLayout().reconcile(mapOf("a" to "A")).createSection("Racing")
+        old = old.insertSpace(ShelfLayout.UNSORTED, row = true)
+        old = old.copy(appearance = ShelfAppearance(
+            edition = "pink", custom = mapOf("chassis" to 0xFF1299AAL),
+            highContrast = true, reducedMotion = true,
+        ))
+        val json = org.json.JSONObject(encode(old))
+        val a = json.getJSONObject("appearance")
+        a.remove("appearanceVersion")
+        a.remove("profiles")
+        a.remove("activeProfileId")
+        val restored = decode(json.toString())
+        assertEquals(old, restored)
+        assertEquals(1, restored.sections.first().cells.count { it.emptyRow })
+        assertEquals(0xFF1299AAL, restored.appearance.custom["chassis"])
+        assertEquals(true, restored.appearance.highContrast)
+        assertEquals(true, restored.appearance.reducedMotion)
+    }
+
+    @Test fun threePresetsAndNamedProfilesRoundTripAtomicallyWithoutReorderingGames() {
+        val base = ShelfLayout().reconcile(mapOf("gba-a" to "Atlas", "gb-b" to "Archive"))
+            .insertSpace(ShelfLayout.UNSORTED).createSection("My favourites")
+        val named = base.appearance.choosePreset("green").copy(custom = mapOf("accent" to 0xFFD4F47DL))
+            .saveNewProfile("Moss", now = 100L)
+        val second = named.choosePreset("pink").copy(custom = mapOf("button" to 0xFF793653L))
+            .saveNewProfile("Berry", now = 200L)
+        assertEquals(2, second.profiles.size)
+        assertEquals("pink", second.edition)
+        assertEquals("Moss", second.selectProfile(named.profiles.single().id).profiles.first().name)
+        val persisted = decode(encode(base.copy(appearance = second)))
+        assertEquals(base.sections, persisted.sections)
+        assertEquals(second, persisted.appearance)
+        val first = persisted.appearance.selectProfile(named.profiles.first().id)
+        assertEquals("green", first.edition)
+        assertEquals(0xFFD4F47DL, first.custom["accent"])
+        val removed = first.removeProfile(named.profiles.first().id)
+        assertEquals(null, removed.activeProfileId)
+        assertEquals(1, removed.profiles.size)
+        assertEquals("green", removed.edition)
+        assertEquals(emptyMap<String, Long>(), removed.choosePreset("original").custom)
+    }
+
+    @Test fun unsupportedAppearanceSchemaNeverSilentlyOverwritesUserData() {
+        val json = org.json.JSONObject(encode(ShelfLayout()))
+        json.getJSONObject("appearance").put("appearanceVersion", 999)
+        assertThrows(IllegalArgumentException::class.java) { decode(json.toString()) }
+    }
+
     @Test fun canonicalAndCustomFinishesHaveReadableTextAndFocus() {
-        for (pink in listOf(false, true)) {
-            val colors = shelfMaterials(ShelfAppearance(edition = if (pink) "pink" else "original"))
+        for (edition in listOf("original", "pink", "green")) {
+            val colors = shelfMaterials(ShelfAppearance(edition = edition))
             assertTrue(colorContrast(colors.sectionText, colors.shelfBackboard) >= 4.5f)
             assertTrue(colorContrast(colors.focusOutline, colors.shelfBackboard) >= 3f)
             assertTrue(colorContrast(colors.focusOutline, colors.vacantCell) >= 3f)
