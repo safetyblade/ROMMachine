@@ -1,0 +1,84 @@
+name: CARTDECK PS2-01 Play Android ARM64 executable core build (not shipped)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cartdeck-ps2-01-android.yml"
+      - "spikes/nextgen/**"
+      - "lemuroid-app/src/debug/**"
+      - "scripts/ci/ps2*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ps2-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s spikes/nextgen -p 'test_*.py' -v
+
+  play-libretro-android-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    env:
+      PLAY_SOURCE_SHA: 1f27232772e484bfb79364b751b84f41f4c87481
+      NDK_REV: 29.0.14206865
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare pinned Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_REV"
+          test -f "$ANDROID_HOME/ndk/$NDK_REV/build/cmake/android.toolchain.cmake"
+      - name: Fetch exact Play! source and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout https://github.com/jpd002/Play-.git "$RUNNER_TEMP/play-source"
+          cd "$RUNNER_TEMP/play-source"
+          git checkout --detach "$PLAY_SOURCE_SHA"
+          git submodule update --init --recursive --depth 1
+          test "$(git rev-parse HEAD)" = "$PLAY_SOURCE_SHA"
+      - name: Compile Play! Android ARM64 libretro core (no binary delivery)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/play-source"
+          OUT="$RUNNER_TEMP/play-build"
+          NDK="$ANDROID_HOME/ndk/$NDK_REV"
+          cmake -S "$SRC" -B "$OUT" -G Ninja \
+            -DBUILD_LIBRETRO_CORE=yes -DBUILD_PLAY=off \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DANDROID_ABI=arm64-v8a -DANDROID_NDK="$NDK" \
+            -DANDROID_NATIVE_API_LEVEL=28 \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake"
+          cmake --build "$OUT" --target play_libretro --parallel 2
+          LIB="$(find "$OUT" -type f -name '*play*libretro*.so' -print -quit)"
+          test -n "$LIB" && test -s "$LIB" || { echo "::error::Play! ARM64 libretro library not emitted"; exit 1; }
+          file "$LIB" | tee "$RUNNER_TEMP/ps2-elf.txt"
+          file "$LIB" | grep -Eiq 'aarch64|arm aarch64'
+          TOOLBIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          "$TOOLBIN/llvm-nm" -D --defined-only "$LIB" | awk '{print $NF}' > "$RUNNER_TEMP/ps2-symbols.txt"
+          for symbol in retro_init retro_deinit retro_load_game retro_run retro_set_environment retro_get_system_av_info; do
+            grep -Fxq "$symbol" "$RUNNER_TEMP/ps2-symbols.txt" || { echo "::error::missing $symbol"; exit 1; }
+          done
+          "$TOOLBIN/llvm-readelf" -lW "$LIB" | awk '$1 == "LOAD" {print $NF}' > "$RUNNER_TEMP/ps2-align.txt"
+          python3 - "$RUNNER_TEMP/ps2-align.txt" <<'PY'
+          import pathlib,sys
+          align=[int(x,16) for x in pathlib.Path(sys.argv[1]).read_text().split()]
+          assert align and min(align)>=0x4000, f"Play! ELF LOAD segment alignment below 16 KiB: {align}"
+          PY
+          sha256sum "$LIB" | tee "$RUNNER_TEMP/ps2-sha256.txt"
+          {
+            echo "Play! pinned source SHA: $PLAY_SOURCE_SHA"
+            cat "$RUNNER_TEMP/ps2-elf.txt" "$RUNNER_TEMP/ps2-align.txt" "$RUNNER_TEMP/ps2-sha256.txt"
+            echo "SOURCE READY only if build passes. Not proof of LibretroDroid EGL/GLES3.2, audio or PS2 gameplay."
+            echo "No emulator binary, BIOS, ROM, game, or APK uploaded."
+          } >> "$GITHUB_STEP_SUMMARY"
