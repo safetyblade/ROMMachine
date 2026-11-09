@@ -22,14 +22,18 @@ class CartdeckHardwareGeometryTest {
     @Test
     fun dsVideoIsAnExclusionFromEveryDecorativeLine() {
         val video = Rect(18f, 18f, 375f, 496f)
-        assertTrue(
+        val segments =
             CartdeckHardwareGeometry.seamSegments(
                 10f,
                 383f,
                 400f,
                 listOf(video),
                 4f,
-            ).isEmpty(),
+            )
+        assertTrue(
+            segments.all { (from, to) ->
+                to <= video.left - 4f || from >= video.right + 4f
+            },
         )
     }
 

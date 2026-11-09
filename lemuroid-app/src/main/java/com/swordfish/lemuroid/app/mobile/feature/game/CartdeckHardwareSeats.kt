@@ -130,121 +130,121 @@ internal object CartdeckHardwareResource {
         when (edition) {
             CartdeckEditionPreset.ORIGINAL ->
                 mapOf(
-                "top-shoulder" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
-                        R.drawable.cartdeck_c2_original_glow_top_shoulder_unlit,
-                        R.drawable.cartdeck_c2_original_glow_top_shoulder_on,
-                    ),
-                "bezel-edge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
-                        R.drawable.cartdeck_c2_original_glow_bezel_edge_unlit,
-                        R.drawable.cartdeck_c2_original_glow_bezel_edge_on,
-                    ),
-                "badge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_badge_mask,
-                        R.drawable.cartdeck_c2_original_glow_badge_unlit,
-                        R.drawable.cartdeck_c2_original_glow_badge_on,
-                    ),
-                "speaker-indicator" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
-                        R.drawable.cartdeck_c2_original_glow_speaker_indicator_unlit,
-                        R.drawable.cartdeck_c2_original_glow_speaker_indicator_on,
-                    ),
-                "analog-ring" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_analog_ring_mask,
-                        R.drawable.cartdeck_c2_original_glow_analog_ring_unlit,
-                        R.drawable.cartdeck_c2_original_glow_analog_ring_on,
-                    ),
-                "deck-seam" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_deck_seam_mask,
-                        R.drawable.cartdeck_c2_original_glow_deck_seam_unlit,
-                        R.drawable.cartdeck_c2_original_glow_deck_seam_on,
-                    ),
-            )
+                    "top-shoulder" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                            R.drawable.cartdeck_c2_original_glow_top_shoulder_unlit,
+                            R.drawable.cartdeck_c2_original_glow_top_shoulder_on,
+                        ),
+                    "bezel-edge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                            R.drawable.cartdeck_c2_original_glow_bezel_edge_unlit,
+                            R.drawable.cartdeck_c2_original_glow_bezel_edge_on,
+                        ),
+                    "badge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_badge_mask,
+                            R.drawable.cartdeck_c2_original_glow_badge_unlit,
+                            R.drawable.cartdeck_c2_original_glow_badge_on,
+                        ),
+                    "speaker-indicator" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                            R.drawable.cartdeck_c2_original_glow_speaker_indicator_unlit,
+                            R.drawable.cartdeck_c2_original_glow_speaker_indicator_on,
+                        ),
+                    "analog-ring" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_analog_ring_mask,
+                            R.drawable.cartdeck_c2_original_glow_analog_ring_unlit,
+                            R.drawable.cartdeck_c2_original_glow_analog_ring_on,
+                        ),
+                    "deck-seam" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_deck_seam_mask,
+                            R.drawable.cartdeck_c2_original_glow_deck_seam_unlit,
+                            R.drawable.cartdeck_c2_original_glow_deck_seam_on,
+                        ),
+                )
             CartdeckEditionPreset.PINK ->
                 mapOf(
-                "top-shoulder" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
-                        R.drawable.cartdeck_c2_pink_glow_top_shoulder_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_top_shoulder_on,
-                    ),
-                "bezel-edge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
-                        R.drawable.cartdeck_c2_pink_glow_bezel_edge_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_bezel_edge_on,
-                    ),
-                "badge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_badge_mask,
-                        R.drawable.cartdeck_c2_pink_glow_badge_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_badge_on,
-                    ),
-                "speaker-indicator" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
-                        R.drawable.cartdeck_c2_pink_glow_speaker_indicator_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_speaker_indicator_on,
-                    ),
-                "analog-ring" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_analog_ring_mask,
-                        R.drawable.cartdeck_c2_pink_glow_analog_ring_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_analog_ring_on,
-                    ),
-                "deck-seam" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_deck_seam_mask,
-                        R.drawable.cartdeck_c2_pink_glow_deck_seam_unlit,
-                        R.drawable.cartdeck_c2_pink_glow_deck_seam_on,
-                    ),
-            )
+                    "top-shoulder" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                            R.drawable.cartdeck_c2_pink_glow_top_shoulder_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_top_shoulder_on,
+                        ),
+                    "bezel-edge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                            R.drawable.cartdeck_c2_pink_glow_bezel_edge_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_bezel_edge_on,
+                        ),
+                    "badge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_badge_mask,
+                            R.drawable.cartdeck_c2_pink_glow_badge_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_badge_on,
+                        ),
+                    "speaker-indicator" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                            R.drawable.cartdeck_c2_pink_glow_speaker_indicator_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_speaker_indicator_on,
+                        ),
+                    "analog-ring" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_analog_ring_mask,
+                            R.drawable.cartdeck_c2_pink_glow_analog_ring_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_analog_ring_on,
+                        ),
+                    "deck-seam" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_deck_seam_mask,
+                            R.drawable.cartdeck_c2_pink_glow_deck_seam_unlit,
+                            R.drawable.cartdeck_c2_pink_glow_deck_seam_on,
+                        ),
+                )
             CartdeckEditionPreset.GREEN ->
                 mapOf(
-                "top-shoulder" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
-                        R.drawable.cartdeck_c2_green_glow_top_shoulder_unlit,
-                        R.drawable.cartdeck_c2_green_glow_top_shoulder_on,
-                    ),
-                "bezel-edge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
-                        R.drawable.cartdeck_c2_green_glow_bezel_edge_unlit,
-                        R.drawable.cartdeck_c2_green_glow_bezel_edge_on,
-                    ),
-                "badge" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_badge_mask,
-                        R.drawable.cartdeck_c2_green_glow_badge_unlit,
-                        R.drawable.cartdeck_c2_green_glow_badge_on,
-                    ),
-                "speaker-indicator" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
-                        R.drawable.cartdeck_c2_green_glow_speaker_indicator_unlit,
-                        R.drawable.cartdeck_c2_green_glow_speaker_indicator_on,
-                    ),
-                "analog-ring" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_analog_ring_mask,
-                        R.drawable.cartdeck_c2_green_glow_analog_ring_unlit,
-                        R.drawable.cartdeck_c2_green_glow_analog_ring_on,
-                    ),
-                "deck-seam" to
-                    CartdeckGlowFamily(
-                        R.raw.cartdeck_c2_glow_deck_seam_mask,
-                        R.drawable.cartdeck_c2_green_glow_deck_seam_unlit,
-                        R.drawable.cartdeck_c2_green_glow_deck_seam_on,
-                    ),
-            )
+                    "top-shoulder" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                            R.drawable.cartdeck_c2_green_glow_top_shoulder_unlit,
+                            R.drawable.cartdeck_c2_green_glow_top_shoulder_on,
+                        ),
+                    "bezel-edge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                            R.drawable.cartdeck_c2_green_glow_bezel_edge_unlit,
+                            R.drawable.cartdeck_c2_green_glow_bezel_edge_on,
+                        ),
+                    "badge" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_badge_mask,
+                            R.drawable.cartdeck_c2_green_glow_badge_unlit,
+                            R.drawable.cartdeck_c2_green_glow_badge_on,
+                        ),
+                    "speaker-indicator" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                            R.drawable.cartdeck_c2_green_glow_speaker_indicator_unlit,
+                            R.drawable.cartdeck_c2_green_glow_speaker_indicator_on,
+                        ),
+                    "analog-ring" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_analog_ring_mask,
+                            R.drawable.cartdeck_c2_green_glow_analog_ring_unlit,
+                            R.drawable.cartdeck_c2_green_glow_analog_ring_on,
+                        ),
+                    "deck-seam" to
+                        CartdeckGlowFamily(
+                            R.raw.cartdeck_c2_glow_deck_seam_mask,
+                            R.drawable.cartdeck_c2_green_glow_deck_seam_unlit,
+                            R.drawable.cartdeck_c2_green_glow_deck_seam_on,
+                        ),
+                )
         }
 }
 
