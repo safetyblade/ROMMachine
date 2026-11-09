@@ -12,6 +12,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
+import com.swordfish.lemuroid.app.shared.game.EmulatorModernAssetsProvisioner
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsPage
@@ -35,6 +37,10 @@ fun CoresSelectionScreen(
     viewModel: CoresSelectionViewModel,
 ) {
     val applicationContext = LocalContext.current.applicationContext
+    var assetsReady by remember { mutableStateOf(false) }
+    LaunchedEffect(applicationContext) {
+        assetsReady = EmulatorModernAssetsProvisioner.installIfBundled(applicationContext)
+    }
 
     val cores = viewModel.getSelectedCores().collectAsState(emptyList()).value
 
@@ -42,8 +48,8 @@ fun CoresSelectionScreen(
 
     LemuroidSettingsPage(modifier = modifier.fillMaxWidth()) {
         LemuroidCardSettingsGroup(title = { Text("Emulation · Compatibility") }) {
-            CompatibilityEngineControls(SystemID.PSX, "PlayStation")
-            CompatibilityEngineControls(SystemID.PSP, "PlayStation Portable")
+            CompatibilityEngineControls(SystemID.PSX, "PlayStation", assetsReady)
+            CompatibilityEngineControls(SystemID.PSP, "PlayStation Portable", assetsReady)
         }
         ElevatedCard(
             colors =
@@ -83,10 +89,11 @@ fun CoresSelectionScreen(
 private fun CompatibilityEngineControls(
     systemId: SystemID,
     label: String,
+    assetRevision: Boolean,
 ) {
     val context = LocalContext.current.applicationContext
     val preferences = remember(context) { EmulatorCompatibilityPreferences(context) }
-    val updatedAvailable = remember(systemId) { preferences.available(systemId) }
+    val updatedAvailable = remember(systemId, assetRevision) { preferences.available(systemId) }
     var updatedSelected by remember(systemId) {
         mutableStateOf(preferences.isSystemUpdatedSelected(systemId))
     }

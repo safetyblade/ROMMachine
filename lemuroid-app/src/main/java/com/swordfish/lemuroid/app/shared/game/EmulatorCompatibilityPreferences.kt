@@ -30,8 +30,7 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
         if (!binary.isFile || binary.length() <= 0) return false
         // The updated PSP core must never run against the inherited 1.15 support assets.
         if (systemId == SystemID.PSP) {
-            val matchingAssets = File(context.filesDir, "system-engines/ppsspp_modern/PPSSPP/compat.ini")
-            if (!matchingAssets.isFile || matchingAssets.length() <= 0) return false
+            if (!EmulatorModernAssetsProvisioner.isInstalled(context)) return false
         }
         return true
     }

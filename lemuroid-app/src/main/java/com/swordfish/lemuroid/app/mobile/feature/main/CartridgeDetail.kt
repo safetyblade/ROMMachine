@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +32,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
+import com.swordfish.lemuroid.app.shared.game.EmulatorModernAssetsProvisioner
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -148,9 +150,13 @@ private fun CartridgeEmulatorChoice(game: Game) {
 
     val context = LocalContext.current.applicationContext
     val preferences = remember(context) { EmulatorCompatibilityPreferences(context) }
+    var assetsReady by remember(game.id) { mutableStateOf(false) }
+    LaunchedEffect(context, game.id) {
+        assetsReady = EmulatorModernAssetsProvisioner.installIfBundled(context)
+    }
     // Only expose a switch when the candidate is actually packaged and the
     // matching PSP assets have already been installed.
-    if (!remember(game.id) { preferences.available(systemId) }) return
+    if (!remember(game.id, assetsReady) { preferences.available(systemId) }) return
 
     var updated by remember(game.id) {
         mutableStateOf(preferences.isUpdatedSelectedForGame(systemId, game.id))
