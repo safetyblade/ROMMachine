@@ -50,6 +50,12 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
     fun isUpdatedSelectedForGame(systemId: SystemID, gameId: Int): Boolean =
         isUpdatedRequested(systemId, gameId)
 
+    fun isSystemUpdatedSelected(systemId: SystemID): Boolean =
+        preferences.getBoolean(systemPreferenceKey(systemId), false) && available(systemId)
+
+    fun isGameOverrideSet(systemId: SystemID, gameId: Int): Boolean =
+        preferences.contains(gamePreferenceKey(systemId, gameId))
+
     fun setSystemEngine(systemId: SystemID, updated: Boolean): Boolean {
         if (candidateCore(systemId) == null || (updated && !available(systemId))) return false
         return preferences.edit().putBoolean(systemPreferenceKey(systemId), updated).commit()
