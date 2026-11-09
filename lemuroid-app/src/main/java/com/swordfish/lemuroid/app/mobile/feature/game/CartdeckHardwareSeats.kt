@@ -127,28 +127,118 @@ internal object CartdeckHardwareResource {
     fun glow(edition: CartdeckEditionPreset): Map<String, CartdeckGlowFamily> =
         when (edition) {
             CartdeckEditionPreset.ORIGINAL -> mapOf(
-                "top-shoulder" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_top_shoulder_mask, R.drawable.cartdeck_c2_original_glow_top_shoulder_unlit, R.drawable.cartdeck_c2_original_glow_top_shoulder_on),
-                "bezel-edge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_bezel_edge_mask, R.drawable.cartdeck_c2_original_glow_bezel_edge_unlit, R.drawable.cartdeck_c2_original_glow_bezel_edge_on),
-                "badge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_badge_mask, R.drawable.cartdeck_c2_original_glow_badge_unlit, R.drawable.cartdeck_c2_original_glow_badge_on),
-                "speaker-indicator" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_speaker_indicator_mask, R.drawable.cartdeck_c2_original_glow_speaker_indicator_unlit, R.drawable.cartdeck_c2_original_glow_speaker_indicator_on),
-                "analog-ring" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_analog_ring_mask, R.drawable.cartdeck_c2_original_glow_analog_ring_unlit, R.drawable.cartdeck_c2_original_glow_analog_ring_on),
-                "deck-seam" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_deck_seam_mask, R.drawable.cartdeck_c2_original_glow_deck_seam_unlit, R.drawable.cartdeck_c2_original_glow_deck_seam_on),
+                "top-shoulder" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                        R.drawable.cartdeck_c2_original_glow_top_shoulder_unlit,
+                        R.drawable.cartdeck_c2_original_glow_top_shoulder_on,
+                    ),
+                "bezel-edge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                        R.drawable.cartdeck_c2_original_glow_bezel_edge_unlit,
+                        R.drawable.cartdeck_c2_original_glow_bezel_edge_on,
+                    ),
+                "badge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_badge_mask,
+                        R.drawable.cartdeck_c2_original_glow_badge_unlit,
+                        R.drawable.cartdeck_c2_original_glow_badge_on,
+                    ),
+                "speaker-indicator" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                        R.drawable.cartdeck_c2_original_glow_speaker_indicator_unlit,
+                        R.drawable.cartdeck_c2_original_glow_speaker_indicator_on,
+                    ),
+                "analog-ring" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_analog_ring_mask,
+                        R.drawable.cartdeck_c2_original_glow_analog_ring_unlit,
+                        R.drawable.cartdeck_c2_original_glow_analog_ring_on,
+                    ),
+                "deck-seam" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_deck_seam_mask,
+                        R.drawable.cartdeck_c2_original_glow_deck_seam_unlit,
+                        R.drawable.cartdeck_c2_original_glow_deck_seam_on,
+                    ),
             )
             CartdeckEditionPreset.PINK -> mapOf(
-                "top-shoulder" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_top_shoulder_mask, R.drawable.cartdeck_c2_pink_glow_top_shoulder_unlit, R.drawable.cartdeck_c2_pink_glow_top_shoulder_on),
-                "bezel-edge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_bezel_edge_mask, R.drawable.cartdeck_c2_pink_glow_bezel_edge_unlit, R.drawable.cartdeck_c2_pink_glow_bezel_edge_on),
-                "badge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_badge_mask, R.drawable.cartdeck_c2_pink_glow_badge_unlit, R.drawable.cartdeck_c2_pink_glow_badge_on),
-                "speaker-indicator" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_speaker_indicator_mask, R.drawable.cartdeck_c2_pink_glow_speaker_indicator_unlit, R.drawable.cartdeck_c2_pink_glow_speaker_indicator_on),
-                "analog-ring" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_analog_ring_mask, R.drawable.cartdeck_c2_pink_glow_analog_ring_unlit, R.drawable.cartdeck_c2_pink_glow_analog_ring_on),
-                "deck-seam" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_deck_seam_mask, R.drawable.cartdeck_c2_pink_glow_deck_seam_unlit, R.drawable.cartdeck_c2_pink_glow_deck_seam_on),
+                "top-shoulder" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                        R.drawable.cartdeck_c2_pink_glow_top_shoulder_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_top_shoulder_on,
+                    ),
+                "bezel-edge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                        R.drawable.cartdeck_c2_pink_glow_bezel_edge_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_bezel_edge_on,
+                    ),
+                "badge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_badge_mask,
+                        R.drawable.cartdeck_c2_pink_glow_badge_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_badge_on,
+                    ),
+                "speaker-indicator" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                        R.drawable.cartdeck_c2_pink_glow_speaker_indicator_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_speaker_indicator_on,
+                    ),
+                "analog-ring" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_analog_ring_mask,
+                        R.drawable.cartdeck_c2_pink_glow_analog_ring_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_analog_ring_on,
+                    ),
+                "deck-seam" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_deck_seam_mask,
+                        R.drawable.cartdeck_c2_pink_glow_deck_seam_unlit,
+                        R.drawable.cartdeck_c2_pink_glow_deck_seam_on,
+                    ),
             )
             CartdeckEditionPreset.GREEN -> mapOf(
-                "top-shoulder" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_top_shoulder_mask, R.drawable.cartdeck_c2_green_glow_top_shoulder_unlit, R.drawable.cartdeck_c2_green_glow_top_shoulder_on),
-                "bezel-edge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_bezel_edge_mask, R.drawable.cartdeck_c2_green_glow_bezel_edge_unlit, R.drawable.cartdeck_c2_green_glow_bezel_edge_on),
-                "badge" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_badge_mask, R.drawable.cartdeck_c2_green_glow_badge_unlit, R.drawable.cartdeck_c2_green_glow_badge_on),
-                "speaker-indicator" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_speaker_indicator_mask, R.drawable.cartdeck_c2_green_glow_speaker_indicator_unlit, R.drawable.cartdeck_c2_green_glow_speaker_indicator_on),
-                "analog-ring" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_analog_ring_mask, R.drawable.cartdeck_c2_green_glow_analog_ring_unlit, R.drawable.cartdeck_c2_green_glow_analog_ring_on),
-                "deck-seam" to CartdeckGlowFamily(R.raw.cartdeck_c2_glow_deck_seam_mask, R.drawable.cartdeck_c2_green_glow_deck_seam_unlit, R.drawable.cartdeck_c2_green_glow_deck_seam_on),
+                "top-shoulder" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_top_shoulder_mask,
+                        R.drawable.cartdeck_c2_green_glow_top_shoulder_unlit,
+                        R.drawable.cartdeck_c2_green_glow_top_shoulder_on,
+                    ),
+                "bezel-edge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_bezel_edge_mask,
+                        R.drawable.cartdeck_c2_green_glow_bezel_edge_unlit,
+                        R.drawable.cartdeck_c2_green_glow_bezel_edge_on,
+                    ),
+                "badge" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_badge_mask,
+                        R.drawable.cartdeck_c2_green_glow_badge_unlit,
+                        R.drawable.cartdeck_c2_green_glow_badge_on,
+                    ),
+                "speaker-indicator" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_speaker_indicator_mask,
+                        R.drawable.cartdeck_c2_green_glow_speaker_indicator_unlit,
+                        R.drawable.cartdeck_c2_green_glow_speaker_indicator_on,
+                    ),
+                "analog-ring" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_analog_ring_mask,
+                        R.drawable.cartdeck_c2_green_glow_analog_ring_unlit,
+                        R.drawable.cartdeck_c2_green_glow_analog_ring_on,
+                    ),
+                "deck-seam" to
+                    CartdeckGlowFamily(
+                        R.raw.cartdeck_c2_glow_deck_seam_mask,
+                        R.drawable.cartdeck_c2_green_glow_deck_seam_unlit,
+                        R.drawable.cartdeck_c2_green_glow_deck_seam_on,
+                    ),
             )
         }
 }
@@ -227,19 +317,32 @@ internal fun CartdeckHardwareSeats(
         // never stretched across the game aperture or touch controls.
         if (video != null) {
             val inset = with(density) { 4.dp.toPx() }
-            val railWidth = minOf(with(density) { 10.dp.toPx() }, video.left - inset, rootBounds.width - video.right - inset)
+            val railWidth =
+                minOf(
+                    with(density) { 10.dp.toPx() },
+                    video.left - inset,
+                    rootBounds.width - video.right - inset,
+                )
             val railTop = video.top + with(density) { 7.dp.toPx() }
             val railHeight = video.height - with(density) { 14.dp.toPx() }
             if (railWidth > with(density) { 3.dp.toPx() } && railHeight > 0f) {
                 val railRects =
                     listOf(
                         Rect(inset, railTop, inset + railWidth, railTop + railHeight),
-                        Rect(rootBounds.width - inset - railWidth, railTop, rootBounds.width - inset, railTop + railHeight),
+                        Rect(
+                            rootBounds.width - inset - railWidth,
+                            railTop,
+                            rootBounds.width - inset,
+                            railTop + railHeight,
+                        ),
                     )
                 railRects.forEach { rectangle ->
                     if (
                         controls.values.none {
-                            CartdeckHardwareGeometry.intersects(rectangle, CartdeckHardwareGeometry.expanded(it, clearance))
+                            CartdeckHardwareGeometry.intersects(
+                                rectangle,
+                                CartdeckHardwareGeometry.expanded(it, clearance),
+                            )
                         }
                     ) {
                         Image(
@@ -280,7 +383,9 @@ internal fun CartdeckHardwareSeats(
                     band.left >= 0 && band.top >= 0 &&
                         band.right <= rootBounds.width && band.bottom <= rootBounds.height &&
                         (video == null || !CartdeckHardwareGeometry.intersects(band, video)) &&
-                        listOfNotNull(start, select, compactBrand).none { CartdeckHardwareGeometry.intersects(band, it) }
+                        listOfNotNull(start, select, compactBrand).none {
+                            CartdeckHardwareGeometry.intersects(band, it)
+                        }
                 if (safe) {
                     Canvas(
                         Modifier
@@ -313,12 +418,24 @@ internal fun CartdeckHardwareSeats(
         val detailY = maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - spaceAboveControls)
         val details =
             listOf(
-                Rect(rootBounds.width * 0.18f - speakerWidth / 2f, detailY,
-                    rootBounds.width * 0.18f + speakerWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.speaker(edition),
-                Rect(rootBounds.width * 0.82f - speakerWidth / 2f, detailY,
-                    rootBounds.width * 0.82f + speakerWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.speaker(edition),
-                Rect(rootBounds.width / 2f - indicatorWidth / 2f, detailY,
-                    rootBounds.width / 2f + indicatorWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.indicator(edition),
+                Rect(
+                    rootBounds.width * 0.18f - speakerWidth / 2f,
+                    detailY,
+                    rootBounds.width * 0.18f + speakerWidth / 2f,
+                    detailY + speakerHeight,
+                ) to CartdeckHardwareResource.speaker(edition),
+                Rect(
+                    rootBounds.width * 0.82f - speakerWidth / 2f,
+                    detailY,
+                    rootBounds.width * 0.82f + speakerWidth / 2f,
+                    detailY + speakerHeight,
+                ) to CartdeckHardwareResource.speaker(edition),
+                Rect(
+                    rootBounds.width / 2f - indicatorWidth / 2f,
+                    detailY,
+                    rootBounds.width / 2f + indicatorWidth / 2f,
+                    detailY + speakerHeight,
+                ) to CartdeckHardwareResource.indicator(edition),
             )
         details.forEach { (rect, resource) ->
             val clear =
