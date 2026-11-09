@@ -106,10 +106,14 @@ class ShelfLayoutTest {
     @Test fun v1AppearanceLoadsWithoutLosingSectionsCellsOrCustomColours() {
         var old = ShelfLayout().reconcile(mapOf("a" to "A")).createSection("Racing")
         old = old.insertSpace(ShelfLayout.UNSORTED, row = true)
-        old = old.copy(appearance = ShelfAppearance(
-            edition = "pink", custom = mapOf("chassis" to 0xFF1299AAL),
-            highContrast = true, reducedMotion = true,
-        ))
+        val legacyAppearance =
+            ShelfAppearance(
+                edition = "pink",
+                custom = mapOf("chassis" to 0xFF1299AAL),
+                highContrast = true,
+                reducedMotion = true,
+            )
+        old = old.copy(appearance = legacyAppearance)
         val json = org.json.JSONObject(encode(old))
         val a = json.getJSONObject("appearance")
         a.remove("appearanceVersion")
@@ -124,12 +128,20 @@ class ShelfLayoutTest {
     }
 
     @Test fun threePresetsAndNamedProfilesRoundTripAtomicallyWithoutReorderingGames() {
-        val base = ShelfLayout().reconcile(mapOf("gba-a" to "Atlas", "gb-b" to "Archive"))
-            .insertSpace(ShelfLayout.UNSORTED).createSection("My favourites")
-        val named = base.appearance.choosePreset("green").copy(custom = mapOf("accent" to 0xFFD4F47DL))
-            .saveNewProfile("Moss", now = 100L)
-        val second = named.choosePreset("pink").copy(custom = mapOf("button" to 0xFF793653L))
-            .saveNewProfile("Berry", now = 200L)
+        val base =
+            ShelfLayout()
+                .reconcile(mapOf("gba-a" to "Atlas", "gb-b" to "Archive"))
+                .insertSpace(ShelfLayout.UNSORTED)
+                .createSection("My favourites")
+        val named =
+            base.appearance
+                .choosePreset("green")
+                .copy(custom = mapOf("accent" to 0xFFD4F47DL))
+                .saveNewProfile("Moss", now = 100L)
+        val second =
+            named.choosePreset("pink")
+                .copy(custom = mapOf("button" to 0xFF793653L))
+                .saveNewProfile("Berry", now = 200L)
         assertEquals(2, second.profiles.size)
         assertEquals("pink", second.edition)
         assertEquals("Moss", second.selectProfile(named.profiles.single().id).profiles.first().name)
