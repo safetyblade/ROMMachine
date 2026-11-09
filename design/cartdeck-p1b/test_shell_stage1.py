@@ -9,6 +9,25 @@ class P1BShellContract(unittest.TestCase):
     def setUp(self):
         self.spec=json.loads((ROOT/"console-shell-stage1.json").read_text())
 
+    def test_brand_clearance_and_effect_exclusion(self):
+        b=self.spec["brandClearance"]
+        self.assertTrue(b["oneProtectedRegionAcrossEditions"])
+        self.assertEqual(b["brandSeatBounds"],{"left":79,"top":66,"right":313,"bottom":107})
+        self.assertEqual(b["interiorClearanceBounds"],{"left":88,"top":70,"right":304,"bottom":102})
+        self.assertGreaterEqual(b["minimumEdgeSeparationRefPixels"],8)
+        self.assertLess(b["brandSeatBounds"]["bottom"],b["screenBezelTopRefPixels"])
+        self.assertTrue(b["controlsAndVideoUnaffected"])
+        root=ET.parse(ROOT/"assets/console-bezel-depth-overlay.svg").getroot()
+        ids={node.get("id"):node for node in root.iter() if node.get("id")}
+        self.assertIn("cd-brand-seat",ids)
+        self.assertEqual(ids["cd-brand-seat"].get("data-cd-region"),"protected-brand-seat")
+        self.assertEqual(ids["cd-left-shoulder-seam"].get("d"),"M30 102L53 71H70")
+        self.assertEqual(ids["cd-right-shoulder-seam"].get("d"),"M322 71H339L361 102")
+        self.assertEqual(ids["cd-upper-rim"].get("data-cd-effect-zone"),"outer-rim")
+        self.assertEqual(b["renderOrder"][-1],"screen bezel and video hole")
+        self.assertIn("C-slot alone",b["smallWidthFallback"])
+        self.assertEqual(self.spec["geometry"]["gameWindowOuter"],[37,141,319,238])
+
     def test_game_video_ratios_and_identity(self):
         g=self.spec["geometry"]
         self.assertEqual(Fraction(*g["gba"]["native"]),Fraction(3,2))
