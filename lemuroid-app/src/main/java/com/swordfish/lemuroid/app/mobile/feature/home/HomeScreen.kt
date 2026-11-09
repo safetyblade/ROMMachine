@@ -76,7 +76,7 @@ fun HomeScreen(
                 LinearProgressIndicator()
             } else {
                 Text(shelf.error)
-                TextButton(onClick = shelfViewModel::reload) { Text("Retry saved shelf") }
+                TextButton(onClick = { shelfViewModel.reload() }) { Text("Retry saved shelf") }
             }
         }
         return
@@ -104,7 +104,7 @@ fun HomeScreen(
         tools = {
             shelf.error?.let {
                 Text(it)
-                TextButton(onClick = shelfViewModel::reload) { Text("Retry saved shelf") }
+                TextButton(onClick = { shelfViewModel.reload() }) { Text("Retry saved shelf") }
             }
         },
     )
