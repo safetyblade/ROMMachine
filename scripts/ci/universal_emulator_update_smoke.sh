@@ -95,9 +95,13 @@ check_launch baseline
 adb shell run-as "$PACKAGE" mkdir -p files/cartdeck-qa ||
   fail "debuggable run-as was not available for private-data probe"
 sentinel="cartdeck-synthetic-upgrade-probe-v1"
+# Avoid nested adb-shell / sh -c redirection: some Android shell versions
+# split the redirection outside run-as, giving a false permission failure.
+# toybox tee receives stdin and opens the file AS the app's debug UID.
 printf '%s\n' "$sentinel" |
-  adb shell run-as "$PACKAGE" sh -c 'cat > files/cartdeck-qa/upgrade-sentinel.txt' ||
-  fail "could not write synthetic app-private marker"
+  timeout 40s adb shell run-as "$PACKAGE" tee files/cartdeck-qa/upgrade-sentinel.txt \
+    > "$OUT/sentinel-write.txt" 2>&1 ||
+  fail "could not write synthetic app-private marker (see sentinel-write.txt)"
 before="$(adb shell run-as "$PACKAGE" cat files/cartdeck-qa/upgrade-sentinel.txt | tr -d '\r\n')"
 [[ "$before" == "$sentinel" ]] || fail "sentinel not present before update"
 timeout 40s adb shell am force-stop "$PACKAGE"
