@@ -1,6 +1,6 @@
 {
-  "schema": "cartdeck.screenSurround/v0.8-draft",
-  "status": "Sienna-design-candidate-not-engineering-approved",
+  "schema": "cartdeck.screenSurround/v0.9-standard",
+  "status": "owner-approved-standard-four-three-screen-DS-extended",
   "reference": "SIENNA_SCREEN_SURROUND_V08.md",
   "referenceHardware": "same cartdeck original chassis, Original/Pink/Green, PadKit unchanged",
   "priorities": [
@@ -12,7 +12,7 @@
   ],
   "sourceOfTruth": {
     "rendering": "single existing LibretroDroid GLRetroView and viewport",
-    "aspect": "live core-reported display aspect if demonstrably available",
+    "aspect": "standard manufactured 4:3 aperture; GLRetroView retains each game content ratio",
     "fallbacks": "design/cartdeck-v04/system-viewports.json",
     "note": "viewport box and actual nonblack content are not equivalent"
   },
@@ -28,9 +28,9 @@
         "PSP"
       ],
       "fit": "contain",
-      "screenOpening": "tight-to-actual-content-aspect",
+      "screenOpening": "fixed-responsive-4:3-external-aperture-with-core-contained-game",
       "freeSurface": "opaque designed chassis above and below content",
-      "logo": "full wordmark seat where natural clearance allows",
+      "logo": "canonical full CARTDECK badge in natural top safe seat",
       "constraints": [
         "no oversized black letterboxed bezel",
         "no forced reserved header",
@@ -42,9 +42,9 @@
         "NDS"
       ],
       "fit": "contain composite existing renderer",
-      "screenOpening": "full visible two-screen composite",
+      "screenOpening": "flexible-portrait-v2101-preserved",
       "freeSurface": "slim side rails, lower deck seam",
-      "logo": "compact C-slot first if full wordmark cannot fit",
+      "logo": "compact C-slot on lower deck seam when top badge unavailable",
       "constraints": [
         "preserve both existing screens",
         "preserve stylus coordinates",
@@ -71,8 +71,8 @@
   "bezel": {
     "currentDp": 15,
     "targetDpRange": [
-      6,
-      8
+      7,
+      7
     ],
     "treatment": "subtle mechanical depth with restrained accent line",
     "neverOverdrawGame": true
@@ -107,8 +107,20 @@
   "approval": {
     "siennaArtwork": false,
     "cassiaExperience": false,
-    "owner": false,
+    "owner": true,
     "danielLiveAspectFeasibility": false,
     "marcusDeviceQA": false
+  },
+  "screenPolicy": {
+    "default": "STANDARD_4_3",
+    "expanded": [
+      "NDS",
+      "NINTENDO_3DS"
+    ],
+    "orientation": "portrait-only",
+    "landscape": "existing-unchanged",
+    "runtimeGeometryLookup": false,
+    "dynamicPS1": "contained-in-standard-outer-frame",
+    "fallback3ds": "unverified-dual-screen-compatibility-safeguard"
   }
 }

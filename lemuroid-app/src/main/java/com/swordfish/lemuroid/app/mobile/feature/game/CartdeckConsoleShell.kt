@@ -55,6 +55,13 @@ internal fun CartdeckConsoleShell(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
+        val badgeTop = 25.dp
+        val badgeHeight = 39.dp
+        val badgeClearance = 9.dp
+        val availableAboveVideo = hole?.top ?: 0f
+        val seatFits =
+            availableAboveVideo >= with(density) { (badgeTop + badgeHeight + badgeClearance).toPx() }
+        val compactSeat = !isLandscape && !seatFits
         Canvas(Modifier.fillMaxSize()) {
             val edge = 8.dp.toPx()
             val chamfer = 30.dp.toPx()
@@ -74,7 +81,7 @@ internal fun CartdeckConsoleShell(
                 }
             drawPath(shellPath, tokens.chassis)
             hole?.let { display ->
-                val border = 15.dp.toPx()
+                val border = 7.dp.toPx()
                 val rim =
                     Rect(
                         display.left - border,
@@ -85,7 +92,7 @@ internal fun CartdeckConsoleShell(
                 val bezel =
                     Path().apply {
                         fillType = PathFillType.EvenOdd
-                        addRoundRect(RoundRect(rim, CornerRadius(18.dp.toPx())))
+                        addRoundRect(RoundRect(rim, CornerRadius(10.dp.toPx())))
                         addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
                     }
                 drawPath(bezel, tokens.bezel)
@@ -93,8 +100,8 @@ internal fun CartdeckConsoleShell(
                     color = tokens.accent.copy(alpha = 0.50f),
                     topLeft = rim.topLeft,
                     size = rim.size,
-                    cornerRadius = CornerRadius(18.dp.toPx()),
-                    style = Stroke(width = 1.5.dp.toPx()),
+                    cornerRadius = CornerRadius(10.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx()),
                 )
             }
             val left = 25.dp.toPx()
@@ -117,23 +124,62 @@ internal fun CartdeckConsoleShell(
                     strokeWidth = 2.dp.toPx(),
                 )
             }
-            drawLine(
-                color = tokens.secondary,
-                start = Offset(left, size.height - 30.dp.toPx()),
-                end = Offset(size.width - left, size.height - 30.dp.toPx()),
-                strokeWidth = 2.dp.toPx(),
-            )
+            val deckLineY = size.height - 30.dp.toPx()
+            if (compactSeat) {
+                // The DS footer carries a compact C-slot in a clear seam seat.
+                val gap = 33.dp.toPx()
+                drawLine(
+                    color = tokens.secondary,
+                    start = Offset(left, deckLineY),
+                    end = Offset(size.width / 2f - gap, deckLineY),
+                    strokeWidth = 2.dp.toPx(),
+                )
+                drawLine(
+                    color = tokens.secondary,
+                    start = Offset(size.width / 2f + gap, deckLineY),
+                    end = Offset(size.width - left, deckLineY),
+                    strokeWidth = 2.dp.toPx(),
+                )
+            } else {
+                drawLine(
+                    color = tokens.secondary,
+                    start = Offset(left, deckLineY),
+                    end = Offset(size.width - left, deckLineY),
+                    strokeWidth = 2.dp.toPx(),
+                )
+            }
+            // These speaker and indicator details use exposed manufactured
+            // chassis, not the renderer's letterboxing or PadKit hit regions.
+            if (!isLandscape && seatFits) {
+                hole?.let { display ->
+                    val detailY = display.bottom + 24.dp.toPx()
+                    if (detailY < size.height * 0.67f) {
+                        for (index in 0 until 5) {
+                            val offset = index * 7.dp.toPx()
+                            drawCircle(
+                                color = tokens.secondary,
+                                radius = 1.8.dp.toPx(),
+                                center = Offset(size.width * 0.23f + offset, detailY),
+                            )
+                            drawCircle(
+                                color = tokens.secondary,
+                                radius = 1.8.dp.toPx(),
+                                center = Offset(size.width * 0.77f - offset, detailY),
+                            )
+                        }
+                        drawLine(
+                            color = tokens.accent.copy(alpha = 0.65f),
+                            start = Offset(size.width * 0.44f, detailY),
+                            end = Offset(size.width * 0.56f, detailY),
+                            strokeWidth = 2.dp.toPx(),
+                        )
+                    }
+                }
+            }
         }
 
-        // Reserve a physical brand seat above the measured game aperture.
-        // Compact devices lose the wordmark first; game pixels and touch targets
-        // always take precedence over decorative branding.
-        val badgeTop = 28.dp
-        val badgeHeight = 39.dp
-        val badgeClearance = 8.dp
-        val availableAboveVideo = hole?.top ?: 0f
-        val seatFits =
-            availableAboveVideo >= with(density) { (badgeTop + badgeHeight + badgeClearance).toPx() }
+        // Full brand returns above the standard manufactured screen; the
+        // expanded DS layout keeps the full height and uses a footer C-slot.
         if (!isLandscape && seatFits) {
             val fullWordmarkFits = maxWidth >= 360.dp
             val inks = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
@@ -162,6 +208,26 @@ internal fun CartdeckConsoleShell(
                         modifier = Modifier.width(155.dp).height(25.dp),
                     )
                 }
+            }
+        }
+        if (compactSeat) {
+            val inks = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
+            val brandInk = inks.maxBy { colorContrast(it, tokens.secondary) }
+            Row(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 17.dp)
+                        .background(tokens.secondary, RoundedCornerShape(7.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.cartdeck_original_cslot_master),
+                    contentDescription = "CARTDECK",
+                    tint = brandInk,
+                    modifier = Modifier.size(17.dp),
+                )
             }
         }
     }
