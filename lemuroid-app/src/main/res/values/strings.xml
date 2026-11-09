@@ -1,4 +1,13 @@
 <resources>
+    <string name="cartdeck_header_title">CARTDECK</string>
+    <string name="cartdeck_header_library">LIBRARY</string>
+    <string name="cartdeck_library_options">Library options</string>
+    <string name="cartdeck_arrange_shelf">Arrange shelf</string>
+    <string name="cartdeck_done_arranging">Done arranging</string>
+    <string name="cartdeck_done">Done</string>
+    <string name="cartdeck_shelf_appearance">Shelf appearance</string>
+    <string name="cartdeck_add_section">Add section</string>
+    <string name="cartdeck_undo">Undo</string>
     <string name="cartdeck_launch_title">CARTDECK</string>
     <string name="cartdeck_launch_byline">by prestwich.dev</string>
     <string name="title_home">Home</string>
