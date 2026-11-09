@@ -145,7 +145,7 @@ fun CartridgeDetail(
 
 @Composable
 private fun CartridgeEmulatorChoice(game: Game) {
-    val systemId = game.systemId
+    val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
     if (systemId != SystemID.PSX && systemId != SystemID.PSP) return
 
     val context = LocalContext.current.applicationContext
