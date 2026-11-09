@@ -1,9 +1,12 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.graphics.RectF
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -37,14 +40,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -52,9 +62,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
@@ -66,7 +78,6 @@ import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
-import com.swordfish.touchinput.radial.ui.GlassSurface
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
 import gg.padkit.PadKit
 import gg.padkit.config.HapticFeedbackType
@@ -183,6 +194,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullScreenPosition = remember { mutableStateOf<Rect?>(null) }
             val viewportPosition = remember { mutableStateOf<Rect?>(null) }
+            // Read-only PadKit group measurements; nothing changes their size or input.
+            val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
+            val rightPadBounds = remember { mutableStateOf<Rect?>(null) }
 
             AndroidView(
                 modifier =
@@ -196,12 +210,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullPos = fullScreenPosition.value
             val viewPos = viewportPosition.value
+            val compactBadge =
+                !isLandscape &&
+                    (
+                        fullPos == null ||
+                            viewPos == null ||
+                            (viewPos.top - fullPos.top) < with(LocalDensity.current) { 73.dp.toPx() }
+                    )
 
             CartdeckConsoleShell(
                 tokens = shellTokens,
                 videoBounds = viewPos,
                 rootBounds = fullPos,
                 isLandscape = isLandscape,
+                controlBounds = listOfNotNull(leftPadBounds.value, rightPadBounds.value),
             )
 
             LaunchedEffect(fullPos, viewPos) {
@@ -244,24 +266,32 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         if (!isLandscape) {
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_BOTTOM_CONTAINER),
+                                tokens = shellTokens,
+                                compactBadge = compactBadge,
                             )
                         } else if (!currentControllerConfig.allowTouchOverlay) {
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_CONTAINER),
+                                tokens = shellTokens,
                             )
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_CONTAINER),
+                                tokens = shellTokens,
                             )
                         }
 
                         leftGamePad?.invoke(
                             this,
-                            Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD),
+                            Modifier
+                                .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
+                                .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
                             touchControllerSettings,
                         )
                         rightGamePad?.invoke(
                             this,
-                            Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD),
+                            Modifier
+                                .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
+                                .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
                             touchControllerSettings,
                         )
 
@@ -292,16 +322,69 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
     }
 }
 
+/**
+ * P1-C2A native control-deck material. The former floating GlassSurface has
+ * been removed; the opaque panel is painted only inside the existing PadKit
+ * container and behind all functional controls.
+ */
 @Composable
-private fun PadContainer(modifier: Modifier = Modifier) {
-    val theme = LocalLemuroidPadTheme.current
-    GlassSurface(
-        modifier = modifier,
-        cornerRadius = theme.level0CornerRadius,
-        fillColor = theme.level0Fill,
-        shadowColor = theme.level0Shadow,
-        shadowWidth = theme.level0ShadowWidth,
-    )
+private fun PadContainer(
+    modifier: Modifier = Modifier,
+    tokens: CartdeckEditionTokens,
+    compactBadge: Boolean = false,
+) {
+    Box(modifier = modifier) {
+        Canvas(Modifier.fillMaxSize()) {
+            if (size.width <= 0f || size.height <= 0f) return@Canvas
+            val edge = 3.dp.toPx()
+            val cut = minOf(22.dp.toPx(), size.width * 0.07f, size.height * 0.14f)
+            // Dynamic form of the approved chamfered chassis/control-deck.svg.
+            val outline =
+                Path().apply {
+                    moveTo(cut + edge, edge)
+                    lineTo(size.width - cut - edge, edge)
+                    lineTo(size.width - edge, cut + edge)
+                    lineTo(size.width - edge, size.height - cut - edge)
+                    lineTo(size.width - cut - edge, size.height - edge)
+                    lineTo(cut + edge, size.height - edge)
+                    lineTo(edge, size.height - cut - edge)
+                    lineTo(edge, cut + edge)
+                    close()
+                }
+            drawPath(outline, tokens.secondary)
+            drawPath(outline, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
+            val inset = 13.dp.toPx()
+            if (size.width > 2f * inset + 8.dp.toPx() && size.height > 2f * inset + 8.dp.toPx()) {
+                drawRoundRect(
+                    color = tokens.onChassis.copy(alpha = 0.19f),
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - inset * 2, size.height - inset * 2),
+                    cornerRadius = CornerRadius(12.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx()),
+                )
+            }
+        }
+        // On a tall DS viewport the opaque deck would otherwise conceal the
+        // inherited footer badge. Preserve the canonical C-slot in a separate,
+        // noninteractive seat; Start/Select remain at their existing positions.
+        if (compactBadge) {
+            val ink =
+                listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
+                    .maxBy { colorContrast(it, tokens.secondary) }
+            Icon(
+                painter = painterResource(com.swordfish.lemuroid.R.drawable.cartdeck_original_cslot_master),
+                contentDescription = null,
+                tint = ink,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 17.dp)
+                        .background(tokens.secondary, RoundedCornerShape(7.dp))
+                        .padding(5.dp)
+                        .size(17.dp),
+            )
+        }
+    }
 }
 
 @Composable

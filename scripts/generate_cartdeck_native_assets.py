@@ -129,6 +129,57 @@ def geometry_signature(vector_xml: Path) -> str:
     return digest(json.dumps(fields, separators=(",", ":")).encode("utf-8"))
 
 
+
+def write_p1c2_resources(out: Path, values: dict, exporter) -> list[dict]:
+    """Compile Sienna's approved masters into palette-resolved Android vectors.
+
+    SVG masks stay as raw source resources: dynamic renderer and PadKit clipping
+    MUST come from live Compose bounds rather than illustrative SVG coordinates.
+    """
+    root_dir = ROOT / "design/cartdeck-p1c2/hardware"
+    manifest = json.loads((root_dir / "asset-manifest.json").read_text(encoding="utf-8"))
+    inventory = manifest["assetInventory"]
+    if len(inventory) != 52 or len({a["file"] for a in inventory}) != 52:
+        raise ValueError("P1-C2 approved 52-master inventory mismatch")
+    (out / "raw").mkdir(parents=True, exist_ok=True)
+    (out / "drawable-nodpi").mkdir(parents=True, exist_ok=True)
+    android = "{http://schemas.android.com/apk/res/android}"
+    written = []
+    for asset in inventory:
+        rel = Path(asset["file"])
+        master = root_dir / rel
+        svg = ET.parse(master).getroot()
+        x, y, w, h = (float(v) for v in svg.attrib["viewBox"].split())
+        if x != 0 or y != 0:
+            raise ValueError(f"Unsupported viewBox origin: {master}")
+        prefix = f"cartdeck_c2_{rel.parent.name}_{rel.stem.replace('-', '_')}"
+        shutil.copyfile(master, out / "raw" / (prefix + ".svg"))
+        resources = []
+        if not rel.stem.endswith("-mask"):
+            for edition in EDITIONS:
+                resolved = ET.fromstring(ET.tostring(svg))
+                for element in resolved.iter():
+                    for semantic, attribute in (("data-cd-fill", "fill"), ("data-cd-stroke", "stroke")):
+                        token = element.attrib.get(semantic)
+                        if token:
+                            if token not in values[edition]:
+                                raise ValueError(f"Unknown P1-C2 colour token {token}: {master}")
+                            element.set(attribute, values[edition][token])
+                vector = ET.Element("vector")
+                for key, value in (("width", f"{w:g}dp"), ("height", f"{h:g}dp"),
+                                   ("viewportWidth", f"{w:g}"), ("viewportHeight", f"{h:g}")):
+                    vector.set(android + key, value)
+                exporter.append_shapes(resolved, vector, values[edition])
+                name = f"cartdeck_c2_{edition}_{rel.parent.name}_{rel.stem.replace('-', '_')}"
+                target = out / "drawable-nodpi" / (name + ".xml")
+                ET.ElementTree(vector).write(target, encoding="unicode", xml_declaration=True)
+                resources.append(name)
+        written.append({"master": str(rel), "raw": prefix, "drawableEditions": resources,
+                        "sha256": digest(master.read_bytes())})
+    if sum(len(a["drawableEditions"]) for a in written) < 100:
+        raise ValueError("Incomplete P1-C2 native VectorDrawable resources")
+    return written
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True,
@@ -225,6 +276,9 @@ def main() -> None:
         "lockedRendererAndPadKit": True,
         "assets": sorted(assets, key=lambda row: (row["nativeResource"], row["edition"])),
     }
+    # P1-C2A hardware production masters, glow-on art packaged but not activated.
+    manifest["hardwareP1C2"] = write_p1c2_resources(out, values, android_export)
+
     # Evidence is outside Android res/ so no JSON accidentally enters packaged resources.
     evidence = out.parent / "native-assets-manifest.json"
     evidence.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
