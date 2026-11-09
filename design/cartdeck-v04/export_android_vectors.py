@@ -4,7 +4,7 @@
 This does NOT add assets to Android source sets or modify the emulator.
 Run: python design/cartdeck-v04/build_assets.py
      python design/cartdeck-v04/export_android_vectors.py
-Use --include-prototypes only to preview the unapproved Green/Mono editions.
+Use --include-prototypes only to preview unapproved Mono edition.
 """
 from pathlib import Path
 import argparse
