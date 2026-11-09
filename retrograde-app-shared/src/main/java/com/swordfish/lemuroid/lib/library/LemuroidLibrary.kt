@@ -64,8 +64,9 @@ class LemuroidLibrary(
      */
     suspend fun indexLibrary(): IndexSummary {
         val startedAtMs = System.currentTimeMillis()
-        val before = retrogradedb.gameDao().selectShelfGames().first()
-            .map { it.systemId to it.fileUri }.toSet()
+        val before =
+            retrogradedb.gameDao().selectShelfGames().first()
+                .map { it.systemId to it.fileUri }.toSet()
         val skipped = AtomicInteger(0)
 
         try {
