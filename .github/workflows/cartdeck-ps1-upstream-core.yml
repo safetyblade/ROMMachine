@@ -1,0 +1,44 @@
+name: CARTDECK PS1 upstream ARM64 candidate
+
+on:
+  pull_request:
+    paths:
+      - "scripts/ci/build_ps1_upstream_core.sh"
+      - ".github/workflows/cartdeck-ps1-upstream-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out CARTDECK integration source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$manager"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Build separate official PCSX ReARMed candidate
+        run: |
+          set -euo pipefail
+          bash scripts/ci/build_ps1_upstream_core.sh "$GITHUB_WORKSPACE/dist/ps1-modern"
+
+      - name: Preserve ELF and provenance evidence (no automatic promotion)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_PS1_OFFICIAL_ARM64_CANDIDATE_NOT_ACCEPTED
+          path: dist/ps1-modern/
+          if-no-files-found: warn
+          retention-days: 14
