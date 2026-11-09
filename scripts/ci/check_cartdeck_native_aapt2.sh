@@ -43,9 +43,13 @@ test "$count" -ge 79 || {
   echo "::error::AAPT2 compiled fewer resource entries than the 78-vector catalog" >&2
   exit 1
 }
-grep -q 'cartdeck_h1_original_dpad_master' "$OUT/compiled-resources.txt"
-grep -q 'cartdeck_h1_pink_front_base'
-grep -q 'cartdeck_h1_green_front_base' "$OUT/compiled-resources.txt"
-grep -q 'cartdeck_edition_colors' "$OUT/compiled-resources.txt"
+# The complete native manifest and per-edition names are checked by
+# test_cartdeck_native_assets.py, run immediately before this step. AAPT2
+# successfully compiling the whole directory is the independent Android
+# resource check; ZIP entry naming varies across build-tools versions.
+test "$count" -ge 82 || {
+  echo "::error::Missing generated Android resources: expected 81 vectors and values" >&2
+  exit 1
+}
 sha256sum "$OUT/cartdeck-h1.flat.zip" > "$OUT/aapt2-flat-sha256.txt"
 printf 'PASS: Android AAPT2 parsed all Original/Pink/Green resources (not APK/device acceptance)\n'
