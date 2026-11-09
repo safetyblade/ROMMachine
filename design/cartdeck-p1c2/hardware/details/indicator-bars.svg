@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 28" role="img" aria-label="CARTDECK details/indicator-bars.svg"><title>CARTDECK details/indicator-bars.svg</title>
+<rect x="2" y="2" width="128" height="24" rx="8" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="chassis" stroke="#303B49" stroke-width="2"/>
+<rect x="19" y="9" width="24" height="9" rx="4" data-cd-fill="accent" fill="#4ED8C4" stroke="none" />
+<rect x="54" y="9" width="24" height="9" rx="4" data-cd-fill="glass" fill="#09131B" stroke="none" />
+<rect x="89" y="9" width="24" height="9" rx="4" data-cd-fill="glass" fill="#09131B" stroke="none" />
+</svg>

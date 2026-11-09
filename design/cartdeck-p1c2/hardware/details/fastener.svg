@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" role="img" aria-label="CARTDECK details/fastener.svg"><title>CARTDECK details/fastener.svg</title>
+<circle cx="21" cy="21" r="16" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="2.3"/>
+<circle cx="21" cy="21" r="11" data-cd-fill="chassis" fill="#303B49" stroke="none" />
+<path d="M17 21H25" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-width="2"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 196" role="img" aria-label="CARTDECK controls/abxy-seat.svg"><title>CARTDECK controls/abxy-seat.svg</title>
+<path d="M37 5H159L191 37V159L159 191H37L5 159V37Z" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="4"/>
+<circle cx="98" cy="47" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+<circle cx="150" cy="98" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+<circle cx="98" cy="149" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+<circle cx="46" cy="98" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+</svg>

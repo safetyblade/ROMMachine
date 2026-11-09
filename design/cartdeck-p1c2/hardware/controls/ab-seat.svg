@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 178" role="img" aria-label="CARTDECK controls/ab-seat.svg"><title>CARTDECK controls/ab-seat.svg</title>
+<path d="M35 6H158L185 33V145L158 172H35L8 145V33Z" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="4"/>
+<circle cx="70" cy="109" r="41" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+<circle cx="132" cy="66" r="41" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="3"/>
+</svg>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 72" role="img" aria-label="CARTDECK controls/shoulder-seat.svg"><title>CARTDECK controls/shoulder-seat.svg</title>
+<path d="M22 8H188L204 24V54L188 65H22L6 54V24Z" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="3"/>
+<path d="M25 18H185" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-width="2" stroke-opacity=".3"/>
+</svg>

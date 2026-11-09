@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 316" role="img" aria-label="CARTDECK chassis/residual-faceplate-mask.svg"><title>CARTDECK chassis/residual-faceplate-mask.svg</title>
+<rect x="0" y="0" width="393" height="316" rx="0" data-cd-fill="glass" fill="#09131B" stroke="none" />
+<path d="M34 40H359V275H34Z" data-cd-fill="onChassis" fill="#EDF6F2" stroke="none" data-cd-allow="candidate-residual-only"/>
+<rect x="42" y="51" width="309" height="209" rx="16" data-cd-fill="glass" fill="#09131B" stroke="none" data-cd-exclude="runtime-PadKit-hit-zones"/>
+</svg>

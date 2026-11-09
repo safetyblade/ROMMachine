@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="CARTDECK controls/ds-microphone-seat.svg"><title>CARTDECK controls/ds-microphone-seat.svg</title>
+<rect x="5" y="5" width="70" height="70" rx="18" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="3"/>
+<rect x="31" y="16" width="18" height="30" rx="8" fill="none" data-cd-stroke="onButton" stroke="#EDF6F2" stroke-width="3"/>
+<path d="M22 40Q22 57 40 57Q58 57 58 40 M40 57V65" fill="none" data-cd-stroke="onButton" stroke="#EDF6F2" stroke-width="2.5"/>
+</svg>
