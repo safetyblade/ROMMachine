@@ -67,6 +67,19 @@ Inspected [Swordfish90/LibretroDroid `environment.cpp`](https://github.com/Sword
 
 `.github/workflows/cartdeck-perf02-binary-inventory.yml` checks out the pinned LemuroidCores submodule at exactly the Gitlink commit, enumerates every ARM64 `.so`, records its SHA-256/size/ELF machine/PT_LOAD alignment and uploads **JSON only** as `CARTDECK-PERF02-ARM64-CORE-INVENTORY`. It does not rebuild, alter, upgrade or distribute emulator binaries or ROMs. Fields `upstream_source_revision` and `build_flags` remain explicitly null when they cannot be established from the existing binary. Daniel should trace those against the source correspondence manifests before any public upgrade; ELF metadata must not be mislabelled as upstream version proof.
 
+
+**Measured pinned binary inventory — CI run [#42708609698](https://github.com/safetyblade/ROMMachine/actions/runs/42708609698):** PASS. Pinned Gitlink verified `fee2e824525daa22bcf318f96127fe43fa8a15ad`. Found **40 ARM64 ELF files representing 20 unique byte-identical core versions** (each copied in both `bundled-cores` and individual dynamic-feature trees). All 40 report ELF `PT_LOAD` alignment at least 16 KiB. This is **not** proof of Android 16 KiB page runtime, GPU support or gameplay. [Download JSON from workflow artifacts](https://github.com/safetyblade/ROMMachine/actions/runs/42708609698); artifact `CARTDECK-PERF02-ARM64-CORE-INVENTORY` contains SHA-256/size/path/alignment, not binaries.
+
+| Priority core (current pinned ARM64) | SHA-256 (binary hash, not source revision) | 16 KiB ELF PT_LOAD |
+|---|---|---|
+| PPSSPP | `2d5370602e07df1e5bc0fb20467cff52aafa8ccbade904b5d7f60b3eebd2ff23` | PASS |
+| PCSX ReARMed | `1c32c21dcc488889db7556bd0bd11c72219228f8d35d36bc30c640472af21fd3` | PASS |
+| melonDS | `71f305fa273d27c57eb438fd3447a4c33bbd2f321ead9ac7d5c46d6a707d760d` | PASS |
+| Mupen64Plus-Next GLES3 | `c7e44a9f6bfc67411a76d0253e12b546cd36746cc5adf2fffe68146544fe8d7a` | PASS |
+| Citra | `a733a6dbb80a6f1de2bc551e41c3f50d3d5d937938571a0bc68da59ab922f063` | PASS |
+
+Build flags and upstream source commit **remain unverified** for these historical binaries; hashes are a reproducible source correspondence identifier, not themselves a version number.
+
 ### Required evidence before any upgrade
 
 Build exact ELF/core hashes and provenance from pinned `fee2e824` + installed APK; verify compiled CPU/backend flags, `retro_get_system_info`/core options and ARM64 dynamic linking; run lawful reproducible titles on a physical Android phone, 15–20-minute nominal speed/frame pacing/audio underrun/memory/thermal logs; record SRAM vs state/save paths and same-signing in-place update. Capture baseline and candidate metrics, preserve original binary/assets, and implement a per-core rollback before changing a production default.
