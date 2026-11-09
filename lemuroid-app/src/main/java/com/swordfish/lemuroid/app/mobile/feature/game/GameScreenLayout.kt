@@ -36,15 +36,16 @@ object GameScreenLayout {
             val gamePadChain = createHorizontalChain(leftPad, rightPad, chainStyle = ChainStyle.SpreadInside)
 
             constrain(gameView) {
-                // Stable manufactured display opening; the native renderer still
-                // contains each system's pixels without cropping or stretching.
+                // Maximise the available display region for every emulator.
+                // The native LibretroDroid renderer owns the actual game aspect
+                // ratio, including DS dual screens and variable-size PS1 output.
+                // Keep only the clearance needed for CARTDECK's 15dp bezel.
                 width = Dimension.fillToConstraints
-                height = Dimension.ratio("3:2")
-                top.linkTo(parent.top, margin = 92.dp)
-                bottom.linkTo(leftPad.top, margin = 16.dp)
-                verticalBias = 0f
-                absoluteLeft.linkTo(parent.absoluteLeft, margin = 28.dp)
-                absoluteRight.linkTo(parent.absoluteRight, margin = 28.dp)
+                height = Dimension.fillToConstraints
+                top.linkTo(parent.top, margin = 18.dp)
+                bottom.linkTo(leftPad.top, margin = 18.dp)
+                absoluteLeft.linkTo(parent.absoluteLeft, margin = 18.dp)
+                absoluteRight.linkTo(parent.absoluteRight, margin = 18.dp)
             }
 
             constrain(bottomContainer) {
