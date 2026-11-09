@@ -100,6 +100,14 @@ internal object CartdeckHardwareResource {
     }
 
     @DrawableRes
+    fun sideRail(edition: CartdeckEditionPreset): Int =
+        when (edition) {
+            CartdeckEditionPreset.ORIGINAL -> R.drawable.cartdeck_c2_original_chassis_side_rail
+            CartdeckEditionPreset.PINK -> R.drawable.cartdeck_c2_pink_chassis_side_rail
+            CartdeckEditionPreset.GREEN -> R.drawable.cartdeck_c2_green_chassis_side_rail
+        }
+
+    @DrawableRes
     fun speaker(edition: CartdeckEditionPreset): Int =
         when (edition) {
             CartdeckEditionPreset.ORIGINAL -> R.drawable.cartdeck_c2_original_details_speaker_grille
@@ -215,6 +223,40 @@ internal fun CartdeckHardwareSeats(
     check(glowSources.size == 6 && glowSources.values.none { it.enabledByDefault })
 
     Box(modifier = modifier.fillMaxSize()) {
+        // P1-C2A side-rail masters sized to the real external screen margin,
+        // never stretched across the game aperture or touch controls.
+        if (video != null) {
+            val inset = with(density) { 4.dp.toPx() }
+            val railWidth = minOf(with(density) { 10.dp.toPx() }, video.left - inset, rootBounds.width - video.right - inset)
+            val railTop = video.top + with(density) { 7.dp.toPx() }
+            val railHeight = video.height - with(density) { 14.dp.toPx() }
+            if (railWidth > with(density) { 3.dp.toPx() } && railHeight > 0f) {
+                val railRects =
+                    listOf(
+                        Rect(inset, railTop, inset + railWidth, railTop + railHeight),
+                        Rect(rootBounds.width - inset - railWidth, railTop, rootBounds.width - inset, railTop + railHeight),
+                    )
+                railRects.forEach { rectangle ->
+                    if (
+                        controls.values.none {
+                            CartdeckHardwareGeometry.intersects(rectangle, CartdeckHardwareGeometry.expanded(it, clearance))
+                        }
+                    ) {
+                        Image(
+                            painter = painterResource(CartdeckHardwareResource.sideRail(edition)),
+                            contentDescription = null,
+                            modifier =
+                                Modifier
+                                    .offset { IntOffset(rectangle.left.roundToInt(), rectangle.top.roundToInt()) }
+                                    .width(with(density) { rectangle.width.toDp() })
+                                    .height(with(density) { rectangle.height.toDp() }),
+                            contentScale = ContentScale.FillBounds,
+                            colorFilter = tint,
+                        )
+                    }
+                }
+            }
+        }
         if (isDualScreen) {
             val utility = listOfNotNull(controls["ds-mic"], controls["ds-layout"], controls["menu"])
             if (utility.size >= 2) {
