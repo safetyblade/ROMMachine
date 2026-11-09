@@ -110,7 +110,8 @@ class ShelfLayoutTest {
             assertTrue(colorContrast(colors.focusOutline, colors.shelfBackboard) >= 3f)
             assertTrue(colorContrast(colors.focusOutline, colors.vacantCell) >= 3f)
         }
-        assertEquals("green", decode(encode(ShelfLayout(appearance = ShelfAppearance(edition = "green")))).appearance.edition)
+        val greenAppearance = ShelfLayout(appearance = ShelfAppearance(edition = "green"))
+        assertEquals("green", decode(encode(greenAppearance)).appearance.edition)
         val custom =
             shelfMaterials(
                 ShelfAppearance(
