@@ -3,9 +3,10 @@ package com.swordfish.touchinput.radial.controls
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
+import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
-import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
 import gg.padkit.PadKitScope
 import gg.padkit.controls.ControlButton
 import gg.padkit.ids.Id
@@ -20,10 +21,26 @@ fun LemuroidControlButton(
     icon: Int? = null,
 ) {
     val theme = LocalLemuroidPadTheme.current
+    val shape =
+        when {
+            label in setOf("L", "R", "L1", "R1", "L2", "R2") -> CartdeckButtonShape.SHOULDER
+            icon == R.drawable.button_start ||
+                icon == R.drawable.button_select ||
+                icon == R.drawable.button_menu -> CartdeckButtonShape.PILL
+            else -> CartdeckButtonShape.FACE
+        }
     ControlButton(
         modifier = modifier.padding(theme.padding),
         id = id,
-        foreground = { LemuroidButtonForeground(pressed = it, icon = icon, label = label) },
-        background = { LemuroidControlBackground() },
+        foreground = {
+            LemuroidButtonForeground(
+                pressed = it,
+                icon = icon,
+                label = label,
+                shape = shape,
+            )
+        },
+        // The former circular disc was decorative; PadKit retains the hit zone.
+        background = {},
     )
 }

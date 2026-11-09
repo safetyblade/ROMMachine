@@ -53,6 +53,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
+import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
@@ -60,6 +61,7 @@ import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchContro
 import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.touchinput.controller.R
+import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
@@ -90,9 +92,41 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val editionTokens = remember(appContext, edition) { appContext.resolveCartdeckEdition(edition) }
         val shellTokens =
             remember(editionTokens, appearance) {
+                fun role(
+                    key: String,
+                    fallback: Color,
+                ): Color = appearance.custom[key]?.let { Color(it.toInt()) } ?: fallback
+
                 editionTokens.copy(
-                    chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: editionTokens.chassis,
-                    accent = appearance.custom["accent"]?.let { Color(it.toInt()) } ?: editionTokens.accent,
+                    chassis = role("chassis", editionTokens.chassis),
+                    secondary = role("secondary", editionTokens.secondary),
+                    bezel = role("bezel", editionTokens.bezel),
+                    glass = role("glass", editionTokens.glass),
+                    button = role("button", editionTokens.button),
+                    accent = role("accent", editionTokens.accent),
+                    onChassis = role("onChassis", editionTokens.onChassis),
+                    onButton = role("onButton", editionTokens.onButton),
+                    focus = role("focus", editionTokens.focus),
+                )
+            }
+        val controllerTheme =
+            remember(shellTokens, appearance.highContrast) {
+                LemuroidPadTheme(
+                    CartdeckPadPalette(
+                        chassis = shellTokens.chassis,
+                        trim = shellTokens.secondary,
+                        bezel = shellTokens.bezel,
+                        button = shellTokens.button,
+                        accent = shellTokens.accent,
+                        onButton =
+                            readableColor(
+                                shellTokens.onButton,
+                                listOf(shellTokens.button, shellTokens.bezel),
+                                4.5f,
+                            ),
+                        focus = shellTokens.focus,
+                        highContrast = appearance.highContrast,
+                    ),
                 )
             }
 
@@ -204,7 +238,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         touchControlsVisibleState.value
 
                 if (isVisible) {
-                    CompositionLocalProvider(LocalLemuroidPadTheme provides LemuroidPadTheme()) {
+                    CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
                         if (!isLandscape) {
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_BOTTOM_CONTAINER),
