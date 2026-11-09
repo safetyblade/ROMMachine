@@ -39,7 +39,9 @@
     "preferredHeight": "Full-screen or expandable bottom sheet on phone rather than a 14-field AlertDialog",
     "selectedIndicator": "Accessible selected state not colour alone",
     "motion": "Quick crossfade/tint of preview only; reduced-motion immediate",
-    "typography": "No marketing slogans or long instructions; concise functional labels"
+    "typography": "No marketing slogans or long instructions; concise functional labels",
+    "swatchCatalogue": "material-swatches.json",
+    "allRoleSwatches": "Current applied value, three actual preset values for the same role, then curated thematic alternatives; minimum six visible options. Validate contrast and derive on-text instead of treating raw chips as accessibility-safe."
   },
   "roleGroups": {
     "cartridge": [
