@@ -4,19 +4,22 @@ import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import java.util.UUID
 
 object LibraryIndexScheduler {
     val CORE_UPDATE_WORK_ID: String = CoreUpdateWork::class.java.simpleName
     val LIBRARY_INDEX_WORK_ID: String = LibraryIndexWork::class.java.simpleName
 
-    fun scheduleLibrarySync(applicationContext: Context) {
+    fun scheduleLibrarySync(applicationContext: Context): UUID {
+        val work = OneTimeWorkRequestBuilder<LibraryIndexWork>().build()
         WorkManager.getInstance(applicationContext)
             .beginUniqueWork(
                 LIBRARY_INDEX_WORK_ID,
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
-                OneTimeWorkRequestBuilder<LibraryIndexWork>().build(),
+                work,
             )
             .enqueue()
+        return work.id
     }
 
     fun scheduleCoreUpdate(applicationContext: Context) {
