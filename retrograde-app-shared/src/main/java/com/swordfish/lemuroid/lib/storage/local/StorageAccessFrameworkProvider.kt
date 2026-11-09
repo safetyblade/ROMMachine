@@ -55,8 +55,11 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         flow {
             // An inaccessible or invalid SAF tree is NOT an empty ROM folder.
             // Preserve the prior library until permissions and enumeration recover.
-            val rootDocumentId = DocumentsContract.getTreeDocumentId(rootUri)
-            check(!rootDocumentId.isNullOrBlank()) { "Cannot read the selected ROM folder" }
+            val rootDocumentId =
+                checkNotNull(DocumentsContract.getTreeDocumentId(rootUri)) {
+                    "Cannot read the selected ROM folder"
+                }
+            check(rootDocumentId.isNotBlank()) { "Cannot read the selected ROM folder" }
             val directoryDocumentIds = mutableListOf(rootDocumentId)
 
             while (directoryDocumentIds.isNotEmpty()) {
