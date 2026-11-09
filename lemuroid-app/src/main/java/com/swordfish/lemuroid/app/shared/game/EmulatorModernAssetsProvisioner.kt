@@ -16,8 +16,7 @@ object EmulatorModernAssetsProvisioner {
     const val PSP_UPSTREAM_REVISION = "fa50bb1976065c4f8b1b47af227d367fe9771555"
     const val PSP_ASSET_PATH = "cartdeck/ppsspp-modern-assets.zip"
 
-    fun installedAssetDirectory(context: Context): File =
-        File(context.filesDir, "system-engines/ppsspp_modern/PPSSPP")
+    fun installedAssetDirectory(context: Context): File = File(context.filesDir, "system-engines/ppsspp_modern/PPSSPP")
 
     fun isInstalled(context: Context): Boolean {
         val directory = installedAssetDirectory(context)
