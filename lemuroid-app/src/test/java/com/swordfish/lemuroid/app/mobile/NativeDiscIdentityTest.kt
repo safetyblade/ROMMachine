@@ -18,8 +18,8 @@ class NativeDiscIdentityTest {
         header[0x1d] = 0x33
         header[0x1e] = 0x9f.toByte()
         header[0x1f] = 0x3d
-        assertEquals(probe.Platform.GAMECUBE, probe.probe("game.gcm", header).platform)
-        assertEquals(probe.Platform.GAMECUBE, probe.probe("game.iso", header).platform)
+        assertEquals(NextGenDiscIdentity.Platform.GAMECUBE, probe.probe("game.gcm", header).platform)
+        assertEquals(NextGenDiscIdentity.Platform.GAMECUBE, probe.probe("game.iso", header).platform)
         assertNull(probe.probe("game.chd", header).platform)
         assertNull(probe.probe("game.rvz", header).platform)
         assertNull(probe.probe("game.bin", header).platform)
@@ -32,7 +32,7 @@ class NativeDiscIdentityTest {
         header[0x19] = 0x1c
         header[0x1a] = 0x9e.toByte()
         header[0x1b] = 0xa3.toByte()
-        assertEquals(probe.Platform.WII, probe.probe("wii.iso", header).platform)
+        assertEquals(NextGenDiscIdentity.Platform.WII, probe.probe("wii.iso", header).platform)
     }
 
     @Test
@@ -49,7 +49,7 @@ class NativeDiscIdentityTest {
                 gdiText = descriptor,
                 availableTrackNames = setOf("track 01.bin", "track02.bin"),
             )
-        assertEquals(probe.Platform.DREAMCAST, detected.platform)
+        assertEquals(NextGenDiscIdentity.Platform.DREAMCAST, detected.platform)
         assertEquals(listOf("track 01.bin", "track02.bin"), detected.companionTracks)
         assertNull(
             probe.probe(
@@ -75,7 +75,7 @@ class NativeDiscIdentityTest {
             val ps2 = makeIso("BOOT2 = cdrom0:\\SLUS_123.45;1\r\n")
             Files.write(file, ps2)
             FileChannel.open(file, StandardOpenOption.READ).use {
-                assertEquals(probe.Platform.PS2, probe.probePs2Iso("disc.iso", it).platform)
+                assertEquals(NextGenDiscIdentity.Platform.PS2, probe.probePs2Iso("disc.iso", it).platform)
             }
             val ps1 = makeIso("BOOT = cdrom:\\SLUS_123.45;1\r\n")
             Files.write(file, ps1)
