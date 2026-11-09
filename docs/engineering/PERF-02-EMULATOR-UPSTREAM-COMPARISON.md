@@ -47,6 +47,13 @@
 5. **NDS state and viewport preservation.** `melonds` uses `statesVersion=2`, threaded renderer and touchscreen defaults; replacing it with the newer melonDS DS lineage without explicit SRAM/state migration could lose progress. Current DS viewport is owner-accepted; keep its geometry. Ticket #60.
 6. **3DS is Citra-only in current registry.** `SystemCoreConfig` hardcodes `statesSupported=false`, arm64-only and several rendering defaults. Azahar Android maturity does not prove a compatible LibretroDroid core or save-state port; perform a separate in-process Android host proof. Ticket #60.
 
+
+### LibretroDroid hardware-context source comparison (confirmed)
+
+Inspected [Swordfish90/LibretroDroid `environment.cpp`](https://github.com/Swordfish90/LibretroDroid/blob/master/libretrodroid/src/main/cpp/environment.cpp) and `libretrodroid.cpp` on 2026-11-10. `RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER` advertises `RETRO_HW_CONTEXT_OPENGLES3` unconditionally. `environment_handle_set_hw_render` stores depth/stencil/reset callbacks and returns true without validating the requested `context_type`. `LibretroDroid::create` rejects accelerated rendering only when the detected GLES version is below 3. `GLRetroView.kt` is a `GLSurfaceView` host and not a Vulkan host. This is an **architectural limitation**, not device evidence of specific game failure.
+
+**Consequence:** An ARMSX2 Vulkan context must not be treated as supported just because a core successfully loads or the frontend returned true to `SET_HW_RENDER`. Flycast/Dolphin/Play! must log the actual requested hardware context and present visible moving frames/audio; otherwise introduce a separate in-process Android EGL/GLES/Vulkan adapter specific to that engine. For existing N64/PSP/3DS cores inspect requested GLES contexts and buffer lifecycle before swapping renderers. Reference library commit observed at inspection should be pinned when a binary-level compatibility benchmark is run; no CARTDECK LibretroDroid dependency has been changed by this audit.
+
 ### Plausible improvements — not yet executable proof
 
 - **PSP high:** compare exact libretro PPSSPP build/revision with the official latest upstream `[d6c4cc55a173]`; isolate texture backend, JIT and decoded game stage; evaluate native PPSSPP adapter only after measured Libretro gap. Preserve per-engine user saves. Owner's independent PPSSPP failures make bad media/compatibility a possible diagnosis, but there is no evidence to accuse any disc.
