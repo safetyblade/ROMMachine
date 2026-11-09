@@ -36,7 +36,10 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
         return true
     }
 
-    fun isUpdatedRequested(systemId: SystemID, gameId: Int): Boolean {
+    fun isUpdatedRequested(
+        systemId: SystemID,
+        gameId: Int,
+    ): Boolean {
         val perGameKey = gamePreferenceKey(systemId, gameId)
         val requested =
             if (preferences.contains(perGameKey)) {
@@ -47,21 +50,32 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
         return requested && available(systemId)
     }
 
-    fun isUpdatedSelectedForGame(systemId: SystemID, gameId: Int): Boolean =
-        isUpdatedRequested(systemId, gameId)
+    fun isUpdatedSelectedForGame(
+        systemId: SystemID,
+        gameId: Int,
+    ): Boolean = isUpdatedRequested(systemId, gameId)
 
     fun isSystemUpdatedSelected(systemId: SystemID): Boolean =
         preferences.getBoolean(systemPreferenceKey(systemId), false) && available(systemId)
 
-    fun isGameOverrideSet(systemId: SystemID, gameId: Int): Boolean =
-        preferences.contains(gamePreferenceKey(systemId, gameId))
+    fun isGameOverrideSet(
+        systemId: SystemID,
+        gameId: Int,
+    ): Boolean = preferences.contains(gamePreferenceKey(systemId, gameId))
 
-    fun setSystemEngine(systemId: SystemID, updated: Boolean): Boolean {
+    fun setSystemEngine(
+        systemId: SystemID,
+        updated: Boolean,
+    ): Boolean {
         if (candidateCore(systemId) == null || (updated && !available(systemId))) return false
         return preferences.edit().putBoolean(systemPreferenceKey(systemId), updated).commit()
     }
 
-    fun setGameEngine(systemId: SystemID, gameId: Int, updated: Boolean): Boolean {
+    fun setGameEngine(
+        systemId: SystemID,
+        gameId: Int,
+        updated: Boolean,
+    ): Boolean {
         if (candidateCore(systemId) == null || (updated && !available(systemId))) return false
         return preferences.edit().putBoolean(gamePreferenceKey(systemId, gameId), updated).commit()
     }
@@ -69,8 +83,10 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
     fun restoreSystemDefault(systemId: SystemID): Boolean =
         preferences.edit().remove(systemPreferenceKey(systemId)).commit()
 
-    fun restoreGameDefault(systemId: SystemID, gameId: Int): Boolean =
-        preferences.edit().remove(gamePreferenceKey(systemId, gameId)).commit()
+    fun restoreGameDefault(
+        systemId: SystemID,
+        gameId: Int,
+    ): Boolean = preferences.edit().remove(gamePreferenceKey(systemId, gameId)).commit()
 
     /**
      * Called only for an explicit native core startup/load failure, not for
@@ -86,10 +102,20 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
             .commit()
     }
 
-    fun lastFailedCandidate(systemId: SystemID, gameId: Int): String? =
-        preferences.getString(failureKey(systemId, gameId), null)
+    fun lastFailedCandidate(
+        systemId: SystemID,
+        gameId: Int,
+    ): String? = preferences.getString(failureKey(systemId, gameId), null)
 
     private fun systemPreferenceKey(systemId: SystemID) = "system_${systemId.dbname}"
-    private fun gamePreferenceKey(systemId: SystemID, gameId: Int) = "game_${systemId.dbname}_$gameId"
-    private fun failureKey(systemId: SystemID, gameId: Int) = "failure_${systemId.dbname}_$gameId"
+
+    private fun gamePreferenceKey(
+        systemId: SystemID,
+        gameId: Int,
+    ) = "game_${systemId.dbname}_$gameId"
+
+    private fun failureKey(
+        systemId: SystemID,
+        gameId: Int,
+    ) = "failure_${systemId.dbname}_$gameId"
 }
