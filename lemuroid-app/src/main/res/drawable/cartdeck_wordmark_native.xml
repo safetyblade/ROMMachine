@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="324dp" android:height="52dp"
+    android:viewportWidth="324" android:viewportHeight="52">
+    <!-- Exact path data and group offsets from cartdeck-v03/brand/cartdeck-wordmark-master.svg. -->
+    <group android:translateX="7"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M26,8H10Q4,8 4,14V36Q4,42 10,42H26"/></group>
+    <group android:translateX="46"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M4,42V16L10,8H22L28,16V42M4,29H28"/></group>
+    <group android:translateX="85"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M4,42V8H21Q28,8 28,16V21Q28,27 21,27H4M17,27L29,42"/></group>
+    <group android:translateX="124"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M2,8H30M16,8V42"/></group>
+    <group android:translateX="163"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M4,8V42H17Q28,42 28,31V19Q28,8 17,8Z"/></group>
+    <group android:translateX="202"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M28,8H4V42H28M4,25H25"/></group>
+    <group android:translateX="241"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M26,8H10Q4,8 4,14V36Q4,42 10,42H26"/></group>
+    <group android:translateX="280"><path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="4.2" android:strokeLineJoin="bevel" android:strokeLineCap="square" android:pathData="M4,8V42M28,8L4,27M15,20L29,42"/></group>
+</vector>
