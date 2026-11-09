@@ -1,10 +1,13 @@
 package com.swordfish.touchinput.radial.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.common.compose.textUnit
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 
@@ -26,10 +30,19 @@ fun LemuroidButtonForeground(
     val theme = LocalLemuroidPadTheme.current
 
     GlassSurface(
-        modifier = modifier.fillMaxSize().padding(theme.foregroundPadding),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(theme.foregroundPadding)
+                .offset(y = if (pressed.value) 2.dp else 0.dp)
+                .border(
+                    width = if (pressed.value) 2.dp else 1.dp,
+                    color = if (pressed.value) theme.accent else theme.trim,
+                    shape = CircleShape,
+                ),
         fillColor = theme.foregroundFill(pressed.value),
         shadowColor = theme.level3Shadow,
-        shadowWidth = theme.level3ShadowWidth,
+        shadowWidth = if (pressed.value) 1.dp else theme.level3ShadowWidth,
         content = {
             icon()
             label()
