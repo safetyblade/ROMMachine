@@ -44,7 +44,6 @@ fun canonicalShelfMaterials(edition: String): ShelfMaterials =
             focusOutline = Color(0xFFFFE5F1),
             interactionAccent = Color(0xFFFFD5E7),
         )
-    }
         "green" -> ShelfMaterials(
             roomBackdrop = Color(0xFF0D1914),
             shelfBackboard = Color(0xFF163127),
