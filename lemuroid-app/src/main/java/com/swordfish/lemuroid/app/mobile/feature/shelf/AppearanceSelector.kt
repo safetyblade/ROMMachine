@@ -311,7 +311,11 @@ fun ShelfAppearanceEditor(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Box(Modifier.size(44.dp).background(color, RoundedCornerShape(8.dp))
-                                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)))
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.outline,
+                                                    RoundedCornerShape(8.dp),
+                                                ),
                                             Column {
                                                 Text(label, style = MaterialTheme.typography.bodyMedium)
                                                 Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
