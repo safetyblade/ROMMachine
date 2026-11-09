@@ -52,6 +52,7 @@ fun SettingsScreen(
             onChangeFolder = { viewModel.changeLocalStorageFolder() },
             indexingInProgress = indexingInProgress,
             scanInProgress = scanInProgress,
+            onSupportedGames = { navController.navigateToRoute(MainRoute.SETTINGS_SUPPORTED_GAMES) },
         )
         GeneralSettings()
         InputSettings(navController = navController)
@@ -198,6 +199,7 @@ private fun RomsSettings(
     onChangeFolder: () -> Unit,
     indexingInProgress: Boolean,
     scanInProgress: Boolean,
+    onSupportedGames: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -217,6 +219,11 @@ private fun RomsSettings(
             subtitle = { Text(text = currentDirectoryName) },
             onClick = { onChangeFolder() },
             enabled = !indexingInProgress,
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.cartdeck_formats_title)) },
+            subtitle = { Text(text = stringResource(id = R.string.cartdeck_formats_settings_description)) },
+            onClick = onSupportedGames,
         )
         if (scanInProgress) {
             LemuroidSettingsMenuLink(

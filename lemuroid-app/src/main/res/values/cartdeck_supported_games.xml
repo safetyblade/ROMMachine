@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cartdeck_formats_title">Supported Games &amp; File Types</string>
+    <string name="cartdeck_formats_settings_description">See which consoles and game files CARTDECK recognises</string>
+    <string name="cartdeck_formats_intro">Find your console below to see which game files CARTDECK can recognise. Games are not included, and some may need extra setup.</string>
+    <string name="cartdeck_formats_choose_folder">Choose game folder</string>
+    <string name="cartdeck_formats_search">Search consoles or file types</string>
+    <string name="cartdeck_formats_count">%1$d of %2$d systems</string>
+    <string name="cartdeck_formats_files">Game files: %1$s</string>
+    <string name="cartdeck_formats_no_results">No matches. Try Game Boy, PS1 or a file type like .chd.</string>
+    <string name="cartdeck_formats_status_checking">Checking the installed game engine…</string>
+    <string name="cartdeck_formats_status_device">This game engine is not available for this device type.</string>
+    <string name="cartdeck_formats_status_engine">Game engine not installed on this device yet.</string>
+    <string name="cartdeck_formats_status_firmware">Additional user-supplied firmware is needed to play.</string>
+    <string name="cartdeck_formats_status_present">Game engine installed. Compatibility depends on the game.</string>
+    <string name="cartdeck_formats_engine_details">Game engine: %1$s</string>
+    <string name="cartdeck_formats_note_psx">For .cue games, keep the referenced disc files together. An .m3u file can list multiple discs. Optional compatible PlayStation firmware can improve game compatibility.</string>
+    <string name="cartdeck_formats_note_segacd">Sega CD games need the matching region firmware, supplied from your own lawful console files. Keep .cue games with their referenced disc files.</string>
+    <string name="cartdeck_formats_note_lynx">Atari Lynx requires the lynxboot.img firmware file from a lawful source.</string>
+    <string name="cartdeck_formats_note_nds">Nintendo DS uses two screens and touch controls. Firmware needs depend on the selected game engine.</string>
+    <string name="cartdeck_formats_note_arcade">Arcade .zip files are compatible game sets, not ordinary single-game ZIP archives. They must match the arcade engine version.</string>
+    <string name="cartdeck_formats_note_dos">DOS games use .dosz archives. Controls and compatibility vary between games.</string>
+    <string name="cartdeck_formats_note_bin">The .bin ending is shared by different systems. Keep game files in appropriately named folders so CARTDECK can identify them.</string>
+</resources>

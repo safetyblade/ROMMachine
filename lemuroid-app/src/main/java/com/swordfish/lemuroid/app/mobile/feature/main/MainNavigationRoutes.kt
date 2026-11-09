@@ -67,6 +67,12 @@ enum class MainRoute(
         titleId = R.string.title_settings,
         showBottomNavigation = false,
     ),
+    SETTINGS_SUPPORTED_GAMES(
+        route = "settings/supported-games",
+        titleId = R.string.cartdeck_formats_title,
+        parent = SETTINGS,
+        showBottomNavigation = false,
+    ),
     SETTINGS_ADVANCED(
         route = "settings/advanced",
         titleId = R.string.settings_title_advanced_settings,
