@@ -106,10 +106,10 @@
   "editionSource": "../cartdeck-v03/editions/",
   "approvedEditions": [
     "original",
-    "pink"
+    "pink",
+    "green"
   ],
   "nonShippingDemonstrations": [
-    "green",
     "mono"
   ],
   "tokenIds": [
