@@ -1,0 +1,67 @@
+name: P1-C1 one-shot master reconciliation
+on:
+  push:
+    branches:
+      - feature/cartdeck-p1c1-appearance-v2
+    paths:
+      - '.github/workflows/p1-c1-merge-master-once.yml'
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cartdeck-p1c1-appearance-v2
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge latest master with whitelisted conflict resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff origin/master
+          result=$?
+          set -e
+          if [ "$result" -ne 0 ]; then
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            if [ "${#conflicts[@]}" -eq 0 ]; then
+              echo "Merge failed for a reason other than file conflicts"
+              exit 1
+            fi
+            printf 'Conflicts: %s\n' "${conflicts[@]}"
+            for file in "${conflicts[@]}"; do
+              case "$file" in
+                lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfEditors.kt)
+                  # P1-C1 removes the obsolete hex-field editor; keep new editor path.
+                  git checkout --ours -- "$file"
+                  ;;
+                lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfMaterials.kt|lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/shared/compose/ui/CartdeckEditionTokens.kt|scripts/ci/test_cartdeck_native_assets.py|scripts/generate_cartdeck_native_assets.py)
+                  # Master already integrates the complete Green semantic assets.
+                  git checkout --theirs -- "$file"
+                  ;;
+                *)
+                  echo "Unexpected overlap: $file; refusing automatic resolution"
+                  exit 1
+                  ;;
+              esac
+              git add -- "$file"
+            done
+          fi
+          if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+            echo "Unresolved conflicts remain"
+            exit 1
+          fi
+          # Temporary actions must never become part of the product branch.
+          git rm --ignore-unmatch .github/workflows/p1-c1-merge-master-once.yml .github/workflows/p1-c1-format-once.yml
+          git diff --cached --check
+          python3 scripts/ci/test_cartdeck_native_assets.py
+          python3 design/cartdeck-v05/test_cartridge_family.py
+          git status --short
+          git commit -m "merge(P1-C1): reconcile native appearance selector with latest master"
+          git push origin HEAD:feature/cartdeck-p1c1-appearance-v2
