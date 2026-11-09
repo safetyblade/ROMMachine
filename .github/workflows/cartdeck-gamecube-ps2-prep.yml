@@ -1,0 +1,75 @@
+name: CARTDECK GameCube + PS2 integration readiness (source only)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cartdeck-gamecube-ps2-prep.yml"
+      - "spikes/nextgen/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safe-media:
+    name: Shared-disc identification regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test conservative GameCube and PS2 media detection
+        run: python3 -m unittest discover -s spikes/nextgen -p 'test_*.py' -v
+
+  gamecube-upstream:
+    name: Pinned Dolphin Android libretro source check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check maintained Dolphin Libretro Android ARM64 build recipe
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA=32c61f9d0e933331bb7087ba57e96883241b4960
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/libretro/dolphin/$SHA/.github/workflows/build-android-libretro.yml" \
+            -o dolphin-android.yml
+          grep -Fq -- '-DLIBRETRO=ON' dolphin-android.yml
+          grep -Fq -- '-DANDROID_ABI=arm64-v8a' dolphin-android.yml
+          grep -Fq -- 'android.toolchain.cmake' dolphin-android.yml
+          {
+            echo "Pinned libretro/dolphin: $SHA"
+            echo "Android ARM64/libretro upstream workflow: SOURCE CHECK PASS"
+            echo "No Dolphin core was built or launched by this check."
+            echo "GC LibretroDroid EGL/Vulkan, save, license and 16KiB Android runtime still unverified."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  ps2-upstream:
+    name: Pinned ARMSX2 and Play! source capability check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check two distinct PlayStation 2 Android strategies
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARMSX2_SHA=fc4ab0b8b4f386617773cf1916e9bc6911dba59b
+          PLAY_SHA=1f27232772e484bfb79364b751b84f41f4c87481
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/ARMSX2/ARMSX2/$ARMSX2_SHA/armsx2_libretro.info" \
+            -o armsx2_libretro.info
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/jpd002/Play-/$PLAY_SHA/build_retro/android_build.sh" \
+            -o play-android-build.sh
+          grep -Fq 'required_hw_api = "Vulkan >= 1.1"' armsx2_libretro.info
+          grep -Fq 'needs_fullpath = "true"' armsx2_libretro.info
+          grep -Fq 'libretro_saves = "false"' armsx2_libretro.info
+          grep -Fq 'arm64-v8a' play-android-build.sh
+          grep -Fq -- '-DBUILD_LIBRETRO_CORE=yes' play-android-build.sh
+          {
+            echo "ARMSX2 pinned source: $ARMSX2_SHA"
+            echo "Play! pinned source: $PLAY_SHA"
+            echo "PS2 Vulkan and OpenGL alternative build recipe: SOURCE CHECK PASS"
+            echo "ARMSX2 Android libretro build is NOT established by the Linux ARM64 libretro recipe."
+            echo "No PS2 libretro core was built or launched by this check."
+            echo "No PS2 BIOS, ROM, disc image or binary was downloaded."
+          } >> "$GITHUB_STEP_SUMMARY"
