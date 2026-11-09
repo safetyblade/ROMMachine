@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 126" role="img" aria-label="CARTDECK controls/ds-aux-strip.svg"><title>CARTDECK controls/ds-aux-strip.svg</title>
+<path d="M17 33H376L387 46V112L376 123H17L6 112V46Z" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="4"/>
+<rect x="271" y="4" width="88" height="30" rx="10" data-cd-fill="chassis" fill="#303B49" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="2" data-cd-brand-only="true"/>
+<g id="cd-mic-seat"><circle cx="62" cy="80" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="2.5"/></g>
+<g id="cd-screen-layout-seat"><circle cx="166" cy="80" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="2.5"/></g>
+<g id="cd-menu-seat"><circle cx="318" cy="80" r="30" data-cd-fill="bezel" fill="#0D1721" data-cd-stroke="chassis" stroke="#303B49" stroke-width="2.5"/></g>
+<path d="M27 43H260 M366 43H375" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-width="2" stroke-opacity=".22"/>
+</svg>

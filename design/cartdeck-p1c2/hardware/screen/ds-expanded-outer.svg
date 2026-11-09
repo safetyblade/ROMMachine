@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 630" role="img" aria-label="CARTDECK screen/ds-expanded-outer.svg"><title>CARTDECK screen/ds-expanded-outer.svg</title>
+<path d="M27 0H393L420 27V603L393 630H27L0 603V27Z M14 14H406V616H14Z" data-cd-fill="chassis" fill="#303B49" data-cd-stroke="secondary" stroke="#1C2430" fill-rule="evenodd" stroke-width="3"/>
+<rect x="11" y="11" width="398" height="608" rx="9" fill="none" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="5"/>
+</svg>

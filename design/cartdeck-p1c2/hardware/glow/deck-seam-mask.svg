@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 40" role="img" aria-label="CARTDECK glow/deck-seam-mask.svg"><title>CARTDECK glow/deck-seam-mask.svg</title>
+<defs><mask id="cd-zone" maskUnits="userSpaceOnUse" x="0" y="0" width="393" height="40"><rect width="393" height="40" fill="#000"/><path d="M24 22H158 M235 22H369" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/></mask></defs><path d="M24 22H158 M235 22H369" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round" mask="url(#cd-zone)" data-cd-glow-mask="deck-seam"/>
+</svg>

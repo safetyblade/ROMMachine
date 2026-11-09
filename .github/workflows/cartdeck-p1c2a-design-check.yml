@@ -1,0 +1,20 @@
+name: CARTDECK P1-C2A Hardware Source Validation
+on:
+  pull_request:
+    paths:
+      - 'design/cartdeck-p1c2/hardware/**'
+      - '.github/workflows/cartdeck-p1c2a-design-check.yml'
+  push:
+    paths:
+      - 'design/cartdeck-p1c2/hardware/**'
+      - '.github/workflows/cartdeck-p1c2a-design-check.yml'
+jobs:
+  art-and-placement-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate editable masters, lighting masks and layout geometry
+        run: python -m unittest discover design/cartdeck-p1c2/hardware -p 'test_hardware_assets.py' -v

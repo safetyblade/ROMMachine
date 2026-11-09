@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="CARTDECK controls/ds-screen-layout-seat.svg"><title>CARTDECK controls/ds-screen-layout-seat.svg</title>
+<rect x="6" y="6" width="68" height="68" rx="17" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="bezel" stroke="#0D1721" stroke-width="3"/>
+<rect x="18" y="20" width="44" height="17" rx="3" fill="none" data-cd-stroke="onButton" stroke="#EDF6F2" stroke-width="2.5"/>
+<rect x="18" y="43" width="44" height="17" rx="3" fill="none" data-cd-stroke="onButton" stroke="#EDF6F2" stroke-width="2.5"/>
+</svg>

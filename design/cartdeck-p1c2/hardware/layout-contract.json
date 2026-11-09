@@ -1,0 +1,189 @@
+{
+  "schema": "cartdeck.hardwarePlacement/1.0",
+  "referenceWidthPx": 393,
+  "referenceHeightPx": 852,
+  "referenceIsIllustrative": true,
+  "rules": "All x/y/w/h numbers in preview are illustrative at reference size only; Android must measure from existing ConstraintLayout and PadKit.",
+  "systems": {
+    "STANDARD_4_3": {
+      "gameViewportRef": [
+        22,
+        84,
+        349,
+        261.75
+      ],
+      "bezelRef": [
+        15,
+        77,
+        363,
+        275.75
+      ],
+      "deckRef": [
+        10,
+        433,
+        373,
+        390
+      ],
+      "leftGroupRef": [
+        20,
+        510,
+        170,
+        180
+      ],
+      "rightGroupRef": [
+        204,
+        505,
+        169,
+        180
+      ],
+      "shoulderRef": [
+        [
+          22,
+          460,
+          86,
+          47
+        ],
+        [
+          285,
+          460,
+          86,
+          47
+        ]
+      ],
+      "utilityRef": [
+        130,
+        704,
+        132,
+        47
+      ],
+      "menuRef": [
+        317,
+        745,
+        52,
+        52
+      ],
+      "brandSeatRef": [
+        94,
+        28,
+        205,
+        39
+      ]
+    },
+    "TWO_FACE": {
+      "inherits": "STANDARD_4_3",
+      "leftSeat": "controls/dpad-seat.svg",
+      "rightSeat": "controls/ab-seat.svg"
+    },
+    "FOUR_FACE": {
+      "inherits": "STANDARD_4_3",
+      "leftSeat": "controls/dpad-seat.svg",
+      "rightSeat": "controls/abxy-seat.svg"
+    },
+    "PS1_DUAL_ANALOG": {
+      "inherits": "FOUR_FACE",
+      "analogSeatsRef": [
+        [
+          66,
+          698,
+          88,
+          88
+        ],
+        [
+          239,
+          698,
+          88,
+          88
+        ]
+      ],
+      "shoulderSeatsRef": [
+        [
+          22,
+          458,
+          86,
+          43
+        ],
+        [
+          285,
+          458,
+          86,
+          43
+        ]
+      ],
+      "policy": "When touch controls conflict, reflow within measured actual PadKit positions; don't overlap game or hide required keys"
+    },
+    "NDS": {
+      "viewportRef": [
+        18,
+        18,
+        357,
+        478
+      ],
+      "bezelRef": [
+        11,
+        11,
+        371,
+        492
+      ],
+      "deckRef": [
+        8,
+        508,
+        377,
+        334
+      ],
+      "primaryControlsRef": [
+        [
+          20,
+          577,
+          165,
+          173
+        ],
+        [
+          208,
+          577,
+          165,
+          173
+        ]
+      ],
+      "auxStripRef": [
+        16,
+        723,
+        361,
+        116
+      ],
+      "microphoneRef": [
+        48,
+        766,
+        40,
+        40
+      ],
+      "screenFunctionRef": [
+        148,
+        766,
+        40,
+        40
+      ],
+      "menuRef": [
+        304,
+        766,
+        40,
+        40
+      ],
+      "cslotDecorativeRef": [
+        267,
+        725,
+        79,
+        27
+      ],
+      "upperUtilityRef": [
+        18,
+        530,
+        357,
+        48
+      ],
+      "note": "DS placement refs are conceptual NOT measured from owner image. Source PadKit controls need live measurement/approval before implementation."
+    }
+  },
+  "overlapRule": "No glow/decor/brand seam intersects active video or control/text rectangles, padding 4dp inputs and 8dp branding",
+  "geometryUnchangedAcrossEdtions": true,
+  "editability": "Visual seats keyed by control group name, no hard-coded number of inputs or reliance on individual system emulators"
+}
