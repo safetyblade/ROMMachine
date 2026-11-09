@@ -5,43 +5,28 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.shelf.SectionEditor
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearanceEditor
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfBoard
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfToolbar
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
@@ -56,6 +41,8 @@ fun HomeScreen(
     onGameLongClick: (Game) -> Unit,
     onOpenCoreSelection: () -> Unit,
     shelfViewModel: ShelfViewModel,
+    arrange: Boolean = false,
+    onSectionEdit: (ShelfSection) -> Unit = {},
 ) {
     val context = LocalContext.current
     val applicationContext = context.applicationContext
@@ -80,10 +67,6 @@ fun HomeScreen(
 
     val state = viewModel.getViewStates().collectAsState(HomeViewModel.UIState())
     val shelf = shelfViewModel.state.collectAsState().value
-    var arrange by rememberSaveable { mutableStateOf(false) }
-    var sectionEditor by remember { mutableStateOf<ShelfSection?>(null) }
-    var newSection by remember { mutableStateOf(false) }
-    var appearanceEditor by remember { mutableStateOf(false) }
     LaunchedEffect(state.value.libraryGames) { shelfViewModel.reconcile(state.value.libraryGames) }
     if (shelf.layout == null) {
         Column(modifier) {
@@ -115,34 +98,14 @@ fun HomeScreen(
         shelfLayout = shelf.layout,
         arrange = arrange,
         onEdit = { shelfViewModel.edit(transform = it) },
-        onSectionEdit = { sectionEditor = it },
+        onSectionEdit = onSectionEdit,
         tools = {
             shelf.error?.let {
                 Text(it)
                 TextButton(onClick = shelfViewModel::reload) { Text("Retry saved shelf") }
             }
-            ShelfToolbar(
-                arrange,
-                shelf.layout != null && shelf.error == null,
-                shelf.canUndo,
-                onArrange = { arrange = !arrange },
-                onSection = { newSection = true },
-                onAppearance = { appearanceEditor = true },
-                onUndo = shelfViewModel::undo,
-            )
         },
     )
-    if (newSection || sectionEditor != null) {
-        SectionEditor(sectionEditor, {
-            newSection = false
-            sectionEditor = null
-        }) { shelfViewModel.edit(transform = it) }
-    }
-    if (appearanceEditor) {
-        ShelfAppearanceEditor(shelf.layout?.appearance ?: ShelfAppearance(), {
-            appearanceEditor = false
-        }) { appearance -> shelfViewModel.edit { it.copy(appearance = appearance) } }
-    }
 }
 
 @Composable
@@ -173,17 +136,6 @@ internal fun HomeScreen(
         )
     ShelfBoard(layout, games, onGameClicked, onGameLongClick, modifier, arrange, onEdit, onSectionEdit, header = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Image(painterResource(R.drawable.cartdeck_original_cslot_master), null, Modifier.size(36.dp))
-                Text(
-                    text = stringResource(R.string.cartdeck_library),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-            }
             if (state.showNoGamesCard) {
                 Button(
                     onClick = onSetDirectoryClicked,
