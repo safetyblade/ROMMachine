@@ -7,10 +7,8 @@ import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Response
 import timber.log.Timber
 import java.io.File
-import java.util.zip.ZipInputStream
 
 class PPSSPPAssetsManager : CoreID.AssetsManager {
     override suspend fun clearAssets(directoriesManager: DirectoriesManager) {
@@ -22,47 +20,28 @@ class PPSSPPAssetsManager : CoreID.AssetsManager {
         directoriesManager: DirectoriesManager,
         sharedPreferences: SharedPreferences,
     ) {
-        if (!updatedRequested(directoriesManager, sharedPreferences)) {
-            return
+        val destination = getAssetsDirectory(directoriesManager)
+        withContext(Dispatchers.IO) {
+            PPSSPPAssetArchiveInstaller.recoverInterruptedInstallation(destination)
         }
+        if (!updatedRequested(directoriesManager, sharedPreferences)) return
 
         try {
             val response = coreUpdaterApi.downloadZip(PPSSPP_ASSETS_URL.toString())
-            handleSuccess(directoriesManager, response, sharedPreferences)
-        } catch (e: Throwable) {
-            getAssetsDirectory(directoriesManager).deleteRecursively()
-        }
-    }
-
-    private suspend fun handleSuccess(
-        directoriesManager: DirectoriesManager,
-        response: Response<ZipInputStream>,
-        sharedPreferences: SharedPreferences,
-    ) {
-        val coreAssetsDirectory = getAssetsDirectory(directoriesManager)
-        coreAssetsDirectory.deleteRecursively()
-        coreAssetsDirectory.mkdirs()
-
-        response.body()?.use { zipInputStream ->
-            while (true) {
-                val entry = zipInputStream.nextEntry ?: break
-                Timber.d("Writing file: ${entry.name}")
-                val destFile =
-                    File(
-                        coreAssetsDirectory,
-                        entry.name,
-                    )
-                if (entry.isDirectory) {
-                    destFile.mkdirs()
-                } else {
-                    zipInputStream.copyTo(destFile.outputStream())
-                }
+            check(response.isSuccessful) { "PPSSPP assets download failed: HTTP ${response.code()}" }
+            val archive = response.body() ?: error("PPSSPP assets download contained no archive")
+            withContext(Dispatchers.IO) {
+                archive.use { PPSSPPAssetArchiveInstaller.install(it, destination) }
             }
+            check(
+                sharedPreferences.edit()
+                    .putString(PPSSPP_ASSETS_VERSION_KEY, PPSSPP_ASSETS_VERSION)
+                    .commit(),
+            ) { "Unable to record installed PPSSPP assets version" }
+        } catch (error: Exception) {
+            // Never delete a working installation because a download or update failed.
+            Timber.e(error, "Unable to update PPSSPP support assets; previous version retained")
         }
-
-        sharedPreferences.edit()
-            .putString(PPSSPP_ASSETS_VERSION_KEY, PPSSPP_ASSETS_VERSION)
-            .commit()
     }
 
     private suspend fun updatedRequested(
