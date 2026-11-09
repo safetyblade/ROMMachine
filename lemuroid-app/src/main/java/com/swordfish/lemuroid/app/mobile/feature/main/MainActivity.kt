@@ -56,6 +56,7 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevi
 import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevicesSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
+import com.swordfish.lemuroid.app.mobile.feature.settings.supported.SupportedGamesScreen
 import com.swordfish.lemuroid.app.mobile.feature.shelf.SectionEditor
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearanceEditor
@@ -397,6 +398,12 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                         ),
                                 ),
                             navController = navController,
+                        )
+                    }
+                    composable(MainRoute.SETTINGS_SUPPORTED_GAMES) {
+                        SupportedGamesScreen(
+                            modifier = Modifier.padding(padding),
+                            onAddGames = { settingsInteractor.changeLocalStorageFolder() },
                         )
                     }
                     composable(MainRoute.SETTINGS_ADVANCED) {
