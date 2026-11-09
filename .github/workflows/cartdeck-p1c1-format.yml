@@ -1,5 +1,8 @@
 name: CARTDECK P1-C1 one-time Kotlin formatter
 on:
+  pull_request:
+    branches: [master]
+    paths: ['.github/workflows/cartdeck-p1c1-format.yml']
   push:
     branches: ['feature/cartdeck-p1c1-appearance-v2']
     paths: ['.github/workflows/cartdeck-p1c1-format.yml']
@@ -12,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: feature/cartdeck-p1c1-appearance-v2
           persist-credentials: true
       - uses: actions/setup-java@v4
         with:
