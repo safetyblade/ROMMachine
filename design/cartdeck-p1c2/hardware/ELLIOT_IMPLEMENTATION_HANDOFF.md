@@ -53,3 +53,6 @@ Use `layout-contract.json` exemplar 393×852 placements only to review intended 
 ## Acceptance
 **Design-only** asset tests: 48 SVG masters parse, manifest references valid, exactly six independent glow families with on/off/mask, palette path invariance, usable reference layouts, DS badge separated vertically from Menu. Runtime acceptance additionally needs real GB/GBA/4:3/PS1/NDS screenshots and controls, DS touchscreen mapping, full PadKit multi-touch/analog, Android safe insets and retained saves/upgrades. No software QA pass follows automatically from a design PR.
 
+
+## Explicit stencil sources
+Use `screen/standard-bezel-mask.svg` / `screen/ds-expanded-bezel-mask.svg` as shape references, and `chassis/front-body-mask.svg` / `chassis/control-deck-mask.svg` for opaque material allocation. A static SVG mask is NOT the measured actual Android renderer/PadKit exclusion. Compose computes intersections/differences from live bounds and safe insets before painting. Do not use the stencil files as full-screen white images.

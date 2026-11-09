@@ -36,3 +36,6 @@ Every SVG uses original CARTDECK semantic colour identifiers, with **one shape s
 5. Marcus: actual 4:3 screen; DS both panels + touch; dual analog; A+B/diagonals/shoulders/Menu; shell per-edition, no collision; performance, saves and update continuity.
 
 **This deliverable intentionally does not produce an APK.** Existing PR #78 remains the working runtime baseline.
+
+## Structural mask masters
+Additional independent SVG mask sources: `screen/standard-bezel-mask.svg`, `screen/ds-expanded-bezel-mask.svg`, `chassis/front-body-mask.svg`, `chassis/control-deck-mask.svg`. These are clipping blueprints, not new visual layers or reasons to resize the video. Dynamic native clipping still derives from GL and PadKit measured bounds.

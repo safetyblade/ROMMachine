@@ -260,6 +260,26 @@
       "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
     },
     {
+      "id": "chassis.control-deck-mask",
+      "file": "chassis/control-deck-mask.svg",
+      "purpose": "opaque chassis/deck shape mask; dynamic control and game exclusions resolved at runtime",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [],
+      "renderLayer": 12,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Native Compose clip/stencil source; runtime geometry must be recomputed from actual viewport and PadKit bounds, never fixed dp",
+      "sourceEdition": "geometry invariant; mask itself is untinted"
+    },
+    {
       "id": "chassis.control-deck",
       "file": "chassis/control-deck.svg",
       "purpose": "opaque manufactured body and measured free-surface finish",
@@ -285,6 +305,26 @@
       "defaultEnabled": true,
       "androidImplementation": "Compose Canvas or tinted VectorDrawable; behind PadKit",
       "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "chassis.front-body-mask",
+      "file": "chassis/front-body-mask.svg",
+      "purpose": "opaque chassis/deck shape mask; dynamic control and game exclusions resolved at runtime",
+      "viewportCompatibility": [
+        "STANDARD_4_3",
+        "DUAL_SCREEN",
+        "LANDSCAPE"
+      ],
+      "safePositionRegion": "freeChassis",
+      "colorTokens": [],
+      "renderLayer": 12,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Native Compose clip/stencil source; runtime geometry must be recomputed from actual viewport and PadKit bounds, never fixed dp",
+      "sourceEdition": "geometry invariant; mask itself is untinted"
     },
     {
       "id": "chassis.front-body",
@@ -1392,6 +1432,24 @@
       "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
     },
     {
+      "id": "screen.ds-expanded-bezel-mask",
+      "file": "screen/ds-expanded-bezel-mask.svg",
+      "purpose": "independent physical bezel mask excluding combined/standard GL video aperture",
+      "viewportCompatibility": [
+        "DUAL_SCREEN"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Native Compose clip/stencil source; runtime geometry must be recomputed from actual viewport and PadKit bounds, never fixed dp",
+      "sourceEdition": "geometry invariant; mask itself is untinted"
+    },
+    {
       "id": "screen.ds-expanded-outer",
       "file": "screen/ds-expanded-outer.svg",
       "purpose": "external screen perimeter; never active pixels",
@@ -1490,6 +1548,24 @@
       "defaultEnabled": true,
       "androidImplementation": "Compose clip outside measured GL aperture + bezel path",
       "sourceEdition": "semantic token recolouring; same SVG path for Original, Pink, Green and named custom editions"
+    },
+    {
+      "id": "screen.standard-bezel-mask",
+      "file": "screen/standard-bezel-mask.svg",
+      "purpose": "independent physical bezel mask excluding combined/standard GL video aperture",
+      "viewportCompatibility": [
+        "STANDARD_4_3"
+      ],
+      "safePositionRegion": "videoPerimeter",
+      "colorTokens": [],
+      "renderLayer": 32,
+      "required": true,
+      "optional": false,
+      "glowCapable": false,
+      "illuminationState": "none",
+      "defaultEnabled": true,
+      "androidImplementation": "Native Compose clip/stencil source; runtime geometry must be recomputed from actual viewport and PadKit bounds, never fixed dp",
+      "sourceEdition": "geometry invariant; mask itself is untinted"
     }
   ],
   "acceptance": {
@@ -1504,5 +1580,10 @@
       "Elliot implementation under #74",
       "Marcus independent device QA"
     ]
+  },
+  "assetCount": 52,
+  "maskPolicy": {
+    "screen": "Measured GL viewport must be subtracted from any visual frame. Source bezel masks are structural proportions only.",
+    "chassis": "Body/deck masks are behind functional renderer and PadKit; expose free visual regions after measured exclusion."
   }
 }
