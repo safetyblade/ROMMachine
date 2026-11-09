@@ -94,10 +94,11 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
      * Does not retry automatically. The next manual launch uses the old core.
      */
     fun recordConfirmedStartupFailure(game: Game): Boolean {
-        if (!isUpdatedRequested(game.systemId, game.id)) return false
+        val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return false
+        if (!isUpdatedRequested(systemId, game.id)) return false
         return preferences.edit()
-            .putBoolean(gamePreferenceKey(game.systemId, game.id), false)
-            .putString(failureKey(game.systemId, game.id), candidateCore(game.systemId)?.coreName)
+            .putBoolean(gamePreferenceKey(systemId, game.id), false)
+            .putString(failureKey(systemId, game.id), candidateCore(systemId)?.coreName)
             .commit()
     }
 
