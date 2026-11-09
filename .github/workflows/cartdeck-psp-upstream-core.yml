@@ -1,0 +1,41 @@
+name: CARTDECK PSP upstream ARM64 candidate
+
+on:
+  pull_request:
+    paths:
+      - "scripts/ci/build_psp_upstream_core.sh"
+      - ".github/workflows/cartdeck-psp-upstream-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out CARTDECK integration source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Build matching official PPSSPP candidate and support assets
+        run: |
+          set -euo pipefail
+          bash scripts/ci/build_psp_upstream_core.sh "$GITHUB_WORKSPACE/dist/psp-modern"
+
+      - name: Retain candidate and provenance for engineering assessment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_PSP_OFFICIAL_ARM64_CANDIDATE_NOT_ACCEPTED
+          path: dist/psp-modern/
+          if-no-files-found: warn
+          retention-days: 14
