@@ -5,6 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.ui.LemuroidCrossForeground
 import gg.padkit.PadKitScope
@@ -26,8 +29,16 @@ fun LemuroidControlCross(
     },
 ) {
     val theme = LocalLemuroidPadTheme.current
+    val observe = LocalCartdeckControlBounds.current
     ControlCross(
-        modifier = modifier.padding(theme.padding),
+        modifier =
+            modifier.padding(theme.padding).then(
+                if (observe != null) {
+                    Modifier.onGloballyPositioned { observe("dpad", it.boundsInRoot()) }
+                } else {
+                    Modifier
+                },
+            ),
         id = id,
         allowDiagonals = allowDiagonals,
         background = background,

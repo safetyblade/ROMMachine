@@ -123,6 +123,7 @@ fun SecondaryAnalogLeft() {
                 .radialScale(2.0f),
         id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
         analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
+        hardwareSeatId = "analog-left",
     )
 }
 
@@ -136,6 +137,7 @@ fun SecondaryAnalogRight() {
                 .radialScale(2.0f),
         id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK),
         analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBR),
+        hardwareSeatId = "analog-right",
     )
 }
 

@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import gg.padkit.PadKitScope
 import gg.padkit.anchors.Anchor
@@ -26,10 +29,19 @@ fun LemuroidControlFaceButtons(
     idsForegrounds: PersistentMap<Id.Key, @Composable (State<Boolean>) -> Unit>,
 ) {
     val theme = LocalLemuroidPadTheme.current
+    val observe = LocalCartdeckControlBounds.current
+    val key = if (ids.size <= 2) "face-ab" else "face-abxy"
     ControlFaceButtons(
         modifier =
             modifier
-                .run { if (applyPadding) padding(theme.padding) else modifier },
+                .run { if (applyPadding) padding(theme.padding) else modifier }
+                .then(
+                    if (observe != null) {
+                        Modifier.onGloballyPositioned { observe(key, it.boundsInRoot()) }
+                    } else {
+                        Modifier
+                    },
+                ),
         includeComposite = includeComposite,
         ids = ids,
         trackPointers = trackPointers,
@@ -51,10 +63,19 @@ fun LemuroidControlFaceButtons(
     idsForegrounds: PersistentMap<Id.Key, @Composable (State<Boolean>) -> Unit>,
 ) {
     val theme = LocalLemuroidPadTheme.current
+    val observe = LocalCartdeckControlBounds.current
+    val key = if (primaryAnchors.size <= 2) "face-ab" else "face-abxy"
     ControlFaceButtons(
         modifier =
             modifier
-                .run { if (applyPadding) padding(theme.padding) else modifier },
+                .run { if (applyPadding) padding(theme.padding) else modifier }
+                .then(
+                    if (observe != null) {
+                        Modifier.onGloballyPositioned { observe(key, it.boundsInRoot()) }
+                    } else {
+                        Modifier
+                    },
+                ),
         primaryAnchors = primaryAnchors,
         compositeAnchors = persistentListOf(),
         trackPointers = trackPointers,

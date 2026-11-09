@@ -72,6 +72,37 @@ internal fun CartdeckConsoleShell(
                     hole?.let { addRoundRect(RoundRect(it, CornerRadius(2.dp.toPx()))) }
                 }
             drawPath(shellPath, tokens.chassis)
+            // Draw the P1-C2A solid control-deck.svg geometry directly on
+            // the noninteractive shell. That places decorative hardware seats
+            // ABOVE the manufactured deck but BELOW the functional PadKit.
+            if (!isLandscape && controls.isNotEmpty()) {
+                val earliestControl = controls.minOf { it.top }
+                val rimBottom = (hole?.bottom ?: 0f) + 12.dp.toPx()
+                val deckTop = maxOf(rimBottom, earliestControl - 23.dp.toPx())
+                val deckBottom = size.height - 5.dp.toPx()
+                val inset = 9.dp.toPx()
+                if (deckBottom - deckTop > 25.dp.toPx()) {
+                    val cut = minOf(21.dp.toPx(), (deckBottom - deckTop) * 0.12f)
+                    val panel =
+                        Path().apply {
+                            moveTo(inset + cut, deckTop)
+                            lineTo(size.width - inset - cut, deckTop)
+                            lineTo(size.width - inset, deckTop + cut)
+                            lineTo(size.width - inset, deckBottom - cut)
+                            lineTo(size.width - inset - cut, deckBottom)
+                            lineTo(inset + cut, deckBottom)
+                            lineTo(inset, deckBottom - cut)
+                            lineTo(inset, deckTop + cut)
+                            close()
+                        }
+                    drawPath(panel, tokens.secondary)
+                    drawPath(
+                        panel,
+                        tokens.bezel,
+                        style = Stroke(width = 3.dp.toPx()),
+                    )
+                }
+            }
             hole?.let { display ->
                 val border = 7.dp.toPx()
                 val rim =
