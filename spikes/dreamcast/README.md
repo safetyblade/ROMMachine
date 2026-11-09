@@ -33,10 +33,12 @@ audio, inputs, VMU and Android device runtime **remain unproven**.
 
 ### Licensing
 
-Flycast's public core is labelled **GPL-2.0** and LibretroDroid is **GPL-3.0**.
-A GPLv2-only core combined with GPLv3 components raises compatibility questions;
-core source-file notices, any 'or later' permissions, third-party dependencies and
-the legally significant distribution/linkage model must be reviewed by Daniel,
+Flycast's repository metadata labels it **GPL-2.0** and LibretroDroid is **GPL-3.0**.
+However, inspected current Flycast core files, including `shell/libretro/libretro.cpp`
+and `core/hw/pvr/pvr.cpp`, explicitly allow **GPL version 2 or later**.
+That supports a possible GPLv3-compliant combination but does not settle licensing
+for the entire binary: dependency sources, their exact licence exceptions and
+the combined distribution/linkage model must be reviewed by Daniel,
 with legal advice if needed. **Do not publish an integrated binary pending clearance.**
 Avoid the deprecated `libretro/flycast` fork; use the maintained
 `flyinghead/flycast` source.
