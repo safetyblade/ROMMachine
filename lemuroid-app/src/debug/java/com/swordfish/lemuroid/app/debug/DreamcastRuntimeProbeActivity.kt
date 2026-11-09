@@ -87,6 +87,11 @@ class DreamcastRuntimeProbeActivity : ComponentActivity() {
                     }
                 }
             }
+            lifecycleScope.launch {
+                view.getGLRetroErrors().collect { code ->
+                    Log.e(TAG, "LIBRETRODROID_ERROR code=$code")
+                }
+            }
             Log.i(TAG, "VIEW_ATTACHED waiting for native context, frame, audio and gamepad")
         } catch (error: Throwable) {
             Log.e(TAG, "LIBRETRODROID_INIT_FAILED ${error.javaClass.simpleName}", error)
@@ -125,6 +130,16 @@ class DreamcastRuntimeProbeActivity : ComponentActivity() {
             return true
         }
         return super.onGenericMotionEvent(event)
+    }
+
+    override fun onPause() {
+        Log.i(TAG, "ACTIVITY_PAUSED frames=$frames")
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        Log.i(TAG, "ACTIVITY_DESTROYED frames=$frames")
+        super.onDestroy()
     }
 
     private fun reportFailure(message: String) {

@@ -29,6 +29,7 @@ jobs:
           assert "GLRetroView(this, data)" in src
           assert "GLRetroViewData(applicationContext)" in src
           assert "getGLRetroEvents()" in src
+          assert "getGLRetroErrors()" in src
           assert "FRAME_RENDERED" in src
           assert 'filesDir, "dreamcast-lab"' in src
           assert 'android:exported="true"' in manifest

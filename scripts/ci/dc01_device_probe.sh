@@ -52,7 +52,7 @@ adb logcat -d -v threadtime > "$out/logcat.txt"
 grep -F 'CARTDECK_DC01' "$out/logcat.txt" > "$out/dc01-filtered.log" || true
 adb exec-out screencap -p > "$out/screenshot.png"
 [[ -s "$out/screenshot.png" ]] || fail "screenshot missing"
-if grep -Eq 'DC01_BLOCKED|LIBRETRODROID_INIT_FAILED' "$out/dc01-filtered.log"; then
+if grep -Eq 'DC01_BLOCKED|LIBRETRODROID_INIT_FAILED|LIBRETRODROID_ERROR' "$out/dc01-filtered.log"; then
   fail "native core not initialised; inspect $out/dc01-filtered.log"
 fi
 if ! grep -q 'FRAME_RENDERED' "$out/dc01-filtered.log"; then

@@ -65,3 +65,16 @@ the `RETRO_ENVIRONMENT_SET_HW_RENDER` context type/version. Change only the
 smallest Flycast-specific render bridge; do not replace the shared renderer.
 No retail APK with Flycast core and no master merge before Daniel, Marcus and
 Cassia review. Do not use normal PS1/GBA/DS saves as test fixtures.
+
+## Verified frontend source observation (not a runtime pass)
+
+The pinned LibretroDroid 0.14.0 native source in
+[`environment.cpp`](https://github.com/Swordfish90/LibretroDroid/blob/0.14.0/libretrodroid/src/main/cpp/environment.cpp)
+advertises `RETRO_HW_CONTEXT_OPENGLES3` via
+`GET_PREFERRED_HW_RENDER`. Its `SET_HW_RENDER` handler currently
+returns true and installs `eglGetProcAddress` without validating the
+core-requested `context_type` or GLES version. Therefore even an apparent
+accepted HW-render request can precede an incompatible GL/EGL runtime.
+`getGLRetroErrors()` is now collected in the probe as a fail-closed
+diagnostic. The **exact request and usable GPU context remain NOT TESTED**
+until the pinned Flycast core starts on a real Android target.
