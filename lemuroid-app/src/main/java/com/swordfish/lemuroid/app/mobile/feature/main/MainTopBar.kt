@@ -156,7 +156,7 @@ fun LemuroidTopAppBar(
                 shelfAvailable = shelfAvailable,
                 onToggleArrangeShelf = onToggleArrangeShelf,
                 onShelfAppearance = onShelfAppearance,
-            onRefreshLibrary = onRefreshLibrary,
+                onRefreshLibrary = onRefreshLibrary,
             )
         },
     )
