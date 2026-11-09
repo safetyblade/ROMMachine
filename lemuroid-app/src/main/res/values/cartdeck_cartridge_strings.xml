@@ -7,6 +7,9 @@
     <string name="cartdeck_shelf">Cartridge Shelf</string>
     <string name="cartdeck_continue">Continue</string>
     <string name="cartdeck_scanning">Adding cartridges… Your library stays available.</string>
+    <string name="cartdeck_refresh_library">Refresh library</string>
+    <string name="cartdeck_refresh_result">Library refreshed · Added %1$d · Removed %2$d · Skipped %3$d</string>
+    <string name="cartdeck_refresh_failed">Library refresh failed. Check folder access and try again.</string>
     <string name="cartdeck_home_intro">Your games. Your cartridge shelf.</string>
     <string name="cartdeck_cartridge_unavailable">This cartridge is no longer in your library.</string>
     <string name="cartdeck_library">Library</string>
