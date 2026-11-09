@@ -4,7 +4,10 @@
 <path id="cd-chassis-depth" data-cd-fill="chassis" fill="#303B49" fill-rule="evenodd" d="M34 33H359Q383 33 383 61V782Q383 817 356 817H37Q9 811 9 782V61Q9 33 34 33ZM37 141H356V379H37Z"/>
 <path id="cd-screen-bezel" data-cd-fill="bezel" fill="#0D1721" fill-rule="evenodd" d="M46 114H347L375 140V378L347 410H46L18 378V141ZM37 141H356V379H37Z"/>
 <path id="cd-bezel-machining" d="M50 122H342L366 145M50 400H342L366 377" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-width="4"/>
-<path id="cd-upper-rim" d="M24 92L47 60H346L369 92" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-opacity=".25" stroke-width="2"/>
+<path id="cd-upper-rim" d="M24 92L47 60H346L369 92" fill="none" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-opacity=".25" stroke-width="2" data-cd-effect-zone="outer-rim"/>
+<path id="cd-left-shoulder-seam" d="M30 102L53 71H70" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-opacity=".66" stroke-width="2" data-cd-effect-zone="left-shoulder"/>
+<path id="cd-right-shoulder-seam" d="M322 71H339L361 102" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-opacity=".66" stroke-width="2" data-cd-effect-zone="right-shoulder"/>
+<path id="cd-brand-seat" d="M88 66H304L313 75V100L304 107H88L79 100V75Z" data-cd-fill="secondary" fill="#1C2430" data-cd-stroke="onChassis" stroke="#EDF6F2" stroke-opacity=".65" stroke-width="1.2" data-cd-region="protected-brand-seat"/>
 <path id="cd-lower-seam" d="M35 419H358" fill="none" data-cd-stroke="secondary" stroke="#1C2430" stroke-width="2"/>
 <path id="cd-corner-accents" d="M34 109L43 99M352 99L360 108M32 761L42 774M350 774L361 761" fill="none" data-cd-stroke="accent" stroke="#4ED8C4" stroke-opacity=".6" stroke-width="3"/>
 </svg>
