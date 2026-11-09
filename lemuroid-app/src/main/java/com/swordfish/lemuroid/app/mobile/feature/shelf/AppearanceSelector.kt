@@ -218,6 +218,7 @@ fun ShelfAppearanceEditor(
     var picker by remember { mutableStateOf<String?>(null) }
     var nameAction by remember { mutableStateOf<String?>(null) }
     var typedName by remember { mutableStateOf("") }
+    var renameTargetId by remember { mutableStateOf<String?>(null) }
     var warning by remember { mutableStateOf<String?>(null) }
 
     val base = presetRoles(edition)
@@ -342,7 +343,7 @@ fun ShelfAppearanceEditor(
                                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 TextButton(onClick = {
-                                    selectedId = item.id; typedName = item.name; nameAction = "rename"
+                                    renameTargetId = item.id; typedName = item.name; nameAction = "rename"
                                 }) { Text("Rename") }
                                 TextButton(onClick = {
                                     val copy = item.copy(id = UUID.randomUUID().toString(),
@@ -406,7 +407,7 @@ fun ShelfAppearanceEditor(
     if (nameAction != null) {
         val collision = named.any {
             it.name.equals(typedName.trim(), ignoreCase = true) &&
-                (nameAction != "rename" || it.id != selectedId)
+                (nameAction != "rename" || it.id != renameTargetId)
         }
         AlertDialog(
             onDismissRequest = { nameAction = null },
@@ -421,7 +422,7 @@ fun ShelfAppearanceEditor(
             confirmButton = {
                 TextButton(enabled = typedName.trim().isNotEmpty() && !collision, onClick = {
                     if (nameAction == "rename") {
-                        val i = named.indexOfFirst { it.id == selectedId }
+                        val i = named.indexOfFirst { it.id == renameTargetId }
                         if (i >= 0) named[i] = named[i].copy(name = typedName.trim(),
                             updatedAt = System.currentTimeMillis())
                     } else {
