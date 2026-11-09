@@ -31,6 +31,19 @@ class AppearanceSelectorContractTests(unittest.TestCase):
         self.assertTrue(set(spec["roleGroups"]["shelf"]).issubset(edition_roles))
         self.assertTrue(spec["implementation"]["preserveScope"].startswith("No emulator"))
 
+    def test_curated_real_colour_chips(self):
+        spec=load(ROOT/"material-swatches.json")
+        selector=load(ROOT/"appearance-selector.json")
+        self.assertEqual(selector["layout"]["swatchCatalogue"],"material-swatches.json")
+        for key,values in spec["suggested"].items():
+            self.assertGreaterEqual(len(values),6,key)
+            self.assertEqual(len({chip["hex"] for chip in values}),len(values),key)
+            for chip in values:
+                self.assertRegex(chip["hex"],r"^#[0-9A-Fa-f]{6}$")
+        for category,roles in spec["mapping"].items():
+            self.assertTrue(all(source in spec["suggested"] for source in roles.values()))
+        self.assertTrue(spec["interaction"]["reset"].startswith("Restore"))
+
     def test_swatches_custom_and_accessibility(self):
         x=load(ROOT/"appearance-selector.json")
         self.assertIn("swatch",x["layout"]["swatchRoleList"].lower())
