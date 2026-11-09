@@ -34,7 +34,7 @@
     "top": "Three visible preset cards or horizontal carousel on narrow devices; show actual cartridge-and-shelf preview built from current semantic colours; every card has name, real swatch strip and selected border/check",
     "preview": "Shared live preview: 2 Arc-Rail spines + shelf backboard + rail; on selection immediately reflect all cartridge and shelf tokens; fallback not game licensed art",
     "controls": "Choose edition | Customise colours | Save as new | Accessibility settings; keep Cancel/Apply visible using sticky footer; no giant blank input stack",
-    "swatchRoleList": "Tappable rows grouped Cartridge, Shelf, Lighting and Accessibility; display colour square (not only hex), role, value and optional reset badge; hide advanced unused tokens until group opened",
+    "swatchRoleList": "Tappable swatch rows grouped Cartridge, Shelf, Lighting and Accessibility; display actual colour square, role, value and optional reset badge; hide advanced unused tokens until group opened",
     "tokenEditor": "Tap colour square opens palette sheet with 6-8 curated swatch chips, current colour visible, optional native HSV picker and advanced hex entry; preview updates without committing until Apply",
     "preferredHeight": "Full-screen or expandable bottom sheet on phone rather than a 14-field AlertDialog",
     "selectedIndicator": "Accessible selected state not colour alone",
