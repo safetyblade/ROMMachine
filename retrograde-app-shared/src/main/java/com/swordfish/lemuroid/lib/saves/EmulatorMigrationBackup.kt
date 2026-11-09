@@ -12,7 +12,10 @@ import java.util.UUID
 object EmulatorMigrationBackup {
     data class Source(val original: File, val relativePath: String)
 
-    fun preserve(backupDirectory: File, sources: List<Source>): File {
+    fun preserve(
+        backupDirectory: File,
+        sources: List<Source>,
+    ): File {
         val marker = File(backupDirectory, ".complete")
         if (marker.isFile) return backupDirectory
         check(!backupDirectory.exists()) {
@@ -42,8 +45,11 @@ object EmulatorMigrationBackup {
                     "Cannot safely back up a symbolic link"
                 }
                 val files =
-                    if (original.isDirectory) original.walkTopDown().filter { it.isFile }.toList()
-                    else listOf(original)
+                    if (original.isDirectory) {
+                        original.walkTopDown().filter { it.isFile }.toList()
+                    } else {
+                        listOf(original)
+                    }
 
                 for (file in files) {
                     check(!Files.isSymbolicLink(file.toPath())) {
@@ -51,7 +57,10 @@ object EmulatorMigrationBackup {
                     }
                     val relative = if (original.isDirectory) file.relativeTo(original).path else ""
                     val destination = if (relative.isEmpty()) targetRoot else File(targetRoot, relative).canonicalFile
-                    check(destination.path.startsWith(destinationRoot.path + File.separator) || destination == targetRoot) {
+                    check(
+                        destination.path.startsWith(destinationRoot.path + File.separator) ||
+                            destination == targetRoot,
+                    ) {
                         "Emulator backup destination escaped the allowed directory"
                     }
                     val destParent = requireNotNull(destination.parentFile)

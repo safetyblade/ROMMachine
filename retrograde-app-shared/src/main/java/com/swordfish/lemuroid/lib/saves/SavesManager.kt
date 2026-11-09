@@ -55,7 +55,10 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
         }
     }
 
-    suspend fun getSaveRAMInfo(game: Game, coreID: CoreID? = null): SaveInfo {
+    suspend fun getSaveRAMInfo(
+        game: Game,
+        coreID: CoreID? = null,
+    ): SaveInfo {
         return withContext(Dispatchers.IO) {
             val saveFile = getSaveFile(getSaveRAMFileName(game), coreID)
             val fileExists = saveFile.exists() && saveFile.length() > 0
@@ -63,7 +66,10 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
         }
     }
 
-    private suspend fun getSaveFile(fileName: String, coreID: CoreID?): File {
+    private suspend fun getSaveFile(
+        fileName: String,
+        coreID: CoreID?,
+    ): File {
         return withContext(Dispatchers.IO) {
             val root = directoriesManager.getSavesDirectory()
             val directory =

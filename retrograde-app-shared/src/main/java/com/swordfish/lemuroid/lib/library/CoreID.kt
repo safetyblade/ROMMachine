@@ -56,6 +56,7 @@ enum class CoreID(
         "PPSSPP",
         "libppsspp_libretro_android.so",
     ),
+
     // Opt-in candidate engines. These are never registered as supported until the
     // exact ARM64 binaries and version-matched assets are packaged and verified.
     PCSX_REARMED_MODERN(
