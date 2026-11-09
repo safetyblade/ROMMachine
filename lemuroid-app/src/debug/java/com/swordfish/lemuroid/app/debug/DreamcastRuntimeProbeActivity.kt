@@ -60,7 +60,8 @@ class DreamcastRuntimeProbeActivity : ComponentActivity() {
             }
 
         Log.i(TAG, "CORE_AND_DISC_FOUND coreBytes=${core.length()} disc=${disc.name}")
-        Log.i(TAG, "CORE_VERSION ${coreSelection?.version ?: "legacy"} fallback=${coreSelection?.usedFallback ?: false}")
+        Log.i(TAG, "CORE_VERSION ${coreSelection?.version ?: "legacy"}")
+        Log.i(TAG, "CORE_FALLBACK ${coreSelection?.usedFallback ?: false}")
         Log.i(TAG, "SAVE_DIR ${savesDirectory.absolutePath} (never deleted by this probe)")
         try {
             val view = GLRetroView(this, data)
