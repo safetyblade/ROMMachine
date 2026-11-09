@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 852" role="img" aria-label="CARTDECK ds green hardware reference"><title>CARTDECK ds green, glow off</title><desc>Illustrative reference derived from P1-C2 source contract; not an actual owner screenshot or emulator capture.</desc>
+<defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9BC7A8"/><stop offset="1" stop-color="#446F5C"/></linearGradient><linearGradient id="deck" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#446F5C"/><stop offset=".5" stop-color="#9BC7A8"/><stop offset="1" stop-color="#446F5C"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="4"/></filter></defs>
+<rect x="0" y="0" width="393" height="852" rx="0" fill="#070D14" stroke="none" stroke-width="1"/>
+<path d="M41 8H352L385 41V809L352 844H41L8 809V41Z" fill="url(#body)" stroke="#163B36" stroke-width="5"/>
+<path d="M28 75L62 24H116 M277 24H331L365 75" fill="none" stroke="#D4F47D" stroke-width="2.5" opacity="0.6" stroke-linecap="round"/>
+<rect x="18" y="18" width="357" height="478" rx="3" fill="#102F28" stroke="none" stroke-width="1"/>
+<rect x="24" y="23" width="345" height="227.5" rx="3" fill="#193344" stroke="none" stroke-width="1"/>
+<rect x="24" y="258.5" width="345" height="218.5" rx="3" fill="#20283D" stroke="none" stroke-width="1"/>
+<path d="M30 220.5l80 -62 65 43 85 -83 100 73" stroke="#56D5C8" stroke-width="4" fill="none"/>
+<circle cx="195" cy="382" r="49" fill="#D5BD76" opacity=".68"/>
+<text x="196" y="55" fill="#DCF6F2" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="650">TWO SCREENS · FICTIONAL DEMO</text>
+<path d="M28 11H365L382 28V486L365 503H28L11 486V28Z M18 18H375V496H18Z" fill="#163B36" fill-rule="evenodd"/>
+<rect x="15" y="15" width="363" height="484" rx="5" fill="none" stroke="#D4F47D" stroke-width="1.2"/>
+<path d="M40 513H353L380 536V813L351 839H43L13 813V536Z" fill="url(#deck)" stroke="#163B36" stroke-width="4"/>
+<path d="M31 533H155 M238 533H360" fill="none" stroke="#153629" stroke-width="2" opacity="0.25" stroke-linecap="round"/>
+<path d="M59.6 572H145.4L180 606.6V692.4L145.4 727H59.6L25 692.4V606.6Z" fill="#446F5C" stroke="#163B36" stroke-width="4"/>
+<path d="M87 594H117V634H157V664H117V704H87V664H47V634H87Z" fill="#194437" stroke="#153629" stroke-width="2"/>
+<path d="M249.12 572H333.88L368 606.12V690.88L333.88 725H249.12L215 690.88V606.12Z" fill="#446F5C" stroke="#163B36" stroke-width="4"/>
+<circle cx="291" cy="603" r="28" fill="#163B36"/><circle cx="291" cy="600" r="22" fill="#194437" stroke="#D4F47D" stroke-width="2.3"/><text x="291" y="607" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="650">X</text>
+<circle cx="331" cy="649" r="28" fill="#163B36"/><circle cx="331" cy="646" r="22" fill="#194437" stroke="#D4F47D" stroke-width="2.3"/><text x="331" y="653" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="650">A</text>
+<circle cx="291" cy="692" r="28" fill="#163B36"/><circle cx="291" cy="689" r="22" fill="#194437" stroke="#D4F47D" stroke-width="2.3"/><text x="291" y="696" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="650">B</text>
+<circle cx="250" cy="649" r="28" fill="#163B36"/><circle cx="250" cy="646" r="22" fill="#194437" stroke="#D4F47D" stroke-width="2.3"/><text x="250" y="653" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="650">Y</text>
+<rect x="19" y="521" width="62" height="34" rx="17" fill="#194437" stroke="#D4F47D" stroke-width="1.5"/><text x="50" y="543" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="650">L</text>
+<rect x="94" y="521" width="62" height="34" rx="17" fill="#194437" stroke="#D4F47D" stroke-width="1.5"/><text x="125" y="543" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="650">SEL</text>
+<rect x="237" y="521" width="62" height="34" rx="17" fill="#194437" stroke="#D4F47D" stroke-width="1.5"/><text x="268" y="543" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="650">ST</text>
+<rect x="312" y="521" width="62" height="34" rx="17" fill="#194437" stroke="#D4F47D" stroke-width="1.5"/><text x="343" y="543" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="650">R</text>
+<path d="M29 723H364L381 739V819L365 836H28L11 819V739Z" fill="#446F5C" stroke="#163B36" stroke-width="4"/>
+<circle cx="65" cy="794" r="29" fill="#163B36" stroke="#9BC7A8" stroke-width="2.4"/>
+<text x="65" y="799" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="650">MIC</text>
+<circle cx="164" cy="794" r="29" fill="#163B36" stroke="#9BC7A8" stroke-width="2.4"/>
+<text x="164" y="799" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="650">SCREEN</text>
+<circle cx="319" cy="794" r="29" fill="#163B36" stroke="#9BC7A8" stroke-width="2.4"/>
+<text x="319" y="799" fill="#153629" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="650">MENU</text>
+<rect x="268" y="723" width="91" height="30" rx="10" fill="#9BC7A8" stroke="#163B36" stroke-width="2"/>
+<path d="M315 730H302Q292 730 292 738V741Q292 748 302 748H315 M306 740H327" stroke="#153629" fill="none" stroke-width="3"/>
+</svg>
