@@ -73,7 +73,7 @@ fun canonicalShelfMaterials(edition: String): ShelfMaterials =
                 focusOutline = Color(0xFF4ED8C4),
                 interactionAccent = Color(0xFF4ED8C4),
             )
-}
+    }
 
 fun colorContrast(
     first: Color,
