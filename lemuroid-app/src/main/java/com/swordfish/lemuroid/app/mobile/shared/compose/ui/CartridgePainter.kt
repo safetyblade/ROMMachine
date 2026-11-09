@@ -37,7 +37,10 @@ internal fun cartridgePainter(
             val chassis = role("chassis", tokens.chassis)
             val accent = role("accent", tokens.accent)
             val edited = appearance.custom.keys.any {
-                it in setOf("chassis", "secondary", "bezel", "glass", "button", "accent", "onChassis", "onButton", "focus")
+                it in setOf(
+                    "chassis", "secondary", "bezel", "glass", "button",
+                    "accent", "onChassis", "onButton", "focus",
+                )
             }
             val recolourCanonicalMark = edition == "green" &&
                 resource == com.swordfish.lemuroid.R.drawable.cartdeck_original_cslot_master
@@ -49,12 +52,22 @@ internal fun cartridgePainter(
                     mapOf(
                         tokens.chassis to chassis,
                         tokens.secondary to secondary,
-                        tokens.bezel to role("bezel", if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.6f) else tokens.bezel),
-                        tokens.glass to role("glass", if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.8f) else tokens.glass),
+                        tokens.bezel to role(
+                            "bezel",
+                            if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.6f) else tokens.bezel,
+                        ),
+                        tokens.glass to role(
+                            "glass",
+                            if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.8f) else tokens.glass,
+                        ),
                         tokens.button to role("button", tokens.button),
                         tokens.accent to accent,
                         tokens.onChassis to readableColor(role("onChassis", tokens.onChassis), listOf(chassis), 4.5f),
-                        tokens.onButton to readableColor(role("onButton", tokens.onButton), listOf(role("button", tokens.button)), 4.5f),
+                        tokens.onButton to readableColor(
+                            role("onButton", tokens.onButton),
+                            listOf(role("button", tokens.button)),
+                            4.5f,
+                        ),
                         tokens.focus to role("focus", tokens.focus),
                         // The unchanged canonical C-slot master is Original teal;
                         // remap only its semantic accent rather than duplicating geometry.
