@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug-only activities, unlisted in normal CARTDECK navigation. No cores bundled. -->
+        <activity
+            android:name="com.swordfish.lemuroid.app.debug.DreamcastRuntimeProbeActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.swordfish.lemuroid.app.debug.GameCubeRuntimeProbeActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.swordfish.lemuroid.app.debug.PlayStation2RuntimeProbeActivity"
+            android:exported="true" />
+    </application>
+</manifest>
