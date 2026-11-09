@@ -2,66 +2,42 @@ package com.swordfish.touchinput.radial
 
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.DefaultShadowColor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-class LemuroidPadTheme {
-    private fun gray(
-        luminosity: Float,
-        opacity: Float,
-    ): Color {
-        return Color(luminosity, luminosity, luminosity, opacity)
-    }
-
+/**
+ * Pure visual factory finish injected by the Android app. The touchinput
+ * module never depends on the shelf/appearance module or its Gradle graph.
+ * These colours do not affect PadKit IDs, hit regions or event dispatch.
+ */
+class LemuroidPadTheme(
+    val button: Color = Color(0xFF111923),
+    val accent: Color = Color(0xFF4ED8C4),
+    val glyph: Color = Color(0xFFEDF6F2),
+    val trim: Color = Color(0xFF626F7A),
+) {
     val foregroundPadding: Dp = 8.dp
     val padding: Dp = 4.dp
 
-    private val icons = gray(0.0f, 0.50f)
-    private val iconsPressed = gray(1.0f, 0.50f)
-
-    private val level3Fill = gray(1.0f, 0.50f)
-    private val level3FillPressed = gray(0.0f, 0.50f)
-    val level3Shadow = DefaultShadowColor.copy(0.05f)
+    val level3Shadow = Color.Black.copy(alpha = 0.32f)
     val level3ShadowWidth = 4.dp
-
-    private val level2Fill = gray(1.0f, 0.125f)
-    private val level2FillPressed = gray(0.0f, 0.125f)
-    val level2Shadow = DefaultShadowColor.copy(0.05f)
-    val level2ShadowWidth = 4.dp
-
-    val level1Fill = gray(1.0f, 0.10f)
-    val level1Shadow = DefaultShadowColor.copy(0.10f)
-    val level1ShadowWidth = 4.dp
-
+    val level2Shadow = Color.Black.copy(alpha = 0.10f)
+    val level2ShadowWidth = 1.dp
+    val level1Fill = Color.Transparent
+    val level1Shadow = Color.Transparent
+    val level1ShadowWidth = 0.dp
     val level0CornerRadius = 0.dp
-    val level0Fill = gray(1.0f, 0.05f)
-    val level0Shadow = DefaultShadowColor.copy(0.10f)
-    val level0ShadowWidth = 2.dp
+    val level0Fill = Color.Transparent
+    val level0Shadow = Color.Transparent
+    val level0ShadowWidth = 0.dp
 
-    fun compositeFill(pressed: Boolean): Color {
-        return if (pressed) {
-            level2FillPressed
-        } else {
-            level2Fill
-        }
-    }
+    fun compositeFill(pressed: Boolean): Color =
+        if (pressed) accent.copy(alpha = 0.16f) else Color.Transparent
 
-    fun foregroundFill(pressed: Boolean): Color {
-        return if (pressed) {
-            level3FillPressed
-        } else {
-            level3Fill
-        }
-    }
+    fun foregroundFill(pressed: Boolean): Color =
+        if (pressed) trim else button
 
-    fun icons(pressed: Boolean): Color {
-        return if (pressed) {
-            iconsPressed
-        } else {
-            icons
-        }
-    }
+    fun icons(pressed: Boolean): Color = glyph
 }
 
 val LocalLemuroidPadTheme =
