@@ -32,8 +32,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -77,21 +77,24 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val appContext = LocalContext.current
         // Read existing appearance atomically. No mutation of library, inputs,
         // ROM files, emulator state or save data.
-        val appearance = produceState(initialValue = ShelfAppearance(), key1 = appContext) {
-            value = runCatching { ShelfStore(appContext).read().appearance }.getOrDefault(ShelfAppearance())
-        }.value
-        val edition = when (appearance.edition.lowercase()) {
-            "pink" -> CartdeckEditionPreset.PINK
-            "green" -> CartdeckEditionPreset.GREEN
-            else -> CartdeckEditionPreset.ORIGINAL
-        }
+        val appearance =
+            produceState(initialValue = ShelfAppearance(), key1 = appContext) {
+                value = runCatching { ShelfStore(appContext).read().appearance }.getOrDefault(ShelfAppearance())
+            }.value
+        val edition =
+            when (appearance.edition.lowercase()) {
+                "pink" -> CartdeckEditionPreset.PINK
+                "green" -> CartdeckEditionPreset.GREEN
+                else -> CartdeckEditionPreset.ORIGINAL
+            }
         val editionTokens = remember(appContext, edition) { appContext.resolveCartdeckEdition(edition) }
-        val shellTokens = remember(editionTokens, appearance) {
-            editionTokens.copy(
-                chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: editionTokens.chassis,
-                accent = appearance.custom["accent"]?.let { Color(it.toInt()) } ?: editionTokens.accent,
-            )
-        }
+        val shellTokens =
+            remember(editionTokens, appearance) {
+                editionTokens.copy(
+                    chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: editionTokens.chassis,
+                    accent = appearance.custom["accent"]?.let { Color(it.toInt()) } ?: editionTokens.accent,
+                )
+            }
 
         LaunchedEffect(isLandscape) {
             val orientation =

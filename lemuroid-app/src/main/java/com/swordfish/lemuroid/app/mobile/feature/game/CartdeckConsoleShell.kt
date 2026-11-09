@@ -27,12 +27,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 /**
- * One hardware chassis with a literal clear opening for the original
- * LibretroDroid renderer. No extra GL surface, pointer handler or image filter.
+ * The only image aperture is measured from the existing LibretroDroid renderer.
+ * This purely visual layer does not own touch gestures or game render lifecycle.
  */
 @Composable
 internal fun CartdeckConsoleShell(
@@ -41,45 +41,53 @@ internal fun CartdeckConsoleShell(
     rootBounds: Rect?,
     isLandscape: Boolean,
 ) {
-    val hole = if (videoBounds != null && rootBounds != null) {
-        Rect(
-            videoBounds.left - rootBounds.left,
-            videoBounds.top - rootBounds.top,
-            videoBounds.right - rootBounds.left,
-            videoBounds.bottom - rootBounds.top,
-        ).takeIf { it.width > 0f && it.height > 0f }
-    } else null
+    val hole =
+        if (videoBounds != null && rootBounds != null) {
+            Rect(
+                videoBounds.left - rootBounds.left,
+                videoBounds.top - rootBounds.top,
+                videoBounds.right - rootBounds.left,
+                videoBounds.bottom - rootBounds.top,
+            ).takeIf { it.width > 0f && it.height > 0f }
+        } else {
+            null
+        }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
         Canvas(Modifier.fillMaxSize()) {
             val edge = 8.dp.toPx()
             val chamfer = 30.dp.toPx()
-            val shellPath = Path().apply {
-                fillType = PathFillType.EvenOdd
-                moveTo(edge + chamfer, edge)
-                lineTo(size.width - edge - chamfer, edge)
-                lineTo(size.width - edge, edge + chamfer)
-                lineTo(size.width - edge, size.height - edge - chamfer)
-                lineTo(size.width - edge - chamfer, size.height - edge)
-                lineTo(edge + chamfer, size.height - edge)
-                lineTo(edge, size.height - edge - chamfer)
-                lineTo(edge, edge + chamfer)
-                close()
-                hole?.let { addRoundRect(RoundRect(it, CornerRadius(2.dp.toPx()))) }
-            }
+            val shellPath =
+                Path().apply {
+                    fillType = PathFillType.EvenOdd
+                    moveTo(edge + chamfer, edge)
+                    lineTo(size.width - edge - chamfer, edge)
+                    lineTo(size.width - edge, edge + chamfer)
+                    lineTo(size.width - edge, size.height - edge - chamfer)
+                    lineTo(size.width - edge - chamfer, size.height - edge)
+                    lineTo(edge + chamfer, size.height - edge)
+                    lineTo(edge, size.height - edge - chamfer)
+                    lineTo(edge, edge + chamfer)
+                    close()
+                    hole?.let { addRoundRect(RoundRect(it, CornerRadius(2.dp.toPx()))) }
+                }
             drawPath(shellPath, tokens.chassis)
             hole?.let { display ->
                 val border = 15.dp.toPx()
-                val rim = Rect(
-                    display.left - border, display.top - border,
-                    display.right + border, display.bottom + border,
-                )
-                val bezel = Path().apply {
-                    fillType = PathFillType.EvenOdd
-                    addRoundRect(RoundRect(rim, CornerRadius(18.dp.toPx())))
-                    addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
-                }
+                val rim =
+                    Rect(
+                        display.left - border,
+                        display.top - border,
+                        display.right + border,
+                        display.bottom + border,
+                    )
+                val bezel =
+                    Path().apply {
+                        fillType = PathFillType.EvenOdd
+                        addRoundRect(RoundRect(rim, CornerRadius(18.dp.toPx())))
+                        addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
+                    }
                 drawPath(bezel, tokens.bezel)
                 drawRoundRect(
                     color = tokens.accent.copy(alpha = 0.50f),
@@ -89,24 +97,41 @@ internal fun CartdeckConsoleShell(
                     style = Stroke(width = 1.5.dp.toPx()),
                 )
             }
-            // Hardware light is deliberately limited to the outer shoulders.
             val left = 25.dp.toPx()
             val end = size.width * 0.20f
-            drawLine(tokens.accent.copy(alpha = 0.6f), Offset(left, 19.dp.toPx()), Offset(end, 19.dp.toPx()), 2.dp.toPx())
-            drawLine(tokens.accent.copy(alpha = 0.6f), Offset(size.width - end, 19.dp.toPx()), Offset(size.width - left, 19.dp.toPx()), 2.dp.toPx())
-            drawLine(tokens.secondary, Offset(left, size.height - 30.dp.toPx()), Offset(size.width - left, size.height - 30.dp.toPx()), 2.dp.toPx())
+            val lightY = 19.dp.toPx()
+            drawLine(
+                color = tokens.accent.copy(alpha = 0.6f),
+                start = Offset(left, lightY),
+                end = Offset(end, lightY),
+                strokeWidth = 2.dp.toPx(),
+            )
+            drawLine(
+                color = tokens.accent.copy(alpha = 0.6f),
+                start = Offset(size.width - end, lightY),
+                end = Offset(size.width - left, lightY),
+                strokeWidth = 2.dp.toPx(),
+            )
+            drawLine(
+                color = tokens.secondary,
+                start = Offset(left, size.height - 30.dp.toPx()),
+                end = Offset(size.width - left, size.height - 30.dp.toPx()),
+                strokeWidth = 2.dp.toPx(),
+            )
         }
 
-        // Opaque badge lies above shell effects and outside the measured hole.
+        // The opaque badge is painted above trim and never inside the game aperture.
         val spaceForBadge = hole != null && hole.top >= with(density) { 78.dp.toPx() }
         if (!isLandscape && spaceForBadge) {
             val inks = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             val brandInk = inks.maxBy { colorContrast(it, tokens.secondary) }
             Row(
-                modifier = Modifier.align(Alignment.TopCenter)
-                    .padding(top = 28.dp)
-                    .background(tokens.secondary, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 28.dp)
+                        .background(tokens.secondary, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
