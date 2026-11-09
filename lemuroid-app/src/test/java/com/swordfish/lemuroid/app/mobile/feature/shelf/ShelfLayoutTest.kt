@@ -104,12 +104,13 @@ class ShelfLayoutTest {
         }
 
     @Test fun canonicalAndCustomFinishesHaveReadableTextAndFocus() {
-        for (pink in listOf(false, true)) {
-            val colors = shelfMaterials(ShelfAppearance(edition = if (pink) "pink" else "original"))
+        for (edition in listOf("original", "pink", "green")) {
+            val colors = shelfMaterials(ShelfAppearance(edition = edition))
             assertTrue(colorContrast(colors.sectionText, colors.shelfBackboard) >= 4.5f)
             assertTrue(colorContrast(colors.focusOutline, colors.shelfBackboard) >= 3f)
             assertTrue(colorContrast(colors.focusOutline, colors.vacantCell) >= 3f)
         }
+        assertEquals("green", decode(encode(ShelfLayout(appearance = ShelfAppearance(edition = "green")))).appearance.edition)
         val custom =
             shelfMaterials(
                 ShelfAppearance(

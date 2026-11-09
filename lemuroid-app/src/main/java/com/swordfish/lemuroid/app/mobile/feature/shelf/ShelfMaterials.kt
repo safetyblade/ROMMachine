@@ -22,10 +22,13 @@ data class ShelfMaterials(
 )
 
 val LocalShelfAppearance = staticCompositionLocalOf { ShelfAppearance() }
-val LocalShelfMaterials = staticCompositionLocalOf { canonicalShelfMaterials(false) }
+val LocalShelfMaterials = staticCompositionLocalOf { canonicalShelfMaterials("original") }
 
-fun canonicalShelfMaterials(pink: Boolean): ShelfMaterials =
-    if (pink) {
+fun canonicalShelfMaterials(pink: Boolean): ShelfMaterials = canonicalShelfMaterials(if (pink) "pink" else "original")
+
+fun canonicalShelfMaterials(edition: String): ShelfMaterials =
+    when (edition.lowercase()) {
+        "pink" -> {
         ShelfMaterials(
             roomBackdrop = Color(0xFF221722),
             shelfBackboard = Color(0xFF382536),
@@ -40,8 +43,22 @@ fun canonicalShelfMaterials(pink: Boolean): ShelfMaterials =
             focusOutline = Color(0xFFFFE5F1),
             interactionAccent = Color(0xFFFFD5E7),
         )
-    } else {
-        ShelfMaterials(
+        }
+        "green" -> ShelfMaterials(
+            roomBackdrop = Color(0xFF0D1914),
+            shelfBackboard = Color(0xFF163127),
+            shelfDeck = Color(0xFF315443),
+            shelfLip = Color(0xFF658978),
+            shelfGroove = Color(0xFF0B241B),
+            edgeHighlight = Color(0xFF9DC5A6),
+            shelfShadow = Color(0xFF06110D),
+            sectionDivider = Color(0xFF315E4C),
+            vacantCell = Color(0xFF254336),
+            sectionText = Color(0xFFEBF8E8),
+            focusOutline = Color(0xFFD4F47D),
+            interactionAccent = Color(0xFFD4F47D),
+        )
+        else -> ShelfMaterials(
             roomBackdrop = Color(0xFF0B131B),
             shelfBackboard = Color(0xFF14212D),
             shelfDeck = Color(0xFF293847),
@@ -77,7 +94,7 @@ fun readableColor(
 }
 
 fun shelfMaterials(appearance: ShelfAppearance): ShelfMaterials {
-    val base = canonicalShelfMaterials(appearance.edition == "pink")
+    val base = canonicalShelfMaterials(appearance.edition)
 
     fun override(
         role: String,
