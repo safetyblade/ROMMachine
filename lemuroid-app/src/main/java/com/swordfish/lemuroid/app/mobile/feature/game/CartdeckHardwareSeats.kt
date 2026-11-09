@@ -254,7 +254,8 @@ internal fun CartdeckHardwareSeats(
         val indicatorWidth = with(density) { 62.dp.toPx() }
         val gapBelowVideo = with(density) { 18.dp.toPx() }
         val firstControl = controls.values.minOfOrNull { it.top } ?: rootBounds.height
-        val detailY = maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - 37.dp.toPx())
+        val spaceAboveControls = with(density) { 37.dp.toPx() }
+        val detailY = maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - spaceAboveControls)
         val details =
             listOf(
                 Rect(rootBounds.width * 0.18f - speakerWidth / 2f, detailY,
