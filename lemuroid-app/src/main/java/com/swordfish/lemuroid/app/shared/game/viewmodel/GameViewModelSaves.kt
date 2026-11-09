@@ -86,7 +86,7 @@ class GameViewModelSaves(
             true,
             snapshot.autoSave != null,
         )
-        savesManager.setSaveRAM(game, snapshot.sram)
+        savesManager.setSaveRAM(game, snapshot.sram, systemCoreConfig.coreID)
         snapshot.autoSave?.let { statesManager.setAutoSave(game, systemCoreConfig.coreID, it) }
     }
 
