@@ -11,8 +11,8 @@
 <path d="M32 77H361L378 94V336L361 353H32L15 336V94Z M22 84H371V346H22Z" fill="#0D1721" fill-rule="evenodd"/>
 <rect x="19" y="81" width="355" height="268" rx="5" fill="none" stroke="#4ED8C4" stroke-width="1.2"/>
 <rect x="95" y="25" width="203" height="42" rx="12" fill="#1C2430" stroke="#0D1721" stroke-width="2"/>
-<path d="M139 37H128Q119 37 119 46V49Q119 59 128 59H139 M130 49H149" stroke="#EDF6F2" fill="none" stroke-width="4" stroke-linecap="square"/>
-<text x="211" y="53" fill="#EDF6F2" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="19" font-weight="650">CARTDECK</text>
+<g data-cd-canonical-brand="true" transform="translate(112 31) scale(0.281250 0.234375)"><g fill="none" stroke="#EDF6F2" stroke-width="12" stroke-linecap="square"><path d="M78 16H44Q18 16 18 43V75Q18 102 44 102H78"/><path d="M55 58H97"/></g></g>
+<g data-cd-canonical-brand="true" transform="translate(150 38) scale(0.401235 0.423077)"><g fill="none" stroke="#EDF6F2" stroke-width="4.2" stroke-linecap="square" stroke-linejoin="bevel"><path transform="translate(7 0)" d="M26 8H10Q4 8 4 14V36Q4 42 10 42H26"/><path transform="translate(46 0)" d="M4 42V16L10 8H22L28 16V42M4 29H28"/><path transform="translate(85 0)" d="M4 42V8H21Q28 8 28 16V21Q28 27 21 27H4M17 27L29 42"/><path transform="translate(124 0)" d="M2 8H30M16 8V42"/><path transform="translate(163 0)" d="M4 8V42H17Q28 42 28 31V19Q28 8 17 8Z"/><path transform="translate(202 0)" d="M28 8H4V42H28M4 25H25"/><path transform="translate(241 0)" d="M26 8H10Q4 8 4 14V36Q4 42 10 42H26"/><path transform="translate(280 0)" d="M4 8V42M28 8L4 27M15 20L29 42"/></g></g>
 <path d="M40 428H353L380 451V813L351 839H43L13 813V451Z" fill="url(#deck)" stroke="#0D1721" stroke-width="4"/>
 <path d="M31 448H155 M238 448H360" fill="none" stroke="#EDF6F2" stroke-width="2" opacity="0.25" stroke-linecap="round"/>
 <rect x="51" y="376" width="92" height="17" rx="6" fill="#1C2430" stroke="none" stroke-width="1"/>

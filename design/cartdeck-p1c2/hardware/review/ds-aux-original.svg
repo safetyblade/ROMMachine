@@ -32,5 +32,5 @@
 <circle cx="319" cy="794" r="29" fill="#0D1721" stroke="#303B49" stroke-width="2.4"/>
 <text x="319" y="799" fill="#EDF6F2" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="650">MENU</text>
 <rect x="268" y="723" width="91" height="30" rx="10" fill="#303B49" stroke="#0D1721" stroke-width="2"/>
-<path d="M315 730H302Q292 730 292 738V741Q292 748 302 748H315 M306 740H327" stroke="#EDF6F2" fill="none" stroke-width="3"/>
+<g data-cd-canonical-brand="true" transform="translate(286 727) scale(0.343750 0.187500)"><g fill="none" stroke="#EDF6F2" stroke-width="12" stroke-linecap="square"><path d="M78 16H44Q18 16 18 43V75Q18 102 44 102H78"/><path d="M55 58H97"/></g></g>
 </svg>
