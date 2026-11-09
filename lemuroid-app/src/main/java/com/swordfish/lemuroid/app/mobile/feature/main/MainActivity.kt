@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -51,6 +52,9 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevi
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearanceEditor
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
+import com.swordfish.lemuroid.app.mobile.feature.shelf.SectionEditor
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.mobile.feature.systems.MetaSystemsScreen
@@ -154,7 +158,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     @Composable
     private fun MainScreen(navController: NavHostController) {
         val shelfViewModel: ShelfViewModel = viewModel(factory = ShelfViewModel.Factory(applicationContext))
-        val shelfAppearance = shelfViewModel.state.collectAsState().value.layout?.appearance ?: ShelfAppearance()
+        val shelfState = shelfViewModel.state.collectAsState().value
+        val shelfAppearance = shelfState.layout?.appearance ?: ShelfAppearance()
         CartridgeLibraryTheme(appearance = shelfAppearance) {
             val navBackStackEntry = navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry.value?.destination
@@ -163,13 +168,30 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     ?.let { MainRoute.findByRoute(it) }
                     ?: MainRoute.HOME
 
-            val infoDialogDisplayed =
-                remember {
-                    mutableStateOf(false)
-                }
+            val infoDialogDisplayed = remember { mutableStateOf(false) }
+            // Shelf edit state belongs to the shared chrome, not to a scrolled
+            // Home header. The existing ShelfViewModel owns all saved layout data.
+            val arrangingShelf = rememberSaveable { mutableStateOf(false) }
+            val editingSection = remember { mutableStateOf<ShelfSection?>(null) }
+            val creatingSection = remember { mutableStateOf(false) }
+            val editingAppearance = remember { mutableStateOf(false) }
+            val shelfReady = shelfState.layout != null && shelfState.error == null
 
             LaunchedEffect(currentRoute) {
                 mainViewModel.changeRoute(currentRoute)
+                if (currentRoute != MainRoute.HOME) {
+                    arrangingShelf.value = false
+                    editingSection.value = null
+                    creatingSection.value = false
+                    editingAppearance.value = false
+                }
+            }
+            BackHandler(
+                enabled = currentRoute == MainRoute.HOME && arrangingShelf.value &&
+                    editingSection.value == null && !creatingSection.value &&
+                    !editingAppearance.value,
+            ) {
+                arrangingShelf.value = false
             }
 
             val selectedGameState =
@@ -218,9 +240,23 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         onHelpPressed = onHelpPressed,
                         mainUIState = mainUIState,
                         onUpdateQueryString = { mainViewModel.changeQueryString(it) },
+                        arrangingShelf = arrangingShelf.value,
+                        shelfAvailable = shelfReady,
+                        onToggleArrangeShelf = { arrangingShelf.value = !arrangingShelf.value },
+                        onShelfAppearance = { editingAppearance.value = true },
                     )
                 },
-                bottomBar = { MainNavigationBar(currentRoute, navController) },
+                bottomBar = {
+                    MainNavigationBar(
+                        currentRoute = currentRoute,
+                        navController = navController,
+                        arrangingShelf = arrangingShelf.value,
+                        canUndoShelf = shelfState.canUndo,
+                        onDoneArrange = { arrangingShelf.value = false },
+                        onAddSection = { creatingSection.value = true },
+                        onUndoShelf = shelfViewModel::undo,
+                    )
+                },
             ) { padding ->
                 NavHost(
                     modifier = Modifier.fillMaxSize(),
@@ -243,6 +279,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onGameClick = onGameClick,
                             onGameLongClick = onGameLongClick,
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
+                            arrange = arrangingShelf.value,
+                            onSectionEdit = { editingSection.value = it },
                         )
                     }
                     composable(MainRoute.FAVORITES) {
@@ -384,6 +422,24 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                 }
+            }
+
+            if (creatingSection.value || editingSection.value != null) {
+                SectionEditor(
+                    section = editingSection.value,
+                    onDismiss = {
+                        creatingSection.value = false
+                        editingSection.value = null
+                    },
+                    onEdit = { transform -> shelfViewModel.edit(transform = transform) },
+                )
+            }
+            if (editingAppearance.value && shelfState.layout != null) {
+                ShelfAppearanceEditor(
+                    appearance = shelfState.layout.appearance,
+                    onDismiss = { editingAppearance.value = false },
+                    onSave = { newAppearance -> shelfViewModel.edit { it.copy(appearance = newAppearance) } },
+                )
             }
 
             coverGameId.value?.let { id ->
