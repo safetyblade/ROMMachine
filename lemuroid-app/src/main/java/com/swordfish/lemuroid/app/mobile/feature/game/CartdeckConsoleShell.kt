@@ -120,16 +120,24 @@ internal fun CartdeckConsoleShell(
             )
         }
 
-        // The opaque badge is painted above trim and never inside the game aperture.
-        val spaceForBadge = hole != null && hole.top >= with(density) { 78.dp.toPx() }
-        if (!isLandscape && spaceForBadge) {
+        // Reserve a physical brand seat above the measured game aperture.
+        // Compact devices lose the wordmark first; game pixels and touch targets
+        // always take precedence over decorative branding.
+        val badgeTop = 28.dp
+        val badgeHeight = 39.dp
+        val badgeClearance = 8.dp
+        val availableAboveVideo = hole?.top ?: 0f
+        val seatFits =
+            availableAboveVideo >= with(density) { (badgeTop + badgeHeight + badgeClearance).toPx() }
+        if (!isLandscape && seatFits) {
+            val fullWordmarkFits = maxWidth >= 360.dp
             val inks = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             val brandInk = inks.maxBy { colorContrast(it, tokens.secondary) }
             Row(
                 modifier =
                     Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 28.dp)
+                        .padding(top = badgeTop)
                         .background(tokens.secondary, RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -141,12 +149,12 @@ internal fun CartdeckConsoleShell(
                     tint = brandInk,
                     modifier = Modifier.size(25.dp),
                 )
-                if (maxWidth >= 360.dp) {
+                if (fullWordmarkFits) {
                     Icon(
                         painter = painterResource(R.drawable.cartdeck_wordmark_native),
                         contentDescription = null,
                         tint = brandInk,
-                        modifier = Modifier.width(155.dp).height(26.dp),
+                        modifier = Modifier.width(155.dp).height(25.dp),
                     )
                 }
             }
