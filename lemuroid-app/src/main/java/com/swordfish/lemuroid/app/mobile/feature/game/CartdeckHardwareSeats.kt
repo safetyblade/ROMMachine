@@ -2,8 +2,8 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -22,8 +22,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
@@ -196,7 +196,15 @@ internal fun CartdeckHardwareSeats(
                 val band = Rect(left, top, right, bottom)
                 val start = controls["start"]
                 val select = controls["select"]
-                val compactBrand = Rect(rootBounds.width / 2f - 42.dp.toPx(density), rootBounds.height - 51.dp.toPx(density), rootBounds.width / 2f + 42.dp.toPx(density), rootBounds.height)
+                val badgeWidth = with(density) { 42.dp.toPx() }
+                val badgeHeight = with(density) { 51.dp.toPx() }
+                val compactBrand =
+                    Rect(
+                        rootBounds.width / 2f - badgeWidth,
+                        rootBounds.height - badgeHeight,
+                        rootBounds.width / 2f + badgeWidth,
+                        rootBounds.height,
+                    )
                 val safe =
                     band.left >= 0 && band.top >= 0 &&
                         band.right <= rootBounds.width && band.bottom <= rootBounds.height &&
@@ -267,5 +275,3 @@ internal fun CartdeckHardwareSeats(
     }
 }
 
-private fun androidx.compose.ui.unit.Dp.toPx(density: androidx.compose.ui.unit.Density): Float =
-    with(density) { this@toPx.toPx() }
