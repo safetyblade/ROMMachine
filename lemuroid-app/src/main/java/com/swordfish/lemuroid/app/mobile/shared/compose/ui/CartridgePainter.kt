@@ -18,30 +18,47 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 @Composable
 internal fun cartridgePainter(
     resource: Int,
-    pink: Boolean,
+    edition: String,
 ): androidx.compose.ui.graphics.painter.Painter {
     val source = ImageVector.vectorResource(resource)
     val appearance = LocalShelfAppearance.current
     val tokens =
         LocalContext.current.resolveCartdeckEdition(
-            if (pink) CartdeckEditionPreset.PINK else CartdeckEditionPreset.ORIGINAL,
+            when (edition) {
+                "pink" -> CartdeckEditionPreset.PINK
+                "green" -> CartdeckEditionPreset.GREEN
+                else -> CartdeckEditionPreset.ORIGINAL
+            },
         )
     val vector =
         remember(source, appearance, tokens) {
-            val chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: tokens.chassis
-            val accent = appearance.custom["accent"]?.let { Color(it.toInt()) } ?: tokens.accent
-            if (!appearance.custom.containsKey("chassis") && !appearance.custom.containsKey("accent")) {
+            fun role(name: String, base: Color) =
+                appearance.custom[name]?.let { Color(it.toInt()) } ?: base
+            val chassis = role("chassis", tokens.chassis)
+            val accent = role("accent", tokens.accent)
+            val edited = appearance.custom.keys.any {
+                it in setOf("chassis", "secondary", "bezel", "glass", "button", "accent", "onChassis", "onButton", "focus")
+            }
+            val recolourCanonicalMark = edition == "green" &&
+                resource == com.swordfish.lemuroid.R.drawable.cartdeck_original_cslot_master
+            if (!edited && !recolourCanonicalMark) {
                 source
             } else {
-                val secondary = lerp(chassis, Color.Black, 0.22f)
+                val secondary = role("secondary", lerp(chassis, Color.Black, 0.22f))
                 val colors =
                     mapOf(
                         tokens.chassis to chassis,
                         tokens.secondary to secondary,
-                        tokens.bezel to lerp(chassis, Color.Black, 0.6f),
-                        tokens.glass to lerp(chassis, Color.Black, 0.8f),
+                        tokens.bezel to role("bezel", if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.6f) else tokens.bezel),
+                        tokens.glass to role("glass", if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.8f) else tokens.glass),
+                        tokens.button to role("button", tokens.button),
                         tokens.accent to accent,
-                        tokens.onChassis to readableColor(tokens.onChassis, listOf(chassis), 4.5f),
+                        tokens.onChassis to readableColor(role("onChassis", tokens.onChassis), listOf(chassis), 4.5f),
+                        tokens.onButton to readableColor(role("onButton", tokens.onButton), listOf(role("button", tokens.button)), 4.5f),
+                        tokens.focus to role("focus", tokens.focus),
+                        // The unchanged canonical C-slot master is Original teal;
+                        // remap only its semantic accent rather than duplicating geometry.
+                        Color(0xFF4ED8C4) to accent,
                     )
 
                 fun tint(brush: androidx.compose.ui.graphics.Brush?) =
