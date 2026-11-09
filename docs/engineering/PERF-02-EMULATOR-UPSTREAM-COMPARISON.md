@@ -62,6 +62,11 @@ Inspected [Swordfish90/LibretroDroid `environment.cpp`](https://github.com/Sword
 - **3DS medium:** test Azahar Android graphics/input and in-app JNI feasibility; keep old Citra as reversible default until full save/title acceptance.
 - **Other cores low:** retain Gambatte, mGBA, Stella, FCEUmm, Snes9x, Genesis Plus GX, FBNeo, MAME, PCE, NGP, WonderSwan, DOSBox Pure, etc. unless a concrete defect or compatibility win is found. SameBoy is a GB/GBC accuracy reference, not an automatic upgrade.
 
+
+### Native binary provenance evidence (read-only CI)
+
+`.github/workflows/cartdeck-perf02-binary-inventory.yml` checks out the pinned LemuroidCores submodule at exactly the Gitlink commit, enumerates every ARM64 `.so`, records its SHA-256/size/ELF machine/PT_LOAD alignment and uploads **JSON only** as `CARTDECK-PERF02-ARM64-CORE-INVENTORY`. It does not rebuild, alter, upgrade or distribute emulator binaries or ROMs. Fields `upstream_source_revision` and `build_flags` remain explicitly null when they cannot be established from the existing binary. Daniel should trace those against the source correspondence manifests before any public upgrade; ELF metadata must not be mislabelled as upstream version proof.
+
 ### Required evidence before any upgrade
 
 Build exact ELF/core hashes and provenance from pinned `fee2e824` + installed APK; verify compiled CPU/backend flags, `retro_get_system_info`/core options and ARM64 dynamic linking; run lawful reproducible titles on a physical Android phone, 15–20-minute nominal speed/frame pacing/audio underrun/memory/thermal logs; record SRAM vs state/save paths and same-signing in-place update. Capture baseline and candidate metrics, preserve original binary/assets, and implement a per-core rollback before changing a production default.
