@@ -170,7 +170,7 @@ androidComponents.onVariants { variant ->
     val generator =
         tasks.register<GenerateCartdeckNativeAssets>("generate${capitalizedVariant}CartdeckNativeAssets") {
             group = "cartdeck"
-            description = "Generate Original/Pink vectors and semantic colours for ${variant.name}"
+            description = "Generate Original/Pink/Green vectors and semantic colours for ${variant.name}"
             workingDir = rootProject.projectDir
             val stagingResources = layout.buildDirectory.dir("generated/cartdeck-native/${variant.name}/res")
             commandLine(
