@@ -1,0 +1,202 @@
+{
+  "schema": "cartdeck.curatedMaterialSwatches/1.0",
+  "status": "design-source-implementation-pending",
+  "rule": "For every editable role, always show the current applied hex swatch followed by actual Original/Pink/Green values for that SAME role and group-appropriate curated alternatives. User selections set only that role override; default preset values are not rewritten.",
+  "roleValueSource": {
+    "cartridge": "../cartdeck-v03/editions/{original,pink,green}.json#edition.<role>",
+    "shelf": "../cartdeck-v06/bookshelf-palette.json#editions.<preset>.tokens.<role>"
+  },
+  "suggested": {
+    "chassis": [
+      {
+        "name": "Slate",
+        "hex": "#303B49"
+      },
+      {
+        "name": "Rose",
+        "hex": "#F2A9C9"
+      },
+      {
+        "name": "Sage",
+        "hex": "#9BC7A8"
+      },
+      {
+        "name": "Midnight blue",
+        "hex": "#28435C"
+      },
+      {
+        "name": "Pearl",
+        "hex": "#D9D1C8"
+      },
+      {
+        "name": "Violet",
+        "hex": "#9F91C6"
+      }
+    ],
+    "button": [
+      {
+        "name": "Charcoal",
+        "hex": "#111923"
+      },
+      {
+        "name": "Berry",
+        "hex": "#793653"
+      },
+      {
+        "name": "Pine",
+        "hex": "#194437"
+      },
+      {
+        "name": "Navy",
+        "hex": "#26374A"
+      },
+      {
+        "name": "Sandstone",
+        "hex": "#51443E"
+      },
+      {
+        "name": "Plum",
+        "hex": "#413450"
+      }
+    ],
+    "accent": [
+      {
+        "name": "Teal",
+        "hex": "#4ED8C4"
+      },
+      {
+        "name": "Pearl pink",
+        "hex": "#FFE5F1"
+      },
+      {
+        "name": "Lime",
+        "hex": "#D4F47D"
+      },
+      {
+        "name": "Gold",
+        "hex": "#F2C879"
+      },
+      {
+        "name": "Periwinkle",
+        "hex": "#A3C5FF"
+      },
+      {
+        "name": "Coral",
+        "hex": "#F5B0A1"
+      }
+    ],
+    "shelfBackboard": [
+      {
+        "name": "Graphite",
+        "hex": "#14212D"
+      },
+      {
+        "name": "Berry",
+        "hex": "#382536"
+      },
+      {
+        "name": "Forest",
+        "hex": "#163127"
+      },
+      {
+        "name": "Deep blue",
+        "hex": "#142B3F"
+      },
+      {
+        "name": "Amethyst",
+        "hex": "#332D42"
+      },
+      {
+        "name": "Walnut",
+        "hex": "#3F332A"
+      }
+    ],
+    "shelfDeck": [
+      {
+        "name": "Gunmetal",
+        "hex": "#293847"
+      },
+      {
+        "name": "Rose alloy",
+        "hex": "#69445D"
+      },
+      {
+        "name": "Sage alloy",
+        "hex": "#315443"
+      },
+      {
+        "name": "Steel blue",
+        "hex": "#334A61"
+      },
+      {
+        "name": "Bronze",
+        "hex": "#665747"
+      },
+      {
+        "name": "Purple alloy",
+        "hex": "#5C4F71"
+      }
+    ],
+    "focusOutline": [
+      {
+        "name": "Teal",
+        "hex": "#4ED8C4"
+      },
+      {
+        "name": "Pearl",
+        "hex": "#FFE5F1"
+      },
+      {
+        "name": "Lime",
+        "hex": "#D4F47D"
+      },
+      {
+        "name": "Gold",
+        "hex": "#F2C879"
+      },
+      {
+        "name": "Blue",
+        "hex": "#A3C5FF"
+      },
+      {
+        "name": "Coral",
+        "hex": "#F5B0A1"
+      }
+    ]
+  },
+  "mapping": {
+    "cartridge": {
+      "chassis": "chassis",
+      "secondary": "chassis",
+      "bezel": "button",
+      "button": "button",
+      "accent": "accent",
+      "glass": "button",
+      "focus": "focusOutline",
+      "onChassis": "accent",
+      "onButton": "accent"
+    },
+    "shelf": {
+      "roomBackdrop": "shelfBackboard",
+      "shelfBackboard": "shelfBackboard",
+      "shelfDeck": "shelfDeck",
+      "shelfLip": "shelfDeck",
+      "shelfGroove": "shelfBackboard",
+      "edgeHighlight": "accent",
+      "shelfShadow": "shelfBackboard",
+      "sectionDivider": "shelfDeck",
+      "vacantCell": "shelfBackboard",
+      "sectionText": "accent",
+      "focusOutline": "focusOutline",
+      "interactionAccent": "accent"
+    }
+  },
+  "interaction": {
+    "showFirst": "Applied value and all three canonical preset values before suggested alternatives",
+    "display": "Each suggestion is a true-colour filled swatch chip with name and hex in accessibility metadata",
+    "valueOnTap": "Immediate local preview with selection outline, not saved until Apply",
+    "fallback": "If a suggested colour creates unreadable labels, derive accessible text/focus colour and show what changed; prohibit persisting unsafe overrides",
+    "advanced": "Optional HSV picker / keyboard hex. No blank input until advanced editor deliberately opened",
+    "reset": "Restore selected role to inherited preset value without changing other custom overrides"
+  }
+}

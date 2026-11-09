@@ -3,24 +3,29 @@
   "status": "design-contract-not-implemented",
   "basePresets": [
     "original",
-    "pink"
+    "pink",
+    "green"
   ],
   "proofOnlyPresets": [
-    "green",
     "mono"
   ],
   "defaultPreset": "original",
   "designer": {
-    "label": "Customise Your CARTDECK",
+    "label": "CARTDECK Appearance",
     "entry": "Settings > Appearance & Edition > Customise",
     "steps": [
-      "Choose a preset",
-      "Adjust shell, bezel, buttons and accent",
-      "Preview shelf, cover, gameplay and pressed controls",
-      "Check contrast and focus",
-      "Save as personal edition"
+      "Choose from visible Original, Pink or Green cards with real colours and live cartridge/shelf preview",
+      "Tap a material swatch to see coordinated colour options",
+      "Optionally open Advanced Colour Editor for precise values",
+      "Save custom theme under a unique name without overwriting factory editions",
+      "Apply edition to full shelf and cartridge family with accessibility-safe labels"
     ],
-    "exportImportDeferred": true
+    "exportImportDeferred": true,
+    "multipleNamedUserFinishes": true,
+    "editingFactoryPresetsCreatesCopy": true,
+    "swatchFirstUI": true,
+    "hexEditingAdvancedOnly": true,
+    "livePreviewRequired": true
   },
   "editable": {
     "chassis": {
@@ -119,6 +124,6 @@
     "onChassis": "#153629",
     "onButton": "#F2FFE6",
     "focus": "#D4F47D",
-    "approval": "visual demonstration only, not shipped"
+    "approval": "User-requested third base edition; pending final on-device palette acceptance"
   }
 }

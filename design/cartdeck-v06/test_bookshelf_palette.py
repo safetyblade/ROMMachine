@@ -19,7 +19,7 @@ class BookshelfPaletteTests(unittest.TestCase):
         self.assertEqual(d["geometry"]["browse"],"vertical-scroll-only")
         self.assertTrue(d["geometry"]["sectionsAndEmptySlots"])
         self.assertTrue(d["geometry"]["favouritesAndSearchSeparate"])
-        self.assertEqual(set(d["editions"]),{"original","pink"})
+        self.assertEqual(set(d["editions"]),{"original","pink","green"})
         roles=set(d["roles"])
         for edition,item in d["editions"].items():
             values=item["tokens"]

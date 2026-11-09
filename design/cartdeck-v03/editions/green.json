@@ -46,8 +46,8 @@
   },
   "edition": {
     "id": "green",
-    "name": "Green Proof",
-    "status": "demonstration-unapproved",
+    "name": "Green",
+    "status": "approved-direction",
     "chassis": "#9BC7A8",
     "secondary": "#446F5C",
     "bezel": "#163B36",

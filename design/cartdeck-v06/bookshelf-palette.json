@@ -67,6 +67,27 @@
         "focusOutline": "#FFE5F1",
         "interactionAccent": "#FFD5E7"
       }
+    },
+    "green": {
+      "materials": {
+        "backboard": "Smoked dark forest recessed panel",
+        "rail": "Satin sage alloy / olive-machined edge",
+        "trim": "Warm lime light accents"
+      },
+      "tokens": {
+        "roomBackdrop": "#0D1914",
+        "shelfBackboard": "#163127",
+        "shelfDeck": "#315443",
+        "shelfLip": "#658978",
+        "shelfGroove": "#0B241B",
+        "edgeHighlight": "#9DC5A6",
+        "shelfShadow": "#06110D",
+        "sectionDivider": "#315E4C",
+        "vacantCell": "#254336",
+        "sectionText": "#EBF8E8",
+        "focusOutline": "#D4F47D",
+        "interactionAccent": "#D4F47D"
+      }
     }
   },
   "nativeRendering": {
@@ -101,6 +122,7 @@
     "architecture": "Daniel",
     "qa": "Marcus",
     "currentCodexIssue": 43,
-    "previousScreenshotDefectsIssue": 40
+    "previousScreenshotDefectsIssue": 40,
+    "thirdEdition": "Green joins Original and Pink as a candidate for native implementation, visually reviewed by Sienna; owner may refine colour prior to final release"
   }
 }

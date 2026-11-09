@@ -1,0 +1,143 @@
+{
+  "schema": "cartdeck.appearanceSelector/2.0",
+  "status": "approved-design-direction-native-implementation-pending",
+  "audience": "Android phone and tablet first; accessible controller-first variant on TV",
+  "entry": "Library > Appearance; Settings > Appearance & Editions",
+  "currentProblem": "Plain AlertDialog, two text buttons for editions and 14 empty hex text fields hide actual colours and push Apply below fold",
+  "presetOrder": [
+    "original",
+    "pink",
+    "green"
+  ],
+  "presets": {
+    "original": {
+      "title": "Original",
+      "tagline": null,
+      "cartridge": "../cartdeck-v03/editions/original.json",
+      "shelf": "../cartdeck-v06/bookshelf-palette.json#editions.original"
+    },
+    "pink": {
+      "title": "Pink",
+      "tagline": null,
+      "cartridge": "../cartdeck-v03/editions/pink.json",
+      "shelf": "../cartdeck-v06/bookshelf-palette.json#editions.pink"
+    },
+    "green": {
+      "title": "Green",
+      "tagline": null,
+      "cartridge": "../cartdeck-v03/editions/green.json",
+      "shelf": "../cartdeck-v06/bookshelf-palette.json#editions.green"
+    }
+  },
+  "layout": {
+    "title": "Appearance",
+    "top": "Three visible preset cards or horizontal carousel on narrow devices; show actual cartridge-and-shelf preview built from current semantic colours; every card has name, real swatch strip and selected border/check",
+    "preview": "Shared live preview: 2 Arc-Rail spines + shelf backboard + rail; on selection immediately reflect all cartridge and shelf tokens; fallback not game licensed art",
+    "controls": "Choose edition | Customise colours | Save as new | Accessibility settings; keep Cancel/Apply visible using sticky footer; no giant blank input stack",
+    "swatchRoleList": "Tappable swatch rows grouped Cartridge, Shelf, Lighting and Accessibility; display actual colour square, role, value and optional reset badge; hide advanced unused tokens until group opened",
+    "tokenEditor": "Tap colour square opens palette sheet with 6-8 curated swatch chips, current colour visible, optional native HSV picker and advanced hex entry; preview updates without committing until Apply",
+    "preferredHeight": "Full-screen or expandable bottom sheet on phone rather than a 14-field AlertDialog",
+    "selectedIndicator": "Accessible selected state not colour alone",
+    "motion": "Quick crossfade/tint of preview only; reduced-motion immediate",
+    "typography": "No marketing slogans or long instructions; concise functional labels",
+    "swatchCatalogue": "material-swatches.json",
+    "allRoleSwatches": "Current applied value, three actual preset values for the same role, then curated thematic alternatives; minimum six visible options. Validate contrast and derive on-text instead of treating raw chips as accessibility-safe."
+  },
+  "roleGroups": {
+    "cartridge": [
+      "chassis",
+      "secondary",
+      "bezel",
+      "button",
+      "accent",
+      "glass"
+    ],
+    "shelf": [
+      "roomBackdrop",
+      "shelfBackboard",
+      "shelfDeck",
+      "shelfLip",
+      "shelfGroove",
+      "edgeHighlight",
+      "shelfShadow",
+      "sectionDivider",
+      "vacantCell"
+    ],
+    "lighting": [
+      "focus",
+      "focusOutline",
+      "interactionAccent"
+    ],
+    "textAndContrast": [
+      "onChassis",
+      "onButton",
+      "sectionText"
+    ]
+  },
+  "customThemes": {
+    "store": "Versioned local application preferences; migrate current ShelfAppearance(edition,custom,highContrast,reducedMotion) non-destructively",
+    "type": "NamedUserAppearance",
+    "fields": [
+      "id",
+      "name",
+      "basePresetId",
+      "cartridgeOverrides",
+      "shelfOverrides",
+      "createdAt",
+      "updatedAt"
+    ],
+    "operations": [
+      "create from preset",
+      "rename",
+      "duplicate",
+      "apply",
+      "edit",
+      "delete user-only appearance",
+      "reset individual role",
+      "reset all overrides"
+    ],
+    "preserveFactories": true,
+    "emptyOverridesInheritBase": true,
+    "minUserThemes": 10,
+    "stableIDs": "UUIDs in preference layer; never game ID",
+    "persistence": "Restart and app update; never ROM, SRAM, save state, indexed games, or shelf placement records",
+    "invalidColors": "Prevent save or reset offending role to derived safe value with visible inline guidance; do not silently alter other roles",
+    "backupExport": "Deferred; don't require new network or file permissions"
+  },
+  "accessibility": {
+    "contrastText": 4.5,
+    "contrastInteractive": 3,
+    "minimumTargetDp": 48,
+    "pickerHasAccessibilityLabels": true,
+    "highContrastOverridesUserSwatches": true,
+    "reducedMotionPreferenceIndependent": true,
+    "noColorAloneAsStatus": true,
+    "keepApplyAccessibleWithKeyboardAndTalkBack": true
+  },
+  "implementation": {
+    "currentEditor": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfEditors.kt",
+    "existingRendering": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfMaterials.kt",
+    "existingPresets": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/shared/compose/ui/CartdeckEditionTokens.kt",
+    "currentStore": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfStore.kt",
+    "currentModel": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfLayout.kt",
+    "greenRequirement": "Add GREEN branch to native preset enum / cartridge tokens, and adopt 3-way shelf selection instead of canonicalShelfMaterials(pink:Boolean) boolean",
+    "migration": "Keep existing version-one layout and appearance as readable; do not require destructive game/shelf migration. Optional separate appearance store/schema v2 or backward-compatible appearance extension approved by Daniel",
+    "previewAndSave": "Use temporary Compose state; cancel restores applied appearance and custom themes unchanged; Apply persists atomically",
+    "preserveScope": "No emulator renderer, PadKit, ROM scanning, file permissions, save paths or copyrighted game imagery changes",
+    "delivery": "Independent UI polish feature PR after or alongside existing P1-A2 code; avoid rebasing unreleased binaries from obsolete branches"
+  },
+  "qa": [
+    "Original/Pink/Green card shows actual preset colours and realistic shelf/case mini preview",
+    "Preset selection updates all visible surfaces, controls and shelf without changing geometry",
+    "Original values visible in colour rows on first entry; no empty hex form as default",
+    "Tapped swatch shows curated choices; accessibility announces colour and selected state",
+    "Named user theme can be saved/renamed/duplicated/applied/deleted without changing factory themes",
+    "Cancel leaves current applied edition and saved names unchanged",
+    "Existing V1 custom overrides survive migration and can be saved as named copy",
+    "High contrast and reduced motion persist independently across presets",
+    "Invalid role and low contrast handled with visible feedback",
+    "Original/Pink/Green survive restart, screen rotation and in-place debug update",
+    "Cartridge family and shelf use same identity and theme together; cover/game image untouched",
+    "393dp screenshot, large type, TalkBack/focus, portrait/landscape/tablet and dark/light device mode proof"
+  ]
+}
