@@ -38,13 +38,14 @@ test -s "$OUT/cartdeck-h1.flat.zip"
 unzip -Z1 "$OUT/cartdeck-h1.flat.zip" > "$OUT/compiled-resources.txt"
 count="$(wc -l < "$OUT/compiled-resources.txt")"
 printf 'Compiled entries: %s\n' "$count" | tee "$OUT/summary.txt"
-# 52 drawables + at least one merged values resource.
-test "$count" -ge 53 || {
-  echo "::error::AAPT2 compiled fewer resource entries than the 52-vector catalog" >&2
+# 78 drawables + at least one merged values resource.
+test "$count" -ge 79 || {
+  echo "::error::AAPT2 compiled fewer resource entries than the 78-vector catalog" >&2
   exit 1
 }
 grep -q 'cartdeck_h1_original_dpad_master' "$OUT/compiled-resources.txt"
-grep -q 'cartdeck_h1_pink_front_base' "$OUT/compiled-resources.txt"
+grep -q 'cartdeck_h1_pink_front_base'
+grep -q 'cartdeck_h1_green_front_base' "$OUT/compiled-resources.txt"
 grep -q 'cartdeck_edition_colors' "$OUT/compiled-resources.txt"
 sha256sum "$OUT/cartdeck-h1.flat.zip" > "$OUT/aapt2-flat-sha256.txt"
-printf 'PASS: Android AAPT2 parsed all Original/Pink resources (not APK/device acceptance)\n'
+printf 'PASS: Android AAPT2 parsed all Original/Pink/Green resources (not APK/device acceptance)\n'

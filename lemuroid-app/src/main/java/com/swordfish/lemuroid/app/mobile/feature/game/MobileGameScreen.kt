@@ -77,7 +77,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val appContext = LocalContext.current
         // Read existing appearance atomically. No mutation of library, inputs,
         // ROM files, emulator state or save data.
-        val appearance = produceState(initialValue = ShelfAppearance(), appContext) {
+        val appearance = produceState(initialValue = ShelfAppearance(), key1 = appContext) {
             value = runCatching { ShelfStore(appContext).read().appearance }.getOrDefault(ShelfAppearance())
         }.value
         val edition = when (appearance.edition.lowercase()) {
