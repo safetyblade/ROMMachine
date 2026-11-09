@@ -196,6 +196,19 @@ internal fun CartdeckHardwareSeats(
     val margin = with(density) { 3.dp.toPx() }
     val clearance = with(density) { 4.dp.toPx() }
     val tint = if (customColours) ColorFilter.tint(tokens.secondary) else null
+    val protectedBrand =
+        if (isDualScreen) {
+            val halfWidth = with(density) { 49.dp.toPx() }
+            val height = with(density) { 54.dp.toPx() }
+            Rect(
+                rootBounds.width / 2f - halfWidth,
+                rootBounds.height - height,
+                rootBounds.width / 2f + halfWidth,
+                rootBounds.height,
+            )
+        } else {
+            null
+        }
     val glowSources = CartdeckHardwareResource.glow(edition)
     // Deliberately unused until P1-C3: the static six-zone lookup proves that
     // the full mask/unlit/on source family is available without enabling light.
@@ -275,7 +288,8 @@ internal fun CartdeckHardwareSeats(
                             rect,
                             CartdeckHardwareGeometry.expanded(it, clearance),
                         )
-                    }
+                    } &&
+                    (protectedBrand == null || !CartdeckHardwareGeometry.intersects(rect, protectedBrand))
             if (clear) {
                 Image(
                     painter = painterResource(resource),
@@ -303,6 +317,9 @@ internal fun CartdeckHardwareSeats(
                     margin = margin,
                     clearance = clearance,
                 ) ?: return@forEach
+            if (protectedBrand != null && CartdeckHardwareGeometry.intersects(safe, protectedBrand)) {
+                return@forEach
+            }
             val w = with(density) { safe.width.toDp() }
             val h = with(density) { safe.height.toDp() }
             val base =
