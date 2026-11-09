@@ -147,33 +147,35 @@ private fun cartridgeAsset(edition: String, part: String): Int =
 fun CartdeckAppearancePreview(
     appearance: ShelfAppearance,
     modifier: Modifier = Modifier,
+    height: Dp = 152.dp,
 ) {
     val materials = shelfMaterials(appearance)
     val edition = appearance.edition
+    val scale = height.value / 152f
     androidx.compose.runtime.CompositionLocalProvider(LocalShelfAppearance provides appearance) {
         Box(
-            modifier = modifier.fillMaxWidth().height(152.dp)
-                .clip(RoundedCornerShape(14.dp))
+            modifier = modifier.fillMaxWidth().height(height)
+                .clip(RoundedCornerShape(10.dp))
                 .background(materials.shelfBackboard),
         ) {
             Row(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp * scale),
+                horizontalArrangement = Arrangement.spacedBy(12.dp * scale),
             ) {
                 repeat(3) {
                     Image(
                         painter = cartridgePainter(cartridgeAsset(edition, "spine"), edition),
                         contentDescription = null,
-                        modifier = Modifier.size(35.dp, 127.dp),
+                        modifier = Modifier.size(35.dp * scale, 127.dp * scale),
                     )
                 }
             }
             Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(13.dp)
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(13.dp * scale)
                     .background(materials.shelfDeck),
             )
             Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(5.dp)
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(5.dp * scale)
                     .background(materials.shelfLip),
             )
         }
