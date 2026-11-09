@@ -99,6 +99,22 @@ internal object CartdeckHardwareResource {
         }
     }
 
+    @DrawableRes
+    fun speaker(edition: CartdeckEditionPreset): Int =
+        when (edition) {
+            CartdeckEditionPreset.ORIGINAL -> R.drawable.cartdeck_c2_original_details_speaker_grille
+            CartdeckEditionPreset.PINK -> R.drawable.cartdeck_c2_pink_details_speaker_grille
+            CartdeckEditionPreset.GREEN -> R.drawable.cartdeck_c2_green_details_speaker_grille
+        }
+
+    @DrawableRes
+    fun indicator(edition: CartdeckEditionPreset): Int =
+        when (edition) {
+            CartdeckEditionPreset.ORIGINAL -> R.drawable.cartdeck_c2_original_details_indicator_bars
+            CartdeckEditionPreset.PINK -> R.drawable.cartdeck_c2_pink_details_indicator_bars
+            CartdeckEditionPreset.GREEN -> R.drawable.cartdeck_c2_green_details_indicator_bars
+        }
+
     /** Named, typed source access without making player-facing lighting settings. */
     fun glow(edition: CartdeckEditionPreset): Map<String, CartdeckGlowFamily> =
         when (edition) {
@@ -228,6 +244,49 @@ internal fun CartdeckHardwareSeats(
                         )
                     }
                 }
+            }
+        }
+
+        // Speakers and indicators only occupy confirmed unused residual
+        // chassis. They are never added to the game's pointer hierarchy.
+        val speakerWidth = with(density) { 70.dp.toPx() }
+        val speakerHeight = with(density) { 17.dp.toPx() }
+        val indicatorWidth = with(density) { 62.dp.toPx() }
+        val gapBelowVideo = with(density) { 18.dp.toPx() }
+        val firstControl = controls.values.minOfOrNull { it.top } ?: rootBounds.height
+        val detailY = maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - 37.dp.toPx())
+        val details =
+            listOf(
+                Rect(rootBounds.width * 0.18f - speakerWidth / 2f, detailY,
+                    rootBounds.width * 0.18f + speakerWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.speaker(edition),
+                Rect(rootBounds.width * 0.82f - speakerWidth / 2f, detailY,
+                    rootBounds.width * 0.82f + speakerWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.speaker(edition),
+                Rect(rootBounds.width / 2f - indicatorWidth / 2f, detailY,
+                    rootBounds.width / 2f + indicatorWidth / 2f, detailY + speakerHeight) to CartdeckHardwareResource.indicator(edition),
+            )
+        details.forEach { (rect, resource) ->
+            val clear =
+                rect.left >= 4f && rect.right <= rootBounds.width - 4f &&
+                    rect.bottom < rootBounds.height - 4f &&
+                    (video == null || !CartdeckHardwareGeometry.intersects(rect, video)) &&
+                    controls.values.none {
+                        CartdeckHardwareGeometry.intersects(
+                            rect,
+                            CartdeckHardwareGeometry.expanded(it, clearance),
+                        )
+                    }
+            if (clear) {
+                Image(
+                    painter = painterResource(resource),
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .offset { IntOffset(rect.left.roundToInt(), rect.top.roundToInt()) }
+                            .width(with(density) { rect.width.toDp() })
+                            .height(with(density) { rect.height.toDp() }),
+                    contentScale = ContentScale.FillBounds,
+                    colorFilter = tint,
+                )
             }
         }
 
