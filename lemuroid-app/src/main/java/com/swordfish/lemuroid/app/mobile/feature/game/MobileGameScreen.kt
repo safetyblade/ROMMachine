@@ -335,33 +335,34 @@ private fun PadContainer(
 ) {
     Box(modifier = modifier) {
         Canvas(Modifier.fillMaxSize()) {
-        if (size.width <= 0f || size.height <= 0f) return@Canvas
-        val edge = 3.dp.toPx()
-        val cut = minOf(22.dp.toPx(), size.width * 0.07f, size.height * 0.14f)
-        // Dynamic form of the approved chamfered chassis/control-deck.svg.
-        val outline =
-            Path().apply {
-                moveTo(cut + edge, edge)
-                lineTo(size.width - cut - edge, edge)
-                lineTo(size.width - edge, cut + edge)
-                lineTo(size.width - edge, size.height - cut - edge)
-                lineTo(size.width - cut - edge, size.height - edge)
-                lineTo(cut + edge, size.height - edge)
-                lineTo(edge, size.height - cut - edge)
-                lineTo(edge, cut + edge)
-                close()
+            if (size.width <= 0f || size.height <= 0f) return@Canvas
+            val edge = 3.dp.toPx()
+            val cut = minOf(22.dp.toPx(), size.width * 0.07f, size.height * 0.14f)
+            // Dynamic form of the approved chamfered chassis/control-deck.svg.
+            val outline =
+                Path().apply {
+                    moveTo(cut + edge, edge)
+                    lineTo(size.width - cut - edge, edge)
+                    lineTo(size.width - edge, cut + edge)
+                    lineTo(size.width - edge, size.height - cut - edge)
+                    lineTo(size.width - cut - edge, size.height - edge)
+                    lineTo(cut + edge, size.height - edge)
+                    lineTo(edge, size.height - cut - edge)
+                    lineTo(edge, cut + edge)
+                    close()
+                }
+            drawPath(outline, tokens.secondary)
+            drawPath(outline, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
+            val inset = 13.dp.toPx()
+            if (size.width > 2f * inset + 8.dp.toPx() && size.height > 2f * inset + 8.dp.toPx()) {
+                drawRoundRect(
+                    color = tokens.onChassis.copy(alpha = 0.19f),
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - inset * 2, size.height - inset * 2),
+                    cornerRadius = CornerRadius(12.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx()),
+                )
             }
-        drawPath(outline, tokens.secondary)
-        drawPath(outline, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
-        val inset = 13.dp.toPx()
-        if (size.width > 2f * inset + 8.dp.toPx() && size.height > 2f * inset + 8.dp.toPx()) {
-            drawRoundRect(
-                color = tokens.onChassis.copy(alpha = 0.19f),
-                topLeft = Offset(inset, inset),
-                size = Size(size.width - inset * 2, size.height - inset * 2),
-                cornerRadius = CornerRadius(12.dp.toPx()),
-                style = Stroke(width = 1.dp.toPx()),
-            )
         }
         // On a tall DS viewport the opaque deck would otherwise conceal the
         // inherited footer badge. Preserve the canonical C-slot in a separate,
