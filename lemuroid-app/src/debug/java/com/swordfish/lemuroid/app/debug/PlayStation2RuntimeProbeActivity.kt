@@ -45,7 +45,7 @@ class PlayStation2RuntimeProbeActivity : ComponentActivity() {
             disc.canonicalFile.parentFile != gameDirectory.canonicalFile
         ) {
             reportFailure(
-                "Missing local Play! core or lawful PS2 ISO/CHD fixture; verify game platform separately; use dc01_device_probe.sh",
+                "Invalid Play! core or legal PS2 fixture; run ps201_device_probe.sh",
             )
             return
         }
