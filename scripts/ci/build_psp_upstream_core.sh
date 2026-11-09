@@ -20,6 +20,7 @@ test "$(git -C "$work/ppsspp" rev-parse HEAD)" = "$SOURCE_SHA"
     cd "$work/ppsspp/libretro/jni"
     "$ANDROID_NDK_HOME/ndk-build" -j2 \
         APP_ABI=arm64-v8a APP_PLATFORM=android-24 APP_CPPFLAGS="-frtti -fexceptions" \
+        APP_CFLAGS="-DPNG_ARM_NEON_OPT=0" \
         APP_LDFLAGS="-Wl,-z,max-page-size=16384"
 )
 core="$work/ppsspp/libretro/libs/arm64-v8a/libretro.so"
