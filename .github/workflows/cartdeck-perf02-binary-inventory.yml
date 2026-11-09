@@ -1,0 +1,82 @@
+name: CARTDECK PERF-02 pinned ARM64 core binary inventory (read only)
+
+on:
+  pull_request:
+    paths:
+      - "docs/engineering/PERF-02-EMULATOR-UPSTREAM-COMPARISON.md"
+      - ".github/workflows/cartdeck-perf02-binary-inventory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Record the exact pinned binary inventory, hashes, ELF and alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/cartdeck-audit
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import re
+          import subprocess
+
+          root=pathlib.Path("lemuroid-cores")
+          if not root.is_dir():
+              raise SystemExit("Pinned LemuroidCores submodule is missing")
+          gitlink=subprocess.check_output(["git","rev-parse","HEAD:lemuroid-cores"],text=True).strip()
+          checked=subprocess.check_output(["git","-C","lemuroid-cores","rev-parse","HEAD"],text=True).strip()
+          if gitlink != checked:
+              raise SystemExit("Submodule checked out at an unexpected commit")
+          libraries=sorted({p for p in root.rglob("*.so") if "arm64-v8a" in p.parts})
+          if not libraries:
+              raise SystemExit("No pinned ARM64 emulator libraries found")
+          report=[]
+          for library in libraries:
+              raw=library.read_bytes()
+              if raw[:4] != b"\x7fELF":
+                  raise SystemExit(f"Not an ELF: {library}")
+              elf=subprocess.run(["readelf","-h",str(library)],text=True,capture_output=True,check=True).stdout
+              segments=subprocess.run(["readelf","-lW",str(library)],text=True,capture_output=True,check=True).stdout
+              machine=re.search(r"Machine:\s*(.+)",elf)
+              loads=[int(line.split()[-1],16) for line in segments.splitlines() if line.strip().startswith("LOAD ")]
+              report.append({
+                  "path":str(library),
+                  "bytes":len(raw),
+                  "sha256":hashlib.sha256(raw).hexdigest(),
+                  "machine":machine.group(1).strip() if machine else "unverified",
+                  "elf_pt_load_alignment":loads,
+                  "sixteen_kib_aligned":bool(loads and min(loads)>=16384),
+                  "upstream_source_revision":None,
+                  "build_flags":None
+              })
+          output={
+              "cartdeck_commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+              "lemuroid_cores_gitlink":gitlink,
+              "binary_count":len(report),
+              "arm64_libraries":report,
+              "note":"SHA-256/ELF bytes are measured. Upstream source revision and compiler flags are not derivable from these hashes."
+          }
+          path=pathlib.Path("dist/cartdeck-audit/PERF02-ARM64-BINARY-INVENTORY.json")
+          path.write_text(json.dumps(output,indent=2)+"\n")
+          print(f"PINNED SUBMODULE {gitlink}")
+          print(f"ARM64 ELF BINARIES {len(report)}")
+          for row in report:
+              print(f"{row['sha256']} {row['bytes']:>10} bytes aligned16k={row['sixteen_kib_aligned']} {row['path']}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK-PERF02-ARM64-CORE-INVENTORY
+          path: dist/cartdeck-audit/PERF02-ARM64-BINARY-INVENTORY.json
+          if-no-files-found: error
+          retention-days: 30

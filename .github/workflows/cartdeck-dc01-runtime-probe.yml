@@ -1,0 +1,43 @@
+name: CARTDECK DC-01 diagnostic harness source checks (no core delivery)
+
+on:
+  pull_request:
+    paths:
+      - "lemuroid-app/src/debug/**"
+      - "scripts/ci/dc01_device_probe.sh"
+      - "spikes/dreamcast/DC01_RUNTIME_PROBE.md"
+      - ".github/workflows/cartdeck-dc01-runtime-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax, manifest and core-provision safety gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/ci/dc01_device_probe.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("lemuroid-app/src/debug/java/com/swordfish/lemuroid/app/debug/DreamcastRuntimeProbeActivity.kt").read_text()
+          manifest = Path("lemuroid-app/src/debug/AndroidManifest.xml").read_text()
+          assert "GLRetroView(this, data)" in src
+          assert "GLRetroViewData(applicationContext)" in src
+          assert "getGLRetroEvents()" in src
+          assert "FRAME_RENDERED" in src
+          assert 'filesDir, "dreamcast-lab"' in src
+          assert 'android:exported="true"' in manifest
+          assert "DreamcastRuntimeProbeActivity" in manifest
+          for forbidden in ("dc_boot.bin", "dc_flash.bin", "CoreID.FLYCAST", "SystemID.DREAMCAST"):
+              assert forbidden not in src, forbidden
+          print("PASS: debug-only GLRetroView harness static contract")
+          PY
+          if git ls-files | grep -Ei '(^|/)(dc_boot\.bin|dc_flash\.bin|flycast.*\.so)$'; then
+            echo "::error::Never commit a third-party core or proprietary Dreamcast BIOS"
+            exit 1
+          fi
