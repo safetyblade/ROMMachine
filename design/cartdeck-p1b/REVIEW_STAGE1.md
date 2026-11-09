@@ -23,7 +23,7 @@ Inspected latest `master`, Issue #13, `MobileGameScreen.kt`, `GameScreenLayout.k
 
 - Shared screen aperture: left 37, top 141, width 319, height 238 reference pixels.
 - GBA game image: 315×210 at x=39, y=155 (exact 3:2).
-- GB/GBC game image: 264×237 at x=64.5, y=141.5 (exact 10:9).
+- GB/GBC game image: 264×237.6 at x=64.5, y=141.2 (exact 10:9).
 - Original pixel scenes Moon Quay/Archive 03 used **only in mockups**; they are not ROM screenshots or a replacement for the real renderer. Link to downloadable vector previews in Sienna's review, not automatically bundled in app.
 - Screen and app coordinate values are illustrative **reference pixels**, not fixed dp constants. Engineering derives rectangles from measured available display, gesture/cutout insets and reported core geometry.
 
