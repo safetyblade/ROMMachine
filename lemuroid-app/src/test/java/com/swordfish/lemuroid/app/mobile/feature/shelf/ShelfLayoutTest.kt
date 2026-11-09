@@ -42,7 +42,8 @@ class ShelfLayoutTest {
         var layout = ShelfLayout().reconcile(games)
         layout = layout.insertSpace(ShelfLayout.UNSORTED, "game:b")
         layout = layout.insertSpace(ShelfLayout.UNSORTED, row = true)
-        layout = layout.createSection("Fighting").moveCell("game:d", layoutSectionId(layout))
+        layout = layout.createSection("Fighting")
+        layout = layout.moveCell("game:d", layout.sections.last().id)
         val sectionId = layout.sections.last().id
         val reserved = layout.sections.first().cells.filter { it.gameKey == null }
         val pruned = layout.reconcile(mapOf("a" to "A", "c" to "C", "d" to "D"), removeMissing = true)
@@ -55,8 +56,6 @@ class ShelfLayoutTest {
         val readded = pruned.reconcile(games)
         assertEquals("b", readded.sections.first().cells.last().gameKey)
     }
-
-    private fun layoutSectionId(layout: ShelfLayout): String = layout.sections.last().id
 
     @Test fun incompleteOrFailedRefreshDoesNotDeleteMissingCartridgeCells() {
         val previous = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B"))
