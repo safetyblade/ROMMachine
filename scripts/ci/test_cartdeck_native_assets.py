@@ -36,7 +36,7 @@ class NativeAssetTests(unittest.TestCase):
             check=True,
         )
 
-    def test_only_three_approved_editions_and_approved_single_geometry(self):
+    def test_all_three_factory_editions_and_single_geometry(self):
         self.assertEqual(self.manifest["editions"], ["original", "pink", "green"])
         self.assertTrue(self.manifest["systemsAsLabelsNotGeometry"])
         self.assertTrue(self.manifest["lockedRendererAndPadKit"])
@@ -50,7 +50,7 @@ class NativeAssetTests(unittest.TestCase):
         self.assertFalse(any("mono" in name for name in names))
         self.assertFalse(any("book_spine" in name or "cover_case" in name for name in names))
 
-    def test_native_vectors_parse_and_three_edition_geometry_match(self):
+    def test_native_vectors_parse_and_factory_geometry_match(self):
         by_master = {}
         for row in self.manifest["assets"]:
             source = ROOT / row["canonicalMaster"]

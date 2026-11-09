@@ -32,11 +32,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
@@ -49,6 +51,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
 import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
@@ -68,6 +74,27 @@ import gg.padkit.inputstate.InputState
 fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isLandscape = constraints.maxWidth > constraints.maxHeight
+        val appContext = LocalContext.current
+        // Read existing appearance atomically. No mutation of library, inputs,
+        // ROM files, emulator state or save data.
+        val appearance =
+            produceState(initialValue = ShelfAppearance(), key1 = appContext) {
+                value = runCatching { ShelfStore(appContext).read().appearance }.getOrDefault(ShelfAppearance())
+            }.value
+        val edition =
+            when (appearance.edition.lowercase()) {
+                "pink" -> CartdeckEditionPreset.PINK
+                "green" -> CartdeckEditionPreset.GREEN
+                else -> CartdeckEditionPreset.ORIGINAL
+            }
+        val editionTokens = remember(appContext, edition) { appContext.resolveCartdeckEdition(edition) }
+        val shellTokens =
+            remember(editionTokens, appearance) {
+                editionTokens.copy(
+                    chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: editionTokens.chassis,
+                    accent = appearance.custom["accent"]?.let { Color(it.toInt()) } ?: editionTokens.accent,
+                )
+            }
 
         LaunchedEffect(isLandscape) {
             val orientation =
@@ -134,6 +161,13 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullPos = fullScreenPosition.value
             val viewPos = viewportPosition.value
+
+            CartdeckConsoleShell(
+                tokens = shellTokens,
+                videoBounds = viewPos,
+                rootBounds = fullPos,
+                isLandscape = isLandscape,
+            )
 
             LaunchedEffect(fullPos, viewPos) {
                 val gameView = viewModel.retroGameView.retroGameViewFlow()

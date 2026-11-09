@@ -26,7 +26,6 @@ val LocalShelfMaterials = staticCompositionLocalOf { canonicalShelfMaterials("or
 
 fun canonicalShelfMaterials(pink: Boolean): ShelfMaterials = canonicalShelfMaterials(if (pink) "pink" else "original")
 
-/** Source: design/cartdeck-v06/bookshelf-palette.json; all editions share geometry. */
 fun canonicalShelfMaterials(edition: String): ShelfMaterials =
     when (edition.lowercase()) {
         "pink" ->

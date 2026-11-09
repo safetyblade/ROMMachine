@@ -2,7 +2,7 @@
 """ASSET-H1: generate Android VectorDrawables and colours from Sienna's editable masters.
 
 No ROM, emulator, PadKit, game display or existing UI code is modified here.
-Original/Pink/Green ship as semantic resources. Source SVGs and JSON remain canonical.
+All three factory editions ship as resources. Source SVGs and JSON remain canonical.
 """
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ def palette() -> dict[str, dict[str, str]]:
 def check_cartridge_contract() -> dict:
     spec = json.loads((V05 / "cartridge-family.json").read_text(encoding="utf-8"))
     if spec["systemAffectsGeometry"] or spec["approvedEditions"] != list(EDITIONS):
-        raise ValueError("Cartridge family no longer matches the common Original/Pink/Green identity")
+        raise ValueError("Cartridge family no longer matches the common Original/Pink identity")
     if set(("GB", "GBC", "GBA")) - set(spec["systems"]):
         raise ValueError("GB/GBC/GBA labels missing")
     if spec["geometryLocked"]["artWindow"] != {
@@ -182,7 +182,7 @@ def main() -> None:
                 signature = geometry_signature(destination)
                 old = geometry_by_source.setdefault(str(master), signature)
                 if old != signature:
-                    raise ValueError(f"Cross-edition geometry mismatch: {master}")
+                    raise ValueError(f"factory edition geometry mismatch: {master}")
                 assets.append({
                     "edition": edition,
                     "group": group,
@@ -201,7 +201,7 @@ def main() -> None:
     if not any(a["canonicalMaster"].endswith("dpad-master.svg") for a in assets):
         raise ValueError("Approved v0.3.1 D-pad missing")
     if len(assets) < 60:
-        raise ValueError(f"Expected at least 60 Original/Pink/Green vector resources; got {len(assets)}")
+        raise ValueError(f"Expected at least 60 factory vector resources; got {len(assets)}")
 
     manifest = {
         "schema": "cartdeck.nativeAssets/1.0",

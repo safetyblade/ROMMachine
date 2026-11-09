@@ -49,7 +49,7 @@ class CartridgeFamilyTests(unittest.TestCase):
         self.assertEqual(self.family["runtime"]["shellSelectionOutlineToken"],"onChassis")
 
     def test_cosmetic_palette_safe_label_contrast(self):
-        for edition in ("original","pink"):
+        for edition in ("original","pink","green"):
             p = ROOT.parent/"cartdeck-v03"/"editions"/(edition+".json")
             c = json.loads(p.read_text())["edition"]
             with self.subTest(edition=edition):

@@ -64,8 +64,9 @@ class LemuroidLibrary(
      */
     suspend fun indexLibrary(): IndexSummary {
         val startedAtMs = System.currentTimeMillis()
-        val before = retrogradedb.gameDao().selectShelfGames().first()
-            .map { it.systemId to it.fileUri }.toSet()
+        val before =
+            retrogradedb.gameDao().selectShelfGames().first()
+                .map { it.systemId to it.fileUri }.toSet()
         val skipped = AtomicInteger(0)
 
         try {
@@ -77,8 +78,9 @@ class LemuroidLibrary(
 
         // Cleanup follows completed enumeration, never finally/catch.
         cleanUp(startedAtMs)
-        val after = retrogradedb.gameDao().selectShelfGames().first()
-            .map { it.systemId to it.fileUri }.toSet()
+        val after =
+            retrogradedb.gameDao().selectShelfGames().first()
+                .map { it.systemId to it.fileUri }.toSet()
         Timber.i("Library indexing completed in: ${System.currentTimeMillis() - startedAtMs} ms")
         return IndexSummary(
             added = (after - before).size,
@@ -88,7 +90,10 @@ class LemuroidLibrary(
     }
 
     @OptIn(FlowPreview::class)
-    private suspend fun indexProviders(startedAtMs: Long, skipped: AtomicInteger) {
+    private suspend fun indexProviders(
+        startedAtMs: Long,
+        skipped: AtomicInteger,
+    ) {
         val gameMetadata = gameMetadataProvider.get()
         val enabledProviders = storageProviderRegistry.get().enabledProviders
         enabledProviders.asFlow()

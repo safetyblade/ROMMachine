@@ -13,7 +13,7 @@ import com.swordfish.lemuroid.R
  * Resource colours are deterministically generated from canonical editable
  * design/cartdeck-v03/editions/{original,pink,green}.json by ASSET-H1.
  *
- * Consumed by the P1-A2 library hardware painters; gameplay themes remain independent.
+ * Consumed by the P1-A2 library hardware painters; gameplay uses the same saved edition.
  * It does not change Android dynamic theme, renderer, game pixel colours,
  * PadKit input, saves, package identity, launcher icons or user cover artwork.
  */

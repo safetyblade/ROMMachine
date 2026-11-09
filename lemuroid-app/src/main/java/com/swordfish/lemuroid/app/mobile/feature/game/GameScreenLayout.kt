@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
@@ -35,12 +36,15 @@ object GameScreenLayout {
             val gamePadChain = createHorizontalChain(leftPad, rightPad, chainStyle = ChainStyle.SpreadInside)
 
             constrain(gameView) {
+                // Stable manufactured display opening; the native renderer still
+                // contains each system's pixels without cropping or stretching.
                 width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-                top.linkTo(parent.top)
-                absoluteLeft.linkTo(parent.absoluteLeft)
-                absoluteRight.linkTo(parent.absoluteRight)
-                bottom.linkTo(leftPad.top)
+                height = Dimension.ratio("3:2")
+                top.linkTo(parent.top, margin = 92.dp)
+                bottom.linkTo(leftPad.top, margin = 16.dp)
+                verticalBias = 0f
+                absoluteLeft.linkTo(parent.absoluteLeft, margin = 28.dp)
+                absoluteRight.linkTo(parent.absoluteRight, margin = 28.dp)
             }
 
             constrain(bottomContainer) {
