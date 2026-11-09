@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <!-- Debug only, unlisted. Does not alter the normal library or gameplay path. -->
-        <activity
-            android:name="com.swordfish.lemuroid.app.debug.GameCubeRuntimeProbeActivity"
-            android:exported="true" />
+        <!-- Debug only: local lawful emulator probes; no supported-system claims. -->
+        <activity android:name="com.swordfish.lemuroid.app.debug.DreamcastRuntimeProbeActivity" android:exported="true" />
+        <activity android:name="com.swordfish.lemuroid.app.debug.GameCubeRuntimeProbeActivity" android:exported="true" />
     </application>
 </manifest>
