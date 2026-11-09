@@ -34,8 +34,8 @@ class P1BShellContract(unittest.TestCase):
             root=ET.parse(p).getroot()
             self.assertIn("128 128",root.get("viewBox"))
             self.assertFalse(any(e.tag.endswith("text") for e in root.iter()))
-        self.assertEqual(self.spec["controls"]["pressedTapDelayMs"],0)
-        self.assertTrue(self.spec["controls"]["touchHitZonesIndependentOfArtwork"] if "touchHitZonesIndependentOfArtwork" in self.spec["controls"] else self.spec["glBoundary"]["compositeWithoutInterceptingTouch"])
+        self.assertEqual(self.spec["presentation"]["pressedTapDelayMs"],0)
+        self.assertTrue(self.spec["glBoundary"]["compositeWithoutInterceptingTouch"])
 
     def test_canonical_controls_and_future_modes(self):
         base=ROOT.parent
