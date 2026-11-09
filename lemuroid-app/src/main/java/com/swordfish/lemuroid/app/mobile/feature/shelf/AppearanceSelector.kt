@@ -368,7 +368,7 @@ fun ShelfAppearanceEditor(
                                         Row(
                                             Modifier.weight(1f).clickable { picker = key }
                                                 .semantics {
-                                                    contentDescription = label + ", " + colourHex(color) + ", change colour"
+                                                    contentDescription = "$label, ${colourHex(color)}, change colour"
                                                 }.padding(vertical = 5.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(10.dp),
