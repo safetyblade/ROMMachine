@@ -31,11 +31,9 @@ class LemuroidPadTheme(
     val level0Shadow = Color.Transparent
     val level0ShadowWidth = 0.dp
 
-    fun compositeFill(pressed: Boolean): Color =
-        if (pressed) accent.copy(alpha = 0.16f) else Color.Transparent
+    fun compositeFill(pressed: Boolean): Color = if (pressed) accent.copy(alpha = 0.16f) else Color.Transparent
 
-    fun foregroundFill(pressed: Boolean): Color =
-        if (pressed) trim else button
+    fun foregroundFill(pressed: Boolean): Color = if (pressed) trim else button
 
     fun icons(pressed: Boolean): Color = glyph
 }
