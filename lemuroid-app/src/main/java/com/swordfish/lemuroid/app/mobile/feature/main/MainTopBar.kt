@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,10 +19,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,17 +39,24 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 
 @Composable
@@ -54,6 +66,10 @@ fun MainTopBar(
     onHelpPressed: () -> Unit,
     onUpdateQueryString: (String) -> Unit,
     mainUIState: MainViewModel.UiState,
+    arrangingShelf: Boolean = false,
+    shelfAvailable: Boolean = false,
+    onToggleArrangeShelf: () -> Unit = {},
+    onShelfAppearance: () -> Unit = {},
 ) {
     Column {
         LemuroidTopAppBar(
@@ -62,6 +78,10 @@ fun MainTopBar(
             mainUIState = mainUIState,
             onHelpPressed = onHelpPressed,
             onUpdateQueryString = onUpdateQueryString,
+            arrangingShelf = arrangingShelf,
+            shelfAvailable = shelfAvailable,
+            onToggleArrangeShelf = onToggleArrangeShelf,
+            onShelfAppearance = onShelfAppearance,
         )
 
         AnimatedVisibility(mainUIState.operationInProgress) {
@@ -78,25 +98,34 @@ fun LemuroidTopAppBar(
     mainUIState: MainViewModel.UiState,
     onHelpPressed: () -> Unit,
     onUpdateQueryString: (String) -> Unit,
+    arrangingShelf: Boolean = false,
+    shelfAvailable: Boolean = false,
+    onToggleArrangeShelf: () -> Unit = {},
+    onShelfAppearance: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val topBarColor = BottomAppBarDefaults.containerColor
+    val materials = LocalShelfMaterials.current
+    val topBarColor = materials.roomBackdrop
 
     TopAppBar(
         title = {
-            if (route == MainRoute.SEARCH) {
-                LemuroidSearchView(
-                    mainUIState = mainUIState,
-                    onUpdateQueryString = onUpdateQueryString,
-                )
-            } else {
-                Text(text = stringResource(route.titleId))
+            when (route) {
+                MainRoute.SEARCH ->
+                    LemuroidSearchView(
+                        mainUIState = mainUIState,
+                        onUpdateQueryString = onUpdateQueryString,
+                    )
+                MainRoute.HOME -> CartdeckHomeTitle()
+                else -> Text(text = stringResource(route.titleId))
             }
         },
         colors =
             TopAppBarDefaults.topAppBarColors(
                 scrolledContainerColor = topBarColor,
                 containerColor = topBarColor,
+                titleContentColor = materials.sectionText,
+                navigationIconContentColor = materials.sectionText,
+                actionIconContentColor = materials.sectionText,
             ),
         navigationIcon = {
             AnimatedVisibility(
@@ -120,9 +149,45 @@ fun LemuroidTopAppBar(
                 saveSyncEnabled = mainUIState.saveSyncEnabled,
                 onHelpPressed = onHelpPressed,
                 operationsInProgress = mainUIState.operationInProgress,
+                arrangingShelf = arrangingShelf,
+                shelfAvailable = shelfAvailable,
+                onToggleArrangeShelf = onToggleArrangeShelf,
+                onShelfAppearance = onShelfAppearance,
             )
         },
     )
+}
+
+@Composable
+private fun CartdeckHomeTitle() {
+    val pink = LocalShelfAppearance.current.edition == "pink"
+    val materials = LocalShelfMaterials.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Image(
+            painter = painterResource(
+                if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
+            ),
+            contentDescription = null,
+            modifier = Modifier.size(30.dp),
+        )
+        Column {
+            Text(
+                text = stringResource(R.string.cartdeck_header_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = materials.sectionText,
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(R.string.cartdeck_header_library),
+                style = MaterialTheme.typography.labelSmall,
+                color = materials.interactionAccent,
+                maxLines = 1,
+            )
+        }
+    }
 }
 
 @Composable
@@ -133,7 +198,12 @@ fun LemuroidTopBarActions(
     saveSyncEnabled: Boolean,
     operationsInProgress: Boolean,
     onHelpPressed: () -> Unit,
+    arrangingShelf: Boolean = false,
+    shelfAvailable: Boolean = false,
+    onToggleArrangeShelf: () -> Unit = {},
+    onShelfAppearance: () -> Unit = {},
 ) {
+    var libraryOptionsExpanded by remember { mutableStateOf(false) }
     Row {
         IconButton(
             onClick = { onHelpPressed() },
@@ -143,7 +213,7 @@ fun LemuroidTopBarActions(
                 stringResource(R.string.mobile_settings_help),
             )
         }
-        if (saveSyncEnabled) {
+        if (saveSyncEnabled && route != MainRoute.HOME) {
             IconButton(
                 onClick = { SaveSyncWork.enqueueManualWork(context.applicationContext) },
                 enabled = !operationsInProgress,
@@ -162,6 +232,51 @@ fun LemuroidTopBarActions(
                     Icons.Outlined.Settings,
                     stringResource(R.string.settings),
                 )
+            }
+        }
+        if (route == MainRoute.HOME) {
+            Box {
+                IconButton(onClick = { libraryOptionsExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, stringResource(R.string.cartdeck_library_options))
+                }
+                DropdownMenu(
+                    expanded = libraryOptionsExpanded,
+                    onDismissRequest = { libraryOptionsExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (arrangingShelf) R.string.cartdeck_done_arranging
+                                    else R.string.cartdeck_arrange_shelf,
+                                ),
+                            )
+                        },
+                        enabled = shelfAvailable,
+                        onClick = {
+                            libraryOptionsExpanded = false
+                            onToggleArrangeShelf()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.cartdeck_shelf_appearance)) },
+                        enabled = shelfAvailable,
+                        onClick = {
+                            libraryOptionsExpanded = false
+                            onShelfAppearance()
+                        },
+                    )
+                    if (saveSyncEnabled) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.save_sync)) },
+                            enabled = !operationsInProgress,
+                            onClick = {
+                                libraryOptionsExpanded = false
+                                SaveSyncWork.enqueueManualWork(context.applicationContext)
+                            },
+                        )
+                    }
+                }
             }
         }
     }
