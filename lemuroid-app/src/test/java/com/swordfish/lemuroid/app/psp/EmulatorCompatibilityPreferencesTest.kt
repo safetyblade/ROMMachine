@@ -1,13 +1,13 @@
 package com.swordfish.lemuroid.app.psp
 
-import androidx.test.core.app.ApplicationProvider
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
 import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.Test
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
