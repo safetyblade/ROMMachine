@@ -485,7 +485,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 ShelfAppearanceEditor(
                     appearance = shelfState.layout.appearance,
                     onDismiss = { editingAppearance.value = false },
-                    onSave = { newAppearance -> shelfViewModel.edit { it.copy(appearance = newAppearance) } },
+                    onSave = { newAppearance -> shelfViewModel.edit(recordUndo = false) { it.copy(appearance = newAppearance) } },
                 )
             }
 
