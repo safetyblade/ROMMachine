@@ -1,0 +1,34 @@
+name: CARTDECK PERF-02 read-only upstream inventory gate
+
+on:
+  pull_request:
+    paths:
+      - "docs/engineering/PERF-02-EMULATOR-UPSTREAM-COMPARISON.md"
+      - ".github/workflows/cartdeck-perf02-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  registry-vs-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm audit covers every existing registered system without changing cores
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path("retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/GameSystem.kt").read_text()
+          report=Path("docs/engineering/PERF-02-EMULATOR-UPSTREAM-COMPARISON.md").read_text()
+          ids=re.findall(r'GameSystem\(\s*SystemID\.(\w+)', src)
+          assert len(ids)==25 and len(set(ids))==25, f"Current system inventory changed: {ids}"
+          missing=[value for value in ids if f"(\x60{value}\x60)" not in report]
+          assert not missing, f"Report missing configured system IDs: {missing}"
+          assert "PPSSPPAssetsManager.kt" in report
+          assert "pcsx_rearmed_drc" in report
+          assert "NOT TESTED" in report
+          print("PASS: 25-system audited source matrix and known inherited-option findings")
+          PY
