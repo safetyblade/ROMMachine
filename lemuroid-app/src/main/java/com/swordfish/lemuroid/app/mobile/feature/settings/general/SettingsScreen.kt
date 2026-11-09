@@ -83,10 +83,8 @@ private fun MiscSettings(
             )
         }
         LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_open_cores_selection)) },
-            subtitle = {
-                Text(text = stringResource(id = R.string.settings_description_open_cores_selection))
-            },
+            title = { Text("Emulation · Compatibility") },
+            subtitle = { Text("Engine selection and recovery for PS1 and PSP") },
             onClick = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
         )
         LemuroidSettingsMenuLink(
