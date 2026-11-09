@@ -73,8 +73,9 @@ class LocalStorageProvider(
 
             while (directories.isNotEmpty()) {
                 val directory = directories.removeAt(0)
-                val entries = directory.listFiles()
-                    ?: error("ROM directory cannot be listed: ${directory.absolutePath}")
+                val entries =
+                    directory.listFiles()
+                        ?: error("ROM directory cannot be listed: ${directory.absolutePath}")
                 val groups =
                     entries.filterNot { it.name.startsWith(".") }
                         .groupBy { it.isDirectory }

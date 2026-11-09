@@ -2,12 +2,12 @@ package com.swordfish.lemuroid.app.shared.library
 
 import android.content.Context
 import androidx.work.CoroutineWorker
-import androidx.work.workDataOf
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.swordfish.lemuroid.app.mobile.shared.NotificationsManager
+import androidx.work.workDataOf
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
+import com.swordfish.lemuroid.app.mobile.shared.NotificationsManager
 import com.swordfish.lemuroid.app.utils.android.createSyncForegroundInfo
 import com.swordfish.lemuroid.lib.injection.AndroidWorkerInjection
 import com.swordfish.lemuroid.lib.injection.WorkerKey

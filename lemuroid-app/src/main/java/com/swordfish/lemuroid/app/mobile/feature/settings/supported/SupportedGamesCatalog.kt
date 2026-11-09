@@ -68,8 +68,9 @@ internal object SupportedGamesCatalog {
         if (runtime == null) return GameGuideSetup.CHECKING
         val candidates =
             entry.system.systemCoreConfigs.filter { config ->
-                config.supportedOnlyArchitectures == null ||
-                    config.supportedOnlyArchitectures.any { it in runtime.deviceAbis }
+                val allowedArchitectures = config.supportedOnlyArchitectures
+                allowedArchitectures == null ||
+                    allowedArchitectures.any { it in runtime.deviceAbis }
             }
         if (candidates.isEmpty()) return GameGuideSetup.DEVICE_UNSUPPORTED
 
