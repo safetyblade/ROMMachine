@@ -1,5 +1,5 @@
 {
-  "schema": "cartdeck.consoleShell/0.6",
+  "schema": "cartdeck.consoleShell/0.6.1",
   "state": "design-stage1-candidate-awaiting-Jonathan-Cassia-approval",
   "edition": "Original",
   "priority": "GBA portrait first; GB/GBC same shell",
@@ -106,7 +106,7 @@
     "buttons": "tactile layered A/B",
     "dpad": "reuse canonical chamfered cross, never circular disc or four isolated arrows",
     "systemLabel": "small removable GB/GBA badge adjacent to bezel, not manufacturer device branding",
-    "decorativeEffects": "subtle bevel and focus only; no animation over game image",
+    "decorativeEffects": "Machining/glow permitted on exterior shoulders only; no line, illumination or trim under C-slot/wordmark; brand seat is a protected nonanimated region.",
     "controlStates": [
       "normal",
       "pressed",
@@ -191,5 +191,77 @@
   "previewOnly": [
     "original fictional Moon Quay 3:2 pixel-art sample",
     "original fictional Archive 03 10:9 monochrome puzzle sample"
-  ]
+  ],
+  "brandClearance": {
+    "status": "design-contract-awaiting-visual-approval",
+    "oneProtectedRegionAcrossEditions": true,
+    "referencePhone": [
+      393,
+      852
+    ],
+    "brandSeatBounds": {
+      "left": 79,
+      "top": 66,
+      "right": 313,
+      "bottom": 107
+    },
+    "interiorClearanceBounds": {
+      "left": 88,
+      "top": 70,
+      "right": 304,
+      "bottom": 102
+    },
+    "cslotPlacement": {
+      "left": 93,
+      "top": 72,
+      "right": 118,
+      "bottom": 99
+    },
+    "wordmarkPlacement": {
+      "left": 131,
+      "top": 72,
+      "right": 293,
+      "bottom": 88
+    },
+    "bylinePlacement": {
+      "left": 132,
+      "top": 92,
+      "right": 280,
+      "bottom": 102
+    },
+    "minimumEdgeSeparationRefPixels": 8,
+    "screenBezelTopRefPixels": 114,
+    "logoSource": "canonical CARTDECK C-slot SVG, unchanged",
+    "wordmarkSource": "canonical CARTDECK wordmark SVG, unchanged",
+    "effectExclusion": "No seam, bevel, lighting, particles, glow, indicator or moving shell effect may enter brandSeatBounds or sit between the mark and wordmark",
+    "effectSegments": [
+      {
+        "name": "left-shoulder",
+        "path": "M30 102L53 71H70",
+        "maxX": 70
+      },
+      {
+        "name": "right-shoulder",
+        "path": "M322 71H339L361 102",
+        "minX": 322
+      },
+      {
+        "name": "upper-rim",
+        "path": "M24 92L47 60H346L369 92",
+        "centralSegmentY": 60
+      }
+    ],
+    "renderOrder": [
+      "chassis",
+      "shell material effects outside brand zone",
+      "opaque brand seat",
+      "canonical C-slot + canonical wordmark",
+      "screen bezel and video hole"
+    ],
+    "smallWidthFallback": "Measure available safe rectangle after cutout and shoulders. When wordmark plus mark cannot fit at readable size, show centered C-slot alone; never clip, overlap effects, or scale the wordmark to illegibility.",
+    "landscapeRule": "Prefer icon-only identity in the upper edge/side rail when full wordmark competes with screen, shoulder triggers or controls",
+    "accessibility": "Announce CARTDECK as one brand element; decorative shell effects ignored by accessibility; respect reduced motion",
+    "layoutEngine": "Reference pixels only. Compose calculates brand seat after Android status bar/cutout insets; never hardcode this source rectangle in dp.",
+    "controlsAndVideoUnaffected": true
+  }
 }
