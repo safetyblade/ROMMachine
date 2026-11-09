@@ -316,6 +316,7 @@ fun ShelfAppearanceEditor(
                                                     MaterialTheme.colorScheme.outline,
                                                     RoundedCornerShape(8.dp),
                                                 ),
+                                            )
                                             Column {
                                                 Text(label, style = MaterialTheme.typography.bodyMedium)
                                                 Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
