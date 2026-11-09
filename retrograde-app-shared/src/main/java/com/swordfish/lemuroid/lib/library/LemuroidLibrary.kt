@@ -78,8 +78,9 @@ class LemuroidLibrary(
 
         // Cleanup follows completed enumeration, never finally/catch.
         cleanUp(startedAtMs)
-        val after = retrogradedb.gameDao().selectShelfGames().first()
-            .map { it.systemId to it.fileUri }.toSet()
+        val after =
+            retrogradedb.gameDao().selectShelfGames().first()
+                .map { it.systemId to it.fileUri }.toSet()
         Timber.i("Library indexing completed in: ${System.currentTimeMillis() - startedAtMs} ms")
         return IndexSummary(
             added = (after - before).size,
