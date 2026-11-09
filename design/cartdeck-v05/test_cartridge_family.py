@@ -22,7 +22,7 @@ class CartridgeFamilyTests(unittest.TestCase):
         m = self.family
         self.assertFalse(m["systemAffectsGeometry"])
         self.assertTrue({"GB","GBC","GBA"}.issubset(set(m["systems"])))
-        self.assertEqual(m["approvedEditions"], ["original","pink"])
+        self.assertEqual(m["approvedEditions"], ["original","pink","green"])
         self.assertEqual(m["geometryLocked"]["front"], [320,390])
         self.assertEqual(m["geometryLocked"]["spine"], [94,340])
         self.assertEqual(m["geometryLocked"]["artWindow"], {"x":40,"y":113,"width":240,"height":200,"radius":8})
