@@ -60,12 +60,20 @@ internal fun cartridgePainter(
                         tokens.bezel to
                             role(
                                 "bezel",
-                                if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.6f) else tokens.bezel,
+                                if (appearance.custom.containsKey("chassis")) {
+                                    lerp(chassis, Color.Black, 0.6f)
+                                } else {
+                                    tokens.bezel
+                                },
                             ),
                         tokens.glass to
                             role(
                                 "glass",
-                                if (appearance.custom.containsKey("chassis")) lerp(chassis, Color.Black, 0.8f) else tokens.glass,
+                                if (appearance.custom.containsKey("chassis")) {
+                                    lerp(chassis, Color.Black, 0.8f)
+                                } else {
+                                    tokens.glass
+                                },
                             ),
                         tokens.button to role("button", tokens.button),
                         tokens.accent to accent,
