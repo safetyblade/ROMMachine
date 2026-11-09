@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
@@ -19,10 +22,19 @@ fun LemuroidControlAnalog(
     modifier: Modifier = Modifier,
     analogPressId: Id.Key? = null,
     id: Id.ContinuousDirection,
+    hardwareSeatId: String = "analog",
 ) {
     val theme = LocalLemuroidPadTheme.current
+    val observe = LocalCartdeckControlBounds.current
     Box(
-        modifier = modifier.padding(theme.padding),
+        modifier =
+            modifier.padding(theme.padding).then(
+                if (observe != null) {
+                    Modifier.onGloballyPositioned { observe(hardwareSeatId, it.boundsInRoot()) }
+                } else {
+                    Modifier
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         ControlAnalog(
