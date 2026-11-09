@@ -1,0 +1,195 @@
+{
+  "schema": "cartdeck.consoleShell/0.6",
+  "state": "design-stage1-candidate-awaiting-Jonathan-Cassia-approval",
+  "edition": "Original",
+  "priority": "GBA portrait first; GB/GBC same shell",
+  "approvedSourceMasters": {
+    "cslot": "../cartdeck-v03/brand/cslot-master.svg",
+    "wordmark": "../cartdeck-v03/brand/cartdeck-wordmark-master.svg",
+    "dpad": "../cartdeck-v03/controls/dpad-master.svg",
+    "button": "../cartdeck-v04/controls/button-face.svg",
+    "startSelect": "../cartdeck-v04/controls/start-select-pill.svg",
+    "shoulder": "../cartdeck-v04/controls/shoulder.svg",
+    "analog": "../cartdeck-v04/controls/analog-base.svg",
+    "screenBezel": "../cartdeck-v04/shell/screen-bezel.svg",
+    "portraitShell": "../cartdeck-v04/shell/chassis-portrait.svg",
+    "landscapeShell": "../cartdeck-v04/shell/chassis-landscape.svg"
+  },
+  "geometry": {
+    "referencePhonePixels": [
+      393,
+      852
+    ],
+    "purpose": "optical preview only, NOT fixed Android dp",
+    "sameChassisAllSystems": true,
+    "gameWindowOuter": [
+      37,
+      141,
+      319,
+      238
+    ],
+    "gameSafeArea": "measured actual available AndroidView viewport after system bars/cutout; contain fit core aspect",
+    "gba": {
+      "native": [
+        240,
+        160
+      ],
+      "ratio": "3:2",
+      "previewGameRect": [
+        39,
+        155,
+        315,
+        210
+      ],
+      "controls": [
+        "dpad",
+        "A",
+        "B",
+        "L",
+        "R",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "gb": {
+      "native": [
+        160,
+        144
+      ],
+      "ratio": "10:9",
+      "previewGameRect": [
+        64.5,
+        141.5,
+        264,
+        237
+      ],
+      "controls": [
+        "dpad",
+        "A",
+        "B",
+        "start",
+        "select",
+        "menu"
+      ]
+    },
+    "gbc": "same physical shell and 10:9 source geometry as GB",
+    "psx": {
+      "ratio": "core reported, usually 4:3 but variable",
+      "controls": [
+        "dpad",
+        "A",
+        "B",
+        "X",
+        "Y",
+        "L1",
+        "L2",
+        "R1",
+        "R2",
+        "start",
+        "select",
+        "menu"
+      ],
+      "optionalAnalog": true,
+      "overflowRule": "landscape or larger control workspace if essential keys cannot fit; never suppress needed inputs"
+    },
+    "nds": {
+      "future": "two independent aspect-safe game surfaces in shared CARTDECK family; no single forced stretch"
+    }
+  },
+  "presentation": {
+    "skeleton": "continuous chamfered chassis with screen inset, shallow bezel depth, small C-slot header, lower integrated controller deck",
+    "chassis": "matte graphite #303B49",
+    "screenRim": "dark bezel #0D1721",
+    "glass": "glass #09131B",
+    "accent": "teal #4ED8C4",
+    "buttons": "tactile layered A/B",
+    "dpad": "reuse canonical chamfered cross, never circular disc or four isolated arrows",
+    "systemLabel": "small removable GB/GBA badge adjacent to bezel, not manufacturer device branding",
+    "decorativeEffects": "subtle bevel and focus only; no animation over game image",
+    "controlStates": [
+      "normal",
+      "pressed",
+      "focused",
+      "disabled"
+    ],
+    "pressedShiftPreviewPx": 3,
+    "pressedTapDelayMs": 0
+  },
+  "layersInFrontToBack": [
+    "functional PadKit input surfaces + visuals",
+    "reusable decorative control/indicator accents outside game",
+    "bezel and chassis overdraw with literal game-window hole",
+    "single existing AndroidView LibretroDroid game renderer"
+  ],
+  "glBoundary": {
+    "rendererCount": 1,
+    "compositeWithoutInterceptingTouch": true,
+    "noGameVideoTint": true,
+    "noCoverOrPixelCrop": true,
+    "coreAspectFirst": true,
+    "viewportRectsMeasuredNotHardcoded": true,
+    "unclippedGamePixels": true
+  },
+  "responsiveness": {
+    "minTouchTargetDp": 48,
+    "portrait": "screen first then controls, safe edges",
+    "narrow": "scale decoration down ahead of functional hit targets",
+    "landscape": "same chamfered family, game-first, flank control groups as available",
+    "tablet": "center/max-width manufactured console panel",
+    "androidInsets": [
+      "statusBars",
+      "navigationBars",
+      "displayCutout"
+    ],
+    "gestureZone": "no essential virtual button within Android bottom gesture strip",
+    "textScale": "do not scale hard body with fontScale",
+    "reducedMotion": "static material states"
+  },
+  "mapToExistingAndroid": {
+    "screen": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/MobileGameScreen.kt",
+    "layout": "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/GameScreenLayout.kt",
+    "renderExisting": "GameViewModelRetroGameView.kt / viewModel.createRetroView",
+    "padkit": "LemuroidControlCross.kt, LemuroidControlFaceButtons.kt",
+    "visuals": "LemuroidCrossForeground.kt, LemuroidControlBackground.kt, LemuroidButtonForeground.kt, LemuroidPadTheme.kt",
+    "profiles": [
+      "GB.kt",
+      "GBA.kt",
+      "PSX.kt",
+      "PSXDualShock.kt"
+    ],
+    "preserveSettings": "TouchControllerSettingsManager scale/margin/rotation"
+  },
+  "editionGeometryInvariant": true,
+  "editionTokens": [
+    "chassis",
+    "secondary",
+    "bezel",
+    "glass",
+    "button",
+    "accent",
+    "onChassis",
+    "onButton",
+    "focus"
+  ],
+  "reviewOrder": [
+    "Jonathan and Cassia lock portrait silhouette, game-first balance, D-pad, bezel",
+    "Daniel checks measured GL viewport and PadKit touch hit-zone independence",
+    "Elliot implements bounded native PR",
+    "Marcus tests real games, multi-input, saves/update continuity"
+  ],
+  "noChangesTo": [
+    "ROM/BIOS",
+    "game IDs",
+    "save files and SRAM",
+    "PadKit input IDs or key bindings",
+    "new emulator renderer",
+    "P1-C mode selector",
+    "P1-D boot",
+    "P2-C movable per-game controls Issue #34"
+  ],
+  "previewOnly": [
+    "original fictional Moon Quay 3:2 pixel-art sample",
+    "original fictional Archive 03 10:9 monochrome puzzle sample"
+  ]
+}
