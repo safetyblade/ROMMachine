@@ -30,7 +30,9 @@ jobs:
       - name: Format P1-C1 app code with repository rules
         run: |
           set -euo pipefail
-          "$GRADLE_BIN" :lemuroid-app:ktlintMainSourceSetFormat :lemuroid-app:ktlintTestSourceSetFormat --no-daemon
+          "$GRADLE_BIN" :lemuroid-app:ktlintMainSourceSetFormat :lemuroid-app:ktlintTestSourceSetFormat --no-daemon || true
+          # ktlint writes auto-correctable changes before reporting remaining long lines.
+          # The normal APK workflow will enforce a clean ktlintCheck after these are fixed.
       - name: Commit formatting only
         run: |
           set -euo pipefail
