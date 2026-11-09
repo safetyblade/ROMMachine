@@ -2,7 +2,7 @@
 """ASSET-H1: generate Android VectorDrawables and colours from Sienna's editable masters.
 
 No ROM, emulator, PadKit, game display or existing UI code is modified here.
-Only Original/Pink ship as resources. Source SVGs and JSON remain canonical.
+All three factory editions ship as resources. Source SVGs and JSON remain canonical.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 V03 = ROOT / "design/cartdeck-v03"
 V04 = ROOT / "design/cartdeck-v04"
 V05 = ROOT / "design/cartdeck-v05"
-EDITIONS = ("original", "pink")
+EDITIONS = ("original", "pink", "green")
 TOKEN_KEYS = ("chassis", "secondary", "bezel", "glass", "button", "accent",
               "onChassis", "onButton", "focus")
 GROUPS = ("shell", "controls", "shelf", "boot", "navigation")
@@ -182,7 +182,7 @@ def main() -> None:
                 signature = geometry_signature(destination)
                 old = geometry_by_source.setdefault(str(master), signature)
                 if old != signature:
-                    raise ValueError(f"Original/Pink geometry mismatch: {master}")
+                    raise ValueError(f"factory edition geometry mismatch: {master}")
                 assets.append({
                     "edition": edition,
                     "group": group,
@@ -200,8 +200,8 @@ def main() -> None:
         raise ValueError("Superseded v0.4 physical case shape in native export")
     if not any(a["canonicalMaster"].endswith("dpad-master.svg") for a in assets):
         raise ValueError("Approved v0.3.1 D-pad missing")
-    if len(assets) < 40:
-        raise ValueError(f"Expected at least 40 Original/Pink vector resources; got {len(assets)}")
+    if len(assets) < 60:
+        raise ValueError(f"Expected at least 60 factory vector resources; got {len(assets)}")
 
     manifest = {
         "schema": "cartdeck.nativeAssets/1.0",

@@ -127,7 +127,7 @@ fun ShelfAppearanceEditor(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Row {
-                    listOf("original", "pink").forEach { choice ->
+                    listOf("original", "pink", "green").forEach { choice ->
                         TextButton(onClick = {
                             edition = choice
                             finishes.clear()
