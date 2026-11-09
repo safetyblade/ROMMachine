@@ -34,8 +34,10 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 
 /** Editing replaces the library's navigation dock; non-Home routes never inherit it. */
-internal fun showShelfEditDock(currentRoute: MainRoute?, arrangingShelf: Boolean): Boolean =
-    currentRoute == MainRoute.HOME && arrangingShelf
+internal fun showShelfEditDock(
+    currentRoute: MainRoute?,
+    arrangingShelf: Boolean,
+): Boolean = currentRoute == MainRoute.HOME && arrangingShelf
 
 @Composable
 fun MainNavigationBar(
@@ -106,11 +108,12 @@ private fun CartridgeNavigationTabs(
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
-    val inactive = readableColor(
-        materials.edgeHighlight,
-        listOf(materials.shelfBackboard),
-        3f,
-    )
+    val inactive =
+        readableColor(
+            materials.edgeHighlight,
+            listOf(materials.shelfBackboard),
+            3f,
+        )
     NavigationBar(
         modifier = Modifier.fillMaxWidth(),
         containerColor = materials.shelfBackboard,
@@ -143,9 +146,10 @@ private fun CartridgeNavigationTabs(
                         unselectedTextColor = inactive,
                         indicatorColor = Color.Transparent,
                     ),
-                modifier = Modifier.semantics {
-                    contentDescription = label
-                },
+                modifier =
+                    Modifier.semantics {
+                        contentDescription = label
+                    },
                 onClick = {
                     navController.navigate(destination.route.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
