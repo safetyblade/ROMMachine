@@ -48,7 +48,7 @@ import struct
 import sys
 
 data = open(sys.argv[1], 'rb').read()
-assert data[:4] == b'\\x7fELF' and data[4] == 2 and data[5] == 1, 'Expected little-endian ELF64'
+assert data[:4] == b'\x7fELF' and data[4] == 2 and data[5] == 1, 'Expected little-endian ELF64'
 assert struct.unpack_from('<H', data, 18)[0] == 183, 'Expected AArch64'
 phoff = struct.unpack_from('<Q', data, 32)[0]
 phentsize = struct.unpack_from('<H', data, 54)[0]
