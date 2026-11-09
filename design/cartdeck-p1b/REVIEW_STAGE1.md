@@ -40,3 +40,16 @@ Inspected latest `master`, Issue #13, `MobileGameScreen.kt`, `GameScreenLayout.k
 Stage 1: Owner/Cassia approve screen-frame treatment, silhouette, D-pad placement and balance from visual review. Stage 2: Sienna finishes landscape/PS1/edition/responsive art in **same** family. Stage 3: Daniel reviews renderer viewport and PadKit constraints. Stage 4: Elliot implements separately under #13. Stage 5: Marcus validates real game video, diagonals, A+B, shoulder buttons, Start/Select/Menu, suspend/resume and save/update continuity.
 
 This PR is **design-only**. An SVG or visual preview is not Android runtime acceptance.
+
+
+## v0.6.1 — BRAND CLEARANCE (owner feedback, 9 Nov 2026)
+
+**Observed Stage 1 mockup defect:** the upper secondary trim could pass under the wordmark, while the C-slot sat against a sloping shoulder seam. The brand must be a physically credible manufactured badge, not copy floating over lighting effects.
+
+- Defined one **protected central brand seat** on the portrait shell (reference phone 393×852; outer x79–313, y66–107; content x88–304, y70–102). The production icon and wordmark are taken from canonical v03 SVGs and are independent of cosmetic overlays.
+- Refactored upper effect routing to two peripheral segments: x≤70 left and x≥322 right. The outer upper rim stays above the badge region at y60. No accent, seam, gloss, notch, LED or decorative animation may enter the protected seat or sit beneath its lettering.
+- New `assets/console-bezel-depth-overlay.svg` has an opaque brand-mount path rendered **after** all upper shell effects; logo/wordmark render above that, then screen-bezel. It retains the actual transparent game-video opening.
+- On narrow phones, landscape layouts and with display cutouts, **C-slot only** is an accepted fallback; never squeeze or clip the wordmark. The same safe geometry is used for Original, Pink and Green (colour token changes only).
+- No changes to D-pad, A/B, shoulders, game viewport, PadKit touch bounds, game ID, saves or emulator. Visual mockups are design proofs and require later native screenshot verification.
+
+The editable visual check is `CARTDECK_P1B_Brand_Clearance_v061` (GBA and GB/GBC SVG/PNG examples and before/after comparison). The component model is in `console-shell-stage1.json.brandClearance`.
