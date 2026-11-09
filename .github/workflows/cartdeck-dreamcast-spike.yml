@@ -80,6 +80,31 @@ jobs:
           sha256sum "$LIB" | tee "$RUNNER_TEMP/core-sha256.txt"
           echo "Compiled Android arm64 Flycast libretro. This is NOT a CARTDECK runtime test." >> "$GITHUB_STEP_SUMMARY"
           cat "$RUNNER_TEMP/core-file.txt" "$RUNNER_TEMP/core-sha256.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Validate libretro exports and 16 KB ELF load alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIB=$(find "$RUNNER_TEMP/flycast-libretro-build" -type f -name '*flycast*libretro*.so' -print -quit)
+          test -n "$LIB" && test -s "$LIB"
+          TOOLBIN="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          "$TOOLBIN/llvm-nm" -D --defined-only "$LIB" | awk '{print $NF}' > "$RUNNER_TEMP/flycast-exported-symbols.txt"
+          for symbol in retro_init retro_deinit retro_load_game retro_unload_game retro_run retro_set_environment retro_set_video_refresh retro_set_audio_sample_batch retro_set_input_poll retro_set_input_state retro_get_system_av_info retro_serialize retro_unserialize; do
+            if ! grep -Fxq "$symbol" "$RUNNER_TEMP/flycast-exported-symbols.txt"; then
+              echo "::error::Missing libretro entry point: $symbol"
+              exit 1
+            fi
+          done
+          "$TOOLBIN/llvm-readelf" -lW "$LIB" | awk '$1 == "LOAD" {print $NF}' > "$RUNNER_TEMP/flycast-load-alignments.txt"
+          python3 - "$RUNNER_TEMP/flycast-load-alignments.txt" <<'PY'
+          import pathlib
+          import sys
+          values = [int(v, 16) for v in pathlib.Path(sys.argv[1]).read_text().split()]
+          if not values or min(values) < 0x4000:
+              raise SystemExit("ELF PT_LOAD alignment below 16 KiB or not measured")
+          print(f"PT_LOAD alignments: {values}")
+          PY
+          echo "Static libretro symbols: PASS; ELF PT_LOAD >=16 KiB: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "This is NOT an Android 16 KiB runtime, APK ZIP alignment or gameplay test." >> "$GITHUB_STEP_SUMMARY"
       - name: Scope limitation
         if: always()
         run: |
