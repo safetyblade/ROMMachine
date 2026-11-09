@@ -31,7 +31,8 @@ class DreamcastRuntimeProbeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val lab = File(filesDir, "dreamcast-lab")
-        val core = File(lab, "flycast_libretro.so")
+        val coreSelection = DebugCoreVersionStore(File(lab, "cores")).select("flycast")
+        val core = coreSelection?.coreFile ?: File(lab, "flycast_libretro.so")
         val gameDirectory = File(lab, "game")
         val discName = intent.getStringExtra("disc") ?: "test.gdi"
         val disc = File(gameDirectory, discName)
@@ -59,6 +60,7 @@ class DreamcastRuntimeProbeActivity : ComponentActivity() {
             }
 
         Log.i(TAG, "CORE_AND_DISC_FOUND coreBytes=${core.length()} disc=${disc.name}")
+        Log.i(TAG, "CORE_VERSION ${coreSelection?.version ?: "legacy"} fallback=${coreSelection?.usedFallback ?: false}")
         Log.i(TAG, "SAVE_DIR ${savesDirectory.absolutePath} (never deleted by this probe)")
         try {
             val view = GLRetroView(this, data)
