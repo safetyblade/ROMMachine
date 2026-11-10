@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 enum class CartdeckLayoutMode { STANDARD, ONE_HAND }
+
 enum class PivotArcHand { RIGHT, LEFT }
 
 data class PivotArcSettings(
@@ -29,12 +30,15 @@ class PivotArcSettingsStore(context: Context) {
 
     fun read(): PivotArcSettings {
         if (preferences.getInt("schema", VERSION) != VERSION) return PivotArcSettings()
-        val mode = runCatching {
-            CartdeckLayoutMode.valueOf(preferences.getString("mode", "STANDARD") ?: "STANDARD")
-        }.getOrDefault(CartdeckLayoutMode.STANDARD)
-        val hand = runCatching {
-            PivotArcHand.valueOf(preferences.getString("hand", "RIGHT") ?: "RIGHT")
-        }.getOrDefault(PivotArcHand.RIGHT)
+        val mode =
+            runCatching {
+                CartdeckLayoutMode.valueOf(preferences.getString("mode", "STANDARD") ?: "STANDARD")
+            }.getOrDefault(CartdeckLayoutMode.STANDARD)
+        val hand =
+            runCatching {
+                PivotArcHand.valueOf(preferences.getString("hand", "RIGHT") ?: "RIGHT")
+            }.getOrDefault(PivotArcHand.RIGHT)
+
         fun readOffset(key: String): Float =
             runCatching { preferences.getFloat(key, 0f) }
                 .getOrDefault(0f).takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f
@@ -76,9 +80,10 @@ fun rememberPivotArcSettings(): State<PivotArcSettings> {
     val store = remember(context) { PivotArcSettingsStore(context) }
     val state = remember(store) { mutableStateOf(store.read()) }
     DisposableEffect(store) {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-            state.value = store.read()
-        }
+        val listener =
+            SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                state.value = store.read()
+            }
         store.register(listener)
         onDispose { store.unregister(listener) }
     }
