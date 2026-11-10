@@ -75,6 +75,8 @@ fun PadKitScope.PivotArcControlGroup(placement: PivotArcPlacement) {
                         "Y" -> KeyEvent.KEYCODE_BUTTON_Y
                         "L" -> KeyEvent.KEYCODE_BUTTON_L1
                         "R" -> KeyEvent.KEYCODE_BUTTON_R1
+                        "L2" -> KeyEvent.KEYCODE_BUTTON_L2
+                        "R2" -> KeyEvent.KEYCODE_BUTTON_R2
                         "Select" -> KeyEvent.KEYCODE_BUTTON_SELECT
                         "Start" -> KeyEvent.KEYCODE_BUTTON_START
                         "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
@@ -89,7 +91,7 @@ fun PadKitScope.PivotArcControlGroup(placement: PivotArcPlacement) {
                     }
                 val shape =
                     when (key) {
-                        "L", "R" -> CartdeckButtonShape.SHOULDER
+                        "L", "R", "L2", "R2" -> CartdeckButtonShape.SHOULDER
                         "Select", "Start", "Menu" -> CartdeckButtonShape.PILL
                         else -> CartdeckButtonShape.FACE
                     }
