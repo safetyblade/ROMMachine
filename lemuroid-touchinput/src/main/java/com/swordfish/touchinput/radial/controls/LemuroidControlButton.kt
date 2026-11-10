@@ -41,6 +41,9 @@ fun LemuroidControlButton(
             icon == R.drawable.button_mic -> "ds-mic"
             icon == R.drawable.button_close_screen -> "ds-layout"
             label in setOf("L", "R", "L1", "R1", "L2", "R2") -> "shoulder-$label"
+            // Genesis six-button C/Z and N64 Z have independent active
+            // input targets, so they need independent hardware wells too.
+            label in setOf("C", "Z") -> "aux-$label"
             else -> null
         }
     ControlButton(
