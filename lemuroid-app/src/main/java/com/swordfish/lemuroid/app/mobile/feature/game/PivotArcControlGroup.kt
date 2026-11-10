@@ -11,16 +11,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
-import com.swordfish.touchinput.controller.R as TouchR
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidCrossForeground
-import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import gg.padkit.PadKitScope
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
+import com.swordfish.touchinput.controller.R as TouchR
 
 /**
  * Same PadKit scope and same input IDs used by Standard. Only the geometry and
