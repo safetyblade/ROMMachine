@@ -58,7 +58,12 @@ object PivotArcLayoutProfile {
 }
 
 /** Coordinates in measured ROOT-local dp, not in screenshot pixels. */
-data class PivotArcBounds(val left: Float, val top: Float, val right: Float, val bottom: Float) {
+data class PivotArcBounds(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+) {
     val width get() = right - left
     val height get() = bottom - top
     val centerX get() = (left + right) / 2f
@@ -66,7 +71,10 @@ data class PivotArcBounds(val left: Float, val top: Float, val right: Float, val
     fun inset(amount: Float): PivotArcBounds =
         PivotArcBounds(left - amount, top - amount, right + amount, bottom + amount)
 
-    fun inside(other: PivotArcBounds, tolerance: Float = 0.05f): Boolean =
+    fun inside(
+        other: PivotArcBounds,
+        tolerance: Float = 0.05f,
+    ): Boolean =
         left >= other.left - tolerance && right <= other.right + tolerance &&
             top >= other.top - tolerance && bottom <= other.bottom + tolerance
 
@@ -83,6 +91,7 @@ data class PivotArcPlacement(
 
 sealed interface PivotArcResolution {
     data class Fits(val placement: PivotArcPlacement) : PivotArcResolution
+
     data class Unavailable(val reason: String) : PivotArcResolution
 }
 
@@ -117,42 +126,59 @@ object PivotArcPositionSolver {
         }
         val gameplay = active.filterNot { it in utilities }
         if (gameplay.isEmpty()) return PivotArcResolution.Unavailable("No usable gameplay controls.")
-        if (gameplay.any {
+        val undersized =
+            gameplay.any {
                 val target = baseline.buttonCenters.getValue(it).touch
                 target.w < 48f || target.h < 48f
-            }) return PivotArcResolution.Unavailable("PivotArc targets are below the safe 48dp minimum.")
+            }
+        if (undersized) {
+            return PivotArcResolution.Unavailable("PivotArc targets are below the safe 48dp minimum.")
+        }
 
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
+
         fun rectFor(key: String): PivotArcBounds {
             val b = baseline.buttonCenters.getValue(key)
             val x = b.center.x + shiftX
             val y = b.center.y + shiftY
-            return PivotArcBounds(x - b.touch.w / 2f, y - b.touch.h / 2f, x + b.touch.w / 2f, y + b.touch.h / 2f)
+            return PivotArcBounds(
+                x - b.touch.w / 2f,
+                y - b.touch.h / 2f,
+                x + b.touch.w / 2f,
+                y + b.touch.h / 2f,
+            )
         }
 
         val core = gameplay.associateWith(::rectFor)
-        val coreHull = PivotArcBounds(
-            core.values.minOf { it.left }, core.values.minOf { it.top },
-            core.values.maxOf { it.right }, core.values.maxOf { it.bottom },
-        )
+        val coreHull =
+            PivotArcBounds(
+                core.values.minOf { it.left },
+                core.values.minOf { it.top },
+                core.values.maxOf { it.right },
+                core.values.maxOf { it.bottom },
+            )
 
         // Three low-frequency inputs sit in a protected rail directly below
         // the real viewport, rather than migrating Standard Start/Select.
         val utilityCenterY = viewport.bottom + GAP + 24f
-        val utilityCentersX = mapOf(
-            "Select" to safe.left + 34f,
-            "Start" to safe.centerX,
-            "Menu" to safe.right - 34f,
-        )
-        val rail = active.filter { it in utilities }.associateWith { key ->
-            val spec = baseline.buttonCenters.getValue(key).touch
-            val x = utilityCentersX.getValue(key)
-            PivotArcBounds(
-                x - spec.w / 2f, utilityCenterY - spec.h / 2f,
-                x + spec.w / 2f, utilityCenterY + spec.h / 2f,
+        val utilityCentersX =
+            mapOf(
+                "Select" to safe.left + 34f,
+                "Start" to safe.centerX,
+                "Menu" to safe.right - 34f,
             )
-        }
+        val rail =
+            active.filter { it in utilities }.associateWith { key ->
+                val spec = baseline.buttonCenters.getValue(key).touch
+                val x = utilityCentersX.getValue(key)
+                PivotArcBounds(
+                    x - spec.w / 2f,
+                    utilityCenterY - spec.h / 2f,
+                    x + spec.w / 2f,
+                    utilityCenterY + spec.h / 2f,
+                )
+            }
 
         // Move all active gameplay controls as ONE cluster; 8dp clearance is
         // enforced between the utility rail and the game cluster.
@@ -169,16 +195,19 @@ object PivotArcPositionSolver {
         // outside the measured game viewport and rail.
         val dx = requestedDx.coerceIn(minDx, maxDx)
         val dy = requestedDy.coerceIn(minDy, maxDy)
-        val translated = core.mapValues { (_, rect) ->
-            PivotArcBounds(rect.left + dx, rect.top + dy, rect.right + dx, rect.bottom + dy)
-        }
+        val translated =
+            core.mapValues { (_, rect) ->
+                PivotArcBounds(rect.left + dx, rect.top + dy, rect.right + dx, rect.bottom + dy)
+            }
         val rightHandPositions = translated + rail
         val positions =
             if (leftHanded) {
                 rightHandPositions.mapValues { (_, r) ->
                     PivotArcBounds(
-                        safe.left + safe.right - r.right, r.top,
-                        safe.left + safe.right - r.left, r.bottom,
+                        safe.left + safe.right - r.right,
+                        r.top,
+                        safe.left + safe.right - r.left,
+                        r.bottom,
                     )
                 }
             } else {
