@@ -73,6 +73,12 @@ enum class MainRoute(
         parent = SETTINGS,
         showBottomNavigation = false,
     ),
+    SETTINGS_LAYOUT(
+        route = "settings/layout",
+        titleId = R.string.title_settings,
+        parent = SETTINGS,
+        showBottomNavigation = false,
+    ),
     SETTINGS_ADVANCED(
         route = "settings/advanced",
         titleId = R.string.settings_title_advanced_settings,
