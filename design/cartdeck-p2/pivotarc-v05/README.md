@@ -29,3 +29,14 @@ Open `prototype.html` in a modern browser (no build tooling or network required)
 
 ## Implementation gate
 Sienna/Cassia approve mapping and profile, Daniel validates actual measured input semantics, and only then Elliot implements a **separate opt-in native development PR**. Existing Standard-mode Start/Select positions and hit zones are protected. Pause/Start/Select remain in a separate utility zone, not in the frequent-action arc. No ROM/emulator/save/system migration in this pack.
+
+
+## v0.6 PivotArc Button Lab — individual drag experiment (10 Nov 2026)
+
+Owner requested editable button placement **before** locking shoulder ergonomics. The `prototype.html` has been extended so each D-pad, action position and L/R shoulder control can be grabbed and moved individually. The shoulder controls now have **two recallable comparison presets**: (1) original sketch with horizontal L above and vertical R upper-right, and (2) near A/B at the lower action arc. Both remain hypotheses, not a locked redesign.
+
+Controls include hand and system input family, alternative A/B mappings, whole-group moves, target-clearance warnings and an exportable JSON record of relative positions. The entire HTML is independent of Kotlin and PadKit. Importing JSON, detailed phone-size visualization and additional editing affordances are also supplied in the standalone **PivotArc Button Lab v0.6 HTML** in the current owner design review conversation; GitHub `prototype.html` retains the simpler tool with direct drag and JSON export.
+
+The first geometry comparison (393×852 simulated surface, lower A/B assignment) changes the mean Euclidean distance across the four A/B↔L/R centre pairs from approximately **271 dp** (original shoulder positions) to **107 dp** (near-action position). This is a modeled geometric result only. It does NOT prove physical thumb reach, game performance, ability to press simultaneously, or accidental-contact rates. At compact width, the close-shoulder preset can exceed the available safe area; the browser flags that condition rather than reducing target size.
+
+**User experiment:** try both presets on a phone, drag L/R until every important control can be reached without changing grip, optionally activate all four action circles and extra-console controls, then **Export JSON**. Treat the exported JSON as a design handoff, not a configuration to import into CARTDECK Android. Standard-mode Start/Select remain locked and the release APK is unchanged by this task.
