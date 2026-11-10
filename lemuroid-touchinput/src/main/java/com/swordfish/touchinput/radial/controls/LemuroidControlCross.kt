@@ -20,6 +20,7 @@ fun LemuroidControlCross(
     modifier: Modifier = Modifier,
     id: Id.DiscreteDirection,
     allowDiagonals: Boolean = true,
+    hardwareSeatId: String = "dpad",
     background: @Composable () -> Unit = {},
     foreground: @Composable (State<Offset>) -> Unit = {
         LemuroidCrossForeground(
@@ -34,7 +35,7 @@ fun LemuroidControlCross(
         modifier =
             modifier.padding(theme.padding).then(
                 if (observe != null) {
-                    Modifier.onGloballyPositioned { observe("dpad", it.boundsInRoot()) }
+                    Modifier.onGloballyPositioned { observe(hardwareSeatId, it.boundsInRoot()) }
                 } else {
                     Modifier
                 },

@@ -65,7 +65,6 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
 import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
-import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
@@ -338,7 +337,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     rootBounds = fullPos,
                     videoBounds = viewPos,
                     inputBounds = hardwareInputBounds,
-                    isDualScreen = viewModel.systemId == SystemID.NDS,
+                    isDualScreen =
+                        portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
                     pivotArc = pivotPlacement != null,
                 )

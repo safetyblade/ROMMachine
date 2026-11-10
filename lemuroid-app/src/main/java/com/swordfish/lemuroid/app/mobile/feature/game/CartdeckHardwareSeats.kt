@@ -48,7 +48,7 @@ internal object CartdeckHardwareResource {
     ): Int? {
         val group =
             when {
-                key == "dpad" -> "dpad"
+                key == "dpad" || key == "c-direction" -> "dpad"
                 key == "face-ab" -> "ab"
                 key == "face-abxy" -> "abxy"
                 key == "start" || key == "select" -> "start-select"
@@ -520,7 +520,9 @@ internal fun CartdeckHardwareSeats(
         }
 
         controls.toSortedMap().forEach { (key, control) ->
-            val singleFaceSeat = pivotArc && key in setOf("face-a", "face-b", "face-x", "face-y")
+            val singleFaceSeat =
+                (pivotArc && key in setOf("face-a", "face-b", "face-x", "face-y")) ||
+                    key in setOf("aux-C", "aux-Z")
             if (!singleFaceSeat && CartdeckHardwareResource.seat(edition, key) == null) {
                 return@forEach
             }
