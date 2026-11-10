@@ -73,13 +73,18 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
             LayoutChoice("Right Hand", "Owner-approved Candidate C arrangement", current.hand == PivotArcHand.RIGHT) {
                 store.save(current.copy(hand = PivotArcHand.RIGHT))
             }
-            LayoutChoice("Left Hand", "Mirror positions; keep game and input identities unchanged", current.hand == PivotArcHand.LEFT) {
+            LayoutChoice(
+                "Left Hand",
+                "Mirror positions; keep game and input identities unchanged",
+                current.hand == PivotArcHand.LEFT,
+            ) {
                 store.save(current.copy(hand = PivotArcHand.LEFT))
             }
             Button(onClick = { adjusting = true }, enabled = baseline != null) { Text("Adjust Position") }
             TextButton(onClick = { store.resetPosition() }) { Text("Reset Position") }
             Text(
-                "GB, GBC, GBA and SNES are the initial controller profiles. Other systems use their existing Standard controls with an explanation. Saved PivotArc preference is retained.",
+                "GB, GBC, GBA and SNES are the initial profiles. Other systems use existing Standard " +
+                    "controls with an explanation. Your PivotArc preference is retained.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -106,7 +111,11 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text("Adjust Position", style = MaterialTheme.typography.titleLarge)
-                    Text("Drag the group, or use the sliders. This reference preview is clamped again to the real gameplay viewport on launch.", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Drag the group, or use the sliders. This reference preview is clamped " +
+                            "again to the real gameplay viewport on launch.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     val primary = MaterialTheme.colorScheme.primary
                     val surface = MaterialTheme.colorScheme.surfaceVariant
                     val outline = MaterialTheme.colorScheme.outline
@@ -125,11 +134,19 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
                         val sx = size.width / 393f
                         val sy = size.height / 852f
                         drawRoundRect(surface, topLeft = Offset(8 * sx, 8 * sy), size = Size(377 * sx, 836 * sy))
-                        drawRect(outline.copy(alpha = 0.35f), topLeft = Offset(22 * sx, 84 * sy), size = Size(349 * sx, 260 * sy))
+                        drawRect(
+                            outline.copy(alpha = 0.35f),
+                            topLeft = Offset(22 * sx, 84 * sy),
+                            size = Size(349 * sx, 260 * sy),
+                        )
                         if (preview is PivotArcResolution.Fits) {
                             preview.placement.controls.forEach { (key, r) ->
                                 val c = if (key == "D") primary else primary.copy(alpha = 0.75f)
-                                drawRoundRect(c, topLeft = Offset(r.left * sx, r.top * sy), size = Size(r.width * sx, r.height * sy))
+                                drawRoundRect(
+                                    c,
+                                    topLeft = Offset(r.left * sx, r.top * sy),
+                                    size = Size(r.width * sx, r.height * sy),
+                                )
                             }
                         }
                     }
@@ -160,7 +177,12 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun LayoutChoice(title: String, description: String, selected: Boolean, onClick: () -> Unit) {
+private fun LayoutChoice(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RadioButton(selected = selected, onClick = onClick)
         Column {
