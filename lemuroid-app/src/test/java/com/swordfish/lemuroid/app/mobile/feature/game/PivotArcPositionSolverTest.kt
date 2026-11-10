@@ -100,7 +100,7 @@ class PivotArcPositionSolverTest {
         val viewport = PivotArcBounds(22f, 84f, 298f, 344f)
         val result = resolve(SystemID.SNES, safe = safe, viewport = viewport)
         if (result is PivotArcResolution.Fits) {
-            assertEquals(9, result.placement.controls.size)
+            assertEquals(10, result.placement.controls.size)
         } else {
             assertTrue((result as PivotArcResolution.Unavailable).reason.isNotBlank())
         }
