@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -216,6 +217,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val currentDensity = LocalDensity.current
             val layoutDirection = LocalLayoutDirection.current
             val insetSafe = WindowInsets.safeDrawing
+            val gestureSafe = WindowInsets.safeGestures
             val selectedPivot = pivotSettings.mode == CartdeckLayoutMode.ONE_HAND
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             val pivotResolution: PivotArcResolution? =
@@ -228,10 +230,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         val scale = currentDensity.density
                         val safeBounds =
                             PivotArcBounds(
-                                insetSafe.getLeft(currentDensity, layoutDirection) / scale + 8f,
-                                insetSafe.getTop(currentDensity) / scale + 8f,
-                                fullPos.width / scale - insetSafe.getRight(currentDensity, layoutDirection) / scale - 8f,
-                                fullPos.height / scale - insetSafe.getBottom(currentDensity) / scale - 8f,
+                                maxOf(insetSafe.getLeft(currentDensity, layoutDirection), gestureSafe.getLeft(currentDensity, layoutDirection)) / scale + 8f,
+                                maxOf(insetSafe.getTop(currentDensity), gestureSafe.getTop(currentDensity)) / scale + 8f,
+                                fullPos.width / scale - maxOf(insetSafe.getRight(currentDensity, layoutDirection), gestureSafe.getRight(currentDensity, layoutDirection)) / scale - 8f,
+                                fullPos.height / scale - maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity)) / scale - 8f,
                             )
                         val viewportBounds =
                             PivotArcBounds(
