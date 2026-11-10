@@ -33,6 +33,11 @@ data class PivotArcBaseline(
 )
 
 object PivotArcLayoutProfile {
+    // Conditional extensions are not active unless a console mapping is
+    // complete. The shared solver and cradle accept all four without
+    // hardcoded key counts or relocating the approved primary cluster.
+    val optionalFourButtonExpansion = setOf("X", "Y", "L2", "R2")
+
     private val decoder = Json { ignoreUnknownKeys = true }
 
     fun parse(json: String): PivotArcBaseline {
