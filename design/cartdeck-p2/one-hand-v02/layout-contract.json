@@ -1,0 +1,256 @@
+{
+  "schema": "cartdeck.oneHandLayout/0.2.0",
+  "status": "concept-approved-direction; source-design-only; owner/Cassia approval of exact ergonomic positions pending; no native implementation",
+  "issue": 58,
+  "parentControlLayoutsIssue": 34,
+  "nav": {
+    "parent": "Layout",
+    "item": "One Hand Mode",
+    "choice": [
+      "Left hand",
+      "Right hand"
+    ],
+    "standardSibling": "Standard",
+    "futureSiblings": [
+      "Racing",
+      "Fighting",
+      "Sports"
+    ]
+  },
+  "scopeNow": {
+    "selectedLayout": "GLOBAL for every game",
+    "persistSelection": true,
+    "perGameOverrides": false,
+    "genreAutomation": false,
+    "systemSpecificRequiredControls": true,
+    "doNotSwapToStandardSilently": true
+  },
+  "display": {
+    "viewportSource": "current measured LibretroDroid viewport",
+    "crop": false,
+    "stretch": false,
+    "mirrorGameVideo": false,
+    "rendererCount": 1,
+    "doNotResizeForControls": true
+  },
+  "placement": {
+    "handChoice": "one thumb-side primary island plus a deliberately separate opposite-side utility area",
+    "left": {
+      "dock": [
+        27,
+        495,
+        224,
+        260
+      ],
+      "dpadCenter": [
+        95,
+        655
+      ],
+      "abCenters": {
+        "a": [
+          194,
+          619
+        ],
+        "b": [
+          194,
+          692
+        ]
+      },
+      "shoulderVisuals": {
+        "l": [
+          58,
+          535,
+          74,
+          43
+        ],
+        "r": [
+          135,
+          535,
+          74,
+          43
+        ]
+      },
+      "utility": [
+        266,
+        520,
+        98,
+        233
+      ]
+    },
+    "right": {
+      "dock": [
+        142,
+        495,
+        224,
+        260
+      ],
+      "dpadCenter": [
+        298,
+        655
+      ],
+      "abCenters": {
+        "a": [
+          199,
+          619
+        ],
+        "b": [
+          199,
+          692
+        ]
+      },
+      "shoulderVisuals": {
+        "l": [
+          204,
+          535,
+          74,
+          43
+        ],
+        "r": [
+          281,
+          535,
+          74,
+          43
+        ]
+      },
+      "utility": [
+        30,
+        520,
+        98,
+        233
+      ]
+    },
+    "utilityContents": [
+      "Select",
+      "Start",
+      "Pause/Menu"
+    ],
+    "utilityVisualY": [
+      552,
+      620,
+      688
+    ],
+    "utilityOrder": "top-to-bottom",
+    "utilityIntent": "deliberately accessed, not under primary gameplay thumb",
+    "referenceSizePx": [
+      393,
+      852
+    ],
+    "referenceOnly": true,
+    "productionRule": "derive all control positions from actual physical safe bounds, PadKit touch map and reach profile; never transpose reference px into dp",
+    "minFunctionalHitDp": 48,
+    "androidSafeInsets": true,
+    "standardModeStartSelectLocked": true,
+    "currentStandardTouchMapImmutable": true,
+    "releaseDoesNotAssumeErgonomicValidation": true
+  },
+  "controlSets": {
+    "gb": [
+      "Dpad",
+      "A",
+      "B",
+      "Start",
+      "Select",
+      "Menu"
+    ],
+    "gbc": [
+      "Dpad",
+      "A",
+      "B",
+      "Start",
+      "Select",
+      "Menu"
+    ],
+    "gba": [
+      "Dpad",
+      "A",
+      "B",
+      "L",
+      "R",
+      "Start",
+      "Select",
+      "Menu"
+    ],
+    "snes": [
+      "Dpad",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "Start",
+      "Select",
+      "Menu"
+    ],
+    "ps1": [
+      "Dpad",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L1",
+      "R1",
+      "L2",
+      "R2",
+      "Start",
+      "Select",
+      "Menu",
+      "optional active analog(s)"
+    ],
+    "nds": [
+      "Dpad",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "Start",
+      "Select",
+      "Menu",
+      "mic/screen function where supported",
+      "dual game screens",
+      "stylus touch mapping"
+    ]
+  },
+  "systemFeasibility": {
+    "gb_gbc_gba": "Primary usability prototypes, including walking, A/B and shoulder inputs",
+    "snes": "Four-face thumb dock spatial and multi-press validation required",
+    "ps1": "Four face + shoulder + analog input/combos; no claim of universal one-hand viability",
+    "nds": "Preserve combined two-screen renderer and stylus; touch with one hand is special feasibility requirement"
+  },
+  "brand": {
+    "editions": [
+      "Original",
+      "Pink",
+      "Green"
+    ],
+    "sameGeometry": true,
+    "brandMark": "canonical C-slot and wordmark",
+    "hardware": "same CARTDECK chassis",
+    "decorativeLayersPointerTransparent": true
+  },
+  "future": {
+    "perGameEntry": "Long-press CARTDECK cartridge in shelf/catalogue → Game Layout → Use Global or selected loadout",
+    "genre": "opt-in rules, OFF by default and never automatic in v1",
+    "resolutionPriority": [
+      "explicit game override",
+      "explicitly enabled genre rule",
+      "globally selected layout",
+      "clear user-visible compatibility fallback"
+    ],
+    "perGameProfileStore": "stable game identity, separate from ROM/save and cartridge cover",
+    "perGameNotImplementedNow": true
+  },
+  "previewFiles": [
+    "review/left-zone.svg",
+    "review/right-zone.svg"
+  ],
+  "gates": [
+    "Sienna and Cassia precise ergonomic review",
+    "Jonathan approval of actual control placement",
+    "Daniel PadKit, pointer/gesture, storage architecture",
+    "Elliot bounded native implementation after authorisation",
+    "Marcus two-device input and save/update QA"
+  ]
+}

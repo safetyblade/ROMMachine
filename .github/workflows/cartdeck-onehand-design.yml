@@ -1,0 +1,35 @@
+name: CARTDECK One Hand Layout Design Validation
+on:
+  pull_request:
+    paths:
+      - 'design/cartdeck-p2/one-hand-v02/**'
+      - 'design/cartdeck-p2/one-hand-v03/**'
+      - 'design/cartdeck-p2/pivotarc-v05/**'
+      - 'design/cartdeck-p2/pivotarc-v07/**'
+      - '.github/workflows/cartdeck-onehand-design.yml'
+  push:
+    paths:
+      - 'design/cartdeck-p2/one-hand-v02/**'
+      - 'design/cartdeck-p2/one-hand-v03/**'
+      - 'design/cartdeck-p2/pivotarc-v05/**'
+      - 'design/cartdeck-p2/pivotarc-v07/**'
+      - '.github/workflows/cartdeck-onehand-design.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate global-mode contract, thumb grouping and preview files
+        run: python -m unittest discover design/cartdeck-p2/one-hand-v02 -p 'test_one_hand_contract.py' -v
+      - name: Validate v0.3 diagonal hit-zone clearance and mirrored editions
+        run: python -m unittest discover design/cartdeck-p2/one-hand-v03 -p 'test_diagonal_layout.py' -v
+      - name: Validate PivotArc v0.5 target geometry, two mappings and editable diagrams
+        run: python -m unittest discover design/cartdeck-p2/pivotarc-v05 -p 'test_pivotarc_contract.py' -v
+      - name: Validate owner Candidate C visual/touch sizing and system profile spacing
+        run: python -m unittest discover design/cartdeck-p2/pivotarc-v07 -p 'test_candidate_c.py' -v
+      - name: Validate offline prototype inline JavaScript syntax
+        run: |
+          node -e "const s=require('fs').readFileSync('design/cartdeck-p2/pivotarc-v05/prototype.html','utf8');const script=s.split('<script>')[1]?.split('</script>')[0];if(!script)throw Error('No inline JS');new Function(script);console.log('Prototype script parses')"

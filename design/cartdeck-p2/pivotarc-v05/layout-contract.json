@@ -1,0 +1,247 @@
+{
+  "schema": "cartdeck.pivotarc/0.5.0",
+  "productName": "PivotArc",
+  "namingStatus": "PROVISIONAL; trademark/novelty not cleared",
+  "stage": "interactive design test harness; no native Android/PadKit integration",
+  "sourceOfTruth": "Owner's SECOND unlabeled sketch: D-pad central/right; 4 circle action arc on left; horizontal L above, vertical R above-right",
+  "layoutSelection": {
+    "menu": [
+      "Layout",
+      "One Hand Mode",
+      "PivotArc"
+    ],
+    "hand": [
+      "right",
+      "left"
+    ],
+    "globalAcrossAllGames": true,
+    "savedPerGameOverrides": false,
+    "genreRulesEnabled": false,
+    "restoreStandardUnchanged": true,
+    "advancedIndividualControlEditing": "separate future setting"
+  },
+  "anchor": {
+    "principle": "whole constellation rigidly translated relative to safe viewport and thumb-rest point",
+    "hands": "right hand uses source sketch; left mirrors relative x, not video/brand/labels",
+    "defaultPreferenceFraction": {
+      "right": 0.66,
+      "left": 0.34,
+      "y": 0.73
+    },
+    "safeMarginDp": 12,
+    "minVerticalRoomDp": 324,
+    "minHorizontalRoomDp": 309,
+    "allowedAdjustment": "single 2D Adjust Position knob/drag; translation clamped to safe rectangle; NOT individual button editing",
+    "clampPolicy": "if available view below viewport cannot contain original 300dp height plus safe margin, do not shrink hitboxes or silently switch Standard; show an explicit unsupported-layout explanation while preserving saved global choice",
+    "caution": "initial grip fractions are prototype heuristics, not ergonomic evidence"
+  },
+  "geometry": {
+    "units": "dp proxy for collision study ONLY; live Android must measure actual input bounds",
+    "rightHandRelativeCenters": {
+      "D": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96,
+        "role": "directional"
+      },
+      "P1": {
+        "x": -87,
+        "y": -94,
+        "w": 48,
+        "h": 48,
+        "role": "action"
+      },
+      "P2": {
+        "x": -129,
+        "y": -18,
+        "w": 48,
+        "h": 48,
+        "role": "action"
+      },
+      "P3": {
+        "x": -129,
+        "y": 66,
+        "w": 48,
+        "h": 48,
+        "role": "action"
+      },
+      "P4": {
+        "x": -72,
+        "y": 120,
+        "w": 48,
+        "h": 48,
+        "role": "action"
+      },
+      "L": {
+        "x": 43,
+        "y": -132,
+        "w": 66,
+        "h": 48,
+        "role": "shoulder"
+      },
+      "R": {
+        "x": 108,
+        "y": -78,
+        "w": 48,
+        "h": 66,
+        "role": "shoulder"
+      }
+    },
+    "extent": {
+      "left": -153,
+      "right": 132,
+      "top": -156,
+      "bottom": 144,
+      "width": 285,
+      "height": 300
+    },
+    "leftHandRule": "negate x for all target centers; L/R labels and functional input IDs do not exchange",
+    "dpadVisual": "one canonical CARTDECK chamfered cross; schematic may show four arms but one input group",
+    "minButtonTargetDp": 48,
+    "prototypeMinActiveGapDp": 8,
+    "labeling": "four circle positions are P1-P4 in master; avoid committing game system mapping until comparative owner testing"
+  },
+  "mappingExperiments": {
+    "A": {
+      "name": "Lower arc",
+      "two": {
+        "A": "P4",
+        "B": "P3"
+      },
+      "four": {
+        "A": "P4",
+        "B": "P3",
+        "X": "P2",
+        "Y": "P1"
+      }
+    },
+    "B": {
+      "name": "Middle arc",
+      "two": {
+        "A": "P3",
+        "B": "P2"
+      },
+      "four": {
+        "A": "P3",
+        "B": "P2",
+        "X": "P4",
+        "Y": "P1"
+      }
+    }
+  },
+  "touchResearch": {
+    "default": "touch-down ownership: first valid target captures that pointer until lift/cancel; sliding across other discrete actions does not trigger them",
+    "dpad": "allow D-pad direction changes while within directional component without firing other buttons",
+    "disabledPositions": "no input on dormant action circles in two-button systems",
+    "multitouch": "preserve existing PadKit distinct pointers; no simulated combos/latching",
+    "phaseOneDoNotChange": "Existing PadKit semantics; HTML harness only visualises the proposed rules pending Daniel review",
+    "tuningResearch": [
+      "strict touch down capture",
+      "nondefault slide selection experimental only"
+    ],
+    "observation": [
+      "unintentional P1/P2 contact during D-pad",
+      "missed A/B",
+      "regrip count",
+      "directional error",
+      "simultaneous input feasibility"
+    ]
+  },
+  "controllerFamilies": {
+    "GB/GBC/NES": {
+      "base": "D+P3/P4 (A assignment candidate)",
+      "extra": [],
+      "readiness": "primary prototype"
+    },
+    "GBA": {
+      "base": "D+P3/P4",
+      "extra": [
+        "L",
+        "R"
+      ],
+      "readiness": "primary prototype"
+    },
+    "SNES/4-face": {
+      "base": "D+P1-P4",
+      "extra": [
+        "L",
+        "R"
+      ],
+      "readiness": "mapping experiment"
+    },
+    "MegaDrive6/Arcade6": {
+      "base": "D+P1-P4",
+      "extra": [
+        "P5",
+        "P6"
+      ],
+      "readiness": "module unresolved, cannot fit by assertion"
+    },
+    "PS1/PSP": {
+      "base": "D+P1-P4",
+      "extra": [
+        "L/R and/or L2/R2",
+        "optional one/two analog"
+      ],
+      "readiness": "module feasibility"
+    },
+    "N64": {
+      "base": "D+AB",
+      "extra": [
+        "C-direction group",
+        "Z",
+        "analog",
+        "L/R"
+      ],
+      "readiness": "separate layout feasibility"
+    },
+    "DS/3DS": {
+      "base": "D+P1-P4",
+      "extra": [
+        "L/R",
+        "mic/layout",
+        "touch/stylus",
+        "dual viewport",
+        "optional analog"
+      ],
+      "readiness": "combined screen leaves less room; design blocked until real viewport measurements"
+    },
+    "Dreamcast/GameCube/PS2": {
+      "base": "D+P1-P4",
+      "extra": [
+        "system-dependent analog/triggers/C stick/Z/L3/R3"
+      ],
+      "readiness": "future design targets, not gameplay assertions"
+    }
+  },
+  "appearance": {
+    "usesSharedTokens": [
+      "Original",
+      "Pink",
+      "Green"
+    ],
+    "style": "diagram source is intentionally neutral; cosmetic edition independent from input mapping"
+  },
+  "validation": {
+    "targets": "two phone widths 320/393dp plus intermediate 360dp; actual Android app window & density must be measured",
+    "tasks": [
+      "30 D-pad→A→D-pad→B cycles",
+      "30 D-pad→P1/P2 extra action cycles",
+      "D-pad diagonals",
+      "A+B and shoulders",
+      "5 minute comfortable grip",
+      "false presses while sliding across dormant buttons",
+      "Start/Select/Menu unintentional presses",
+      "DS viewport clearance"
+    ],
+    "record": "study-template.csv",
+    "doesNotProve": "A static/browser prototype cannot validate capacitive behavior or actual PadKit input"
+  },
+  "reviewGates": [
+    "Jonathan/Cassia mapping and anchor concept",
+    "Daniel measured touch/viewport/ownership review",
+    "Elliot opt-in feature prototype after authorisation",
+    "Marcus physical devices and in-place update QA"
+  ]
+}

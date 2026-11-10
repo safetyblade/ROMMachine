@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CARTDECK PivotArc v0.6 — Movable Button Lab</title>
+<style>
+body{font:14px system-ui,sans-serif;background:#0e1720;color:#edf6f2;margin:auto;max-width:930px;padding:20px}
+h1{font-size:23px;margin-bottom:4px}h2{font-size:16px}p,.note{color:#bacbd6;line-height:1.5}
+.note{font-size:12px}fieldset{border:1px solid #4c6270;border-radius:12px;padding:12px;margin:16px 0}
+legend{font-weight:700}label{display:grid;gap:6px}select,button{background:#243644;color:#edf6f2;border:1px solid #728896;border-radius:8px;padding:10px;cursor:pointer;min-height:44px}
+select{width:100%}button:disabled{opacity:.4}.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.view{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:20px}@media(max-width:650px){.view{grid-template-columns:1fr}}
+svg{max-width:100%;height:auto;background:#142432;border-radius:12px;border:1px solid #526977;touch-action:none}
+.nudge{display:grid;grid-template-columns:repeat(3,45px);grid-template-rows:repeat(3,45px);gap:6px;justify-content:center}
+.nudge button{min-height:45px;padding:0}.up{grid-column:2}.left{grid-column:1;grid-row:2}.reset{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}
+#events{background:#1a2a38;border-radius:8px;min-height:100px;padding:9px;font:12px/1.5 monospace;white-space:pre-wrap}
+.warn{color:#ffcfb1}.ok{color:#92f1cb}small{color:#bacbd6}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.preset-row button{font-size:12px}.preset-row button.selected{border-color:#4ed8c4;background:#214a49}
+#diagram [data-key]{cursor:grab;touch-action:none}
+#diagram [data-key]:active{cursor:grabbing}
+#diagram .hit-area{pointer-events:none;fill:none;stroke:#eac88f;stroke-width:1.2;stroke-dasharray:4 3}
+#designWarnings{display:grid;gap:4px;margin-top:7px}#designWarnings div{padding:6px;background:#2c2721;border-left:2px solid #ffb87e;color:#ffd5ae;font-size:12px}
+.action-row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+
+</style></head><body>
+<h1>CARTDECK PivotArc v0.6 · Movable Button Lab</h1>
+<p>Offline interaction study of the owner's second sketch. <strong>Not an Android gamepad or an ergonomics test.</strong> Drag each D-pad, action or shoulder button independently; compare upper shoulders with shoulders near A/B. Nothing here changes emulator inputs.</p>
+<fieldset><legend>PivotArc design controls</legend><div class="opts">
+<label>Hand<select id="hand"><option value="right">Right — original sketch</option><option value="left">Left — mirrored</option></select></label>
+<label>Game input family<select id="family">
+<option value="gb">GB/GBC/NES — two actions</option><option value="gba" selected>GBA — two actions + L/R</option>
+<option value="four">SNES — four actions + L/R</option><option value="six">Six-button — extra module</option>
+<option value="analog">PS1/PSP — analog/extra shoulders</option><option value="ds">DS — screen/stylus constraints</option>
+</select></label>
+<label>A/B hypothesis<select id="mapping"><option value="A">Candidate A · lower P3/P4</option><option value="B">Candidate B · middle P2/P3</option></select></label>
+<label>Available control area<select id="device">
+<option value="compact">320dp width / 353dp depth</option>
+<option value="medium">360dp width / 375dp depth</option>
+<option value="large" selected>393dp width / 400dp depth</option>
+<option value="ds">DS constrained / 245dp depth</option>
+</select></label>
+</div><div class="preset-row"><strong>Shoulders:</strong>
+<button id="shouldersUpper" class="selected">Upper · original sketch</button>
+<button id="shouldersNear">Near A/B</button>
+<button id="editMode" class="selected">Edit buttons: ON</button>
+<button id="moveAsGroup">Move whole cluster: OFF</button></div></fieldset>
+<div class="view"><div>
+<h2>Control topology and available space</h2>
+<svg id="diagram" role="img" aria-label="Interactive PivotArc button topology"></svg>
+<p id="fit" aria-live="polite"></p>
+<p class="note">Drag any button to adjust its position. Select Move whole cluster to drag every button together. All dimensions are schematic dp proxies, not live PadKit input bounds. Start/Select/Menu remain in a separate future utility zone.</p>
+<div id="designWarnings" aria-live="polite"></div>
+</div><aside>
+<h2>Adjust Position &amp; export</h2>
+<p class="note">Select a button by touching it. The arrows move either that button or the complete cluster by 8 units. The HTML stores custom positions locally when supported.</p>
+<div class="nudge">
+<button class="up" data-move="0,-8">↑</button><button class="left" data-move="-8,0">←</button>
+<button class="reset" id="reset">Reset</button><button class="right" data-move="8,0">→</button>
+<button class="down" data-move="0,8">↓</button>
+</div><p id="coords" class="note"></p>
+<h2>Contact ownership</h2><p class="note">Pointer-down activates only that button. Moving the same pointer across another circle does not activate it; release clears ownership.</p>
+<div id="events" aria-live="polite"></div><p class="action-row"><button id="clear">Clear events</button><button id="resetButtons">Reset buttons</button><button id="exportPositions">Export JSON</button></p><small id="selectedDetail">Selected: D-pad</small>
+</aside></div>
+<h2>System-specific modules</h2><p id="modules"></p>
+<p class="note">This prototype cannot establish thumb comfort, actual 48dp Android hit regions, D-pad diagonal accuracy, physical capacitive touches, or DS/analog viability.</p>
+<script>
+(function(){
+"use strict";
+var ns="http://www.w3.org/2000/svg", byId=function(s){return document.getElementById(s);};
+var C={D:[0,0,96,96],P1:[-87,-94,48,48],P2:[-129,-18,48,48],P3:[-129,66,48,48],P4:[-72,120,48,48],L:[43,-132,66,48],R:[108,-78,48,66],P5:[-160,-114,48,48],P6:[-170,110,48,48],L2:[95,-150,56,48],R2:[155,-115,48,56],Analog:[107,147,72,72]};
+var preset={compact:[320,353],medium:[360,375],large:[393,400],ds:[393,245]};
+var maps={A:{A:"P4",B:"P3",X:"P2",Y:"P1"},B:{A:"P3",B:"P2",X:"P4",Y:"P1"}};
+var shift=[0,0],pressed=new Map(),history=[];
+var buttonEdits={},shoulderPreset="upper",editMode=true,moveAsGroup=false,selectedId="D",activeDrag=null;
+var storeKey="cartdeck.pivotarc.drag.v06";
+try{buttonEdits=JSON.parse(localStorage.getItem(storeKey)||"{}")||{}}catch(e){buttonEdits={}}
+function profileKey(){return [byId("device").value,byId("hand").value,shoulderPreset].join("|")}
+function editedRelative(id){var profile=buttonEdits[profileKey()]||{},base=C[id],fallback=(shoulderPreset==="near"&&id==="L")?[-140,160]:(shoulderPreset==="near"&&id==="R")?[20,130]:base;
+ var chosen=profile[id]||fallback;return [chosen[0],chosen[1],base[2],base[3]]}
+function saveEdits(){try{localStorage.setItem(storeKey,JSON.stringify(buttonEdits))}catch(e){}}
+function svgPoint(e){var svg=byId("diagram"),p=svg.createSVGPoint(),matrix=svg.getScreenCTM();p.x=e.clientX;p.y=e.clientY;return matrix?p.matrixTransform(matrix.inverse()):{x:0,y:0}}
+function exportPositions(){var obj={format:"cartdeck.pivotarc.layout/0.6",hand:byId("hand").value,phone:byId("device").value,system:byId("family").value,abMapping:byId("mapping").value,shoulderPreset:shoulderPreset,referenceGeometry:C,relativePositions:Object.fromEntries(Object.keys(C).map(function(id){var a=editedRelative(id);return [id,{x:a[0],y:a[1],w:a[2],h:a[3]}]})),warning:"Design study only; not an Android controller profile."};
+var data=JSON.stringify(obj,null,2),link=document.createElement("a"),url=URL.createObjectURL(new Blob([data],{type:"application/json"}));link.href=url;link.download="CARTDECK-PivotArc-"+obj.hand+"-"+obj.phone+".json";document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url)},500)}
+
+function el(name,attrs,text){var a=document.createElementNS(ns,name);Object.keys(attrs).forEach(function(k){a.setAttribute(k,String(attrs[k]));});if(text)a.textContent=text;return a}
+function clamp(v,l,r){return Math.max(l,Math.min(r,v))}
+function log(msg){history.unshift(msg);history=history.slice(0,7);byId("events").textContent=history.join("\n")}
+function config(){
+ var f=byId("family").value,m=maps[byId("mapping").value],h=byId("hand").value;
+ var active=f==="gb"?["D",m.A,m.B]:f==="gba"?["D",m.A,m.B,"L","R"]:["D","P1","P2","P3","P4","L","R"];
+ if(f==="six")active.push("P5","P6");
+ if(f==="analog")active.push("L2","R2","Analog");
+ return {family:f,hand:h,mapping:m,active:active};
+}
+function render(){
+ var svg=byId("diagram"),cfg=config(),dim=preset[byId("device").value],W=dim[0],H=dim[1],sign=cfg.hand==="right"?1:-1;
+ svg.replaceChildren();pressed.clear();svg.setAttribute("viewBox","0 0 "+W+" "+H);
+ svg.appendChild(el("rect",{x:1,y:1,width:W-2,height:H-2,rx:15,fill:"#142432",stroke:"#58707c","stroke-width":2}));
+ svg.appendChild(el("rect",{x:12,y:12,width:W-24,height:H-24,rx:9,fill:"none",stroke:"#447969","stroke-dasharray":"4 5"}));
+ var lowX=(sign===1?153:132)+12,highX=W-12-(sign===1?132:153);
+ var lowY=156+12,highY=H-12-144,fit=lowX<=highX&&lowY<=highY;
+ var x=fit?clamp(clamp(W*(sign===1?.66:.34),lowX,highX)+shift[0],lowX,highX):W/2;
+ var y=fit?clamp(clamp(H*.54,lowY,highY)+shift[1],lowY,highY):H/2;
+ {
+  Object.keys(C).forEach(function(id){
+   var a=editedRelative(id),px=x+sign*a[0],py=y+a[1],w=a[2],h=a[3],enabled=cfg.active.indexOf(id)>=0;
+   var g=el("g",{opacity:enabled?1:.35,"data-key":id});
+   var shape;
+   if(id==="D"){
+    var d="M"+(px-16)+" "+(py-48)+"H"+(px+16)+"V"+(py-16)+"H"+(px+48)+"V"+(py+16)+"H"+(px+16)+"V"+(py+48)+"H"+(px-16)+"V"+(py+16)+"H"+(px-48)+"V"+(py-16)+"H"+(px-16)+"Z";
+    shape=el("path",{d:d,fill:"#294353",stroke:"#edf6f2","stroke-width":2});
+   }else if(id.charAt(0)==="P"||id==="Analog"){
+    shape=el("circle",{cx:px,cy:py,r:id==="Analog"?36:24,fill:"#294353",stroke:"#4ed8c4","stroke-width":2});
+   }else{
+    shape=el("rect",{x:px-w/2,y:py-h/2,width:w,height:h,rx:7,fill:"#38304f",stroke:"#a990e2","stroke-width":2});
+   }
+   g.appendChild(shape);
+   var face=Object.keys(cfg.mapping).find(function(k){return cfg.mapping[k]===id;});
+   g.appendChild(el("text",{x:px,y:py+5,fill:"#edf6f2","font-size":14,"text-anchor":"middle","font-weight":"700"},face||id));
+   if(editMode){
+     g.addEventListener("pointerdown",function(e){
+       selectedId=id;var p=svgPoint(e);activeDrag={pointer:e.pointerId,start:p,profile:JSON.parse(JSON.stringify(buttonEdits[profileKey()]||{})),base:Object.fromEntries(Object.keys(C).map(function(k){var a=editedRelative(k);return [k,[a[0],a[1]]]})),key:profileKey(),id:id,whole:moveAsGroup,sign:sign};
+       svg.setPointerCapture(e.pointerId);log("MOVE "+id+" — drag to reposition");e.preventDefault();
+     });
+   }else if(enabled){
+     g.style.cursor="pointer";g.addEventListener("pointerdown",function(e){if(!pressed.has(e.pointerId)){pressed.set(e.pointerId,id);g.setPointerCapture(e.pointerId);g.setAttribute("opacity",".55");log("DOWN "+id)}e.preventDefault()});
+     var release=function(e){if(pressed.has(e.pointerId)){log("UP "+pressed.get(e.pointerId));pressed.delete(e.pointerId);g.setAttribute("opacity","1")}};
+     g.addEventListener("pointerup",release);g.addEventListener("pointercancel",release);
+   }
+   g.appendChild(el("rect",{x:px-w/2,y:py-h/2,width:w,height:h,rx:4,fill:"none",stroke:"#eac88f","stroke-width":1.2,"stroke-dasharray":"4 3",class:"hit-area"}));
+   svg.appendChild(g);
+  });
+ }
+ byId("fit").className=fit?"ok":"warn";
+ byId("fit").textContent=fit?"Prototype core fits "+W+" × "+H+"dp; only "+(W-24-285)+"dp horizontal adjustment slack. NOT a grip validation.":"CONSTRAINED: "+H+"dp control area cannot hold the 300dp core plus 24dp safety margins. Do not shrink the buttons or cover game pixels.";
+ byId("coords").textContent=fit?"Anchor: "+Math.round(x)+", "+Math.round(y)+"dp. Position range: "+Math.max(0,highX-lowX)+" horizontal / "+Math.max(0,highY-lowY)+" vertical.":"Adjust Position disabled. Needs a dedicated system layout.";
+ document.querySelectorAll("[data-move]").forEach(function(e){e.disabled=!fit});
+ var warnings=[],visible=cfg.active;
+ var controls=visible.map(function(id){var d=editedRelative(id);return {id:id,x:x+sign*d[0],y:y+d[1],w:d[2],h:d[3]};});
+ controls.forEach(function(a,i){
+  if(a.x-a.w/2<12||a.x+a.w/2>W-12||a.y-a.h/2<12||a.y+a.h/2>H-12)warnings.push(a.id+" outside safe deck bounds");
+  controls.slice(i+1).forEach(function(b){
+   var dx=Math.max(0,Math.abs(a.x-b.x)-(a.w+b.w)/2),dy=Math.max(0,Math.abs(a.y-b.y)-(a.h+b.h)/2);
+   if(Math.hypot(dx,dy)<8)warnings.push(a.id+" / "+b.id+" targets too close or overlapping");
+  });
+ });
+ var warnBox=byId("designWarnings");warnBox.replaceChildren();
+ if(!warnings.length){var okay=document.createElement("div");okay.style.borderLeftColor="#4ed8c4";okay.textContent="No modeled active target collisions.";warnBox.appendChild(okay)}
+ else warnings.slice(0,8).forEach(function(item){var node=document.createElement("div");node.textContent=item;warnBox.appendChild(node)});
+ byId("selectedDetail").textContent="Selected: "+selectedId+(editMode?" (drag to edit)":" (touch contact test)");
+ var m={gb:"Core two-action group; P1/P2 and shoulders inactive.",gba:"Core A/B and horizontal L + vertical R.",four:"All P1–P4 active and both shoulders.",six:"Requires separately positioned P5/P6 extension — NOT implemented here.",analog:"Extra shoulder/analog modules need a separate layout study — NOT implemented here.",ds:"DS viewport/stylus and auxiliary buttons need dedicated arrangement. The constrained example cannot fit."};
+ byId("modules").textContent=m[cfg.family];
+}
+["hand","family","mapping","device"].forEach(function(id){byId(id).addEventListener("change",function(){shift=[0,0];render()})});
+byId("diagram").addEventListener("pointermove",function(e){if(!activeDrag||e.pointerId!==activeDrag.pointer)return;
+ var p=svgPoint(e),deltaX=(p.x-activeDrag.start.x)*activeDrag.sign,deltaY=p.y-activeDrag.start.y,profile={...activeDrag.profile};
+ (activeDrag.whole?Object.keys(C):[activeDrag.id]).forEach(function(id){var a=activeDrag.base[id];profile[id]=[Math.round((a[0]+deltaX)*10)/10,Math.round((a[1]+deltaY)*10)/10]});
+ buttonEdits[activeDrag.key]=profile;render();e.preventDefault();
+});
+function stopDrag(e){if(!activeDrag||e.pointerId!==activeDrag.pointer)return;activeDrag=null;saveEdits();render()}
+byId("diagram").addEventListener("pointerup",stopDrag);byId("diagram").addEventListener("pointercancel",stopDrag);
+document.querySelectorAll("[data-move]").forEach(function(b){b.addEventListener("click",function(){var d=b.dataset.move.split(",").map(Number);if(editMode){var k=profileKey(),profile=buttonEdits[k]||{},ids=moveAsGroup?Object.keys(C):[selectedId];
+ ids.forEach(function(id){var a=editedRelative(id);profile[id]=[a[0]+d[0],a[1]+d[1]]});buttonEdits[k]=profile;saveEdits()}else{shift[0]+=d[0];shift[1]+=d[1]}render()})});
+byId("shouldersUpper").addEventListener("click",function(){shoulderPreset="upper";render()});
+byId("shouldersNear").addEventListener("click",function(){shoulderPreset="near";render()});
+byId("editMode").addEventListener("click",function(){editMode=!editMode;this.textContent="Edit buttons: "+(editMode?"ON":"OFF");this.classList.toggle("selected",editMode);render()});
+byId("moveAsGroup").addEventListener("click",function(){moveAsGroup=!moveAsGroup;this.textContent="Move whole cluster: "+(moveAsGroup?"ON":"OFF");this.classList.toggle("selected",moveAsGroup)});
+byId("resetButtons").addEventListener("click",function(){delete buttonEdits[profileKey()];saveEdits();render()});
+byId("exportPositions").addEventListener("click",exportPositions);
+byId("reset").addEventListener("click",function(){shift=[0,0];delete buttonEdits[profileKey()];saveEdits();render()});
+byId("clear").addEventListener("click",function(){history=[];byId("events").textContent="No events."});
+render();log("Editable Button Lab ready. No Android or emulator inputs are sent.");
+})();
+</script></body></html>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 852"><title>CARTDECK one-hand left reference zones</title>
+<path d="M42 35H351L383 68V782L351 817H42L10 782V68Z" fill="#303B49" stroke="#0D1721" stroke-width="5"/>
+<rect x="27" y="162" width="339" height="234" rx="12" fill="#0D1721" stroke="#4ED8C4" stroke-width="2"/>
+<rect x="35" y="172" width="323" height="215.33" rx="12" fill="#183044" stroke="none" stroke-width="2"/>
+<text x="196" y="244" text-anchor="middle" font-size="13" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">GAME VIDEO • UNCHANGED</text>
+<text x="196" y="272" text-anchor="middle" font-size="11" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">Existing measured aspect</text>
+<text x="196" y="105" text-anchor="middle" font-size="22" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">CARTDECK</text>
+<text x="196" y="454" text-anchor="middle" font-size="15" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">ONE HAND / LEFT</text>
+<rect x="27" y="495" width="224" height="260" rx="22" fill="#1C2430" stroke="#4ED8C4" stroke-width="2"/>
+<rect x="266" y="520" width="98" height="233" rx="20" fill="#1C2430" stroke="#0D1721" stroke-width="2"/>
+<rect x="58" y="535" width="74" height="43" rx="13" fill="#111923" stroke="#4ED8C4" stroke-width="2"/><text x="95" y="563" text-anchor="middle" font-size="16" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">L</text>
+<rect x="135" y="535" width="74" height="43" rx="13" fill="#111923" stroke="#4ED8C4" stroke-width="2"/><text x="172" y="563" text-anchor="middle" font-size="16" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">R</text>
+<path d="M81 607H109V640H143V670H109V703H81V670H47V640H81Z" fill="#111923" stroke="#4ED8C4" stroke-width="3"/>
+<circle cx="194" cy="619" r="28" fill="#111923" stroke="#4ED8C4" stroke-width="2.5"/><text x="194" y="626" text-anchor="middle" font-size="20" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">A</text>
+<circle cx="194" cy="692" r="28" fill="#111923" stroke="#4ED8C4" stroke-width="2.5"/><text x="194" y="699" text-anchor="middle" font-size="20" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">B</text>
+<text x="315" y="541" text-anchor="middle" font-size="11" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">UTILITY</text>
+<rect x="274" y="552" width="82" height="43" rx="12" fill="#111923" stroke="#4ED8C4" stroke-width="2"/><text x="315" y="580" text-anchor="middle" font-size="11" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">SELECT</text>
+<rect x="274" y="620" width="82" height="43" rx="12" fill="#111923" stroke="#4ED8C4" stroke-width="2"/><text x="315" y="648" text-anchor="middle" font-size="11" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">START</text>
+<rect x="274" y="688" width="82" height="43" rx="12" fill="#111923" stroke="#4ED8C4" stroke-width="2"/><text x="315" y="716" text-anchor="middle" font-size="11" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">MENU</text>
+<text x="139" y="520" text-anchor="middle" font-size="10" font-family="DejaVu Sans" font-weight="700" fill="#E9F9F6">SINGLE THUMB ZONE</text>
+</svg>
