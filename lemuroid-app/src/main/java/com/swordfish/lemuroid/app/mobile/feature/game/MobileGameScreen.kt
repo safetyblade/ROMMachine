@@ -51,7 +51,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -356,14 +355,14 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD).size(1.dp))
                         } else {
-                        leftGamePad?.invoke(
+                            leftGamePad?.invoke(
                             this,
                             Modifier
                                 .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
                                 .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
                             touchControllerSettings,
                         )
-                        rightGamePad?.invoke(
+                            rightGamePad?.invoke(
                             this,
                             Modifier
                                 .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
