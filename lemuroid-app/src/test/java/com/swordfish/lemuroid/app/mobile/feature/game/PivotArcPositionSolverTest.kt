@@ -35,6 +35,37 @@ class PivotArcPositionSolverTest {
             landscape,
         )
 
+    @Test fun candidateCUsesLargerManufacturedButtonsWhenSpacePermits() {
+        val placement = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement
+        assertTrue(placement.visualScale > 1f)
+        assertTrue(placement.visuals.getValue("D").w >= 110f)
+        assertTrue(placement.visuals.getValue("A").w >= 53f)
+        assertTrue(placement.visuals.getValue("B").w >= 53f)
+        assertTrue(placement.visuals.getValue("L").w >= 52f)
+        assertTrue(placement.visuals.getValue("R").w >= 52f)
+        assertEquals(54f, placement.visuals.getValue("Start").w, 0.001f)
+        assertTrue(placement.controls.getValue("D").width >= 115f)
+        assertTrue(placement.controls.getValue("A").width >= 58f)
+    }
+
+    @Test fun compactPhonesUseFittingScaleWithoutBreakingTopologyOrTargets() {
+        val compactSafe = PivotArcBounds(8f, 8f, 312f, 692f)
+        val viewport = PivotArcBounds(22f, 84f, 298f, 344f)
+        val result = resolve(SystemID.SNES, safe = compactSafe, viewport = viewport)
+        if (result is PivotArcResolution.Fits) {
+            assertEquals(10, result.placement.controls.size)
+            assertTrue(result.placement.visualScale >= 1f)
+            for ((key, bounds) in result.placement.controls) {
+                if (key !in setOf("Select", "Start", "Menu")) {
+                    assertTrue("$key should retain a 48dp touch target", bounds.width >= 48f)
+                    assertTrue(bounds.height >= 48f)
+                }
+            }
+        } else {
+            assertTrue((result as PivotArcResolution.Unavailable).reason.isNotBlank())
+        }
+    }
+
     @Test fun versionedSourceAndTargetSizingAreSafe() {
         assertEquals("cartdeck.pivotarc.candidate-c/0.7.0", baseline.schema)
         baseline.buttonCenters.values.forEach { b ->
