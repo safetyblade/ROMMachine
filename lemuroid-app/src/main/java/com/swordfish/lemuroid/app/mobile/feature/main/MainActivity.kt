@@ -54,6 +54,7 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.general.SettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.general.SettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevicesSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.inputdevices.InputDevicesSettingsViewModel
+import com.swordfish.lemuroid.app.mobile.feature.settings.layout.PivotArcSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsScreen
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.supported.SupportedGamesScreen
@@ -405,6 +406,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             modifier = Modifier.padding(padding),
                             onAddGames = { settingsInteractor.changeLocalStorageFolder() },
                         )
+                    }
+                    composable(MainRoute.SETTINGS_LAYOUT) {
+                        PivotArcSettingsScreen(modifier = Modifier.padding(padding))
                     }
                     composable(MainRoute.SETTINGS_ADVANCED) {
                         AdvancedSettingsScreen(

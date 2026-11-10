@@ -1,0 +1,423 @@
+{
+  "schema": "cartdeck.pivotarc.candidate-c/0.7.0",
+  "ownerSource": "Owner-provided 10 November 2026 PivotArc Button Lab screenshot; positions approximated from rendered screenshot, NOT exact export",
+  "state": "provisional normalized design; re-export from updated HTML to lock true owner-adjusted positions",
+  "phoneReference": {
+    "widthDp": 393,
+    "heightDp": 852,
+    "isIllustrative": true,
+    "cutoutsAndInsets": "runtime measured"
+  },
+  "buttonCenters": {
+    "D": {
+      "center": {
+        "x": 216,
+        "y": 630
+      },
+      "visual": {
+        "w": 92,
+        "h": 92
+      },
+      "touch": {
+        "w": 96,
+        "h": 96
+      },
+      "kind": "dpad"
+    },
+    "A": {
+      "center": {
+        "x": 191,
+        "y": 739
+      },
+      "visual": {
+        "w": 44,
+        "h": 44
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "action"
+    },
+    "B": {
+      "center": {
+        "x": 133,
+        "y": 696
+      },
+      "visual": {
+        "w": 44,
+        "h": 44
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "action"
+    },
+    "X": {
+      "center": {
+        "x": 126,
+        "y": 579
+      },
+      "visual": {
+        "w": 44,
+        "h": 44
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "action"
+    },
+    "Y": {
+      "center": {
+        "x": 184,
+        "y": 535
+      },
+      "visual": {
+        "w": 44,
+        "h": 44
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "action"
+    },
+    "L": {
+      "center": {
+        "x": 133,
+        "y": 638
+      },
+      "visual": {
+        "w": 43,
+        "h": 43
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "shoulder"
+    },
+    "R": {
+      "center": {
+        "x": 250,
+        "y": 741
+      },
+      "visual": {
+        "w": 43,
+        "h": 43
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "shoulder"
+    },
+    "L2": {
+      "center": {
+        "x": 256,
+        "y": 543
+      },
+      "visual": {
+        "w": 43,
+        "h": 43
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "R2": {
+      "center": {
+        "x": 307,
+        "y": 600
+      },
+      "visual": {
+        "w": 43,
+        "h": 43
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "Analog": {
+      "center": {
+        "x": 329,
+        "y": 769
+      },
+      "visual": {
+        "w": 58,
+        "h": 58
+      },
+      "touch": {
+        "w": 64,
+        "h": 64
+      },
+      "kind": "analog"
+    },
+    "P5": {
+      "center": {
+        "x": 61,
+        "y": 485
+      },
+      "visual": {
+        "w": 42,
+        "h": 42
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "P6": {
+      "center": {
+        "x": 71,
+        "y": 628
+      },
+      "visual": {
+        "w": 42,
+        "h": 42
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "Mic": {
+      "center": {
+        "x": 68,
+        "y": 440
+      },
+      "visual": {
+        "w": 42,
+        "h": 42
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "Screen": {
+      "center": {
+        "x": 72,
+        "y": 499
+      },
+      "visual": {
+        "w": 42,
+        "h": 42
+      },
+      "touch": {
+        "w": 48,
+        "h": 48
+      },
+      "kind": "module"
+    },
+    "Select": {
+      "center": {
+        "x": 66,
+        "y": 384
+      },
+      "visual": {
+        "w": 54,
+        "h": 36
+      },
+      "touch": {
+        "w": 56,
+        "h": 48
+      },
+      "kind": "utility"
+    },
+    "Start": {
+      "center": {
+        "x": 147,
+        "y": 384
+      },
+      "visual": {
+        "w": 54,
+        "h": 36
+      },
+      "touch": {
+        "w": 56,
+        "h": 48
+      },
+      "kind": "utility"
+    },
+    "Menu": {
+      "center": {
+        "x": 331,
+        "y": 397
+      },
+      "visual": {
+        "w": 52,
+        "h": 36
+      },
+      "touch": {
+        "w": 54,
+        "h": 48
+      },
+      "kind": "utility"
+    }
+  },
+  "profiles": {
+    "GB_GBC": [
+      "D",
+      "A",
+      "B",
+      "Select",
+      "Start",
+      "Menu"
+    ],
+    "GBA": [
+      "D",
+      "A",
+      "B",
+      "L",
+      "R",
+      "Select",
+      "Start",
+      "Menu"
+    ],
+    "SNES": [
+      "D",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "Select",
+      "Start",
+      "Menu"
+    ],
+    "SIX_BUTTON": [
+      "D",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "P5",
+      "P6",
+      "Select",
+      "Start",
+      "Menu"
+    ],
+    "PS1_PSP": [
+      "D",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "L2",
+      "R2",
+      "Analog",
+      "Select",
+      "Start",
+      "Menu"
+    ],
+    "DS": [
+      "D",
+      "A",
+      "B",
+      "X",
+      "Y",
+      "L",
+      "R",
+      "Mic",
+      "Screen",
+      "Select",
+      "Start",
+      "Menu"
+    ]
+  },
+  "systemAcceptance": {
+    "GB_GBC": "first",
+    "GBA": "first",
+    "SNES": "second",
+    "SIX_BUTTON": "deferred extension feasibility",
+    "PS1_PSP": "analog and triggers separate gate",
+    "DS": "dual-screen stylus/aux separate gate"
+  },
+  "render": {
+    "semanticColors": "Original / Pink / Green, shared physical geometry",
+    "visualsSeparateFromTouch": true,
+    "minTouchTargetDp": 48,
+    "preferredClearanceDp": 8,
+    "defaultViewPortNeverChanged": true,
+    "defaultStandardInputBoundsUntouched": true,
+    "pointerTransparentArtwork": true
+  },
+  "globalSelection": {
+    "path": [
+      "Layout",
+      "One Hand Mode",
+      "PivotArc",
+      "Left/Right",
+      "Adjust Position"
+    ],
+    "scope": "global for all games",
+    "perGameOverridesImplemented": false,
+    "genreRulesImplemented": false,
+    "advancedPerButtonEditingRuntimeImplemented": false,
+    "storage": "separate versioned preference with rollback; never game save or ROM metadata"
+  },
+  "mirroring": "on left-handed selection mirror control CENTRE x using actual safe region; do not swap labels/PadKit IDs or mirror video/branding",
+  "shoulderPresets": {
+    "candidateC": {
+      "L": {
+        "x": 133,
+        "y": 638
+      },
+      "R": {
+        "x": 250,
+        "y": 741
+      },
+      "description": "owner-designed split shoulder layout, L next to B and R next to A"
+    },
+    "upper": {
+      "L": {
+        "x": 258,
+        "y": 498
+      },
+      "R": {
+        "x": 327,
+        "y": 545
+      },
+      "description": "original L upper horizontal R upper-right vertical"
+    },
+    "near": {
+      "L": {
+        "x": 129,
+        "y": 630
+      },
+      "R": {
+        "x": 242,
+        "y": 737
+      },
+      "description": "both action-side, candidate test only"
+    }
+  },
+  "utilityNote": "Select/Start/Menu draft art shown away from action island, not approved native positions; Standard-mode start/select strictly unchanged",
+  "qualityGates": [
+    "user exports exact layout after size/position edits",
+    "Daniel reviews PadKit ownership and measured viewport/insets",
+    "Elliot feature flag + geometry solver and non-intercepting art",
+    "Marcus actual input, one-handed comfort, pointer combinations and in-place upgrade checks"
+  ],
+  "future": [
+    "Racing/Fighting/Sports Layout siblings",
+    "Long-press cartridge to override global layout",
+    "Genre suggestions opt-in",
+    "Advanced per-button runtime editor"
+  ]
+}

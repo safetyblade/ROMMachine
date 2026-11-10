@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -295,6 +296,7 @@ internal fun CartdeckHardwareSeats(
     edition: CartdeckEditionPreset,
     isDualScreen: Boolean,
     customColours: Boolean,
+    pivotArc: Boolean = false,
 ) {
     if (rootBounds == null || inputBounds.isEmpty()) return
     val density = LocalDensity.current
@@ -302,7 +304,11 @@ internal fun CartdeckHardwareSeats(
     val controls = inputBounds.mapValues { CartdeckHardwareGeometry.inRoot(it.value, rootBounds)!! }
     val margin = with(density) { 3.dp.toPx() }
     val clearance = with(density) { 4.dp.toPx() }
-    val tint = if (customColours) ColorFilter.tint(tokens.secondary) else null
+    // Flat tint erased the CNC bevels, etched grilles and shadow detail in
+    // custom editions. Color blending retains source luminance while applying
+    // the selected semantic hue, as it does for the factory finishes.
+    val tint = if (customColours) ColorFilter.tint(tokens.secondary, BlendMode.Color) else null
+    val indicatorTint = if (customColours) ColorFilter.tint(tokens.accent, BlendMode.Color) else null
     val protectedBrand =
         if (isDualScreen) {
             val halfWidth = with(density) { 49.dp.toPx() }
@@ -322,6 +328,15 @@ internal fun CartdeckHardwareSeats(
     check(glowSources.size == 6 && glowSources.values.none { it.enabledByDefault })
 
     Box(modifier = modifier.fillMaxSize()) {
+        if (pivotArc) {
+            CartdeckPivotArcModule(
+                controls = controls,
+                video = video,
+                root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
+                tokens = tokens,
+            )
+        }
+
         // P1-C2A side-rail masters sized to the real external screen margin,
         // never stretched across the game aperture or touch controls.
         if (video != null) {
@@ -424,28 +439,58 @@ internal fun CartdeckHardwareSeats(
         val gapBelowVideo = with(density) { 18.dp.toPx() }
         val firstControl = controls.values.minOfOrNull { it.top } ?: rootBounds.height
         val spaceAboveControls = with(density) { 37.dp.toPx() }
-        val detailY = maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - spaceAboveControls)
-        val details =
+
+        fun detailsAt(y: Float): List<Pair<Rect, Int>> =
             listOf(
                 Rect(
                     rootBounds.width * 0.18f - speakerWidth / 2f,
-                    detailY,
+                    y,
                     rootBounds.width * 0.18f + speakerWidth / 2f,
-                    detailY + speakerHeight,
+                    y + speakerHeight,
                 ) to CartdeckHardwareResource.speaker(edition),
                 Rect(
                     rootBounds.width * 0.82f - speakerWidth / 2f,
-                    detailY,
+                    y,
                     rootBounds.width * 0.82f + speakerWidth / 2f,
-                    detailY + speakerHeight,
+                    y + speakerHeight,
                 ) to CartdeckHardwareResource.speaker(edition),
                 Rect(
                     rootBounds.width / 2f - indicatorWidth / 2f,
-                    detailY,
+                    y,
                     rootBounds.width / 2f + indicatorWidth / 2f,
-                    detailY + speakerHeight,
+                    y + speakerHeight,
                 ) to CartdeckHardwareResource.indicator(edition),
             )
+
+        // PivotArc has a separate utility rail. The Standard speaker location
+        // would intersect its Start/Select/Menu touch bounds and be dropped.
+        // Reuse the SAME C2 asset families, finding a real unoccupied band.
+        // Standard keeps its original placement algorithm untouched.
+        val detailY =
+            if (pivotArc) {
+                val preferred =
+                    listOf(
+                        (video?.bottom ?: 0f) + with(density) { 10.dp.toPx() },
+                        controls.values.maxOf { it.bottom } + with(density) { 20.dp.toPx() },
+                    )
+                preferred.firstOrNull { y ->
+                    detailsAt(y).all { (rect, _) ->
+                        rect.left >= 4f && rect.right <= rootBounds.width - 4f &&
+                            rect.top >= 4f && rect.bottom <= rootBounds.height - 4f &&
+                            (video == null || !CartdeckHardwareGeometry.intersects(rect, video)) &&
+                            controls.values.none {
+                                CartdeckHardwareGeometry.intersects(
+                                    rect,
+                                    CartdeckHardwareGeometry.expanded(it, clearance),
+                                )
+                            } &&
+                            (protectedBrand == null || !CartdeckHardwareGeometry.intersects(rect, protectedBrand))
+                    }
+                }
+            } else {
+                maxOf((video?.bottom ?: 0f) + gapBelowVideo, firstControl - spaceAboveControls)
+            }
+        val details = detailY?.let(::detailsAt).orEmpty()
         details.forEach { (rect, resource) ->
             val clear =
                 rect.left >= 4f && rect.right <= rootBounds.width - 4f &&
@@ -468,13 +513,17 @@ internal fun CartdeckHardwareSeats(
                             .width(with(density) { rect.width.toDp() })
                             .height(with(density) { rect.height.toDp() }),
                     contentScale = ContentScale.FillBounds,
-                    colorFilter = tint,
+                    colorFilter =
+                        if (resource == CartdeckHardwareResource.indicator(edition)) indicatorTint else tint,
                 )
             }
         }
 
         controls.toSortedMap().forEach { (key, control) ->
-            val drawable = CartdeckHardwareResource.seat(edition, key) ?: return@forEach
+            val singleFaceSeat = pivotArc && key in setOf("face-a", "face-b", "face-x", "face-y")
+            if (!singleFaceSeat && CartdeckHardwareResource.seat(edition, key) == null) {
+                return@forEach
+            }
             val safe =
                 CartdeckHardwareSeatPolicy.at(
                     key = key,
@@ -495,6 +544,28 @@ internal fun CartdeckHardwareSeats(
                     .offset { IntOffset(safe.left.roundToInt(), safe.top.roundToInt()) }
                     .width(w)
                     .height(h)
+            if (singleFaceSeat) {
+                // Individual Candidate C buttons cannot use the existing
+                // paired AB or ABXY SVG: cropping a pair would distort the
+                // approved seat. Draw separate machine-finished wells in the
+                // SAME semantic chassis palette, below PadKit's hit zones.
+                Canvas(base) {
+                    val outer = size.minDimension / 2f - 1.dp.toPx()
+                    drawCircle(color = tokens.bezel, radius = outer)
+                    drawCircle(
+                        color = tokens.secondary,
+                        radius = outer - 2.dp.toPx(),
+                        style = Stroke(width = 2.dp.toPx()),
+                    )
+                    drawCircle(
+                        color = tokens.accent.copy(alpha = 0.38f),
+                        radius = outer - 4.dp.toPx(),
+                        style = Stroke(width = 1.dp.toPx()),
+                    )
+                }
+                return@forEach
+            }
+            val drawable = CartdeckHardwareResource.seat(edition, key) ?: return@forEach
             if (key == "start" || key == "select") {
                 // The approved SVG is a *pair* of pill seats. Crop its first
                 // half around each existing button; never move either button.

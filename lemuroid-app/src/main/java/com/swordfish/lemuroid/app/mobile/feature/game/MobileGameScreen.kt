@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeGestures
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -46,6 +49,7 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -157,6 +161,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val tiltSimulatedStates = viewModel.getSimulatedTiltEvents().collectAsState(InputState())
         val tiltSimulatedControls = remember { derivedStateOf { tiltConfiguration.value.controlIds() } }
 
+        val pivotSettings = rememberPivotArcSettings().value
+        val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val leftGamePad = touchGamePads?.leftComposable
         val rightGamePad = touchGamePads?.rightComposable
@@ -188,7 +194,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // Read-only PadKit group measurements; nothing changes their size or input.
             val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
             val rightPadBounds = remember { mutableStateOf<Rect?>(null) }
-            val individualInputs = remember(viewModel.systemId, isLandscape) { mutableStateMapOf<String, Rect>() }
+            val individualInputs =
+                remember(viewModel.systemId, isLandscape, pivotSettings.mode, pivotSettings.hand) {
+                    mutableStateMapOf<String, Rect>()
+                }
             val observeBounds: (String, Rect) -> Unit =
                 remember(individualInputs) {
                     { key: String, bounds: Rect ->
@@ -208,6 +217,65 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullPos = fullScreenPosition.value
             val viewPos = viewportPosition.value
+            val currentDensity = LocalDensity.current
+            val layoutDirection = LocalLayoutDirection.current
+            val insetSafe = WindowInsets.safeDrawing
+            val gestureSafe = WindowInsets.safeGestures
+            val selectedPivot = pivotSettings.mode == CartdeckLayoutMode.ONE_HAND
+            val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
+            val pivotResolution: PivotArcResolution? =
+                if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
+                    if (pivotBaseline == null) {
+                        PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
+                    } else if (requiredPivotControls == null) {
+                        PivotArcResolution.Unavailable(
+                            "PivotArc controls are not supported for this system. Standard controls remain available.",
+                        )
+                    } else {
+                        val scale = currentDensity.density
+                        val safeBounds =
+                            PivotArcBounds(
+                                maxOf(
+                                    insetSafe.getLeft(currentDensity, layoutDirection),
+                                    gestureSafe.getLeft(currentDensity, layoutDirection),
+                                ) / scale + 8f,
+                                maxOf(
+                                    insetSafe.getTop(currentDensity),
+                                    gestureSafe.getTop(currentDensity),
+                                ) / scale + 8f,
+                                fullPos.width / scale -
+                                    maxOf(
+                                        insetSafe.getRight(currentDensity, layoutDirection),
+                                        gestureSafe.getRight(currentDensity, layoutDirection),
+                                    ) / scale - 8f,
+                                fullPos.height / scale -
+                                    maxOf(
+                                        insetSafe.getBottom(currentDensity),
+                                        gestureSafe.getBottom(currentDensity),
+                                    ) / scale - 8f,
+                            )
+                        val viewportBounds =
+                            PivotArcBounds(
+                                (viewPos.left - fullPos.left) / scale,
+                                (viewPos.top - fullPos.top) / scale,
+                                (viewPos.right - fullPos.left) / scale,
+                                (viewPos.bottom - fullPos.top) / scale,
+                            )
+                        PivotArcPositionSolver.resolve(
+                            baseline = pivotBaseline,
+                            active = requiredPivotControls,
+                            safe = safeBounds,
+                            viewport = viewportBounds,
+                            leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
+                            requestedDx = pivotSettings.offsetXdp,
+                            requestedDy = pivotSettings.offsetYdp,
+                            isLandscape = isLandscape,
+                        )
+                    }
+                } else {
+                    null
+                }
+            val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
 
             CartdeckConsoleShell(
                 tokens = shellTokens,
@@ -216,12 +284,49 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLandscape = isLandscape,
                 controlBounds =
                     if (touchControlsVisibleState.value) {
-                        listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                        if (pivotPlacement != null && fullPos != null) {
+                            pivotPlacement.controls.values.map { bounds ->
+                                Rect(
+                                    fullPos.left + bounds.left * currentDensity.density,
+                                    fullPos.top + bounds.top * currentDensity.density,
+                                    fullPos.left + bounds.right * currentDensity.density,
+                                    fullPos.top + bounds.bottom * currentDensity.density,
+                                )
+                            }
+                        } else {
+                            listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                        }
                     } else {
                         emptyList()
                     },
             )
 
+            // PivotArc supplies discrete controller rectangles, unlike
+            // Standard's composite AB/ABXY controls. Feed the physical-seat
+            // renderer the measured solver bounds so the shared hardware
+            // finish, rails, speaker and indicator art remain present from
+            // the first frame. Standard retains its original bound observers.
+            val hardwareInputBounds =
+                if (pivotPlacement != null && fullPos != null) {
+                    pivotPlacement.controls.map { (key, bounds) ->
+                        val seatKey =
+                            when (key) {
+                                "D" -> "dpad"
+                                "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+                                "L", "R" -> "shoulder-$key"
+                                else -> key.lowercase()
+                            }
+                        seatKey to
+                            Rect(
+                                fullPos.left + bounds.left * currentDensity.density,
+                                fullPos.top + bounds.top * currentDensity.density,
+                                fullPos.left + bounds.right * currentDensity.density,
+                                fullPos.top + bounds.bottom * currentDensity.density,
+                            )
+                    }.toMap()
+                } else {
+                    individualInputs.toMap()
+                }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -232,9 +337,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     edition = edition,
                     rootBounds = fullPos,
                     videoBounds = viewPos,
-                    inputBounds = individualInputs.toMap(),
+                    inputBounds = hardwareInputBounds,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     customColours = appearance.custom.isNotEmpty(),
+                    pivotArc = pivotPlacement != null,
                 )
             }
 
@@ -291,21 +397,27 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             )
                         }
 
-                        leftGamePad?.invoke(
-                            this,
-                            Modifier
-                                .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
-                                .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
-                            touchControllerSettings,
-                        )
-                        rightGamePad?.invoke(
-                            this,
-                            Modifier
-                                .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
-                                .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
-                            touchControllerSettings,
-                        )
-
+                        if (pivotPlacement != null) {
+                            // Keep ConstraintLayout viewport anchors but do NOT
+                            // register the Standard controls as extra input owners.
+                            Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
+                            Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD).size(1.dp))
+                        } else {
+                            leftGamePad?.invoke(
+                                this,
+                                Modifier
+                                    .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
+                                    .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
+                                touchControllerSettings,
+                            )
+                            rightGamePad?.invoke(
+                                this,
+                                Modifier
+                                    .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
+                                    .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
+                                touchControllerSettings,
+                            )
+                        }
                         GameScreenRunningCentralMenu(
                             modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_GAME_CONTAINER),
                             controllerConfig = currentControllerConfig,
@@ -313,6 +425,27 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             viewModel = viewModel,
                         )
                     }
+                }
+            }
+            if (pivotPlacement != null &&
+                touchControllerSettings != null &&
+                currentControllerConfig != null &&
+                touchControlsVisibleState.value
+            ) {
+                CompositionLocalProvider(
+                    LocalLemuroidPadTheme provides controllerTheme,
+                    LocalCartdeckControlBounds provides observeBounds,
+                ) {
+                    PivotArcControlGroup(pivotPlacement)
+                }
+            }
+            val pivotError = pivotResolution as? PivotArcResolution.Unavailable
+            if (pivotError != null && touchControlsVisibleState.value) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    Text(pivotError.reason, color = shellTokens.onChassis)
                 }
             }
         }

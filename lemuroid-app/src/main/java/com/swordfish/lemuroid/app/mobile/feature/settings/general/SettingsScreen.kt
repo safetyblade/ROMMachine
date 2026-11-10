@@ -110,6 +110,11 @@ private fun InputSettings(navController: NavController) {
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_input)) },
     ) {
+        LemuroidSettingsMenuLink(
+            title = { Text("Layout") },
+            subtitle = { Text("Standard or One Hand Mode · PivotArc") },
+            onClick = { navController.navigateToRoute(MainRoute.SETTINGS_LAYOUT) },
+        )
         LemuroidSettingsList(
             state =
                 indexPreferenceState(
