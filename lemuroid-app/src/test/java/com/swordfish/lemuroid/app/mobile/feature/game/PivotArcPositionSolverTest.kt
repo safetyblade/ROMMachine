@@ -63,7 +63,9 @@ class PivotArcPositionSolverTest {
 
     @Test fun candidateCShouldersAndFaceButtonsKeepApprovedAdjacency() {
         val placed = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement.controls
+
         fun midX(key: String) = (placed.getValue(key).left + placed.getValue(key).right) / 2f
+
         fun midY(key: String) = (placed.getValue(key).top + placed.getValue(key).bottom) / 2f
         assertTrue(midX("L") < midX("D"))
         assertTrue(midX("B") < midX("A"))
@@ -77,7 +79,11 @@ class PivotArcPositionSolverTest {
         val left = (resolve(SystemID.SNES, leftHand = true) as PivotArcResolution.Fits).placement.controls
         assertEquals(right.keys, left.keys)
         for (key in right.keys) {
-            assertEquals(referenceSafe.left + referenceSafe.right - right.getValue(key).right, left.getValue(key).left, 0.001f)
+            assertEquals(
+                referenceSafe.left + referenceSafe.right - right.getValue(key).right,
+                left.getValue(key).left,
+                0.001f,
+            )
             assertEquals(right.getValue(key).top, left.getValue(key).top, 0.001f)
         }
     }
