@@ -158,12 +158,22 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
                     Text("Vertical: ${y.toInt()}dp")
                     Slider(value = y.coerceIn(-200f, 200f), onValueChange = { y = it }, valueRange = -200f..200f)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { x = 0f; y = 0f }) { Text("Reset") }
+                        TextButton(
+                            onClick = {
+                                x = 0f
+                                y = 0f
+                            },
+                        ) { Text("Reset") }
                         TextButton(onClick = { adjusting = false }) { Text("Cancel") }
                         Button(
                             onClick = {
                                 if (preview is PivotArcResolution.Fits) {
-                                    store.save(current.copy(offsetXdp = preview.placement.appliedDx, offsetYdp = preview.placement.appliedDy))
+                                    store.save(
+                                        current.copy(
+                                            offsetXdp = preview.placement.appliedDx,
+                                            offsetYdp = preview.placement.appliedDy,
+                                        ),
+                                    )
                                     adjusting = false
                                 }
                             },
