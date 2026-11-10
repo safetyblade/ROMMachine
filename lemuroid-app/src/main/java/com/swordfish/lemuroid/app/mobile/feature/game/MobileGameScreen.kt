@@ -194,7 +194,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // Read-only PadKit group measurements; nothing changes their size or input.
             val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
             val rightPadBounds = remember { mutableStateOf<Rect?>(null) }
-            val individualInputs = remember(viewModel.systemId, isLandscape, pivotSettings.mode, pivotSettings.hand) { mutableStateMapOf<String, Rect>() }
+            val individualInputs =
+                remember(viewModel.systemId, isLandscape, pivotSettings.mode, pivotSettings.hand) {
+                    mutableStateMapOf<String, Rect>()
+                }
             val observeBounds: (String, Rect) -> Unit =
                 remember(individualInputs) {
                     { key: String, bounds: Rect ->
@@ -225,15 +228,31 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     if (pivotBaseline == null) {
                         PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
                     } else if (requiredPivotControls == null) {
-                        PivotArcResolution.Unavailable("PivotArc controls for this system are not yet supported. Standard controls remain available.")
+                        PivotArcResolution.Unavailable(
+                            "PivotArc controls are not supported for this system. Standard controls remain available.",
+                        )
                     } else {
                         val scale = currentDensity.density
                         val safeBounds =
                             PivotArcBounds(
-                                maxOf(insetSafe.getLeft(currentDensity, layoutDirection), gestureSafe.getLeft(currentDensity, layoutDirection)) / scale + 8f,
-                                maxOf(insetSafe.getTop(currentDensity), gestureSafe.getTop(currentDensity)) / scale + 8f,
-                                fullPos.width / scale - maxOf(insetSafe.getRight(currentDensity, layoutDirection), gestureSafe.getRight(currentDensity, layoutDirection)) / scale - 8f,
-                                fullPos.height / scale - maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity)) / scale - 8f,
+                                maxOf(
+                                    insetSafe.getLeft(currentDensity, layoutDirection),
+                                    gestureSafe.getLeft(currentDensity, layoutDirection),
+                                ) / scale + 8f,
+                                maxOf(
+                                    insetSafe.getTop(currentDensity),
+                                    gestureSafe.getTop(currentDensity),
+                                ) / scale + 8f,
+                                fullPos.width / scale -
+                                    maxOf(
+                                        insetSafe.getRight(currentDensity, layoutDirection),
+                                        gestureSafe.getRight(currentDensity, layoutDirection),
+                                    ) / scale - 8f,
+                                fullPos.height / scale -
+                                    maxOf(
+                                        insetSafe.getBottom(currentDensity),
+                                        gestureSafe.getBottom(currentDensity),
+                                    ) / scale - 8f,
                             )
                         val viewportBounds =
                             PivotArcBounds(
@@ -358,20 +377,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD).size(1.dp))
                         } else {
                             leftGamePad?.invoke(
-                            this,
-                            Modifier
-                                .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
-                                .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
-                            touchControllerSettings,
-                        )
+                                this,
+                                Modifier
+                                    .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
+                                    .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
+                                touchControllerSettings,
+                            )
                             rightGamePad?.invoke(
-                            this,
-                            Modifier
-                                .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
-                                .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
-                            touchControllerSettings,
-                        )
-
+                                this,
+                                Modifier
+                                    .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
+                                    .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
+                                touchControllerSettings,
+                            )
                         }
                         GameScreenRunningCentralMenu(
                             modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_GAME_CONTAINER),
