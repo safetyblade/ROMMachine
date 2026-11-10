@@ -79,6 +79,7 @@ fun PadKitScope.N64Right(
                         .radialScale(2.0f),
                 id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK),
                 allowDiagonals = false,
+                hardwareSeatId = "c-direction",
                 foreground = { LemuroidCrossForegroundAlternate(it) },
             )
             SecondaryButtonMenu(settings)
