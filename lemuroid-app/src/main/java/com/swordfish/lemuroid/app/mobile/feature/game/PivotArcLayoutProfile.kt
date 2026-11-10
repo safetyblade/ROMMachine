@@ -5,7 +5,6 @@ import com.swordfish.lemuroid.lib.library.SystemID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Candidate C data lives in assets/pivotarc/candidate-c-baseline.json. Coordinates
@@ -37,7 +36,7 @@ object PivotArcLayoutProfile {
     private val decoder = Json { ignoreUnknownKeys = true }
 
     fun parse(json: String): PivotArcBaseline {
-        val baseline = decoder.decodeFromString<PivotArcBaseline>(json)
+        val baseline = decoder.decodeFromString(PivotArcBaseline.serializer(), json)
         require(baseline.schema == "cartdeck.pivotarc.candidate-c/0.7.0") {
             "Unknown PivotArc geometry version"
         }
