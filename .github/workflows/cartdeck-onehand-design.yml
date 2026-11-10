@@ -3,10 +3,12 @@ on:
   pull_request:
     paths:
       - 'design/cartdeck-p2/one-hand-v02/**'
+      - 'design/cartdeck-p2/one-hand-v03/**'
       - '.github/workflows/cartdeck-onehand-design.yml'
   push:
     paths:
       - 'design/cartdeck-p2/one-hand-v02/**'
+      - 'design/cartdeck-p2/one-hand-v03/**'
       - '.github/workflows/cartdeck-onehand-design.yml'
 jobs:
   validate:
@@ -18,3 +20,5 @@ jobs:
           python-version: '3.11'
       - name: Validate global-mode contract, thumb grouping and preview files
         run: python -m unittest discover design/cartdeck-p2/one-hand-v02 -p 'test_one_hand_contract.py' -v
+      - name: Validate v0.3 diagonal hit-zone clearance and mirrored editions
+        run: python -m unittest discover design/cartdeck-p2/one-hand-v03 -p 'test_diagonal_layout.py' -v
