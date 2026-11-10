@@ -87,6 +87,7 @@ data class PivotArcPlacement(
     val visuals: Map<String, PivotArcSize>,
     val appliedDx: Float,
     val appliedDy: Float,
+    val visualScale: Float = 1f,
 )
 
 sealed interface PivotArcResolution {
@@ -101,11 +102,22 @@ sealed interface PivotArcResolution {
  * with the viewport, other keys or gesture inset. Incompatible modes are not
  * persisted as Standard; the game can temporarily use its untouched PadKit UI.
  */
+/**
+ * Scale the entire Candidate C *gameplay* constellation before placing it.
+ * Layout topology, PadKit identities and the separated utility rail are never
+ * changed. The owner feedback rejects fixed miniature 44dp action art:
+ * spacious phones get a larger manufactured PivotArc control set.
+ *
+ * If a device cannot safely fit a particular scale, attempt a smaller still-
+ * usable preset, or report Unavailable so Standard stays available.
+ */
 object PivotArcPositionSolver {
     private const val REFERENCE_WIDTH = 393f
     private const val REFERENCE_HEIGHT = 852f
     private const val GAP = 8f
+    private const val UTILITY_OFFSET_FROM_VIEWPORT = 60f
     private val utilities = setOf("Start", "Select", "Menu")
+    private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 
     fun resolve(
         baseline: PivotArcBaseline,
@@ -117,7 +129,9 @@ object PivotArcPositionSolver {
         requestedDy: Float,
         isLandscape: Boolean,
     ): PivotArcResolution {
-        if (isLandscape) return PivotArcResolution.Unavailable("PivotArc currently requires portrait orientation.")
+        if (isLandscape) {
+            return PivotArcResolution.Unavailable("PivotArc currently requires portrait orientation.")
+        }
         if (safe.width <= 0f || safe.height <= 0f || !requestedDx.isFinite() || !requestedDy.isFinite()) {
             return PivotArcResolution.Unavailable("Invalid measured display bounds or saved position.")
         }
@@ -125,32 +139,69 @@ object PivotArcPositionSolver {
             return PivotArcResolution.Unavailable("Required system controls are not defined.")
         }
         val gameplay = active.filterNot { it in utilities }
-        if (gameplay.isEmpty()) return PivotArcResolution.Unavailable("No usable gameplay controls.")
-        val undersized =
-            gameplay.any {
+        if (gameplay.isEmpty()) {
+            return PivotArcResolution.Unavailable("No usable gameplay controls.")
+        }
+        if (active.any {
                 val target = baseline.buttonCenters.getValue(it).touch
                 target.w < 48f || target.h < 48f
-            }
-        if (undersized) {
-            return PivotArcResolution.Unavailable("PivotArc targets are below the safe 48dp minimum.")
+            }) {
+            return PivotArcResolution.Unavailable("PivotArc has a control smaller than 48dp.")
         }
 
+        var lastFailure = "Not enough safe space for this PivotArc configuration."
+        for (scale in preferredScales) {
+            when (
+                val result =
+                    attemptPlacement(
+                        baseline = baseline,
+                        active = active,
+                        gameplay = gameplay,
+                        safe = safe,
+                        viewport = viewport,
+                        leftHanded = leftHanded,
+                        requestedDx = requestedDx,
+                        requestedDy = requestedDy,
+                        scale = scale,
+                    )
+            ) {
+                is PivotArcResolution.Fits -> return result
+                is PivotArcResolution.Unavailable -> lastFailure = result.reason
+            }
+        }
+        return PivotArcResolution.Unavailable(lastFailure)
+    }
+
+    private fun attemptPlacement(
+        baseline: PivotArcBaseline,
+        active: List<String>,
+        gameplay: List<String>,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+        leftHanded: Boolean,
+        requestedDx: Float,
+        requestedDy: Float,
+        scale: Float,
+    ): PivotArcResolution {
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
+        val anchor = baseline.buttonCenters.getValue("D").center
 
-        fun rectFor(key: String): PivotArcBounds {
-            val b = baseline.buttonCenters.getValue(key)
-            val x = b.center.x + shiftX
-            val y = b.center.y + shiftY
+        fun rectangleFor(key: String): PivotArcBounds {
+            val button = baseline.buttonCenters.getValue(key)
+            val centerX = anchor.x + (button.center.x - anchor.x) * scale + shiftX
+            val centerY = anchor.y + (button.center.y - anchor.y) * scale + shiftY
+            val halfWidth = button.touch.w * scale / 2f
+            val halfHeight = button.touch.h * scale / 2f
             return PivotArcBounds(
-                x - b.touch.w / 2f,
-                y - b.touch.h / 2f,
-                x + b.touch.w / 2f,
-                y + b.touch.h / 2f,
+                centerX - halfWidth,
+                centerY - halfHeight,
+                centerX + halfWidth,
+                centerY + halfHeight,
             )
         }
 
-        val core = gameplay.associateWith(::rectFor)
+        val core = gameplay.associateWith(::rectangleFor)
         val coreHull =
             PivotArcBounds(
                 core.values.minOf { it.left },
@@ -159,9 +210,10 @@ object PivotArcPositionSolver {
                 core.values.maxOf { it.bottom },
             )
 
-        // Three low-frequency inputs sit in a protected rail directly below
-        // the real viewport, rather than migrating Standard Start/Select.
-        val utilityCenterY = viewport.bottom + GAP + 24f
+        // Utility buttons remain deliberately outside the frequent-thumb area.
+        // Their separate rail leaves room for speaker/indicator hardware between
+        // the video and Start/Select/Menu without touching Standard mode.
+        val railY = viewport.bottom + UTILITY_OFFSET_FROM_VIEWPORT
         val utilityCentersX =
             mapOf(
                 "Select" to safe.left + 34f,
@@ -170,74 +222,85 @@ object PivotArcPositionSolver {
             )
         val rail =
             active.filter { it in utilities }.associateWith { key ->
-                val spec = baseline.buttonCenters.getValue(key).touch
+                val target = baseline.buttonCenters.getValue(key).touch
                 val x = utilityCentersX.getValue(key)
                 PivotArcBounds(
-                    x - spec.w / 2f,
-                    utilityCenterY - spec.h / 2f,
-                    x + spec.w / 2f,
-                    utilityCenterY + spec.h / 2f,
+                    x - target.w / 2f,
+                    railY - target.h / 2f,
+                    x + target.w / 2f,
+                    railY + target.h / 2f,
                 )
             }
 
-        // Move all active gameplay controls as ONE cluster; 8dp clearance is
-        // enforced between the utility rail and the game cluster.
-        val minimumTop = max(viewport.bottom + GAP, (rail.values.maxOfOrNull { it.bottom } ?: viewport.bottom) + GAP)
+        val minTop = max(viewport.bottom + GAP, (rail.values.maxOfOrNull { it.bottom } ?: 0f) + GAP)
         val minDx = safe.left - coreHull.left
         val maxDx = safe.right - coreHull.right
-        val minDy = max(safe.top, minimumTop) - coreHull.top
+        val minDy = max(safe.top, minTop) - coreHull.top
         val maxDy = safe.bottom - coreHull.bottom
         if (minDx > maxDx || minDy > maxDy) {
-            return PivotArcResolution.Unavailable("Insufficient safe control space. Standard controls are available.")
+            return PivotArcResolution.Unavailable(
+                "Insufficient space for full-sized PivotArc controls outside the game viewport.",
+            )
         }
 
-        // Baseline is bottom-anchored; adjust only when necessary to keep it
-        // outside the measured game viewport and rail.
         val dx = requestedDx.coerceIn(minDx, maxDx)
         val dy = requestedDy.coerceIn(minDy, maxDy)
-        val translated =
+        val moved =
             core.mapValues { (_, rect) ->
-                PivotArcBounds(rect.left + dx, rect.top + dy, rect.right + dx, rect.bottom + dy)
+                PivotArcBounds(
+                    rect.left + dx,
+                    rect.top + dy,
+                    rect.right + dx,
+                    rect.bottom + dy,
+                )
             }
-        val rightHandPositions = translated + rail
+        val rightHanded = moved + rail
         val positions =
             if (leftHanded) {
-                rightHandPositions.mapValues { (_, r) ->
+                rightHanded.mapValues { (_, rect) ->
                     PivotArcBounds(
-                        safe.left + safe.right - r.right,
-                        r.top,
-                        safe.left + safe.right - r.left,
-                        r.bottom,
+                        safe.left + safe.right - rect.right,
+                        rect.top,
+                        safe.left + safe.right - rect.left,
+                        rect.bottom,
                     )
                 }
             } else {
-                rightHandPositions
+                rightHanded
             }
-
-        for ((key, r) in positions) {
-            if (!r.inside(safe)) return PivotArcResolution.Unavailable("$key enters a display inset.")
-            if (r.intersects(viewport.inset(GAP))) {
-                return PivotArcResolution.Unavailable("$key would obscure game pixels.")
+        for ((key, rect) in positions) {
+            if (!rect.inside(safe)) {
+                return PivotArcResolution.Unavailable("$key enters a device inset or gesture area.")
+            }
+            if (rect.intersects(viewport.inset(GAP))) {
+                return PivotArcResolution.Unavailable("$key would obscure gameplay.")
             }
         }
+
         val entries = positions.entries.toList()
         for (i in entries.indices) {
             for (j in i + 1 until entries.size) {
-                val a = entries[i].value.inset(GAP / 2f)
-                val b = entries[j].value.inset(GAP / 2f)
-                if (a.intersects(b)) {
+                if (entries[i].value.inset(GAP / 2f).intersects(entries[j].value.inset(GAP / 2f))) {
                     return PivotArcResolution.Unavailable(
-                        "${entries[i].key} and ${entries[j].key} lack safe separation.",
+                        "${entries[i].key} and ${entries[j].key} lack the required clearance.",
                     )
                 }
             }
         }
+
+        val visuals =
+            active.associateWith { key ->
+                val source = baseline.buttonCenters.getValue(key).visual
+                val factor = if (key in utilities) 1f else scale
+                PivotArcSize(source.w * factor, source.h * factor)
+            }
         return PivotArcResolution.Fits(
             PivotArcPlacement(
                 controls = positions,
-                visuals = active.associateWith { baseline.buttonCenters.getValue(it).visual },
+                visuals = visuals,
                 appliedDx = dx,
                 appliedDy = dy,
+                visualScale = scale,
             ),
         )
     }
