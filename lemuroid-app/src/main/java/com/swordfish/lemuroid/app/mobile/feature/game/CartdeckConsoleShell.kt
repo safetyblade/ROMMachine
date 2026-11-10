@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
@@ -165,6 +166,65 @@ internal fun CartdeckConsoleShell(
                     strokeWidth = 2.dp.toPx(),
                 )
             }
+            // Sienna V09 cartridge crown: common manufactured detail across
+            // Standard, DS (when there is genuine headroom), and PivotArc.
+            // All accents use palette tokens. Never put art over viewport pixels.
+            if (!isLandscape && seatFits && size.width >= 270.dp.toPx()) {
+                val crownY = 7.dp.toPx()
+                val crownH = 13.dp.toPx()
+                val crownHalf = minOf(94.dp.toPx(), size.width * 0.23f)
+                val center = size.width / 2f
+                val crown =
+                    Path().apply {
+                        moveTo(center - crownHalf + 10.dp.toPx(), crownY)
+                        lineTo(center + crownHalf - 10.dp.toPx(), crownY)
+                        lineTo(center + crownHalf, crownY + 8.dp.toPx())
+                        lineTo(center + crownHalf - 6.dp.toPx(), crownY + crownH)
+                        lineTo(center - crownHalf + 6.dp.toPx(), crownY + crownH)
+                        lineTo(center - crownHalf, crownY + 8.dp.toPx())
+                        close()
+                    }
+                drawPath(crown, tokens.secondary)
+                drawPath(crown, tokens.bezel, style = Stroke(width = 1.5.dp.toPx()))
+                // The cartridge-bay indicator is one intentional neon zone,
+                // not a permanent glowing outline around every control.
+                val bayWidth = 42.dp.toPx()
+                drawRoundRect(
+                    color = tokens.bezel,
+                    topLeft = Offset(center - bayWidth / 2f, crownY + 3.dp.toPx()),
+                    size = Size(bayWidth, 6.dp.toPx()),
+                    cornerRadius = CornerRadius(2.dp.toPx()),
+                )
+                drawLine(
+                    color = tokens.accent.copy(alpha = 0.8f),
+                    start = Offset(center - bayWidth * 0.31f, crownY + 6.dp.toPx()),
+                    end = Offset(center + bayWidth * 0.31f, crownY + 6.dp.toPx()),
+                    strokeWidth = 2.dp.toPx(),
+                )
+                for (side in listOf(-1f, 1f)) {
+                    val x = center + side * (crownHalf - 20.dp.toPx())
+                    for (slot in 0..2) {
+                        val sx = x + side * slot * 5.dp.toPx()
+                        drawLine(
+                            color = tokens.bezel,
+                            start = Offset(sx, crownY + 4.dp.toPx()),
+                            end = Offset(sx + 2.dp.toPx(), crownY + 9.dp.toPx()),
+                            strokeWidth = 1.5.dp.toPx(),
+                        )
+                    }
+                }
+                // A restrained under-logo accent, only where enough headroom
+                // exists for both the full badge and the actual video aperture.
+                if (hole == null || hole.top > 75.dp.toPx()) {
+                    drawLine(
+                        color = tokens.accent.copy(alpha = 0.45f),
+                        start = Offset(center - 22.dp.toPx(), 70.dp.toPx()),
+                        end = Offset(center + 22.dp.toPx(), 70.dp.toPx()),
+                        strokeWidth = 1.5.dp.toPx(),
+                    )
+                }
+            }
+
             // Decorative lower seam uses live PadKit group bounds and the
             // protected compact badge. Neither Start nor Select is repositioned.
             val deckLineY = size.height - 30.dp.toPx()
