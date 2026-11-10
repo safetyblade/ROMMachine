@@ -1,0 +1,170 @@
+{
+  "schema": "cartdeck.oneHandLayout/0.3.0",
+  "stage": "design source, exact reference placement and product behaviour locked; real ergonomics and native validation pending",
+  "supersedes": "v0.2 vertical A/B location only; retain all unrelated v0.2 principles",
+  "navigation": {
+    "path": [
+      "Layout",
+      "One Hand Mode",
+      "Left | Right"
+    ],
+    "global": true,
+    "oneSelectionForAllGames": true,
+    "systemAwareButtons": true,
+    "futureSiblings": [
+      "Racing",
+      "Fighting",
+      "Sports"
+    ]
+  },
+  "reference": {
+    "sizePx": [
+      393,
+      852
+    ],
+    "isAndroidDp": false,
+    "doNotHardcode": true,
+    "bottomGestureReserveRefY": 822,
+    "screenVideoRect": [
+      35,
+      172,
+      323,
+      215.333
+    ],
+    "mirrorVideo": false
+  },
+  "geometry": {
+    "left": {
+      "dock": [
+        27,
+        473,
+        224,
+        322
+      ],
+      "utility": [
+        266,
+        520,
+        98,
+        239
+      ],
+      "dpad": [
+        101,
+        594
+      ],
+      "a": [
+        157,
+        681
+      ],
+      "b": [
+        198,
+        743
+      ],
+      "shoulders": [
+        [
+          38,
+          484,
+          75,
+          48
+        ],
+        [
+          121,
+          484,
+          75,
+          48
+        ]
+      ]
+    },
+    "right": {
+      "dock": [
+        142,
+        473,
+        224,
+        322
+      ],
+      "utility": [
+        29,
+        520,
+        98,
+        239
+      ],
+      "dpad": [
+        292,
+        594
+      ],
+      "a": [
+        236,
+        681
+      ],
+      "b": [
+        195,
+        743
+      ],
+      "shoulders": [
+        [
+          201,
+          484,
+          75,
+          48
+        ],
+        [
+          284,
+          484,
+          75,
+          48
+        ]
+      ]
+    }
+  },
+  "buttonTouchReference": {
+    "dpadSide": 100,
+    "abDiameter": 54,
+    "shoulderSize": [
+      75,
+      48
+    ],
+    "utilitySize": [
+      80,
+      50
+    ],
+    "minimumTargetDp": 48,
+    "sourcePxNotValidatedDp": true,
+    "minReferenceGapPx": 8
+  },
+  "rule": "A and B step downward and INWARD from D-pad. RIGHT uses A/B below-left, LEFT mirrors below-right. Neither is positioned at extreme bottom phone edge. D-pad+AB+LR remain same thumb-side enclosure.",
+  "protection": "Start/Select/Menu utility outside dock. Standard-mode Start/Select touch bounds NEVER change. Production opt-in One Hand utility rail requires Daniel approval and remains unimplemented.",
+  "feasibility": {
+    "gb_gbc_gba": "priority test",
+    "snes": "extra XY thumb reach test",
+    "ps1": "L2/R2/analog and combo feasibility",
+    "nds": "combined dual display/stylus feasibility"
+  },
+  "previewStatus": "editable conceptual SVG only; does not implement PadKit hitbox/mapping",
+  "futureProfiles": {
+    "perCartridge": false,
+    "genreAuto": false,
+    "priorityWhenEnabled": [
+      "explicit game override",
+      "opt-in genre/system rule",
+      "global layout",
+      "visible compatible fallback"
+    ]
+  },
+  "tests": {
+    "functional": [
+      "30x Dpad-A-Dpad-B cycles",
+      "Dpad diagonals",
+      "A+B, holds and shoulder chords",
+      "Start/Select accident taps",
+      "compact and large phones",
+      "left/right thumb sweep",
+      "5-min grip comfort"
+    ],
+    "runtimeRequired": [
+      "measured PadKit 48dp targets",
+      "Android cutouts/gesture clearance",
+      "persistent global choice",
+      "in-place app upgrade",
+      "Standard mode unchanged"
+    ]
+  }
+}
