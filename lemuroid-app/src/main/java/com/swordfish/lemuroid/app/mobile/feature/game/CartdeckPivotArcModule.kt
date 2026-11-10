@@ -125,8 +125,9 @@ internal fun CartdeckPivotArcModule(
     val edge = with(density) { 11.dp.toPx() }
     val labelHeight = with(density) { 31.dp.toPx() }
     val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight) ?: return
-    val ink = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
-        .maxBy { colorContrast(it, tokens.secondary) }
+    val ink =
+        listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
+            .maxBy { colorContrast(it, tokens.secondary) }
 
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
