@@ -338,7 +338,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     rootBounds = fullPos,
                     videoBounds = viewPos,
                     inputBounds = hardwareInputBounds,
-                    isDualScreen = viewModel.systemId == SystemID.NDS,
+                    isDualScreen =
+                        portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
                     pivotArc = pivotPlacement != null,
                 )
