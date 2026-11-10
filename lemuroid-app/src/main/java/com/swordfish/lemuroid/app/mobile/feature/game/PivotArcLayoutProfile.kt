@@ -97,12 +97,6 @@ sealed interface PivotArcResolution {
 }
 
 /**
- * Pure fit solver. Moves the whole gameplay constellation, never its individual
- * controls. Utilities occupy a separate rail, and are not allowed to collide
- * with the viewport, other keys or gesture inset. Incompatible modes are not
- * persisted as Standard; the game can temporarily use its untouched PadKit UI.
- */
-/**
  * Scale the entire Candidate C *gameplay* constellation before placing it.
  * Layout topology, PadKit identities and the separated utility rail are never
  * changed. The owner feedback rejects fixed miniature 44dp action art:
@@ -142,10 +136,12 @@ object PivotArcPositionSolver {
         if (gameplay.isEmpty()) {
             return PivotArcResolution.Unavailable("No usable gameplay controls.")
         }
-        if (active.any {
+        val undersized =
+            active.any {
                 val target = baseline.buttonCenters.getValue(it).touch
                 target.w < 48f || target.h < 48f
-            }) {
+            }
+        if (undersized) {
             return PivotArcResolution.Unavailable("PivotArc has a control smaller than 48dp.")
         }
 
