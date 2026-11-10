@@ -1,0 +1,20 @@
+name: CARTDECK One Hand Layout Design Validation
+on:
+  pull_request:
+    paths:
+      - 'design/cartdeck-p2/one-hand-v02/**'
+      - '.github/workflows/cartdeck-onehand-design.yml'
+  push:
+    paths:
+      - 'design/cartdeck-p2/one-hand-v02/**'
+      - '.github/workflows/cartdeck-onehand-design.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate global-mode contract, thumb grouping and preview files
+        run: python -m unittest discover design/cartdeck-p2/one-hand-v02 -p 'test_one_hand_contract.py' -v
