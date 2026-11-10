@@ -301,6 +301,32 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     },
             )
 
+            // PivotArc supplies discrete controller rectangles, unlike
+            // Standard's composite AB/ABXY controls. Feed the physical-seat
+            // renderer the measured solver bounds so the shared hardware
+            // finish, rails, speaker and indicator art remain present from
+            // the first frame. Standard retains its original bound observers.
+            val hardwareInputBounds =
+                if (pivotPlacement != null && fullPos != null) {
+                    pivotPlacement.controls.map { (key, bounds) ->
+                        val seatKey =
+                            when (key) {
+                                "D" -> "dpad"
+                                "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+                                "L", "R" -> "shoulder-$key"
+                                else -> key.lowercase()
+                            }
+                        seatKey to
+                            Rect(
+                                fullPos.left + bounds.left * currentDensity.density,
+                                fullPos.top + bounds.top * currentDensity.density,
+                                fullPos.left + bounds.right * currentDensity.density,
+                                fullPos.top + bounds.bottom * currentDensity.density,
+                            )
+                    }.toMap()
+                } else {
+                    individualInputs.toMap()
+                }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -311,9 +337,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     edition = edition,
                     rootBounds = fullPos,
                     videoBounds = viewPos,
-                    inputBounds = individualInputs.toMap(),
+                    inputBounds = hardwareInputBounds,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     customColours = appearance.custom.isNotEmpty(),
+                    pivotArc = pivotPlacement != null,
                 )
             }
 
