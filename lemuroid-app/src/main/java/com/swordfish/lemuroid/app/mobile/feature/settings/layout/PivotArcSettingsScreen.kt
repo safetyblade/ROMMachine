@@ -36,6 +36,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckLayoutMode
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcBounds
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcHand
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
+import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcWordmark
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcPositionSolver
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcResolution
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSettingsStore
@@ -69,7 +70,10 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
         ) { store.save(current.copy(mode = CartdeckLayoutMode.ONE_HAND)) }
         if (current.mode == CartdeckLayoutMode.ONE_HAND) {
             HorizontalDivider()
-            Text("PivotArc", style = MaterialTheme.typography.titleMedium)
+            PivotArcWordmark(
+                ink = MaterialTheme.colorScheme.onSurface,
+                accent = MaterialTheme.colorScheme.primary,
+            )
             LayoutChoice("Right Hand", "Owner-approved Candidate C arrangement", current.hand == PivotArcHand.RIGHT) {
                 store.save(current.copy(hand = PivotArcHand.RIGHT))
             }
