@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
  * exactly one down/up pair for each transition of the OR of touch, physical
  * and latched sources. Removing one source cannot release another source.
  */
-internal class PivotArcHeldInputGate(
+class PivotArcHeldInputGate(
     private val send: (action: Int, keyCode: Int) -> Unit,
 ) {
     private val sources = mutableMapOf<Int, MutableSet<String>>()
