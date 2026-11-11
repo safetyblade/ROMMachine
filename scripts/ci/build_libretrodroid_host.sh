@@ -20,6 +20,7 @@ PATCH="$ROOT/scripts/ci/patches/libretrodroid-gles-context-validation.patch"
 mkdir -p "$WORK" "$MAVEN_REPO"
 if [[ ! -d "$SOURCE/.git" ]]; then
     git clone --no-checkout https://github.com/Swordfish90/LibretroDroid.git "$SOURCE"
+    git -C "$SOURCE" checkout --detach "$REVISION"
 fi
 if [[ -n "$(git -C "$SOURCE" status --porcelain)" ]]; then
     # Permit an exact repeat of our own patch, never unrelated source edits.

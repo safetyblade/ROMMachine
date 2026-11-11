@@ -48,7 +48,8 @@ cmake --build "$build_root/build" --target flycast_libretro --parallel "${NATIVE
 core="$build_root/build/flycast_libretro.so"
 test -s "$core"
 toolbin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
-"$toolbin/llvm-readelf" -h "$core" | grep -q AArch64
+"$toolbin/llvm-readelf" -h "$core" > "$out/elf-header.txt"
+grep -q AArch64 "$out/elf-header.txt"
 "$toolbin/llvm-readelf" -lW "$core" > "$out/elf-program-headers.txt"
 python3 - "$out/elf-program-headers.txt" <<'PY'
 import pathlib, sys
