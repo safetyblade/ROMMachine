@@ -144,6 +144,12 @@ object DocumentFileParser {
                         val text = it.takeIf { file.size in 1..65536 }?.bufferedReader()?.readText()
                         NextGenDiscIdentity.probe(file.name, gdiText = text)
                     }
+                // Unlike a shared .iso suffix, a real Nintendo CISO's mapped
+                // first block identifies GameCube/Wii without folder guesses.
+                "ciso" ->
+                    context.contentResolver.openInputStream(file.uri)?.use {
+                        NextGenDiscIdentity.probeNintendoCiso(it)
+                    }
                 "iso", "gcm", "chd" ->
                     context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
                         FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
