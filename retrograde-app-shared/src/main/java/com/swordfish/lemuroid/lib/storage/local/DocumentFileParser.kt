@@ -127,35 +127,35 @@ object DocumentFileParser {
         file: BaseStorageFile,
     ): NextGenDiscIdentity.Result? {
         return runCatching {
-                when (file.extension.lowercase(java.util.Locale.US)) {
-                    "gdi" ->
-                        context.contentResolver.openInputStream(file.uri)?.use {
-                            val text = it.takeIf { file.size in 1..65536 }?.bufferedReader()?.readText()
-                            NextGenDiscIdentity.probe(file.name, gdiText = text)
-                        }
-                    "iso", "gcm", "chd" ->
-                        context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
-                            FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
-                                if (file.extension.equals("chd", ignoreCase = true)) {
-                                    NextGenDiscIdentity.probeDreamcastChd(channel)
-                                } else {
-                                    NextGenDiscIdentity.probePs2Iso(
-                                        if (file.extension.equals(
-                                                "gcm",
-                                                ignoreCase = true,
-                                            )
-                                        ) {
-                                            file.name.dropLast(3) + "iso"
-                                        } else {
-                                            file.name
-                                        },
-                                        channel,
-                                    )
-                                }
+            when (file.extension.lowercase(java.util.Locale.US)) {
+                "gdi" ->
+                    context.contentResolver.openInputStream(file.uri)?.use {
+                        val text = it.takeIf { file.size in 1..65536 }?.bufferedReader()?.readText()
+                        NextGenDiscIdentity.probe(file.name, gdiText = text)
+                    }
+                "iso", "gcm", "chd" ->
+                    context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
+                        FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
+                            if (file.extension.equals("chd", ignoreCase = true)) {
+                                NextGenDiscIdentity.probeDreamcastChd(channel)
+                            } else {
+                                NextGenDiscIdentity.probePs2Iso(
+                                    if (file.extension.equals(
+                                            "gcm",
+                                            ignoreCase = true,
+                                        )
+                                    ) {
+                                        file.name.dropLast(3) + "iso"
+                                    } else {
+                                        file.name
+                                    },
+                                    channel,
+                                )
                             }
                         }
-                    else -> null
-                }
+                    }
+                else -> null
+            }
         }.getOrNull()
     }
 
