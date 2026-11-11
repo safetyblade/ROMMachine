@@ -10,27 +10,27 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.touchinput.controller.R as TouchR
-import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidCrossForeground
+import gg.padkit.PadKitScope
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
-import gg.padkit.PadKitScope
 
 /**
  * Same PadKit scope and same input IDs used by Standard. Only the geometry and
