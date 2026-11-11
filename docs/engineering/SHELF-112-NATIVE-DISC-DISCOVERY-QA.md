@@ -5,12 +5,12 @@ Owner observation: after current Codex integration, one ROM each for Dreamcast, 
 ## Source finding and correction
 The native emulator build registers `dc,gc,ps2` only in the five-engine engineering APK. The existing detector requires platform-specific disc contents and cannot recognise some Android SAF files if the provider does not supply a usable seekable descriptor. The three native systems deliberately disable generic path/filename matching to prevent misleading classification of shared `.iso` and `.chd`.
 
-A controlled fallback is now available only for registered native engines with **an explicit platform folder**; it never classifies arbitrary root `.iso`/`.chd` files:
+Two safe discovery routes are available **only when the native engine is registered**: unique `.gdi`/`.cdi` (Dreamcast) and `.gcm` (GameCube) suffixes can be indexed without a console folder, while shared/ambiguous formats require **an explicit console folder**; the scanner never classifies arbitrary root `.iso`/`.chd` files:
 - `ROMs/Dreamcast/disc.gdi`, `ROMs/Dreamcast/disc.chd` (GD-ROM CHD), `ROMs/Dreamcast/disc.cdi`, or validated `.m3u` family.
 - `ROMs/GameCube/game.gcm`, `.iso`, `.rvz`, `.gcz`, `.ciso` or `.tgc` in an unambiguous GameCube folder.
 - `ROMs/PS2/game.iso`, `.chd`, `.cso` or `.isz` (equivalently `PlayStation 2`).
 - Supports Android SAF `primary%3AROMs%2FPS2%2Fgame.iso`, standard local path, nested region directories and case-insensitive extensions.
-- Existing verified disc signatures take precedence, PS1/PSP serials remain authoritative, Wii magic is a refusal, two different named platform folders are ambiguous and skipped.
+- Existing verified disc signatures take precedence, PS1/PSP serials remain authoritative, Wii magic is a refusal, two different named platform folders are ambiguous and skipped. Only verified uniquely-assigned suffixes (`.gdi`, `.cdi`, `.gcm`) are automatic without a folder; GDI descriptors still require intact companion tracks.
 - The additional compressed disc extensions above are documented as loadable by their respective upstream Libretro cores, but **have not been verified in this pinned Android build or on a phone**. Discoverable is not the same as playable. Filename/extension alone is never enough for shared containers; the explicit console folder is the user-supplied platform selection.
 - Missing GDI tracks and broken M3U playlists are rejected by existing family validation. No modification to file permissions, save files, prior games or shelf arrangements.
 
