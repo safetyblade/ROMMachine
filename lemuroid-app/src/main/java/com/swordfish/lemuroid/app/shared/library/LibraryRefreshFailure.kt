@@ -32,7 +32,7 @@ internal object LibraryRefreshFailure {
     fun userMessage(error: Throwable): String =
         when (code(error)) {
             FOLDER_ACCESS ->
-                "ROM folder access changed or a file was moved. Re-select the parent ROMS folder in Settings and refresh."
+                "ROM folder access changed. Re-select the parent ROMS folder in Settings and refresh."
             FILE_READ ->
                 "A ROM or folder could not be read. Check files in the selected ROMS folder and retry."
             else ->
