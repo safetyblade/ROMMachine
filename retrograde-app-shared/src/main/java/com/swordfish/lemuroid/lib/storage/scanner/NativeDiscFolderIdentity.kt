@@ -12,9 +12,9 @@ import java.util.Locale
 object NativeDiscFolderIdentity {
     private val extensions =
         mapOf(
-            SystemID.DREAMCAST to setOf("gdi", "chd", "m3u"),
-            SystemID.GAMECUBE to setOf("gcm", "iso"),
-            SystemID.PLAYSTATION_2 to setOf("iso"),
+            SystemID.DREAMCAST to setOf("gdi", "chd", "m3u", "cdi"),
+            SystemID.GAMECUBE to setOf("gcm", "iso", "rvz", "gcz", "ciso", "tgc"),
+            SystemID.PLAYSTATION_2 to setOf("iso", "chd", "cso", "isz"),
         )
 
     private val folders =
