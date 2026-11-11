@@ -72,6 +72,56 @@ object NativeGameSystems {
                     ),
             ),
             GameSystem(
+                SystemID.WII,
+                "Nintendo - Wii",
+                R.string.game_system_title_wii,
+                R.string.game_system_abbr_wii,
+                listOf(
+                    SystemCoreConfig(
+                        CoreID.DOLPHIN_MODERN,
+                        controllerConfigs =
+                            hashMapOf(
+                                0 to
+                                    arrayListOf(
+                                        ControllerConfigs.WII_CLASSIC,
+                                        ControllerConfigs.WII_SIDEWAYS,
+                                        ControllerConfigs.WII_NUNCHUK,
+                                    ),
+                            ),
+                        supportedOnlyArchitectures = setOf("arm64-v8a"),
+                        skipDuplicateFrames = false,
+                        defaultSettings =
+                            listOf(
+                                CoreVariable("dolphin_renderer", "Hardware"),
+                                CoreVariable("dolphin_cpu_core", "4"),
+                                CoreVariable("dolphin_ir_mode", "2"),
+                            ),
+                        exposedSettings =
+                            listOf(
+                                ExposedSetting(
+                                    "dolphin_ir_mode",
+                                    R.string.setting_wii_pointer,
+                                    arrayListOf(
+                                        ExposedSetting.Value("2", R.string.value_wii_pointer_touch),
+                                        ExposedSetting.Value("1", R.string.value_wii_pointer_stick),
+                                        ExposedSetting.Value("0", R.string.value_wii_pointer_relative),
+                                    ),
+                                ),
+                            ),
+                    ),
+                ),
+                uniqueExtensions = emptyList(),
+                supportedExtensions = listOf("iso", "wbfs", "rvz", "ciso"),
+                hasTouchScreen = true,
+                fastForwardSupport = false,
+                scanOptions =
+                    GameSystem.Companion.ScanOptions(
+                        scanByPathAndSupportedExtensions = false,
+                        scanByFilename = false,
+                        scanByPathAndFilename = false,
+                    ),
+            ),
+            GameSystem(
                 SystemID.PLAYSTATION_2,
                 "Sony - PlayStation 2",
                 R.string.game_system_title_ps2,

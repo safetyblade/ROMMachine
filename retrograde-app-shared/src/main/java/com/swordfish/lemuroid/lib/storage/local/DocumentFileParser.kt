@@ -10,6 +10,7 @@ import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
+import com.swordfish.lemuroid.lib.storage.scanner.WiiDiscIdentity
 import timber.log.Timber
 import java.io.FileInputStream
 import java.util.zip.ZipEntry
@@ -24,7 +25,7 @@ object DocumentFileParser {
     // containers. A 0.95 GB CISO or ambiguous ISO could otherwise consume
     // hundreds of megabytes of SAF reads and make refresh appear to hang.
     private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
-        setOf("iso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc")
+        setOf("iso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs")
 
     fun parseDocumentFile(
         context: Context,
@@ -86,6 +87,13 @@ object DocumentFileParser {
                 NextGenDiscIdentity.Platform.DREAMCAST -> SystemID.DREAMCAST
                 NextGenDiscIdentity.Platform.GAMECUBE -> SystemID.GAMECUBE
                 NextGenDiscIdentity.Platform.PS2 -> SystemID.PLAYSTATION_2
+                NextGenDiscIdentity.Platform.WII ->
+                    SystemID.WII.takeIf {
+                        GameSystem.all().any {
+                                system ->
+                            system.id == it
+                        }
+                    }
                 else -> null
             }
         val diskInfo =
@@ -114,7 +122,7 @@ object DocumentFileParser {
                 GameSystem.all().map { it.id }.toSet(),
                 verified = nativeSystem ?: uniqueNativeSystem,
                 legacy = diskInfo?.systemID,
-                foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII,
+                foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII && nativeSystem == null,
             )
         if (system != null && nativeSystem == null && diskInfo?.systemID == null) {
             Timber.i("Native disc identified from explicit console folder: ${system.dbname}")
@@ -160,10 +168,12 @@ object DocumentFileParser {
                     context.contentResolver.openInputStream(file.uri)?.use {
                         NextGenDiscIdentity.probeNintendoCiso(it)
                     }
-                "iso", "gcm", "chd" ->
+                "iso", "gcm", "chd", "wbfs", "rvz" ->
                     context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
                         FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
-                            if (file.extension.equals("chd", ignoreCase = true)) {
+                            if (file.extension.lowercase(java.util.Locale.US) in setOf("wbfs", "rvz")) {
+                                WiiDiscIdentity.probe(file.name, channel)
+                            } else if (file.extension.equals("chd", ignoreCase = true)) {
                                 NextGenDiscIdentity.probeDreamcastChd(channel)
                             } else {
                                 NextGenDiscIdentity.probePs2Iso(
