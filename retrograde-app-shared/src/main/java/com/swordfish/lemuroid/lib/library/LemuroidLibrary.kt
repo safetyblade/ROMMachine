@@ -254,10 +254,14 @@ class LemuroidLibrary(
     ) {
         files.forEach { baseStorageFile ->
             val storageFile = safeStorageFile(provider, baseStorageFile)
-            val inputStream = storageFile?.uri?.let { provider.getInputStream(it) }
-
-            if (storageFile != null && inputStream != null) {
-                biosManager.tryAddBiosAfter(storageFile, inputStream, startedAtMs)
+            if (storageFile != null && biosManager.isBiosCandidate(storageFile)) {
+                // Opening all unknown game files here leaked descriptors on
+                // every refresh and could abort large Android SAF scans.
+                // BIOS import is the only consumer, and its stream is owned
+                // and closed at this call site, including on exceptions.
+                provider.getInputStream(storageFile.uri)?.use { inputStream ->
+                    biosManager.tryAddBiosAfter(storageFile, inputStream, startedAtMs)
+                }
             }
         }
     }
