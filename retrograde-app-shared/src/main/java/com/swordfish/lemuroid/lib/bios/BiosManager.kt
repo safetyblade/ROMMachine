@@ -70,6 +70,14 @@ class BiosManager(private val directoriesManager: DirectoriesManager) {
             getBiosInfo()
         }
 
+    /**
+     * Avoid opening every unknown ROM as a firmware candidate during a shelf
+     * refresh. Only the names and checksums in the known BIOS catalogue can
+     * trigger a firmware import. Callers still own and close any opened stream.
+     */
+    fun isBiosCandidate(storageFile: StorageFile): Boolean =
+        findByCRC(storageFile) != null || findByName(storageFile) != null
+
     fun tryAddBiosAfter(
         storageFile: StorageFile,
         inputStream: InputStream,

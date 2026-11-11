@@ -71,8 +71,13 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
             throw cancelled
         } catch (error: Exception) {
             Timber.e(error, "ROM folder refresh failed; existing library and shelf were not pruned")
+            // Preserve the full exception in private debug logs, but return
+            // only a sanitized category/message to the player.
             Result.failure(
-                workDataOf("error" to "Refresh failed. Check ROM folder access and try again."),
+                workDataOf(
+                    "errorCode" to LibraryRefreshFailure.code(error),
+                    "error" to LibraryRefreshFailure.userMessage(error),
+                ),
             )
         }
     }
