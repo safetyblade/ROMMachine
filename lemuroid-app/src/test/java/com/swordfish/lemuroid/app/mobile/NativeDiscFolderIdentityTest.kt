@@ -34,6 +34,30 @@ class NativeDiscFolderIdentityTest {
     }
 
     @Test
+    fun folderQualifiesCoreAdvertisedCompressedDiscFormats() {
+        assertEquals(
+            SystemID.DREAMCAST,
+            NativeDiscFolderIdentity.infer("homebrew.cdi", "/ROMs/Dreamcast/homebrew.cdi", enabled),
+        )
+        assertEquals(
+            SystemID.GAMECUBE,
+            NativeDiscFolderIdentity.infer("disc.rvz", "/ROMs/GameCube/disc.rvz", enabled),
+        )
+        assertEquals(
+            SystemID.GAMECUBE,
+            NativeDiscFolderIdentity.infer("disc.gcz", "/ROMs/GameCube/disc.gcz", enabled),
+        )
+        assertEquals(
+            SystemID.PLAYSTATION_2,
+            NativeDiscFolderIdentity.infer("disc.chd", "/ROMs/PS2/disc.chd", enabled),
+        )
+        assertEquals(
+            SystemID.PLAYSTATION_2,
+            NativeDiscFolderIdentity.infer("disc.cso", "/ROMs/PS2/disc.cso", enabled),
+        )
+    }
+
+    @Test
     fun safelyHandlesAndroidSafUriAndCase() {
         assertEquals(
             SystemID.PLAYSTATION_2,
@@ -55,9 +79,10 @@ class NativeDiscFolderIdentityTest {
         assertNull(NativeDiscFolderIdentity.infer("game.chd", "/ROMs/game.chd", enabled))
         assertNull(NativeDiscFolderIdentity.infer("game.iso", "/ROMs/PS2/GameCube/game.iso", enabled))
         assertNull(NativeDiscFolderIdentity.infer("game.iso", "/ROMs/PS2 Collection/game.iso", enabled))
-        assertNull(NativeDiscFolderIdentity.infer("game.rvz", "/ROMs/GameCube/game.rvz", enabled))
-        assertNull(NativeDiscFolderIdentity.infer("game.cdi", "/ROMs/Dreamcast/game.cdi", enabled))
-        assertNull(NativeDiscFolderIdentity.infer("game.chd", "/ROMs/PS2/game.chd", enabled))
+        assertNull(NativeDiscFolderIdentity.infer("game.rvz", "/ROMs/game.rvz", enabled))
+        assertNull(NativeDiscFolderIdentity.infer("game.cdi", "/ROMs/game.cdi", enabled))
+        assertNull(NativeDiscFolderIdentity.infer("game.chd", "/ROMs/game.chd", enabled))
+        assertNull(NativeDiscFolderIdentity.infer("game.cso", "/ROMs/game.cso", enabled))
     }
 
     @Test
