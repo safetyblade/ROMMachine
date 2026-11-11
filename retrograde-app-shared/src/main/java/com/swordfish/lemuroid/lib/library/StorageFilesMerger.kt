@@ -1,7 +1,5 @@
 package com.swordfish.lemuroid.lib.library
 
-import android.net.Uri
-import com.swordfish.lemuroid.common.files.readLines
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.GroupedStorageFiles
 import com.swordfish.lemuroid.lib.storage.StorageProvider
@@ -101,19 +99,15 @@ object StorageFilesMerger {
         allFiles: MutableMap<BaseStorageFile, List<BaseStorageFile>>,
         storageProvider: StorageProvider,
     ) {
-        val toBeRemoved = mutableListOf<BaseStorageFile>()
-
-        allFiles.keys
-            .asSequence()
-            .filter { it.extension == "cue" }
-            .forEach {
-                val requestedFileNames = extractBinFiles(storageProvider, it.uri).toSet()
-                val givenFileNames = allFiles[it]?.map { it.name }?.toSet() ?: setOf()
-
-                if (requestedFileNames != givenFileNames) toBeRemoved.add(it)
+        // Keep incomplete primaries in enumeration so an existing cartridge
+        // survives a temporarily missing track. New imports validate the family.
+        for (cue in allFiles.keys.toList().filter { it.extension == "cue" }) {
+            val requested = cueFileNames(storageProvider, cue)
+            if (requested == null || !allFiles[cue].orEmpty().map { it.name }.containsAll(requested)) {
+                allFiles[cue].orEmpty().forEach { allFiles.putIfAbsent(it, emptyList()) }
+                allFiles[cue] = emptyList()
             }
-
-        toBeRemoved.forEach { allFiles.remove(it) }
+        }
     }
 
     private fun mergeBinCueFiles(
@@ -126,7 +120,8 @@ object StorageFilesMerger {
             .asSequence()
             .filter { it.extension == "cue" }
             .forEach { cueFile ->
-                val requestedBinFiles = extractBinFiles(storageProvider, cueFile.uri)
+                val requestedBinFiles = cueFileNames(storageProvider, cueFile) ?: return@forEach
+                if (!allFiles.keys.map { it.name }.containsAll(requestedBinFiles)) return@forEach
 
                 val binFiles =
                     allFiles
@@ -142,14 +137,32 @@ object StorageFilesMerger {
         toBeRemoved.forEach { allFiles.remove(it) }
     }
 
-    private fun extractBinFiles(
+    fun cueFileNames(
         storageProvider: StorageProvider,
-        uri: Uri,
-    ): List<String> {
-        return runCatching {
-            storageProvider.getInputStream(uri)?.readLines()
-                ?.mapNotNull { Regex("FILE \"(.*)\"").find(it)?.groupValues?.get(1) }
-                ?: listOf()
-        }.getOrDefault(listOf())
+        cue: BaseStorageFile,
+    ): List<String>? {
+        if (cue.size !in 1..65536) return null
+        val text =
+            storageProvider.getInputStream(cue.uri)?.use { it.bufferedReader().readText() }
+                ?: throw java.io.IOException("Cannot read CUE descriptor ${cue.name}")
+        if (text.length > 65536) return null
+        val names =
+            Regex(
+                """^\s*FILE\s+"([^"]+)"\s+\S+\s*$""",
+                setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE),
+            )
+                .findAll(text.removePrefix("\uFEFF")).map { it.groupValues[1] }.toList()
+        val directives =
+            Regex("""^\s*FILE\b""", setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
+                .findAll(text.removePrefix("\uFEFF")).count()
+        if (directives != names.size || names.isEmpty() ||
+            names.any {
+                it.isBlank() || '/' in it || '\\' in it || ':' in it || it == ".." ||
+                    '\u0000' in it || it.equals(cue.name, ignoreCase = true)
+            }
+        ) {
+            return null
+        }
+        return names.distinct()
     }
 }

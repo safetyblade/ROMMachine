@@ -64,10 +64,11 @@ class LemuroidLibrary(
      * or coroutine cancellation: prior games and saves must remain discoverable.
      */
     suspend fun indexLibrary(): IndexSummary {
-        val startedAtMs = System.currentTimeMillis()
-        val before =
-            retrogradedb.gameDao().selectShelfGames().first()
-                .map { it.systemId to it.fileUri }.toSet()
+        val previousGames = retrogradedb.gameDao().selectShelfGames().first()
+        // Two quick refreshes (or a backwards wall-clock adjustment) must not
+        // reuse an index marker and leave removed games on the shelf.
+        val startedAtMs = maxOf(System.currentTimeMillis(), (previousGames.maxOfOrNull { it.lastIndexedAt } ?: 0L) + 1)
+        val before = previousGames.map { it.systemId to it.fileUri }.toSet()
         val skipped = AtomicInteger(0)
 
         try {
@@ -168,7 +169,15 @@ class LemuroidLibrary(
     ) {
         val updatedGames =
             entries
-                .map { it.game.copy(lastIndexedAt = startedAtMs) }
+                .map { entry ->
+                    // SAF document IDs can remain stable when a file is renamed.
+                    // Keep the database ID (and all player metadata/save identity),
+                    // but launch the current filename. ZIP entries retain their
+                    // internal ROM name instead of becoming the archive filename.
+                    val primary = entry.file.primaryFile
+                    val fileName = if (primary.extension == "zip") entry.game.fileName else primary.name
+                    entry.game.copy(fileName = fileName, lastIndexedAt = startedAtMs)
+                }
 
         updatedGames
             .forEach { Timber.d("Updating game: $it") }
@@ -275,6 +284,10 @@ class LemuroidLibrary(
         // New imports must retain the full GDI family. Existing entries use the
         // existing-record branch and survive a temporarily missing companion.
         val names = groupedStorageFile.allFiles().map { it.name }.toSet()
+        for (cue in groupedStorageFile.allFiles().filter { it.extension == "cue" }) {
+            val requested = StorageFilesMerger.cueFileNames(provider, cue)
+            if (requested == null || !names.containsAll(requested)) return ScanEntry.File(groupedStorageFile)
+        }
         for (playlist in groupedStorageFile.allFiles().filter { it.extension.equals("m3u", ignoreCase = true) }) {
             if (playlist.size !in 1..DiscPlaylist.MAX_BYTES) return ScanEntry.File(groupedStorageFile)
             val text =

@@ -205,7 +205,7 @@ jobs:
       - name: Run style and unit tests and build the single standalone APK
         run: |
           set -euo pipefail
-          version_code=$((2000 + GITHUB_RUN_NUMBER))
+          version_code=$(bash scripts/ci/engineering_version_code.sh)
           test "$version_code" -gt 2001
           echo "CARTDECK_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "$version_code" > dist/cartdeck/evidence/version-code.txt
