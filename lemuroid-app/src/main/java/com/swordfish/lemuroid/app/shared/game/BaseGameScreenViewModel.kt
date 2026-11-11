@@ -42,6 +42,7 @@ import gg.padkit.inputstate.InputState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -162,7 +163,14 @@ class BaseGameScreenViewModel(
     }
 
     fun getSideEffects(): Flow<GameViewModelSideEffects.UiEffect> {
-        return sideEffects.getUiEffects()
+        return sideEffects.getUiEffects().onEach { effect ->
+            when (effect) {
+                is GameViewModelSideEffects.UiEffect.ShowMenu,
+                is GameViewModelSideEffects.UiEffect.SuccessfulFinish,
+                is GameViewModelSideEffects.UiEffect.FailureFinish -> pivotArcHeldInputGate.clear()
+                else -> Unit
+            }
+        }
     }
 
     fun getTiltConfiguration(): Flow<TiltConfiguration> {
