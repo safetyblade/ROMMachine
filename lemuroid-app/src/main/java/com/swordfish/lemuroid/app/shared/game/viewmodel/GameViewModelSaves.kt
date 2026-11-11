@@ -41,7 +41,7 @@ class GameViewModelSaves(
 
     suspend fun saveSlot(index: Int) {
         getCurrentSaveState()?.let {
-            statesManager.setSlotSave(game, it, systemCoreConfig.coreID, index)
+            statesManager.setSlotSave(game, it, systemCoreConfig.coreID, index, systemCoreConfig.stateNamespace)
             runCatching {
                 takeScreenshotPreview(index)
             }
@@ -50,7 +50,7 @@ class GameViewModelSaves(
 
     suspend fun loadSlot(index: Int) {
         try {
-            statesManager.getSlotSave(game, systemCoreConfig.coreID, index)?.let {
+            statesManager.getSlotSave(game, systemCoreConfig.coreID, index, systemCoreConfig.stateNamespace)?.let {
                 val loaded =
                     withContext(Dispatchers.IO) {
                         loadSaveState(it)
@@ -87,7 +87,14 @@ class GameViewModelSaves(
             snapshot.autoSave != null,
         )
         savesManager.setSaveRAM(game, snapshot.sram, systemCoreConfig.coreID)
-        snapshot.autoSave?.let { statesManager.setAutoSave(game, systemCoreConfig.coreID, it) }
+        snapshot.autoSave?.let {
+            statesManager.setAutoSave(
+                game,
+                systemCoreConfig.coreID,
+                it,
+                systemCoreConfig.stateNamespace,
+            )
+        }
     }
 
     // On some cores unserialize fails with no reason. So we need to try multiple times.
@@ -127,7 +134,13 @@ class GameViewModelSaves(
         val previewSize = GraphicsUtils.convertDpToPixel(sizeInDp, appContext).roundToInt()
         val preview = retroGameView.retroGameView?.takeScreenshot(previewSize, 3)
         if (preview != null) {
-            statesPreviewManager.setPreviewForSlot(game, preview, systemCoreConfig.coreID, index)
+            statesPreviewManager.setPreviewForSlot(
+                game,
+                preview,
+                systemCoreConfig.coreID,
+                index,
+                systemCoreConfig.stateNamespace,
+            )
         }
     }
 

@@ -62,9 +62,8 @@ jobs:
           mkdir -p "$libs" "$assets"
           cp dist/perf02/ps1/libpcsx_rearmed_modern_libretro_android.so "$libs/"
           cp dist/perf02/psp/libppsspp_modern_libretro_android.so "$libs/"
-          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" --strip-debug "$libs/libpcsx_rearmed_modern_libretro_android.so"
-          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" --strip-debug "$libs/libppsspp_modern_libretro_android.so"
-          cp dist/perf02/psp/ppsspp-modern-assets.zip "$assets/"
+          cp dist/perf02/ps1/pcsx-rearmed-modern.properties "$assets/"
+          cp dist/perf02/psp/ppsspp-modern-assets.zip dist/perf02/psp/ppsspp-modern.properties "$assets/"
           sha256sum "$libs/"*modern* "$assets/ppsspp-modern-assets.zip" > dist/perf02/packaged-hashes.txt
           git rev-parse HEAD > dist/perf02/integration-source-sha.txt
           git submodule status --recursive > dist/perf02/submodule-revisions.txt

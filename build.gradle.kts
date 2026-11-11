@@ -26,6 +26,9 @@ plugins {
 
 allprojects {
     repositories {
+        providers.gradleProperty("cartdeckHostMavenRepo").orNull?.let { hostRepo ->
+            maven { url = uri(hostRepo) }
+        }
         mavenLocal()
         google()
         mavenCentral()

@@ -1,0 +1,66 @@
+diff --git a/Source/ui_libretro/main_libretro.cpp b/Source/ui_libretro/main_libretro.cpp
+index 8a07c26f..3f319853 100644
+--- a/Source/ui_libretro/main_libretro.cpp
++++ b/Source/ui_libretro/main_libretro.cpp
+@@ -24,6 +24,7 @@
+ 
+ static CPS2VM* m_virtualMachine = nullptr;
+ static bool first_run = false;
++static bool g_private_storage_ready = false;
+ 
+ bool libretro_supports_bitmasks = false;
+ retro_video_refresh_t g_video_cb;
+@@ -477,6 +478,7 @@ void retro_reset(void)
+ 
+ bool retro_load_game(const retro_game_info* info)
+ {
++	if(!g_private_storage_ready || !m_virtualMachine || !info || !info->path) return false;
+ 	CLog::GetInstance().Print(LOG_NAME, "%s\n", __FUNCTION__);
+ 
+ #if defined(IOS)
+@@ -509,7 +511,7 @@ bool retro_load_game(const retro_game_info* info)
+ 	g_environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &rgb);
+ 
+ #ifdef GLES_COMPATIBILITY
+-	g_hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3;
++	g_hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES_VERSION;
+ #else
+ 	g_hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
+ #endif
+@@ -523,7 +525,11 @@ bool retro_load_game(const retro_game_info* info)
+ 	g_hw_render.depth = true;
+ 	g_environ_cb(RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT, nullptr);
+ 
+-	g_environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &g_hw_render);
++	if(!g_environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &g_hw_render))
++	{
++		CLog::GetInstance().Print(LOG_NAME, "Frontend rejected required GLES 3.2/OpenGL 3.2 context\n");
++		return false;
++	}
+ 
+ 	g_environ_cb(RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT, nullptr);
+ 
+@@ -547,7 +553,16 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info* i
+ void retro_init()
+ {
+ #ifdef __ANDROID__
+-	Framework::PathUtils::SetFilesDirPath(getenv("EXTERNAL_STORAGE"));
++	// Memory cards are files, not RETRO_MEMORY_SAVE_RAM. Resolve the frontend's
++	// persistent, engine-isolated directory before CAppConfig or the VM is created.
++	// Never fall back to shared external storage (or a null getenv value).
++	const char* saveDirectory = nullptr;
++	g_private_storage_ready = g_environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &saveDirectory) &&
++	                          saveDirectory && saveDirectory[0];
++	if(!g_private_storage_ready) return;
++	Framework::PathUtils::SetFilesDirPath(saveDirectory);
++#else
++	g_private_storage_ready = true;
+ #endif
+ 	CLog::GetInstance().Print(LOG_NAME, "%s\n", __FUNCTION__);
+ 
+@@ -594,4 +609,5 @@ void retro_deinit()
+ 		m_virtualMachine = nullptr;
+ 	}
+ 	libretro_supports_bitmasks = false;
++	g_private_storage_ready = false;
+ }

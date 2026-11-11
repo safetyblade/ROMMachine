@@ -17,3 +17,12 @@ project.properties
 .externalNativeBuild
 local.properties
 release.jks
+
+# Native source build caches and private engineering binaries
+/work/
+__pycache__/
+
+# Experimental engines enter APKs only through an explicit private bundle directory
+/lemuroid-app/src/main/jniLibs/
+/lemuroid-app/src/main/assets/cartdeck/*-modern.properties
+/lemuroid-app/src/main/assets/cartdeck/*-modern-assets.zip

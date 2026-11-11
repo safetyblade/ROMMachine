@@ -1,10 +1,11 @@
-name: CARTDECK Dreamcast ARM64 research spike (no delivery)
+name: CARTDECK Dreamcast Android ARM64 native build
 
 on:
   pull_request:
     paths:
       - ".github/workflows/cartdeck-dreamcast-spike.yml"
       - "spikes/dreamcast/**"
+      - "scripts/ci/build_dreamcast_upstream_core.sh"
   workflow_dispatch:
 
 permissions:
@@ -47,70 +48,16 @@ jobs:
           test -x "$SDKMANAGER"
           "$SDKMANAGER" --install "ndk;$ANDROID_NDK_VERSION"
           test -f "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/build/cmake/android.toolchain.cmake"
-      - name: Checkout exact upstream revision, including dependencies
+      - name: Build pinned GLES3 core with provenance and 16 KB checks
         shell: bash
         run: |
           set -euo pipefail
-          git clone --no-checkout https://github.com/flyinghead/flycast.git "$RUNNER_TEMP/flycast-upstream"
-          cd "$RUNNER_TEMP/flycast-upstream"
-          git checkout --detach "$FLYCAST_SOURCE_SHA"
-          git submodule update --init --recursive --depth 1
-          test "$(git rev-parse HEAD)" = "$FLYCAST_SOURCE_SHA"
-          test -f LICENSE
-          echo "Flycast source SHA: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
-          echo "Source licence: GPL-2.0; legal integration compatibility NOT APPROVED" >> "$GITHUB_STEP_SUMMARY"
-      - name: Compile standalone libretro core for Android ARM64
-        shell: bash
-        run: |
-          set -euo pipefail
-          SRC="$RUNNER_TEMP/flycast-upstream"
-          OUT="$RUNNER_TEMP/flycast-libretro-build"
-          cmake -S "$SRC" -B "$OUT" -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLIBRETRO=ON -DUSE_OPENMP=OFF \
-            -DANDROID_PLATFORM=android-"$ANDROID_API" \
-            -DANDROID_ABI="$ANDROID_ABI" -DANDROID_STL=c++_static \
-            -DANDROID_WEAK_API_DEFS=ON \
-            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/build/cmake/android.toolchain.cmake"
-          cmake --build "$OUT" --target flycast_libretro --parallel 2
-          LIB=$(find "$OUT" -type f -name '*flycast*libretro*.so' -print -quit)
-          test -n "$LIB" && test -s "$LIB"
-          file "$LIB" | tee "$RUNNER_TEMP/core-file.txt"
-          file "$LIB" | grep -q 'aarch64\|ARM aarch64'
-          sha256sum "$LIB" | tee "$RUNNER_TEMP/core-sha256.txt"
-          echo "Compiled Android arm64 Flycast libretro. This is NOT a CARTDECK runtime test." >> "$GITHUB_STEP_SUMMARY"
-          cat "$RUNNER_TEMP/core-file.txt" "$RUNNER_TEMP/core-sha256.txt" >> "$GITHUB_STEP_SUMMARY"
-      - name: Validate libretro exports and 16 KB ELF load alignment
-        shell: bash
-        run: |
-          set -euo pipefail
-          LIB=$(find "$RUNNER_TEMP/flycast-libretro-build" -type f -name '*flycast*libretro*.so' -print -quit)
-          test -n "$LIB" && test -s "$LIB"
-          TOOLBIN="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          "$TOOLBIN/llvm-nm" -D --defined-only "$LIB" | awk '{print $NF}' > "$RUNNER_TEMP/flycast-exported-symbols.txt"
-          for symbol in retro_init retro_deinit retro_load_game retro_unload_game retro_run retro_set_environment retro_set_video_refresh retro_set_audio_sample_batch retro_set_input_poll retro_set_input_state retro_get_system_av_info retro_serialize retro_unserialize; do
-            if ! grep -Fxq "$symbol" "$RUNNER_TEMP/flycast-exported-symbols.txt"; then
-              echo "::error::Missing libretro entry point: $symbol"
-              exit 1
-            fi
-          done
-          "$TOOLBIN/llvm-readelf" -lW "$LIB" | awk '$1 == "LOAD" {print $NF}' > "$RUNNER_TEMP/flycast-load-alignments.txt"
-          python3 - "$RUNNER_TEMP/flycast-load-alignments.txt" <<'PY'
-          import pathlib
-          import sys
-          values = [int(v, 16) for v in pathlib.Path(sys.argv[1]).read_text().split()]
-          if not values or min(values) < 0x4000:
-              raise SystemExit("ELF PT_LOAD alignment below 16 KiB or not measured")
-          print(f"PT_LOAD alignments: {values}")
-          PY
-          echo "Static libretro symbols: PASS; ELF PT_LOAD >=16 KiB: PASS" >> "$GITHUB_STEP_SUMMARY"
-          echo "This is NOT an Android 16 KiB runtime, APK ZIP alignment or gameplay test." >> "$GITHUB_STEP_SUMMARY"
-      - name: Scope limitation
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          scripts/ci/build_dreamcast_upstream_core.sh "$RUNNER_TEMP/flycast-output"
+          cat "$RUNNER_TEMP/flycast-output/provenance.txt" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/flycast-output/sha256.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "Native build pass is not an Android runtime or gameplay pass." >> "$GITHUB_STEP_SUMMARY"
+      - name: Distribution boundary
         if: always()
         run: |
-          {
-            echo ""
-            echo "Not performed: GPLv2/GPLv3 legal clearance, LibretroDroid EGL hardware context,"
-            echo "actual game frame/audio, controller, VMU save, 16 KB page-size device runtime."
-            echo "No Flycast binary, firmware, ROM or APK uploaded or published."
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "No native binary, firmware, ROM or APK is publicly uploaded. Private APK staging uses the output and its matching provenance manifest." >> "$GITHUB_STEP_SUMMARY"

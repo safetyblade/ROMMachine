@@ -27,19 +27,29 @@ export LDFLAGS="-Wl,-z,max-page-size=16384"
 
 make -C "$work/pcsx_rearmed" -f Makefile.libretro \
     platform=unix ARCH=arm64 DYNAREC=ari64 BUILTIN_GPU=neon LIBPTHREAD= \
+    HAVE_PHYSICAL_CDROM=0 \
     -j2
 core="$work/pcsx_rearmed/pcsx_rearmed_libretro.so"
 test -s "$core"
 cp "$core" "$out/libpcsx_rearmed_modern_libretro_android.so"
+"$toolchain/llvm-strip" --strip-debug "$out/libpcsx_rearmed_modern_libretro_android.so"
+{
+    echo "revision=$SOURCE_SHA"
+    echo "core.sha256=$(sha256sum "$out/libpcsx_rearmed_modern_libretro_android.so" | cut -d ' ' -f1)"
+} > "$out/pcsx-rearmed-modern.properties"
 cp "$work/pcsx_rearmed/COPYING" "$out/PCSX_UPSTREAM_COPYING" 2>/dev/null || true
 {
     echo "upstream=$SOURCE_URL"
     echo "commit=$SOURCE_SHA"
     echo "core_file=libpcsx_rearmed_modern_libretro_android.so"
-    echo "ndk=$("$ANDROID_NDK_HOME/ndk-build" --version 2>/dev/null | head -1 || true)"
+    echo "ndk=$(sed -n 's/^Pkg.Revision *= *//p' "$ANDROID_NDK_HOME/source.properties")"
+    echo "android_api=24"
+    echo "dynarec=ari64"
+    echo "gpu=neon"
+    echo "physical_cdrom=disabled"
     echo "toolchain=$("$CC" --version | head -1)"
 } > "$out/provenance.txt"
-sha256sum "$out/libpcsx_rearmed_modern_libretro_android.so" > "$out/sha256.txt"
+(cd "$out" && sha256sum libpcsx_rearmed_modern_libretro_android.so) > "$out/sha256.txt"
 file "$out/libpcsx_rearmed_modern_libretro_android.so" > "$out/elf-file.txt"
 readelf -lW "$out/libpcsx_rearmed_modern_libretro_android.so" > "$out/elf-program-headers.txt"
 readelf -dW "$out/libpcsx_rearmed_modern_libretro_android.so" > "$out/elf-dependencies.txt"

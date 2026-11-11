@@ -22,6 +22,7 @@ import com.swordfish.lemuroid.common.kotlin.filterNotNullValues
 import com.swordfish.lemuroid.common.kotlin.toIndexedMap
 import com.swordfish.lemuroid.common.kotlin.zipOnKeys
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
+import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.libretrodroid.Controller
@@ -60,6 +61,31 @@ class GameViewModelInput(
 ) : DefaultLifecycleObserver {
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
 
+    private val hasNativeTriggers =
+        systemCoreConfig.coreID in
+            setOf(
+                CoreID.FLYCAST_MODERN, CoreID.DOLPHIN_MODERN, CoreID.PLAY_MODERN,
+            )
+
+    private fun sendNativeTriggers(
+        event: MotionEvent,
+        port: Int,
+    ) {
+        if (!hasNativeTriggers) return
+        val left =
+            maxOf(
+                event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
+                event.getAxisValue(MotionEvent.AXIS_BRAKE),
+            ).coerceIn(0f, 1f)
+        val right =
+            maxOf(
+                event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
+                event.getAxisValue(MotionEvent.AXIS_GAS),
+            ).coerceIn(0f, 1f)
+        // Source 4 is the versioned CARTDECK host's pair of analog trigger axes.
+        retroGameView.retroGameView?.sendMotionEvent(4, left, right, port)
+    }
+
     private val controllerConfigsState = MutableStateFlow<Map<Int, ControllerConfig>>(mapOf())
     private val keyEventsFlow: MutableSharedFlow<KeyEvent?> = MutableSharedFlow()
     private val motionEventsFlow: MutableSharedFlow<MotionEvent> = MutableSharedFlow()
@@ -79,6 +105,7 @@ class GameViewModelInput(
         port: Int,
     ) {
         if (port < 0) return
+        sendNativeTriggers(event, port)
         when (event.source) {
             InputDevice.SOURCE_JOYSTICK -> {
                 if (controllerConfigsState.value[port]?.mergeDPADAndLeftStickEvents == true) {
@@ -330,7 +357,20 @@ class GameViewModelInput(
                     }
                 }
 
-                port?.let {
+                // Some Android drivers emit a digital trigger at half travel as well
+                // as its analog axis. Do not turn that event into full pressure.
+                val analogTriggerKey =
+                    hasNativeTriggers &&
+                        when (keyCode) {
+                            KeyEvent.KEYCODE_BUTTON_L2 ->
+                                device.getMotionRange(MotionEvent.AXIS_LTRIGGER) != null ||
+                                    device.getMotionRange(MotionEvent.AXIS_BRAKE) != null
+                            KeyEvent.KEYCODE_BUTTON_R2 ->
+                                device.getMotionRange(MotionEvent.AXIS_RTRIGGER) != null ||
+                                    device.getMotionRange(MotionEvent.AXIS_GAS) != null
+                            else -> false
+                        }
+                port?.takeUnless { analogTriggerKey }?.let {
                     retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, it)
                 }
             }
@@ -349,7 +389,17 @@ class GameViewModelInput(
                 ports(event.device)?.let { it to event }
             }
             .map { (port, event) ->
-                val axes = event.device.getInputClass().getAxesMap().entries
+                val axes =
+                    event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
+                        hasNativeTriggers &&
+                            axis in
+                            setOf(
+                                MotionEvent.AXIS_LTRIGGER,
+                                MotionEvent.AXIS_RTRIGGER,
+                                MotionEvent.AXIS_BRAKE,
+                                MotionEvent.AXIS_GAS,
+                            )
+                    }
 
                 axes.map { (axis, button) ->
                     val action =

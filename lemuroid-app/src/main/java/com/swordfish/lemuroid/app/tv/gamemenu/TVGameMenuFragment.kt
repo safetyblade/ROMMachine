@@ -100,7 +100,7 @@ class TVGameMenuFragment(
         saveScreen?.isEnabled = systemCoreConfig.statesSupported
         loadScreen?.isEnabled = systemCoreConfig.statesSupported
 
-        val slotsInfo = statesManager.getSavedSlotsInfo(game, systemCoreConfig.coreID)
+        val slotsInfo = statesManager.getSavedSlotsInfo(game, systemCoreConfig.coreID, systemCoreConfig.stateNamespace)
 
         slotsInfo.forEachIndexed { index, saveInfo ->
             val bitmap =
@@ -111,6 +111,7 @@ class TVGameMenuFragment(
                     game,
                     systemCoreConfig.coreID,
                     index,
+                    systemCoreConfig.stateNamespace,
                 )
 
             if (saveScreen != null) {

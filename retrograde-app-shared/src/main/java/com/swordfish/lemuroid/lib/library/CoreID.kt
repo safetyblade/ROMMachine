@@ -11,6 +11,9 @@ enum class CoreID(
     val coreDisplayName: String,
     val libretroFileName: String,
 ) {
+    FLYCAST_MODERN("flycast_modern", "Flycast", "libflycast_libretro_android.so"),
+    DOLPHIN_MODERN("dolphin_modern", "Dolphin", "libdolphin_modern_libretro_android.so"),
+    PLAY_MODERN("play_modern", "Play!", "libplay_modern_libretro_android.so"),
     STELLA(
         "stella",
         "Stella",

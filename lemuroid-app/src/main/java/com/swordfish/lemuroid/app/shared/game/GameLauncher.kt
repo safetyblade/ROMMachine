@@ -5,11 +5,15 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.core.CoresSelection
+import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
+import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GameLauncher(
     private val coresSelection: CoresSelection,
@@ -32,12 +36,42 @@ class GameLauncher(
             val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
             val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
             val candidate = compatibility.candidateCore(system.id)
-            val coreConfig =
+            val selectedCoreConfig =
                 if (candidate != null && compatibility.isUpdatedRequested(system.id, game.id)) {
                     // A distinct CoreID keeps save-states isolated. Other emulators are untouched.
-                    legacyCoreConfig.copy(coreID = candidate, statesVersion = legacyCoreConfig.statesVersion + 1)
+                    PSPModernCoreConfig.configure(
+                        PlayStationModernCoreConfig.configure(
+                            legacyCoreConfig.copy(
+                                coreID = candidate,
+                                statesVersion = legacyCoreConfig.statesVersion + 1,
+                            ),
+                        ),
+                    )
                 } else {
                     legacyCoreConfig
+                }
+            val coreConfig =
+                if (
+                    selectedCoreConfig.coreID in
+                    setOf(
+                        CoreID.FLYCAST_MODERN,
+                        CoreID.DOLPHIN_MODERN,
+                        CoreID.PLAY_MODERN,
+                    )
+                ) {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            selectedCoreConfig.copy(
+                                statesVersion =
+                                    NativeCoreProvisioner.stateVersion(
+                                        activity.applicationContext,
+                                        selectedCoreConfig.coreID,
+                                    ),
+                            )
+                        }.getOrElse { selectedCoreConfig.copy(statesSupported = false) }
+                    }
+                } else {
+                    selectedCoreConfig
                 }
             gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
             BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)

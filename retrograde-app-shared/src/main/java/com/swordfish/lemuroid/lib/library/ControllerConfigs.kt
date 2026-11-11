@@ -183,6 +183,9 @@ object ControllerConfigs {
                 ),
         )
 
+    // Reuse the existing dual-stick shell; descriptors are discovered from each core.
+    val NATIVE_ANALOG = PSX_DUALSHOCK.copy(name = "default", libretroDescriptor = null, libretroId = 1)
+
     val PSP =
         ControllerConfig(
             "default",

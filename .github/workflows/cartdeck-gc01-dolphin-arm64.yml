@@ -5,7 +5,12 @@ on:
     paths:
       - ".github/workflows/cartdeck-gc01-dolphin-arm64.yml"
       - "spikes/nextgen/**"
+      - "scripts/ci/build_gamecube_upstream_core.sh"
+      - "scripts/ci/verify_gamecube_core.py"
+      - "scripts/ci/test_verify_gamecube_core.py"
       - "lemuroid-app/src/debug/**"
+      - "retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/core/assetsmanager/Dolphin*.kt"
+      - "lemuroid-app/src/test/java/com/swordfish/lemuroid/app/gamecube/**"
   workflow_dispatch:
 
 permissions:
@@ -18,13 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Collision-safe GameCube and Wii disc regression
-        run: python3 -m unittest discover -s spikes/nextgen -p 'test_*.py' -v
+        run: |
+          python3 -m unittest discover -s spikes/nextgen -p 'test_*.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_gamecube_core.py' -v
 
   dolphin-arm64:
     runs-on: ubuntu-latest
     timeout-minutes: 105
     env:
-      DOLPHIN_LIBRETRO_SHA: 32c61f9d0e933331bb7087ba57e96883241b4960
       NDK_REV: 29.0.14206865
     steps:
       - uses: actions/checkout@v4
@@ -36,43 +42,15 @@ jobs:
           sudo apt-get install -y ninja-build cmake pkg-config
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_REV"
           test -f "$ANDROID_HOME/ndk/$NDK_REV/build/cmake/android.toolchain.cmake"
-      - name: Fetch pinned Dolphin libretro source and submodules
+      - name: Build and stage matching private-test core and system resources
         shell: bash
         run: |
           set -euo pipefail
-          git clone --no-checkout https://github.com/libretro/dolphin.git "$RUNNER_TEMP/dolphin"
-          cd "$RUNNER_TEMP/dolphin"
-          git checkout --detach "$DOLPHIN_LIBRETRO_SHA"
-          git submodule update --init --recursive --depth 1
-          test "$(git rev-parse HEAD)" = "$DOLPHIN_LIBRETRO_SHA"
-      - name: Compile actual Android ARM64 libretro library
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmake -S "$RUNNER_TEMP/dolphin" -B "$RUNNER_TEMP/dolphin-build" -G Ninja \
-            -DLIBRETRO=ON -DCMAKE_BUILD_TYPE=Release \
-            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 \
-            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/$NDK_REV/build/cmake/android.toolchain.cmake"
-          cmake --build "$RUNNER_TEMP/dolphin-build" --parallel 2
-          LIB="$(find "$RUNNER_TEMP/dolphin-build" -type f -name '*dolphin*libretro*.so' -print -quit)"
-          test -n "$LIB" && test -s "$LIB" || { echo "::error::No Dolphin libretro ARM64 library produced"; exit 1; }
-          file "$LIB" | tee "$RUNNER_TEMP/gc01-elf.txt"
-          file "$LIB" | grep -Eiq 'aarch64|arm aarch64'
-          TOOLBIN="$ANDROID_HOME/ndk/$NDK_REV/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          "$TOOLBIN/llvm-nm" -D --defined-only "$LIB" | awk '{print $NF}' > "$RUNNER_TEMP/gc01-symbols.txt"
-          for symbol in retro_init retro_deinit retro_load_game retro_run retro_set_environment retro_get_system_av_info; do
-            grep -Fxq "$symbol" "$RUNNER_TEMP/gc01-symbols.txt" || { echo "::error::missing $symbol"; exit 1; }
-          done
-          "$TOOLBIN/llvm-readelf" -lW "$LIB" | awk '$1 == "LOAD" {print $NF}' > "$RUNNER_TEMP/gc01-align.txt"
-          python3 - "$RUNNER_TEMP/gc01-align.txt" <<'PY'
-          import pathlib, sys
-          a=[int(x,16) for x in pathlib.Path(sys.argv[1]).read_text().split()]
-          assert a and min(a)>=0x4000, f"16 KiB ELF alignment FAIL: {a}"
-          PY
-          sha256sum "$LIB" | tee "$RUNNER_TEMP/gc01-hash.txt"
+          # No artifact upload: experimental binaries await distribution clearance.
+          ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_REV" \
+            scripts/ci/build_gamecube_upstream_core.sh "$RUNNER_TEMP/gc01-package"
           {
-            echo "Dolphin source SHA: $DOLPHIN_LIBRETRO_SHA"
-            cat "$RUNNER_TEMP/gc01-elf.txt" "$RUNNER_TEMP/gc01-align.txt" "$RUNNER_TEMP/gc01-hash.txt"
-            echo "SOURCE READY only if build completes; runtime graphics/audio/controls/saves NOT TESTED."
-            echo "No Dolphin binary, commercial disc, proprietary BIOS, or APK is distributed."
+            cat "$RUNNER_TEMP/gc01-package/provenance.txt"
+            cat "$RUNNER_TEMP/gc01-package/sha256.txt"
+            echo "NATIVE BUILD PASS; Android rendering/audio/controls/saves NOT TESTED."
           } >> "$GITHUB_STEP_SUMMARY"

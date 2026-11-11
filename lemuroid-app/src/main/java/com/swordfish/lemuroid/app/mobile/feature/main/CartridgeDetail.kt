@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,8 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
 import com.swordfish.lemuroid.app.shared.game.EmulatorModernAssetsProvisioner
+import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
+import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -43,6 +46,8 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Observe the existing record by ID, including asynchronous cover changes. No new storage. */
 @Composable
@@ -146,6 +151,10 @@ fun CartridgeDetail(
 @Composable
 private fun CartridgeEmulatorChoice(game: Game) {
     val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
+    if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)) {
+        NativeEngineChoice(systemId)
+        return
+    }
     if (systemId != SystemID.PSX && systemId != SystemID.PSP) return
 
     val context = LocalContext.current.applicationContext
@@ -186,4 +195,56 @@ private fun CartridgeEmulatorChoice(game: Game) {
             style = MaterialTheme.typography.bodySmall,
         )
     }
+}
+
+@Composable
+private fun NativeEngineChoice(systemId: SystemID) {
+    val context = LocalContext.current.applicationContext
+    val scope = rememberCoroutineScope()
+    val core =
+        when (systemId) {
+            SystemID.DREAMCAST -> CoreID.FLYCAST_MODERN
+            SystemID.GAMECUBE -> CoreID.DOLPHIN_MODERN
+            SystemID.PLAYSTATION_2 -> CoreID.PLAY_MODERN
+            else -> return
+        }
+    var busy by remember(systemId) { mutableStateOf(false) }
+    var message by remember(systemId) { mutableStateOf<String?>(null) }
+    OutlinedButton(
+        enabled = !busy,
+        onClick = {
+            busy = true
+            scope.launch {
+                message =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            if (NativeCoreProvisioner.choosePrevious(context, core)) {
+                                "Previous engine selected. Game saves are retained."
+                            } else {
+                                "No previous engine is installed."
+                            }
+                        }.getOrElse { "The previous engine is unavailable." }
+                    }
+                busy = false
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text("Use previous engine") }
+    TextButton(
+        enabled = !busy,
+        onClick = {
+            busy = true
+            scope.launch {
+                message =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            NativeCoreProvisioner.chooseCurrent(context, core)
+                            "Current engine selected. Game saves are retained."
+                        }.getOrElse { "The current engine is unavailable." }
+                    }
+                busy = false
+            }
+        },
+    ) { Text("Use current engine") }
+    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
 }

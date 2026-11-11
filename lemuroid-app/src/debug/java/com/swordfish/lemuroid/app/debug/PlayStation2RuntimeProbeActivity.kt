@@ -20,12 +20,13 @@ import java.io.File
  * GLRetroView/LibretroDroid dependency. No Play! core is packaged or downloaded.
  *
  * Stage a locally built, licence-cleared-for-private-testing Play! core and lawful
- * homebrew disc with scripts/ci/dc01_device_probe.sh. This is NOT the retail
+ * homebrew disc with scripts/ci/ps201_device_probe.sh. This is NOT the retail
  * PlayStation 2 launcher, nor evidence that Play! graphics are compatible.
  */
 class PlayStation2RuntimeProbeActivity : ComponentActivity() {
     private var retroView: GLRetroView? = null
     private var frames = 0
+    private val triggerStates = mutableMapOf<Int, Boolean>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +118,22 @@ class PlayStation2RuntimeProbeActivity : ComponentActivity() {
                 event.getAxisValue(MotionEvent.AXIS_Y),
                 0,
             )
+            retroView?.sendMotionEvent(
+                GLRetroView.MOTION_SOURCE_ANALOG_RIGHT,
+                event.getAxisValue(MotionEvent.AXIS_Z),
+                event.getAxisValue(MotionEvent.AXIS_RZ),
+                0,
+            )
+            listOf(
+                MotionEvent.AXIS_LTRIGGER to KeyEvent.KEYCODE_BUTTON_L2,
+                MotionEvent.AXIS_RTRIGGER to KeyEvent.KEYCODE_BUTTON_R2,
+            ).forEach { (axis, key) ->
+                val pressed = event.getAxisValue(axis) > 0.5f
+                if (triggerStates[key] != pressed) {
+                    retroView?.sendKeyEvent(if (pressed) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP, key, 0)
+                    triggerStates[key] = pressed
+                }
+            }
             retroView?.sendMotionEvent(
                 GLRetroView.MOTION_SOURCE_DPAD,
                 event.getAxisValue(MotionEvent.AXIS_HAT_X),

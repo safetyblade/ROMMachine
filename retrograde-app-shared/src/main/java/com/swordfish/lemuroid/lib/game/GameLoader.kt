@@ -24,6 +24,8 @@ import android.os.Build
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.core.CoreVariable
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
+import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
+import com.swordfish.lemuroid.lib.core.assetsmanager.DolphinAssetsProvisioner
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.LemuroidLibrary
@@ -144,10 +146,11 @@ class GameLoader(
                                 game,
                                 systemCoreConfig.coreID,
                                 saveRAM.timestampOverride,
+                                systemCoreConfig.stateNamespace,
                             )
 
                         if (systemCoreConfig.statesSupported && loadSave && shouldDiscardSave) {
-                            statesManager.getAutoSave(game, systemCoreConfig.coreID)
+                            statesManager.getAutoSave(game, systemCoreConfig.coreID, systemCoreConfig.stateNamespace)
                         } else {
                             null
                         }
@@ -157,20 +160,39 @@ class GameLoader(
                     coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
                         .toTypedArray()
 
-                val systemDirectory =
+                var systemDirectory =
                     if (systemCoreConfig.coreID == CoreID.PPSSPP_MODERN) {
                         // Modern PPSSPP assets are version-matched and isolated from 1.15.
                         File(appContext.filesDir, "system-engines/ppsspp_modern").apply { mkdirs() }
+                    } else if (isNativeExpansion(systemCoreConfig.coreID)) {
+                        File(directoriesManager.getSystemDirectory(), "native/${system.id.dbname}").apply { mkdirs() }
                     } else {
                         directoriesManager.getSystemDirectory()
                     }
+                if (systemCoreConfig.coreID == CoreID.DOLPHIN_MODERN) {
+                    systemDirectory = DolphinAssetsProvisioner.install(appContext, systemDirectory, File(coreLibrary))
+                }
+                if (systemCoreConfig.coreID == CoreID.FLYCAST_MODERN) {
+                    check(File(systemDirectory, "dc").run { isDirectory || mkdirs() })
+                }
                 val savesDirectory =
                     if (isIsolatedCandidate(systemCoreConfig.coreID)) {
                         File(directoriesManager.getSavesDirectory(), "engines/${systemCoreConfig.coreID.coreName}")
                             .apply { mkdirs() }
+                    } else if (isNativeExpansion(systemCoreConfig.coreID)) {
+                        File(directoriesManager.getSavesDirectory(), "native/${system.id.dbname}").apply { mkdirs() }
                     } else {
                         directoriesManager.getSavesDirectory()
                     }
+
+                if (systemCoreConfig.coreID == CoreID.PPSSPP_MODERN) {
+                    // The baseline has already been backed up above. Seed standard PSP
+                    // savedata only; candidate progress and incompatible states stay isolated.
+                    com.swordfish.lemuroid.lib.saves.PSPSavedataSeed.seedIfAbsent(
+                        directoriesManager.getSavesDirectory(),
+                        savesDirectory,
+                    )
+                }
 
                 emit(
                     LoadingState.Ready(
@@ -195,6 +217,9 @@ class GameLoader(
             }
         }
 
+    private fun isNativeExpansion(coreID: CoreID): Boolean =
+        coreID in setOf(CoreID.FLYCAST_MODERN, CoreID.DOLPHIN_MODERN, CoreID.PLAY_MODERN)
+
     private fun isIsolatedCandidate(coreID: CoreID): Boolean =
         coreID == CoreID.PCSX_REARMED_MODERN || coreID == CoreID.PPSSPP_MODERN
 
@@ -207,6 +232,7 @@ class GameLoader(
         context: Context,
         coreID: CoreID,
     ): File? {
+        if (isNativeExpansion(coreID)) return NativeCoreProvisioner.select(context, coreID)
         val files =
             sequenceOf(
                 File(context.applicationInfo.nativeLibraryDir),

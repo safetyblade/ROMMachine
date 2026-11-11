@@ -3,10 +3,13 @@ package com.swordfish.lemuroid.lib.storage.local
 import android.content.Context
 import com.swordfish.lemuroid.common.kotlin.calculateCrc32
 import com.swordfish.lemuroid.common.kotlin.toStringCRC32
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.StorageFile
+import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import timber.log.Timber
+import java.io.FileInputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -69,12 +72,13 @@ object DocumentFileParser {
         context: Context,
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
+        val nativeSystem = identifyNativeDisc(context, baseStorageFile)
         val diskInfo =
             context.contentResolver.openInputStream(baseStorageFile.uri)
                 ?.let { inputStream -> SerialScanner.extractInfo(baseStorageFile.name, inputStream) }
 
         val crc32 =
-            if (baseStorageFile.size < MAX_SIZE_CRC32 && diskInfo?.serial == null) {
+            if (baseStorageFile.size < MAX_SIZE_CRC32 && diskInfo?.serial == null && nativeSystem == null) {
                 context.contentResolver.openInputStream(baseStorageFile.uri)?.calculateCrc32()
             } else {
                 null
@@ -89,8 +93,54 @@ object DocumentFileParser {
             diskInfo?.serial,
             baseStorageFile.uri,
             baseStorageFile.uri.path,
-            diskInfo?.systemID,
+            nativeSystem ?: diskInfo?.systemID,
         )
+    }
+
+    private fun identifyNativeDisc(
+        context: Context,
+        file: BaseStorageFile,
+    ): SystemID? {
+        val result =
+            runCatching {
+                when (file.extension.lowercase(java.util.Locale.US)) {
+                    "gdi" ->
+                        context.contentResolver.openInputStream(file.uri)?.use {
+                            val text = it.takeIf { file.size in 1..65536 }?.bufferedReader()?.readText()
+                            NextGenDiscIdentity.probe(file.name, gdiText = text)
+                        }
+                    "iso", "gcm", "chd" ->
+                        context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
+                            FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
+                                if (file.extension.equals("chd", ignoreCase = true)) {
+                                    NextGenDiscIdentity.probeDreamcastChd(channel)
+                                } else {
+                                    NextGenDiscIdentity.probePs2Iso(
+                                        if (file.extension.equals(
+                                                "gcm",
+                                                ignoreCase = true,
+                                            )
+                                        ) {
+                                            file.name.dropLast(3) + "iso"
+                                        } else {
+                                            file.name
+                                        },
+                                        channel,
+                                    )
+                                }
+                            }
+                        }
+                    else -> null
+                }
+            }.getOrNull()
+        val id =
+            when (result?.platform) {
+                NextGenDiscIdentity.Platform.DREAMCAST -> SystemID.DREAMCAST
+                NextGenDiscIdentity.Platform.GAMECUBE -> SystemID.GAMECUBE
+                NextGenDiscIdentity.Platform.PS2 -> SystemID.PLAYSTATION_2
+                else -> return null
+            }
+        return id
     }
 
     /* Finds a zip entry which we assume is a game. Lemuroid only supports single archive games,

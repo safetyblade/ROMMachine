@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 if [[ "$#" -ne 5 ]]; then
   echo "Usage: $0 DEBUG_APK PLAY_ARM64_SO LAWFUL_GAME_DIR DISC_NAME ANDROID_PACKAGE" >&2
-  echo "Example disc: game.gdi plus ALL companion tracks in LAWFUL_GAME_DIR" >&2
+  echo "Example disc: game.iso plus ALL companion tracks in LAWFUL_GAME_DIR" >&2
   exit 2
 fi
 apk="$1"
@@ -11,7 +11,7 @@ core="$2"
 game_dir="$3"
 disc="$4"
 package="$5"
-out="${DC01_EVIDENCE_DIR:-ps201-device-evidence}"
+out="${PS201_EVIDENCE_DIR:-ps201-device-evidence}"
 mkdir -p "$out"
 
 fail() { echo "PS2-01 FAIL: $*" >&2; exit 1; }
@@ -29,6 +29,9 @@ adb get-state | grep -qx device || fail "one physical Android device must be con
 abi="$(adb shell getprop ro.product.cpu.abi | tr -d '\r')"
 printf '%s\n' "$abi" > "$out/device-abi.txt"
 [[ "$abi" == "arm64-v8a" ]] || fail "this PS2-01 Play! core requires arm64-v8a; got $abi"
+sdk="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
+printf '%s\n' "$sdk" > "$out/device-sdk.txt"
+[[ "$sdk" =~ ^[0-9]+$ && "$sdk" -ge 28 ]] || fail "this Play! build requires Android API 28 or newer; got $sdk"
 adb shell getconf PAGESIZE | tr -d '\r' > "$out/page-size.txt"
 
 adb install -r "$apk" > "$out/install.txt" 2>&1 || fail "APK install failed"
@@ -36,14 +39,14 @@ grep -qx 'Success' "$out/install.txt" || fail "adb install did not report succes
 adb shell run-as "$package" mkdir -p files/ps2-lab/game files/ps2-lab/system files/ps2-lab/saves ||
   fail "run-as denied; verify debug application ID/signature"
 # The package's private files are staged from the developer workstation only.
-adb shell -T run-as "$package" sh -c 'cat > files/ps2-lab/play_libretro.so' < "$core" ||
+adb shell -T "run-as $package sh -c 'cat > files/ps2-lab/play_libretro.so'" < "$core" ||
   fail "core staging failed"
 # Relative-path archive only; no copyrighted fixture enters repository or hosted CI.
 (cd "$game_dir" && tar -cf - .) |
-  adb shell -T run-as "$package" sh -c 'cd files/ps2-lab/game && tar -xf -' ||
+  adb shell -T "run-as $package sh -c 'cd files/ps2-lab/game && tar -xf -'" ||
   fail "disc staging failed"
 adb logcat -c
-component="$package/com.swordfish.lemuroid.app.debug.DreamcastRuntimeProbeActivity"
+component="$package/com.swordfish.lemuroid.app.debug.PlayStation2RuntimeProbeActivity"
 adb shell am start -W -n "$component" --es disc "$disc" > "$out/start.txt" 2>&1 ||
   fail "activity did not start"
 grep -q 'Status: ok' "$out/start.txt" || fail "Android activity reported unsuccessful launch"
@@ -52,13 +55,13 @@ adb logcat -d -v threadtime > "$out/logcat.txt"
 grep -F 'CARTDECK_PS201' "$out/logcat.txt" > "$out/ps201-filtered.log" || true
 adb exec-out screencap -p > "$out/screenshot.png"
 [[ -s "$out/screenshot.png" ]] || fail "screenshot missing"
-if grep -Eq 'DC01_BLOCKED|LIBRETRODROID_INIT_FAILED' "$out/ps201-filtered.log"; then
+if grep -Eq 'PS201_BLOCKED|LIBRETRODROID_INIT_FAILED' "$out/ps201-filtered.log"; then
   fail "native core not initialised; inspect $out/ps201-filtered.log"
 fi
 if ! grep -q 'FRAME_RENDERED' "$out/ps201-filtered.log"; then
   echo "PS2-01 NOT PROVEN: no native frame event; inspect logcat/EGL, test fixture and screen." >&2
   exit 1
 fi
-echo "PS2-01 FRAME EVENT DETECTED (NOT independent visual/audio/VMU acceptance)." | tee "$out/result.txt"
+echo "PS2-01 FRAME EVENT DETECTED (NOT independent visual/audio/memory-card acceptance)." | tee "$out/result.txt"
 echo "Now inspect screenshot, actual moving video, audible output and controller input on-device."
 echo "Close app, restart and re-run to inspect clean native unload/reload; preserve files/ps2-lab/saves."

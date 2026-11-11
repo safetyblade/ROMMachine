@@ -18,14 +18,15 @@ class SavesCoherencyEngine(val savesManager: SavesManager, val statesManager: St
         coreID: CoreID,
         // TODO Get rid of it when desmume is removed
         sramTimestampOverride: Long? = null,
+        namespace: String = coreID.coreName,
     ): Boolean {
         val autoSRAM =
             if (sramTimestampOverride != null) {
                 SaveInfo(true, sramTimestampOverride)
             } else {
-                savesManager.getSaveRAMInfo(game)
+                savesManager.getSaveRAMInfo(game, coreID)
             }
-        val autoSave = statesManager.getAutoSaveInfo(game, coreID)
+        val autoSave = statesManager.getAutoSaveInfo(game, coreID, namespace)
         return autoSRAM.exists && autoSave.exists && autoSRAM.date > autoSave.date + TOLERANCE
     }
 

@@ -1,0 +1,8 @@
+<resources>
+    <string name="game_system_title_dc">Sega Dreamcast</string>
+    <string name="game_system_abbr_dc">DC</string>
+    <string name="game_system_title_gc">Nintendo GameCube</string>
+    <string name="game_system_abbr_gc">GC</string>
+    <string name="game_system_title_ps2">PlayStation 2</string>
+    <string name="game_system_abbr_ps2">PS2</string>
+</resources>

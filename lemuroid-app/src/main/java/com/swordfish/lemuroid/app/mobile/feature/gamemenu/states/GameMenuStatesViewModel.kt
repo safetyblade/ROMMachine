@@ -47,7 +47,12 @@ class GameMenuStatesViewModel(
 
     val uiStates =
         flow {
-            val slotsInfo = statesManager.getSavedSlotsInfo(gameMenuRequest.game, gameMenuRequest.coreConfig.coreID)
+            val slotsInfo =
+                statesManager.getSavedSlotsInfo(
+                    gameMenuRequest.game,
+                    gameMenuRequest.coreConfig.coreID,
+                    gameMenuRequest.coreConfig.stateNamespace,
+                )
 
             val entries =
                 slotsInfo.mapIndexed { index, slotInfo ->
@@ -66,6 +71,7 @@ class GameMenuStatesViewModel(
                             gameMenuRequest.game,
                             gameMenuRequest.coreConfig.coreID,
                             index,
+                            gameMenuRequest.coreConfig.stateNamespace,
                         )
 
                     StateEntry(title, description, isEnabled, preview)

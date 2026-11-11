@@ -114,6 +114,41 @@ object NextGenDiscIdentity {
         return Result(null, "no-confirmed-ps2-boot2")
     }
 
+    /** CHD v5 GD-ROM track metadata, never the shared .chd suffix or filename. */
+    fun probeDreamcastChd(source: SeekableByteChannel): Result {
+        val header = readAt(source, 0, 124) ?: return Result(null, "short-chd")
+        val bytes = ByteBuffer.wrap(header).order(java.nio.ByteOrder.BIG_ENDIAN)
+        if (String(header, 0, 8, StandardCharsets.US_ASCII) != "MComprHD" ||
+            bytes.getInt(8) != 124 || bytes.getInt(12) != 5
+        ) {
+            return Result(null, "unsupported-chd-header")
+        }
+        var offset = bytes.getLong(48)
+        val visited = mutableSetOf<Long>()
+        repeat(256) {
+            if (offset == 0L || !visited.add(offset)) return Result(null, "no-gdrom-metadata")
+            val record = readAt(source, offset, 16) ?: return Result(null, "invalid-chd-metadata")
+            val meta = ByteBuffer.wrap(record).order(java.nio.ByteOrder.BIG_ENDIAN)
+            val tag = String(record, 0, 4, StandardCharsets.US_ASCII)
+            val length = meta.getInt(4) and 0x00ffffff
+            if (tag == "CHGD" && length in 1..4096) {
+                val value = readAt(source, offset + 16, length) ?: return Result(null, "truncated-chd-metadata")
+                val track = String(value, StandardCharsets.US_ASCII).trimEnd('\u0000')
+                if (Regex(
+                        "TRACK:[1-9][0-9]* TYPE:[A-Z0-9_/]+ SUBTYPE:[A-Z0-9_/]+ " +
+                            "FRAMES:[1-9][0-9]* PAD:[0-9]+ PREGAP:[0-9]+ PGTYPE:[A-Z0-9_/]+ " +
+                            "PGSUB:[A-Z0-9_/]+ POSTGAP:[0-9]+",
+                    ).matches(track)
+                ) {
+                    return Result(Platform.DREAMCAST, "chd-v5-gdrom-track")
+                }
+                return Result(null, "invalid-gdrom-track")
+            }
+            offset = meta.getLong(8)
+        }
+        return Result(null, "chd-metadata-limit")
+    }
+
     private fun matches(
         bytes: ByteArray,
         offset: Int,

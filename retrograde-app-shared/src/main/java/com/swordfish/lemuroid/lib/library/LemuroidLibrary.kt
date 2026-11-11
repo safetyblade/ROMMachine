@@ -34,6 +34,7 @@ import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
+import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import dagger.Lazy
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -267,6 +268,24 @@ class LemuroidLibrary(
         metadataProvider: GameMetadataProvider,
         startedAtMs: Long,
     ): ScanEntry {
+        // New imports must retain the full GDI family. Existing entries use the
+        // existing-record branch and survive a temporarily missing companion.
+        val names = groupedStorageFile.allFiles().map { it.name }.toSet()
+        for (playlist in groupedStorageFile.allFiles().filter { it.extension.equals("m3u", ignoreCase = true) }) {
+            if (playlist.size !in 1..DiscPlaylist.MAX_BYTES) return ScanEntry.File(groupedStorageFile)
+            val text =
+                provider.getInputStream(playlist.uri)?.use { it.bufferedReader().readText() }
+                    ?: throw java.io.IOException("Cannot read disc playlist ${playlist.name}")
+            if (!DiscPlaylist.containsAllDiscs(text, names)) return ScanEntry.File(groupedStorageFile)
+        }
+        for (descriptor in groupedStorageFile.allFiles().filter { it.extension.equals("gdi", ignoreCase = true) }) {
+            if (descriptor.size !in 1..65536) return ScanEntry.File(groupedStorageFile)
+            val text =
+                provider.getInputStream(descriptor.uri)?.use { it.bufferedReader().readText() }
+                    ?: throw java.io.IOException("Cannot read GDI descriptor ${descriptor.name}")
+            val identity = NextGenDiscIdentity.probe(descriptor.name, gdiText = text, availableTrackNames = names)
+            if (identity.platform != NextGenDiscIdentity.Platform.DREAMCAST) return ScanEntry.File(groupedStorageFile)
+        }
         val game =
             sortedFilesForScanning(groupedStorageFile).asFlow()
                 .mapNotNull { safeStorageFile(provider, it) }
@@ -303,7 +322,12 @@ class LemuroidLibrary(
     }
 
     private fun sortedFilesForScanning(groupedStorageFile: GroupedStorageFiles): List<BaseStorageFile> {
-        return groupedStorageFile.dataFiles.sortedBy { it.name } + listOf(groupedStorageFile.primaryFile)
+        val files = groupedStorageFile.dataFiles.sortedBy { it.name }
+        return if (groupedStorageFile.primaryFile.extension.lowercase(java.util.Locale.US) in setOf("gdi", "m3u")) {
+            listOf(groupedStorageFile.primaryFile) + files
+        } else {
+            files + listOf(groupedStorageFile.primaryFile)
+        }
     }
 
     private fun convertGameMetadataToGame(

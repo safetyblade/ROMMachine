@@ -34,6 +34,7 @@ object PPSSPPAssetArchiveInstaller {
     fun install(
         archive: ZipInputStream,
         destination: File,
+        validateStagedAssets: (File) -> Unit = {},
     ) {
         val parent = requireNotNull(destination.parentFile) { "Missing PPSSPP assets parent" }
         check(parent.isDirectory || parent.mkdirs()) { "Unable to create PPSSPP assets parent" }
@@ -82,6 +83,8 @@ object PPSSPPAssetArchiveInstaller {
             }
 
             check(entries > 0 && extractedBytes > 0) { "Empty PPSSPP assets archive" }
+            // Validate required resources and write version metadata before activation.
+            validateStagedAssets(staging)
             if (destination.exists()) {
                 previous = File(parent, destination.name + ROLLBACK_MARKER + UUID.randomUUID())
                 check(destination.renameTo(previous)) { "Unable to retain previous PPSSPP assets" }

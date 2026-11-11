@@ -1,0 +1,215 @@
+diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main/cpp/environment.cpp
+index 941de81..6c40d61 100644
+--- a/libretrodroid/src/main/cpp/environment.cpp
++++ b/libretrodroid/src/main/cpp/environment.cpp
+@@ -23,6 +23,8 @@
+ #include <cstring>
+ #include <cmath>
+ #include <EGL/egl.h>
++#include <GLES3/gl3.h>
++#include <cstdio>
+ #include <unordered_map>
+ 
+ #include "../../libretro-common/include/libretro.h"
+@@ -145,7 +147,48 @@ bool Environment::environment_handle_set_controller_info(const struct retro_cont
+     return true;
+ }
+ 
++bool Environment::currentContextSupports(unsigned requiredMajor, unsigned requiredMinor) const {
++    const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
++    unsigned major = 0;
++    unsigned minor = 0;
++    if (version == nullptr || std::sscanf(version, "OpenGL ES %u.%u", &major, &minor) != 2) {
++        LOGE("CARTDECK cannot verify current GLES context");
++        return false;
++    }
++    LOGI("CARTDECK GLES context actual=%u.%u required=%u.%u", major, minor, requiredMajor, requiredMinor);
++    return major > requiredMajor || (major == requiredMajor && minor >= requiredMinor);
++}
++
++bool Environment::isCurrentHwContextCompatible() const {
++    return !useHWAcceleration ||
++        (eglGetCurrentContext() != EGL_NO_CONTEXT && currentContextSupports(3, 0) &&
++         currentContextSupports(requiredGlesMajor, requiredGlesMinor));
++}
++
+ bool Environment::environment_handle_set_hw_render(struct retro_hw_render_callback* hw_render_callback) {
++    if (hw_render_callback == nullptr) return false;
++    unsigned requiredMajor = 0;
++    unsigned requiredMinor = 0;
++    switch (hw_render_callback->context_type) {
++        case RETRO_HW_CONTEXT_OPENGLES2: requiredMajor = 2; break;
++        case RETRO_HW_CONTEXT_OPENGLES3: requiredMajor = 3; break;
++        case RETRO_HW_CONTEXT_OPENGLES_VERSION:
++            requiredMajor = hw_render_callback->version_major;
++            requiredMinor = hw_render_callback->version_minor;
++            break;
++        default:
++            LOGE("CARTDECK rejected unsupported hardware context type %u", hw_render_callback->context_type);
++            return false;
++    }
++    // loadGame runs on GLRetroView's GL thread. Never promise a desktop GL,
++    // Vulkan or higher GLES context than the actual Android surface provides.
++    if (eglGetCurrentContext() == EGL_NO_CONTEXT || requiredMajor < 2 ||
++        !currentContextSupports(3, 0) || !currentContextSupports(requiredMajor, requiredMinor)) {
++        LOGE("CARTDECK rejected required GLES %u.%u context", requiredMajor, requiredMinor);
++        return false;
++    }
++    requiredGlesMajor = requiredMajor;
++    requiredGlesMinor = requiredMinor;
+     useHWAcceleration = true;
+     useDepth = hw_render_callback->depth;
+     useStencil = hw_render_callback->stencil;
+diff --git a/libretrodroid/src/main/cpp/environment.h b/libretrodroid/src/main/cpp/environment.h
+index 9f4a06c..158d948 100644
+--- a/libretrodroid/src/main/cpp/environment.h
++++ b/libretrodroid/src/main/cpp/environment.h
+@@ -88,6 +88,7 @@ public:
+ 
+     int getPixelFormat() const;
+     bool isUseHwAcceleration() const;
++    bool isCurrentHwContextCompatible() const;
+     bool isUseDepth() const;
+     bool isUseStencil() const;
+     bool isBottomLeftOrigin() const;
+@@ -112,6 +113,7 @@ private:
+     bool environment_handle_set_variables(const struct retro_variable* received);
+     bool environment_handle_get_variable(struct retro_variable* requested);
+     bool environment_handle_set_controller_info(const struct retro_controller_info* received);
++    bool currentContextSupports(unsigned requiredMajor, unsigned requiredMinor) const;
+     bool environment_handle_set_hw_render(struct retro_hw_render_callback* hw_render_callback);
+     bool environment_handle_get_vfs_interface(struct retro_vfs_interface_info* vfs_interface_info);
+     bool environment_handle_get_microphone_interface(struct retro_microphone_interface* microphone_interface);
+@@ -130,6 +132,8 @@ private:
+ 
+     int pixelFormat = RETRO_PIXEL_FORMAT_RGB565;
+     bool useHWAcceleration = false;
++    unsigned requiredGlesMajor = 0;
++    unsigned requiredGlesMinor = 0;
+     bool useDepth = false;
+     bool useStencil = false;
+     bool bottomLeftOrigin = false;
+diff --git a/libretrodroid/src/main/cpp/input.cpp b/libretrodroid/src/main/cpp/input.cpp
+index f52cec7..fae72ce 100644
+--- a/libretrodroid/src/main/cpp/input.cpp
++++ b/libretrodroid/src/main/cpp/input.cpp
+@@ -18,6 +18,7 @@
+ #include "input.h"
+ 
+ #include <cmath>
++#include <algorithm>
+ 
+ #include <android/input.h>
+ #include <android/keycodes.h>
+@@ -72,6 +73,10 @@ int16_t Input::getInputState(unsigned port, unsigned device, unsigned index, uns
+                     );
+                     return axis || buttons;
+                 }
++                case RETRO_DEVICE_ID_JOYPAD_L2:
++                    return anyPressed(port, id) || pads[port].leftTrigger >= 0.95f;
++                case RETRO_DEVICE_ID_JOYPAD_R2:
++                    return anyPressed(port, id) || pads[port].rightTrigger >= 0.95f;
+                 default:
+                     return anyPressed(port, id);
+             }
+@@ -79,6 +84,13 @@ int16_t Input::getInputState(unsigned port, unsigned device, unsigned index, uns
+ 
+         case RETRO_DEVICE_ANALOG: {
+             switch (index) {
++                case RETRO_DEVICE_INDEX_ANALOG_BUTTON:
++                    if (id == RETRO_DEVICE_ID_JOYPAD_L2 || id == RETRO_DEVICE_ID_JOYPAD_R2) {
++                        float trigger = id == RETRO_DEVICE_ID_JOYPAD_L2 ? pads[port].leftTrigger : pads[port].rightTrigger;
++                        if (anyPressed(port, id)) trigger = 1.0f;
++                        return static_cast<int16_t>(trigger * MAX_RANGE_MOTION);
++                    }
++                    return 0;
+                 case RETRO_DEVICE_INDEX_ANALOG_LEFT:
+                     switch (id) {
+                         case RETRO_DEVICE_ID_ANALOG_X:
+@@ -179,6 +191,7 @@ int Input::convertAndroidToLibretroKey(int keyCode) const {
+ }
+ 
+ void Input::onKeyEvent(unsigned int port, int action, int keyCode) {
++    if (port >= 4) return;
+     int retroKeyCode = convertAndroidToLibretroKey(keyCode);
+     if (retroKeyCode == UNKNOWN_KEY) {
+         return;
+@@ -192,6 +205,7 @@ void Input::onKeyEvent(unsigned int port, int action, int keyCode) {
+ }
+ 
+ void Input::onMotionEvent(int port, int motionSource, float xAxis, float yAxis) {
++    if (port < 0 || port >= 4) return;
+     switch (motionSource) {
+         case Input::MOTION_SOURCE_DPAD:
+             pads[port].dpadXAxis = (int) round(xAxis);
+@@ -208,6 +222,11 @@ void Input::onMotionEvent(int port, int motionSource, float xAxis, float yAxis)
+             pads[port].joypadRightYAxis = yAxis;
+             break;
+ 
++        case Input::MOTION_SOURCE_ANALOG_TRIGGERS:
++            pads[port].leftTrigger = std::isfinite(xAxis) ? std::clamp(xAxis, 0.0f, 1.0f) : 0.0f;
++            pads[port].rightTrigger = std::isfinite(yAxis) ? std::clamp(yAxis, 0.0f, 1.0f) : 0.0f;
++            break;
++
+         case Input::MOTION_SOURCE_POINTER:
+             pads[port].pointerScreenXAxis = xAxis;
+             pads[port].pointerScreenYAxis = yAxis;
+diff --git a/libretrodroid/src/main/cpp/input.h b/libretrodroid/src/main/cpp/input.h
+index 9d7c44b..9641af9 100644
+--- a/libretrodroid/src/main/cpp/input.h
++++ b/libretrodroid/src/main/cpp/input.h
+@@ -36,6 +36,8 @@ private:
+         float joypadLeftYAxis = 0;
+         float joypadRightXAxis = 0;
+         float joypadRightYAxis = 0;
++        float leftTrigger = 0;
++        float rightTrigger = 0;
+         float pointerScreenXAxis = -1;
+         float pointerScreenYAxis = -1;
+     };
+@@ -45,6 +47,7 @@ public:
+     static constexpr int MOTION_SOURCE_ANALOG_LEFT = 1;
+     static constexpr int MOTION_SOURCE_ANALOG_RIGHT = 2;
+     static constexpr int MOTION_SOURCE_POINTER = 3;
++    static constexpr int MOTION_SOURCE_ANALOG_TRIGGERS = 4;
+     static constexpr int MAX_RANGE_MOTION = 0x7fff;
+ 
+     static constexpr int RETRO_DEVICE_ID_JOYPAD_UP_LEFT = 50;
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
+index 60640c4..dbfbbd9 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
+@@ -188,6 +188,9 @@ void LibretroDroid::onSurfaceChanged(unsigned int width, unsigned int height) {
+ 
+ void LibretroDroid::onSurfaceCreated() {
+     LOGD("Performing libretrodroid onSurfaceCreated");
++    if (!Environment::getInstance().isCurrentHwContextCompatible()) {
++        throw LibretroDroidError("Current GLES context does not meet core requirements", ERROR_GL_NOT_COMPATIBLE);
++    }
+ 
+     struct retro_system_av_info system_av_info {};
+     core->retro_get_system_av_info(&system_av_info);
+diff --git a/libretrodroid/src/main/cpp/rumble.h b/libretrodroid/src/main/cpp/rumble.h
+index 354ec2f..6f5751e 100644
+--- a/libretrodroid/src/main/cpp/rumble.h
++++ b/libretrodroid/src/main/cpp/rumble.h
+@@ -18,6 +18,7 @@
+ #ifndef LIBRETRODROID_RUMBLE_H
+ #define LIBRETRODROID_RUMBLE_H
+ 
++#include <functional>
+ #include <array>
+ 
+ #include "rumblestate.h"
+diff --git a/libretrodroid/src/main/cpp/utils/javautils.h b/libretrodroid/src/main/cpp/utils/javautils.h
+index 3ff492a..91b0bb9 100644
+--- a/libretrodroid/src/main/cpp/utils/javautils.h
++++ b/libretrodroid/src/main/cpp/utils/javautils.h
+@@ -18,6 +18,7 @@
+ #ifndef LIBRETRODROID_JAVAUTILS_H
+ #define LIBRETRODROID_JAVAUTILS_H
+ 
++#include <functional>
+ #include "unordered_map"
+ #include "string"
+ 
