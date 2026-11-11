@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile
 
+import com.swordfish.lemuroid.lib.library.NativeGameSystems
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import org.junit.Assert.assertEquals
@@ -8,6 +9,14 @@ import org.junit.Test
 
 class NativeDiscFolderIdentityTest {
     private val enabled = setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)
+
+    @Test
+    fun uniqueNativeExtensionsAreRegisteredOnlyWhenUnambiguous() {
+        val configurations = NativeGameSystems.configurations().associateBy { it.id }
+        assertEquals(listOf("gdi", "cdi"), configurations.getValue(SystemID.DREAMCAST).uniqueExtensions)
+        assertEquals(listOf("gcm"), configurations.getValue(SystemID.GAMECUBE).uniqueExtensions)
+        assertEquals(emptyList<String>(), configurations.getValue(SystemID.PLAYSTATION_2).uniqueExtensions)
+    }
 
     @Test
     fun allThreeConsolesIndexFromUnambiguousFolders() {
