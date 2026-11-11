@@ -4,6 +4,9 @@ import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
@@ -33,6 +36,43 @@ class NativeDiscIdentityTest {
         header[0x1a] = 0x9e.toByte()
         header[0x1b] = 0xa3.toByte()
         assertEquals(NextGenDiscIdentity.Platform.WII, probe.probe("wii.iso", header).platform)
+    }
+
+    @Test
+    fun dolphinCisoIdentifiesGameCubeButNeverWiiOrPspCso() {
+        fun nintendoCiso(magicOffset: Int, magic: ByteArray): ByteArray {
+            val bytes = ByteArray(0x8000 + 32)
+            "CISO".toByteArray().copyInto(bytes)
+            ByteBuffer.wrap(bytes, 4, 4).order(ByteOrder.LITTLE_ENDIAN).putInt(0x200000)
+            bytes[8] = 1
+            magic.copyInto(bytes, 0x8000 + magicOffset)
+            return bytes
+        }
+
+        assertEquals(
+            NextGenDiscIdentity.Platform.GAMECUBE,
+            probe.probeNintendoCiso(
+                ByteArrayInputStream(
+                    nintendoCiso(0x1c, byteArrayOf(0xc2.toByte(), 0x33, 0x9f.toByte(), 0x3d)),
+                ),
+            ).platform,
+        )
+        assertEquals(
+            NextGenDiscIdentity.Platform.WII,
+            probe.probeNintendoCiso(
+                ByteArrayInputStream(
+                    nintendoCiso(0x18, byteArrayOf(0x5d, 0x1c, 0x9e.toByte(), 0xa3.toByte())),
+                ),
+            ).platform,
+        )
+        assertNull(probe.probeNintendoCiso(ByteArrayInputStream(ByteArray(24))).platform)
+        assertNull(probe.probeNintendoCiso(ByteArrayInputStream(ByteArray(0x8000 + 32))).platform)
+
+        // The PSP CSO header starts with CISO but has a different block map.
+        val pspCso = ByteArray(0x8000 + 32)
+        "CISO".toByteArray().copyInto(pspCso)
+        ByteBuffer.wrap(pspCso, 4, 4).order(ByteOrder.LITTLE_ENDIAN).putInt(24)
+        assertNull(probe.probeNintendoCiso(ByteArrayInputStream(pspCso)).platform)
     }
 
     @Test
