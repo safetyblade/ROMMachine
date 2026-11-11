@@ -278,7 +278,10 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                             ),
                                         )
                                     } else {
-                                        refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
+                                        refreshMessages.showSnackbar(
+                                            outcome.outputData.getString("error")
+                                                ?: getString(R.string.cartdeck_refresh_failed),
+                                        )
                                     }
                                 } catch (error: Exception) {
                                     refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
