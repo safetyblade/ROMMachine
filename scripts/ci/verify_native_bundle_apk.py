@@ -11,6 +11,8 @@ import zipfile
 def elf_16k(data):
     if len(data) < 64 or data[:6] != b'\x7fELF\x02\x01':
         return False
+    if struct.unpack_from('<H', data, 18)[0] != 183:
+        return False
     offset = struct.unpack_from('<Q', data, 32)[0]
     stride, count = struct.unpack_from('<HH', data, 54)
     if stride < 56 or offset + stride * count > len(data):
@@ -21,11 +23,42 @@ def elf_16k(data):
     return bool(loads) and min(loads) >= 16384
 
 
-def verify(apk, bundle):
+ENGINE_LIBRARIES = {
+    'libpcsx_rearmed_modern_libretro_android.so',
+    'libppsspp_modern_libretro_android.so',
+    'libflycast_libretro_android.so',
+    'libdolphin_modern_libretro_android.so',
+    'libplay_modern_libretro_android.so',
+}
+LEGACY_LIBRARIES = {'libpcsx_rearmed_libretro_android.so', 'libppsspp_libretro_android.so'}
+
+
+def verify(apk, bundle, require_five_engines=False, host_aar=None):
     expected = (bundle / 'bundle-sha256.txt').read_text().splitlines()
     result = {'bundle_files_verified': 0, 'native_elf_16k_failures': [],
               'native_library_count': 0, 'stored_native_count': 0}
     with zipfile.ZipFile(apk) as archive, apk.open('rb') as raw:
+        libraries = {pathlib.PurePosixPath(n).name for n in archive.namelist() if n.startswith('lib/')}
+        result['all_five_engines_bundled'] = ENGINE_LIBRARIES <= libraries
+        if require_five_engines:
+            missing = (ENGINE_LIBRARIES | LEGACY_LIBRARIES) - libraries
+            if missing:
+                raise ValueError('Required engines/fallbacks missing: ' + ', '.join(sorted(missing)))
+            systems = (bundle / 'native-systems.txt').read_text().strip()
+            if set(systems.split(',')) != {'dc', 'gc', 'ps2'}:
+                raise ValueError('All three new library systems must be enabled')
+            # The non-minified engineering APK must carry the actual compiled registry flag.
+            enabled = systems.encode('utf-8') + b'\0'
+            if not any(enabled in archive.read(n) for n in archive.namelist() if n.endswith('.dex')):
+                raise ValueError('APK was built without the new-console registry enabled')
+            if host_aar is None:
+                raise ValueError('Patched host AAR is required for the five-engine APK')
+        if host_aar is not None:
+            with zipfile.ZipFile(host_aar) as host:
+                expected_host = host.read('jni/arm64-v8a/liblibretrodroid.so')
+            if archive.read('lib/arm64-v8a/liblibretrodroid.so') != expected_host:
+                raise ValueError('APK does not contain the verified patched graphics/input host')
+            result['patched_host_matches'] = True
         for line in expected:
             digest, relative = line.split('  ', 1)
             member = relative.replace('jniLibs/', 'lib/', 1) if relative.startswith('jniLibs/') else relative
@@ -51,6 +84,8 @@ def verify(apk, bundle):
                 result['stored_native_count'] += 1
     # Report inherited alignment separately; no compile/device/runtime claims are inferred.
     result['all_native_elf_16k'] = not result['native_elf_16k_failures']
+    if require_five_engines and not result['all_native_elf_16k']:
+        raise ValueError('Five-engine APK contains non-ARM64 or non-16KB ELF libraries')
     return result
 
 
@@ -58,5 +93,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('apk', type=pathlib.Path)
     parser.add_argument('bundle', type=pathlib.Path)
+    parser.add_argument('--require-five-engines', action='store_true')
+    parser.add_argument('--host-aar', type=pathlib.Path)
     args = parser.parse_args()
-    print(json.dumps(verify(args.apk, args.bundle), indent=2))
+    print(json.dumps(verify(args.apk, args.bundle, args.require_five_engines, args.host_aar), indent=2))

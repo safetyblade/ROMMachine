@@ -23,8 +23,13 @@ bash scripts/ci/build_standalone_apk.sh "$CARTDECK_TEST_VERSION_CODE" \
     -PcartdeckLibretroDroidVersion=0.14.0-cartdeck1
 # The existing verifier copies the single APK and checks package/signature/alignment.
 bash scripts/ci/verify_standalone_apk.sh
+verification_args=(--host-aar "$CARTDECK_HOST_MAVEN_REPO/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck1/LibretroDroid-0.14.0-cartdeck1.aar")
+if [[ "${CARTDECK_REQUIRE_FIVE_ENGINES:-false}" == true ]]; then
+    verification_args+=(--require-five-engines)
+fi
 python3 scripts/ci/verify_native_bundle_apk.py \
     "$output/CARTDECK_STANDALONE_ARM64_DEBUG.apk" "$bundle" \
+    "${verification_args[@]}" \
     > "$output/evidence/native-bundle-apk.json"
 "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c 4 "$output/CARTDECK_STANDALONE_ARM64_DEBUG.apk"
 printf 'Private APK output: %s\n' "$output"

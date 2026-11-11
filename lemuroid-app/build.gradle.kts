@@ -110,7 +110,7 @@ android {
     packagingOptions {
         jniLibs {
             // Stripping created some issues with some libretro cores such as ppsspp
-            keepDebugSymbols += setOf("*/*/*_libretro_android.so")
+            keepDebugSymbols += setOf("*/*/*_libretro_android.so", "**/liblibretrodroid.so")
             useLegacyPackaging = true
         }
         resources {

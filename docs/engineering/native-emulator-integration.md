@@ -47,3 +47,9 @@ Use a fresh output/bundle directory. Any subset is supported; an unrelated faili
 All five sources and native builds are ready. Normal library/launch source integration is present in the engineering configuration. Compilation, synthetic media tests and file-store tests do **not** establish Android runtime or gameplay success. No physical ARM64 device is attached in this environment; graphics/audio, in-game memory-card roundtrip, pause/restart/resume and the owner's named games require device evidence. No owner acceptance is claimed.
 
 PCSX/Flycast/PPSSPP/LibretroDroid carry GPL obligations; PPSSPP also includes FFmpeg LGPL dependencies. Dolphin's aggregate source is GPLv3-compatible with individual SPDX licenses. Play's principal license is BSD-2-Clause; third-party dependencies have their own notices. Review the actual pinned per-file licenses, resource rights and build notice inventories before distribution. Dolphin's DSP images are the upstream free replacements documented in `docs/DSP/free_dsp_rom`; no proprietary BIOS or game image is included. Jonathan retains final gameplay and distribution decisions.
+
+## GitHub Actions delivery
+
+The main **CARTDECK APK** workflow builds all five pinned engines in independent matrix jobs and builds the patched LibretroDroid host separately. Its final job consumes those six verified inputs, enables DC/GC/PS2, retains the original PS1/PSP fallbacks, and runs the normal source/asset/unit checks before packaging one APK.
+
+The artifact **CARTDECK_FIVE_ENGINE_ARM64_DEBUG** is published only after the APK passes exact staged-byte checks, patched-host identity, compiled console-registry flag, fallback presence, signing and 16 KB alignment. Failed builds retain diagnostics without publishing an APK. The obsolete, separately gated two-core-only workflow has been removed. These are authenticated Actions engineering artifacts, not GitHub Releases or device/gameplay acceptance.

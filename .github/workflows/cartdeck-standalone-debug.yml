@@ -1,6 +1,7 @@
 name: CARTDECK APK
 
-# One pipeline, one signed standalone ARM64 debug APK. No release publishing.
+# One pipeline builds all five native engines and the patched host, then one verified APK.
+# Authenticated Actions QA artifacts only; no GitHub Release publishing.
 on:
   pull_request:
   push:
@@ -15,10 +16,112 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  apk:
-    name: Validate, test and build CARTDECK APK
+  native-engines:
+    name: Android ARM64 engine — ${{ matrix.engine }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 105
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [ps1, psp, dc, gc, ps2]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned native toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/native-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/native-tools"
+          "$RUNNER_TEMP/native-tools/bin/pip" install 'cmake==3.31.6' 'ninja==1.11.1.4'
+          echo "$RUNNER_TEMP/native-tools/bin" >> "$GITHUB_PATH"
+      - name: Build pinned engine, assets and provenance
+        env:
+          ENGINE: ${{ matrix.engine }}
+          NATIVE_BUILD_JOBS: '2'
+          NATIVE_JOBS: '2'
+        run: |
+          set -euo pipefail
+          case "$ENGINE" in
+            ps1) builder=build_ps1_upstream_core.sh ;;
+            psp) builder=build_psp_upstream_core.sh ;;
+            dc) builder=build_dreamcast_upstream_core.sh ;;
+            gc) builder=build_gamecube_upstream_core.sh ;;
+            ps2) builder=build_ps2_upstream_core.sh ;;
+            *) exit 1 ;;
+          esac
+          bash "scripts/ci/$builder" "work/native-packages/$ENGINE"
+      - name: Retain verified build input for the APK job
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-engine-${{ matrix.engine }}
+          path: work/native-packages/${{ matrix.engine }}/
+          if-no-files-found: error
+          retention-days: 1
+
+  native-host:
+    name: Patched Android graphics and input host
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned Android host toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/host-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865' 'cmake;3.22.1' 'platforms;android-35' 'build-tools;34.0.0'
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+      - name: Build and test the exact patched LibretroDroid host
+        run: |
+          set -euo pipefail
+          export HOST_BUILD_DIR="$RUNNER_TEMP/cartdeck-host"
+          export HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/host-package/maven"
+          export LIBRETRODROID_SOURCE_DIR="$HOST_BUILD_DIR/source"
+          export BUILD_JOBS=2
+          bash scripts/ci/build_libretrodroid_host.sh
+          bash scripts/ci/test_libretrodroid_input.sh
+          cp "$HOST_BUILD_DIR/provenance.txt" work/host-package/provenance.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-libretrodroid-host
+          path: work/host-package/
+          if-no-files-found: error
+          retention-days: 1
+
+  apk:
+    name: Validate, test and build the five-engine CARTDECK APK
+    needs: [native-engines, native-host]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARTDECK_OUTPUT: dist/cartdeck
+      CARTDECK_REQUIRE_FIVE_ENGINES: 'true'
+      CARTDECK_APK_MAX_MIB: '256'
     defaults:
       run:
         shell: bash
@@ -29,8 +132,22 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      - name: Download all five verified engine packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-engine-*
+          path: work/native-inputs
+      - name: Download the patched Android host
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-libretrodroid-host
+          path: work/host-input
+
       - name: Create evidence directory
         run: mkdir -p dist/cartdeck/evidence
+
+      - name: Check that incomplete or baseline APKs cannot be published
+        run: python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -94,7 +211,15 @@ jobs:
           echo "$version_code" > dist/cartdeck/evidence/version-code.txt
           git rev-parse HEAD > dist/cartdeck/evidence/commit-sha.txt
           git submodule status --recursive > dist/cartdeck/evidence/submodule-shas.txt
-          bash scripts/ci/build_standalone_apk.sh "$version_code"
+          export CARTDECK_TEST_VERSION_CODE="$version_code"
+          export CARTDECK_HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/host-input/maven"
+          bash scripts/ci/build_native_engine_apk.sh \
+            --ps1 work/native-inputs/native-engine-ps1 \
+            --psp work/native-inputs/native-engine-psp \
+            --dc work/native-inputs/native-engine-dc \
+            --gc work/native-inputs/native-engine-gc \
+            --ps2 work/native-inputs/native-engine-ps2
+          cp work/host-input/provenance.txt dist/cartdeck/evidence/host-provenance.txt
 
       - name: Print actionable Kotlin lint diagnostics on failure
         if: failure()
@@ -108,7 +233,14 @@ jobs:
           done
 
       - name: Verify the APK and its upgrade identity
-        run: bash scripts/ci/verify_standalone_apk.sh
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_native_bundle_apk.py \
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
+            --require-five-engines \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck1/LibretroDroid-0.14.0-cartdeck1.aar \
+            > dist/cartdeck/evidence/native-bundle-apk.json
 
       - name: Collect test and native asset evidence
         if: always()
@@ -129,11 +261,21 @@ jobs:
             cp "$manifest" "dist/cartdeck/evidence/native-assets-$variant.json"
           done < <(find lemuroid-app/build/generated -name native-assets-manifest.json -type f 2>/dev/null)
 
-      - name: Upload one APK bundle with its verification evidence
-        if: always()
+      - name: Upload the verified five-engine APK and evidence
         uses: actions/upload-artifact@v4
         with:
-          name: CARTDECK_STANDALONE_ARM64_DEBUG
-          path: dist/cartdeck/
+          name: CARTDECK_FIVE_ENGINE_ARM64_DEBUG
+          path: |
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk
+            dist/cartdeck/evidence/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Preserve failure diagnostics without publishing an unverified APK
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_BUILD_FAILURE_EVIDENCE
+          path: dist/cartdeck/evidence/
+          if-no-files-found: warn
+          retention-days: 7
