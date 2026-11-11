@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game
 
 import android.app.Activity
+import android.widget.Toast
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class GameLauncher(
     private val coresSelection: CoresSelection,
@@ -31,50 +33,64 @@ class GameLauncher(
             return false
         }
 
-        GlobalScope.launch {
-            val system = GameSystem.findById(game.systemId)
-            val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
-            val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
-            val candidate = compatibility.candidateCore(system.id)
-            val selectedCoreConfig =
-                if (candidate != null && compatibility.isUpdatedRequested(system.id, game.id)) {
-                    // A distinct CoreID keeps save-states isolated. Other emulators are untouched.
-                    PSPModernCoreConfig.configure(
-                        PlayStationModernCoreConfig.configure(
-                            legacyCoreConfig.copy(
-                                coreID = candidate,
-                                statesVersion = legacyCoreConfig.statesVersion + 1,
+        GlobalScope.launch(Dispatchers.Main) {
+            try {
+                val system = GameSystem.findById(game.systemId)
+                val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
+                val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
+                val candidate = compatibility.candidateCore(system.id)
+                val selectedCoreConfig =
+                    if (candidate != null && compatibility.isUpdatedRequested(system.id, game.id)) {
+                        // A distinct CoreID keeps save-states isolated. Other emulators are untouched.
+                        PSPModernCoreConfig.configure(
+                            PlayStationModernCoreConfig.configure(
+                                legacyCoreConfig.copy(
+                                    coreID = candidate,
+                                    statesVersion = legacyCoreConfig.statesVersion + 1,
+                                ),
                             ),
-                        ),
-                    )
-                } else {
-                    legacyCoreConfig
-                }
-            val coreConfig =
-                if (
-                    selectedCoreConfig.coreID in
-                    setOf(
-                        CoreID.FLYCAST_MODERN,
-                        CoreID.DOLPHIN_MODERN,
-                        CoreID.PLAY_MODERN,
-                    )
-                ) {
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            selectedCoreConfig.copy(
-                                statesVersion =
-                                    NativeCoreProvisioner.stateVersion(
-                                        activity.applicationContext,
-                                        selectedCoreConfig.coreID,
-                                    ),
-                            )
-                        }.getOrElse { selectedCoreConfig.copy(statesSupported = false) }
+                        )
+                    } else {
+                        legacyCoreConfig
                     }
-                } else {
-                    selectedCoreConfig
+                val coreConfig =
+                    if (
+                        selectedCoreConfig.coreID in
+                        setOf(
+                            CoreID.FLYCAST_MODERN,
+                            CoreID.DOLPHIN_MODERN,
+                            CoreID.PLAY_MODERN,
+                        )
+                    ) {
+                        withContext(Dispatchers.IO) {
+                            runCatching {
+                                selectedCoreConfig.copy(
+                                    statesVersion =
+                                        NativeCoreProvisioner.stateVersion(
+                                            activity.applicationContext,
+                                            selectedCoreConfig.coreID,
+                                        ),
+                                )
+                            }.getOrElse { selectedCoreConfig.copy(statesSupported = false) }
+                        }
+                    } else {
+                        selectedCoreConfig
+                    }
+                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
+            } catch (error: Exception) {
+                // A failure before GameActivity starts was previously lost in an
+                // unhandled launch coroutine. Show a safe diagnostic without
+                // exposing game names, ROM paths or ContentResolver URIs.
+                Timber.e(error, "CARTDECK game launch setup failed")
+                if (!activity.isFinishing && !activity.isDestroyed) {
+                    Toast.makeText(
+                        activity,
+                        "CARTDECK could not start this game (${error.javaClass.simpleName}).",
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
-            gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
-            BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
+            }
         }
 
         return true
