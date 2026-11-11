@@ -18,9 +18,13 @@ internal object LibraryRefreshFailure {
         if (causes.any { it is SecurityException || it is FileNotFoundException }) return FOLDER_ACCESS
 
         val messages = causes.map { it.message.orEmpty().lowercase(Locale.US) }
-        if (messages.any { it.contains("rom folder") || it.contains("permission denied") ||
-                    it.contains("document tree") || it.contains("persisted permission") ||
-                    it.contains("cannot read the selected") }) return FOLDER_ACCESS
+        val folderError =
+            messages.any { it.contains("rom folder") } ||
+                messages.any { it.contains("permission denied") } ||
+                messages.any { it.contains("document tree") } ||
+                messages.any { it.contains("persisted permission") } ||
+                messages.any { it.contains("cannot read the selected") }
+        if (folderError) return FOLDER_ACCESS
         if (causes.any { it is IOException }) return FILE_READ
         return SCAN_FAILURE
     }
