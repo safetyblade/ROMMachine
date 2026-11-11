@@ -34,7 +34,8 @@ object NativeGameSystems {
                         skipDuplicateFrames = false,
                     ),
                 ),
-                uniqueExtensions = emptyList(), supportedExtensions = listOf("gdi", "chd", "m3u"),
+                uniqueExtensions = listOf("gdi", "cdi"),
+                supportedExtensions = listOf("gdi", "chd", "m3u", "cdi"),
                 hasMultiDiskSupport = true,
                 scanOptions =
                     GameSystem.Companion.ScanOptions(
@@ -61,8 +62,8 @@ object NativeGameSystems {
                         skipDuplicateFrames = false,
                     ),
                 ),
-                uniqueExtensions = emptyList(),
-                supportedExtensions = listOf("gcm", "iso"),
+                uniqueExtensions = listOf("gcm"),
+                supportedExtensions = listOf("gcm", "iso", "rvz", "gcz", "ciso", "tgc"),
                 scanOptions =
                     GameSystem.Companion.ScanOptions(
                         scanByPathAndSupportedExtensions = false,
@@ -91,7 +92,7 @@ object NativeGameSystems {
                     ),
                 ),
                 uniqueExtensions = emptyList(),
-                supportedExtensions = listOf("iso"),
+                supportedExtensions = listOf("iso", "chd", "cso", "isz"),
                 scanOptions =
                     GameSystem.Companion.ScanOptions(
                         scanByPathAndSupportedExtensions = false,
