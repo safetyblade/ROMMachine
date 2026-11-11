@@ -56,7 +56,9 @@ class NativeDiscFolderIdentityTest {
             SystemID.PLAYSTATION_2,
             NativeDiscFolderIdentity.infer(
                 "Dragon Ball Z - Budokai Tenkaichi 3 (USA).iso",
-                "/tree/primary%3AROMS/document/primary%3AROMS%2FPS2%20ROM%2FDragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA)%2FDragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA).iso",
+                "/tree/primary%3AROMS/document/primary%3AROMS%2FPS2%20ROM%2F" +
+                    "Dragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA)%2F" +
+                    "Dragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA).iso",
                 enabled,
             ),
         )
