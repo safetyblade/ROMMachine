@@ -11,6 +11,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// New hardware cores require the host's checked GLES negotiation and trigger protocol.
+if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == true) {
+    require(providers.gradleProperty("cartdeckLibretroDroidVersion").orNull == "0.14.0-cartdeck1") {
+        "Native console APKs require the verified CARTDECK LibretroDroid host"
+    }
+}
+
 android {
     defaultConfig {
         versionCode = 252
@@ -93,6 +100,13 @@ android {
         }
     }
 
+    providers.gradleProperty("cartdeckNativeBundleDir").orNull?.let { bundle ->
+        sourceSets.getByName("main") {
+            jniLibs.srcDir("$bundle/jniLibs")
+            assets.srcDir("$bundle/assets")
+        }
+    }
+
     packagingOptions {
         jniLibs {
             // Stripping created some issues with some libretro cores such as ppsspp
@@ -139,7 +153,24 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
-        unitTests.all { it.maxHeapSize = "1536m" }
+        unitTests.all { testTask ->
+            testTask.maxHeapSize = "1536m"
+            // Robolectric resolves Android SDK jars inside the forked JVM.
+            // Preserve configured network/CA trust settings without disabling TLS.
+            listOf(
+                "http.proxyHost",
+                "http.proxyPort",
+                "http.nonProxyHosts",
+                "https.proxyHost",
+                "https.proxyPort",
+                "https.nonProxyHosts",
+                "javax.net.ssl.trustStore",
+                "javax.net.ssl.trustStoreType",
+                "maven.repo.local",
+            ).forEach { property ->
+                System.getProperty(property)?.let { value -> testTask.systemProperty(property, value) }
+            }
+        }
     }
 
     buildFeatures {
@@ -281,7 +312,11 @@ dependencies {
     implementation(deps.libs.composeSettings.diskStorage)
     implementation(deps.libs.composeSettings.memoryStorage)
 
-    implementation(deps.libs.libretrodroid)
+    val libretroDroidVersion =
+        providers.gradleProperty("cartdeckLibretroDroidVersion")
+            .orElse(deps.versions.libretrodroid)
+            .get()
+    implementation("com.github.Swordfish90:LibretroDroid:$libretroDroidVersion")
 
     // Uncomment this when using a local aar file.
     // implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))

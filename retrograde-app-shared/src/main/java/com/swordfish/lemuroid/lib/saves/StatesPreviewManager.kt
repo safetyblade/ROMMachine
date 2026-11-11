@@ -17,10 +17,11 @@ class StatesPreviewManager(private val directoriesManager: DirectoriesManager) {
         coreID: CoreID,
         index: Int,
         size: Int,
+        namespace: String = coreID.coreName,
     ): Bitmap? =
         withContext(Dispatchers.IO) {
             val screenshotName = getSlotScreenshotName(game, index)
-            val file = getPreviewFile(screenshotName, coreID.coreName)
+            val file = getPreviewFile(screenshotName, namespace)
             val bitmap = BitmapFactory.decodeFile(file.absolutePath)
             ThumbnailUtils.extractThumbnail(bitmap, size, size)
         }
@@ -30,9 +31,10 @@ class StatesPreviewManager(private val directoriesManager: DirectoriesManager) {
         bitmap: Bitmap,
         coreID: CoreID,
         index: Int,
+        namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
         val screenshotName = getSlotScreenshotName(game, index)
-        val file = getPreviewFile(screenshotName, coreID.coreName)
+        val file = getPreviewFile(screenshotName, namespace)
         FileOutputStream(file).use {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)
         }

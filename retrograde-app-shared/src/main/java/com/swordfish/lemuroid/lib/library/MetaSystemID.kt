@@ -113,10 +113,15 @@ enum class MetaSystemID(val titleResId: Int, val imageResId: Int, val systemIDs:
         R.drawable.game_system_3ds,
         listOf(SystemID.NINTENDO_3DS),
     ),
+    DREAMCAST(R.string.game_system_title_dc, R.drawable.game_system_dc, listOf(SystemID.DREAMCAST)),
+    GAMECUBE(R.string.game_system_title_gc, R.drawable.game_system_gc, listOf(SystemID.GAMECUBE)),
+    PLAYSTATION_2(R.string.game_system_title_ps2, R.drawable.game_system_ps2, listOf(SystemID.PLAYSTATION_2)),
     ;
 
     fun color(): Int {
-        return ColorUtils.color(ordinal.toFloat() / values().size)
+        // Appending consoles must not recolor the player's existing shelves.
+        val originalPaletteSize = NINTENDO_3DS.ordinal + 1
+        return ColorUtils.color((ordinal % originalPaletteSize).toFloat() / originalPaletteSize)
     }
 
     companion object {
@@ -147,6 +152,9 @@ enum class MetaSystemID(val titleResId: Int, val imageResId: Int, val systemIDs:
                 SystemID.WS -> WS
                 SystemID.WSC -> WS
                 SystemID.NINTENDO_3DS -> NINTENDO_3DS
+                SystemID.DREAMCAST -> DREAMCAST
+                SystemID.GAMECUBE -> GAMECUBE
+                SystemID.PLAYSTATION_2 -> PLAYSTATION_2
             }
         }
     }

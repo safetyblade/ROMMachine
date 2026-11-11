@@ -19,19 +19,29 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
     }
 
     private val sortedSystemIds: List<String> by lazy {
-        SystemID.values()
-            .map { it.dbname }
+        GameSystem.all()
+            .map { it.id.dbname }
             .sortedByDescending { it.length }
     }
 
     override suspend fun retrieveMetadata(storageFile: StorageFile): GameMetadata? {
+        // A GDI descriptor is never guessed from a database title or parent folder.
+        if (storageFile.extension.equals("gdi", ignoreCase = true) && storageFile.systemID != SystemID.DREAMCAST) {
+            return null
+        }
+        if (storageFile.systemID in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2) &&
+            GameSystem.all().none { it.id == storageFile.systemID }
+        ) {
+            return null
+        }
         val db = ovgdbManager.dbInstance
 
         Timber.d("Looking metadata for file: $storageFile")
 
         val metadata =
             runCatching {
-                findByCRC(storageFile, db)
+                findVerifiedNativeSystem(storageFile)
+                    ?: findByCRC(storageFile, db)
                     ?: findBySerial(storageFile, db)
                     ?: findByFilename(db, storageFile)
                     ?: findByPathAndFilename(db, storageFile)
@@ -46,6 +56,13 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         metadata?.let { Timber.d("Metadata retrieved for item: $it") }
 
         return metadata
+    }
+
+    private fun findVerifiedNativeSystem(file: StorageFile): GameMetadata? {
+        val id = file.systemID ?: return null
+        if (id !in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)) return null
+        if (GameSystem.all().none { it.id == id }) return null
+        return findByKnownSystem(file)
     }
 
     private fun convertToGameMetadata(rom: LibretroRom): GameMetadata {

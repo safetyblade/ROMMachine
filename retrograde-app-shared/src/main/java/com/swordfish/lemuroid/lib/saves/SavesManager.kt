@@ -23,6 +23,20 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                     if (saveFile.exists() && saveFile.length() > 0) {
                         saveFile.readBytes()
                     } else {
+                        if (systemCoreConfig.coreID == CoreID.PCSX_REARMED_MODERN && !saveFile.exists()) {
+                            // Both PCSX engines expose an unchanged raw 128 KiB card.
+                            // Seed only an absent candidate slot; never synchronise back
+                            // over the fallback, or overwrite newer candidate progress.
+                            // GameLoader retained a verified baseline backup before this.
+                            val previous = getSaveFile(getSaveRAMFileName(game), CoreID.PCSX_REARMED)
+                            if (previous.isFile && previous.length() == PlayStationMemoryCard.SIZE.toLong()) {
+                                val card = previous.readBytes()
+                                if (PlayStationMemoryCard.isRawCard(card)) {
+                                    saveFile.writeBytesAtomic(card)
+                                    return@runCatchingWithRetry card
+                                }
+                            }
+                        }
                         if (isIsolatedEngine(systemCoreConfig.coreID)) {
                             // Never import an unverified foreign save-RAM format implicitly.
                             null
@@ -83,7 +97,14 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
     }
 
     private fun isIsolatedEngine(coreID: CoreID?): Boolean =
-        coreID == CoreID.PCSX_REARMED_MODERN || coreID == CoreID.PPSSPP_MODERN
+        coreID in
+            setOf(
+                CoreID.PCSX_REARMED_MODERN,
+                CoreID.PPSSPP_MODERN,
+                CoreID.FLYCAST_MODERN,
+                CoreID.DOLPHIN_MODERN,
+                CoreID.PLAY_MODERN,
+            )
 
     /** This name should make it compatible with RetroArch so that users can freely sync saves across the two application. */
     private fun getSaveRAMFileName(game: Game) = "${game.fileName.substringBeforeLast(".")}.srm"

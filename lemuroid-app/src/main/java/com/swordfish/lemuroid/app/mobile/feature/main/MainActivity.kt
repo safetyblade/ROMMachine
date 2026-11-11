@@ -83,7 +83,6 @@ import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.core.CoresSelection
 import com.swordfish.lemuroid.lib.injection.PerActivity
 import com.swordfish.lemuroid.lib.library.MetaSystemID
-import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -530,8 +529,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 val message =
                     remember {
                         val systemFolders =
-                            SystemID.values()
-                                .joinToString(", ") { "<i>${it.dbname}</i>" }
+                            com.swordfish.lemuroid.lib.library.GameSystem.all()
+                                .joinToString(", ") { "<i>${it.id.dbname}</i>" }
 
                         getString(R.string.lemuroid_help_content)
                             .replace("\$SYSTEMS", systemFolders)

@@ -54,7 +54,11 @@ dependencies {
 }
 
 android {
+    buildFeatures { buildConfig = true }
     defaultConfig {
+        val nativeSystems = providers.gradleProperty("cartdeckNativeSystems").orElse("").get()
+        require(nativeSystems.split(",").all { it in setOf("", "dc", "gc", "ps2") })
+        buildConfigField("String", "NATIVE_SYSTEMS", "\"$nativeSystems\"")
         javaCompileOptions {
             annotationProcessorOptions {
                 argument("room.schemaLocation", "$projectDir/schemas")

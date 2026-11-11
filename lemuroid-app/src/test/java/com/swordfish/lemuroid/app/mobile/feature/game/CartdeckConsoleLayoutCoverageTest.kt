@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.lib.BuildConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.settings.TouchControllerID
@@ -18,9 +19,12 @@ class CartdeckConsoleLayoutCoverageTest {
     @Test
     fun everyRegisteredConsoleHasAConfiguredStandardController() {
         val systems = GameSystem.all()
+        val nativeSystems = setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)
+        val enabledNativeNames = BuildConfig.NATIVE_SYSTEMS.split(",").toSet()
+        val expected = SystemID.entries.filter { it !in nativeSystems || it.dbname in enabledNativeNames }.toSet()
         assertEquals(
-            "All named library systems must have their Standard profile accounted for",
-            SystemID.entries.toSet(),
+            "Every legacy and enabled native system must retain its Standard profile",
+            expected,
             systems.map { it.id }.toSet(),
         )
         for (system in systems) {

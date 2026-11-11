@@ -25,9 +25,19 @@ class EmulatorCompatibilityPreferences(private val context: Context) {
 
     fun available(systemId: SystemID): Boolean {
         val candidate = candidateCore(systemId) ?: return false
-        if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) return false
+        if (!Build.SUPPORTED_ABIS.contains("arm64-v8a") || Build.VERSION.SDK_INT < 24) return false
         val binary = File(context.applicationInfo.nativeLibraryDir, candidate.libretroFileName)
         if (!binary.isFile || binary.length() <= 0) return false
+        if (systemId == SystemID.PSX) {
+            val verified =
+                runCatching {
+                    PlayStationCoreManifest.verify(
+                        context.assets.open(PlayStationCoreManifest.ASSET_PATH),
+                        binary.inputStream(),
+                    )
+                }.getOrDefault(false)
+            if (!verified) return false
+        }
         // The updated PSP core must never run against the inherited 1.15 support assets.
         if (systemId == SystemID.PSP) {
             if (!EmulatorModernAssetsProvisioner.isInstalled(context)) return false

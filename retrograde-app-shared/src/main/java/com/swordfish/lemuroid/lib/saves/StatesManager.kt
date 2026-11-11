@@ -18,10 +18,11 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         game: Game,
         coreID: CoreID,
         index: Int,
+        namespace: String = coreID.coreName,
     ): SaveState? =
         withContext(Dispatchers.IO) {
             assert(index in 0 until MAX_STATES)
-            getSaveState(getSlotSaveFileName(game, index), coreID.coreName)
+            getSaveState(getSlotSaveFileName(game, index), namespace)
         }
 
     suspend fun setSlotSave(
@@ -29,17 +30,19 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         saveState: SaveState,
         coreID: CoreID,
         index: Int,
+        namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
         assert(index in 0 until MAX_STATES)
-        setSaveState(getSlotSaveFileName(game, index), coreID.coreName, saveState)
+        setSaveState(getSlotSaveFileName(game, index), namespace, saveState)
     }
 
     suspend fun getAutoSaveInfo(
         game: Game,
         coreID: CoreID,
+        namespace: String = coreID.coreName,
     ): SaveInfo =
         withContext(Dispatchers.IO) {
-            val autoSaveFile = getStateFile(getAutoSaveFileName(game), coreID.coreName)
+            val autoSaveFile = getStateFile(getAutoSaveFileName(game), namespace)
             val autoSaveHasData = autoSaveFile.length() > 0
             SaveInfo(autoSaveFile.exists() && autoSaveHasData, autoSaveFile.lastModified())
         }
@@ -47,25 +50,28 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
     suspend fun getAutoSave(
         game: Game,
         coreID: CoreID,
+        namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
-        getSaveState(getAutoSaveFileName(game), coreID.coreName)
+        getSaveState(getAutoSaveFileName(game), namespace)
     }
 
     suspend fun setAutoSave(
         game: Game,
         coreID: CoreID,
         saveState: SaveState,
+        namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
-        setSaveState(getAutoSaveFileName(game), coreID.coreName, saveState)
+        setSaveState(getAutoSaveFileName(game), namespace, saveState)
     }
 
     suspend fun getSavedSlotsInfo(
         game: Game,
         coreID: CoreID,
+        namespace: String = coreID.coreName,
     ): List<SaveInfo> =
         withContext(Dispatchers.IO) {
             (0 until MAX_STATES)
-                .map { getStateFile(getSlotSaveFileName(game, it), coreID.coreName) }
+                .map { getStateFile(getSlotSaveFileName(game, it), namespace) }
                 .map { SaveInfo(it.exists(), it.lastModified()) }
                 .toList()
         }

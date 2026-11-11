@@ -1297,9 +1297,11 @@ data class GameSystem(
                     uniqueExtensions = listOf("3ds"),
                     hasTouchScreen = true,
                 ),
-            )
+            ) + NativeGameSystems.enabled()
 
-        private val byIdCache by lazy { mapOf(*SYSTEMS.map { it.id.dbname to it }.toTypedArray()) }
+        private val byIdCache by lazy {
+            mapOf(*(SYSTEMS + NativeGameSystems.configurations()).map { it.id.dbname to it }.toTypedArray())
+        }
         private val byExtensionCache by lazy {
             val mutableMap = mutableMapOf<String, GameSystem>()
             for (system in SYSTEMS) {

@@ -27,9 +27,12 @@ if grep -qE 'lib/(x86|x86_64|armeabi-v7a)/' "$evidence/native-libraries.tsv"; th
   exit 1
 fi
 python3 - "$source" <<'PY'
+import os
 import sys
 from pathlib import Path
-assert Path(sys.argv[1]).stat().st_size < 100 * 1024 * 1024, 'APK exceeds 100 MiB'
+limit = int(os.environ.get("CARTDECK_APK_MAX_MIB", "100"))
+assert 1 <= limit <= 256, "Invalid engineering APK size limit"
+assert Path(sys.argv[1]).stat().st_size < limit * 1024 * 1024, f"APK exceeds {limit} MiB"
 PY
 # Only stage the APK after all identity and signing checks succeed.
 cp "$source" "$out/CARTDECK_STANDALONE_ARM64_DEBUG.apk"

@@ -17,9 +17,11 @@ import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.view.disableTouchEvents
 import com.swordfish.lemuroid.lib.core.CoreVariable
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
+import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
 import com.swordfish.lemuroid.lib.game.GameLoader
 import com.swordfish.lemuroid.lib.game.GameLoaderError
 import com.swordfish.lemuroid.lib.game.GameLoaderException
+import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -349,6 +351,12 @@ class GameViewModelRetroGameView(
                 else -> GameLoaderError.Generic
             }
 
+        if (errorCode in setOf(GLRetroView.ERROR_GL_NOT_COMPATIBLE, GLRetroView.ERROR_LOAD_LIBRARY)) {
+            if (systemCoreConfig.coreID in setOf(CoreID.FLYCAST_MODERN, CoreID.DOLPHIN_MODERN, CoreID.PLAY_MODERN)) {
+                runCatching { NativeCoreProvisioner.rollback(appContext, systemCoreConfig.coreID) }
+                    .onFailure { Timber.e(it, "Unable to record native engine failure") }
+            }
+        }
         sideEffects.requestFailureFinish(getErrorMessage(gameLoaderError))
     }
 

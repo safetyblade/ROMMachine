@@ -19,4 +19,13 @@ data class SystemCoreConfig(
     val skipDuplicateFrames: Boolean = true,
     val supportedOnlyArchitectures: Set<String>? = null,
     val supportsMicrophone: Boolean = false,
-) : Serializable
+) : Serializable {
+    /** Native binaries retain separate states even when the player rolls engines back. */
+    val stateNamespace: String
+        get() =
+            if (coreID in setOf(CoreID.FLYCAST_MODERN, CoreID.DOLPHIN_MODERN, CoreID.PLAY_MODERN)) {
+                "${coreID.coreName}/versions/$statesVersion"
+            } else {
+                coreID.coreName
+            }
+}

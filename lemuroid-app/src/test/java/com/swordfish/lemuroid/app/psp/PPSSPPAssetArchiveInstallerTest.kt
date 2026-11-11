@@ -94,4 +94,26 @@ class PPSSPPAssetArchiveInstallerTest {
             parent.deleteRecursively()
         }
     }
+
+    @Test
+    fun stagedValidationFailureKeepsPreviousAssetsAndVersion() {
+        val parent = Files.createTempDirectory("psp-validation-").toFile()
+        try {
+            val destination = File(parent, "PPSSPP").apply { mkdirs() }
+            File(destination, "compat.ini").writeText("previous")
+            val result =
+                runCatching {
+                    archive("font.pgf" to "incomplete bundle").use { zip ->
+                        PPSSPPAssetArchiveInstaller.install(zip, destination) { staging ->
+                            check(File(staging, "compat.ini").isFile)
+                        }
+                    }
+                }
+            assertTrue(result.isFailure)
+            assertEquals("previous", File(destination, "compat.ini").readText())
+            assertEquals(listOf("PPSSPP"), parent.listFiles()!!.map { it.name })
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
 }
