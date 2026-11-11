@@ -20,6 +20,12 @@ object DocumentFileParser {
     private const val SINGLE_ARCHIVE_THRESHOLD = 0.9
     private const val MAX_SIZE_CRC32 = 1_000_000_000
 
+    // Full-file CRC has no useful scanner identity for these native disc
+    // containers. A 0.95 GB CISO or ambiguous ISO could otherwise consume
+    // hundreds of megabytes of SAF reads and make refresh appear to hang.
+    private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
+        setOf("iso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc")
+
     fun parseDocumentFile(
         context: Context,
         baseStorageFile: BaseStorageFile,
@@ -114,7 +120,11 @@ object DocumentFileParser {
             Timber.i("Native disc identified from explicit console folder: ${system.dbname}")
         }
         val crc32 =
-            if (baseStorageFile.size < MAX_SIZE_CRC32 && diskInfo?.serial == null && system == null) {
+            if (baseStorageFile.size < MAX_SIZE_CRC32 &&
+                diskInfo?.serial == null &&
+                system == null &&
+                baseStorageFile.extension.lowercase(java.util.Locale.US) !in NO_FULL_FILE_CRC_DISC_EXTENSIONS
+            ) {
                 context.contentResolver.openInputStream(baseStorageFile.uri)?.calculateCrc32()
             } else {
                 null
