@@ -4,6 +4,7 @@ import android.content.Context
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import java.io.File
+import java.security.MessageDigest
 
 object GameCacheUtils {
     fun getDataFileForGame(
@@ -30,7 +31,15 @@ object GameCacheUtils {
         game: Game,
         context: Context,
     ): File {
-        val gamesCachePath = buildPath(folderName, game.systemId)
+        // Different disc folders can contain an identically named game.iso.
+        // Scope disposable ROM cache to the indexed URI, not just the system.
+        // No shelf identifiers, installed saves or ROM locations are changed.
+        val digest =
+            MessageDigest.getInstance("SHA-256")
+                .digest(game.fileUri.toByteArray(Charsets.UTF_8))
+                .take(8)
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        val gamesCachePath = buildPath(folderName, game.systemId, digest)
         val gamesCacheDir = File(context.cacheDir, gamesCachePath)
         gamesCacheDir.mkdirs()
         return gamesCacheDir
