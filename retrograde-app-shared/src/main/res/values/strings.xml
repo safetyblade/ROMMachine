@@ -141,4 +141,13 @@
     <string name="value_handy_rot_90">90</string>
     <string name="value_handy_rot_270">270</string>
 
+    <string name="game_system_title_wii">Nintendo Wii</string>
+    <string name="game_system_abbr_wii">Wii</string>
+    <string name="controller_wii_classic">Wii Classic Controller</string>
+    <string name="controller_wii_sideways">Wii Remote sideways</string>
+    <string name="controller_wii_nunchuk">Wii Remote + Nunchuk</string>
+    <string name="setting_wii_pointer">Wii pointer input</string>
+    <string name="value_wii_pointer_touch">Touch game viewport</string>
+    <string name="value_wii_pointer_stick">Right stick (absolute)</string>
+    <string name="value_wii_pointer_relative">Right stick (relative)</string>
 </resources>

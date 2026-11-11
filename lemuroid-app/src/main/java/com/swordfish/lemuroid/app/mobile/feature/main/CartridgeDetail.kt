@@ -151,8 +151,17 @@ fun CartridgeDetail(
 @Composable
 private fun CartridgeEmulatorChoice(game: Game) {
     val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
-    if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)) {
+    if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII)) {
         NativeEngineChoice(systemId)
+        if (systemId == SystemID.WII) {
+            Text(
+                "Choose Classic, sideways Remote or Nunchuk in controller settings. " +
+                    "Touch the game picture to point; pointer settings also offer the right stick. " +
+                    "Press the right stick for Wii Home. Shake buttons emulate motion. " +
+                    "Phone motion sensors and physical Wii Remotes are unavailable in this build.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         return
     }
     if (systemId != SystemID.PSX && systemId != SystemID.PSP) return
@@ -204,7 +213,7 @@ private fun NativeEngineChoice(systemId: SystemID) {
     val core =
         when (systemId) {
             SystemID.DREAMCAST -> CoreID.FLYCAST_MODERN
-            SystemID.GAMECUBE -> CoreID.DOLPHIN_MODERN
+            SystemID.GAMECUBE, SystemID.WII -> CoreID.DOLPHIN_MODERN
             SystemID.PLAYSTATION_2 -> CoreID.PLAY_MODERN
             else -> return
         }

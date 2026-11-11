@@ -186,6 +186,32 @@ object ControllerConfigs {
     // Reuse the existing dual-stick shell; descriptors are discovered from each core.
     val NATIVE_ANALOG = PSX_DUALSHOCK.copy(name = "default", libretroDescriptor = null, libretroId = 1)
 
+    // Dolphin's actual Libretro subclass IDs, not ordinary GameCube joypads.
+    val WII_CLASSIC =
+        NATIVE_ANALOG.copy(
+            name = "wii_classic",
+            touchControllerID = TouchControllerID.WII_CLASSIC,
+            tiltConfigurations = emptyList(),
+            displayName = R.string.controller_wii_classic,
+            libretroId = 1025,
+        )
+    val WII_SIDEWAYS =
+        NATIVE_ANALOG.copy(
+            name = "wii_sideways",
+            touchControllerID = TouchControllerID.WII_SIDEWAYS,
+            tiltConfigurations = emptyList(),
+            displayName = R.string.controller_wii_sideways,
+            libretroId = 513,
+        )
+    val WII_NUNCHUK =
+        NATIVE_ANALOG.copy(
+            name = "wii_nunchuk",
+            touchControllerID = TouchControllerID.WII_NUNCHUK,
+            tiltConfigurations = emptyList(),
+            displayName = R.string.controller_wii_nunchuk,
+            libretroId = 769,
+        )
+
     val PSP =
         ControllerConfig(
             "default",

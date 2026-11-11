@@ -52,6 +52,9 @@ import com.swordfish.touchinput.radial.layouts.WSLandscapeLeft
 import com.swordfish.touchinput.radial.layouts.WSLandscapeRight
 import com.swordfish.touchinput.radial.layouts.WSPortraitLeft
 import com.swordfish.touchinput.radial.layouts.WSPortraitRight
+import com.swordfish.touchinput.radial.layouts.WiiLayoutProfile
+import com.swordfish.touchinput.radial.layouts.WiiLeft
+import com.swordfish.touchinput.radial.layouts.WiiRight
 import gg.padkit.PadKitScope
 
 enum class TouchControllerID {
@@ -80,6 +83,9 @@ enum class TouchControllerID {
     WS_LANDSCAPE,
     WS_PORTRAIT,
     NINTENDO_3DS,
+    WII_CLASSIC,
+    WII_SIDEWAYS,
+    WII_NUNCHUK,
     ;
 
     class Config(
@@ -125,6 +131,19 @@ enum class TouchControllerID {
                         { modifier, settings -> PSXLeft(modifier, settings) },
                         { modifier, settings -> PSXRight(modifier, settings) },
                     )
+
+                WII_CLASSIC, WII_SIDEWAYS, WII_NUNCHUK -> {
+                    val profile =
+                        when (id) {
+                            WII_CLASSIC -> WiiLayoutProfile.CLASSIC
+                            WII_SIDEWAYS -> WiiLayoutProfile.SIDEWAYS
+                            else -> WiiLayoutProfile.NUNCHUK
+                        }
+                    Config(
+                        { modifier, settings -> WiiLeft(modifier, settings, profile) },
+                        { modifier, settings -> WiiRight(modifier, settings, profile) },
+                    )
+                }
 
                 PSX_DUALSHOCK ->
                     Config(
