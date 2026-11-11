@@ -27,7 +27,13 @@ object NativeDiscFolderIdentity {
             "game cube" to SystemID.GAMECUBE,
             "nintendo gamecube" to SystemID.GAMECUBE,
             "ps2" to SystemID.PLAYSTATION_2,
+            "ps2 rom" to SystemID.PLAYSTATION_2,
+            "ps2 roms" to SystemID.PLAYSTATION_2,
+            "ps2 games" to SystemID.PLAYSTATION_2,
             "playstation 2" to SystemID.PLAYSTATION_2,
+            "playstation 2 rom" to SystemID.PLAYSTATION_2,
+            "playstation 2 roms" to SystemID.PLAYSTATION_2,
+            "playstation 2 games" to SystemID.PLAYSTATION_2,
             "playstation2" to SystemID.PLAYSTATION_2,
             "sony playstation 2" to SystemID.PLAYSTATION_2,
         )
