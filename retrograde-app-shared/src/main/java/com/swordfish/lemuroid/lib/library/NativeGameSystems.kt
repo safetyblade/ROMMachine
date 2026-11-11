@@ -34,7 +34,8 @@ object NativeGameSystems {
                         skipDuplicateFrames = false,
                     ),
                 ),
-                uniqueExtensions = emptyList(), supportedExtensions = listOf("gdi", "chd", "m3u", "cdi"),
+                uniqueExtensions = listOf("gdi", "cdi"),
+                supportedExtensions = listOf("gdi", "chd", "m3u", "cdi"),
                 hasMultiDiskSupport = true,
                 scanOptions =
                     GameSystem.Companion.ScanOptions(
@@ -61,7 +62,7 @@ object NativeGameSystems {
                         skipDuplicateFrames = false,
                     ),
                 ),
-                uniqueExtensions = emptyList(),
+                uniqueExtensions = listOf("gcm"),
                 supportedExtensions = listOf("gcm", "iso", "rvz", "gcz", "ciso", "tgc"),
                 scanOptions =
                     GameSystem.Companion.ScanOptions(
