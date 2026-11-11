@@ -154,6 +154,7 @@ class GameViewModelTouchControls(
     }
 
     private fun onMenuPressed(pressed: Boolean) {
+        if (pressed) pivotArcHoldGate.clear()
         menuPressed.value = pressed
 
         if (pressed) {
