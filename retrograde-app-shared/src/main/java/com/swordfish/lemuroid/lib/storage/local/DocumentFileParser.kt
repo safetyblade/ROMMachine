@@ -86,16 +86,27 @@ object DocumentFileParser {
             context.contentResolver.openInputStream(baseStorageFile.uri)
                 ?.let { inputStream -> SerialScanner.extractInfo(baseStorageFile.name, inputStream) }
 
-        // A verified signature or a known legacy serial takes precedence.
-        // SAF storage sometimes cannot provide a seekable descriptor: allow
-        // an explicit console folder as a fallback, never an extension guess.
-        // Positive Wii identity must not be overridden by a GameCube folder.
+        // Positive signatures and old PS1/PSP serials always take priority.
+        // GDI/CDI/GCM are uniquely assigned to registered native consoles;
+        // shared ISO/CHD and compressed disc formats require a clear folder.
+        // Wii magic must never become GameCube/PS2 just because of a folder.
+        val uniqueNativeSystem =
+            if (discIdentity?.platform == null && diskInfo?.systemID == null) {
+                GameSystem.findByUniqueFileExtension(baseStorageFile.extension)
+                    ?.id?.takeIf {
+                        it == SystemID.DREAMCAST ||
+                            it == SystemID.GAMECUBE ||
+                            it == SystemID.PLAYSTATION_2
+                    }
+            } else {
+                null
+            }
         val system =
             NativeDiscFolderIdentity.resolve(
                 baseStorageFile.name,
                 baseStorageFile.path,
                 GameSystem.all().map { it.id }.toSet(),
-                verified = nativeSystem,
+                verified = nativeSystem ?: uniqueNativeSystem,
                 legacy = diskInfo?.systemID,
                 foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII,
             )
