@@ -76,8 +76,8 @@ class GameLauncher(
                     } else {
                         selectedCoreConfig
                     }
-                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
-                    BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
+                gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
             } catch (error: Exception) {
                 // A failure before GameActivity starts was previously lost in an
                 // unhandled launch coroutine. Show a safe diagnostic without
