@@ -40,7 +40,10 @@ class NativeDiscIdentityTest {
 
     @Test
     fun dolphinCisoIdentifiesGameCubeButNeverWiiOrPspCso() {
-        fun nintendoCiso(magicOffset: Int, magic: ByteArray): ByteArray {
+        fun nintendoCiso(
+            magicOffset: Int,
+            magic: ByteArray,
+        ): ByteArray {
             val bytes = ByteArray(0x8000 + 32)
             "CISO".toByteArray().copyInto(bytes)
             ByteBuffer.wrap(bytes, 4, 4).order(ByteOrder.LITTLE_ENDIAN).putInt(0x200000)
