@@ -57,6 +57,7 @@ class GameViewModelInput(
     private val retroGameView: GameViewModelRetroGameView,
     private val tilt: GameViewModelTilt,
     private val sideEffects: GameViewModelSideEffects,
+    private val pivotArcHoldGate: PivotArcHeldInputGate,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
@@ -370,8 +371,17 @@ class GameViewModelInput(
                                     device.getMotionRange(MotionEvent.AXIS_GAS) != null
                             else -> false
                         }
-                port?.takeUnless { analogTriggerKey }?.let {
-                    retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, it)
+                port?.takeUnless { analogTriggerKey }?.let { targetPort ->
+                    val captured =
+                        targetPort == 0 &&
+                            pivotArcHoldGate.setSource(
+                                bindKeyCode,
+                                "physical:${device.id}:$keyCode",
+                                action == KeyEvent.ACTION_DOWN,
+                            )
+                    if (!captured) {
+                        retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, targetPort)
+                    }
                 }
             }
     }
