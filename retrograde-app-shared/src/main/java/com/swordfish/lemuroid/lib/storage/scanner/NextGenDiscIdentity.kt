@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.lib.storage.scanner
 
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.StandardCharsets
@@ -58,6 +59,44 @@ object NextGenDiscIdentity {
                 }
             }
             else -> Result(null, "shared-or-unsupported-container")
+        }
+    }
+
+    /**
+     * Dolphin CISO is a 0x8000-byte header followed by mapped, *uncompressed*
+     * disc blocks. Read only the header and first 32 bytes of the first block.
+     * Do not guess that every CISO-labelled file is GameCube: the PSP CSO
+     * container can also begin with the ASCII CISO signature.
+     *
+     * A positively identified Wii disc must stay excluded from the
+     * GameCube-only system; an unreadable header stays unknown.
+     */
+    fun probeNintendoCiso(input: InputStream): Result {
+        val headerLength = 0x8000
+        val data = ByteArray(headerLength + 32)
+        var count = 0
+        while (count < data.size) {
+            val read = input.read(data, count, data.size - count)
+            if (read <= 0) return Result(null, "short-ciso")
+            count += read
+        }
+        if (!matches(data, 0, byteArrayOf(0x43, 0x49, 0x53, 0x4f))) {
+            return Result(null, "not-dolphin-ciso")
+        }
+        val blockSize = ByteBuffer.wrap(data, 4, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).int
+        if (blockSize < 0x8000 || blockSize > 0x1000000 ||
+            blockSize and (blockSize - 1) != 0 ||
+            data[8] != 1.toByte() ||
+            (8 until headerLength).any { data[it] != 0.toByte() && data[it] != 1.toByte() }
+        ) {
+            return Result(null, "invalid-dolphin-ciso-map")
+        }
+        val contents = data.copyOfRange(headerLength, headerLength + 32)
+        val identity = probe("disc.iso", contents)
+        return when (identity.platform) {
+            Platform.GAMECUBE -> Result(Platform.GAMECUBE, "dolphin-ciso-gc-magic")
+            Platform.WII -> Result(Platform.WII, "dolphin-ciso-wii-magic")
+            else -> Result(null, "ciso-unidentified-disc")
         }
     }
 
