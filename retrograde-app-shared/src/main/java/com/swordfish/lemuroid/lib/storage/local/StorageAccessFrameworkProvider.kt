@@ -7,7 +7,6 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragment
 import com.swordfish.lemuroid.common.kotlin.extractEntryToFile
 import com.swordfish.lemuroid.common.kotlin.isZipped
-import com.swordfish.lemuroid.common.kotlin.writeToFile
 import com.swordfish.lemuroid.lib.R
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -198,13 +197,12 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
                 dataFile,
             )
 
-        if (cacheFile.exists()) {
-            return cacheFile
+        val uri = Uri.parse(dataFile.fileUri)
+        val expectedBytes = DocumentFile.fromSingleUri(context, uri)?.length()?.coerceAtLeast(0) ?: 0L
+        return CachedRomStager.stage(cacheFile, expectedBytes) {
+            context.contentResolver.openInputStream(uri)
+                ?: throw java.io.IOException("Cannot open game disc companion")
         }
-
-        val stream = context.contentResolver.openInputStream(Uri.parse(dataFile.fileUri))!!
-        stream.writeToFile(cacheFile)
-        return cacheFile
     }
 
     private fun getGameRomVirtual(game: Game): RomFiles.Virtual.Entry {
@@ -220,13 +218,11 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
     ): File {
         val cacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
 
-        if (cacheFile.exists()) {
-            return cacheFile
+        val expectedBytes = originalDocument.length().coerceAtLeast(0)
+        return CachedRomStager.stage(cacheFile, expectedBytes) {
+            context.contentResolver.openInputStream(originalDocument.uri)
+                ?: throw java.io.IOException("Cannot open selected ROM")
         }
-
-        val stream = context.contentResolver.openInputStream(originalDocument.uri)!!
-        stream.writeToFile(cacheFile)
-        return cacheFile
     }
 
     override fun getInputStream(uri: Uri): InputStream? {
