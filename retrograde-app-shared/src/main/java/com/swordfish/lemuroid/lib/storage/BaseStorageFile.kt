@@ -9,7 +9,7 @@ data class BaseStorageFile(
     val path: String? = null,
 ) {
     val extension: String
-        get() = name.substringAfterLast('.', "")
+        get() = name.substringAfterLast('.', "").lowercase(java.util.Locale.US)
 
     val extensionlessName: String
         get() = name.substringBeforeLast('.', "")

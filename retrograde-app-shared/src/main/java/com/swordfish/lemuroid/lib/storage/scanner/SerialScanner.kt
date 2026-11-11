@@ -163,7 +163,8 @@ object SerialScanner {
         val detectedSystem =
             MAGIC_NUMBERS
                 .firstOrNull {
-                    header.copyOfRange(it.offset, it.offset + it.numbers.size).contentEquals(it.numbers)
+                    header.size >= it.offset + it.numbers.size &&
+                        header.copyOfRange(it.offset, it.offset + it.numbers.size).contentEquals(it.numbers)
                 }
                 ?.systemID
 
@@ -193,9 +194,10 @@ object SerialScanner {
         openedStream.mark(0x2000)
         openedStream.skip(0x1150)
 
-        val rawSerial = String(readByteArray(openedStream, ByteArray(10)), Charsets.US_ASCII)
-
+        val serialBytes = readByteArray(openedStream, ByteArray(10))
         openedStream.reset()
+        if (serialBytes.size != 10) return DiskInfo(null, null)
+        val rawSerial = String(serialBytes, Charsets.US_ASCII)
 
         Timber.d("Found 3DS serial: $rawSerial")
         return DiskInfo(rawSerial, SystemID.NINTENDO_3DS)
@@ -245,10 +247,6 @@ object SerialScanner {
 
     private fun extractInfoForPSX(openedStream: InputStream): DiskInfo {
         val headerSize = 64.kiloBytes()
-        if (openedStream.available() < headerSize) {
-            return DiskInfo(null, null)
-        }
-
         return textSearch(PSX_BASE_SERIALS, openedStream, PS_SERIAL_MAX_SIZE, headerSize)
             .mapNotNull { serial -> parsePSXSerial(serial) }
             .mapNotNull { serial -> DiskInfo(serial, SystemID.PSX) }
@@ -257,10 +255,6 @@ object SerialScanner {
 
     private fun extractInfoForPSP(openedStream: InputStream): DiskInfo {
         val headerSize = 64.kiloBytes()
-        if (openedStream.available() < headerSize) {
-            return DiskInfo(null, null)
-        }
-
         return textSearch(PSP_BASE_SERIALS, openedStream, PS_SERIAL_MAX_SIZE, headerSize)
             .mapNotNull { serial -> parsePSXSerial(serial) }
             .mapNotNull { serial -> DiskInfo(serial, SystemID.PSP) }
@@ -269,10 +263,6 @@ object SerialScanner {
 
     private fun extractInfoForPBP(openedStream: InputStream): DiskInfo {
         val headerSize = 2.megaBytes()
-        if (openedStream.available() < headerSize) {
-            return DiskInfo(null, null)
-        }
-
         val queries = (PSP_BASE_SERIALS + PSX_BASE_SERIALS)
 
         return textSearch(queries, openedStream, PS_SERIAL_MAX_SIZE, headerSize)
@@ -314,7 +304,7 @@ object SerialScanner {
                     .map { serial to it }
             }
             .map { (bytes, index) ->
-                val serialBytes = bytes.copyOfRange(index, index + resultSize)
+                val serialBytes = bytes.copyOfRange(index, minOf(bytes.size, index + resultSize))
                 String(serialBytes, charset)
             }
             .filterNotNull()
@@ -337,11 +327,18 @@ object SerialScanner {
         inputStream: InputStream,
         byteArray: ByteArray,
     ): ByteArray {
-        val readBytes = inputStream.read(byteArray)
-        return if (readBytes < byteArray.size) {
-            byteArray.copyOf(readBytes)
-        } else {
-            byteArray
+        var count = 0
+        while (count < byteArray.size) {
+            val read = inputStream.read(byteArray, count, byteArray.size - count)
+            if (read < 0) break
+            if (read == 0) {
+                val next = inputStream.read()
+                if (next < 0) break
+                byteArray[count++] = next.toByte()
+            } else {
+                count += read
+            }
         }
+        return if (count == byteArray.size) byteArray else byteArray.copyOf(count)
     }
 }
