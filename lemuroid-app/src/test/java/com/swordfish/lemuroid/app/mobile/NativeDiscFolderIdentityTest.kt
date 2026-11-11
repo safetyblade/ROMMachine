@@ -43,6 +43,33 @@ class NativeDiscFolderIdentityTest {
     }
 
     @Test
+    fun ownerPs2RomFoldersAndNestedGameNamesAreRecognised() {
+        assertEquals(
+            SystemID.PLAYSTATION_2,
+            NativeDiscFolderIdentity.infer(
+                "Shadow of the Colossus (USA).iso",
+                "/storage/emulated/0/ROMS/PS2 ROM/Shadow of the Colossus (USA)/Shadow of the Colossus (USA).iso",
+                enabled,
+            ),
+        )
+        assertEquals(
+            SystemID.PLAYSTATION_2,
+            NativeDiscFolderIdentity.infer(
+                "Dragon Ball Z - Budokai Tenkaichi 3 (USA).iso",
+                "/tree/primary%3AROMS/document/primary%3AROMS%2FPS2%20ROM%2FDragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA)%2FDragon%20Ball%20Z%20-%20Budokai%20Tenkaichi%203%20(USA).iso",
+                enabled,
+            ),
+        )
+        assertNull(
+            NativeDiscFolderIdentity.infer(
+                "Dragon Ball Z - Buu's Fury.gbc",
+                "/ROMS/PS2 ROM/Dragon Ball Z - Buu's Fury/Dragon Ball Z - Buu's Fury.gbc",
+                enabled,
+            ),
+        )
+    }
+
+    @Test
     fun folderQualifiesCoreAdvertisedCompressedDiscFormats() {
         assertEquals(
             SystemID.DREAMCAST,
