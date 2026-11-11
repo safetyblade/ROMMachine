@@ -42,6 +42,7 @@ class GameViewModelTouchControls(
     private val inputs: GameViewModelInput,
     private val tilt: GameViewModelTilt,
     private val sideEffects: GameViewModelSideEffects,
+    private val pivotArcHoldGate: PivotArcHeldInputGate,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
     private val touchControlId = MutableStateFlow(TouchControllerID.GB)
@@ -63,6 +64,18 @@ class GameViewModelTouchControls(
                 hapticFeedbackMode.value = HapticFeedbackMode.parse(settingsManager.hapticFeedbackMode())
             }
         }
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        pivotArcHoldGate.clear()
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        pivotArcHoldGate.clear()
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        pivotArcHoldGate.setEnabled(false)
     }
 
     fun getTouchControlsSettings(
@@ -169,6 +182,7 @@ class GameViewModelTouchControls(
     }
 
     private fun handleVirtualInputButton(event: InputEvent.Button) {
+        if (pivotArcHoldGate.setSource(event.id, "touch", event.pressed)) return
         val action = if (event.pressed) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
         retroGameView.retroGameView?.sendKeyEvent(action, event.id)
     }
