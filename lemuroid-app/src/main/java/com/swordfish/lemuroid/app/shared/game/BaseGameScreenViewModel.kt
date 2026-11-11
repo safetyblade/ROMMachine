@@ -19,6 +19,7 @@ import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSaves
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSideEffects
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTilt
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
@@ -107,6 +108,8 @@ class BaseGameScreenViewModel(
             rumbleManager,
             viewModelScope,
         )
+    private val pivotArcHeldInputGate =
+        PivotArcHeldInputGate { action, key -> retroGameView.retroGameView?.sendKeyEvent(action, key) }
     private val tilt = GameViewModelTilt(appContext, settingsManager)
     private val inputs =
         GameViewModelInput(
@@ -118,6 +121,7 @@ class BaseGameScreenViewModel(
             retroGameView,
             tilt,
             sideEffects,
+            pivotArcHeldInputGate,
             viewModelScope,
         )
     private val touchControls =
@@ -128,6 +132,7 @@ class BaseGameScreenViewModel(
             inputs,
             tilt,
             sideEffects,
+            pivotArcHeldInputGate,
             viewModelScope,
         )
     private val saves =
@@ -199,6 +204,7 @@ class BaseGameScreenViewModel(
         gameLoader: GameLoader,
         requestLoadSave: Boolean,
     ) {
+        pivotArcHeldInputGate.clear()
         Timber.i("Calling load game: $game")
         retroGameView.initialize(applicationContext, game, systemCoreConfig, gameLoader, requestLoadSave)
     }
@@ -278,6 +284,7 @@ class BaseGameScreenViewModel(
 
     suspend fun reset() =
         withLoading {
+            pivotArcHeldInputGate.clear()
             try {
                 delay(appContext.longAnimationDuration().toLong())
                 retroGameView.retroGameViewFlow().reset()
@@ -287,6 +294,7 @@ class BaseGameScreenViewModel(
         }
 
     fun requestFinish() {
+        pivotArcHeldInputGate.clear()
         if (loadingState.value) return
         viewModelScope.launch {
             withLoading {
@@ -298,6 +306,7 @@ class BaseGameScreenViewModel(
     }
 
     fun requestBackgroundSave() {
+        pivotArcHeldInputGate.clear()
         if (loadingState.value) return
         GameService.schedule {
             val snapshot = saves.captureSaveSnapshot(false)
@@ -309,6 +318,16 @@ class BaseGameScreenViewModel(
         touchControls.handleVirtualInputEvent(events)
     }
 
+    fun pivotArcHolds(): Flow<Set<Int>> = pivotArcHeldInputGate.holds
+
+    fun setPivotArcHoldsEnabled(enabled: Boolean) {
+        pivotArcHeldInputGate.setEnabled(enabled)
+    }
+
+    fun togglePivotArcHold(keyCode: Int) {
+        pivotArcHeldInputGate.toggleHold(keyCode)
+    }
+
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
 
@@ -316,6 +335,11 @@ class BaseGameScreenViewModel(
         owner.lifecycle.addObserver(inputs)
         owner.lifecycle.addObserver(retroGameView)
         owner.lifecycle.addObserver(touchControls)
+    }
+
+    override fun onCleared() {
+        pivotArcHeldInputGate.setEnabled(false)
+        super.onCleared()
     }
 
     fun sendKeyEvent(
