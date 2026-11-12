@@ -76,7 +76,19 @@ object GripArcInputCatalog {
                 )
             // NGC refers to Neo Geo Pocket Color, not Nintendo GameCube.
             SystemID.NGC -> listOf(a, b, start, select)
-            SystemID.DREAMCAST -> listOf(a, b, x, y, start)
+            // Flycast: DC A/B/X/Y = RetroPad B/A/Y/X; triggers = L2/R2.
+            // Preserve persisted RetroPad keycodes, change only labels and
+            // expose previously missing trigger choices to GripArc.
+            SystemID.DREAMCAST ->
+                listOf(
+                    b.copy(label = "A"),
+                    a.copy(label = "B"),
+                    y.copy(label = "X"),
+                    x.copy(label = "Y"),
+                    l2.copy(label = "L"),
+                    r2.copy(label = "R"),
+                    start,
+                )
             else -> emptyList()
         }
 

@@ -34,7 +34,7 @@ object NativeGameSystems {
                 listOf(
                     SystemCoreConfig(
                         CoreID.FLYCAST_MODERN,
-                        controllerConfigs = hashMapOf(0 to arrayListOf(ControllerConfigs.NATIVE_ANALOG)),
+                        controllerConfigs = hashMapOf(0 to arrayListOf(ControllerConfigs.DREAMCAST)),
                         defaultSettings =
                             listOf(
                                 CoreVariable("reicast_hle_bios", "enabled"),

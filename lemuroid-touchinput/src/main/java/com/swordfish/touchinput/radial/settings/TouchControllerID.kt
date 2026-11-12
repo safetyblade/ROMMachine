@@ -14,6 +14,8 @@ import com.swordfish.touchinput.radial.layouts.DOSLeft
 import com.swordfish.touchinput.radial.layouts.DOSRight
 import com.swordfish.touchinput.radial.layouts.DesmumeLeft
 import com.swordfish.touchinput.radial.layouts.DesmumeRight
+import com.swordfish.touchinput.radial.layouts.DreamcastLeft
+import com.swordfish.touchinput.radial.layouts.DreamcastRight
 import com.swordfish.touchinput.radial.layouts.GBALeft
 import com.swordfish.touchinput.radial.layouts.GBARight
 import com.swordfish.touchinput.radial.layouts.GBLeft
@@ -68,6 +70,7 @@ enum class TouchControllerID {
     MELONDS,
     PSX,
     PSX_DUALSHOCK,
+    DREAMCAST,
     GAMECUBE,
     N64,
     PSP,
@@ -155,6 +158,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> PSXDualShockLeft(modifier, settings) },
                         { modifier, settings -> PSXDualShockRight(modifier, settings) },
+                    )
+
+                DREAMCAST ->
+                    Config(
+                        { modifier, settings -> DreamcastLeft(modifier, settings) },
+                        { modifier, settings -> DreamcastRight(modifier, settings) },
                     )
 
                 GAMECUBE ->
