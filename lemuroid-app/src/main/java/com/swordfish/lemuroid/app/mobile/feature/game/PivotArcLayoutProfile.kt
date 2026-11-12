@@ -118,6 +118,7 @@ object PivotArcPositionSolver {
     private const val HOLD_TOUCH_SIZE = 48f
     private const val HOLD_VISUAL_SIZE = 28f
     private const val UTILITY_GAP = 9f
+    private const val LOWER_TRIAL_OFFSET = 18f
     private val utilities = setOf("Start", "Select", "Menu")
     private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 
@@ -206,6 +207,12 @@ object PivotArcPositionSolver {
         }
 
         val normalControls = gameplay.associateWith(::rectangleFor)
+        // Keep the maximum four-face envelope reserved on GBA as well as
+        // SNES. Inactive X/Y never become tappable ghost buttons.
+        val futureFaceClearance =
+            listOf("X", "Y")
+                .filter { it !in gameplay && it in baseline.buttonCenters }
+                .associateWith(::rectangleFor)
         // Dedicated 48dp targets flank B and sit just below A. Neither
         // modifies the owner's original A/B/D/L/R anchors or PadKit IDs.
         val b = normalControls.getValue("B")
@@ -228,12 +235,13 @@ object PivotArcPositionSolver {
                     ),
             )
         val core = normalControls + holds
+        val clearanceControls = core.values + futureFaceClearance.values
         val coreHull =
             PivotArcBounds(
-                core.values.minOf { it.left },
-                core.values.minOf { it.top },
-                core.values.maxOf { it.right },
-                core.values.maxOf { it.bottom },
+                clearanceControls.minOf { it.left },
+                clearanceControls.minOf { it.top },
+                clearanceControls.maxOf { it.right },
+                clearanceControls.maxOf { it.bottom },
             )
 
         // V1 trial utility bank: directly beneath the PivotArc gameplay
@@ -252,12 +260,15 @@ object PivotArcPositionSolver {
                     .also { cursor += target.w + UTILITY_GAP }
             }
         val complete = core + rail
+        // Movement bounds must include the *inactive* future face envelope;
+        // otherwise a manual drag can hide future X/Y behind the video.
+        val reservedHull = complete.values + futureFaceClearance.values
         val wholeHull =
             PivotArcBounds(
-                complete.values.minOf { it.left },
-                complete.values.minOf { it.top },
-                complete.values.maxOf { it.right },
-                complete.values.maxOf { it.bottom },
+                reservedHull.minOf { it.left },
+                reservedHull.minOf { it.top },
+                reservedHull.maxOf { it.right },
+                reservedHull.maxOf { it.bottom },
             )
         val minTop = max(safe.top, viewport.bottom + GAP)
         val minDx = safe.left - wholeHull.left
@@ -271,7 +282,7 @@ object PivotArcPositionSolver {
         }
 
         val dx = requestedDx.coerceIn(minDx, maxDx)
-        val dy = requestedDy.coerceIn(minDy, maxDy)
+        val dy = (requestedDy + LOWER_TRIAL_OFFSET).coerceIn(minDy, maxDy)
         val moved =
             complete.mapValues { (_, rect) ->
                 PivotArcBounds(
@@ -294,6 +305,31 @@ object PivotArcPositionSolver {
             } else {
                 moved
             }
+        // Validate the inactive expansion envelope at the SAME translated
+        // and mirrored coordinates as the active controls.
+        val futurePositions =
+            futureFaceClearance.mapValues { (_, rect) ->
+                val translated =
+                    PivotArcBounds(
+                        rect.left + dx,
+                        rect.top + dy,
+                        rect.right + dx,
+                        rect.bottom + dy,
+                    )
+                if (leftHanded) {
+                    PivotArcBounds(
+                        safe.left + safe.right - translated.right,
+                        translated.top,
+                        safe.left + safe.right - translated.left,
+                        translated.bottom,
+                    )
+                } else {
+                    translated
+                }
+            }
+        if (futurePositions.values.any { !it.inside(safe) || it.intersects(viewport.inset(GAP)) }) {
+            return PivotArcResolution.Unavailable("Not enough space to preserve the future X/Y button locations.")
+        }
         for ((key, rect) in positions) {
             if (!rect.inside(safe)) {
                 return PivotArcResolution.Unavailable("$key enters a device inset or gesture area.")

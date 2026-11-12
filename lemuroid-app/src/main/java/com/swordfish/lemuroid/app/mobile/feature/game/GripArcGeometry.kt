@@ -66,13 +66,44 @@ sealed interface GripArcFit {
 /**
  * This solver translates/scales one permanent 272×308 L assembly.
  * G1–G4 always keep the approved manifest centres. No button reflow.
- * Conservative collision checks use the entire bounding rectangle, so a
- * control is never shown over a viewport or another known input target.
+ * Only the painted vertical and horizontal arms of the permanent L count as
+ * physical housing. The open interior is available for ordinary controls.
+ * Active touch slots are checked separately; the full four-slot footprint
+ * remains reserved regardless of current count.
  */
 object GripArcPositionSolver {
     private const val SAFE_GAP = 8f
     private const val MIN_TARGET = 48f
     private val scales = listOf(1.0f, 0.90f, 0.82f, 0.76f, 0.72f)
+
+    /**
+     * Actual permanent L material, in approved 272 x 308 source coordinates.
+     * Right vertical arm: x 157..265, entire height. Bottom: y 219..298.
+     * Left mirrors x around the 272-unit centre. Do NOT use the enclosing
+     * rectangle: the unused top-inside area is intentionally open.
+     */
+    internal fun housingFootprint(
+        housing: PivotArcBounds,
+        scale: Float,
+        side: GripArcSide,
+    ): List<PivotArcBounds> {
+        val armLeft = if (side == GripArcSide.RIGHT) 157f else 7f
+        val armRight = if (side == GripArcSide.RIGHT) 265f else 115f
+        return listOf(
+            PivotArcBounds(
+                housing.left + armLeft * scale,
+                housing.top + 12f * scale,
+                housing.left + armRight * scale,
+                housing.top + 298f * scale,
+            ),
+            PivotArcBounds(
+                housing.left + 7f * scale,
+                housing.top + 219f * scale,
+                housing.left + 265f * scale,
+                housing.top + 298f * scale,
+            ),
+        )
+    }
 
     fun resolve(
         manifest: GripArcManifest,
@@ -97,17 +128,18 @@ object GripArcPositionSolver {
             val edgeX = if (side == GripArcSide.RIGHT) maxX else minX
             val candidatesY =
                 listOf(
-                    viewport.bottom + SAFE_GAP,
-                    maxY,
+                    maxY, // Anchor the permanent bottom arm to the lower console edge first.
                     (viewport.bottom + maxY) / 2f,
+                    viewport.bottom + SAFE_GAP,
                     minY,
                 )
             for (candidateY in candidatesY) {
                 val x = (edgeX + dx).coerceIn(minX, maxX)
                 val y = (candidateY + dy).coerceIn(minY, maxY)
                 val housing = PivotArcBounds(x, y, x + width, y + height)
-                if (housing.intersects(viewport.inset(SAFE_GAP))) continue
-                if (occupied.any { housing.intersects(it.inset(SAFE_GAP / 2f)) }) continue
+                val footprint = housingFootprint(housing, scale, side)
+                if (footprint.any { it.intersects(viewport.inset(SAFE_GAP)) }) continue
+                if (footprint.any { arm -> occupied.any { arm.intersects(it.inset(SAFE_GAP / 2f)) } }) continue
                 val targets =
                     manifest.slots.associate { slot ->
                         val center = if (side == GripArcSide.RIGHT) slot.centerRight else slot.centerLeft
@@ -141,5 +173,37 @@ object GripArcPositionSolver {
             "The complete GripArc attachment does not fit outside gameplay and existing controls. " +
                 "Move controls or select a compatible layout; your cartridge preference is preserved.",
         )
+    }
+}
+
+/**
+ * Standard+GripArc is a coordinated hardware layout, not Standard with a
+ * floating dock. Reflow only the same-side composite PadKit group inward and
+ * upward, leaving Standard-only settings and PadKit identities unchanged.
+ *
+ * The deck height limits travel on compact displays; the measured GripArc
+ * solver still rejects any unsafe final combination.
+ */
+internal data class GripArcStandardReflow(
+    val leftX: Float = 0f,
+    val leftY: Float = 0f,
+    val rightX: Float = 0f,
+    val rightY: Float = 0f,
+)
+
+internal object GripArcStandardReflowPolicy {
+    fun resolve(
+        screenWidthDp: Float,
+        deckHeightDp: Float,
+        side: GripArcSide,
+    ): GripArcStandardReflow {
+        if (screenWidthDp <= 0f || deckHeightDp <= 0f) return GripArcStandardReflow()
+        val inward = (screenWidthDp * 0.09f).coerceAtMost(30f)
+        val availableVertical = ((deckHeightDp - 250f) * 0.65f).coerceAtLeast(0f)
+        return if (side == GripArcSide.RIGHT) {
+            GripArcStandardReflow(rightX = -inward, rightY = -availableVertical.coerceAtMost(148f))
+        } else {
+            GripArcStandardReflow(leftX = inward, leftY = -availableVertical.coerceAtMost(148f))
+        }
     }
 }

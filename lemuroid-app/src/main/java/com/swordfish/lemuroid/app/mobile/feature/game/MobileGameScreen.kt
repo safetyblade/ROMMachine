@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.graphics.RectF
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -230,6 +232,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
             val selectedPivot = arcProfile.mode.hasPivot
+            // Standard+GripArc reserves the docking edge BEFORE measuring PadKit
+            // groups. Only the group next to the L moves; Standard-only is exact.
+            val standardGripReflow =
+                if (!selectedPivot && arcProfile.mode.hasGrip && !isLandscape &&
+                    fullPos != null && viewPos != null
+                ) {
+                    GripArcStandardReflowPolicy.resolve(
+                        screenWidthDp = fullPos.width / currentDensity.density,
+                        deckHeightDp = (fullPos.bottom - viewPos.bottom) / currentDensity.density,
+                        side = arcProfile.side,
+                    )
+                } else {
+                    GripArcStandardReflow()
+                }
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
@@ -345,15 +361,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             }
-                        GripArcPositionSolver.resolve(
-                            manifest = gripManifest,
-                            safe = safeBounds,
-                            viewport = viewportBounds,
-                            occupied = occupied,
-                            side = arcProfile.side,
-                            dx = arcProfile.dx,
-                            dy = arcProfile.dy,
-                        )
+                        if (occupied.any { !it.inside(safeBounds) || it.intersects(viewportBounds.inset(4f)) }) {
+                            GripArcFit.Unavailable("Controls need more room below the game screen.")
+                        } else {
+                            GripArcPositionSolver.resolve(
+                                manifest = gripManifest,
+                                safe = safeBounds,
+                                viewport = viewportBounds,
+                                occupied = occupied,
+                                side = arcProfile.side,
+                                dx = arcProfile.dx,
+                                dy = arcProfile.dy,
+                            )
+                        }
                     }
                 } else {
                     null
@@ -506,6 +526,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
+                                    .offset(x = standardGripReflow.leftX.dp, y = standardGripReflow.leftY.dp)
                                     .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
                                 touchControllerSettings,
                             )
@@ -513,6 +534,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
+                                    .offset(x = standardGripReflow.rightX.dp, y = standardGripReflow.rightY.dp)
                                     .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
                                 touchControllerSettings,
                             )
@@ -553,15 +575,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
-            if ((pivotError != null || gripError != null) && touchControlsVisibleState.value) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        pivotError?.let { Text(it.reason, color = shellTokens.onChassis) }
-                        gripError?.let { Text(it.reason, color = shellTokens.onChassis) }
-                    }
+            // A persistent dark-on-dark full-screen warning obscured gameplay
+            // controls. Use the platform's legible, transient, accessible toast.
+            val layoutError = gripError?.reason ?: pivotError?.reason
+            LaunchedEffect(layoutError, touchControlsVisibleState.value) {
+                if (layoutError != null && touchControlsVisibleState.value) {
+                    Toast.makeText(appContext, layoutError, Toast.LENGTH_LONG).show()
                 }
             }
         }
