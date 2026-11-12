@@ -276,6 +276,15 @@ class BaseGameScreenViewModel(
         return touchControls.getTouchControllerConfig()
     }
 
+    /** Wii controller preference is independent of game progress and engine version. */
+    val cartridgeSessionKey: String = "${game.systemId}_${game.id}"
+
+    fun selectedWiiControllerName(): String? = inputs.selectedControllerName()
+
+    fun selectWiiController(name: String) {
+        inputs.selectWiiController(name)
+    }
+
     fun changeTiltConfiguration(tiltConfig: TiltConfiguration) {
         tilt.changeTiltConfiguration(tiltConfig)
     }
