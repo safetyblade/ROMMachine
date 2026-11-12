@@ -286,7 +286,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gripResolution: GripArcFit? =
                 if (
                     arcProfile.mode.hasGrip &&
-                    touchControlsVisibleState.value &&
                     fullPos != null &&
                     viewPos != null
                 ) {
@@ -329,7 +328,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 pivotPlacement.controls.values.toList()
                             } else {
                                 val known =
-                                    if (individualInputs.isNotEmpty()) individualInputs.values.toList() else {
+                                    if (!touchControlsVisibleState.value) {
+                                        emptyList()
+                                    } else if (individualInputs.isNotEmpty()) {
+                                        individualInputs.values.toList()
+                                    } else {
                                         listOfNotNull(leftPadBounds.value, rightPadBounds.value)
                                     }
                                 known.map { rect ->
@@ -355,7 +358,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     null
                 }
             val gripPlacement = (gripResolution as? GripArcFit.Fits)?.placement
-            val gripEnabled = gripPlacement != null && touchControlsVisibleState.value && !isLoading
+            // An optional hardware pad does not hide this virtual accessory:
+            // physical keys and GripArc keys can remain independent owners.
+            val gripEnabled = gripPlacement != null && !isLoading
             DisposableEffect(viewModel, gripEnabled) {
                 viewModel.setGripArcEnabled(gripEnabled)
                 onDispose { viewModel.setGripArcEnabled(false) }
@@ -537,7 +542,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     )
                 }
             }
-            if (gripPlacement != null && touchControlsVisibleState.value && !isLoading) {
+            if (gripPlacement != null && !isLoading) {
                 GripArcControlGroup(
                     placement = gripPlacement,
                     profile = arcProfile,
