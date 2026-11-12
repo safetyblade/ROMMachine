@@ -19,7 +19,8 @@ class CachedRomStagerTest {
         val folder = Files.createTempDirectory("cartdeck-rom-cache").toFile()
         try {
             val cached = File(folder, "disc.iso").apply { writeBytes(byteArrayOf(1, 2, 3)) }
-            val actual = CachedRomStager.stage(cached, 3) {
+            val actual =
+                CachedRomStager.stage(cached, 3) {
                 error("Should not reopen a verified cached ROM")
             }
             assertEquals(cached, actual)
@@ -34,7 +35,8 @@ class CachedRomStagerTest {
         val folder = Files.createTempDirectory("cartdeck-rom-cache").toFile()
         try {
             val cached = File(folder, "disc.iso").apply { writeBytes(byteArrayOf(7)) }
-            val actual = CachedRomStager.stage(cached, 4) {
+            val actual =
+                CachedRomStager.stage(cached, 4) {
                 ByteArrayInputStream(byteArrayOf(1, 2, 3, 4))
             }
             assertEquals(4L, actual.length())
