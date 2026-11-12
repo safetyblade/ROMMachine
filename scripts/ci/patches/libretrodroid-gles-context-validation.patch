@@ -9,12 +9,12 @@ index 941de81..6c40d61 100644
 +#include <GLES3/gl3.h>
 +#include <cstdio>
  #include <unordered_map>
- 
+
  #include "../../libretro-common/include/libretro.h"
 @@ -145,7 +147,48 @@ bool Environment::environment_handle_set_controller_info(const struct retro_cont
      return true;
  }
- 
+
 +bool Environment::currentContextSupports(unsigned requiredMajor, unsigned requiredMinor) const {
 +    const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
 +    unsigned major = 0;
@@ -65,7 +65,7 @@ index 9f4a06c..158d948 100644
 --- a/libretrodroid/src/main/cpp/environment.h
 +++ b/libretrodroid/src/main/cpp/environment.h
 @@ -88,6 +88,7 @@ public:
- 
+
      int getPixelFormat() const;
      bool isUseHwAcceleration() const;
 +    bool isCurrentHwContextCompatible() const;
@@ -81,7 +81,7 @@ index 9f4a06c..158d948 100644
      bool environment_handle_get_vfs_interface(struct retro_vfs_interface_info* vfs_interface_info);
      bool environment_handle_get_microphone_interface(struct retro_microphone_interface* microphone_interface);
 @@ -130,6 +132,8 @@ private:
- 
+
      int pixelFormat = RETRO_PIXEL_FORMAT_RGB565;
      bool useHWAcceleration = false;
 +    unsigned requiredGlesMajor = 0;
@@ -95,10 +95,10 @@ index f52cec7..fae72ce 100644
 +++ b/libretrodroid/src/main/cpp/input.cpp
 @@ -18,6 +18,7 @@
  #include "input.h"
- 
+
  #include <cmath>
 +#include <algorithm>
- 
+
  #include <android/input.h>
  #include <android/keycodes.h>
 @@ -72,6 +73,10 @@ int16_t Input::getInputState(unsigned port, unsigned device, unsigned index, uns
@@ -113,7 +113,7 @@ index f52cec7..fae72ce 100644
                      return anyPressed(port, id);
              }
 @@ -79,6 +84,13 @@ int16_t Input::getInputState(unsigned port, unsigned device, unsigned index, uns
- 
+
          case RETRO_DEVICE_ANALOG: {
              switch (index) {
 +                case RETRO_DEVICE_INDEX_ANALOG_BUTTON:
@@ -128,7 +128,7 @@ index f52cec7..fae72ce 100644
                          case RETRO_DEVICE_ID_ANALOG_X:
 @@ -179,6 +191,7 @@ int Input::convertAndroidToLibretroKey(int keyCode) const {
  }
- 
+
  void Input::onKeyEvent(unsigned int port, int action, int keyCode) {
 +    if (port >= 4) return;
      int retroKeyCode = convertAndroidToLibretroKey(keyCode);
@@ -136,7 +136,7 @@ index f52cec7..fae72ce 100644
          return;
 @@ -192,6 +205,7 @@ void Input::onKeyEvent(unsigned int port, int action, int keyCode) {
  }
- 
+
  void Input::onMotionEvent(int port, int motionSource, float xAxis, float yAxis) {
 +    if (port < 0 || port >= 4) return;
      switch (motionSource) {
@@ -145,7 +145,7 @@ index f52cec7..fae72ce 100644
 @@ -208,6 +222,11 @@ void Input::onMotionEvent(int port, int motionSource, float xAxis, float yAxis)
              pads[port].joypadRightYAxis = yAxis;
              break;
- 
+
 +        case Input::MOTION_SOURCE_ANALOG_TRIGGERS:
 +            pads[port].leftTrigger = std::isfinite(xAxis) ? std::clamp(xAxis, 0.0f, 1.0f) : 0.0f;
 +            pads[port].rightTrigger = std::isfinite(yAxis) ? std::clamp(yAxis, 0.0f, 1.0f) : 0.0f;
@@ -173,20 +173,20 @@ index 9d7c44b..9641af9 100644
      static constexpr int MOTION_SOURCE_POINTER = 3;
 +    static constexpr int MOTION_SOURCE_ANALOG_TRIGGERS = 4;
      static constexpr int MAX_RANGE_MOTION = 0x7fff;
- 
+
      static constexpr int RETRO_DEVICE_ID_JOYPAD_UP_LEFT = 50;
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
 index 60640c4..dbfbbd9 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
 @@ -188,6 +188,9 @@ void LibretroDroid::onSurfaceChanged(unsigned int width, unsigned int height) {
- 
+
  void LibretroDroid::onSurfaceCreated() {
      LOGD("Performing libretrodroid onSurfaceCreated");
 +    if (!Environment::getInstance().isCurrentHwContextCompatible()) {
 +        throw LibretroDroidError("Current GLES context does not meet core requirements", ERROR_GL_NOT_COMPATIBLE);
 +    }
- 
+
      struct retro_system_av_info system_av_info {};
      core->retro_get_system_av_info(&system_av_info);
 diff --git a/libretrodroid/src/main/cpp/rumble.h b/libretrodroid/src/main/cpp/rumble.h
@@ -196,10 +196,10 @@ index 354ec2f..6f5751e 100644
 @@ -18,6 +18,7 @@
  #ifndef LIBRETRODROID_RUMBLE_H
  #define LIBRETRODROID_RUMBLE_H
- 
+
 +#include <functional>
  #include <array>
- 
+
  #include "rumblestate.h"
 diff --git a/libretrodroid/src/main/cpp/utils/javautils.h b/libretrodroid/src/main/cpp/utils/javautils.h
 index 3ff492a..91b0bb9 100644
@@ -208,8 +208,101 @@ index 3ff492a..91b0bb9 100644
 @@ -18,6 +18,7 @@
  #ifndef LIBRETRODROID_JAVAUTILS_H
  #define LIBRETRODROID_JAVAUTILS_H
- 
+
 +#include <functional>
  #include "unordered_map"
  #include "string"
- 
+
+diff --git a/libretrodroid/src/main/cpp/videolayout.cpp b/libretrodroid/src/main/cpp/videolayout.cpp
+index 8b89326..08dfb9c 100644
+--- a/libretrodroid/src/main/cpp/videolayout.cpp
++++ b/libretrodroid/src/main/cpp/videolayout.cpp
+@@ -17,6 +17,9 @@
+
+ #include "videolayout.h"
+ #include "log.h"
++#include <algorithm>
++#include <cmath>
++#include <limits>
+
+ namespace libretrodroid {
+
+@@ -205,30 +208,35 @@ void VideoLayout::updateRotation(float rotation) {
+ }
+
+ std::pair<float, float> VideoLayout::getRelativePosition(float touchX, float touchY) {
+-    float xMin = std::numeric_limits<float>::max();
+-    float xMax = std::numeric_limits<float>::lowest();
+-    float yMin = std::numeric_limits<float>::max();
+-    float yMax = std::numeric_limits<float>::lowest();
+-
+-    for (size_t i = 0; i < foregroundVertices.size(); i += 2) {
+-        float x = foregroundVertices[i];
+-        float y = foregroundVertices[i + 1];
+-        xMin = std::min(xMin, x);
+-        xMax = std::max(xMax, x);
+-        yMin = std::min(yMin, -y);
+-        yMax = std::max(yMax, -y);
++    // Invert the displayed quad, not its axis-aligned bounding box. The
++    // latter loses rotation and accepts touches in the surrounding triangles.
++    // Texture origin affects vertex order, but pointer coordinates always use
++    // the logical game's top-left, with x right and y down.
++    const size_t origin = bottomLeftOrigin ? 2 : 0;
++    const size_t right = bottomLeftOrigin ? 10 : 4;
++    const size_t down = bottomLeftOrigin ? 0 : 2;
++    const float ox = foregroundVertices[origin];
++    const float oy = -foregroundVertices[origin + 1];
++    const float rx = foregroundVertices[right] - ox;
++    const float ry = -foregroundVertices[right + 1] - oy;
++    const float dx = foregroundVertices[down] - ox;
++    const float dy = -foregroundVertices[down + 1] - oy;
++    const float determinant = rx * dy - ry * dx;
++    if (!std::isfinite(touchX) || !std::isfinite(touchY) ||
++        !std::isfinite(determinant) || std::fabs(determinant) < 1e-12f) {
++        return {-10.0f, -10.0f};
+     }
+-
+-    if (touchX < xMin || touchX > xMax || touchY < yMin || touchY > yMax) {
++    const float x = touchX - ox;
++    const float y = touchY - oy;
++    const float relativeX = (x * dy - y * dx) / determinant;
++    const float relativeY = (rx * y - ry * x) / determinant;
++    constexpr float tolerance = 1e-6f;
++    if (!std::isfinite(relativeX) || !std::isfinite(relativeY) ||
++        relativeX < -tolerance || relativeX > 1.0f + tolerance ||
++        relativeY < -tolerance || relativeY > 1.0f + tolerance) {
+         return {-10.0f, -10.0f};
+     }
+-
+-    float relativeX = (touchX - xMin) / (xMax - xMin);
+-    float relativeY = (touchY - yMin) / (yMax - yMin);
+-
+-    LOGD("Computed relative touch position: %.2f, %.2f", relativeX, relativeY);
+-
+-    return {relativeX, relativeY};
++    return {std::clamp(relativeX, 0.0f, 1.0f), std::clamp(relativeY, 0.0f, 1.0f)};
+ }
+
+ void VideoLayout::updateRelativeForegroundBounds() {
+diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+index 7eb8602..dca03a5 100644
+--- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
++++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+@@ -140,7 +140,7 @@ class GLRetroView(
+                 normalizeTouchCoordinates(event.x, event.y)
+             }
+
+-            MotionEvent.ACTION_UP -> {
++            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                 TOUCH_EVENT_OUTSIDE
+             }
+
+@@ -148,7 +148,7 @@ class GLRetroView(
+         }
+
+         if (position != null) {
+-            LibretroDroid.onTouchEvent(position.x, position.y)
++            queueEvent { LibretroDroid.onTouchEvent(position.x, position.y) }
+         }
+
+         return true

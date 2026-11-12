@@ -1,0 +1,505 @@
+name: CARTDECK Wii and Xbox engineering APKs
+
+# Independent Wii and combined Wii/Xbox engineering artifacts; the existing five-engine pipeline remains available.
+# Authenticated Actions QA artifacts only; no GitHub Release publishing.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartdeck-wii-xbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-engines:
+    name: Android ARM64 engine — ${{ matrix.engine }}
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 105
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [ps1, psp, dc, gc, ps2]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned native toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/native-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/native-tools"
+          "$RUNNER_TEMP/native-tools/bin/pip" install 'cmake==3.31.6' 'ninja==1.11.1.4'
+          echo "$RUNNER_TEMP/native-tools/bin" >> "$GITHUB_PATH"
+      - name: Build pinned engine, assets and provenance
+        env:
+          ENGINE: ${{ matrix.engine }}
+          NATIVE_BUILD_JOBS: '2'
+          NATIVE_JOBS: '2'
+        run: |
+          set -euo pipefail
+          case "$ENGINE" in
+            ps1) builder=build_ps1_upstream_core.sh ;;
+            psp) builder=build_psp_upstream_core.sh ;;
+            dc) builder=build_dreamcast_upstream_core.sh ;;
+            gc) builder=build_gamecube_upstream_core.sh ;;
+            ps2) builder=build_ps2_upstream_core.sh ;;
+            *) exit 1 ;;
+          esac
+          bash "scripts/ci/$builder" "work/native-packages/$ENGINE"
+      - name: Retain verified build input for the APK job
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-engine-${{ matrix.engine }}
+          path: work/native-packages/${{ matrix.engine }}/
+          if-no-files-found: error
+          retention-days: 1
+
+  native-host:
+    name: Patched Android graphics and input host
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned Android host toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/host-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865' 'cmake;3.22.1' 'platforms;android-35' 'build-tools;34.0.0'
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+      - name: Build and test the exact patched LibretroDroid host
+        run: |
+          set -euo pipefail
+          export HOST_BUILD_DIR="$RUNNER_TEMP/cartdeck-host"
+          export HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/host-package/maven"
+          export LIBRETRODROID_SOURCE_DIR="$HOST_BUILD_DIR/source"
+          export BUILD_JOBS=2
+          bash scripts/ci/build_libretrodroid_host.sh
+          bash scripts/ci/test_libretrodroid_input.sh
+          cp "$HOST_BUILD_DIR/provenance.txt" work/host-package/provenance.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-libretrodroid-host
+          path: work/host-package/
+          if-no-files-found: error
+          retention-days: 1
+
+  native-xbox:
+    name: Android ARM64 hakuX SDL3 backend
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Android toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/xbox-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/xbox-tools"
+          "$RUNNER_TEMP/xbox-tools/bin/pip" install 'cmake==3.31.6' 'ninja==1.11.1.4'
+          echo "$RUNNER_TEMP/xbox-tools/bin" >> "$GITHUB_PATH"
+      - name: Build pinned hakuX and required dependencies
+        env:
+          NATIVE_BUILD_JOBS: '2'
+        run: bash scripts/ci/build_hakux_native.sh work/native-packages/xbox
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hakux-android-backend
+          path: work/native-packages/xbox/
+          if-no-files-found: error
+          retention-days: 30
+
+  apk-wii:
+    name: Build and verify Wii APK independently
+    needs: [native-engines, native-host]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARTDECK_OUTPUT: dist/cartdeck
+      CARTDECK_REQUIRE_FIVE_ENGINES: 'true'
+      CARTDECK_REQUIRE_WII: 'true'
+      CARTDECK_APK_MAX_MIB: '256'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout source and pinned cores
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Download all five verified engine packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-engine-*
+          path: work/native-inputs
+      - name: Download the patched Android host
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-libretrodroid-host
+          path: work/host-input
+
+      - name: Create evidence directory
+        run: mkdir -p dist/cartdeck/evidence
+
+      - name: Check that incomplete or baseline APKs cannot be published
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_stage_native_bundle.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_hakux_native.py' -v
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Android SDK
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          printf '%s\n' "$sdk_root/cmdline-tools/latest/bin" "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > dist/cartdeck/evidence/sdk-licenses.log
+          "$manager" --sdk_root="$sdk_root" --install 'platform-tools' 'platforms;android-35' 'build-tools;34.0.0'
+
+      - name: Restore verified Gradle distribution cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/cartdeck-gradle/*.zip
+          key: gradle-distribution-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Configure Gradle dependency cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Download and verify pinned Gradle with bounded retries
+        run: |
+          set -euo pipefail
+          bash scripts/ci/bootstrap_gradle.sh 2>&1 | tee dist/cartdeck/evidence/gradle-bootstrap.log
+
+      - name: Validate brand, source assets and native resource contracts
+        run: |
+          set -euo pipefail
+          {
+            python3 scripts/ci/test_bootstrap_gradle.py
+            python3 scripts/ci/test_build_retry.py
+            python3 scripts/audit_cartdeck_brand.py
+            python3 -m unittest discover design/cartdeck-v03 -p 'test_dpad_consistency.py'
+            python3 -m unittest discover design/cartdeck-v04 -p 'test_assets.py'
+            python3 -m unittest discover design/cartdeck-v05 -p 'test_cartridge_family.py'
+            python3 -m unittest discover design/cartdeck-v06 -p 'test_bookshelf_palette.py'
+            python3 design/cartdeck-v04/build_assets.py
+            python3 design/cartdeck-v04/export_android_vectors.py
+            python3 -m unittest discover design/cartdeck-v04 -p 'test_android_export.py'
+            python3 scripts/test_cartridge_vectors.py
+            python3 scripts/generate_cartdeck_native_assets.py --output lemuroid-app/build/generated/cartdeck-native/res
+            python3 -m unittest discover scripts/ci -p 'test_cartdeck_native_assets.py' -v
+            bash scripts/ci/check_cartdeck_native_aapt2.sh
+            bash scripts/ci/test_android_emulator_smoke.sh
+            git diff --exit-code -- design/cartdeck-v03 design/cartdeck-v04 design/cartdeck-v05
+          } 2>&1 | tee dist/cartdeck/evidence/asset-checks.log
+
+      - name: Run style and unit tests and build the single standalone APK
+        run: |
+          set -euo pipefail
+          version_code=$(bash scripts/ci/engineering_version_code.sh)
+          test "$version_code" -gt 2001
+          echo "CARTDECK_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "$version_code" > dist/cartdeck/evidence/version-code.txt
+          git rev-parse HEAD > dist/cartdeck/evidence/commit-sha.txt
+          git submodule status --recursive > dist/cartdeck/evidence/submodule-shas.txt
+          export CARTDECK_TEST_VERSION_CODE="$version_code"
+          export CARTDECK_HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/host-input/maven"
+          bash scripts/ci/build_native_engine_apk.sh \
+            --ps1 work/native-inputs/native-engine-ps1 \
+            --psp work/native-inputs/native-engine-psp \
+            --dc work/native-inputs/native-engine-dc \
+            --gc work/native-inputs/native-engine-gc \
+            --ps2 work/native-inputs/native-engine-ps2 \
+            --wii
+          cp work/host-input/provenance.txt dist/cartdeck/evidence/host-provenance.txt
+
+      - name: Print actionable Kotlin lint diagnostics on failure
+        if: failure()
+        run: |
+          for report in lemuroid-app/build/reports/ktlint/*/*.txt retrograde-app-shared/build/reports/ktlint/*/*.txt; do
+            if [ -s "$report" ]; then
+              echo "::group::$report"
+              head -n 120 "$report"
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Verify the APK and its upgrade identity
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_native_bundle_apk.py \
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
+            --require-five-engines --require-wii \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar \
+            > dist/cartdeck/evidence/native-bundle-apk.json
+          cat dist/cartdeck/evidence/native-bundle-apk.json
+
+      - name: Collect test and native asset evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p dist/cartdeck/evidence
+          for source in \
+            lemuroid-app/build/test-results/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/reports/tests/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json \
+            lemuroid-app/build/generated/cartdeck-native/aapt2-evidence; do
+            if [ -e "$source" ]; then
+              cp -R "$source" "dist/cartdeck/evidence/$(basename "$(dirname "$source")")-$(basename "$source")"
+            fi
+          done
+          while IFS= read -r manifest; do
+            variant="$(basename "$(dirname "$manifest")")"
+            cp "$manifest" "dist/cartdeck/evidence/native-assets-$variant.json"
+          done < <(find lemuroid-app/build/generated -name native-assets-manifest.json -type f 2>/dev/null)
+
+      - name: Upload the verified expansion APK and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_WII_ARM64_DEBUG
+          path: |
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk
+            dist/cartdeck/evidence/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve failure diagnostics without publishing an unverified APK
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_WII_FAILURE_EVIDENCE
+          path: dist/cartdeck/evidence/
+          if-no-files-found: warn
+          retention-days: 7
+
+  apk-combined:
+    name: Build and verify Wii plus Xbox APK
+    needs: [native-engines, native-host, native-xbox]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARTDECK_OUTPUT: dist/cartdeck
+      CARTDECK_REQUIRE_FIVE_ENGINES: 'true'
+      CARTDECK_REQUIRE_WII: 'true'
+      CARTDECK_REQUIRE_XBOX: 'true'
+      CARTDECK_APK_MAX_MIB: '256'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout source and pinned cores
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Download all five verified engine packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-engine-*
+          path: work/native-inputs
+      - name: Download the patched Android host
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-libretrodroid-host
+          path: work/host-input
+
+      - name: Download verified hakuX backend
+        uses: actions/download-artifact@v4
+        with:
+          name: hakux-android-backend
+          path: work/xbox-input
+
+      - name: Create evidence directory
+        run: mkdir -p dist/cartdeck/evidence
+
+      - name: Check that incomplete or baseline APKs cannot be published
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_stage_native_bundle.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_hakux_native.py' -v
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Android SDK
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          printf '%s\n' "$sdk_root/cmdline-tools/latest/bin" "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > dist/cartdeck/evidence/sdk-licenses.log
+          "$manager" --sdk_root="$sdk_root" --install 'platform-tools' 'platforms;android-35' 'build-tools;34.0.0'
+
+      - name: Restore verified Gradle distribution cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/cartdeck-gradle/*.zip
+          key: gradle-distribution-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Configure Gradle dependency cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Download and verify pinned Gradle with bounded retries
+        run: |
+          set -euo pipefail
+          bash scripts/ci/bootstrap_gradle.sh 2>&1 | tee dist/cartdeck/evidence/gradle-bootstrap.log
+
+      - name: Validate brand, source assets and native resource contracts
+        run: |
+          set -euo pipefail
+          {
+            python3 scripts/ci/test_bootstrap_gradle.py
+            python3 scripts/ci/test_build_retry.py
+            python3 scripts/audit_cartdeck_brand.py
+            python3 -m unittest discover design/cartdeck-v03 -p 'test_dpad_consistency.py'
+            python3 -m unittest discover design/cartdeck-v04 -p 'test_assets.py'
+            python3 -m unittest discover design/cartdeck-v05 -p 'test_cartridge_family.py'
+            python3 -m unittest discover design/cartdeck-v06 -p 'test_bookshelf_palette.py'
+            python3 design/cartdeck-v04/build_assets.py
+            python3 design/cartdeck-v04/export_android_vectors.py
+            python3 -m unittest discover design/cartdeck-v04 -p 'test_android_export.py'
+            python3 scripts/test_cartridge_vectors.py
+            python3 scripts/generate_cartdeck_native_assets.py --output lemuroid-app/build/generated/cartdeck-native/res
+            python3 -m unittest discover scripts/ci -p 'test_cartdeck_native_assets.py' -v
+            bash scripts/ci/check_cartdeck_native_aapt2.sh
+            bash scripts/ci/test_android_emulator_smoke.sh
+            git diff --exit-code -- design/cartdeck-v03 design/cartdeck-v04 design/cartdeck-v05
+          } 2>&1 | tee dist/cartdeck/evidence/asset-checks.log
+
+      - name: Run style and unit tests and build the single standalone APK
+        run: |
+          set -euo pipefail
+          version_code=$(bash scripts/ci/engineering_version_code.sh)
+          test "$version_code" -gt 2001
+          echo "CARTDECK_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "$version_code" > dist/cartdeck/evidence/version-code.txt
+          git rev-parse HEAD > dist/cartdeck/evidence/commit-sha.txt
+          git submodule status --recursive > dist/cartdeck/evidence/submodule-shas.txt
+          export CARTDECK_TEST_VERSION_CODE="$version_code"
+          export CARTDECK_HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/host-input/maven"
+          bash scripts/ci/build_native_engine_apk.sh \
+            --ps1 work/native-inputs/native-engine-ps1 \
+            --psp work/native-inputs/native-engine-psp \
+            --dc work/native-inputs/native-engine-dc \
+            --gc work/native-inputs/native-engine-gc \
+            --ps2 work/native-inputs/native-engine-ps2 \
+            --wii \
+            --xbox work/xbox-input
+          cp work/host-input/provenance.txt dist/cartdeck/evidence/host-provenance.txt
+
+      - name: Print actionable Kotlin lint diagnostics on failure
+        if: failure()
+        run: |
+          for report in lemuroid-app/build/reports/ktlint/*/*.txt retrograde-app-shared/build/reports/ktlint/*/*.txt; do
+            if [ -s "$report" ]; then
+              echo "::group::$report"
+              head -n 120 "$report"
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Verify the APK and its upgrade identity
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_native_bundle_apk.py \
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
+            --require-five-engines --require-wii --require-xbox \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar \
+            > dist/cartdeck/evidence/native-bundle-apk.json
+          cat dist/cartdeck/evidence/native-bundle-apk.json
+
+      - name: Collect test and native asset evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p dist/cartdeck/evidence
+          for source in \
+            lemuroid-app/build/test-results/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/reports/tests/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json \
+            lemuroid-app/build/generated/cartdeck-native/aapt2-evidence; do
+            if [ -e "$source" ]; then
+              cp -R "$source" "dist/cartdeck/evidence/$(basename "$(dirname "$source")")-$(basename "$source")"
+            fi
+          done
+          while IFS= read -r manifest; do
+            variant="$(basename "$(dirname "$manifest")")"
+            cp "$manifest" "dist/cartdeck/evidence/native-assets-$variant.json"
+          done < <(find lemuroid-app/build/generated -name native-assets-manifest.json -type f 2>/dev/null)
+
+      - name: Upload the verified expansion APK and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_WII_XBOX_ARM64_DEBUG
+          path: |
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk
+            dist/cartdeck/evidence/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve failure diagnostics without publishing an unverified APK
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_WII_XBOX_FAILURE_EVIDENCE
+          path: dist/cartdeck/evidence/
+          if-no-files-found: warn
+          retention-days: 7

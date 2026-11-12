@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.lib.core
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.swordfish.lemuroid.lib.BuildConfig
 import com.swordfish.lemuroid.lib.library.CoreID
 import java.io.File
 import java.io.IOException
@@ -10,6 +11,8 @@ import java.util.Properties
 
 /** Signed-APK provenance plus immutable local versions; saves never live in this store. */
 object NativeCoreProvisioner {
+    class DisabledException : IllegalStateException("Native engine disabled after a failed start")
+
     private fun manifestPath(coreID: CoreID): String =
         when (coreID) {
             CoreID.FLYCAST_MODERN -> "cartdeck/flycast.properties"
@@ -39,7 +42,7 @@ object NativeCoreProvisioner {
         val version = "${revision.take(12)}-${sha.take(12)}"
         val binary = File(context.applicationInfo.nativeLibraryDir, coreID.libretroFileName)
         val selected =
-            selectVersion(root(context), platform, version, binary, sha) { error ->
+            selectVersion(root(context), platform, version, binary, sha, BuildConfig.NATIVE_HOST_VERSION) { error ->
                 Log.e("CARTDECK_NATIVE", "Native engine integrity/install failed: $platform $version", error)
             }
         return selected
@@ -53,14 +56,18 @@ object NativeCoreProvisioner {
         version: String,
         binary: File,
         sha: String,
+        hostIdentity: String = "legacy",
         onInstallFailure: (Exception) -> Unit = {},
     ): File {
         require(platform.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")))
         require(version.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")))
+        require(hostIdentity.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")))
         val store = VersionedCoreStore(storeRoot)
+        if (hostIdentity != "legacy") migrateLegacyFailures(storeRoot, platform)
         val failureDirectory = File(File(storeRoot, platform), "failed-versions")
         val failed = File(failureDirectory, version)
-        if (!failed.isFile) {
+        val runtimeFailures = runtimeFailureDirectory(storeRoot, platform, hostIdentity)
+        if (!failed.isFile && !File(runtimeFailures, version).isFile) {
             try {
                 store.install(platform, version, binary, sha)
                 val pinned =
@@ -77,8 +84,10 @@ object NativeCoreProvisioner {
             }
         }
         val selected = store.select(platform)
-        check(selected != null && !File(failureDirectory, selected.version).isFile) {
-            "Native engine disabled after launch failure; select another engine or install a newer revision"
+        if (selected == null || File(failureDirectory, selected.version).isFile ||
+            File(runtimeFailures, selected.version).isFile
+        ) {
+            throw DisabledException()
         }
         return selected.coreFile
     }
@@ -90,11 +99,21 @@ object NativeCoreProvisioner {
         coreID: CoreID,
     ): Boolean {
         manifestPath(coreID) // Restrict this API to the versioned native engines.
-        val storeRoot = root(context)
+        return rollback(root(context), coreID.coreName, BuildConfig.NATIVE_HOST_VERSION)
+    }
+
+    @Synchronized
+    fun rollback(
+        storeRoot: File,
+        platform: String,
+        hostIdentity: String,
+    ): Boolean {
+        require(platform.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")))
+        require(hostIdentity.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")))
         val store = VersionedCoreStore(storeRoot)
-        val failedVersion = store.select(coreID.coreName)?.version ?: return false
-        recordFailure(File(File(storeRoot, coreID.coreName), "failed-versions"), failedVersion)
-        return store.rollback(coreID.coreName)
+        val failedVersion = store.select(platform)?.version ?: return false
+        recordFailure(runtimeFailureDirectory(storeRoot, platform, hostIdentity), failedVersion)
+        return store.rollback(platform)
     }
 
     /** Manual engine rollback keeps the selected version pinned across launches. */
@@ -116,6 +135,7 @@ object NativeCoreProvisioner {
         val store = VersionedCoreStore(storeRoot)
         if (!store.rollback(platform)) return false
         val selection = store.select(platform) ?: return false
+        clearRuntimeFailures(storeRoot, platform, selection.version)
         writeAtomic(File(File(storeRoot, platform), "selected.version"), selection.version)
         return true
     }
@@ -140,6 +160,7 @@ object NativeCoreProvisioner {
         check(!pointer.exists() || pointer.delete()) { "Cannot reset engine selection" }
         val failed = File(File(storeRoot, platform), "failed-versions")
         check(!failed.exists() || failed.deleteRecursively()) { "Cannot reset native engine failure" }
+        clearRuntimeFailures(storeRoot, platform)
     }
 
     /** Save states are scoped to the actual selected immutable engine version. */
@@ -183,6 +204,54 @@ object NativeCoreProvisioner {
         }
     }
 
+    private fun runtimeFailureDirectory(
+        root: File,
+        platform: String,
+        hostIdentity: String,
+    ) = File(File(File(root, platform), "runtime-failures"), hostIdentity)
+
+    /** Old builds conflated GL/host failures with damaged engine binaries. Retain their
+     * history, but give a verified engine one attempt under the corrected host policy.
+     * New integrity failures still remain blocked across host updates.
+     */
+    private fun migrateLegacyFailures(
+        root: File,
+        platform: String,
+    ) {
+        val directory = File(root, platform)
+        val policy = File(directory, "failure-policy-v2")
+        if (policy.isFile) return
+        val old = File(directory, "failed-versions")
+        if (old.isDirectory) {
+            val archive = File(directory, "legacy-failure-history")
+            check(archive.isDirectory || archive.mkdirs()) { "Cannot retain native failure history" }
+            val markers = old.listFiles() ?: throw IOException("Cannot read native failure history")
+            markers.filter { it.isFile }.forEach {
+                check(it.renameTo(File(archive, it.name))) { "Cannot migrate native failure history" }
+            }
+        }
+        writeAtomic(policy, "host-scoped-runtime-failures")
+    }
+
+    private fun clearRuntimeFailures(
+        root: File,
+        platform: String,
+        version: String? = null,
+    ) {
+        val directory = File(File(root, platform), "runtime-failures")
+        if (version == null) {
+            check(!directory.exists() || directory.deleteRecursively()) { "Cannot reset runtime failure" }
+        } else {
+            val histories =
+                directory.listFiles()
+                    ?: if (!directory.exists()) emptyArray() else throw IOException("Cannot read runtime failures")
+            histories.filter { it.isDirectory }.forEach {
+                val marker = File(it, version)
+                check(!marker.exists() || marker.delete()) { "Cannot reset previous runtime failure" }
+            }
+        }
+    }
+
     /** Explicit retry is a user action; an ordinary relaunch does not clear failure history. */
     @Synchronized
     fun resetFailure(
@@ -192,5 +261,6 @@ object NativeCoreProvisioner {
         manifestPath(coreID)
         val failed = File(File(root(context), coreID.coreName), "failed-versions")
         check(!failed.exists() || failed.deleteRecursively()) { "Cannot reset native engine failure" }
+        clearRuntimeFailures(root(context), coreID.coreName)
     }
 }

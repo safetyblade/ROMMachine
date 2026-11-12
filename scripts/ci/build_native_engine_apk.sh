@@ -20,12 +20,18 @@ systems=$(cat "$bundle/native-systems.txt")
 bash scripts/ci/build_standalone_apk.sh "$CARTDECK_TEST_VERSION_CODE" \
     -PcartdeckNativeBundleDir="$bundle" -PcartdeckNativeSystems="$systems" \
     -PcartdeckHostMavenRepo="$CARTDECK_HOST_MAVEN_REPO" \
-    -PcartdeckLibretroDroidVersion=0.14.0-cartdeck1
+    -PcartdeckLibretroDroidVersion=0.14.0-cartdeck2
 # The existing verifier copies the single APK and checks package/signature/alignment.
 bash scripts/ci/verify_standalone_apk.sh
-verification_args=(--host-aar "$CARTDECK_HOST_MAVEN_REPO/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck1/LibretroDroid-0.14.0-cartdeck1.aar")
+verification_args=(--host-aar "$CARTDECK_HOST_MAVEN_REPO/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar")
 if [[ "${CARTDECK_REQUIRE_FIVE_ENGINES:-false}" == true ]]; then
     verification_args+=(--require-five-engines)
+fi
+if [[ "${CARTDECK_REQUIRE_WII:-false}" == true ]]; then
+    verification_args+=(--require-wii)
+fi
+if [[ "${CARTDECK_REQUIRE_XBOX:-false}" == true ]]; then
+    verification_args+=(--require-xbox)
 fi
 python3 scripts/ci/verify_native_bundle_apk.py \
     "$output/CARTDECK_STANDALONE_ARM64_DEBUG.apk" "$bundle" \

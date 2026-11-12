@@ -7,7 +7,6 @@ import android.view.MotionEvent
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -42,13 +41,13 @@ import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
 import gg.padkit.inputstate.InputState
-import timber.log.Timber
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class BaseGameScreenViewModel(
     private val appContext: Context,
@@ -181,7 +180,11 @@ class BaseGameScreenViewModel(
         pivotArcHeldInputGate.setGripEnabled(enabled)
     }
 
-    fun pressGripArcSlot(slot: Int, pressed: Boolean, mapping: Set<Int>) {
+    fun pressGripArcSlot(
+        slot: Int,
+        pressed: Boolean,
+        mapping: Set<Int>,
+    ) {
         pivotArcHeldInputGate.setGripSlot(slot, pressed, mapping)
     }
 
@@ -194,7 +197,8 @@ class BaseGameScreenViewModel(
             when (effect) {
                 is GameViewModelSideEffects.UiEffect.ShowMenu,
                 is GameViewModelSideEffects.UiEffect.SuccessfulFinish,
-                is GameViewModelSideEffects.UiEffect.FailureFinish -> pivotArcHeldInputGate.clear()
+                is GameViewModelSideEffects.UiEffect.FailureFinish,
+                -> pivotArcHeldInputGate.clear()
                 else -> Unit
             }
         }

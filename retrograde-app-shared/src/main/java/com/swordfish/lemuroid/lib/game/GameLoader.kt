@@ -19,12 +19,14 @@
 
 package com.swordfish.lemuroid.lib.game
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.core.CoreVariable
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
 import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
+import com.swordfish.lemuroid.lib.core.NativeGraphicsRequirements
 import com.swordfish.lemuroid.lib.core.assetsmanager.DolphinAssetsProvisioner
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
@@ -82,10 +84,25 @@ class GameLoader(
                     throw GameLoaderException(GameLoaderError.UnsupportedArchitecture)
                 }
 
+                val advertisedGles =
+                    (appContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)
+                        ?.deviceConfigurationInfo?.reqGlEsVersion ?: 0
+                if (!NativeGraphicsRequirements.supportsAdvertisedVersion(systemCoreConfig.coreID, advertisedGles)) {
+                    throw GameLoaderException(GameLoaderError.GLIncompatible)
+                }
+
                 val coreLibrary =
                     runCatching {
                         findLibrary(appContext, systemCoreConfig.coreID)!!.absolutePath
-                    }.getOrElse { throw GameLoaderException(GameLoaderError.LoadCore) }
+                    }.getOrElse {
+                        val error =
+                            if (it is NativeCoreProvisioner.DisabledException) {
+                                GameLoaderError.NativeEngineDisabled
+                            } else {
+                                GameLoaderError.LoadCore
+                            }
+                        throw GameLoaderException(error, it)
+                    }
 
                 emit(LoadingState.LoadingGame)
 

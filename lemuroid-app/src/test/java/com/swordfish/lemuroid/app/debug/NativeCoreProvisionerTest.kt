@@ -5,6 +5,7 @@ import com.swordfish.lemuroid.lib.core.VersionedCoreStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
 import java.nio.file.Files
@@ -81,6 +82,119 @@ class NativeCoreProvisionerTest {
             assertEquals(current, NativeCoreProvisioner.selectVersion(storeRoot, "flycast", "v2", source, currentSha))
         } finally {
             root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun correctedHostCanRetrySameCoreButRepeatedFailureDoesNotLoop() {
+        val root = Files.createTempDirectory("host-recovery").toFile()
+        try {
+            val source = File(root, "source.so").apply { writeText("unchanged engine") }
+            val saves =
+                File(root, "saves/card.ps2").apply {
+                    parentFile!!.mkdirs()
+                    writeText("progress")
+                }
+            val store = File(root, "store")
+            val expected = NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1")
+            assertFalse(NativeCoreProvisioner.rollback(store, "play", "host1"))
+            expectDisabled { NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1") }
+            assertEquals(
+                expected,
+                NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host2"),
+            )
+            NativeCoreProvisioner.rollback(store, "play", "host2")
+            expectDisabled { NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host2") }
+            assertEquals("progress", saves.readText())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun oldConflatedFailureIsArchivedOnceAndCanRecover() {
+        val root = Files.createTempDirectory("legacy-recovery").toFile()
+        try {
+            val source = File(root, "source.so").apply { writeText("verified engine") }
+            val store = File(root, "store")
+            val installed = NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source))
+            File(store, "play/failed-versions/v1").apply {
+                parentFile!!.mkdirs()
+                writeText("v1\n")
+            }
+            assertEquals(
+                installed,
+                NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host2"),
+            )
+            assertEquals("v1\n", File(store, "play/legacy-failure-history/v1").readText())
+            NativeCoreProvisioner.rollback(store, "play", "host2")
+            expectDisabled { NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host2") }
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun integrityFailureRemainsBlockedAcrossHostChanges() {
+        val root = Files.createTempDirectory("integrity-host").toFile()
+        try {
+            val source = File(root, "source.so").apply { writeText("v1") }
+            val store = File(root, "store")
+            val stable = NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1")
+            var attempts = 0
+            assertEquals(
+                stable,
+                NativeCoreProvisioner.selectVersion(
+                    store,
+                    "play",
+                    "v2",
+                    source,
+                    "0".repeat(64),
+                    "host1",
+                ) { attempts++ },
+            )
+            assertEquals(
+                stable,
+                NativeCoreProvisioner.selectVersion(
+                    store,
+                    "play",
+                    "v2",
+                    source,
+                    "0".repeat(64),
+                    "host2",
+                ) { attempts++ },
+            )
+            assertEquals(1, attempts)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun explicitCurrentRetryClearsOnlyEngineFailureNotSaves() {
+        val root = Files.createTempDirectory("explicit-retry").toFile()
+        try {
+            val source = File(root, "source.so").apply { writeText("verified engine") }
+            val store = File(root, "store")
+            val expected = NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1")
+            NativeCoreProvisioner.rollback(store, "play", "host1")
+            expectDisabled { NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1") }
+            NativeCoreProvisioner.chooseCurrent(store, "play")
+            assertEquals(
+                expected,
+                NativeCoreProvisioner.selectVersion(store, "play", "v1", source, sha(source), "host1"),
+            )
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    private fun expectDisabled(block: () -> Unit) {
+        try {
+            block()
+            fail("A failed host/engine combination must not automatically relaunch")
+        } catch (_: NativeCoreProvisioner.DisabledException) {
+            // Expected; explicit retry or a corrected host is required.
         }
     }
 }

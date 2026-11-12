@@ -16,3 +16,17 @@ CPP="$SOURCE/libretrodroid/src/main/cpp"
     -o "$WORK/input-test"
 "$WORK/input-test"
 echo 'LibretroDroid input contract: PASS'
+
+# VideoLayout only uses debug logging; Android logging is unnecessary on the
+# native test host. Compile the actual geometry and rectangle implementations.
+printf '#pragma once\n' > "$WORK/include/android/log.h"
+"${CXX:-c++}" -std=c++17 -Wall -Wextra \
+    -I"$WORK/include" -I"$CPP" \
+    "$ROOT/scripts/ci/fixtures/libretrodroid_pointer_test.cpp" \
+    "$CPP/videolayout.cpp" "$CPP/utils/rect.cpp" \
+    -o "$WORK/pointer-test"
+"$WORK/pointer-test"
+
+LIBRETRODROID_SOURCE_DIR="$SOURCE" bash "$ROOT/scripts/ci/test_libretrodroid_gl_state.sh"
+
+LIBRETRODROID_SOURCE_DIR="$SOURCE" bash "$ROOT/scripts/ci/test_libretrodroid_graphics_error.sh"

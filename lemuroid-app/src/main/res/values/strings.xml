@@ -171,6 +171,8 @@
     <string name="game_running_notification_message">Make sure to save your progress</string>
 
     <string name="game_loader_error_gl_incompatible">This Core requires an OpenGL ES version which is not supported by your device.</string>
+    <string name="game_loader_error_ps2_gl_incompatible">The PS2 engine requires OpenGL ES 3.2. The device or its current graphics driver cannot provide the required context. Game saves are retained.</string>
+    <string name="game_loader_error_native_disabled">This engine was disabled after a failed start. On the cartridge, choose Use current engine to retry, or install a newer build. Game saves are retained.</string>
     <string name="game_loader_error_load_game">Something bad happened while loading your game. Make sure the ROM is supported by CARTDECK and rescan your games.</string>
     <string name="game_loader_error_save">Something bad happened with your save file. If the issue persists, try disabling auto-save.</string>
     <string name="game_loader_error_unsupported_architecture">This Core is not supported by your device.</string>

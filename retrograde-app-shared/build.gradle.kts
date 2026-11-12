@@ -59,6 +59,9 @@ android {
         val nativeSystems = providers.gradleProperty("cartdeckNativeSystems").orElse("").get()
         require(nativeSystems.split(",").all { it in setOf("", "dc", "gc", "ps2", "wii", "xbox") })
         buildConfigField("String", "NATIVE_SYSTEMS", "\"$nativeSystems\"")
+        val nativeHostVersion = providers.gradleProperty("cartdeckLibretroDroidVersion").orElse("0.14.0").get()
+        require(nativeHostVersion.matches(Regex("[A-Za-z0-9._-]+")))
+        buildConfigField("String", "NATIVE_HOST_VERSION", "\"$nativeHostVersion\"")
         javaCompileOptions {
             annotationProcessorOptions {
                 argument("room.schemaLocation", "$projectDir/schemas")

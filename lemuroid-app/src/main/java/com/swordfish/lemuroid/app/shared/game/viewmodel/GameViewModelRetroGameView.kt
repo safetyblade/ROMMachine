@@ -351,7 +351,9 @@ class GameViewModelRetroGameView(
                 else -> GameLoaderError.Generic
             }
 
-        if (errorCode in setOf(GLRetroView.ERROR_GL_NOT_COMPATIBLE, GLRetroView.ERROR_LOAD_LIBRARY)) {
+        // A device/host graphics mismatch is not evidence that the immutable engine is corrupt.
+        // Blacklisting it hid the real error on every subsequent Open, including after a host fix.
+        if (errorCode == GLRetroView.ERROR_LOAD_LIBRARY) {
             if (systemCoreConfig.coreID in setOf(CoreID.FLYCAST_MODERN, CoreID.DOLPHIN_MODERN, CoreID.PLAY_MODERN)) {
                 runCatching { NativeCoreProvisioner.rollback(appContext, systemCoreConfig.coreID) }
                     .onFailure { Timber.e(it, "Unable to record native engine failure") }
@@ -364,13 +366,22 @@ class GameViewModelRetroGameView(
         val message =
             when (gameError) {
                 is GameLoaderError.GLIncompatible -> {
-                    appContext.getString(R.string.game_loader_error_gl_incompatible)
+                    val message =
+                        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                            R.string.game_loader_error_ps2_gl_incompatible
+                        } else {
+                            R.string.game_loader_error_gl_incompatible
+                        }
+                    appContext.getString(message)
                 }
                 is GameLoaderError.Generic -> {
                     appContext.getString(R.string.game_loader_error_generic)
                 }
                 is GameLoaderError.LoadCore -> {
                     appContext.getString(com.swordfish.lemuroid.ext.R.string.game_loader_error_load_core)
+                }
+                is GameLoaderError.NativeEngineDisabled -> {
+                    appContext.getString(R.string.game_loader_error_native_disabled)
                 }
                 is GameLoaderError.LoadGame -> {
                     appContext.getString(R.string.game_loader_error_load_game)

@@ -63,7 +63,7 @@ sealed interface GripArcFit {
     data class Unavailable(val reason: String) : GripArcFit
 }
 
-/** 
+/**
  * This solver translates/scales one permanent 272×308 L assembly.
  * G1–G4 always keep the approved manifest centres. No button reflow.
  * Conservative collision checks use the entire bounding rectangle, so a
