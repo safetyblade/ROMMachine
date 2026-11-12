@@ -19,7 +19,8 @@ class CartdeckConsoleLayoutCoverageTest {
     @Test
     fun everyRegisteredConsoleHasAConfiguredStandardController() {
         val systems = GameSystem.all()
-        val nativeSystems = setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)
+        val nativeSystems =
+            setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII, SystemID.XBOX)
         val enabledNativeNames = BuildConfig.NATIVE_SYSTEMS.split(",").toSet()
         val expected = SystemID.entries.filter { it !in nativeSystems || it.dbname in enabledNativeNames }.toSet()
         assertEquals(
@@ -28,6 +29,15 @@ class CartdeckConsoleLayoutCoverageTest {
             systems.map { it.id }.toSet(),
         )
         for (system in systems) {
+            if (system.id == SystemID.XBOX) {
+                assertEquals("hakux", system.nativeBackend)
+                assertTrue(
+                    "Xbox must use its native host instead of a fake Libretro core",
+                    system.systemCoreConfigs.isEmpty(),
+                )
+                assertNotNull(TouchControllerID.getConfig(TouchControllerID.XBOX))
+                continue
+            }
             assertTrue(system.id.name, system.systemCoreConfigs.isNotEmpty())
             for (core in system.systemCoreConfigs) {
                 assertTrue(
