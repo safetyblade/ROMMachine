@@ -39,36 +39,35 @@ fun PadKitScope.WiiLeft(
         modifier = modifier,
         primaryDial = { LemuroidControlCross(id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_DPAD)) },
         secondaryDials = {
-            LemuroidControlButton(
-                Modifier.radialPosition(90f),
-                Id.Key(
-                    if (profile == WiiLayoutProfile.SIDEWAYS) {
-                        KeyEvent.KEYCODE_BUTTON_SELECT
-                    } else {
-                        KeyEvent.KEYCODE_BUTTON_L1
-                    },
-                ),
-                label = if (profile == WiiLayoutProfile.CLASSIC) "ZL" else "-",
-            )
-            LemuroidControlButton(
-                Modifier.radialPosition(120f),
-                Id.Key(
-                    if (profile == WiiLayoutProfile.SIDEWAYS) {
-                        KeyEvent.KEYCODE_BUTTON_THUMBR
-                    } else {
-                        KeyEvent.KEYCODE_BUTTON_L2
-                    },
-                ),
-                label =
-                    when (profile) {
-                        WiiLayoutProfile.CLASSIC -> "L"
-                        WiiLayoutProfile.NUNCHUK -> "Shake N"
-                        WiiLayoutProfile.SIDEWAYS -> "Home"
-                    },
-            )
-            SecondaryButtonSelect(position = 2)
-            SecondaryButtonMenuPlaceholder(settings)
-            SecondaryAnalogLeft()
+            if (profile == WiiLayoutProfile.SIDEWAYS) {
+                // Sideways Remote: no Classic shoulders or analog sticks.
+                // Keep the exact Dolphin RetroPad IDs used by the working Wii host.
+                LemuroidControlButton(
+                    Modifier.radialPosition(90f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_SELECT),
+                    label = "-",
+                )
+                LemuroidControlButton(
+                    Modifier.radialPosition(120f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBR),
+                    label = "Home",
+                )
+                SecondaryButtonMenuPlaceholder(settings)
+            } else {
+                LemuroidControlButton(
+                    Modifier.radialPosition(90f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                    label = if (profile == WiiLayoutProfile.CLASSIC) "ZL" else "-",
+                )
+                LemuroidControlButton(
+                    Modifier.radialPosition(120f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_L2),
+                    label = if (profile == WiiLayoutProfile.CLASSIC) "L" else "Shake N",
+                )
+                SecondaryButtonSelect(position = 2)
+                SecondaryButtonMenuPlaceholder(settings)
+                SecondaryAnalogLeft()
+            }
         },
     )
 }
@@ -121,25 +120,34 @@ fun PadKitScope.WiiRight(
             )
         },
         secondaryDials = {
-            LemuroidControlButton(
-                Modifier.radialPosition(90f),
-                Id.Key(
-                    if (profile == WiiLayoutProfile.SIDEWAYS) {
-                        KeyEvent.KEYCODE_BUTTON_START
-                    } else {
-                        KeyEvent.KEYCODE_BUTTON_R1
-                    },
-                ),
-                label = if (profile == WiiLayoutProfile.CLASSIC) "ZR" else "+",
-            )
-            LemuroidControlButton(
-                Modifier.radialPosition(60f),
-                Id.Key(KeyEvent.KEYCODE_BUTTON_R2),
-                label = if (profile == WiiLayoutProfile.CLASSIC) "R" else "Shake",
-            )
-            SecondaryButtonStart(position = 2)
-            SecondaryAnalogRight()
-            SecondaryButtonMenu(settings)
+            if (profile == WiiLayoutProfile.SIDEWAYS) {
+                LemuroidControlButton(
+                    Modifier.radialPosition(90f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_START),
+                    label = "+",
+                )
+                LemuroidControlButton(
+                    Modifier.radialPosition(60f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_R2),
+                    label = "Shake",
+                )
+                // Keep CARTDECK Menu separate from the emulated Wii Home button.
+                SecondaryButtonMenu(settings)
+            } else {
+                LemuroidControlButton(
+                    Modifier.radialPosition(90f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                    label = if (profile == WiiLayoutProfile.CLASSIC) "ZR" else "+",
+                )
+                LemuroidControlButton(
+                    Modifier.radialPosition(60f),
+                    Id.Key(KeyEvent.KEYCODE_BUTTON_R2),
+                    label = if (profile == WiiLayoutProfile.CLASSIC) "R" else "Shake",
+                )
+                SecondaryButtonStart(position = 2)
+                SecondaryAnalogRight()
+                SecondaryButtonMenu(settings)
+            }
         },
     )
 }
