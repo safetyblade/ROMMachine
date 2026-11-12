@@ -45,7 +45,15 @@ object GripArcInputCatalog {
             SystemID.GB, SystemID.GBC -> listOf(a, b, start, select)
             SystemID.GBA -> listOf(a, b, l, r, start, select)
             SystemID.SNES, SystemID.NDS -> listOf(a, b, x, y, l, r, start, select)
-            SystemID.PSX, SystemID.PSP, SystemID.PLAYSTATION_2 ->
+            SystemID.PSP ->
+                listOf(
+                    a.copy(label = "Cross"),
+                    b.copy(label = "Circle"),
+                    x.copy(label = "Square"),
+                    y.copy(label = "Triangle"),
+                    l, r, start, select,
+                )
+            SystemID.PSX, SystemID.PLAYSTATION_2 ->
                 listOf(
                     a.copy(label = "Cross"),
                     b.copy(label = "Circle"),
