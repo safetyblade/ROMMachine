@@ -31,6 +31,25 @@ class ControllerConfigsManager(private val sharedPreferences: Lazy<SharedPrefere
                 }
         }
 
+    /**
+     * Persist an explicitly selected controller; do not rewrite the other ports,
+     * saves, engine preferences or any user's previous choice.
+     */
+    suspend fun selectController(
+        systemId: SystemID,
+        systemCoreConfig: SystemCoreConfig,
+        port: Int,
+        name: String,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            if (systemCoreConfig.controllerConfigs[port]?.none { it.name == name } != false) {
+                return@withContext false
+            }
+            sharedPreferences.get().edit()
+                .putString(getSharedPreferencesId(systemId.dbname, systemCoreConfig.coreID, port), name)
+                .commit()
+        }
+
     companion object {
         fun getSharedPreferencesId(
             systemId: String,
