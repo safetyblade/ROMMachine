@@ -68,10 +68,11 @@ class GripArcPositionSolverTest {
     }
 
     @Test fun occupiedZonesForceSmallerButUnchangedHousing() {
-        val blocker = PivotArcBounds(80f, 590f, 310f, 844f)
+        val blocker = PivotArcBounds(80f, 590f, 285f, 760f)
         val fit = placement(blockers = listOf(blocker))
-        assertFalse(fit.housing.intersects(blocker))
-        assertTrue(fit.scale <= 0.76f)
+        val arms = GripArcPositionSolver.housingFootprint(fit.housing, fit.scale, fit.side)
+        assertTrue(arms.none { it.intersects(blocker) })
+        assertTrue(fit.scale <= 1f)
     }
 
     @Test fun impossibleFitNeverCropsHousingOrButtons() {
@@ -85,6 +86,35 @@ class GripArcPositionSolverTest {
             )
         assertTrue(unavailable is GripArcFit.Unavailable)
         assertTrue((unavailable as GripArcFit.Unavailable).reason.isNotBlank())
+    }
+
+    @Test fun insideCornerOfLIsFreeButTheEntirePhysicalLStillCollides() {
+        val innerControls = listOf(PivotArcBounds(140f, 558f, 255f, 700f))
+        val right = placement(blockers = innerControls)
+        val arms = GripArcPositionSolver.housingFootprint(right.housing, right.scale, right.side)
+        assertTrue(right.housing.intersects(innerControls.first()))
+        assertTrue(arms.none { it.intersects(innerControls.first()) })
+        val blocked = GripArcPositionSolver.resolve(
+            source,
+            safe,
+            video,
+            listOf(PivotArcBounds(8f, 344f, 385f, 844f)),
+            GripArcSide.RIGHT,
+        )
+        assertTrue(blocked is GripArcFit.Unavailable)
+    }
+
+    @Test fun standardReflowOnlyMovesDockSideAndHonoursCompactDeck() {
+        val right = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.RIGHT)
+        assertEquals(0f, right.leftX, 0.01f)
+        assertTrue(right.rightX < -80f)
+        assertTrue(right.rightY < -100f)
+        val left = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.LEFT)
+        assertTrue(left.leftX > 80f)
+        assertTrue(left.leftY < -100f)
+        assertEquals(0f, left.rightX, 0.01f)
+        val small = GripArcStandardReflowPolicy.resolve(320f, 260f, GripArcSide.RIGHT)
+        assertTrue(small.rightY > -10f)
     }
 
     @Test fun userOffsetsNeverMoveOneSlotWithoutTheOthers() {
