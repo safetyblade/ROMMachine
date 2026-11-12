@@ -129,11 +129,11 @@ fun GameMenuHomeScreen(
         }
 
         LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.game_menu_edit_touch_controls)) },
+            title = { Text("Controls") },
             icon = {
                 Icon(
                     painterResource(R.drawable.ic_menu_controls),
-                    contentDescription = stringResource(id = R.string.game_menu_edit_touch_controls),
+                    contentDescription = "Controls",
                 )
             },
             onClick = { navController.navigateToRoute(GameMenuRoute.CONTROLS) },
