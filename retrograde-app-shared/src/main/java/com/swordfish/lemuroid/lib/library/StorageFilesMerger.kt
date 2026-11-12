@@ -31,14 +31,17 @@ object StorageFilesMerger {
     ) {
         val originals = allFiles.keys.toList()
         val descriptors = originals.filter { it.extension.equals("gdi", ignoreCase = true) }
-        val names = originals.map { it.name }.toSet()
         for (descriptor in descriptors) {
             if (descriptor.size !in 1..65536) continue
             // IO failures propagate so an incomplete scan cannot prune existing games.
             val text =
                 storageProvider.getInputStream(descriptor.uri)?.use { it.bufferedReader().readText() }
                     ?: throw java.io.IOException("Cannot read GDI descriptor ${descriptor.name}")
-            val result = NextGenDiscIdentity.probe(descriptor.name, gdiText = text, availableTrackNames = names)
+            // Group every present member of a structurally valid descriptor,
+            // even while another track is missing. Completeness is checked by
+            // discovery/loading; missing media must not turn the other tracks
+            // into separate cartridges during refresh.
+            val result = NextGenDiscIdentity.probe(descriptor.name, gdiText = text)
             if (result.platform != NextGenDiscIdentity.Platform.DREAMCAST) continue
             val tracks = originals.filter { it.name in result.companionTracks }
             allFiles[descriptor] = tracks
