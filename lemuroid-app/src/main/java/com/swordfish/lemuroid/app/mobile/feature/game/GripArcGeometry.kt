@@ -49,6 +49,10 @@ data class GripArcManifest(
     }
 }
 
+/** Reject incomplete/invalid measurements instead of accepting NaN comparisons as clear space. */
+internal fun PivotArcBounds.isFiniteArea(): Boolean =
+    listOf(left, top, right, bottom, width, height).all { it.isFinite() } && width > 0f && height > 0f
+
 data class GripArcPlacement(
     val housing: PivotArcBounds,
     val targets: Map<Int, PivotArcBounds>,
@@ -115,7 +119,7 @@ object GripArcPositionSolver {
         dy: Float = 0f,
         maxScale: Float = 0.84f,
     ): GripArcFit {
-        if (!dx.isFinite() || !dy.isFinite() || safe.width <= 0f || safe.height <= 0f) {
+        if (!dx.isFinite() || !dy.isFinite() || !safe.isFiniteArea() || !viewport.isFiniteArea()) {
             return GripArcFit.Unavailable("GripArc has invalid screen measurements.")
         }
         for (scale in scales.filter { it <= maxScale }) {

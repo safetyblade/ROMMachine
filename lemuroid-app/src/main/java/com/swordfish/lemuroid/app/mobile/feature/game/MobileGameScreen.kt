@@ -153,6 +153,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val isLoading = viewModel.loadingState.collectAsState(true).value
         val heldPivotKeys = viewModel.pivotArcHolds().collectAsState(emptySet())
         val arcProfile = viewModel.gripArcProfile().collectAsState().value
+        val sessionChoice =
+            remember(viewModel, arcProfile.mode, arcProfile.side) {
+                mutableStateOf(ArcControlSessionChoice())
+            }
+        val effectiveArcMode = sessionChoice.value.modeFor(arcProfile.mode)
+        val effectiveArcSide = sessionChoice.value.sideFor(arcProfile.side)
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(false)
         val touchControllerSettingsState =
@@ -211,8 +217,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isLandscape,
                     pivotSettings.mode,
                     pivotSettings.hand,
-                    arcProfile.mode,
-                    arcProfile.side,
+                    effectiveArcMode,
+                    effectiveArcSide,
                 ) {
                     mutableStateMapOf<String, Rect>()
                 }
@@ -240,8 +246,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val insetSafe = WindowInsets.safeDrawing
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
-            val selectedPivot = arcProfile.mode.hasPivot
+            val selectedPivot = effectiveArcMode.hasPivot
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
+            var compositeResolution: CompositeDeckResolution? = null
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
                     if (pivotBaseline == null) {
@@ -280,29 +287,62 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 (viewPos.right - fullPos.left) / scale,
                                 (viewPos.bottom - fullPos.top) / scale,
                             )
-                        PivotArcPositionSolver.resolve(
-                            baseline = pivotBaseline,
-                            active = requiredPivotControls,
-                            safe = safeBounds,
-                            viewport = viewportBounds,
-                            leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
-                            requestedDx = pivotSettings.offsetXdp,
-                            requestedDy = pivotSettings.offsetYdp,
-                            isLandscape = isLandscape,
-                        )
+                        if (effectiveArcMode.hasGrip) {
+                            compositeResolution =
+                                if (gripManifest == null) {
+                                    CompositeDeckResolution.Unavailable(
+                                        CompositeDeckFailure.INVALID_GEOMETRY,
+                                        "GripArc geometry could not be loaded. " +
+                                            "Standard remains available; saved settings are preserved.",
+                                    )
+                                } else {
+                                    CompositeControlDeckSolver.resolve(
+                                        gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                        effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
+                                    )
+                                }
+                            when (val joint = compositeResolution) {
+                                is CompositeDeckResolution.Fits -> PivotArcResolution.Fits(joint.placement.pivot)
+                                is CompositeDeckResolution.Unavailable -> PivotArcResolution.Unavailable(joint.reason)
+                                null -> null
+                            }
+                        } else {
+                            PivotArcPositionSolver.resolve(
+                                baseline = pivotBaseline,
+                                active = requiredPivotControls,
+                                safe = safeBounds,
+                                viewport = viewportBounds,
+                                leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
+                                requestedDx = pivotSettings.offsetXdp,
+                                requestedDy = pivotSettings.offsetYdp,
+                                isLandscape = isLandscape,
+                            )
+                        }
                     }
                 } else {
                     null
                 }
+            val jointPlacement = (compositeResolution as? CompositeDeckResolution.Fits)?.placement
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
             var combinedPlacement: GripArcCombinedPlacement? = null
             val gripResolution: GripArcFit? =
                 if (
-                    arcProfile.mode.hasGrip &&
+                    effectiveArcMode.hasGrip &&
                     fullPos != null &&
                     viewPos != null
                 ) {
-                    if (gripManifest == null) {
+                    if (selectedPivot && touchControlsVisibleState.value) {
+                        jointPlacement?.let { GripArcFit.Fits(it.dock) }
+                            ?: GripArcFit.Unavailable(
+                                (compositeResolution as? CompositeDeckResolution.Unavailable)?.reason
+                                    ?: (pivotResolution as? PivotArcResolution.Unavailable)?.reason
+                                    ?: (
+                                        "Joint controller geometry is not ready. " +
+                                            "Standard remains available; saved settings are preserved."
+                                    ),
+                            )
+                    } else if (gripManifest == null) {
                         GripArcFit.Unavailable("GripArc's approved geometry could not be loaded.")
                     } else if (GripArcInputCatalog.forSystem(viewModel.systemId).isEmpty()) {
                         GripArcFit.Unavailable("GripArc programmable inputs are not mapped for this system.")
@@ -363,7 +403,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 safeBounds,
                                 viewportBounds,
                                 emptyList(),
-                                arcProfile.side,
+                                effectiveArcSide,
                                 arcProfile.dx,
                                 arcProfile.dy,
                             )
@@ -377,7 +417,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 if (!isLandscape) {
                                     GripArcCombinedLayout.resolve(
                                         gripManifest, viewModel.systemId, safeBounds, viewportBounds,
-                                        arcProfile.side, arcProfile.dx, arcProfile.dy,
+                                        effectiveArcSide, arcProfile.dx, arcProfile.dy,
                                         analogCount =
                                             when (currentControllerConfig?.touchControllerID) {
                                                 TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE -> 2
@@ -392,8 +432,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 }
                             combinedPlacement?.let { GripArcFit.Fits(it.dock) }
                                 ?: GripArcFit.Unavailable(
-                                    "Compact Standard + GripArc cannot fit after trying both sides " +
-                                        "and default positions. " +
+                                    "Compact Standard + GripArc cannot fit on your selected side, " +
+                                        "including its default position. " +
                                         "Standard controls are available for this session; " +
                                         "GripArc settings are preserved. " +
                                         "Use portrait orientation or a larger display.",
@@ -406,7 +446,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 safe = safeBounds,
                                 viewport = viewportBounds,
                                 occupied = occupied,
-                                side = arcProfile.side,
+                                side = effectiveArcSide,
                                 dx = arcProfile.dx,
                                 dy = arcProfile.dy,
                             )
@@ -484,6 +524,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
+            if (jointPlacement != null && touchControlsVisibleState.value) {
+                CompositeControlDeckHousing(jointPlacement, shellTokens)
+            }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -499,6 +542,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
                     pivotArc = pivotPlacement != null || combinedPlacement != null,
+                    drawPivotModule = jointPlacement == null,
                 )
             }
 
@@ -613,29 +657,58 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     profile = arcProfile,
                     tokens = shellTokens,
                     onPressed = viewModel::pressGripArcSlot,
+                    drawHousing = jointPlacement == null,
                 )
             }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
             val layoutError = gripError?.reason ?: pivotError?.reason
             val dismissedFallback =
-                remember(arcProfile.mode, arcProfile.side, fullPos, viewPos) { mutableStateOf(false) }
-            if (!selectedPivot && gripError != null && touchControlsVisibleState.value && !isLoading &&
+                remember(effectiveArcMode, effectiveArcSide, fullPos, viewPos) { mutableStateOf(false) }
+            val canTryOtherSide =
+                !isLandscape && gripManifest != null &&
+                    if (selectedPivot) {
+                        (compositeResolution as? CompositeDeckResolution.Unavailable)?.failure ==
+                            CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE
+                    } else {
+                        GripArcCombinedLayout.controlsFor(viewModel.systemId) != null &&
+                            GripArcInputCatalog.forSystem(viewModel.systemId).isNotEmpty()
+                    }
+            if ((!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&
+                touchControlsVisibleState.value && !isLoading &&
                 !dismissedFallback.value
             ) {
                 AlertDialog(
-                    onDismissRequest = { dismissedFallback.value = true },
+                    onDismissRequest = {
+                        sessionChoice.value = sessionChoice.value.useStandard()
+                        dismissedFallback.value = true
+                    },
                     title = { Text("GripArc unavailable on this layout") },
                     text = { Text(gripError.reason) },
                     confirmButton = {
-                        TextButton(onClick = { dismissedFallback.value = true }) {
+                        TextButton(onClick = {
+                            sessionChoice.value = sessionChoice.value.useStandard()
+                            dismissedFallback.value = true
+                        }) {
                             Text("Use Standard this session")
+                        }
+                    },
+                    dismissButton = {
+                        if (canTryOtherSide) {
+                            TextButton(onClick = {
+                                sessionChoice.value = sessionChoice.value.tryOppositeSide(arcProfile.side)
+                            }) {
+                                val otherSide = if (effectiveArcSide == GripArcSide.RIGHT) "left" else "right"
+                                Text("Try $otherSide side this session")
+                            }
                         }
                     },
                 )
             }
             LaunchedEffect(layoutError, touchControlsVisibleState.value) {
-                if (layoutError != null && touchControlsVisibleState.value && selectedPivot) {
+                if (layoutError != null && touchControlsVisibleState.value &&
+                    selectedPivot && !effectiveArcMode.hasGrip
+                ) {
                     Toast.makeText(appContext, layoutError, Toast.LENGTH_LONG).show()
                 }
             }

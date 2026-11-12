@@ -34,6 +34,7 @@ internal object GripArcCombinedLayout {
         dy: Float,
         analogCount: Int? = null,
     ): GripArcCombinedPlacement? {
+        if (!safe.isFiniteArea() || !viewport.isFiniteArea()) return null
         val active =
             controlsFor(system)?.filter {
                 when (it) {
@@ -42,15 +43,8 @@ internal object GripArcCombinedLayout {
                     else -> true
                 }
             } ?: return null
-        // Saved side/position first; opposite side next; then reset transiently.
-        // Never write fallback geometry back into the cartridge profile.
-        val opposite = if (side == GripArcSide.RIGHT) GripArcSide.LEFT else GripArcSide.RIGHT
-        for ((hand, x, y) in listOf(
-            Triple(side, dx, dy),
-            Triple(opposite, dx, dy),
-            Triple(side, 0f, 0f),
-            Triple(opposite, 0f, 0f),
-        )) {
+        // Preserve the player's side. The UI can explicitly request the opposite side for this session.
+        for ((hand, x, y) in listOf(Triple(side, dx, dy), Triple(side, 0f, 0f)).distinct()) {
             for (dockScale in listOf(0.84f, 0.80f, 0.76f, 0.72f)) {
                 val dock =
                     (

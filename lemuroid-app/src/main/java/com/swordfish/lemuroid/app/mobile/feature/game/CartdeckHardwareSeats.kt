@@ -297,6 +297,7 @@ internal fun CartdeckHardwareSeats(
     isDualScreen: Boolean,
     customColours: Boolean,
     pivotArc: Boolean = false,
+    drawPivotModule: Boolean = true,
 ) {
     if (rootBounds == null || inputBounds.isEmpty()) return
     val density = LocalDensity.current
@@ -328,7 +329,7 @@ internal fun CartdeckHardwareSeats(
     check(glowSources.size == 6 && glowSources.values.none { it.enabledByDefault })
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (pivotArc) {
+        if (pivotArc && drawPivotModule) {
             CartdeckPivotArcModule(
                 controls = controls,
                 video = video,

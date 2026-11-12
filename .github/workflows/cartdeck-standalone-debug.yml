@@ -20,3 +20,33 @@ jobs:
     name: Complete CARTDECK ARM64 APK
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/cartdeck-wii-xbox-engineering.yml
+
+  griparc-engineering-review:
+    name: Mark GripArc PR ready after source and APK gates
+    needs: engineering
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.number == 152 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/pivotarc-griparc-joint'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Mark this verified head ready for engineering review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          current_head=$(gh api "repos/$GH_REPO/pulls/152" --jq '.head.sha')
+          if [[ "$current_head" != "$VERIFIED_HEAD" ]]; then
+            echo 'A newer head needs its own gates; leaving review state unchanged.'
+            exit 0
+          fi
+          is_draft=$(gh api "repos/$GH_REPO/pulls/152" --jq '.draft')
+          if [[ "$is_draft" == true ]]; then
+            gh pr ready 152 --repo "$GH_REPO"
+          fi

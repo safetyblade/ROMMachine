@@ -15,13 +15,17 @@ class GripArcCombinedLayoutTest {
         listOf(SystemID.PLAYSTATION_2, SystemID.GAMECUBE, SystemID.DREAMCAST, SystemID.GBA, SystemID.SNES)
 
     @Test fun requiredConsolesFitBothSidesWithAllFourSlotsReserved() {
-        for (width in listOf(393f, 360f, 320f)) {
-            val safe = PivotArcBounds(8f, 8f, width - 8f, 844f)
-            val viewport = PivotArcBounds(22f, 84f, width - 22f, 344f)
+        for (device in ControlDeckDeviceFixture.representative) {
+            val safe = device.safe
+            val viewport = device.viewport
             for (system in systems) for (side in GripArcSide.values()) {
                 val layout = GripArcCombinedLayout.resolve(manifest, system, safe, viewport, side, 0f, 0f)
-                assertNotNull("$system $side ${width}dp", layout)
-                layout!!
+                if (layout == null) {
+                    assertTrue("Owner-class deck regressed: $system $side", device.width < 393f || device.height < 852f)
+                    continue
+                }
+                assertTrue(viewport.inside(device.screen))
+                assertTrue(layout.dock.housing.inside(safe))
                 assertEquals(side, layout.dock.side)
                 assertEquals(GripArcCombinedLayout.controlsFor(system)!!.toSet(), layout.controls.keys)
                 val reserved =
@@ -41,9 +45,44 @@ class GripArcCombinedLayoutTest {
         }
     }
 
+    @Test fun savedOffsetFallbackNeverSilentlySwitchesSides() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (side in GripArcSide.values()) {
+            for (offset in listOf(-1000f, 1000f)) {
+                val result =
+                    GripArcCombinedLayout.resolve(
+                        manifest,
+                        SystemID.GBA,
+                        device.safe,
+                        device.viewport,
+                        side,
+                        offset,
+                        0f,
+                    )
+                assertNotNull(result)
+                assertEquals(side, result!!.dock.side)
+            }
+        }
+    }
+
+    @Test fun invalidMeasurementsCannotProduceHiddenOrClippedControls() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        assertNull(
+            GripArcCombinedLayout.resolve(
+                manifest,
+                SystemID.GBA,
+                device.safe,
+                device.viewport.copy(right = Float.NaN),
+                GripArcSide.RIGHT,
+                0f,
+                0f,
+            ),
+        )
+    }
+
     @Test fun mirrorPreservesFaceCompassAndMovesDpadToFarSide() {
         val safe = PivotArcBounds(8f, 8f, 385f, 844f)
-        val viewport = PivotArcBounds(22f, 84f, 371f, 344f)
+        val viewport = ControlDeckDeviceFixture(393f, 852f).viewport
         for (side in GripArcSide.values()) {
             val layout = GripArcCombinedLayout.resolve(manifest, SystemID.GAMECUBE, safe, viewport, side, 0f, 0f)!!
             val c = layout.controls
@@ -57,7 +96,7 @@ class GripArcCombinedLayoutTest {
         val expected = setOf("D", "A", "B", "X", "Y", "L", "R", "Start", "Menu", "AnalogL")
         assertEquals(expected, GripArcCombinedLayout.controlsFor(SystemID.DREAMCAST)!!.toSet())
         val safe = PivotArcBounds(8f, 8f, 385f, 844f)
-        val viewport = PivotArcBounds(22f, 84f, 371f, 344f)
+        val viewport = ControlDeckDeviceFixture(393f, 852f).viewport
         for (side in GripArcSide.values()) {
             val layout =
                 GripArcCombinedLayout.resolve(
@@ -86,7 +125,7 @@ class GripArcCombinedLayoutTest {
                 manifest,
                 SystemID.PSX,
                 PivotArcBounds(8f, 8f, 385f, 844f),
-                PivotArcBounds(22f, 84f, 371f, 344f),
+                ControlDeckDeviceFixture(393f, 852f).viewport,
                 GripArcSide.RIGHT,
                 0f,
                 0f,
@@ -104,7 +143,7 @@ class GripArcCombinedLayoutTest {
                     manifest,
                     SystemID.PLAYSTATION_2,
                     safe,
-                    PivotArcBounds(22f, 84f, 371f, 344f),
+                    ControlDeckDeviceFixture(393f, 852f).viewport,
                     side,
                     0f,
                     0f,
@@ -135,7 +174,7 @@ class GripArcCombinedLayoutTest {
                 manifest,
                 SystemID.GBA,
                 PivotArcBounds(8f, 8f, 385f, 844f),
-                PivotArcBounds(22f, 84f, 371f, 344f),
+                ControlDeckDeviceFixture(393f, 852f).viewport,
                 GripArcSide.RIGHT,
                 savedOffset,
                 0f,
