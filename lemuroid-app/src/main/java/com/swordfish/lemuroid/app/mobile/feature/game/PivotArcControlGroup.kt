@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swordfish.touchinput.controller.R as TouchR
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
@@ -31,6 +30,7 @@ import gg.padkit.PadKitScope
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
+import com.swordfish.touchinput.controller.R as TouchR
 
 /**
  * Same PadKit scope and same input IDs used by Standard. Only the geometry and
