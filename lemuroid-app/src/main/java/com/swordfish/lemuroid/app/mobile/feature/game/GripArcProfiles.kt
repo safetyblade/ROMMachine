@@ -112,7 +112,8 @@ class GripArcProfileStore(context: Context) {
                 KeyEvent.KEYCODE_BUTTON_A,
                 KeyEvent.KEYCODE_BUTTON_B,
             )
-        val mappings = preferred.map { key -> if (key in possible) listOf(key) else emptyList() }
+        val assigned = preferred.filter { it in possible }.map { listOf(it) }
+        val mappings = assigned + List(4 - assigned.size) { emptyList() }
         return GripArcProfile(mappings = mappings)
     }
 
