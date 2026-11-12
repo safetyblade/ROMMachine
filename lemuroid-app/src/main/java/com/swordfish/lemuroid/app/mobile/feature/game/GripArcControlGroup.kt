@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.collect
  * The housing has no pointer handlers; inactive slots do not exist in UI.
  */
 @Composable
-fun GripArcControlGroup(
+internal fun GripArcControlGroup(
     placement: GripArcPlacement,
     profile: GripArcProfile,
     tokens: CartdeckEditionTokens,
@@ -192,7 +192,7 @@ private fun GripArcHousing(
         Box(
             modifier =
                 Modifier
-                    .offset(x = ((if (left) 65f else 209f) * placement.scale - 38f).dp, y = (42f * scale).dp)
+                    .offset(x = ((if (left) 65f else 209f) * placement.scale - 38f).dp, y = (42f * placement.scale).dp)
                     .width(76.dp)
                     .height(18.dp),
             contentAlignment = Alignment.Center,
