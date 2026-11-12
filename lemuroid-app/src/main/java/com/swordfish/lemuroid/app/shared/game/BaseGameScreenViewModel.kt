@@ -45,6 +45,7 @@ import gg.padkit.inputstate.InputState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -164,7 +165,7 @@ class BaseGameScreenViewModel(
         loadingState.value = false
     }
 
-    fun gripArcProfile(): Flow<GripArcProfile> = gripArcProfileState
+    fun gripArcProfile(): StateFlow<GripArcProfile> = gripArcProfileState
 
     fun reloadGripArcProfile() {
         val latest = gripArcStore.read(activeGame)
