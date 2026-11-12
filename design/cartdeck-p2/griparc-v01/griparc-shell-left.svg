@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 308" role="img" aria-label="CARTDECK GripArc left full-L module, shell only" data-cd-product="GripArc" data-cd-side="left" data-cd-count="0" data-cd-housing="full-L" data-cd-schema="1.0.0">
+<title>CARTDECK GripArc — left — constant full L housing</title>
+<desc>Same complete full L-shaped hardware for every count. Upper side G1 G2; bottom edge G3 G4. Inactive buttons do not render.</desc>
+<g id="housing" transform="translate(272 0) scale(-1 1)">
+
+<!-- Full physical L housing: this exact silhouette is retained for all counts. -->
+<path id="griparc-shell" data-cd-role="chassis" d="M161 12H245Q265 12 265 32V277Q265 298 244 298H18Q7 298 7 287V231Q7 219 20 219H148Q157 219 157 208V32Q157 12 161 12Z" fill="#2C3B4C" stroke="#718597" stroke-width="2"/>
+<path data-cd-role="bezel" d="M173 23H242Q254 23 254 37V273Q254 285 242 285H20V231H149Q168 231 168 212V37Q168 23 173 23Z" fill="#172536" stroke="#091522" stroke-width="3"/>
+<path data-cd-role="secondary" d="M176 28H240Q248 28 248 40V270Q248 278 240 278H27V236H152Q175 236 175 211V40Q175 28 176 28Z" fill="#253343" stroke="#4C6073" stroke-width="1.3"/>
+<path d="M165 42V204Q165 226 145 226H23" fill="none" stroke="#8DA3B0" stroke-width="1.5" opacity=".48"/>
+<path d="M259 53V278Q259 291 245 291H33" fill="none" data-cd-role="accent" stroke="#58D5C8" stroke-width="4.2" stroke-linecap="round" opacity=".78"/>
+<path d="M253 54V271Q253 285 239 285H34" fill="none" data-cd-role="focus" stroke="#6CE9D8" stroke-width="1.2" opacity=".66"/>
+<path d="M22 244H142M22 250H131" fill="none" stroke="#6B8091" stroke-width="1.5" opacity=".28"/>
+<path d="M180 70H236" fill="none" stroke="#57CFBE" stroke-width="1.6" opacity=".62"/>
+<path d="M180 209H241M31 287H141" fill="none" stroke="#96A6B5" stroke-width="1.5" opacity=".3"/>
+<path d="M160 12L174 23 M245 12L241 23 M7 231L20 239 M7 286L20 278" fill="none" stroke="#A3B2C1" stroke-width="1.3" opacity=".62"/>
+<g aria-hidden="true"><circle cx="164" cy="29" r="5.5" fill="#101A28" stroke="#6F8697" stroke-width="1.3"/><path d="M161.7 29h4.6 M164 26.7v4.6" stroke="#9FB0BC" stroke-width="1.1" opacity=".7"/></g>
+<g aria-hidden="true"><circle cx="245" cy="37" r="5.5" fill="#101A28" stroke="#6F8697" stroke-width="1.3"/><path d="M242.7 37h4.6 M245 34.7v4.6" stroke="#9FB0BC" stroke-width="1.1" opacity=".7"/></g>
+<g aria-hidden="true"><circle cx="18" cy="277" r="5.5" fill="#101A28" stroke="#6F8697" stroke-width="1.3"/><path d="M15.7 277h4.6 M18 274.7v4.6" stroke="#9FB0BC" stroke-width="1.1" opacity=".7"/></g>
+<g aria-hidden="true"><circle cx="247" cy="290" r="5.5" fill="#101A28" stroke="#6F8697" stroke-width="1.3"/><path d="M244.7 290h4.6 M247 287.7v4.6" stroke="#9FB0BC" stroke-width="1.1" opacity=".7"/></g>
+</g>
+<g id="griparc-wordmark" aria-hidden="true"><text x="65" y="56" font-family="sans-serif" font-size="13.5" font-weight="700" font-style="italic" text-anchor="middle" letter-spacing=".2" data-cd-role="onChassis" fill="#F1F4F2">GripArc</text></g>
+
+</svg>

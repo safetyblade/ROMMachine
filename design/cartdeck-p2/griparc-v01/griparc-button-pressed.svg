@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 82 46" role="img" aria-label="GripArc L/R sized shoulder button pressed" data-cd-button-style="shoulder-LR" data-cd-pressed="true">
+<title>GripArc elongated shoulder control — pressed</title>
+<rect x="1" y="1" width="80" height="44" rx="16" fill="#0A1522" stroke="#65D9C8" stroke-width="1.4"/>
+<rect x="5" y="7" width="72" height="34" rx="13" data-cd-role="button" fill="#304E55" stroke="#5AD8C4" stroke-width="2"/>
+<path d="M19 13H63" fill="none" stroke="#E6E3F1" stroke-width="1.7" opacity=".2"/>
+<rect x="7" y="9" width="68" height="30" rx="12" fill="none" data-cd-role="accent" stroke="#68E9D9" stroke-width="2.4"/>
+</svg>
