@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -45,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckAppearancePreview
@@ -80,12 +86,12 @@ private fun presetRoles(id: String): Map<String, Color> {
 
 private val roles =
     linkedMapOf(
-        "Cartridge" to
+        "Console hardware" to
             listOf(
                 "chassis" to "Chassis", "secondary" to "Side rails", "bezel" to "Bezel",
                 "glass" to "Screen surround", "button" to "Buttons", "accent" to "Accent",
             ),
-        "Shelf" to
+        "Cartridge shelf" to
             listOf(
                 "roomBackdrop" to "Room", "shelfBackboard" to "Back panel",
                 "shelfDeck" to "Rail deck", "shelfLip" to "Rail lip",
@@ -231,6 +237,75 @@ private fun ColourPicker(
     )
 }
 
+
+/** Live console preview using the SAME saved chassis, button, bezel and accent roles as gameplay. */
+@Composable
+private fun CartdeckConsoleHardwarePreview(
+    appearance: ShelfAppearance,
+    height: Dp,
+) {
+    val preset = presetRoles(appearance.edition)
+    fun role(id: String): Color = appearance.custom[id]?.let { Color(it.toInt()) } ?: preset.getValue(id)
+    val chassis = role("chassis")
+    val secondary = role("secondary")
+    val bezel = role("bezel")
+    val button = role("button")
+    val accent = role("accent")
+    val ink = role("onChassis")
+    Box(
+        modifier = Modifier.fillMaxWidth().height(height)
+            .background(chassis, RoundedCornerShape(10.dp))
+            .border(2.dp, bezel, RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize().padding(9.dp)) {
+            val w = size.width
+            val h = size.height
+            drawRoundRect(
+                secondary,
+                topLeft = Offset(w * 0.12f, h * 0.07f),
+                size = Size(w * 0.76f, h * 0.40f),
+                cornerRadius = CornerRadius(7.dp.toPx()),
+            )
+            drawRoundRect(
+                bezel,
+                topLeft = Offset(w * 0.17f, h * 0.11f),
+                size = Size(w * 0.66f, h * 0.31f),
+                cornerRadius = CornerRadius(5.dp.toPx()),
+                style = Stroke(width = 2.dp.toPx()),
+            )
+            val d = h * 0.13f
+            val dx = w * 0.31f
+            val dy = h * 0.73f
+            drawRoundRect(
+                accent,
+                topLeft = Offset(dx - d * 1.25f, dy - d * 0.35f),
+                size = Size(d * 2.5f, d * 0.7f),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+            )
+            drawRoundRect(
+                accent,
+                topLeft = Offset(dx - d * 0.35f, dy - d * 1.25f),
+                size = Size(d * 0.7f, d * 2.5f),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+            )
+            for ((cx, cy) in listOf(
+                0.67f to 0.62f, 0.78f to 0.75f,
+                0.56f to 0.75f, 0.67f to 0.88f,
+            )) {
+                drawCircle(bezel, radius = d * 0.68f, center = Offset(w * cx, h * cy))
+                drawCircle(button, radius = d * 0.52f, center = Offset(w * cx, h * cy))
+                drawCircle(
+                    ink.copy(alpha = 0.20f),
+                    radius = d * 0.48f,
+                    center = Offset(w * cx, h * cy),
+                    style = Stroke(width = 1.dp.toPx()),
+                )
+            }
+        }
+    }
+}
+
 /** All changes are a local draft; only Apply calls the atomic ShelfStore writer. */
 @Composable
 fun ShelfAppearanceEditor(
@@ -328,13 +403,17 @@ fun ShelfAppearanceEditor(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Appearance", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("CARTDECK Appearance", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     TextButton(onClick = onDismiss) { Text("Close") }
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    Text(
+                        "Customise your console hardware and cartridge shelf together.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("original", "pink", "green").forEach { id ->
                             EditionOption(
@@ -345,7 +424,19 @@ fun ShelfAppearanceEditor(
                             )
                         }
                     }
-                    CartdeckAppearancePreview(draft, height = 143.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Console hardware", style = MaterialTheme.typography.labelMedium)
+                            CartdeckConsoleHardwarePreview(draft, height = 118.dp)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("Cartridge shelf", style = MaterialTheme.typography.labelMedium)
+                            CartdeckAppearancePreview(draft, height = 118.dp)
+                        }
+                    }
                     TextButton(onClick = { expandedEditor = !expandedEditor }) {
                         Text(if (expandedEditor) "Hide colours" else "Customise colours")
                     }
