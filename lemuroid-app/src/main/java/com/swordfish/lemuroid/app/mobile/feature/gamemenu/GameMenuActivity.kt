@@ -75,6 +75,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
         val advancedCoreOptions: List<LemuroidCoreOption>,
         val game: Game,
         val coreConfig: SystemCoreConfig,
+        val currentControllerName: String?,
         val audioEnabled: Boolean,
         val fastForwardSupported: Boolean,
         val fastForwardEnabled: Boolean,
@@ -110,6 +111,8 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 coreConfig =
                     intent.serializable<SystemCoreConfig>(GameMenuContract.EXTRA_SYSTEM_CORE_CONFIG)
                         ?: throw InvalidParameterException("Missing EXTRA_SYSTEM_CORE_CONFIG"),
+                currentControllerName =
+                    extras?.getString(GameMenuContract.EXTRA_CURRENT_CONTROLLER_NAME),
                 audioEnabled =
                     extras?.getBoolean(GameMenuContract.EXTRA_AUDIO_ENABLED, false) ?: false,
                 fastForwardSupported =
@@ -227,7 +230,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                         )
                     }
                     composable(GameMenuRoute.CONTROLS) {
-                        GameMenuControlsScreen(navController, ::onResult)
+                        GameMenuControlsScreen(navController, gameMenuRequest, ::onResult)
                     }
                     composable(GameMenuRoute.GRIPARC) {
                         GripArcEditorScreen(gameMenuRequest.game)

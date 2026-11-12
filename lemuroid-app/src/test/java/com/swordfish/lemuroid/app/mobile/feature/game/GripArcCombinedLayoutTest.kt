@@ -61,7 +61,13 @@ class GripArcCombinedLayoutTest {
         for (side in GripArcSide.values()) {
             val layout =
                 GripArcCombinedLayout.resolve(
-                    manifest, SystemID.DREAMCAST, safe, viewport, side, 0f, 0f,
+                    manifest,
+                    SystemID.DREAMCAST,
+                    safe,
+                    viewport,
+                    side,
+                    0f,
+                    0f,
                 )!!
             val controls = layout.controls
             assertEquals(expected, controls.keys)

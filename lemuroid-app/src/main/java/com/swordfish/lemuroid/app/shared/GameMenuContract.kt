@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.shared
 
 object GameMenuContract {
     const val EXTRA_GAME = "EXTRA_GAME"
+    const val EXTRA_CURRENT_CONTROLLER_NAME = "EXTRA_CURRENT_CONTROLLER_NAME"
     const val EXTRA_SYSTEM_CORE_CONFIG = "EXTRA_SYSTEM_CORE_CONFIG"
     const val EXTRA_CURRENT_DISK = "EXTRA_CURRENT_DISK"
     const val EXTRA_DISKS = "EXTRA_DISKS"
@@ -14,6 +15,7 @@ object GameMenuContract {
     const val EXTRA_TILT_ALL_CONFIGS = "EXTRA_TILT_ALL_CONFIGS"
 
     const val RESULT_RESET = "RESULT_RESET"
+    const val RESULT_CHANGE_WII_CONTROLLER = "RESULT_CHANGE_WII_CONTROLLER"
     const val RESULT_SAVE = "RESULT_SAVE"
     const val RESULT_LOAD = "RESULT_LOAD"
     const val RESULT_QUIT = "RESULT_QUIT"

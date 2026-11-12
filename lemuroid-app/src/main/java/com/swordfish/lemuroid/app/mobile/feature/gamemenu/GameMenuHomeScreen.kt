@@ -21,6 +21,7 @@ import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
+import com.swordfish.lemuroid.lib.library.SystemID
 import kotlin.reflect.KFunction1
 
 @Composable
@@ -30,6 +31,7 @@ fun GameMenuHomeScreen(
     onResult: KFunction1<Intent.() -> Unit, Unit>,
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        WiiControllerPicker(gameMenuRequest, onResult)
         if (gameMenuRequest.coreConfig.statesSupported) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.game_menu_save)) },
@@ -189,9 +191,11 @@ fun GameMenuHomeScreen(
 @Composable
 fun GameMenuControlsScreen(
     navController: NavController,
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        WiiControllerPicker(gameMenuRequest, onResult)
         LemuroidSettingsMenuLink(
             title = { Text("GripArc") },
             icon = {
@@ -213,4 +217,33 @@ fun GameMenuControlsScreen(
             onClick = { onResult { putExtra(GameMenuContract.RESULT_EDIT_TOUCH_CONTROLS, true) } },
         )
     }
+}
+
+/**
+ * Accessible immediately from the open game's menu, and again under Controls.
+ * Selection closes the menu and updates the active Libretro controller type.
+ * No game restart, ROM modification or separate emulator installation.
+ */
+@Composable
+private fun WiiControllerPicker(
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
+    onResult: KFunction1<Intent.() -> Unit, Unit>,
+) {
+    if (gameMenuRequest.game.systemId != SystemID.WII.dbname) return
+    val controllers = gameMenuRequest.coreConfig.controllerConfigs[0].orEmpty()
+    if (controllers.size < 2) return
+    val selected =
+        controllers.indexOfFirst {
+            it.name == (gameMenuRequest.currentControllerName ?: controllers.first().name)
+        }.coerceAtLeast(0)
+    LemuroidSettingsList(
+        title = { Text("Wii controller") },
+        items = controllers.map { stringResource(id = it.displayName) },
+        state = rememberMemoryIntSettingState(selected),
+        onItemSelected = { index, _ ->
+            onResult {
+                putExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER, controllers[index].name)
+            }
+        },
+    )
 }
