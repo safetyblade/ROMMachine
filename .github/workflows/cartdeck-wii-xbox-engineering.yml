@@ -14,8 +14,74 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  source-preflight:
+    name: Source preflight — Kotlin lint and CI contracts
+    # This is the fast fail gate for both the reusable pipeline and manual runs.
+    # Do NOT spend runner minutes on native engines/host/Xbox if source lint fails.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fast source and pipeline contract tests (no APK)
+        run: |
+          set -euo pipefail
+          python3 scripts/audit_cartdeck_brand.py
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_stage_native_bundle.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_hakux_native.py' -v
+          bash scripts/ci/test_android_emulator_smoke.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restore pinned Gradle distribution cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/cartdeck-gradle/*.zip
+          key: gradle-distribution-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Configure minimal Android SDK and pinned Gradle
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/preflight-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'platforms;android-35' 'build-tools;34.0.0'
+          bash scripts/ci/bootstrap_gradle.sh
+      - name: Kotlin lint for production and test sources (same gate as APK)
+        run: |
+          set -euo pipefail
+          "$GRADLE_BIN" ktlintCheck \
+            --no-daemon --no-configuration-cache --max-workers=2
+      - name: Print actionable Kotlin lint diagnostics
+        if: failure()
+        run: |
+          for report in lemuroid-app/build/reports/ktlint/*/*.txt \
+                        lemuroid-touchinput/build/reports/ktlint/*/*.txt \
+                        retrograde-app-shared/build/reports/ktlint/*/*.txt; do
+            if [ -s "$report" ]; then
+              echo "::group::$report"
+              head -n 120 "$report"
+              echo "::endgroup::"
+            fi
+          done
+
   native-engines:
     name: Android ARM64 engine — ${{ matrix.engine }}
+    needs: [source-preflight]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 105
@@ -70,6 +136,7 @@ jobs:
 
   native-host:
     name: Patched Android graphics and input host
+    needs: [source-preflight]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -113,6 +180,7 @@ jobs:
 
   native-xbox:
     name: Android ARM64 hakuX SDL3 backend
+    needs: [source-preflight]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -150,7 +218,7 @@ jobs:
 
   apk-wii:
     name: Build and verify Wii APK independently
-    needs: [native-engines, native-host]
+    needs: [source-preflight, native-engines, native-host]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -323,7 +391,7 @@ jobs:
 
   apk-combined:
     name: Build and verify Wii plus Xbox APK
-    needs: [native-engines, native-host, native-xbox]
+    needs: [source-preflight, native-engines, native-host, native-xbox]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
