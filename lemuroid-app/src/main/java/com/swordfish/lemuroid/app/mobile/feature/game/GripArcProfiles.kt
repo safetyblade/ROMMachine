@@ -5,13 +5,13 @@ import android.content.SharedPreferences
 import android.view.KeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.State
 import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
-import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.SystemID
 import org.json.JSONArray
 import org.json.JSONObject
 
