@@ -53,7 +53,7 @@ class PivotArcPositionSolverTest {
         val viewport = PivotArcBounds(22f, 84f, 298f, 344f)
         val result = resolve(SystemID.SNES, safe = compactSafe, viewport = viewport)
         if (result is PivotArcResolution.Fits) {
-            assertEquals(10, result.placement.controls.size)
+            assertEquals(12, result.placement.controls.size)
             assertTrue(result.placement.visualScale >= 1f)
             for ((key, bounds) in result.placement.controls) {
                 if (key !in setOf("Select", "Start", "Menu")) {
@@ -78,7 +78,7 @@ class PivotArcPositionSolverTest {
         for (system in listOf(SystemID.GB, SystemID.GBC, SystemID.GBA, SystemID.SNES)) {
             val active = PivotArcLayoutProfile.activeFor(system)!!
             val result = resolve(system) as PivotArcResolution.Fits
-            assertEquals(active.toSet(), result.placement.controls.keys)
+            assertEquals(active.toSet() + setOf("HoldA", "HoldB"), result.placement.controls.keys)
             val rectangles = result.placement.controls.values.toList()
             rectangles.forEach {
                 assertTrue(it.inside(referenceSafe))
@@ -131,7 +131,7 @@ class PivotArcPositionSolverTest {
         val viewport = PivotArcBounds(22f, 84f, 298f, 344f)
         val result = resolve(SystemID.SNES, safe = safe, viewport = viewport)
         if (result is PivotArcResolution.Fits) {
-            assertEquals(10, result.placement.controls.size)
+            assertEquals(12, result.placement.controls.size)
         } else {
             assertTrue((result as PivotArcResolution.Unavailable).reason.isNotBlank())
         }
@@ -140,6 +140,36 @@ class PivotArcPositionSolverTest {
     @Test fun insufficientSpaceAndLandscapeRequireStandardFallback() {
         assertTrue(resolve(SystemID.SNES, safe = PivotArcBounds(8f, 8f, 312f, 580f)) is PivotArcResolution.Unavailable)
         assertTrue(resolve(SystemID.GBA, landscape = true) is PivotArcResolution.Unavailable)
+    }
+
+    @Test fun holdTogglesUseDedicatedTargetsAndSitBesideTheirFaceButtons() {
+        val placement = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement
+        val buttons = placement.controls
+        val a = buttons.getValue("A")
+        val b = buttons.getValue("B")
+        val holdA = buttons.getValue("HoldA")
+        val holdB = buttons.getValue("HoldB")
+        assertEquals(48f, holdA.width, 0.001f)
+        assertEquals(48f, holdB.width, 0.001f)
+        assertEquals(48f, holdA.height, 0.001f)
+        assertEquals(48f, holdB.height, 0.001f)
+        assertTrue(placement.visuals.getValue("HoldA").w < placement.visuals.getValue("A").w)
+        assertTrue(placement.visuals.getValue("HoldB").w < placement.visuals.getValue("B").w)
+        assertEquals(a.centerX, holdA.centerX, 0.001f)
+        assertEquals(b.centerY, holdB.centerY, 0.001f)
+        assertEquals(8f, holdA.top - a.bottom, 0.001f)
+        assertEquals(8f, b.left - holdB.right, 0.001f)
+    }
+
+    @Test fun compactUtilityBankLivesBelowPivotArcAndNeverChangesStandardCoordinates() {
+        val controls = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement.controls
+        val coreBottom = controls.filterKeys { it !in setOf("Start", "Select", "Menu") }
+            .values.maxOf { it.bottom }
+        for (key in listOf("Select", "Start", "Menu")) {
+            assertTrue("$key must remain below the core", controls.getValue(key).top >= coreBottom + 7.9f)
+        }
+        assertTrue(controls.getValue("Select").centerX < controls.getValue("Start").centerX)
+        assertTrue(controls.getValue("Start").centerX < controls.getValue("Menu").centerX)
     }
 
     @Test fun expandedConsoleControlsNeverPretendToBeSupported() {

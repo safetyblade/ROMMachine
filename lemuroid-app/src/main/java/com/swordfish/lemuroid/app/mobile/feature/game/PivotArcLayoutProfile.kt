@@ -72,6 +72,7 @@ data class PivotArcBounds(
     val width get() = right - left
     val height get() = bottom - top
     val centerX get() = (left + right) / 2f
+    val centerY get() = (top + bottom) / 2f
 
     fun inset(amount: Float): PivotArcBounds =
         PivotArcBounds(left - amount, top - amount, right + amount, bottom + amount)
@@ -114,7 +115,9 @@ object PivotArcPositionSolver {
     private const val REFERENCE_WIDTH = 393f
     private const val REFERENCE_HEIGHT = 852f
     private const val GAP = 8f
-    private const val UTILITY_OFFSET_FROM_VIEWPORT = 60f
+    private const val HOLD_TOUCH_SIZE = 48f
+    private const val HOLD_VISUAL_SIZE = 28f
+    private const val UTILITY_GAP = 9f
     private val utilities = setOf("Start", "Select", "Menu")
     private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 
@@ -202,7 +205,29 @@ object PivotArcPositionSolver {
             )
         }
 
-        val core = gameplay.associateWith(::rectangleFor)
+        val normalControls = gameplay.associateWith(::rectangleFor)
+        // Dedicated 48dp targets flank B and sit just below A. Neither
+        // modifies the owner's original A/B/D/L/R anchors or PadKit IDs.
+        val b = normalControls.getValue("B")
+        val a = normalControls.getValue("A")
+        val holds =
+            mapOf(
+                "HoldB" to
+                    PivotArcBounds(
+                        b.left - GAP - HOLD_TOUCH_SIZE,
+                        b.centerY - HOLD_TOUCH_SIZE / 2f,
+                        b.left - GAP,
+                        b.centerY + HOLD_TOUCH_SIZE / 2f,
+                    ),
+                "HoldA" to
+                    PivotArcBounds(
+                        a.centerX - HOLD_TOUCH_SIZE / 2f,
+                        a.bottom + GAP,
+                        a.centerX + HOLD_TOUCH_SIZE / 2f,
+                        a.bottom + GAP + HOLD_TOUCH_SIZE,
+                    ),
+            )
+        val core = normalControls + holds
         val coreHull =
             PivotArcBounds(
                 core.values.minOf { it.left },
@@ -211,33 +236,34 @@ object PivotArcPositionSolver {
                 core.values.maxOf { it.bottom },
             )
 
-        // Utility buttons remain deliberately outside the frequent-thumb area.
-        // Their separate rail leaves room for speaker/indicator hardware between
-        // the video and Start/Select/Menu without touching Standard mode.
-        val railY = viewport.bottom + UTILITY_OFFSET_FROM_VIEWPORT
-        val utilityCentersX =
-            mapOf(
-                "Select" to safe.left + 34f,
-                "Start" to safe.centerX,
-                "Menu" to safe.right - 34f,
-            )
+        // V1 trial utility bank: directly beneath the PivotArc gameplay
+        // cluster, separate from frequent thumb actions and mirrored as a unit.
+        // Standard mode does not use this solver or these positions.
+        val utilitySpecs = active.filter { it in utilities }
+        val utilityTotalWidth =
+            utilitySpecs.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
+                (utilitySpecs.size - 1).coerceAtLeast(0) * UTILITY_GAP
+        var cursor = coreHull.centerX - utilityTotalWidth / 2f
+        val railY = coreHull.bottom + GAP
         val rail =
-            active.filter { it in utilities }.associateWith { key ->
+            utilitySpecs.associateWith { key ->
                 val target = baseline.buttonCenters.getValue(key).touch
-                val x = utilityCentersX.getValue(key)
-                PivotArcBounds(
-                    x - target.w / 2f,
-                    railY - target.h / 2f,
-                    x + target.w / 2f,
-                    railY + target.h / 2f,
-                )
+                PivotArcBounds(cursor, railY, cursor + target.w, railY + target.h)
+                    .also { cursor += target.w + UTILITY_GAP }
             }
-
-        val minTop = max(viewport.bottom + GAP, (rail.values.maxOfOrNull { it.bottom } ?: 0f) + GAP)
-        val minDx = safe.left - coreHull.left
-        val maxDx = safe.right - coreHull.right
-        val minDy = max(safe.top, minTop) - coreHull.top
-        val maxDy = safe.bottom - coreHull.bottom
+        val complete = core + rail
+        val wholeHull =
+            PivotArcBounds(
+                complete.values.minOf { it.left },
+                complete.values.minOf { it.top },
+                complete.values.maxOf { it.right },
+                complete.values.maxOf { it.bottom },
+            )
+        val minTop = max(safe.top, viewport.bottom + GAP)
+        val minDx = safe.left - wholeHull.left
+        val maxDx = safe.right - wholeHull.right
+        val minDy = minTop - wholeHull.top
+        val maxDy = safe.bottom - wholeHull.bottom
         if (minDx > maxDx || minDy > maxDy) {
             return PivotArcResolution.Unavailable(
                 "Insufficient space for full-sized PivotArc controls outside the game viewport.",
@@ -247,7 +273,7 @@ object PivotArcPositionSolver {
         val dx = requestedDx.coerceIn(minDx, maxDx)
         val dy = requestedDy.coerceIn(minDy, maxDy)
         val moved =
-            core.mapValues { (_, rect) ->
+            complete.mapValues { (_, rect) ->
                 PivotArcBounds(
                     rect.left + dx,
                     rect.top + dy,
@@ -255,10 +281,9 @@ object PivotArcPositionSolver {
                     rect.bottom + dy,
                 )
             }
-        val rightHanded = moved + rail
         val positions =
             if (leftHanded) {
-                rightHanded.mapValues { (_, rect) ->
+                moved.mapValues { (_, rect) ->
                     PivotArcBounds(
                         safe.left + safe.right - rect.right,
                         rect.top,
@@ -267,7 +292,7 @@ object PivotArcPositionSolver {
                     )
                 }
             } else {
-                rightHanded
+                moved
             }
         for ((key, rect) in positions) {
             if (!rect.inside(safe)) {
@@ -294,7 +319,7 @@ object PivotArcPositionSolver {
                 val source = baseline.buttonCenters.getValue(key).visual
                 val factor = if (key in utilities) 1f else scale
                 PivotArcSize(source.w * factor, source.h * factor)
-            }
+            } + holds.keys.associateWith { PivotArcSize(HOLD_VISUAL_SIZE, HOLD_VISUAL_SIZE) }
         return PivotArcResolution.Fits(
             PivotArcPlacement(
                 controls = positions,

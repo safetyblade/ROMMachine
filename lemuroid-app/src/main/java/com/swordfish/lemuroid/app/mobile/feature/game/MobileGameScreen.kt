@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -145,6 +146,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             viewModel.onScreenOrientationChanged(orientation)
         }
 
+        val isLoading = viewModel.loadingState.collectAsState(true).value
+        val heldPivotKeys = viewModel.pivotArcHolds().collectAsState(emptySet())
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(false)
         val touchControllerSettingsState =
@@ -275,6 +278,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     null
                 }
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
+            val pivotHoldsEnabled =
+                pivotPlacement != null && touchControlsVisibleState.value && !isLoading
+            DisposableEffect(viewModel, pivotHoldsEnabled) {
+                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled)
+                onDispose { viewModel.setPivotArcHoldsEnabled(false) }
+            }
 
             CartdeckConsoleShell(
                 tokens = shellTokens,
@@ -312,6 +321,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             when (key) {
                                 "D" -> "dpad"
                                 "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+                                "HoldA" -> "hold-a"
+                                "HoldB" -> "hold-b"
                                 "L", "R" -> "shoulder-$key"
                                 else -> key.lowercase()
                             }
@@ -436,7 +447,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     LocalLemuroidPadTheme provides controllerTheme,
                     LocalCartdeckControlBounds provides observeBounds,
                 ) {
-                    PivotArcControlGroup(pivotPlacement)
+                    PivotArcControlGroup(
+                        placement = pivotPlacement,
+                        heldKeys = heldPivotKeys.value,
+                        accent = shellTokens.accent,
+                        onToggleHold = viewModel::togglePivotArcHold,
+                    )
                 }
             }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
@@ -449,11 +465,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 }
             }
         }
-
-        val isLoading =
-            viewModel.loadingState
-                .collectAsState(true)
-                .value
 
         if (isLoading) {
             Box(

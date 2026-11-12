@@ -91,8 +91,13 @@ internal object PivotArcModuleGeometry {
         val coreRight = gameplay.maxOf { it.right }
         val coreTop = gameplay.minOf { it.top }
         val coreBottom = gameplay.maxOf { it.bottom }
-        val utilitiesBottom = controls.filterKeys { it in utilityKeys }.values.maxOfOrNull { it.bottom } ?: 0f
-        val excludedTop = maxOf(video?.bottom ?: 0f, utilitiesBottom) + edge / 2f
+        // V1 utility group can be below the main cluster. Only utilities
+        // genuinely ABOVE the gameplay hull constrain the plate top.
+        val utilitiesAboveCore =
+            controls.filterKeys { it in utilityKeys }.values
+                .filter { it.bottom <= coreTop }
+                .maxOfOrNull { it.bottom } ?: 0f
+        val excludedTop = maxOf(video?.bottom ?: 0f, utilitiesAboveCore) + edge / 2f
 
         val left = maxOf(edge / 2f, coreLeft - edge)
         val top = maxOf(excludedTop, coreTop - edge - labelHeight)

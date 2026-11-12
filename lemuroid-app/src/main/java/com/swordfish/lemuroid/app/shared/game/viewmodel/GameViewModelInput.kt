@@ -57,6 +57,7 @@ class GameViewModelInput(
     private val retroGameView: GameViewModelRetroGameView,
     private val tilt: GameViewModelTilt,
     private val sideEffects: GameViewModelSideEffects,
+    private val pivotArcHoldGate: PivotArcHeldInputGate,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
@@ -334,6 +335,7 @@ class GameViewModelInput(
 
                 if (port == 0) {
                     if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE && action == KeyEvent.ACTION_DOWN) {
+                        pivotArcHoldGate.clear()
                         sideEffects.showMenu(tilt, this)
                         return@safeCollect
                     }
@@ -347,7 +349,10 @@ class GameViewModelInput(
                     shortcuts[device]?.forEach { shortcut ->
                         if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
                             when (shortcut.type) {
-                                GameShortcutType.MENU -> sideEffects.showMenu(tilt, this)
+                                GameShortcutType.MENU -> {
+                                    pivotArcHoldGate.clear()
+                                    sideEffects.showMenu(tilt, this)
+                                }
                                 GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
                                 GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
                                 GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
@@ -370,8 +375,17 @@ class GameViewModelInput(
                                     device.getMotionRange(MotionEvent.AXIS_GAS) != null
                             else -> false
                         }
-                port?.takeUnless { analogTriggerKey }?.let {
-                    retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, it)
+                port?.takeUnless { analogTriggerKey }?.let { targetPort ->
+                    val captured =
+                        targetPort == 0 &&
+                            pivotArcHoldGate.setSource(
+                                bindKeyCode,
+                                "physical:${device.id}:$keyCode",
+                                action == KeyEvent.ACTION_DOWN,
+                            )
+                    if (!captured) {
+                        retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, targetPort)
+                    }
                 }
             }
     }
