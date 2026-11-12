@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.content.Context
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /** Runtime geometry sourced directly from the approved PR #126 manifest. */
