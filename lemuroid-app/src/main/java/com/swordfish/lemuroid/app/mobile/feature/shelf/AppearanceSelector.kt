@@ -237,7 +237,6 @@ private fun ColourPicker(
     )
 }
 
-
 /** Live console preview using the SAME saved chassis, button, bezel and accent roles as gameplay. */
 @Composable
 private fun CartdeckConsoleHardwarePreview(
@@ -245,6 +244,7 @@ private fun CartdeckConsoleHardwarePreview(
     height: Dp,
 ) {
     val preset = presetRoles(appearance.edition)
+
     fun role(id: String): Color = appearance.custom[id]?.let { Color(it.toInt()) } ?: preset.getValue(id)
     val chassis = role("chassis")
     val secondary = role("secondary")
@@ -253,9 +253,10 @@ private fun CartdeckConsoleHardwarePreview(
     val accent = role("accent")
     val ink = role("onChassis")
     Box(
-        modifier = Modifier.fillMaxWidth().height(height)
-            .background(chassis, RoundedCornerShape(10.dp))
-            .border(2.dp, bezel, RoundedCornerShape(10.dp)),
+        modifier =
+            Modifier.fillMaxWidth().height(height)
+                .background(chassis, RoundedCornerShape(10.dp))
+                .border(2.dp, bezel, RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize().padding(9.dp)) {
@@ -290,8 +291,10 @@ private fun CartdeckConsoleHardwarePreview(
                 cornerRadius = CornerRadius(2.dp.toPx()),
             )
             for ((cx, cy) in listOf(
-                0.67f to 0.62f, 0.78f to 0.75f,
-                0.56f to 0.75f, 0.67f to 0.88f,
+                0.67f to 0.62f,
+                0.78f to 0.75f,
+                0.56f to 0.75f,
+                0.67f to 0.88f,
             )) {
                 drawCircle(bezel, radius = d * 0.68f, center = Offset(w * cx, h * cy))
                 drawCircle(button, radius = d * 0.52f, center = Offset(w * cx, h * cy))
@@ -403,7 +406,11 @@ fun ShelfAppearanceEditor(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("CARTDECK Appearance", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "CARTDECK Appearance",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                     TextButton(onClick = onDismiss) { Text("Close") }
                 }
                 Column(

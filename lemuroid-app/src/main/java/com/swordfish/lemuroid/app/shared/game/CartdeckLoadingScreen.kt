@@ -49,15 +49,17 @@ import kotlinx.coroutines.withContext
 internal fun CartdeckLoadingScreen(message: String?) {
     val context = LocalContext.current.applicationContext
     val appearance by produceState(initialValue = ShelfAppearance(), key1 = context) {
-        value = withContext(Dispatchers.IO) {
-            runCatching { ShelfStore(context).read().appearance }.getOrDefault(ShelfAppearance())
+        value =
+            withContext(Dispatchers.IO) {
+                runCatching { ShelfStore(context).read().appearance }.getOrDefault(ShelfAppearance())
+            }
+    }
+    val edition =
+        when (appearance.edition.lowercase()) {
+            "pink" -> CartdeckEditionPreset.PINK
+            "green" -> CartdeckEditionPreset.GREEN
+            else -> CartdeckEditionPreset.ORIGINAL
         }
-    }
-    val edition = when (appearance.edition.lowercase()) {
-        "pink" -> CartdeckEditionPreset.PINK
-        "green" -> CartdeckEditionPreset.GREEN
-        else -> CartdeckEditionPreset.ORIGINAL
-    }
     val base = remember(context, edition) { context.resolveCartdeckEdition(edition) }
     val chassis = appearance.custom["chassis"]?.let { Color(it.toInt()) } ?: base.chassis
     val panel = appearance.custom["secondary"]?.let { Color(it.toInt()) } ?: base.secondary
@@ -76,21 +78,27 @@ internal fun CartdeckLoadingScreen(message: String?) {
             val width = size.width
             // Subtle manufacturing rails share the current CARTDECK palette.
             drawLine(
-                bezel, Offset(gap, gap), Offset(gap, size.height - gap),
+                bezel,
+                Offset(gap, gap),
+                Offset(gap, size.height - gap),
                 strokeWidth = 3.dp.toPx(),
             )
             drawLine(
-                bezel, Offset(width - gap, gap), Offset(width - gap, size.height - gap),
+                bezel,
+                Offset(width - gap, gap),
+                Offset(width - gap, size.height - gap),
                 strokeWidth = 3.dp.toPx(),
             )
             drawLine(
                 accent.copy(alpha = 0.62f),
-                Offset(gap, gap), Offset(gap + 35.dp.toPx(), gap),
+                Offset(gap, gap),
+                Offset(gap + 35.dp.toPx(), gap),
                 strokeWidth = 2.dp.toPx(),
             )
             drawLine(
                 accent.copy(alpha = 0.62f),
-                Offset(width - gap - 35.dp.toPx(), gap), Offset(width - gap, gap),
+                Offset(width - gap - 35.dp.toPx(), gap),
+                Offset(width - gap, gap),
                 strokeWidth = 2.dp.toPx(),
             )
         }

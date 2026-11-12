@@ -1,11 +1,9 @@
 name: CARTDECK Wii and Xbox engineering APKs
 
-# Independent Wii and combined Wii/Xbox engineering artifacts; the existing five-engine pipeline remains available.
+# Shared native pipeline: existing five engines, Wii and the independent Xbox backend.
 # Authenticated Actions QA artifacts only; no GitHub Release publishing.
 on:
-  pull_request:
-  push:
-    branches: [master]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -18,7 +16,7 @@ concurrency:
 jobs:
   native-engines:
     name: Android ARM64 engine — ${{ matrix.engine }}
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 105
     strategy:
@@ -72,7 +70,7 @@ jobs:
 
   native-host:
     name: Patched Android graphics and input host
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -115,7 +113,7 @@ jobs:
 
   native-xbox:
     name: Android ARM64 hakuX SDL3 backend
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/wii-xbox-engineering')
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     defaults:

@@ -19,9 +19,9 @@ import com.swordfish.touchinput.radial.layouts.GBARight
 import com.swordfish.touchinput.radial.layouts.GBLeft
 import com.swordfish.touchinput.radial.layouts.GBRight
 import com.swordfish.touchinput.radial.layouts.GGLeft
+import com.swordfish.touchinput.radial.layouts.GGRight
 import com.swordfish.touchinput.radial.layouts.GameCubeLeft
 import com.swordfish.touchinput.radial.layouts.GameCubeRight
-import com.swordfish.touchinput.radial.layouts.GGRight
 import com.swordfish.touchinput.radial.layouts.Genesis3Left
 import com.swordfish.touchinput.radial.layouts.Genesis3Right
 import com.swordfish.touchinput.radial.layouts.Genesis6Left
