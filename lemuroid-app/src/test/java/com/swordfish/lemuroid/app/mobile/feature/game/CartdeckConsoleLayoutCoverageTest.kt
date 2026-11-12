@@ -83,6 +83,42 @@ class CartdeckConsoleLayoutCoverageTest {
     }
 
     @Test
+    fun dreamcastUsesItsOwnFlycastPadAndPhysicalButtonMappings() {
+        val dc =
+            com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+                .first { it.id == SystemID.DREAMCAST }
+        val controller = dc.systemCoreConfigs.first().controllerConfigs.getValue(0).first()
+        assertEquals(TouchControllerID.DREAMCAST, controller.touchControllerID)
+        assertEquals("default", controller.name)
+        assertEquals(1, controller.libretroId)
+        assertNotNull(TouchControllerID.getConfig(TouchControllerID.DREAMCAST))
+        val inputs = GripArcInputCatalog.forSystem(SystemID.DREAMCAST)
+        val mapped = inputs.associate { it.label to it.code }
+        assertEquals(KeyEvent.KEYCODE_BUTTON_B, mapped.getValue("A"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_A, mapped.getValue("B"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_Y, mapped.getValue("X"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_X, mapped.getValue("Y"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, mapped.getValue("L"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, mapped.getValue("R"))
+        assertTrue("Dreamcast has no physical Select", "Select" !in mapped)
+        assertTrue("No PlayStation symbols", inputs.none { it.label == "Circle" || it.label == "Triangle" })
+
+        // Regressions: PS2 and GameCube retain the controller configs they
+        // already used before this Dreamcast-only change.
+        val native = com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+        val ps2 = native.first { it.id == SystemID.PLAYSTATION_2 }
+        val gc = native.first { it.id == SystemID.GAMECUBE }
+        assertEquals(
+            TouchControllerID.PSX_DUALSHOCK,
+            ps2.systemCoreConfigs.first().controllerConfigs.getValue(0).first().touchControllerID,
+        )
+        assertEquals(
+            TouchControllerID.GAMECUBE,
+            gc.systemCoreConfigs.first().controllerConfigs.getValue(0).first().touchControllerID,
+        )
+    }
+
+    @Test
     fun everyConsoleUsesSharedCARTDECKVideoTreatment() {
         for (system in GameSystem.all()) {
             val expected =
