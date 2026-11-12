@@ -641,6 +641,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
         }
 
+        WiiControllerLaunchChoice(viewModel, currentControllerConfig, isLoading)
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -650,6 +652,66 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
         }
     }
+}
+
+/**
+ * One-time choice when each Wii cartridge first reaches an interactive game
+ * screen. This is dismissible, never changes the disc or Wii system memory,
+ * and the in-game Controls menu remains available to switch at any time.
+ */
+@Composable
+private fun WiiControllerLaunchChoice(
+    viewModel: BaseGameScreenViewModel,
+    currentControllerConfig: ControllerConfig?,
+    isLoading: Boolean,
+) {
+    if (viewModel.systemId != SystemID.WII) return
+
+    val context = LocalContext.current
+    val preferences =
+        remember(context) {
+            context.getSharedPreferences("cartdeck_wii_controller_choice_v1", android.content.Context.MODE_PRIVATE)
+        }
+    val promptKey = remember(viewModel) { "shown_${viewModel.cartridgeSessionKey}" }
+    var show by remember(viewModel, promptKey) {
+        mutableStateOf(!preferences.getBoolean(promptKey, false))
+    }
+    if (!show || isLoading || currentControllerConfig == null) return
+
+    val dismiss = {
+        preferences.edit().putBoolean(promptKey, true).apply()
+        show = false
+    }
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text("Wii controller") },
+        text = {
+            Column {
+                Text("Sideways Wii Remote is the default. Choose a different controller for this session if needed.")
+                Text("You can switch again at any time from the game's Wii controller menu.")
+                listOf(
+                    "wii_sideways" to "Sideways Wii Remote",
+                    "wii_classic" to "Classic Controller",
+                    "wii_nunchuk" to "Wii Remote + Nunchuk",
+                ).forEach { (name, label) ->
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            viewModel.selectWiiController(name)
+                            dismiss()
+                        },
+                    ) {
+                        Text(if (currentControllerConfig.name == name) "✓ $label" else label)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = dismiss) {
+                Text("Continue")
+            }
+        },
+    )
 }
 
 /**
