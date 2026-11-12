@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
@@ -125,6 +126,9 @@ fun CartridgeDetail(
         }
         Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
         Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
+        if (rememberGripArcProfile(game).value.mode.hasGrip) {
+            Text("ARC · GripArc active", style = MaterialTheme.typography.labelSmall)
+        }
         CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
         CartridgeEmulatorChoice(game)
         Button(
