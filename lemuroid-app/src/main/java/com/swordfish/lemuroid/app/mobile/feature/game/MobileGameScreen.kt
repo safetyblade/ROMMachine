@@ -356,7 +356,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             }
-                        if (!selectedPivot && GripArcCombinedLayout.controlsFor(viewModel.systemId) == null) {
+                        if (!selectedPivot && !touchControlsVisibleState.value) {
+                            GripArcPositionSolver.resolve(
+                                gripManifest, safeBounds, viewportBounds, emptyList(),
+                                arcProfile.side, arcProfile.dx, arcProfile.dy,
+                            )
+                        } else if (!selectedPivot && GripArcCombinedLayout.controlsFor(viewModel.systemId) == null) {
                             GripArcFit.Unavailable(
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
                                     "Standard remains available; GripArc settings are preserved.",
