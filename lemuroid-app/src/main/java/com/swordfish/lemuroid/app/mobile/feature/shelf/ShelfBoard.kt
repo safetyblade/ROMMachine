@@ -55,7 +55,9 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
+import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.isActive
 import kotlin.math.floor
@@ -296,19 +298,34 @@ fun ShelfBoard(
                                                 },
                                         ) {
                                             if (game != null) {
-                                                CartridgeSpine(
-                                                    game,
-                                                    {
-                                                        if (arrange) menu = item.section to cell else onSelect(game)
-                                                    },
-                                                    Modifier.alpha(
-                                                        if (dragging == cell.id) 0.25f else 1f,
-                                                    ),
-                                                    onLongClick = {
-                                                        if (arrange) menu = item.section to cell else onLongClick(game)
-                                                    },
-                                                    width = width,
-                                                )
+                                                Box {
+                                                    CartridgeSpine(
+                                                        game,
+                                                        {
+                                                            if (arrange) menu = item.section to cell else onSelect(game)
+                                                        },
+                                                        Modifier.alpha(
+                                                            if (dragging == cell.id) 0.25f else 1f,
+                                                        ),
+                                                        onLongClick = {
+                                                            if (arrange) menu = item.section to cell else onLongClick(game)
+                                                        },
+                                                        width = width,
+                                                    )
+                                                    if (rememberGripArcProfile(game).value.mode.hasGrip) {
+                                                        Text(
+                                                            "ARC",
+                                                            modifier =
+                                                                Modifier
+                                                                    .align(Alignment.TopEnd)
+                                                                    .padding(top = 4.dp, end = 4.dp)
+                                                                    .background(colors.shelfBackboard)
+                                                                    .padding(horizontal = 3.dp, vertical = 1.dp),
+                                                            color = colors.sectionText,
+                                                            fontSize = 8.sp,
+                                                        )
+                                                    }
+                                                }
                                             } else {
                                                 val reserved = cell != null
                                                 Box(
