@@ -56,12 +56,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import kotlinx.coroutines.isActive
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlinx.coroutines.isActive
 
 private data class ShelfItem(val key: String, val section: ShelfSection, val row: ShelfRow? = null)
 
