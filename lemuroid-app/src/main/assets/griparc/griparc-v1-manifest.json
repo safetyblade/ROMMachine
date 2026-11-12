@@ -1,0 +1,189 @@
+{
+  "schema": "cartdeck.griparc.assets/1.0.0",
+  "product": "GripArc",
+  "nameStatus": "provisional",
+  "assetStatus": "design-source-ready/native-not-implemented",
+  "source": "Owner accepted full-L housing with fixed slots on 12 November 2026",
+  "artboard": {
+    "width": 272,
+    "height": 308,
+    "units": "design SVG viewBox units; illustrative; must NOT be used as screen dp without measuring"
+  },
+  "geometry": {
+    "housing": "constant-full-L",
+    "sideArm": "two controls",
+    "bottomArm": "two controls",
+    "buttonShape": "CARTDECK L/R-style elongated shoulder pill",
+    "inactiveSlotPolicy": "render no button or ghost seat; keep full L housing",
+    "slotOrder": [
+      "G1",
+      "G2",
+      "G3",
+      "G4"
+    ],
+    "slotPositionsNeverReflow": true,
+    "physicalVisualButton": {
+      "width": 76,
+      "height": 38
+    },
+    "minimumHitTargetDp": 48,
+    "prototypeTouch": {
+      "width": 80,
+      "height": 52
+    },
+    "realPlacement": "Android measurement and safe-region solver required; translate whole module only, NEVER individual button centers"
+  },
+  "slots": [
+    {
+      "id": "G1",
+      "x": 211,
+      "y": 109,
+      "group": "side",
+      "n": 1,
+      "centerRight": {
+        "x": 211,
+        "y": 109
+      },
+      "centerLeft": {
+        "x": 61,
+        "y": 109
+      },
+      "visual": {
+        "w": 76,
+        "h": 38
+      },
+      "hitTarget": {
+        "w": 80,
+        "h": 52
+      }
+    },
+    {
+      "id": "G2",
+      "x": 211,
+      "y": 177,
+      "group": "side",
+      "n": 2,
+      "centerRight": {
+        "x": 211,
+        "y": 177
+      },
+      "centerLeft": {
+        "x": 61,
+        "y": 177
+      },
+      "visual": {
+        "w": 76,
+        "h": 38
+      },
+      "hitTarget": {
+        "w": 80,
+        "h": 52
+      }
+    },
+    {
+      "id": "G3",
+      "x": 211,
+      "y": 259,
+      "group": "bottom",
+      "n": 3,
+      "centerRight": {
+        "x": 211,
+        "y": 259
+      },
+      "centerLeft": {
+        "x": 61,
+        "y": 259
+      },
+      "visual": {
+        "w": 76,
+        "h": 38
+      },
+      "hitTarget": {
+        "w": 80,
+        "h": 52
+      }
+    },
+    {
+      "id": "G4",
+      "x": 100,
+      "y": 259,
+      "group": "bottom",
+      "n": 4,
+      "centerRight": {
+        "x": 100,
+        "y": 259
+      },
+      "centerLeft": {
+        "x": 172,
+        "y": 259
+      },
+      "visual": {
+        "w": 76,
+        "h": 38
+      },
+      "hitTarget": {
+        "w": 80,
+        "h": 52
+      }
+    }
+  ],
+  "activeButtonCounts": {
+    "1": [
+      "G1"
+    ],
+    "2": [
+      "G1",
+      "G2"
+    ],
+    "3": [
+      "G1",
+      "G2",
+      "G3"
+    ],
+    "4": [
+      "G1",
+      "G2",
+      "G3",
+      "G4"
+    ]
+  },
+  "approvedModes": [
+    "Standard",
+    "PivotArc",
+    "Standard + GripArc",
+    "PivotArc + GripArc"
+  ],
+  "cartridgeSetting": "Hold Controls selects only the mode; no mappings or count in library",
+  "inGameEditor": {
+    "configures": [
+      "count 1-4",
+      "G1-G4 system-specific key/chord mapping",
+      "left/right attachment",
+      "optional safe whole-module offset"
+    ],
+    "persistsPerGame": true,
+    "loadOn": [
+      "Open",
+      "Resume",
+      "Restart"
+    ],
+    "orientation": "mirror housing and coordinates, never reverse functional button IDs"
+  },
+  "paletteRoles": [
+    "chassis",
+    "secondary",
+    "bezel",
+    "button",
+    "onButton",
+    "accent",
+    "onChassis",
+    "trim",
+    "focus"
+  ],
+  "inputContract": {
+    "source": "existing PadKit IDs",
+    "buttonActions": "independent momentary chords first; latch only after shared multi-input ownership QA",
+    "noTimedMacros": true
+  },
+  "nativeBoundary": "Design assets only. No emulator, touch handler, core, save or library code changed."
+}
