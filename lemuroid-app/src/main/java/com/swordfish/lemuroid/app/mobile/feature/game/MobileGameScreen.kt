@@ -68,6 +68,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
 import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
@@ -381,7 +382,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                             when (currentControllerConfig?.touchControllerID) {
                                                 TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE -> 2
                                                 TouchControllerID.PSP -> 1
-                                                else -> 0
+                                                // PR #141 adds TouchControllerID.DREAMCAST;
+                                                // keep one left analog available in combined mode.
+                                                else -> if (viewModel.systemId == SystemID.DREAMCAST) 1 else 0
                                             },
                                     )
                                 } else {
