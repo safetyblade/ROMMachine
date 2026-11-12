@@ -25,6 +25,7 @@ import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.libretrodroid.Controller
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroView.Companion.MOTION_SOURCE_ANALOG_LEFT
@@ -99,6 +100,24 @@ class GameViewModelInput(
 
     fun getControllerConfigState(): Flow<Map<Int, ControllerConfig>> {
         return controllerConfigsState
+    }
+
+    fun selectedControllerName(): String? = controllerConfigsState.value[0]?.name
+
+    /**
+     * Switch Wii input devices while the emulator stays open.
+     * The existing controller-state collector updates LibretroDroid and Compose
+     * from the same state, without relaunching Dolphin or changing Wii NAND.
+     */
+    fun selectWiiController(name: String) {
+        if (system.id != SystemID.WII) return
+        val controller =
+            systemCoreConfig.controllerConfigs[0]?.firstOrNull { it.name == name } ?: return
+        scope.launch {
+            if (controllerConfigsManager.selectController(system.id, systemCoreConfig, 0, name)) {
+                controllerConfigsState.value = controllerConfigsState.value + (0 to controller)
+            }
+        }
     }
 
     private fun sendStickMotions(
