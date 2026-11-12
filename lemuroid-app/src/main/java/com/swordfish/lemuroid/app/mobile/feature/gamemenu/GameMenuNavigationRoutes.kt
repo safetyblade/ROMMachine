@@ -44,6 +44,16 @@ enum class GameMenuRoute(
         titleId = R.string.game_menu_settings,
         parent = HOME,
     ),
+    CONTROLS(
+        route = "controls",
+        titleId = R.string.game_menu_edit_touch_controls,
+        parent = HOME,
+    ),
+    GRIPARC(
+        route = "griparc",
+        titleId = R.string.game_menu_edit_touch_controls,
+        parent = CONTROLS,
+    ),
     ;
 
     fun canGoBack(): Boolean {

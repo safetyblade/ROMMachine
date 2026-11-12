@@ -32,14 +32,17 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +58,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidSmallGameImage
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -123,6 +128,10 @@ private fun ContextActionContent(
 ) {
     val context = LocalContext.current
     var showCustomNameDialog by remember { mutableStateOf(false) }
+    var showHoldControlsDialog by remember(selectedGame.fileUri) { mutableStateOf(false) }
+    val arcStore = remember(context) { GripArcProfileStore(context) }
+    var selectedArcMode by remember(selectedGame.fileUri) { mutableStateOf(arcStore.read(selectedGame).mode) }
+    var arcSaveFailed by remember(selectedGame.fileUri) { mutableStateOf(false) }
 
     val imagePickerLauncher =
         rememberLauncherForActivityResult(
@@ -166,6 +175,11 @@ private fun ContextActionContent(
                 onGameRestart(selectedGame)
                 selectedGameState.value = null
             },
+        )
+        ContextActionEntry(
+            label = "Hold Controls · " + selectedArcMode.label,
+            icon = Icons.Default.AppShortcut,
+            onClick = { showHoldControlsDialog = true },
         )
 
         if (selectedGame.isFavorite) {
@@ -236,6 +250,43 @@ private fun ContextActionContent(
                 },
             )
         }
+    }
+
+    if (showHoldControlsDialog) {
+        AlertDialog(
+            onDismissRequest = { showHoldControlsDialog = false },
+            title = { Text("Hold Controls") },
+            text = {
+                Column {
+                    Text("Choose one control layout for this cartridge.")
+                    ArcControlMode.values().forEach { mode ->
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val current = arcStore.read(selectedGame)
+                                        if (arcStore.save(selectedGame, current.copy(mode = mode))) {
+                                            selectedArcMode = mode
+                                            arcSaveFailed = false
+                                            showHoldControlsDialog = false
+                                        } else {
+                                            arcSaveFailed = true
+                                        }
+                                    },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selectedArcMode == mode, onClick = null)
+                            Text(mode.label)
+                        }
+                    }
+                    if (arcSaveFailed) Text("The selection could not be saved.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHoldControlsDialog = false }) { Text("Close") }
+            },
+        )
     }
 
     if (showCustomNameDialog) {

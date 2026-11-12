@@ -7,11 +7,14 @@ import android.view.MotionEvent
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.swordfish.lemuroid.app.mobile.feature.game.GameService
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelInput
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelRetroGameView
@@ -39,12 +42,13 @@ import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
 import gg.padkit.inputstate.InputState
+import timber.log.Timber
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 class BaseGameScreenViewModel(
     private val appContext: Context,
@@ -96,6 +100,9 @@ class BaseGameScreenViewModel(
     }
 
     val systemId = system.id
+    private val activeGame = game
+    private val gripArcStore = GripArcProfileStore(appContext)
+    private val gripArcProfileState = MutableStateFlow(gripArcStore.read(game))
 
     private val sideEffects = GameViewModelSideEffects(viewModelScope)
     val retroGameView =
@@ -156,6 +163,24 @@ class BaseGameScreenViewModel(
         loadingState.value = true
         block()
         loadingState.value = false
+    }
+
+    fun gripArcProfile(): StateFlow<GripArcProfile> = gripArcProfileState
+
+    fun reloadGripArcProfile() {
+        val latest = gripArcStore.read(activeGame)
+        if (latest != gripArcProfileState.value) {
+            pivotArcHeldInputGate.clear()
+            gripArcProfileState.value = latest
+        }
+    }
+
+    fun setGripArcEnabled(enabled: Boolean) {
+        pivotArcHeldInputGate.setGripEnabled(enabled)
+    }
+
+    fun pressGripArcSlot(slot: Int, pressed: Boolean, mapping: Set<Int>) {
+        pivotArcHeldInputGate.setGripSlot(slot, pressed, mapping)
     }
 
     fun getGameState(): Flow<GameViewModelRetroGameView.GameState> {
@@ -336,6 +361,10 @@ class BaseGameScreenViewModel(
         pivotArcHeldInputGate.toggleHold(keyCode)
     }
 
+    override fun onResume(owner: LifecycleOwner) {
+        reloadGripArcProfile()
+    }
+
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
 
@@ -347,6 +376,7 @@ class BaseGameScreenViewModel(
 
     override fun onCleared() {
         pivotArcHeldInputGate.setEnabled(false)
+        pivotArcHeldInputGate.setGripEnabled(false)
         super.onCleared()
     }
 

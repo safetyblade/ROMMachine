@@ -148,6 +148,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
         val isLoading = viewModel.loadingState.collectAsState(true).value
         val heldPivotKeys = viewModel.pivotArcHolds().collectAsState(emptySet())
+        val arcProfile = viewModel.gripArcProfile().collectAsState().value
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(false)
         val touchControllerSettingsState =
@@ -164,6 +165,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val tiltSimulatedControls = remember { derivedStateOf { tiltConfiguration.value.controlIds() } }
 
         val pivotSettings = rememberPivotArcSettings().value
+        val gripManifest = remember(appContext) {
+            runCatching { GripArcManifest.load(appContext) }.getOrNull()
+        }
         val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val leftGamePad = touchGamePads?.leftComposable
@@ -223,7 +227,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val layoutDirection = LocalLayoutDirection.current
             val insetSafe = WindowInsets.safeDrawing
             val gestureSafe = WindowInsets.safeGestures
-            val selectedPivot = pivotSettings.mode == CartdeckLayoutMode.ONE_HAND
+            // Per-cartridge mode overrides the legacy global PivotArc choice.
+            val selectedPivot = arcProfile.mode.hasPivot
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
@@ -278,6 +283,88 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     null
                 }
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
+            val gripResolution: GripArcFit? =
+                if (
+                    arcProfile.mode.hasGrip &&
+                    fullPos != null &&
+                    viewPos != null
+                ) {
+                    if (gripManifest == null) {
+                        GripArcFit.Unavailable("GripArc's approved geometry could not be loaded.")
+                    } else if (GripArcInputCatalog.forSystem(viewModel.systemId).isEmpty()) {
+                        GripArcFit.Unavailable("GripArc programmable inputs are not mapped for this system.")
+                    } else {
+                        val scale = currentDensity.density
+                        val safeBounds =
+                            PivotArcBounds(
+                                maxOf(
+                                    insetSafe.getLeft(currentDensity, layoutDirection),
+                                    gestureSafe.getLeft(currentDensity, layoutDirection),
+                                ) / scale + 8f,
+                                maxOf(
+                                    insetSafe.getTop(currentDensity),
+                                    gestureSafe.getTop(currentDensity),
+                                ) / scale + 8f,
+                                fullPos.width / scale -
+                                    maxOf(
+                                        insetSafe.getRight(currentDensity, layoutDirection),
+                                        gestureSafe.getRight(currentDensity, layoutDirection),
+                                    ) / scale - 8f,
+                                fullPos.height / scale -
+                                    maxOf(
+                                        insetSafe.getBottom(currentDensity),
+                                        gestureSafe.getBottom(currentDensity),
+                                    ) / scale - 8f,
+                            )
+                        val viewportBounds =
+                            PivotArcBounds(
+                                (viewPos.left - fullPos.left) / scale,
+                                (viewPos.top - fullPos.top) / scale,
+                                (viewPos.right - fullPos.left) / scale,
+                                (viewPos.bottom - fullPos.top) / scale,
+                            )
+                        val occupied =
+                            if (pivotPlacement != null) {
+                                pivotPlacement.controls.values.toList()
+                            } else {
+                                val known =
+                                    if (!touchControlsVisibleState.value) {
+                                        emptyList()
+                                    } else if (individualInputs.isNotEmpty()) {
+                                        individualInputs.values.toList()
+                                    } else {
+                                        listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                                    }
+                                known.map { rect ->
+                                    PivotArcBounds(
+                                        (rect.left - fullPos.left) / scale,
+                                        (rect.top - fullPos.top) / scale,
+                                        (rect.right - fullPos.left) / scale,
+                                        (rect.bottom - fullPos.top) / scale,
+                                    )
+                                }
+                            }
+                        GripArcPositionSolver.resolve(
+                            manifest = gripManifest,
+                            safe = safeBounds,
+                            viewport = viewportBounds,
+                            occupied = occupied,
+                            side = arcProfile.side,
+                            dx = arcProfile.dx,
+                            dy = arcProfile.dy,
+                        )
+                    }
+                } else {
+                    null
+                }
+            val gripPlacement = (gripResolution as? GripArcFit.Fits)?.placement
+            // An optional hardware pad does not hide this virtual accessory:
+            // physical keys and GripArc keys can remain independent owners.
+            val gripEnabled = gripPlacement != null && !isLoading
+            DisposableEffect(viewModel, gripEnabled) {
+                viewModel.setGripArcEnabled(gripEnabled)
+                onDispose { viewModel.setGripArcEnabled(false) }
+            }
             val pivotHoldsEnabled =
                 pivotPlacement != null && touchControlsVisibleState.value && !isLoading
             DisposableEffect(viewModel, pivotHoldsEnabled) {
@@ -455,13 +542,25 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     )
                 }
             }
+            if (gripPlacement != null && !isLoading) {
+                GripArcControlGroup(
+                    placement = gripPlacement,
+                    profile = arcProfile,
+                    tokens = shellTokens,
+                    onPressed = viewModel::pressGripArcSlot,
+                )
+            }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
-            if (pivotError != null && touchControlsVisibleState.value) {
+            val gripError = gripResolution as? GripArcFit.Unavailable
+            if ((pivotError != null || gripError != null) && touchControlsVisibleState.value) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
                     contentAlignment = Alignment.BottomCenter,
                 ) {
-                    Text(pivotError.reason, color = shellTokens.onChassis)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        pivotError?.let { Text(it.reason, color = shellTokens.onChassis) }
+                        gripError?.let { Text(it.reason, color = shellTokens.onChassis) }
+                    }
                 }
             }
         }
