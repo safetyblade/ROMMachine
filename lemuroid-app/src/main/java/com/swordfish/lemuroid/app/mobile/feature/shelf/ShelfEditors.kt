@@ -28,7 +28,14 @@ fun ShelfToolbar(
                 onClick = onArrange,
                 enabled = available,
             ) { Text(if (arrange) "Done arranging" else "Arrange shelf") }
-            TextButton(onClick = onAppearance, enabled = available) { Text("Appearance") }
+        }
+        Row {
+            TextButton(onClick = onAppearance, enabled = available) {
+                Column {
+                    Text("CARTDECK Appearance")
+                    Text("Console and cartridge shelf", style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                }
+            }
         }
         if (arrange) {
             Row {

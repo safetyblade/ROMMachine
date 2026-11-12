@@ -13,8 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -150,10 +152,150 @@ internal fun CartdeckPivotArcModule(
                     lineTo(plate.left, plate.top + bevel)
                     close()
                 }
-            // Lower, physically attached cradle. Palette roles preserve all
-            // three factory finishes and named custom colour combinations.
+            // V2: multiple material levels are painted UNDER PadKit. This
+            // layer never owns input, changes control coordinates, or extends
+            // into the game viewport (the plate comes from measured geometry).
+            val depth = 3.dp.toPx()
+            val insetEdge = 7.dp.toPx()
+            fun chamferedPlate(bounds: Rect, corner: Float) =
+                Path().apply {
+                    moveTo(bounds.left + corner, bounds.top)
+                    lineTo(bounds.right - corner, bounds.top)
+                    lineTo(bounds.right, bounds.top + corner)
+                    lineTo(bounds.right, bounds.bottom - corner)
+                    lineTo(bounds.right - corner, bounds.bottom)
+                    lineTo(bounds.left + corner, bounds.bottom)
+                    lineTo(bounds.left, bounds.bottom - corner)
+                    lineTo(bounds.left, bounds.top + corner)
+                    close()
+                }
+            val contactShadow =
+                Rect(plate.left, plate.top + depth, plate.right, plate.bottom)
+            drawPath(chamferedPlate(contactShadow, bevel), tokens.bezel.copy(alpha = 0.68f))
             drawPath(face, tokens.secondary)
+            drawPath(
+                face,
+                tokens.onChassis.copy(alpha = 0.23f),
+                style = Stroke(width = 2.dp.toPx()),
+            )
             drawPath(face, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
+            val innerPlate =
+                Rect(
+                    plate.left + insetEdge,
+                    plate.top + insetEdge,
+                    plate.right - insetEdge,
+                    plate.bottom - insetEdge,
+                )
+            if (innerPlate.width > 2 * bevel && innerPlate.height > 2 * bevel) {
+                val inner = chamferedPlate(innerPlate, bevel * 0.60f)
+                drawPath(inner, tokens.chassis.copy(alpha = 0.46f))
+                drawPath(
+                    inner,
+                    tokens.onChassis.copy(alpha = 0.13f),
+                    style = Stroke(width = 1.1.dp.toPx()),
+                )
+                drawLine(
+                    tokens.bezel.copy(alpha = 0.64f),
+                    Offset(innerPlate.left + bevel, innerPlate.bottom - 2.dp.toPx()),
+                    Offset(innerPlate.right - bevel, innerPlate.bottom - 2.dp.toPx()),
+                    strokeWidth = 2.2.dp.toPx(),
+                )
+            }
+            // The face, D-pad well and shoulders get individual machined
+            // seats. The existing caps/pressed feedback remain authoritative.
+            val gameplaySeats = controls.filterKeys {
+                it.lowercase() !in setOf("start", "select", "menu")
+            }
+            for ((key, bounds) in gameplaySeats) {
+                val center = bounds.center
+                val radius = minOf(bounds.width, bounds.height) / 2f
+                when (key.uppercase()) {
+                    "A", "B", "X", "Y" -> {
+                        val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
+                        drawCircle(tokens.bezel.copy(alpha = 0.89f), radius = collar, center = center)
+                        drawCircle(
+                            tokens.onChassis.copy(alpha = 0.35f),
+                            radius = (collar - 3.dp.toPx()).coerceAtLeast(0f),
+                            center = center,
+                            style = Stroke(width = 1.4.dp.toPx()),
+                        )
+                        drawArc(
+                            tokens.accent.copy(alpha = 0.28f),
+                            startAngle = 205f,
+                            sweepAngle = 110f,
+                            useCenter = false,
+                            topLeft = Offset(center.x - collar, center.y - collar),
+                            size = Size(collar * 2, collar * 2),
+                            style = Stroke(width = 1.2.dp.toPx()),
+                        )
+                    }
+                    "D" -> {
+                        val margin = 3.dp.toPx()
+                        val wellTop = Offset(bounds.left + margin, bounds.top + margin)
+                        val wellSize = Size(
+                            (bounds.width - margin * 2).coerceAtLeast(0f),
+                            (bounds.height - margin * 2).coerceAtLeast(0f),
+                        )
+                        drawRoundRect(
+                            tokens.bezel.copy(alpha = 0.90f),
+                            topLeft = wellTop,
+                            size = wellSize,
+                            cornerRadius = CornerRadius(22.dp.toPx()),
+                        )
+                        drawRoundRect(
+                            tokens.onChassis.copy(alpha = 0.26f),
+                            topLeft = wellTop,
+                            size = wellSize,
+                            cornerRadius = CornerRadius(22.dp.toPx()),
+                            style = Stroke(width = 1.7.dp.toPx()),
+                        )
+                    }
+                    "L", "R", "L2", "R2" -> {
+                        val margin = 2.dp.toPx()
+                        drawRoundRect(
+                            tokens.bezel.copy(alpha = 0.86f),
+                            topLeft = Offset(bounds.left + margin, bounds.top + margin),
+                            size = Size(
+                                (bounds.width - 2 * margin).coerceAtLeast(0f),
+                                (bounds.height - 2 * margin).coerceAtLeast(0f),
+                            ),
+                            cornerRadius = CornerRadius(12.dp.toPx()),
+                        )
+                        drawLine(
+                            tokens.onChassis.copy(alpha = 0.34f),
+                            Offset(bounds.left + 9.dp.toPx(), bounds.top + 6.dp.toPx()),
+                            Offset(bounds.right - 9.dp.toPx(), bounds.top + 6.dp.toPx()),
+                            strokeWidth = 1.2.dp.toPx(),
+                        )
+                    }
+                    "HOLDA", "HOLDB" -> {
+                        drawCircle(
+                            tokens.bezel.copy(alpha = 0.85f),
+                            radius = (radius - 2.dp.toPx()).coerceAtLeast(0f),
+                            center = center,
+                        )
+                        drawCircle(
+                            tokens.onChassis.copy(alpha = 0.25f),
+                            radius = (radius - 5.dp.toPx()).coerceAtLeast(0f),
+                            center = center,
+                            style = Stroke(width = 1.dp.toPx()),
+                        )
+                    }
+                }
+            }
+            // Small hardware utility seats, but never alter Standard's rail.
+            for ((key, bounds) in controls) {
+                if (key.lowercase() !in setOf("start", "select", "menu")) continue
+                drawRoundRect(
+                    tokens.bezel.copy(alpha = 0.82f),
+                    topLeft = Offset(bounds.left + 2.dp.toPx(), bounds.top + 2.dp.toPx()),
+                    size = Size(
+                        (bounds.width - 4.dp.toPx()).coerceAtLeast(0f),
+                        (bounds.height - 4.dp.toPx()).coerceAtLeast(0f),
+                    ),
+                    cornerRadius = CornerRadius(9.dp.toPx()),
+                )
+            }
             val foot = 11.dp.toPx()
             val inset = 4.dp.toPx()
             drawLine(
