@@ -358,8 +358,13 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             }
                         if (!selectedPivot && !touchControlsVisibleState.value) {
                             GripArcPositionSolver.resolve(
-                                gripManifest, safeBounds, viewportBounds, emptyList(),
-                                arcProfile.side, arcProfile.dx, arcProfile.dy,
+                                gripManifest,
+                                safeBounds,
+                                viewportBounds,
+                                emptyList(),
+                                arcProfile.side,
+                                arcProfile.dx,
+                                arcProfile.dy,
                             )
                         } else if (!selectedPivot && GripArcCombinedLayout.controlsFor(viewModel.systemId) == null) {
                             GripArcFit.Unavailable(
