@@ -90,12 +90,13 @@ data class GripArcProfile(
  * to ROMs, save RAM, shelf layout, or the original settings files.
  */
 class GripArcProfileStore(context: Context) {
+    private val appContext = context.applicationContext
     private val preferences =
-        context.applicationContext.getSharedPreferences("cartdeck_arc_cartridge_profiles_v1", Context.MODE_PRIVATE)
+        appContext.getSharedPreferences("cartdeck_arc_cartridge_profiles_v1", Context.MODE_PRIVATE)
 
     fun read(game: Game): GripArcProfile {
         val fallback =
-            if (PivotArcSettingsStoreContext.readMode(preferences, game, context = null)) {
+            if (PivotArcSettingsStore(appContext).read().mode == CartdeckLayoutMode.ONE_HAND) {
                 GripArcProfile(mode = ArcControlMode.PIVOTARC)
             } else {
                 GripArcProfile()
@@ -168,15 +169,6 @@ class GripArcProfileStore(context: Context) {
                 ).validated(allowed)
             }.getOrDefault(fallback)
     }
-}
-
-/** Transitional reader keeps previously configured global PivotArc for untouched games. */
-private object PivotArcSettingsStoreContext {
-    fun readMode(
-        ignored: SharedPreferences,
-        game: Game,
-        context: Context?,
-    ): Boolean = false
 }
 
 @Composable
