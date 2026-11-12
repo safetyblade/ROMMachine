@@ -19,6 +19,8 @@ import com.swordfish.touchinput.radial.layouts.GBARight
 import com.swordfish.touchinput.radial.layouts.GBLeft
 import com.swordfish.touchinput.radial.layouts.GBRight
 import com.swordfish.touchinput.radial.layouts.GGLeft
+import com.swordfish.touchinput.radial.layouts.GameCubeLeft
+import com.swordfish.touchinput.radial.layouts.GameCubeRight
 import com.swordfish.touchinput.radial.layouts.GGRight
 import com.swordfish.touchinput.radial.layouts.Genesis3Left
 import com.swordfish.touchinput.radial.layouts.Genesis3Right
@@ -66,6 +68,7 @@ enum class TouchControllerID {
     MELONDS,
     PSX,
     PSX_DUALSHOCK,
+    GAMECUBE,
     N64,
     PSP,
     SNES,
@@ -152,6 +155,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> PSXDualShockLeft(modifier, settings) },
                         { modifier, settings -> PSXDualShockRight(modifier, settings) },
+                    )
+
+                GAMECUBE ->
+                    Config(
+                        { modifier, settings -> GameCubeLeft(modifier, settings) },
+                        { modifier, settings -> GameCubeRight(modifier, settings) },
                     )
 
                 N64 ->
