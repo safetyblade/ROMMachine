@@ -105,6 +105,18 @@ class PivotArcPositionSolverTest {
         assertTrue(kotlin.math.abs(midY("R") - midY("A")) < 16f)
     }
 
+    @Test fun gbaReservesFutureFaceLocationsWhileKeepingThemNonInteractive() {
+        val gba = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement
+        val snes = (resolve(SystemID.SNES) as PivotArcResolution.Fits).placement
+        assertFalse(gba.controls.containsKey("X"))
+        assertFalse(gba.controls.containsKey("Y"))
+        assertTrue(snes.controls.containsKey("X"))
+        assertTrue(snes.controls.containsKey("Y"))
+        assertEquals(gba.controls.getValue("D").centerY, snes.controls.getValue("D").centerY, 0.001f)
+        assertEquals(gba.controls.getValue("A").centerX, snes.controls.getValue("A").centerX, 0.001f)
+        assertTrue((resolve(SystemID.GBA, dy = -500f) as PivotArcResolution.Fits).placement.appliedDy > -500f)
+    }
+
     @Test fun leftHandMirrorsOnlyCoordinatesAndNeverIdentities() {
         val right = (resolve(SystemID.SNES) as PivotArcResolution.Fits).placement.controls
         val left = (resolve(SystemID.SNES, leftHand = true) as PivotArcResolution.Fits).placement.controls

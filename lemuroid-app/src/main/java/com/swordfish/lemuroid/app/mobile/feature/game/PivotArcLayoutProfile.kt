@@ -260,12 +260,15 @@ object PivotArcPositionSolver {
                     .also { cursor += target.w + UTILITY_GAP }
             }
         val complete = core + rail
+        // Movement bounds must include the *inactive* future face envelope;
+        // otherwise a manual drag can hide future X/Y behind the video.
+        val reservedHull = complete.values + futureFaceClearance.values
         val wholeHull =
             PivotArcBounds(
-                complete.values.minOf { it.left },
-                complete.values.minOf { it.top },
-                complete.values.maxOf { it.right },
-                complete.values.maxOf { it.bottom },
+                reservedHull.minOf { it.left },
+                reservedHull.minOf { it.top },
+                reservedHull.maxOf { it.right },
+                reservedHull.maxOf { it.bottom },
             )
         val minTop = max(safe.top, viewport.bottom + GAP)
         val minDx = safe.left - wholeHull.left
