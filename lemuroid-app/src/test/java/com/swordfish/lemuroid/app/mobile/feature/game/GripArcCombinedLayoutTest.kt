@@ -53,6 +53,27 @@ class GripArcCombinedLayoutTest {
         }
     }
 
+    @Test fun dreamcastPhysicalCompassAndSingleTriggerPairStayNative() {
+        val expected = setOf("D", "A", "B", "X", "Y", "L", "R", "Start", "Menu", "AnalogL")
+        assertEquals(expected, GripArcCombinedLayout.controlsFor(SystemID.DREAMCAST)!!.toSet())
+        val safe = PivotArcBounds(8f, 8f, 385f, 844f)
+        val viewport = PivotArcBounds(22f, 84f, 371f, 344f)
+        for (side in GripArcSide.values()) {
+            val layout =
+                GripArcCombinedLayout.resolve(
+                    manifest, SystemID.DREAMCAST, safe, viewport, side, 0f, 0f,
+                )!!
+            val controls = layout.controls
+            assertEquals(expected, controls.keys)
+            assertTrue(controls.getValue("B").centerX > controls.getValue("X").centerX)
+            assertTrue(controls.getValue("Y").centerY < controls.getValue("A").centerY)
+            assertFalse("Select" in controls)
+            assertFalse("AnalogR" in controls)
+            assertFalse("L2" in controls)
+            assertFalse("R2" in controls)
+        }
+    }
+
     @Test fun digitalControllerDoesNotReserveAnalogTargets() {
         val layout =
             GripArcCombinedLayout.resolve(
