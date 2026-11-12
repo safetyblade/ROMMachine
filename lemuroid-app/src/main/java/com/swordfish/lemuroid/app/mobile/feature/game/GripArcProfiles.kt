@@ -94,13 +94,26 @@ class GripArcProfileStore(context: Context) {
     private val preferences =
         appContext.getSharedPreferences("cartdeck_arc_cartridge_profiles_v1", Context.MODE_PRIVATE)
 
+    fun defaultFor(game: Game): GripArcProfile {
+        val supported = GripArcInputCatalog.forGame(game)
+        val possible = supported.map { it.code }
+        val preferred =
+            listOf(
+                KeyEvent.KEYCODE_BUTTON_L1,
+                KeyEvent.KEYCODE_BUTTON_R1,
+                KeyEvent.KEYCODE_BUTTON_A,
+                KeyEvent.KEYCODE_BUTTON_B,
+            )
+        val mappings = preferred.map { key -> if (key in possible) listOf(key) else emptyList() }
+        return GripArcProfile(mappings = mappings)
+    }
+
     fun read(game: Game): GripArcProfile {
+        val previousGlobal = PivotArcSettingsStore(appContext).read().mode == CartdeckLayoutMode.ONE_HAND
         val fallback =
-            if (PivotArcSettingsStore(appContext).read().mode == CartdeckLayoutMode.ONE_HAND) {
-                GripArcProfile(mode = ArcControlMode.PIVOTARC)
-            } else {
-                GripArcProfile()
-            }
+            defaultFor(game).copy(
+                mode = if (previousGlobal) ArcControlMode.PIVOTARC else ArcControlMode.STANDARD,
+            )
         val raw = preferences.getString(key(game), null) ?: return fallback
         return decode(raw, fallback, GripArcInputCatalog.forGame(game).map { it.code }.toSet())
     }
