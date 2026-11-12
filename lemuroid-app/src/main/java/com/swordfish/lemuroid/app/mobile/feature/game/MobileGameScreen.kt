@@ -673,9 +673,10 @@ private fun WiiControllerLaunchChoice(
             context.getSharedPreferences("cartdeck_wii_controller_choice_v1", android.content.Context.MODE_PRIVATE)
         }
     val promptKey = remember(viewModel) { "shown_${viewModel.cartridgeSessionKey}" }
-    val show = remember(viewModel, promptKey) {
-        mutableStateOf(!preferences.getBoolean(promptKey, false))
-    }
+    val show =
+        remember(viewModel, promptKey) {
+            mutableStateOf(!preferences.getBoolean(promptKey, false))
+        }
     if (!show.value || isLoading || currentControllerConfig == null) return
 
     val dismiss = {
