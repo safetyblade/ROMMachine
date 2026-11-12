@@ -22,6 +22,31 @@ import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
 import com.swordfish.touchinput.controller.R as TouchR
 
+/**
+ * Physical labels resolve to the existing PadKit/RetroPad keys.
+ * Dreamcast native mapping: A/B/X/Y -> RetroPad B/A/Y/X;
+ * Dreamcast L/R triggers -> RetroPad L2/R2.
+ * Keep aligned with Dreamcast.kt and GripArcInputCatalog from PR #141.
+ */
+internal fun gripArcCombinedKeyCode(
+    system: SystemID,
+    key: String,
+): Int? =
+    when (key) {
+        "A" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_B else KeyEvent.KEYCODE_BUTTON_A
+        "B" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
+        "X" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_Y else KeyEvent.KEYCODE_BUTTON_X
+        "Y" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_X else KeyEvent.KEYCODE_BUTTON_Y
+        "L" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_L2 else KeyEvent.KEYCODE_BUTTON_L1
+        "R" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_R2 else KeyEvent.KEYCODE_BUTTON_R1
+        "L2" -> KeyEvent.KEYCODE_BUTTON_L2
+        "R2" -> KeyEvent.KEYCODE_BUTTON_R2
+        "Select" -> KeyEvent.KEYCODE_BUTTON_SELECT
+        "Start" -> KeyEvent.KEYCODE_BUTTON_START
+        "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
+        else -> null
+    }
+
 /** Dedicated targets; same PadKit scope, motion sources and Android keys as Standard. */
 @Composable
 internal fun PadKitScope.GripArcCombinedControls(
@@ -64,21 +89,7 @@ internal fun PadKitScope.GripArcCombinedControls(
                         foreground = { LemuroidButtonForeground(pressed = it) },
                     )
                 else -> {
-                    val code =
-                        when (key) {
-                            "A" -> KeyEvent.KEYCODE_BUTTON_A
-                            "B" -> KeyEvent.KEYCODE_BUTTON_B
-                            "X" -> KeyEvent.KEYCODE_BUTTON_X
-                            "Y" -> KeyEvent.KEYCODE_BUTTON_Y
-                            "L" -> KeyEvent.KEYCODE_BUTTON_L1
-                            "R" -> KeyEvent.KEYCODE_BUTTON_R1
-                            "L2" -> KeyEvent.KEYCODE_BUTTON_L2
-                            "R2" -> KeyEvent.KEYCODE_BUTTON_R2
-                            "Select" -> KeyEvent.KEYCODE_BUTTON_SELECT
-                            "Start" -> KeyEvent.KEYCODE_BUTTON_START
-                            "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
-                            else -> return@forEach
-                        }
+                    val code = gripArcCombinedKeyCode(system, key) ?: return@forEach
                     val icon =
                         when {
                             key == "Select" -> TouchR.drawable.button_select
