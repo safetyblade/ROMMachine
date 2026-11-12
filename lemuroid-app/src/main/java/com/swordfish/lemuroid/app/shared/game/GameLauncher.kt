@@ -36,6 +36,12 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                if (system.nativeBackend == "hakux") {
+                    if (com.swordfish.lemuroid.app.shared.game.xbox.XboxGameLauncher.launch(activity, game, leanback)) {
+                        gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    }
+                    return@launch
+                }
                 val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
                 val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
                 val candidate = compatibility.candidateCore(system.id)

@@ -13,7 +13,7 @@ plugins {
 
 // New hardware cores require the host's checked GLES negotiation and trigger protocol.
 if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == true) {
-    require(providers.gradleProperty("cartdeckLibretroDroidVersion").orNull == "0.14.0-cartdeck1") {
+    require(providers.gradleProperty("cartdeckLibretroDroidVersion").orNull == "0.14.0-cartdeck2") {
         "Native console APKs require the verified CARTDECK LibretroDroid host"
     }
 }
@@ -110,7 +110,11 @@ android {
     packagingOptions {
         jniLibs {
             // Stripping created some issues with some libretro cores such as ppsspp
-            keepDebugSymbols += setOf("*/*/*_libretro_android.so", "**/liblibretrodroid.so")
+            keepDebugSymbols +=
+                setOf(
+                    "*/*/*_libretro_android.so", "**/liblibretrodroid.so",
+                    "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
+                )
             useLegacyPackaging = true
         }
         resources {

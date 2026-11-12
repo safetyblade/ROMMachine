@@ -101,40 +101,42 @@ private fun GripArcHousing(
 ) {
     val housing = placement.housing
     val left = placement.side == GripArcSide.LEFT
-    val outer = remember {
-        Path().apply {
-            moveTo(161f, 12f)
-            lineTo(245f, 12f)
-            quadraticBezierTo(265f, 12f, 265f, 32f)
-            lineTo(265f, 277f)
-            quadraticBezierTo(265f, 298f, 244f, 298f)
-            lineTo(18f, 298f)
-            quadraticBezierTo(7f, 298f, 7f, 287f)
-            lineTo(7f, 231f)
-            quadraticBezierTo(7f, 219f, 20f, 219f)
-            lineTo(148f, 219f)
-            quadraticBezierTo(157f, 219f, 157f, 208f)
-            lineTo(157f, 32f)
-            quadraticBezierTo(157f, 12f, 161f, 12f)
-            close()
+    val outer =
+        remember {
+            Path().apply {
+                moveTo(161f, 12f)
+                lineTo(245f, 12f)
+                quadraticBezierTo(265f, 12f, 265f, 32f)
+                lineTo(265f, 277f)
+                quadraticBezierTo(265f, 298f, 244f, 298f)
+                lineTo(18f, 298f)
+                quadraticBezierTo(7f, 298f, 7f, 287f)
+                lineTo(7f, 231f)
+                quadraticBezierTo(7f, 219f, 20f, 219f)
+                lineTo(148f, 219f)
+                quadraticBezierTo(157f, 219f, 157f, 208f)
+                lineTo(157f, 32f)
+                quadraticBezierTo(157f, 12f, 161f, 12f)
+                close()
+            }
         }
-    }
-    val inner = remember {
-        Path().apply {
-            moveTo(173f, 23f)
-            lineTo(242f, 23f)
-            quadraticBezierTo(254f, 23f, 254f, 37f)
-            lineTo(254f, 273f)
-            quadraticBezierTo(254f, 285f, 242f, 285f)
-            lineTo(20f, 285f)
-            lineTo(20f, 231f)
-            lineTo(149f, 231f)
-            quadraticBezierTo(168f, 231f, 168f, 212f)
-            lineTo(168f, 37f)
-            quadraticBezierTo(168f, 23f, 173f, 23f)
-            close()
+    val inner =
+        remember {
+            Path().apply {
+                moveTo(173f, 23f)
+                lineTo(242f, 23f)
+                quadraticBezierTo(254f, 23f, 254f, 37f)
+                lineTo(254f, 273f)
+                quadraticBezierTo(254f, 285f, 242f, 285f)
+                lineTo(20f, 285f)
+                lineTo(20f, 231f)
+                lineTo(149f, 231f)
+                quadraticBezierTo(168f, 231f, 168f, 212f)
+                lineTo(168f, 37f)
+                quadraticBezierTo(168f, 23f, 173f, 23f)
+                close()
+            }
         }
-    }
     Box(
         modifier =
             Modifier
@@ -222,19 +224,21 @@ private fun GripArcShoulderButton(
             drawRoundRect(
                 color = if (pressed) tokens.accent.copy(alpha = 0.62f) else tokens.secondary,
                 topLeft = Offset(2.dp.toPx(), (if (pressed) 4 else 2).dp.toPx()),
-                size = androidx.compose.ui.geometry.Size(
-                    size.width - 4.dp.toPx(),
-                    size.height - 6.dp.toPx(),
-                ),
+                size =
+                    androidx.compose.ui.geometry.Size(
+                        size.width - 4.dp.toPx(),
+                        size.height - 6.dp.toPx(),
+                    ),
                 cornerRadius = CornerRadius(r),
             )
             drawRoundRect(
                 color = if (pressed) tokens.accent else tokens.onButton.copy(alpha = 0.36f),
                 topLeft = Offset(2.dp.toPx(), (if (pressed) 4 else 2).dp.toPx()),
-                size = androidx.compose.ui.geometry.Size(
-                    size.width - 4.dp.toPx(),
-                    size.height - 6.dp.toPx(),
-                ),
+                size =
+                    androidx.compose.ui.geometry.Size(
+                        size.width - 4.dp.toPx(),
+                        size.height - 6.dp.toPx(),
+                    ),
                 cornerRadius = CornerRadius(r),
                 style = Stroke(width = 1.1.dp.toPx()),
             )

@@ -165,9 +165,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val tiltSimulatedControls = remember { derivedStateOf { tiltConfiguration.value.controlIds() } }
 
         val pivotSettings = rememberPivotArcSettings().value
-        val gripManifest = remember(appContext) {
-            runCatching { GripArcManifest.load(appContext) }.getOrNull()
-        }
+        val gripManifest =
+            remember(appContext) {
+                runCatching { GripArcManifest.load(appContext) }.getOrNull()
+            }
         val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val leftGamePad = touchGamePads?.leftComposable

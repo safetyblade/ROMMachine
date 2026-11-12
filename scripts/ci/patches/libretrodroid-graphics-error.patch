@@ -1,0 +1,200 @@
+diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main/cpp/environment.cpp
+index 6c40d61..56b9185 100644
+--- a/libretrodroid/src/main/cpp/environment.cpp
++++ b/libretrodroid/src/main/cpp/environment.cpp
+@@ -38,6 +38,7 @@ void Environment::initialize(
+     const std::string &requiredSavesDirectory,
+     retro_hw_get_current_framebuffer_t required_callback_get_current_framebuffer
+ ) {
++    hwContextNegotiation.beginLoad();
+     callback_get_current_framebuffer = required_callback_get_current_framebuffer;
+     systemDirectory = requiredSystemDirectory;
+     savesDirectory = requiredSavesDirectory;
+@@ -166,7 +167,10 @@ bool Environment::isCurrentHwContextCompatible() const {
+ }
+
+ bool Environment::environment_handle_set_hw_render(struct retro_hw_render_callback* hw_render_callback) {
+-    if (hw_render_callback == nullptr) return false;
++    if (hw_render_callback == nullptr) {
++        hwContextNegotiation.reject();
++        return false;
++    }
+     unsigned requiredMajor = 0;
+     unsigned requiredMinor = 0;
+     switch (hw_render_callback->context_type) {
+@@ -177,6 +181,7 @@ bool Environment::environment_handle_set_hw_render(struct retro_hw_render_callba
+             requiredMinor = hw_render_callback->version_minor;
+             break;
+         default:
++            hwContextNegotiation.reject();
+             LOGE("CARTDECK rejected unsupported hardware context type %u", hw_render_callback->context_type);
+             return false;
+     }
+@@ -184,9 +189,11 @@ bool Environment::environment_handle_set_hw_render(struct retro_hw_render_callba
+     // Vulkan or higher GLES context than the actual Android surface provides.
+     if (eglGetCurrentContext() == EGL_NO_CONTEXT || requiredMajor < 2 ||
+         !currentContextSupports(3, 0) || !currentContextSupports(requiredMajor, requiredMinor)) {
++        hwContextNegotiation.reject();
+         LOGE("CARTDECK rejected required GLES %u.%u context", requiredMajor, requiredMinor);
+         return false;
+     }
++    hwContextNegotiation.accept();
+     requiredGlesMajor = requiredMajor;
+     requiredGlesMinor = requiredMinor;
+     useHWAcceleration = true;
+diff --git a/libretrodroid/src/main/cpp/environment.h b/libretrodroid/src/main/cpp/environment.h
+index 158d948..909be04 100644
+--- a/libretrodroid/src/main/cpp/environment.h
++++ b/libretrodroid/src/main/cpp/environment.h
+@@ -20,6 +20,7 @@
+
+ #define MODULE_NAME_CORE "Libretro Core"
+
++#include "hwcontextnegotiation.h"
+ #include <vector>
+ #include <string>
+ #include <cstring>
+@@ -89,6 +90,8 @@ public:
+     int getPixelFormat() const;
+     bool isUseHwAcceleration() const;
+     bool isCurrentHwContextCompatible() const;
++    void beginGameLoad() { hwContextNegotiation.beginLoad(); }
++    bool wasHardwareContextRejected() const { return hwContextNegotiation.wasRejected(); }
+     bool isUseDepth() const;
+     bool isUseStencil() const;
+     bool isBottomLeftOrigin() const;
+@@ -132,6 +135,7 @@ private:
+
+     int pixelFormat = RETRO_PIXEL_FORMAT_RGB565;
+     bool useHWAcceleration = false;
++    HwContextNegotiation hwContextNegotiation;
+     unsigned requiredGlesMajor = 0;
+     unsigned requiredGlesMinor = 0;
+     bool useDepth = false;
+diff --git a/libretrodroid/src/main/cpp/hwcontextnegotiation.h b/libretrodroid/src/main/cpp/hwcontextnegotiation.h
+new file mode 100644
+index 0000000..817004f
+--- /dev/null
++++ b/libretrodroid/src/main/cpp/hwcontextnegotiation.h
+@@ -0,0 +1,16 @@
++#ifndef LIBRETRODROID_HWCONTEXTNEGOTIATION_H
++#define LIBRETRODROID_HWCONTEXTNEGOTIATION_H
++
++// A rejected high-version probe is not an error once a lower context is accepted.
++// The load boundary prevents one game's negotiation from poisoning the next load.
++class HwContextNegotiation {
++public:
++    void beginLoad() { rejected = false; }
++    void reject() { rejected = true; }
++    void accept() { rejected = false; }
++    bool wasRejected() const { return rejected; }
++private:
++    bool rejected = false;
++};
++
++#endif
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
+index dbfbbd9..c6900a1 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
+@@ -314,6 +314,7 @@ void LibretroDroid::create(
+
+ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
+     LOGD("Performing libretrodroid loadGameFromPath");
++    Environment::getInstance().beginGameLoad();
+     struct retro_system_info system_info {};
+     core->retro_get_system_info(&system_info);
+
+@@ -341,6 +342,7 @@ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
+
+ void LibretroDroid::loadGameFromBytes(const int8_t *data, size_t size) {
+     LOGD("Performing libretrodroid loadGameFromBytes");
++    Environment::getInstance().beginGameLoad();
+
+     struct retro_system_info system_info {};
+     core->retro_get_system_info(&system_info);
+@@ -368,6 +370,7 @@ void LibretroDroid::loadGameFromBytes(const int8_t *data, size_t size) {
+
+ void LibretroDroid::loadGameFromVirtualFiles(std::vector<VFSFile> virtualFiles) {
+     LOGD("Performing libretrodroid loadGameFromVirtualFiles");
++    Environment::getInstance().beginGameLoad();
+     struct retro_system_info system_info {};
+     core->retro_get_system_info(&system_info);
+
+diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+index 2ec15cf..76bbbf7 100644
+--- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+@@ -307,7 +307,18 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_onSurfaceC
+     JNIEnv* env,
+     jclass obj
+ ) {
+-    LibretroDroid::getInstance().onSurfaceCreated();
++    try {
++        LibretroDroid::getInstance().onSurfaceCreated();
++    } catch (libretrodroid::LibretroDroidError& exception) {
++        LOGE("Error in onSurfaceCreated: %s", exception.what());
++        JavaUtils::throwRetroException(env, exception.getErrorCode());
++    } catch (std::exception& exception) {
++        LOGE("Error in onSurfaceCreated: %s", exception.what());
++        JavaUtils::throwRetroException(env, ERROR_GENERIC);
++    } catch (...) {
++        LOGE("Unknown native error in onSurfaceCreated");
++        JavaUtils::throwRetroException(env, ERROR_GENERIC);
++    }
+ }
+
+ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_onMotionEvent(
+@@ -424,10 +435,13 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+     auto gamePath = JniString(env, gameFilePath);
+
+     try {
++        Environment::getInstance().beginGameLoad();
+         LibretroDroid::getInstance().loadGameFromPath(gamePath.stdString());
+     } catch (std::exception &exception) {
+         LOGE("Error in loadGameFromPath: %s", exception.what());
+-        JavaUtils::throwRetroException(env, ERROR_LOAD_GAME);
++        const int errorCode = Environment::getInstance().wasHardwareContextRejected()
++                              ? ERROR_GL_NOT_COMPATIBLE : ERROR_LOAD_GAME;
++        JavaUtils::throwRetroException(env, errorCode);
+     }
+ }
+
+@@ -437,6 +451,7 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+     jbyteArray gameFileBytes
+ ) {
+     try {
++        Environment::getInstance().beginGameLoad();
+         size_t size = env->GetArrayLength(gameFileBytes);
+         auto* data = new int8_t[size];
+         env->GetByteArrayRegion(
+@@ -448,7 +463,9 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+         LibretroDroid::getInstance().loadGameFromBytes(data, size);
+     } catch (std::exception &exception) {
+         LOGE("Error in loadGameFromBytes: %s", exception.what());
+-        JavaUtils::throwRetroException(env, ERROR_LOAD_GAME);
++        const int errorCode = Environment::getInstance().wasHardwareContextRejected()
++                              ? ERROR_GL_NOT_COMPATIBLE : ERROR_LOAD_GAME;
++        JavaUtils::throwRetroException(env, errorCode);
+     }
+ }
+
+@@ -459,6 +476,7 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+ ) {
+
+     try {
++        Environment::getInstance().beginGameLoad();
+         jmethodID getVirtualFileMethodID = env->GetMethodID(
+                 env->FindClass("com/swordfish/libretrodroid/DetachedVirtualFile"),
+                 "getVirtualPath",
+@@ -485,7 +503,9 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+         LibretroDroid::getInstance().loadGameFromVirtualFiles(std::move(virtualFiles));
+     } catch (std::exception &exception) {
+         LOGE("Error in loadGameFromDescriptors: %s", exception.what());
+-        JavaUtils::throwRetroException(env, ERROR_LOAD_GAME);
++        const int errorCode = Environment::getInstance().wasHardwareContextRejected()
++                              ? ERROR_GL_NOT_COMPATIBLE : ERROR_LOAD_GAME;
++        JavaUtils::throwRetroException(env, errorCode);
+     }
+ }
+

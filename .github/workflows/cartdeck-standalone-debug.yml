@@ -239,7 +239,7 @@ jobs:
           python3 scripts/ci/verify_native_bundle_apk.py \
             dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
             --require-five-engines \
-            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck1/LibretroDroid-0.14.0-cartdeck1.aar \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar \
             > dist/cartdeck/evidence/native-bundle-apk.json
 
       - name: Collect test and native asset evidence

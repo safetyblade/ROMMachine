@@ -14,6 +14,21 @@ object NativeGameSystems {
     fun configurations(): List<GameSystem> =
         listOf(
             GameSystem(
+                SystemID.XBOX, "Microsoft - Xbox",
+                R.string.game_system_title_xbox, R.string.game_system_abbr_xbox,
+                systemCoreConfigs = emptyList(),
+                uniqueExtensions = emptyList(),
+                supportedExtensions = listOf("iso", "xiso"),
+                fastForwardSupport = false,
+                nativeBackend = "hakux",
+                scanOptions =
+                    GameSystem.Companion.ScanOptions(
+                        scanByPathAndSupportedExtensions = false,
+                        scanByFilename = false,
+                        scanByPathAndFilename = false,
+                    ),
+            ),
+            GameSystem(
                 SystemID.DREAMCAST, "Sega - Dreamcast",
                 R.string.game_system_title_dc, R.string.game_system_abbr_dc,
                 listOf(

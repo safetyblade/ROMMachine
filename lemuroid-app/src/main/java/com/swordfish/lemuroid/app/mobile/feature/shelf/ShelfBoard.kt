@@ -59,9 +59,9 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.isActive
 import kotlin.math.floor
 import kotlin.math.roundToInt
-import kotlinx.coroutines.isActive
 
 private data class ShelfItem(val key: String, val section: ShelfSection, val row: ShelfRow? = null)
 
@@ -308,7 +308,13 @@ fun ShelfBoard(
                                                             if (dragging == cell.id) 0.25f else 1f,
                                                         ),
                                                         onLongClick = {
-                                                            if (arrange) menu = item.section to cell else onLongClick(game)
+                                                            if (arrange) {
+                                                                menu = item.section to cell
+                                                            } else {
+                                                                onLongClick(
+                                                                    game,
+                                                                )
+                                                            }
                                                         },
                                                         width = width,
                                                     )

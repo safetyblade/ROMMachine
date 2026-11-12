@@ -84,6 +84,59 @@ class FullApkContractTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'non-ARM64 or non-16KB'):
             self.check()
 
+    def expansion(self, xbox=False):
+        systems = 'dc,gc,ps2,wii' + (',xbox' if xbox else '')
+        (self.bundle / 'native-systems.txt').write_text(systems + '\n')
+        self.entries['classes.dex'] = b'dex fixture\0' + systems.encode() + b'\0'
+        if xbox:
+            self.entries['lib/arm64-v8a/libhakuxcore.so'] = elf()
+            self.entries['lib/arm64-v8a/libSDL3.so'] = elf()
+            self.entries['assets/cartdeck/hakux.properties'] = b'revision=' + b'a' * 40
+            self.entries['classes.dex'] += (
+                b'Lcom/rfandango/haku_x/NativeCoreActivity;\0'
+                b'Lcom/swordfish/lemuroid/app/shared/game/xbox/XboxGameLauncher;\0'
+                b'Lcom/swordfish/lemuroid/app/shared/game/xbox/XboxEngineStore;\0'
+            )
+            self.entries['AndroidManifest.xml'] = b'com.rfandango.haku_x.NativeCoreActivity'
+
+    def test_wii_reuses_verified_dolphin_and_requires_registry(self):
+        self.expansion()
+        report = verify(self.write_apk(), self.bundle, True, self.host, require_wii=True)
+        self.assertTrue(report['wii_dolphin_bundled'])
+        self.entries['classes.dex'] = b'dc,gc,ps2\0'
+        with self.assertRaisesRegex(ValueError, 'registry enabled'):
+            verify(self.write_apk(), self.bundle, True, self.host, require_wii=True)
+
+    def test_xbox_requires_native_backend_and_provenance(self):
+        self.expansion(xbox=True)
+        report = verify(self.write_apk(), self.bundle, True, self.host, True, True)
+        self.assertTrue(report['xbox_native_backend_bundled'])
+        del self.entries['lib/arm64-v8a/libhakuxcore.so']
+        with self.assertRaisesRegex(ValueError, 'native backend is missing'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True)
+
+    def test_xbox_registration_without_provenance_cannot_publish(self):
+        self.expansion(xbox=True)
+        del self.entries['assets/cartdeck/hakux.properties']
+        with self.assertRaisesRegex(ValueError, 'provenance is missing'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True)
+
+    def test_xbox_binaries_without_internal_host_cannot_publish(self):
+        self.expansion(xbox=True)
+        self.entries['classes.dex'] = b'dc,gc,ps2,wii,xbox\0'
+        with self.assertRaisesRegex(ValueError, 'host implementation is missing'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True)
+
+    def test_xbox_unregistered_activity_cannot_publish(self):
+        self.expansion(xbox=True)
+        self.entries['AndroidManifest.xml'] = b'baseline manifest'
+        with self.assertRaisesRegex(ValueError, 'not registered'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True)
+
+    def test_existing_five_engine_apk_cannot_pass_as_wii_expansion(self):
+        with self.assertRaisesRegex(ValueError, 'Required library systems'):
+            verify(self.write_apk(), self.bundle, True, self.host, require_wii=True)
+
 
 if __name__ == '__main__':
     unittest.main()

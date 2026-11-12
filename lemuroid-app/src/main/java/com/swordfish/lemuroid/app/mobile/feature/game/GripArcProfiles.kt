@@ -51,7 +51,10 @@ object GripArcInputCatalog {
                     b.copy(label = "Cross"),
                     x.copy(label = "Triangle"),
                     y.copy(label = "Square"),
-                    l, r, start, select,
+                    l,
+                    r,
+                    start,
+                    select,
                 )
             SystemID.PSX, SystemID.PLAYSTATION_2 ->
                 listOf(
@@ -130,7 +133,10 @@ class GripArcProfileStore(context: Context) {
     /** Saved mode overrides global PivotArc; older unconfigured cartridges retain the existing global choice. */
     fun hasSelection(game: Game): Boolean = preferences.contains(key(game))
 
-    fun save(game: Game, profile: GripArcProfile): Boolean {
+    fun save(
+        game: Game,
+        profile: GripArcProfile,
+    ): Boolean {
         val checked = profile.validated(GripArcInputCatalog.forGame(game).map { it.code }.toSet())
         return preferences.edit().putString(key(game), encode(checked)).commit()
     }
@@ -199,9 +205,10 @@ fun rememberGripArcProfile(game: Game): State<GripArcProfile> {
     val store = remember(context) { GripArcProfileStore(context) }
     val state = remember(game.systemId, game.fileUri, store) { mutableStateOf(store.read(game)) }
     DisposableEffect(game.systemId, game.fileUri, store) {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-            state.value = store.read(game)
-        }
+        val listener =
+            SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                state.value = store.read(game)
+            }
         store.listen(listener)
         onDispose { store.unlisten(listener) }
     }

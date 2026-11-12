@@ -33,7 +33,8 @@ ENGINE_LIBRARIES = {
 LEGACY_LIBRARIES = {'libpcsx_rearmed_libretro_android.so', 'libppsspp_libretro_android.so'}
 
 
-def verify(apk, bundle, require_five_engines=False, host_aar=None):
+def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=False, require_xbox=False):
+    require_five_engines = require_five_engines or require_wii or require_xbox
     expected = (bundle / 'bundle-sha256.txt').read_text().splitlines()
     result = {'bundle_files_verified': 0, 'native_elf_16k_failures': [],
               'native_library_count': 0, 'stored_native_count': 0}
@@ -45,14 +46,41 @@ def verify(apk, bundle, require_five_engines=False, host_aar=None):
             if missing:
                 raise ValueError('Required engines/fallbacks missing: ' + ', '.join(sorted(missing)))
             systems = (bundle / 'native-systems.txt').read_text().strip()
-            if set(systems.split(',')) != {'dc', 'gc', 'ps2'}:
-                raise ValueError('All three new library systems must be enabled')
+            required_systems = {'dc', 'gc', 'ps2'}
+            if require_wii:
+                required_systems.add('wii')
+            if require_xbox:
+                required_systems.add('xbox')
+            if set(systems.split(',')) != required_systems:
+                raise ValueError('Required library systems must be enabled: ' + ','.join(sorted(required_systems)))
             # The non-minified engineering APK must carry the actual compiled registry flag.
             enabled = systems.encode('utf-8') + b'\0'
             if not any(enabled in archive.read(n) for n in archive.namelist() if n.endswith('.dex')):
                 raise ValueError('APK was built without the new-console registry enabled')
             if host_aar is None:
                 raise ValueError('Patched host AAR is required for the five-engine APK')
+        if require_wii:
+            if 'libdolphin_modern_libretro_android.so' not in libraries:
+                raise ValueError('Wii Dolphin binary is missing')
+            result['wii_dolphin_bundled'] = True
+        if require_xbox:
+            if not {'libhakuxcore.so', 'libSDL3.so'} <= libraries:
+                raise ValueError('Xbox hakuX/SDL native backend is missing')
+            if 'assets/cartdeck/hakux.properties' not in archive.namelist():
+                raise ValueError('Xbox provenance is missing')
+            dex = [archive.read(n) for n in archive.namelist() if n.endswith('.dex')]
+            for descriptor in (
+                b'Lcom/rfandango/haku_x/NativeCoreActivity;',
+                b'Lcom/swordfish/lemuroid/app/shared/game/xbox/XboxGameLauncher;',
+                b'Lcom/swordfish/lemuroid/app/shared/game/xbox/XboxEngineStore;',
+            ):
+                if not any(descriptor in data for data in dex):
+                    raise ValueError('Xbox internal host implementation is missing: ' + descriptor.decode())
+            activity = 'com.rfandango.haku_x.NativeCoreActivity'
+            manifest = archive.read('AndroidManifest.xml')
+            if activity.encode() not in manifest and activity.encode('utf-16le') not in manifest:
+                raise ValueError('Xbox internal activity is not registered')
+            result['xbox_native_backend_bundled'] = True
         if host_aar is not None:
             with zipfile.ZipFile(host_aar) as host:
                 expected_host = host.read('jni/arm64-v8a/liblibretrodroid.so')
@@ -95,5 +123,8 @@ if __name__ == '__main__':
     parser.add_argument('bundle', type=pathlib.Path)
     parser.add_argument('--require-five-engines', action='store_true')
     parser.add_argument('--host-aar', type=pathlib.Path)
+    parser.add_argument('--require-wii', action='store_true')
+    parser.add_argument('--require-xbox', action='store_true')
     args = parser.parse_args()
-    print(json.dumps(verify(args.apk, args.bundle, args.require_five_engines, args.host_aar), indent=2))
+    print(json.dumps(verify(args.apk, args.bundle, args.require_five_engines, args.host_aar,
+                            args.require_wii, args.require_xbox), indent=2))

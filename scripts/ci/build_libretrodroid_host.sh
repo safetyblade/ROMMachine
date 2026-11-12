@@ -9,8 +9,39 @@ MAVEN_REPO=${HOST_MAVEN_REPO:-"$WORK/maven"}
 REVISION=8835c3098514390a271e36983957f7bb5f40abf1
 : "${ANDROID_HOME:?Set ANDROID_HOME to the Android SDK}"
 NDK_VERSION=${HOST_NDK_VERSION:-29.0.14206865}
-VERSION=0.14.0-cartdeck1
-PATCH="$ROOT/scripts/ci/patches/libretrodroid-gles-context-validation.patch"
+VERSION=0.14.0-cartdeck2
+PATCHES=(
+    "$ROOT/scripts/ci/patches/libretrodroid-gles-context-validation.patch"
+    "$ROOT/scripts/ci/patches/libretrodroid-frontend-gl-state.patch"
+    "$ROOT/scripts/ci/patches/libretrodroid-graphics-error.patch"
+)
+for patch in "${PATCHES[@]}"; do
+    [[ -f "$patch" ]] || { echo "Missing required host patch: $patch" >&2; exit 1; }
+done
+
+verify_patched_source() {
+    # Compare exact trees using an isolated index. This permits an exact repeat
+    # of multiple patches in any file order, without touching the real index or
+    # accepting extra edits elsewhere in an already patched file.
+    local index expected actual
+    index=$(mktemp "$WORK/.host-index.XXXXXX")
+    rm "$index"
+    (
+        trap 'rm -f "$index" "$index.lock"' EXIT
+        export GIT_INDEX_FILE="$index"
+        git -C "$SOURCE" read-tree "$REVISION"
+        for patch in "${PATCHES[@]}"; do
+            git -C "$SOURCE" apply --cached "$patch"
+        done
+        expected=$(git -C "$SOURCE" write-tree)
+        git -C "$SOURCE" read-tree "$REVISION"
+        git -C "$SOURCE" add -A -- .
+        actual=$(git -C "$SOURCE" write-tree)
+        [[ "$actual" == "$expected" ]] || {
+            echo 'Host checkout contains unrelated modifications' >&2; exit 1;
+        }
+    )
+}
 [[ -f "$ANDROID_HOME/ndk/$NDK_VERSION/source.properties" ]] || {
     echo "Missing Android NDK $NDK_VERSION" >&2; exit 1;
 }
@@ -23,17 +54,18 @@ if [[ ! -d "$SOURCE/.git" ]]; then
     git -C "$SOURCE" checkout --detach "$REVISION"
 fi
 if [[ -n "$(git -C "$SOURCE" status --porcelain)" ]]; then
-    # Permit an exact repeat of our own patch, never unrelated source edits.
-    cmp <(git -C "$SOURCE" diff --binary) "$PATCH" || {
-        echo 'Host checkout contains unrelated modifications' >&2; exit 1;
-    }
     [[ "$(git -C "$SOURCE" rev-parse HEAD)" == "$REVISION" ]]
+    verify_patched_source
 else
     git -C "$SOURCE" checkout --detach "$REVISION"
-    git -C "$SOURCE" apply --check "$PATCH"
-    git -C "$SOURCE" apply "$PATCH"
+    for patch in "${PATCHES[@]}"; do
+        git -C "$SOURCE" apply --check "$patch"
+        git -C "$SOURCE" apply "$patch"
+    done
 fi
 git -C "$SOURCE" submodule update --init --recursive
+# A clean parent Git link does not establish that dependency source is clean.
+git -C "$SOURCE" submodule foreach --recursive 'test -z "$(git status --porcelain)"'
 [[ "$(git -C "$SOURCE" rev-parse HEAD)" == "$REVISION" ]]
 # Use the installed app SDK while preserving upstream Kotlin/JNI/native source.
 cat > "$WORK/local-publication.gradle" <<GRADLE
@@ -64,7 +96,7 @@ ARTIFACT="$MAVEN_REPO/com/github/Swordfish90/LibretroDroid/$VERSION/LibretroDroi
 {
     printf 'source=https://github.com/Swordfish90/LibretroDroid\nrevision=%s\n' "$REVISION"
     printf 'abi=arm64-v8a\nndk=%s\n' "$NDK_VERSION"
-    sha256sum "$ARTIFACT" "$PATCH"
+    sha256sum "$ARTIFACT" "${PATCHES[@]}"
     git -C "$SOURCE" submodule status --recursive
 } > "$WORK/provenance.txt"
 printf 'Built %s\nBuild CARTDECK with -Dmaven.repo.local=%s\n' "$ARTIFACT" "$MAVEN_REPO"

@@ -17,9 +17,8 @@ class GripArcPositionSolverTest {
     private fun placement(
         side: GripArcSide = GripArcSide.RIGHT,
         blockers: Collection<PivotArcBounds> = emptyList(),
-    ) =
-        (GripArcPositionSolver.resolve(source, safe, video, blockers, side) as GripArcFit.Fits)
-            .placement
+    ) = (GripArcPositionSolver.resolve(source, safe, video, blockers, side) as GripArcFit.Fits)
+        .placement
 
     @Test fun approvedManifestUsesPermanentLAndExactlyFourStableSlots() {
         assertEquals("cartdeck.griparc.assets/1.0.0", source.schema)
@@ -92,8 +91,13 @@ class GripArcPositionSolverTest {
         val original = placement()
         val adjusted =
             GripArcPositionSolver.resolve(
-                source, safe, video, emptyList(), GripArcSide.RIGHT,
-                dx = -24f, dy = 12f,
+                source,
+                safe,
+                video,
+                emptyList(),
+                GripArcSide.RIGHT,
+                dx = -24f,
+                dy = 12f,
             ) as GripArcFit.Fits
         assertEquals(original.targets.keys, adjusted.placement.targets.keys)
         assertEquals(

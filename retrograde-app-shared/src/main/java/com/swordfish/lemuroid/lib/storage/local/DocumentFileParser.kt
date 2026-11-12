@@ -11,6 +11,7 @@ import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import com.swordfish.lemuroid.lib.storage.scanner.WiiDiscIdentity
+import com.swordfish.lemuroid.lib.storage.scanner.XboxDiscIdentity
 import timber.log.Timber
 import java.io.FileInputStream
 import java.util.zip.ZipEntry
@@ -25,7 +26,7 @@ object DocumentFileParser {
     // containers. A 0.95 GB CISO or ambiguous ISO could otherwise consume
     // hundreds of megabytes of SAF reads and make refresh appear to hang.
     private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
-        setOf("iso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs")
+        setOf("iso", "xiso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs")
 
     fun parseDocumentFile(
         context: Context,
@@ -81,6 +82,7 @@ object DocumentFileParser {
         context: Context,
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
+        val xbox = identifyXboxDisc(context, baseStorageFile)
         val discIdentity = identifyNativeDisc(context, baseStorageFile)
         val nativeSystem =
             when (discIdentity?.platform) {
@@ -120,7 +122,7 @@ object DocumentFileParser {
                 baseStorageFile.name,
                 baseStorageFile.path,
                 GameSystem.all().map { it.id }.toSet(),
-                verified = nativeSystem ?: uniqueNativeSystem,
+                verified = (if (xbox != null) SystemID.XBOX else null) ?: nativeSystem ?: uniqueNativeSystem,
                 legacy = diskInfo?.systemID,
                 foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII && nativeSystem == null,
             )
@@ -144,11 +146,23 @@ object DocumentFileParser {
             baseStorageFile.name,
             baseStorageFile.size,
             crc32,
-            diskInfo?.serial,
+            xbox?.titleId ?: diskInfo?.serial,
             baseStorageFile.uri,
             baseStorageFile.path,
             system,
         )
+    }
+
+    private fun identifyXboxDisc(
+        context: Context,
+        file: BaseStorageFile,
+    ): XboxDiscIdentity.Identity? {
+        if (file.extension.lowercase(java.util.Locale.US) !in setOf("iso", "xiso")) return null
+        return runCatching {
+            context.contentResolver.openFileDescriptor(file.uri, "r")?.use { descriptor ->
+                FileInputStream(descriptor.fileDescriptor).channel.use { XboxDiscIdentity.probe(file.name, it) }
+            }
+        }.getOrNull()
     }
 
     private fun identifyNativeDisc(

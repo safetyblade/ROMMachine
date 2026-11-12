@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.lib.game
 
-class GameLoaderException(val error: GameLoaderError) : RuntimeException("Game Loader error: $error")
+class GameLoaderException(val error: GameLoaderError, cause: Throwable? = null) :
+    RuntimeException("Game Loader error: $error", cause)
 
 sealed class GameLoaderError {
     object GLIncompatible : GameLoaderError()
@@ -8,6 +9,8 @@ sealed class GameLoaderError {
     object Generic : GameLoaderError()
 
     object LoadCore : GameLoaderError()
+
+    object NativeEngineDisabled : GameLoaderError()
 
     object LoadGame : GameLoaderError()
 

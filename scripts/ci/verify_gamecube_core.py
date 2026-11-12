@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 
-def verify(data, dynamic, symbols):
+def verify_android_elf(data, dynamic):
     if data[:6] != b'\x7fELF\x02\x01' or len(data) < 64:
         raise ValueError('Expected little-endian ELF64')
     if struct.unpack_from('<H', data, 16)[0] != 3:
@@ -24,6 +24,10 @@ def verify(data, dynamic, symbols):
         raise ValueError('16 KiB PT_LOAD alignment required')
     if 'libc.so.6' in dynamic or 'libstdc++.so.6' in dynamic or 'ld-linux' in dynamic:
         raise ValueError('Linux host dependencies cannot ship on Android')
+
+
+def verify(data, dynamic, symbols):
+    verify_android_elf(data, dynamic)
     required = {'retro_init', 'retro_deinit', 'retro_load_game', 'retro_run',
                 'retro_set_environment', 'retro_get_system_av_info',
                 'retro_serialize', 'retro_unserialize'}

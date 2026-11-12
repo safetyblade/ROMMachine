@@ -68,6 +68,19 @@
             android:process=":game"
             android:theme="@style/LemuroidMaterialTheme.Game" />
 
+        <activity
+            android:name="com.rfandango.haku_x.NativeCoreActivity"
+            android:launchMode="singleTop"
+            android:exported="false"
+            android:process=":xbox"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+        <activity
+            android:name="com.rfandango.haku_x.XboxRelaunchActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+
         <service
             android:name=".app.mobile.feature.game.GameService"
             android:foregroundServiceType="dataSync"

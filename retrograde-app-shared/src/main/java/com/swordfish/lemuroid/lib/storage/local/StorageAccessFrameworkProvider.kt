@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragment
-import com.swordfish.lemuroid.common.kotlin.extractEntryToFile
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.lib.R
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
@@ -21,7 +20,6 @@ import kotlinx.coroutines.flow.flow
 import timber.log.Timber
 import java.io.File
 import java.io.InputStream
-import java.util.zip.ZipInputStream
 
 class StorageAccessFrameworkProvider(private val context: Context) : StorageProvider {
     override val id: String = "access_framework"
@@ -157,16 +155,17 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         originalDocument: DocumentFile,
     ): RomFiles {
         val cacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
-        if (cacheFile.exists()) {
-            return RomFiles.Standard(listOf(cacheFile))
-        }
-
-        val stream =
-            ZipInputStream(
-                context.contentResolver.openInputStream(originalDocument.uri),
-            )
-        stream.extractEntryToFile(game.fileName, cacheFile)
-        return RomFiles.Standard(listOf(cacheFile))
+        val staged =
+            CachedRomStager.stageZip(
+                cacheFile,
+                game.fileName,
+                originalDocument.length().coerceAtLeast(0),
+                originalDocument.lastModified().coerceAtLeast(0),
+            ) {
+                context.contentResolver.openInputStream(originalDocument.uri)
+                    ?: throw java.io.IOException("Cannot open selected ZIP archive")
+            }
+        return RomFiles.Standard(listOf(staged))
     }
 
     private fun getGameRomFilesVirtual(
@@ -198,8 +197,10 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
             )
 
         val uri = Uri.parse(dataFile.fileUri)
-        val expectedBytes = DocumentFile.fromSingleUri(context, uri)?.length()?.coerceAtLeast(0) ?: 0L
-        return CachedRomStager.stage(cacheFile, expectedBytes) {
+        val document = DocumentFile.fromSingleUri(context, uri)
+        val expectedBytes = document?.length()?.coerceAtLeast(0) ?: 0L
+        val modifiedAt = document?.lastModified()?.coerceAtLeast(0) ?: 0L
+        return CachedRomStager.stage(cacheFile, expectedBytes, modifiedAt) {
             context.contentResolver.openInputStream(uri)
                 ?: throw java.io.IOException("Cannot open game disc companion")
         }
@@ -219,7 +220,7 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         val cacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
 
         val expectedBytes = originalDocument.length().coerceAtLeast(0)
-        return CachedRomStager.stage(cacheFile, expectedBytes) {
+        return CachedRomStager.stage(cacheFile, expectedBytes, originalDocument.lastModified().coerceAtLeast(0)) {
             context.contentResolver.openInputStream(originalDocument.uri)
                 ?: throw java.io.IOException("Cannot open selected ROM")
         }
