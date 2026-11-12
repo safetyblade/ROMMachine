@@ -204,6 +204,10 @@ abstract class BaseGameActivity : ImmersiveActivity() {
                     baseGameScreenViewModel.retroGameView.retroGameView?.getAvailableDisks() ?: 0,
                 )
                 this.putExtra(GameMenuContract.EXTRA_GAME, game)
+                this.putExtra(
+                    GameMenuContract.EXTRA_CURRENT_CONTROLLER_NAME,
+                    baseGameScreenViewModel.selectedWiiControllerName(),
+                )
                 this.putExtra(GameMenuContract.EXTRA_SYSTEM_CORE_CONFIG, systemCoreConfig)
                 this.putExtra(
                     GameMenuContract.EXTRA_AUDIO_ENABLED,
@@ -393,6 +397,10 @@ abstract class BaseGameActivity : ImmersiveActivity() {
             }
             if (data?.getBooleanExtra(GameMenuContract.RESULT_QUIT, false) == true) {
                 baseGameScreenViewModel.requestFinish()
+            }
+            if (data?.hasExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER) == true) {
+                data.getStringExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER)
+                    ?.let(baseGameScreenViewModel::selectWiiController)
             }
             if (data?.hasExtra(GameMenuContract.RESULT_CHANGE_DISK) == true) {
                 val index = data.getIntExtra(GameMenuContract.RESULT_CHANGE_DISK, 0)
