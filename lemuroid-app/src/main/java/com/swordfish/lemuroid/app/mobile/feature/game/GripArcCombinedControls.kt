@@ -31,8 +31,11 @@ import com.swordfish.touchinput.controller.R as TouchR
 internal fun gripArcCombinedKeyCode(
     system: SystemID,
     key: String,
-): Int? =
-    when (key) {
+): Int? {
+    // Do not allow Dreamcast's non-existent Select or duplicate L2/R2 buttons
+    // to leak back into a combined controller through a future layout change.
+    if (system == SystemID.DREAMCAST && key in setOf("Select", "L2", "R2")) return null
+    return when (key) {
         "A" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_B else KeyEvent.KEYCODE_BUTTON_A
         "B" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
         "X" -> if (system == SystemID.DREAMCAST) KeyEvent.KEYCODE_BUTTON_Y else KeyEvent.KEYCODE_BUTTON_X
@@ -46,6 +49,7 @@ internal fun gripArcCombinedKeyCode(
         "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
         else -> null
     }
+}
 
 /** Dedicated targets; same PadKit scope, motion sources and Android keys as Standard. */
 @Composable
