@@ -94,32 +94,45 @@ class GripArcPositionSolverTest {
         val arms = GripArcPositionSolver.housingFootprint(right.housing, right.scale, right.side)
         assertTrue(right.housing.intersects(innerControls.first()))
         assertTrue(arms.none { it.intersects(innerControls.first()) })
-        val blocked = GripArcPositionSolver.resolve(
-            source,
-            safe,
-            video,
-            listOf(PivotArcBounds(8f, 344f, 385f, 844f)),
-            GripArcSide.RIGHT,
-        )
+        val blocked =
+            GripArcPositionSolver.resolve(
+                source,
+                safe,
+                video,
+                listOf(PivotArcBounds(8f, 344f, 385f, 844f)),
+                GripArcSide.RIGHT,
+            )
         assertTrue(blocked is GripArcFit.Unavailable)
     }
 
     @Test fun realisticTwoHandControlEnvelopesFitTheOpenInterior() {
-        val rightPadReflowed = listOf(
-            PivotArcBounds(12f, 555f, 155f, 700f),
-            PivotArcBounds(145f, 460f, 260f, 605f),
-        )
-        val right = GripArcPositionSolver.resolve(
-            source, safe, video, rightPadReflowed, GripArcSide.RIGHT,
-        )
+        val rightPadReflowed =
+            listOf(
+                PivotArcBounds(12f, 555f, 155f, 700f),
+                PivotArcBounds(145f, 460f, 260f, 605f),
+            )
+        val right =
+            GripArcPositionSolver.resolve(
+                source,
+                safe,
+                video,
+                rightPadReflowed,
+                GripArcSide.RIGHT,
+            )
         assertTrue(right is GripArcFit.Fits)
-        val leftPadReflowed = listOf(
-            PivotArcBounds(80f, 395f, 205f, 550f),
-            PivotArcBounds(240f, 580f, 380f, 740f),
-        )
-        val left = GripArcPositionSolver.resolve(
-            source, safe, video, leftPadReflowed, GripArcSide.LEFT,
-        )
+        val leftPadReflowed =
+            listOf(
+                PivotArcBounds(80f, 395f, 205f, 550f),
+                PivotArcBounds(240f, 580f, 380f, 740f),
+            )
+        val left =
+            GripArcPositionSolver.resolve(
+                source,
+                safe,
+                video,
+                leftPadReflowed,
+                GripArcSide.LEFT,
+            )
         assertTrue(left is GripArcFit.Fits)
     }
 
