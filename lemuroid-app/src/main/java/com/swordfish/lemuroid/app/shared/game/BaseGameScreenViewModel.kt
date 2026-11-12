@@ -117,7 +117,9 @@ class BaseGameScreenViewModel(
             viewModelScope,
         )
     private val pivotArcHeldInputGate =
-        PivotArcHeldInputGate { action, key -> retroGameView.retroGameView?.sendKeyEvent(action, key) }
+        PivotArcHeldInputGate { action, key ->
+            retroGameView.retroGameView?.sendKeyEvent(action, key)
+        }
     private val tilt = GameViewModelTilt(appContext, settingsManager)
     private val inputs =
         GameViewModelInput(
