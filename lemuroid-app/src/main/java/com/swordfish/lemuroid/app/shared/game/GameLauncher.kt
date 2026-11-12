@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.game
 import android.app.Activity
 import android.widget.Toast
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.core.CoresSelection
@@ -36,29 +37,29 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                val enginePreferences = EngineSelectionPreferences(activity.applicationContext)
+                val legacyCoreConfig =
+                    if (system.nativeBackend == null) {
+                        coresSelection.getCoreConfigForSystem(
+                            system,
+                        )
+                    } else {
+                        null
+                    }
+                val selection = withContext(Dispatchers.IO) { enginePreferences.select(game, legacyCoreConfig) }
                 if (system.nativeBackend == "hakux") {
                     if (com.swordfish.lemuroid.app.shared.game.xbox.XboxGameLauncher.launch(activity, game, leanback)) {
+                        runCatching { enginePreferences.beginLaunch(game, selection.engine) }
                         gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
                     }
                     return@launch
                 }
-                val legacyCoreConfig = coresSelection.getCoreConfigForSystem(system)
-                val compatibility = EmulatorCompatibilityPreferences(activity.applicationContext)
-                val candidate = compatibility.candidateCore(system.id)
                 val selectedCoreConfig =
-                    if (candidate != null && compatibility.isUpdatedRequested(system.id, game.id)) {
-                        // A distinct CoreID keeps save-states isolated. Other emulators are untouched.
-                        PSPModernCoreConfig.configure(
-                            PlayStationModernCoreConfig.configure(
-                                legacyCoreConfig.copy(
-                                    coreID = candidate,
-                                    statesVersion = legacyCoreConfig.statesVersion + 1,
-                                ),
-                            ),
-                        )
-                    } else {
-                        legacyCoreConfig
-                    }
+                    PSPModernCoreConfig.configure(
+                        PlayStationModernCoreConfig.configure(
+                            requireNotNull(selection.engine.config),
+                        ),
+                    )
                 val coreConfig =
                     if (
                         selectedCoreConfig.coreID in
@@ -77,13 +78,14 @@ class GameLauncher(
                                             selectedCoreConfig.coreID,
                                         ),
                                 )
-                            }.getOrElse { selectedCoreConfig.copy(statesSupported = false) }
+                            }.getOrThrow()
                         }
                     } else {
                         selectedCoreConfig
                     }
+                enginePreferences.beginLaunch(game, selection.engine)
                 gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
-                BaseGameActivity.launchGame(activity, coreConfig, game, loadSave, leanback)
+                BaseGameActivity.launchGame(activity, coreConfig, game, loadSave && !selection.changedEngine, leanback)
             } catch (error: Exception) {
                 // A failure before GameActivity starts was previously lost in an
                 // unhandled launch coroutine. Show a safe diagnostic without
@@ -92,7 +94,11 @@ class GameLauncher(
                 if (!activity.isFinishing && !activity.isDestroyed) {
                     Toast.makeText(
                         activity,
-                        "CARTDECK could not start this game (${error.javaClass.simpleName}).",
+                        if (error is EngineSelectionPreferences.SelectionException) {
+                            error.message
+                        } else {
+                            "CARTDECK could not start this game (${error.javaClass.simpleName})."
+                        },
                         Toast.LENGTH_LONG,
                     ).show()
                 }

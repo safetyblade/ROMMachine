@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.shared.game.viewmodel
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.opengl.GLES20
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
@@ -9,7 +10,9 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
 import com.swordfish.lemuroid.app.shared.settings.HDModeQuality
 import com.swordfish.lemuroid.common.coroutines.MutableStateProperty
@@ -40,10 +43,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
@@ -72,6 +77,8 @@ class GameViewModelRetroGameView(
         data object Ready : GameState
     }
 
+    private var launchedGame: Game? = null
+
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)
 
     private val retroGameViewFlow = MutableStateFlow<GLRetroView?>(null)
@@ -90,6 +97,7 @@ class GameViewModelRetroGameView(
     ) {
         val currentState = gameState.value
         if (currentState != GameState.Uninitialized) return
+        launchedGame = game
 
         val autoSaveEnabled = settingsManager.autoSave()
         val filter = settingsManager.screenFilter()
@@ -119,6 +127,17 @@ class GameViewModelRetroGameView(
             )
 
         loadingStatesFlow
+            .onEach { state ->
+                if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                    val stage =
+                        when (state) {
+                            is GameLoader.LoadingState.LoadingCore -> PS2LaunchJournal.Stage.CORE_PROVISION
+                            is GameLoader.LoadingState.LoadingGame -> PS2LaunchJournal.Stage.ROM_STAGE
+                            is GameLoader.LoadingState.Ready -> PS2LaunchJournal.Stage.HOST_INIT
+                        }
+                    PS2LaunchJournal(applicationContext).stage(stage)
+                }
+            }
             .flowOn(Dispatchers.IO)
             .catch {
                 val message =
@@ -127,6 +146,10 @@ class GameViewModelRetroGameView(
                     } else {
                         ""
                     }
+                if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                    val code = if (it is GameLoaderException) it.error.javaClass.simpleName else it.javaClass.simpleName
+                    PS2LaunchJournal(applicationContext).failure(code)
+                }
                 sideEffects.requestFailureFinish(message)
             }
             .debounce(200)
@@ -165,6 +188,9 @@ class GameViewModelRetroGameView(
         val currentState = gameState.value
         if (currentState !is GameState.Loaded) throw IllegalStateException("Game is not loaded.")
 
+        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            PS2LaunchJournal(appContext).selectedCore(currentState.gameData.coreLibrary)
+        }
         val result =
             GLRetroView(context, currentState.retroViewData)
                 .apply {
@@ -184,6 +210,33 @@ class GameViewModelRetroGameView(
             }
         }
 
+        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            // This event proves a frontend draw, not a core video-refresh or gameplay.
+            scope.launch {
+                result.getGLRetroEvents()
+                    .filterIsInstance<GLRetroView.GLRetroEvents.FrameRendered>()
+                    .first()
+                PS2LaunchJournal(appContext).stage(PS2LaunchJournal.Stage.FRONTEND_FRAME)
+                result.queueEvent {
+                    PS2LaunchJournal(appContext).graphics(
+                        GLES20.glGetString(GLES20.GL_VENDOR),
+                        GLES20.glGetString(GLES20.GL_RENDERER),
+                        GLES20.glGetString(GLES20.GL_VERSION),
+                    )
+                }
+            }
+        }
+        // The additive host3 event requires a real core video-refresh callback.
+        // It establishes frame submission, not correct gameplay, sound or saves.
+        scope.launch {
+            result.getGLRetroEvents()
+                .filter { it.javaClass.simpleName == "CoreFrameRendered" }
+                .first()
+            if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                PS2LaunchJournal(appContext).stage(PS2LaunchJournal.Stage.CORE_FRAME)
+            }
+            launchedGame?.let { runCatching { EngineSelectionPreferences(appContext).recordSuccess(it) } }
+        }
         retroGameViewFlow.value = result
         gameState.value = GameState.Ready
 

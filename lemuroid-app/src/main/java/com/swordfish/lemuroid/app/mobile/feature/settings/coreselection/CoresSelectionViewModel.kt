@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.lib.core.CoresSelection
@@ -35,6 +36,7 @@ class CoresSelectionViewModel(
     ) {
         viewModelScope.launch {
             coresSelection.updateCoreConfigForSystem(system, coreConfig.coreID)
+            EngineSelectionPreferences(context).setPreferred(system, coreConfig.coreID.coreName)
             LibraryIndexScheduler.scheduleCoreUpdate(context)
         }
     }

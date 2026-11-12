@@ -347,7 +347,7 @@ jobs:
           python3 scripts/ci/verify_native_bundle_apk.py \
             dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
             --require-five-engines --require-wii \
-            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
             > dist/cartdeck/evidence/native-bundle-apk.json
           cat dist/cartdeck/evidence/native-bundle-apk.json
 
@@ -528,7 +528,7 @@ jobs:
           python3 scripts/ci/verify_native_bundle_apk.py \
             dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
             --require-five-engines --require-wii --require-xbox \
-            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
             > dist/cartdeck/evidence/native-bundle-apk.json
           cat dist/cartdeck/evidence/native-bundle-apk.json
 

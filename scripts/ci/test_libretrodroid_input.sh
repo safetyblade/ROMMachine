@@ -30,3 +30,5 @@ printf '#pragma once\n' > "$WORK/include/android/log.h"
 LIBRETRODROID_SOURCE_DIR="$SOURCE" bash "$ROOT/scripts/ci/test_libretrodroid_gl_state.sh"
 
 LIBRETRODROID_SOURCE_DIR="$SOURCE" bash "$ROOT/scripts/ci/test_libretrodroid_graphics_error.sh"
+
+LIBRETRODROID_SOURCE_DIR="$SOURCE" bash "$ROOT/scripts/ci/test_libretrodroid_core_frame_signal.sh"
