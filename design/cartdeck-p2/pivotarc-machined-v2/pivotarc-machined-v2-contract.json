@@ -1,0 +1,50 @@
+{
+  "schema": "cartdeck.pivotarc.tactile-v2/design-study",
+  "stage": "design approved by owner 2026-11-12; native implementation not yet started",
+  "designIntent": "restore original CARTDECK tactile/machined feel to PivotArc without changing control geometry",
+  "locked": [
+    "D-pad/L/B/A/R gameplay relationships",
+    "individual A/B illuminated hold toggles beside corresponding buttons",
+    "compact PivotArc Start/Select/Menu grouping, not Standard",
+    "no standard-mode changes",
+    "no viewport changes or cropping",
+    "no new pointer handlers in decorative layers",
+    "full Original, Pink, Green and custom palette fidelity"
+  ],
+  "materialElements": [
+    "dual-layer chamfered control cradle",
+    "independent raised face button collars",
+    "recessed D-pad well",
+    "shoulder key mounting seats",
+    "micro tactile hold switches",
+    "restrained illumination driven only by actual held/pressed state",
+    "engraved seams, guarded corner screws, controlled contact shadows"
+  ],
+  "implementationSeams": [
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/CartdeckPivotArcModule.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/PivotArcControlGroup.kt",
+    "lemuroid-touchinput/src/main/java/com/swordfish/touchinput/radial/ui/LemuroidButtonForeground.kt",
+    "CartdeckHardwareSeats",
+    "CartdeckEditionTokens"
+  ],
+  "source": {
+    "path": "CARTDECK_PivotArc_Tactile_V2_Concept.svgz",
+    "format": "gzip-compressed exact approved SVG; decompress gzip -dc <file> > concept.svg",
+    "svgSha256": "a308876d583e2f1d5b606e95e32c3366c02ca60aa44424b328cc6024b58f0faf",
+    "sourceSizeBytes": 17539,
+    "compressedBytes": 3292,
+    "viewBox": "0 0 1440 920"
+  },
+  "componentArt": {
+    "path": "pivotarc-v2-material-cues.svg",
+    "role": "separable material cues, NOT layout position authority"
+  },
+  "implementationRule": "Apply only over latest accepted PivotArc Hold Control branch after owner approval. Do not change PadKit IDs, control coordinates, touch hit areas or Game ViewModel input logic.",
+  "review": [
+    "Sienna visual comparison against Standard",
+    "Cassia owner experience comparison",
+    "Daniel no-pointer-interception and safe-fit architecture",
+    "Marcus on-device original/pink/green/custom and active hold state"
+  ],
+  "status": "assets on separate review branch; does not modify APK"
+}
