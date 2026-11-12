@@ -1,0 +1,117 @@
+{
+  "schema": "cartdeck.griparc-v02/coordinated-deck/owner-review",
+  "date": "2026-11-12",
+  "status": "draft-owner-review",
+  "designLead": "Sienna Vale",
+  "scope": [
+    "Standard + GripArc",
+    "PivotArc + GripArc"
+  ],
+  "preserveUnchanged": [
+    "Standard",
+    "PivotArc",
+    "viewport",
+    "PadKit IDs",
+    "emulation engines",
+    "game saves",
+    "cartridge profiles"
+  ],
+  "geometry": {
+    "sourceManifest": "design/cartdeck-p2/griparc-v01/griparc-v1-manifest.json",
+    "permanentHousing": true,
+    "slots": [
+      "G1",
+      "G2",
+      "G3",
+      "G4"
+    ],
+    "slotPositionsNeverReflow": true,
+    "minEffectiveHitTargetDp": 48,
+    "measureOnDevice": true,
+    "requiredSafeRegions": [
+      "gameViewport",
+      "gestureSafe",
+      "screenInsets",
+      "dockArmPolygon",
+      "fourDockTargets",
+      "allPadKitTargets",
+      "utilityTouchZones"
+    ]
+  },
+  "compositeProfiles": {
+    "STANDARD_GRIPARC": [
+      "top shoulder rail",
+      "inside-L four-face or two-face controls",
+      "far-side D-pad",
+      "under-L analog terrace when present",
+      "safe utility controls"
+    ],
+    "PIVOTARC_GRIPARC": [
+      "new combined-only notched Pivot Island",
+      "permanent full-L dock",
+      "illuminated HoldA/HoldB",
+      "future X/Y envelope",
+      "protected utility bank"
+    ]
+  },
+  "solverAPI": {
+    "name": "CompositeControlDeckSolver",
+    "singleSourceOfTruth": true,
+    "outputs": [
+      "viewport",
+      "safeDeck",
+      "dockFootprint",
+      "dockTargets",
+      "perSystemInputTargets",
+      "shellShapes",
+      "fitVerdict",
+      "typedFailures"
+    ],
+    "invalidateOn": [
+      "mode",
+      "side",
+      "system",
+      "orientation",
+      "viewport",
+      "density",
+      "gestureInsets",
+      "controlInventory",
+      "offset"
+    ]
+  },
+  "physicalQA": {
+    "ownerClassFirst": true,
+    "widthsDp": [
+      320,
+      360,
+      393
+    ],
+    "systems": [
+      "GBA",
+      "SNES",
+      "PS2",
+      "GAMECUBE",
+      "DREAMCAST"
+    ],
+    "gripButtonCounts": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "sides": [
+      "LEFT",
+      "RIGHT"
+    ],
+    "modes": [
+      "STANDARD_GRIPARC",
+      "PIVOTARC_GRIPARC"
+    ],
+    "noAutoClaimFor320": true
+  },
+  "approval": {
+    "ownerDesign": false,
+    "engineering": false,
+    "devicePass": false
+  }
+}
