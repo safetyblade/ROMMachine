@@ -98,8 +98,10 @@ object NativeGameSystems {
                             hashMapOf(
                                 0 to
                                     arrayListOf(
-                                        ControllerConfigs.WII_CLASSIC,
+                                        // A bare Wii Remote held sideways is the safe first-launch
+                                        // default. Explicit saved controller choices still win.
                                         ControllerConfigs.WII_SIDEWAYS,
+                                        ControllerConfigs.WII_CLASSIC,
                                         ControllerConfigs.WII_NUNCHUK,
                                     ),
                             ),
