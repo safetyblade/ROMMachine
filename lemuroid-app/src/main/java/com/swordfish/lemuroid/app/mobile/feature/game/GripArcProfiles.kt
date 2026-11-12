@@ -64,7 +64,18 @@ object GripArcInputCatalog {
                     y.copy(label = "Square"),
                     l, r, l2, r2, start, select,
                 )
-            SystemID.NGC -> listOf(a, b, x, y, l, r, l2, r2, start)
+            SystemID.GAMECUBE ->
+                listOf(
+                    a, b, x, y,
+                    l.copy(label = "L"),
+                    r.copy(label = "R"),
+                    r2.copy(label = "Z"),
+                    GripArcInput("L half", KeyEvent.KEYCODE_BUTTON_THUMBL),
+                    GripArcInput("R half", KeyEvent.KEYCODE_BUTTON_THUMBR),
+                    start,
+                )
+            // NGC refers to Neo Geo Pocket Color, not Nintendo GameCube.
+            SystemID.NGC -> listOf(a, b, start, select)
             SystemID.DREAMCAST -> listOf(a, b, x, y, start)
             else -> emptyList()
         }

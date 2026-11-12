@@ -67,7 +67,7 @@ object NativeGameSystems {
                 listOf(
                     SystemCoreConfig(
                         CoreID.DOLPHIN_MODERN,
-                        controllerConfigs = hashMapOf(0 to arrayListOf(ControllerConfigs.NATIVE_ANALOG)),
+                        controllerConfigs = hashMapOf(0 to arrayListOf(ControllerConfigs.GAMECUBE)),
                         defaultSettings =
                             listOf(
                                 CoreVariable("dolphin_renderer", "Hardware"),

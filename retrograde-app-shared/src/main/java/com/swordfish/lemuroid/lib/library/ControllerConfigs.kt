@@ -186,6 +186,14 @@ object ControllerConfigs {
     // Reuse the existing dual-stick shell; descriptors are discovered from each core.
     val NATIVE_ANALOG = PSX_DUALSHOCK.copy(name = "default", libretroDescriptor = null, libretroId = 1)
 
+    // A dedicated GameCube pad preserves Dolphin's ordinary RetroPad port ID,
+    // while giving CARTDECK its own A/B/X/Y, L/R/Z, Control Stick and C-Stick art.
+    // Legacy "default" per-core controller preference still resolves correctly.
+    val GAMECUBE =
+        NATIVE_ANALOG.copy(
+            touchControllerID = TouchControllerID.GAMECUBE,
+        )
+
     // Dolphin's actual Libretro subclass IDs, not ordinary GameCube joypads.
     val WII_CLASSIC =
         NATIVE_ANALOG.copy(

@@ -3,6 +3,8 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.lib.BuildConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.ControllerConfigs
+import android.view.KeyEvent
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
@@ -55,6 +57,28 @@ class CartdeckConsoleLayoutCoverageTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun gameCubeHasItsOwnTouchControllerWithoutChangingPlayStation2() {
+        val gameCube = GameSystem.all().firstOrNull { it.id == SystemID.GAMECUBE }
+            ?: com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+                .first { it.id == SystemID.GAMECUBE }
+        val gameCubePad = gameCube.systemCoreConfigs.first().controllerConfigs.getValue(0).first()
+        assertEquals(TouchControllerID.GAMECUBE, gameCubePad.touchControllerID)
+        assertEquals("default", gameCubePad.name)
+        assertEquals(1, gameCubePad.libretroId)
+        assertNotNull(TouchControllerID.getConfig(TouchControllerID.GAMECUBE))
+        val ps2 = com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+            .first { it.id == SystemID.PLAYSTATION_2 }
+        assertEquals(
+            TouchControllerID.PSX_DUALSHOCK,
+            ps2.systemCoreConfigs.first().controllerConfigs.getValue(0).first().touchControllerID,
+        )
+        val gcInputs = GripArcInputCatalog.forSystem(SystemID.GAMECUBE)
+        assertTrue(gcInputs.any { it.label == "Z" && it.code == KeyEvent.KEYCODE_BUTTON_R2 })
+        assertTrue(gcInputs.none { it.label == "Square" || it.label == "Triangle" })
+        assertTrue(GripArcInputCatalog.forSystem(SystemID.NGC).none { it.label == "Z" })
     }
 
     @Test
