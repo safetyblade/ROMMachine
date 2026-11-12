@@ -104,13 +104,32 @@ class GripArcPositionSolverTest {
         assertTrue(blocked is GripArcFit.Unavailable)
     }
 
+    @Test fun realisticTwoHandControlEnvelopesFitTheOpenInterior() {
+        val rightPadReflowed = listOf(
+            PivotArcBounds(12f, 555f, 155f, 700f),
+            PivotArcBounds(145f, 460f, 260f, 605f),
+        )
+        val right = GripArcPositionSolver.resolve(
+            source, safe, video, rightPadReflowed, GripArcSide.RIGHT,
+        )
+        assertTrue(right is GripArcFit.Fits)
+        val leftPadReflowed = listOf(
+            PivotArcBounds(80f, 395f, 205f, 550f),
+            PivotArcBounds(240f, 580f, 380f, 740f),
+        )
+        val left = GripArcPositionSolver.resolve(
+            source, safe, video, leftPadReflowed, GripArcSide.LEFT,
+        )
+        assertTrue(left is GripArcFit.Fits)
+    }
+
     @Test fun standardReflowOnlyMovesDockSideAndHonoursCompactDeck() {
         val right = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.RIGHT)
         assertEquals(0f, right.leftX, 0.01f)
         assertTrue(right.rightX < -80f)
         assertTrue(right.rightY < -100f)
         val left = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.LEFT)
-        assertTrue(left.leftX > 80f)
+        assertTrue(left.leftX > 60f)
         assertTrue(left.leftY < -100f)
         assertEquals(0f, left.rightX, 0.01f)
         val small = GripArcStandardReflowPolicy.resolve(320f, 260f, GripArcSide.RIGHT)

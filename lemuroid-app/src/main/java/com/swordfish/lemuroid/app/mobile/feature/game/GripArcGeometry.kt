@@ -203,7 +203,7 @@ internal object GripArcStandardReflowPolicy {
         return if (side == GripArcSide.RIGHT) {
             GripArcStandardReflow(rightX = -inward, rightY = -availableVertical.coerceAtMost(128f))
         } else {
-            GripArcStandardReflow(leftX = inward, leftY = -availableVertical.coerceAtMost(148f))
+            GripArcStandardReflow(leftX = inward.coerceAtMost(68f), leftY = -availableVertical.coerceAtMost(148f))
         }
     }
 }
