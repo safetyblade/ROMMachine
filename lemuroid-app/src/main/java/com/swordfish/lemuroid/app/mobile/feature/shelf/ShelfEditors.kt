@@ -33,7 +33,10 @@ fun ShelfToolbar(
             TextButton(onClick = onAppearance, enabled = available) {
                 Column {
                     Text("CARTDECK Appearance")
-                    Text("Console and cartridge shelf", style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                    Text(
+                        "Console and cartridge shelf",
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
         }

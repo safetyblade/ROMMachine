@@ -157,18 +157,21 @@ internal fun CartdeckPivotArcModule(
             // into the game viewport (the plate comes from measured geometry).
             val depth = 3.dp.toPx()
             val insetEdge = 7.dp.toPx()
-            fun chamferedPlate(bounds: Rect, corner: Float) =
-                Path().apply {
-                    moveTo(bounds.left + corner, bounds.top)
-                    lineTo(bounds.right - corner, bounds.top)
-                    lineTo(bounds.right, bounds.top + corner)
-                    lineTo(bounds.right, bounds.bottom - corner)
-                    lineTo(bounds.right - corner, bounds.bottom)
-                    lineTo(bounds.left + corner, bounds.bottom)
-                    lineTo(bounds.left, bounds.bottom - corner)
-                    lineTo(bounds.left, bounds.top + corner)
-                    close()
-                }
+
+            fun chamferedPlate(
+                bounds: Rect,
+                corner: Float,
+            ) = Path().apply {
+                moveTo(bounds.left + corner, bounds.top)
+                lineTo(bounds.right - corner, bounds.top)
+                lineTo(bounds.right, bounds.top + corner)
+                lineTo(bounds.right, bounds.bottom - corner)
+                lineTo(bounds.right - corner, bounds.bottom)
+                lineTo(bounds.left + corner, bounds.bottom)
+                lineTo(bounds.left, bounds.bottom - corner)
+                lineTo(bounds.left, bounds.top + corner)
+                close()
+            }
             val contactShadow =
                 Rect(plate.left, plate.top + depth, plate.right, plate.bottom)
             drawPath(chamferedPlate(contactShadow, bevel), tokens.bezel.copy(alpha = 0.68f))
@@ -203,9 +206,10 @@ internal fun CartdeckPivotArcModule(
             }
             // The face, D-pad well and shoulders get individual machined
             // seats. The existing caps/pressed feedback remain authoritative.
-            val gameplaySeats = controls.filterKeys {
-                it.lowercase() !in setOf("start", "select", "menu")
-            }
+            val gameplaySeats =
+                controls.filterKeys {
+                    it.lowercase() !in setOf("start", "select", "menu")
+                }
             for ((key, bounds) in gameplaySeats) {
                 val center = bounds.center
                 val radius = minOf(bounds.width, bounds.height) / 2f
@@ -232,10 +236,11 @@ internal fun CartdeckPivotArcModule(
                     "D" -> {
                         val margin = 3.dp.toPx()
                         val wellTop = Offset(bounds.left + margin, bounds.top + margin)
-                        val wellSize = Size(
-                            (bounds.width - margin * 2).coerceAtLeast(0f),
-                            (bounds.height - margin * 2).coerceAtLeast(0f),
-                        )
+                        val wellSize =
+                            Size(
+                                (bounds.width - margin * 2).coerceAtLeast(0f),
+                                (bounds.height - margin * 2).coerceAtLeast(0f),
+                            )
                         drawRoundRect(
                             tokens.bezel.copy(alpha = 0.90f),
                             topLeft = wellTop,
@@ -255,10 +260,11 @@ internal fun CartdeckPivotArcModule(
                         drawRoundRect(
                             tokens.bezel.copy(alpha = 0.86f),
                             topLeft = Offset(bounds.left + margin, bounds.top + margin),
-                            size = Size(
-                                (bounds.width - 2 * margin).coerceAtLeast(0f),
-                                (bounds.height - 2 * margin).coerceAtLeast(0f),
-                            ),
+                            size =
+                                Size(
+                                    (bounds.width - 2 * margin).coerceAtLeast(0f),
+                                    (bounds.height - 2 * margin).coerceAtLeast(0f),
+                                ),
                             cornerRadius = CornerRadius(12.dp.toPx()),
                         )
                         drawLine(
@@ -289,10 +295,11 @@ internal fun CartdeckPivotArcModule(
                 drawRoundRect(
                     tokens.bezel.copy(alpha = 0.82f),
                     topLeft = Offset(bounds.left + 2.dp.toPx(), bounds.top + 2.dp.toPx()),
-                    size = Size(
-                        (bounds.width - 4.dp.toPx()).coerceAtLeast(0f),
-                        (bounds.height - 4.dp.toPx()).coerceAtLeast(0f),
-                    ),
+                    size =
+                        Size(
+                            (bounds.width - 4.dp.toPx()).coerceAtLeast(0f),
+                            (bounds.height - 4.dp.toPx()).coerceAtLeast(0f),
+                        ),
                     cornerRadius = CornerRadius(9.dp.toPx()),
                 )
             }

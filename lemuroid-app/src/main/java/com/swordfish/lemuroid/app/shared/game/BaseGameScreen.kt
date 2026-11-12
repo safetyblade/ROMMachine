@@ -20,9 +20,11 @@ fun BaseGameScreen(
 
     when (gameState) {
         is GameViewModelRetroGameView.GameState.Loaded,
-        GameViewModelRetroGameView.GameState.Ready -> gameScreen(viewModel)
-        else -> CartdeckLoadingScreen(
-            message = (gameState as? GameViewModelRetroGameView.GameState.Loading)?.message,
-        )
+        GameViewModelRetroGameView.GameState.Ready,
+        -> gameScreen(viewModel)
+        else ->
+            CartdeckLoadingScreen(
+                message = (gameState as? GameViewModelRetroGameView.GameState.Loading)?.message,
+            )
     }
 }

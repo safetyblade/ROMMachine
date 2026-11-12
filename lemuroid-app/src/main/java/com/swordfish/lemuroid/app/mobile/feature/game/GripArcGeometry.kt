@@ -128,7 +128,8 @@ object GripArcPositionSolver {
             val edgeX = if (side == GripArcSide.RIGHT) maxX else minX
             val candidatesY =
                 listOf(
-                    maxY, // Anchor the permanent bottom arm to the lower console edge first.
+                    // Anchor the permanent bottom arm to the lower console edge first.
+                    maxY,
                     (viewport.bottom + maxY) / 2f,
                     viewport.bottom + SAFE_GAP,
                     minY,
