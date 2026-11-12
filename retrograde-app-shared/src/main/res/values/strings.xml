@@ -141,6 +141,8 @@
     <string name="value_handy_rot_90">90</string>
     <string name="value_handy_rot_270">270</string>
 
+    <string name="game_system_title_xbox">Xbox</string>
+    <string name="game_system_abbr_xbox">Xbox</string>
     <string name="game_system_title_wii">Nintendo Wii</string>
     <string name="game_system_abbr_wii">Wii</string>
     <string name="controller_wii_classic">Wii Classic Controller</string>

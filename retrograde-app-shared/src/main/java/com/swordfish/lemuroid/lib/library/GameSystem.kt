@@ -38,6 +38,7 @@ data class GameSystem(
     val hasMultiDiskSupport: Boolean = false,
     val fastForwardSupport: Boolean = true,
     val hasTouchScreen: Boolean = false,
+    val nativeBackend: String? = null,
 ) {
     companion object {
         private val SYSTEMS =
