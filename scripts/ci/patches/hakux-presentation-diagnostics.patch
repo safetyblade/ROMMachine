@@ -1,0 +1,53 @@
+--- a/hw/xbox/hle/vk/swapchain.c
++++ b/hw/xbox/hle/vk/swapchain.c
+@@ -41,6 +41,15 @@
+ #define T (g_ps.t)
+ 
+ static bool g_cartdeck_confirmed;
++static int g_cartdeck_submit_result = VK_NOT_READY;
++static int g_cartdeck_present_result = VK_NOT_READY;
++void hle_cartdeck_present_report(char *out, size_t size)
++{
++    snprintf(out, size, "guest_present_accepted=%d; last_submit_VkResult=%d; last_present_VkResult=%d",
++             __atomic_load_n(&g_cartdeck_confirmed, __ATOMIC_RELAXED),
++             __atomic_load_n(&g_cartdeck_submit_result, __ATOMIC_RELAXED),
++             __atomic_load_n(&g_cartdeck_present_result, __ATOMIC_RELAXED));
++}
+ bool hle_present_confirmed(void)
+ {
+     return __atomic_load_n(&g_cartdeck_confirmed, __ATOMIC_RELAXED);
+@@ -1011,6 +1020,7 @@
+     hle_vk_queue_lock();
+     const int64_t ts0 = hle_now_ns();
+     VkResult r = T.vkQueueSubmit2(g_hvk.queue, 1, &si, VK_NULL_HANDLE);
++    __atomic_store_n(&g_cartdeck_submit_result, r, __ATOMIC_RELAXED);
+     g_submit_ns += hle_now_ns() - ts0;
+     hle_vk_queue_unlock();
+     if (r == VK_SUCCESS) {
+@@ -1036,6 +1046,7 @@
+         g_present_ns += hle_now_ns() - tp0;
+         hle_vk_queue_unlock();
+     }
++    __atomic_store_n(&g_cartdeck_present_result, pr, __ATOMIC_RELAXED);
+     if (pr == VK_SUCCESS || pr == VK_SUBOPTIMAL_KHR) {
+         if (g_ps.have) {
+             __atomic_store_n(&g_cartdeck_confirmed, true, __ATOMIC_RELAXED);
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -296,11 +296,14 @@
+ }
+ 
+ void hle_cartdeck_gpu_report(char *out, size_t size);
++void hle_cartdeck_present_report(char *out, size_t size);
+ EXPORT JNIEXPORT jstring JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport(JNIEnv *env,
+                                                                                                jclass cls)
+ {
+-    char report[768];
+-    hle_cartdeck_gpu_report(report, sizeof(report));
++    char gpu[768], presentation[192], report[1024];
++    hle_cartdeck_gpu_report(gpu, sizeof(gpu));
++    hle_cartdeck_present_report(presentation, sizeof(presentation));
++    snprintf(report, sizeof(report), "%s; %s", gpu, presentation);
+     return (*env)->NewStringUTF(env, report);
+ }
+ 

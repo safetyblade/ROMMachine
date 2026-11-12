@@ -1,0 +1,78 @@
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -295,6 +295,15 @@
+     return SDL_GetAtomicInt(&g_core_state);
+ }
+ 
++void hle_cartdeck_gpu_report(char *out, size_t size);
++EXPORT JNIEXPORT jstring JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport(JNIEnv *env,
++                                                                                               jclass cls)
++{
++    char report[768];
++    hle_cartdeck_gpu_report(report, sizeof(report));
++    return (*env)->NewStringUTF(env, report);
++}
++
+ /* The FPS overlay (NativeCoreActivity): the title's frame rate and pacing,
+  * and 1 when it renders by push-buffer decoding (else 0: D3D's hooks). */
+ EXPORT JNIEXPORT jfloatArray JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetFrameStats(JNIEnv *env,
+--- a/hw/xbox/hle/vk/vkdev.c
++++ b/hw/xbox/hle/vk/vkdev.c
+@@ -16,6 +16,16 @@
+ #include <sys/system_properties.h>
+ #include "hw/xbox/hle/prop.h"
+ #endif
++
++#include <pthread.h>
++static pthread_mutex_t g_cartdeck_gpu_lock = PTHREAD_MUTEX_INITIALIZER;
++static char g_cartdeck_gpu_report[768] = "Vulkan physical device not selected";
++void hle_cartdeck_gpu_report(char *out, size_t size)
++{
++    pthread_mutex_lock(&g_cartdeck_gpu_lock);
++    snprintf(out, size, "%s", g_cartdeck_gpu_report);
++    pthread_mutex_unlock(&g_cartdeck_gpu_lock);
++}
+ 
+ HleVk g_hvk;
+ static HleMutex g_queue_lock;
+@@ -267,6 +277,13 @@
+         return -1;
+     }
+     vkGetPhysicalDeviceProperties(v->phys, &v->props);
++    pthread_mutex_lock(&g_cartdeck_gpu_lock);
++    snprintf(g_cartdeck_gpu_report, sizeof(g_cartdeck_gpu_report),
++             "GPU=%s; vendor=0x%x; device=0x%x; driver=0x%x; Vulkan=%u.%u.%u; capability probe pending",
++             v->props.deviceName, v->props.vendorID, v->props.deviceID, v->props.driverVersion,
++             VK_VERSION_MAJOR(v->props.apiVersion), VK_VERSION_MINOR(v->props.apiVersion),
++             VK_VERSION_PATCH(v->props.apiVersion));
++    pthread_mutex_unlock(&g_cartdeck_gpu_lock);
+     vkGetPhysicalDeviceMemoryProperties(v->phys, &v->mem);
+ 
+     VkQueueFamilyProperties qf[16];
+@@ -533,6 +550,14 @@
+     vkGetPhysicalDeviceFormatProperties(v->phys, VK_FORMAT_R16G16_SSCALED, &fp);
+     c->sscaled = fp.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+     caps_override(c);
++    pthread_mutex_lock(&g_cartdeck_gpu_lock);
++    char *pending = strstr(g_cartdeck_gpu_report, "; capability probe pending");
++    if (pending) *pending = 0;
++    size_t report_used = strlen(g_cartdeck_gpu_report);
++    snprintf(g_cartdeck_gpu_report + report_used, sizeof(g_cartdeck_gpu_report) - report_used,
++             "; floor=%d; vk13=%d; push=%d; BC=%d; D24S8=%d; sync2=%d; dynamicRendering=%d",
++             c->floor_ok, c->vk13, c->push, c->bc, c->d24s8, c->sync2, c->dyn_render);
++    pthread_mutex_unlock(&g_cartdeck_gpu_lock);
+     c->fbfetch = c->fbfetch && c->dyn_render;  /* local read is dynamic rendering's */
+     c->cbc_any = c->cbc_any && c->cbc;
+     if (!c->bindless) {                 /* the draw sets' arrays, by the push block's index */
+@@ -731,6 +756,11 @@
+             c->push_desc, c->cbc, c->cbc_any, c->x4444, c->d24s8, c->bda, c->ahb, c->vk13,
+             c->dyn_render, c->sync2, c->eds1, c->eds2, c->bindless, c->depth_clamp);
+     hle_quirks_init(v->phys);           /* what this driver needs worked around */
++    pthread_mutex_lock(&g_cartdeck_gpu_lock);
++    size_t quirks_used = strlen(g_cartdeck_gpu_report);
++    snprintf(g_cartdeck_gpu_report + quirks_used, sizeof(g_cartdeck_gpu_report) - quirks_used,
++             "; quirks=0x%x", g_hle_quirks);
++    pthread_mutex_unlock(&g_cartdeck_gpu_lock);
+     return 0;
+ }
+ 

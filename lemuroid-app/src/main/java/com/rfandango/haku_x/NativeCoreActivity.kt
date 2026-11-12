@@ -6,7 +6,10 @@ package com.rfandango.haku_x
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -22,8 +25,13 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import gg.padkit.inputevents.InputEvent
 import org.libsdl.app.SDLActivity
 import java.io.File
@@ -40,24 +48,54 @@ class NativeCoreActivity : SDLActivity() {
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
+    private val watchdog = XboxLaunchWatchdog()
+    private var lastPoll = 0L
+    private var successRecorded = false
     private val poll =
         object : Runnable {
             override fun run() {
                 if (!ready || leaving) return
-                val fatal = nativeGetFatal()
-                when {
-                    fatal != null -> {
-                        nativeSetPaused(true)
-                        menu =
-                            AlertDialog.Builder(this@NativeCoreActivity)
-                                .setTitle("CARTDECK · Xbox could not continue")
-                                .setMessage(fatal + "\nYour Xbox HDD and saves have been retained.")
-                                .setCancelable(false)
-                                .setPositiveButton("Return to shelf") { _, _ -> leave(fatal) }
-                                .show()
-                        return
+                if (menu?.isShowing == true) {
+                    lastPoll = 0L
+                    main.postDelayed(this, 400)
+                    return
+                }
+                val now = android.os.SystemClock.elapsedRealtime()
+                val elapsed =
+                    if (lastPoll == 0L || menu?.isShowing == true) {
+                        0L
+                    } else {
+                        (now - lastPoll).coerceIn(
+                            0L,
+                            2000L,
+                        )
                     }
-                    nativeGetRelaunch() -> {
+                lastPoll = now
+                val shown = nativeGetFrameShown()
+                val bootState = runCatching { nativeGetBootState() }.getOrDefault(0)
+                val relaunch = nativeGetRelaunch()
+                val quit = nativeGetQuit()
+                val verified = engine.properties.getProperty("cartdeck.presentation") == "vk-present-guest-v1"
+                val timeout =
+                    watchdog.poll(
+                        elapsed,
+                        if (relaunch || quit) 0 else bootState,
+                        shown && verified,
+                        shown && !verified,
+                    )
+                if (watchdog.presented && !successRecorded) {
+                    registryGame()?.let { game ->
+                        runCatching { EngineSelectionPreferences(applicationContext).recordSuccess(game) }
+                    }
+                    successRecorded = true
+                }
+                val fatal = nativeGetFatal() ?: timeout
+                if (fatal != null) {
+                    showFailure(fatal)
+                    return
+                }
+                when {
+                    relaunch -> {
                         val now = android.os.SystemClock.elapsedRealtime()
                         val window = intent.getLongExtra("cartdeck.relaunchWindow", now)
                         val count = if (now - window < 30000) intent.getIntExtra("cartdeck.relaunchCount", 0) else 0
@@ -89,7 +127,7 @@ class NativeCoreActivity : SDLActivity() {
                         leave(forwarded = true)
                         return
                     }
-                    nativeGetQuit() -> {
+                    quit -> {
                         leave()
                         return
                     }
@@ -127,6 +165,13 @@ class NativeCoreActivity : SDLActivity() {
                     requireNotNull(XboxEngineStore(File(filesDir, "native-engines/xbox")).selected()) {
                         "No verified Xbox engine is installed"
                     }
+                registryGame()?.let { game ->
+                    runCatching {
+                        val system = GameSystem.findById(game.systemId)
+                        val descriptor = NativeEngineRegistry.engines(system).single()
+                        EngineSelectionPreferences(applicationContext).beginLaunch(game, descriptor)
+                    }
+                }
                 val uri = Uri.parse(requireNotNull(intent.getStringExtra("cartdeck.gameUri")))
                 require(uri.scheme == "content" || uri.scheme == "file") { "Invalid Xbox disc location" }
                 val descriptor =
@@ -148,6 +193,7 @@ class NativeCoreActivity : SDLActivity() {
                 .setPositiveButton("Return to shelf") { _, _ -> leave() }.setCancelable(false).show()
             return
         }
+        mLayout?.setBackgroundColor(Color.BLACK)
         ready = true
         onBackPressedDispatcher.addCallback(
             this,
@@ -189,6 +235,7 @@ class NativeCoreActivity : SDLActivity() {
     override fun onResume() {
         super.onResume()
         paused = false
+        lastPoll = 0L
         if (ready) {
             nativeSetPaused(menu?.isShowing == true)
             main.removeCallbacks(poll)
@@ -198,6 +245,7 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun onPause() {
         paused = true
+        lastPoll = 0L
         main.removeCallbacks(poll)
         releaseTouch()
         hardware.clear()
@@ -208,6 +256,61 @@ class NativeCoreActivity : SDLActivity() {
         super.onPause()
     }
 
+    private fun registryGame(): Game? = intent.getSerializableExtra("cartdeck.game") as? Game
+
+    private fun gpuReport(): String =
+        runCatching { nativeGetGpuReport() }.getOrDefault("GPU report unavailable in previous engine")
+
+    private fun presentationContract(): String =
+        engine.properties.getProperty("cartdeck.presentation", "legacy acquired image")
+
+    private fun diagnosticReport(reason: String): String {
+        var safeReason = reason.take(2000).replace(filesDir.absolutePath, "[app storage]")
+        listOf(disc, intent.getStringExtra("cartdeck.gameUri"), intent.getStringExtra("cartdeck.gameTitle"))
+            .filterNotNull().filter { it.isNotBlank() }.forEach { safeReason = safeReason.replace(it, "[content]") }
+        return "Xbox launch: $safeReason\n" +
+            "Engine: ${engine.id}\n" +
+            "Device: ${android.os.Build.MODEL}; Android ${android.os.Build.VERSION.SDK_INT}\n" +
+            "Stage: ${watchdog.stage}; guest frame presented: ${watchdog.presented}\n" +
+            "Native failure category: ${nativeGetFatalKind()}\n" +
+            "${gpuReport()}\n" +
+            "Presentation probe: ${presentationContract()}\n" +
+            "HDD and saves retained. No automatic relaunch was attempted."
+    }
+
+    private fun copyDiagnosticSnapshot() {
+        val report = diagnosticReport("Manual diagnostic snapshot; not an engine failure")
+        runCatching { File(filesDir, "native/xbox/last-launch-report.txt").writeText(report) }
+        getSystemService(ClipboardManager::class.java)
+            .setPrimaryClip(ClipData.newPlainText("CARTDECK Xbox diagnostic", report))
+        android.widget.Toast.makeText(this, "Engine/GPU report copied", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showFailure(reason: String) {
+        registryGame()?.let { game ->
+            runCatching { EngineSelectionPreferences(applicationContext).recordFailure(game, watchdog.stage) }
+        }
+        nativeSetPaused(true)
+        val report = diagnosticReport(reason)
+        runCatching { File(filesDir, "native/xbox/last-launch-report.txt").writeText(report) }
+        android.util.Log.e("CARTDECK-Xbox", report)
+        menu =
+            AlertDialog.Builder(this)
+                .setTitle(if (watchdog.presented) "CARTDECK · Xbox stopped" else "CARTDECK · Xbox not launched")
+                .setMessage(report)
+                .setCancelable(false)
+                .setNeutralButton("Copy report") { _, _ ->
+                    getSystemService(ClipboardManager::class.java)
+                        .setPrimaryClip(ClipData.newPlainText("CARTDECK Xbox launch", report))
+                    showFailure(reason)
+                }
+                .setNegativeButton("Previous engine") { _, _ -> rollbackEngine() }
+                .setPositiveButton("Return to shelf") { _, _ -> leave(report) }
+                .show()
+        menu?.getButton(AlertDialog.BUTTON_NEGATIVE)?.isEnabled =
+            runCatching { XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback() }.getOrDefault(false)
+    }
+
     private fun showMenu() {
         if (!ready || leaving || menu?.isShowing == true) return
         releaseTouch()
@@ -215,6 +318,12 @@ class NativeCoreActivity : SDLActivity() {
         menu =
             AlertDialog.Builder(this).setTitle("CARTDECK · Xbox")
                 .setMessage(intent.getStringExtra("cartdeck.gameTitle"))
+                .setView(
+                    android.widget.Button(this).apply {
+                        text = "Copy engine/GPU report"
+                        setOnClickListener { copyDiagnosticSnapshot() }
+                    },
+                )
                 .setPositiveButton("Resume") { _, _ -> }
                 .setNeutralButton("Previous engine") { _, _ -> rollbackEngine() }
                 .setNegativeButton("Return to shelf") { _, _ -> leave() }
@@ -366,6 +475,14 @@ class NativeCoreActivity : SDLActivity() {
 
     companion object {
         @JvmStatic external fun nativeGetFatal(): String?
+
+        @JvmStatic external fun nativeGetFatalKind(): Int
+
+        @JvmStatic external fun nativeGetFrameShown(): Boolean
+
+        @JvmStatic external fun nativeGetBootState(): Int
+
+        @JvmStatic external fun nativeGetGpuReport(): String
 
         @JvmStatic external fun nativeGetRelaunch(): Boolean
 

@@ -39,6 +39,10 @@ def verify(directory, readelf='readelf'):
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeSetOverlayPad',
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeSetPaused',
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetFatal',
+                    'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetFatalKind',
+                    'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetFrameShown',
+                    'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetBootState',
+                    'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport',
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetRelaunch',
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetQuit',
                     'Java_com_rfandango_haku_1x_NativeCoreActivity_nativeSetPads'} if name == 'libhakuxcore.so' else set()
