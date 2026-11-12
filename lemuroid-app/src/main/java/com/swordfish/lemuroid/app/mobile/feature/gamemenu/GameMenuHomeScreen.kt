@@ -136,9 +136,7 @@ fun GameMenuHomeScreen(
                     contentDescription = stringResource(id = R.string.game_menu_edit_touch_controls),
                 )
             },
-            onClick = {
-                onResult { putExtra(GameMenuContract.RESULT_EDIT_TOUCH_CONTROLS, true) }
-            },
+            onClick = { navController.navigateToRoute(GameMenuRoute.CONTROLS) },
         )
 
         if (gameMenuRequest.advancedCoreOptions.isNotEmpty() || gameMenuRequest.coreOptions.isNotEmpty()) {
@@ -184,5 +182,35 @@ fun GameMenuHomeScreen(
                 },
             )
         }
+    }
+}
+
+/** One simple Controls page; all GripArc programming remains inside the game. */
+@Composable
+fun GameMenuControlsScreen(
+    navController: NavController,
+    onResult: KFunction1<Intent.() -> Unit, Unit>,
+) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        LemuroidSettingsMenuLink(
+            title = { Text("GripArc") },
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_menu_controls),
+                    contentDescription = "GripArc",
+                )
+            },
+            onClick = { navController.navigateToRoute(GameMenuRoute.GRIPARC) },
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.game_menu_edit_touch_controls)) },
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_menu_controls),
+                    contentDescription = stringResource(id = R.string.game_menu_edit_touch_controls),
+                )
+            },
+            onClick = { onResult { putExtra(GameMenuContract.RESULT_EDIT_TOUCH_CONTROLS, true) } },
+        )
     }
 }
