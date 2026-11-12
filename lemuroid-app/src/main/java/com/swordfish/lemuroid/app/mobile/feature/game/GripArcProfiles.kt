@@ -47,18 +47,18 @@ object GripArcInputCatalog {
             SystemID.SNES, SystemID.NDS -> listOf(a, b, x, y, l, r, start, select)
             SystemID.PSP ->
                 listOf(
-                    a.copy(label = "Cross"),
-                    b.copy(label = "Circle"),
-                    x.copy(label = "Square"),
-                    y.copy(label = "Triangle"),
+                    a.copy(label = "Circle"),
+                    b.copy(label = "Cross"),
+                    x.copy(label = "Triangle"),
+                    y.copy(label = "Square"),
                     l, r, start, select,
                 )
             SystemID.PSX, SystemID.PLAYSTATION_2 ->
                 listOf(
-                    a.copy(label = "Cross"),
-                    b.copy(label = "Circle"),
-                    x.copy(label = "Square"),
-                    y.copy(label = "Triangle"),
+                    a.copy(label = "Circle"),
+                    b.copy(label = "Cross"),
+                    x.copy(label = "Triangle"),
+                    y.copy(label = "Square"),
                     l, r, l2, r2, start, select,
                 )
             SystemID.NGC -> listOf(a, b, x, y, l, r, l2, r2, start)
