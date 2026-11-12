@@ -90,6 +90,55 @@ class PivotArcHeldInputGateTest {
         assertFalse(gate.isEnabled())
     }
 
+    @Test fun gripChordHasTwoIndependentNativeOwners() {
+        val l = KeyEvent.KEYCODE_BUTTON_L1
+        val r = KeyEvent.KEYCODE_BUTTON_R1
+        gate.setGripEnabled(true)
+        gate.setSource(a, "touch", true)
+        gate.setGripSlot(1, true, setOf(a, l))
+        gate.setGripSlot(2, true, setOf(l, r))
+        assertEquals(
+            listOf(
+                KeyEvent.ACTION_DOWN to a,
+                KeyEvent.ACTION_DOWN to l,
+                KeyEvent.ACTION_DOWN to r,
+            ),
+            events,
+        )
+        gate.setGripSlot(1, false)
+        assertEquals(listOf(KeyEvent.ACTION_DOWN to a, KeyEvent.ACTION_DOWN to l, KeyEvent.ACTION_DOWN to r), events)
+        gate.setSource(a, "touch", false)
+        assertEquals(KeyEvent.ACTION_UP to a, events.last())
+        gate.setGripSlot(2, false)
+        assertEquals(KeyEvent.ACTION_UP to r, events.last())
+        assertEquals(3, events.count { it.first == KeyEvent.ACTION_UP })
+    }
+
+    @Test fun gripAndPivotHoldRetainTheirOwnBPresses() {
+        val r = KeyEvent.KEYCODE_BUTTON_R1
+        gate.setEnabled(true)
+        gate.setGripEnabled(true)
+        gate.toggleHold(b)
+        gate.setGripSlot(1, true, setOf(b, r))
+        gate.toggleHold(b)
+        assertEquals(0, events.count { it == KeyEvent.ACTION_UP to b })
+        gate.setGripSlot(1, false)
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to b })
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to r })
+    }
+
+    @Test fun hiddenSlotOrBackgroundReleaseDoesNotLeaveGhostInputs() {
+        val l = KeyEvent.KEYCODE_BUTTON_L1
+        gate.setGripEnabled(true)
+        gate.setGripSlot(4, true, setOf(l))
+        gate.releaseGripSlots()
+        assertEquals(listOf(KeyEvent.ACTION_DOWN to l, KeyEvent.ACTION_UP to l), events)
+        gate.setGripSlot(1, true, setOf(a, b))
+        gate.clear()
+        assertEquals(2, events.count { it.first == KeyEvent.ACTION_DOWN && it.second in setOf(a, b) })
+        assertEquals(2, events.count { it.first == KeyEvent.ACTION_UP && it.second in setOf(a, b) })
+    }
+
     @Test fun switchingOffPivotArcReleasesAndPreventsRelatching() {
         gate.setEnabled(true)
         gate.toggleHold(b)
