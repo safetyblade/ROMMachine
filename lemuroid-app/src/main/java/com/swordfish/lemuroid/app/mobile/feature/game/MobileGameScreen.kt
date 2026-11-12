@@ -242,6 +242,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // Per-cartridge mode overrides the legacy global PivotArc choice.
             val selectedPivot = arcProfile.mode.hasPivot
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
+            var compositeResolution: CompositeDeckResolution? = null
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
                     if (pivotBaseline == null) {
@@ -280,20 +281,43 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 (viewPos.right - fullPos.left) / scale,
                                 (viewPos.bottom - fullPos.top) / scale,
                             )
-                        PivotArcPositionSolver.resolve(
-                            baseline = pivotBaseline,
-                            active = requiredPivotControls,
-                            safe = safeBounds,
-                            viewport = viewportBounds,
-                            leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
-                            requestedDx = pivotSettings.offsetXdp,
-                            requestedDy = pivotSettings.offsetYdp,
-                            isLandscape = isLandscape,
-                        )
+                        if (arcProfile.mode.hasGrip) {
+                            compositeResolution =
+                                if (gripManifest == null) {
+                                    CompositeDeckResolution.Unavailable(
+                                        CompositeDeckFailure.INVALID_GEOMETRY,
+                                        "GripArc geometry could not be loaded. " +
+                                            "Standard remains available; saved settings are preserved.",
+                                    )
+                                } else {
+                                    CompositeControlDeckSolver.resolve(
+                                        gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                        arcProfile.side, arcProfile.dx, arcProfile.dy,
+                                        pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
+                                    )
+                                }
+                            when (val joint = compositeResolution) {
+                                is CompositeDeckResolution.Fits -> PivotArcResolution.Fits(joint.placement.pivot)
+                                is CompositeDeckResolution.Unavailable -> PivotArcResolution.Unavailable(joint.reason)
+                                null -> null
+                            }
+                        } else {
+                            PivotArcPositionSolver.resolve(
+                                baseline = pivotBaseline,
+                                active = requiredPivotControls,
+                                safe = safeBounds,
+                                viewport = viewportBounds,
+                                leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
+                                requestedDx = pivotSettings.offsetXdp,
+                                requestedDy = pivotSettings.offsetYdp,
+                                isLandscape = isLandscape,
+                            )
+                        }
                     }
                 } else {
                     null
                 }
+            val jointPlacement = (compositeResolution as? CompositeDeckResolution.Fits)?.placement
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
             var combinedPlacement: GripArcCombinedPlacement? = null
             val gripResolution: GripArcFit? =
@@ -302,7 +326,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     fullPos != null &&
                     viewPos != null
                 ) {
-                    if (gripManifest == null) {
+                    if (selectedPivot && touchControlsVisibleState.value) {
+                        jointPlacement?.let { GripArcFit.Fits(it.dock) }
+                            ?: GripArcFit.Unavailable(
+                                (compositeResolution as? CompositeDeckResolution.Unavailable)?.reason
+                                    ?: (pivotResolution as? PivotArcResolution.Unavailable)?.reason
+                                    ?: (
+                                        "Joint controller geometry is not ready. " +
+                                            "Standard remains available; saved settings are preserved."
+                                    ),
+                            )
+                    } else if (gripManifest == null) {
                         GripArcFit.Unavailable("GripArc's approved geometry could not be loaded.")
                     } else if (GripArcInputCatalog.forSystem(viewModel.systemId).isEmpty()) {
                         GripArcFit.Unavailable("GripArc programmable inputs are not mapped for this system.")
@@ -484,6 +518,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
+            if (jointPlacement != null && touchControlsVisibleState.value) {
+                CompositeControlDeckHousing(jointPlacement, shellTokens)
+            }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -499,6 +536,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
                     pivotArc = pivotPlacement != null || combinedPlacement != null,
+                    drawPivotModule = jointPlacement == null,
                 )
             }
 
@@ -613,6 +651,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     profile = arcProfile,
                     tokens = shellTokens,
                     onPressed = viewModel::pressGripArcSlot,
+                    drawHousing = jointPlacement == null,
                 )
             }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
@@ -620,7 +659,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val layoutError = gripError?.reason ?: pivotError?.reason
             val dismissedFallback =
                 remember(arcProfile.mode, arcProfile.side, fullPos, viewPos) { mutableStateOf(false) }
-            if (!selectedPivot && gripError != null && touchControlsVisibleState.value && !isLoading &&
+            if ((!selectedPivot || arcProfile.mode.hasGrip) && gripError != null &&
+                touchControlsVisibleState.value && !isLoading &&
                 !dismissedFallback.value
             ) {
                 AlertDialog(
@@ -635,7 +675,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 )
             }
             LaunchedEffect(layoutError, touchControlsVisibleState.value) {
-                if (layoutError != null && touchControlsVisibleState.value && selectedPivot) {
+                if (layoutError != null && touchControlsVisibleState.value &&
+                    selectedPivot && !arcProfile.mode.hasGrip
+                ) {
                     Toast.makeText(appContext, layoutError, Toast.LENGTH_LONG).show()
                 }
             }

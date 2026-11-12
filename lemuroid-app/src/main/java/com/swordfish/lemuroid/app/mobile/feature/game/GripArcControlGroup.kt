@@ -42,10 +42,11 @@ internal fun GripArcControlGroup(
     profile: GripArcProfile,
     tokens: CartdeckEditionTokens,
     onPressed: (Int, Boolean, Set<Int>) -> Unit,
+    drawHousing: Boolean = true,
 ) {
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
-        GripArcHousing(placement = placement, tokens = tokens)
+        if (drawHousing) GripArcHousing(placement = placement, tokens = tokens)
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
             val size = placement.visuals.getValue(slot)
@@ -95,7 +96,7 @@ internal fun GripArcControlGroup(
 }
 
 @Composable
-private fun GripArcHousing(
+internal fun GripArcHousing(
     placement: GripArcPlacement,
     tokens: CartdeckEditionTokens,
 ) {

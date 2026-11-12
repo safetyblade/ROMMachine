@@ -150,4 +150,39 @@ class PivotArcHeldInputGateTest {
         )
         assertTrue(gate.holds.value.isEmpty())
     }
+
+    @Test fun jointFallbackReleasesHoldsAndAllGripSlotsExactlyOnce() {
+        gate.setEnabled(true)
+        gate.setGripEnabled(true)
+        gate.toggleHold(b)
+        gate.setSource(a, "touch", true)
+        for (slot in 1..4) gate.setGripSlot(slot, true, setOf(a, b))
+        gate.setEnabled(false)
+        gate.setGripEnabled(false)
+        assertTrue(gate.holds.value.isEmpty())
+        for (key in setOf(a, b)) {
+            assertEquals(1, events.count { it == KeyEvent.ACTION_DOWN to key })
+            assertEquals(1, events.count { it == KeyEvent.ACTION_UP to key })
+        }
+        gate.setGripSlot(1, true, setOf(a, b))
+        gate.toggleHold(b)
+        assertEquals(4, events.size)
+        assertFalse(gate.setSource(a, "touch", true))
+    }
+
+    @Test fun jointTouchHoldPhysicalAndGripOwnersCannotReleaseEachOther() {
+        gate.setEnabled(true)
+        gate.setGripEnabled(true)
+        gate.toggleHold(b)
+        gate.setSource(b, "physical:controller", true)
+        gate.setSource(b, "touch", true)
+        gate.setGripSlot(1, true, setOf(a, b))
+        gate.toggleHold(b)
+        gate.setGripSlot(1, false)
+        gate.setSource(b, "touch", false)
+        assertEquals(0, events.count { it == KeyEvent.ACTION_UP to b })
+        gate.setSource(b, "physical:controller", false)
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to b })
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to a })
+    }
 }
