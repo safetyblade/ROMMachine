@@ -149,7 +149,15 @@ class GameMenuActivity : RetrogradeComponentActivity() {
 
             SideMenu {
                 TopAppBar(
-                    title = { Text(stringResource(currentRoute.titleId)) },
+                    title = {
+                        Text(
+                            when (currentRoute) {
+                                GameMenuRoute.GRIPARC -> "GripArc"
+                                GameMenuRoute.CONTROLS -> "Controls"
+                                else -> stringResource(currentRoute.titleId)
+                            },
+                        )
+                    },
                     windowInsets = WindowInsets(0.dp),
                     navigationIcon = {
                         AnimatedContent(targetState = currentRoute.canGoBack(), label = "Back") { canGoBack ->
@@ -217,6 +225,12 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                 onResult { putExtra(GameMenuContract.RESULT_LOAD, it) }
                             },
                         )
+                    }
+                    composable(GameMenuRoute.CONTROLS) {
+                        GameMenuControlsScreen(navController, ::onResult)
+                    }
+                    composable(GameMenuRoute.GRIPARC) {
+                        GripArcEditorScreen(gameMenuRequest.game)
                     }
                     composable(GameMenuRoute.OPTIONS) {
                         GameMenuCoreOptionsScreen(
