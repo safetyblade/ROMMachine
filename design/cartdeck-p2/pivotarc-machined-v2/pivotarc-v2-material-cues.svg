@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 245" role="img" aria-label="PivotArc Machined V2 vector material cues; styling reference only, never touch bounds" data-cd-product="PivotArc" data-cd-asset="machined-v2">
+<title>PivotArc V2 — manufactured hardware material cues</title>
+<defs>
+<linearGradient id="metal" x1="0" y1="0" x2=".94" y2="1"><stop stop-color="#617385"/><stop offset=".18" stop-color="#37485A"/><stop offset=".68" stop-color="#243242"/><stop offset="1" stop-color="#111D29"/></linearGradient>
+<linearGradient id="deck" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#364556"/><stop offset="1" stop-color="#1B2837"/></linearGradient>
+<radialGradient id="cap"><stop stop-color="#63536F"/><stop offset="1" stop-color="#291F39"/></radialGradient>
+</defs>
+<rect width="860" height="245" rx="16" fill="#0C1723"/>
+<g data-cd-part="chamfered-cradle">
+<path d="M20 52L40 32H180L200 52V180L180 200H40L20 180Z" fill="url(#metal)" stroke="#798C9A" stroke-width="3"/>
+<path d="M32 63L51 45H170L188 64V170L170 187H50L32 168Z" fill="url(#deck)" stroke="#0A1521" stroke-width="4"/>
+<path d="M47 50H161" fill="none" stroke="#73B9AE" stroke-width="2.4" opacity=".64"/>
+<circle cx="40" cy="57" r="4.5" fill="#07111D" stroke="#8CA1AB"/><circle cx="180" cy="174" r="4.5" fill="#07111D" stroke="#8CA1AB"/>
+<text x="110" y="229" fill="#CEDBE0" font-family="sans-serif" font-size="13" text-anchor="middle">MACHINED CRADLE</text>
+</g>
+<g data-cd-part="directional-well">
+<rect x="228" y="50" width="147" height="147" rx="32" fill="#0C1724" stroke="#718391" stroke-width="4"/>
+<rect x="240" y="60" width="123" height="123" rx="24" fill="#334657" stroke="#182637" stroke-width="3"/>
+<path d="M283 69H321V99H351V136H321V167H283V136H253V99H283Z" fill="#536A7A" stroke="#60DBCB" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="302" cy="118" r="11" fill="#152433" stroke="#8295A3" stroke-width="2"/>
+<path d="M294 83H311M294 154H311" stroke="#D7E1DC" stroke-width="4" stroke-linecap="round"/>
+<text x="302" y="229" fill="#CEDBE0" font-family="sans-serif" font-size="13" text-anchor="middle">D-PAD WELL</text>
+</g>
+<g data-cd-part="raised-face-seat">
+<circle cx="477" cy="123" r="67" fill="#101B29" stroke="#738796" stroke-width="5"/>
+<circle cx="477" cy="123" r="55" fill="#283949" stroke="#0C1723" stroke-width="3"/>
+<circle cx="477" cy="118" r="41" fill="url(#cap)" stroke="#90839D" stroke-width="3"/>
+<path d="M454 95Q477 79 500 95" fill="none" stroke="#D9CBEB" stroke-width="3" opacity=".65"/>
+<text x="477" y="132" fill="#F0ECF3" font-family="sans-serif" font-size="24" font-weight="700" text-anchor="middle">B</text>
+<text x="477" y="229" fill="#CEDBE0" font-family="sans-serif" font-size="13" text-anchor="middle">RAISED FACE SEAT</text>
+</g>
+<g data-cd-part="shoulder-seat">
+<rect x="580" y="79" width="112" height="78" rx="18" fill="#101A27" stroke="#657B8A" stroke-width="4"/>
+<rect x="589" y="75" width="94" height="56" rx="19" fill="url(#metal)" stroke="#788899" stroke-width="2"/>
+<rect x="599" y="83" width="74" height="39" rx="14" fill="url(#cap)" stroke="#AEA5B7" stroke-width="2"/>
+<text x="636" y="110" fill="#EFE9F2" font-family="sans-serif" font-size="21" font-weight="700" text-anchor="middle">L</text>
+<text x="635" y="229" fill="#CEDBE0" font-family="sans-serif" font-size="13" text-anchor="middle">SHOULDER KEY SEAT</text>
+</g>
+<g data-cd-part="hold-switch">
+<rect x="715" y="91" width="125" height="66" rx="16" fill="#0C1926" stroke="#617A8B" stroke-width="3"/>
+<rect x="726" y="105" width="68" height="33" rx="16" fill="#0B1722" stroke="#4BD8C8" stroke-width="2"/>
+<rect x="754" y="108" width="35" height="27" rx="13" fill="#4CDCCD" stroke="#C3FFF7" stroke-width="1.5"/>
+<circle cx="819" cy="120" r="9" fill="#47D9CA" stroke="#9BFFF0" stroke-width="1.4"/>
+<text x="777" y="229" fill="#CEDBE0" font-family="sans-serif" font-size="13" text-anchor="middle">HOLD ILLUMINATION</text>
+</g>
+</svg>
