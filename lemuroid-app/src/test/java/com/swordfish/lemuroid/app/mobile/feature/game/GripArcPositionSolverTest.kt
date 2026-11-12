@@ -126,12 +126,32 @@ class GripArcPositionSolverTest {
     @Test fun standardReflowOnlyMovesDockSideAndHonoursCompactDeck() {
         val right = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.RIGHT)
         assertEquals(0f, right.leftX, 0.01f)
-        assertTrue(right.rightX < -80f)
+        assertTrue(right.rightX < -25f)
         assertTrue(right.rightY < -100f)
         val left = GripArcStandardReflowPolicy.resolve(393f, 490f, GripArcSide.LEFT)
-        assertTrue(left.leftX > 60f)
+        assertTrue(left.leftX > 25f)
         assertTrue(left.leftY < -100f)
         assertEquals(0f, left.rightX, 0.01f)
+        // Realistic handset geometry: moving either composite dial into the
+        // OTHER hand's original controls is not a viable dock layout.
+        val dpad = PivotArcBounds(22f, 554f, 178f, 706f)
+        val faces = PivotArcBounds(217f, 514f, 379f, 720f)
+        val movedFaces =
+            PivotArcBounds(
+                faces.left + right.rightX,
+                faces.top + right.rightY,
+                faces.right + right.rightX,
+                faces.bottom + right.rightY,
+            )
+        val movedDpad =
+            PivotArcBounds(
+                dpad.left + left.leftX,
+                dpad.top + left.leftY,
+                dpad.right + left.leftX,
+                dpad.bottom + left.leftY,
+            )
+        assertFalse(movedFaces.intersects(dpad.inset(4f)))
+        assertFalse(movedDpad.intersects(faces.inset(4f)))
         val small = GripArcStandardReflowPolicy.resolve(320f, 260f, GripArcSide.RIGHT)
         assertTrue(small.rightY > -10f)
     }

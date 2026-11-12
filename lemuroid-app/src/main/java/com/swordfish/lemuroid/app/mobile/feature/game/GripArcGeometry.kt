@@ -198,12 +198,12 @@ internal object GripArcStandardReflowPolicy {
         side: GripArcSide,
     ): GripArcStandardReflow {
         if (screenWidthDp <= 0f || deckHeightDp <= 0f) return GripArcStandardReflow()
-        val inward = (screenWidthDp * 0.24f).coerceAtMost(94f)
+        val inward = (screenWidthDp * 0.09f).coerceAtMost(30f)
         val availableVertical = ((deckHeightDp - 250f) * 0.65f).coerceAtLeast(0f)
         return if (side == GripArcSide.RIGHT) {
-            GripArcStandardReflow(rightX = -inward, rightY = -availableVertical.coerceAtMost(128f))
+            GripArcStandardReflow(rightX = -inward, rightY = -availableVertical.coerceAtMost(148f))
         } else {
-            GripArcStandardReflow(leftX = inward.coerceAtMost(68f), leftY = -availableVertical.coerceAtMost(148f))
+            GripArcStandardReflow(leftX = inward, leftY = -availableVertical.coerceAtMost(148f))
         }
     }
 }
