@@ -74,7 +74,7 @@ sealed interface GripArcFit {
 object GripArcPositionSolver {
     private const val SAFE_GAP = 8f
     private const val MIN_TARGET = 48f
-    private val scales = listOf(1.0f, 0.90f, 0.82f, 0.76f, 0.72f)
+    private val scales = listOf(0.84f, 0.80f, 0.76f, 0.72f)
 
     /**
      * Actual permanent L material, in approved 272 x 308 source coordinates.
@@ -113,11 +113,12 @@ object GripArcPositionSolver {
         side: GripArcSide,
         dx: Float = 0f,
         dy: Float = 0f,
+        maxScale: Float = 0.84f,
     ): GripArcFit {
         if (!dx.isFinite() || !dy.isFinite() || safe.width <= 0f || safe.height <= 0f) {
             return GripArcFit.Unavailable("GripArc has invalid screen measurements.")
         }
-        for (scale in scales) {
+        for (scale in scales.filter { it <= maxScale }) {
             val width = manifest.artboard.width * scale
             val height = manifest.artboard.height * scale
             if (width > safe.width || height > safe.height) continue
@@ -165,7 +166,7 @@ object GripArcPositionSolver {
                 }
                 val visuals =
                     manifest.slots.associate { slot ->
-                        slot.n to PivotArcSize(slot.visual.w * scale, slot.visual.h * scale)
+                        slot.n to PivotArcSize(slot.visual.w * scale * 0.9f, slot.visual.h * scale * 0.9f)
                     }
                 return GripArcFit.Fits(GripArcPlacement(housing, targets, visuals, scale, side))
             }
@@ -174,37 +175,5 @@ object GripArcPositionSolver {
             "The complete GripArc attachment does not fit outside gameplay and existing controls. " +
                 "Move controls or select a compatible layout; your cartridge preference is preserved.",
         )
-    }
-}
-
-/**
- * Standard+GripArc is a coordinated hardware layout, not Standard with a
- * floating dock. Reflow only the same-side composite PadKit group inward and
- * upward, leaving Standard-only settings and PadKit identities unchanged.
- *
- * The deck height limits travel on compact displays; the measured GripArc
- * solver still rejects any unsafe final combination.
- */
-internal data class GripArcStandardReflow(
-    val leftX: Float = 0f,
-    val leftY: Float = 0f,
-    val rightX: Float = 0f,
-    val rightY: Float = 0f,
-)
-
-internal object GripArcStandardReflowPolicy {
-    fun resolve(
-        screenWidthDp: Float,
-        deckHeightDp: Float,
-        side: GripArcSide,
-    ): GripArcStandardReflow {
-        if (screenWidthDp <= 0f || deckHeightDp <= 0f) return GripArcStandardReflow()
-        val inward = (screenWidthDp * 0.09f).coerceAtMost(30f)
-        val availableVertical = ((deckHeightDp - 250f) * 0.65f).coerceAtLeast(0f)
-        return if (side == GripArcSide.RIGHT) {
-            GripArcStandardReflow(rightX = -inward, rightY = -availableVertical.coerceAtMost(148f))
-        } else {
-            GripArcStandardReflow(leftX = inward, leftY = -availableVertical.coerceAtMost(148f))
-        }
     }
 }

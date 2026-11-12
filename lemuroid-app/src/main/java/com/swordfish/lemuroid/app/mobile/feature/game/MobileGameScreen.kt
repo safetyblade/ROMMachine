@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -25,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Height
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.RotateLeft
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -74,6 +74,7 @@ import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
 import gg.padkit.PadKit
@@ -204,7 +205,14 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
             val rightPadBounds = remember { mutableStateOf<Rect?>(null) }
             val individualInputs =
-                remember(viewModel.systemId, isLandscape, pivotSettings.mode, pivotSettings.hand) {
+                remember(
+                    viewModel.systemId,
+                    isLandscape,
+                    pivotSettings.mode,
+                    pivotSettings.hand,
+                    arcProfile.mode,
+                    arcProfile.side,
+                ) {
                     mutableStateMapOf<String, Rect>()
                 }
             val observeBounds: (String, Rect) -> Unit =
@@ -232,20 +240,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
             val selectedPivot = arcProfile.mode.hasPivot
-            // Standard+GripArc reserves the docking edge BEFORE measuring PadKit
-            // groups. Only the group next to the L moves; Standard-only is exact.
-            val standardGripReflow =
-                if (!selectedPivot && arcProfile.mode.hasGrip && !isLandscape &&
-                    fullPos != null && viewPos != null
-                ) {
-                    GripArcStandardReflowPolicy.resolve(
-                        screenWidthDp = fullPos.width / currentDensity.density,
-                        deckHeightDp = (fullPos.bottom - viewPos.bottom) / currentDensity.density,
-                        side = arcProfile.side,
-                    )
-                } else {
-                    GripArcStandardReflow()
-                }
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
@@ -300,6 +294,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     null
                 }
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
+            var combinedPlacement: GripArcCombinedPlacement? = null
             val gripResolution: GripArcFit? =
                 if (
                     arcProfile.mode.hasGrip &&
@@ -361,7 +356,36 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             }
-                        if (occupied.any { !it.inside(safeBounds) || it.intersects(viewportBounds.inset(4f)) }) {
+                        if (!selectedPivot && GripArcCombinedLayout.controlsFor(viewModel.systemId) == null) {
+                            GripArcFit.Unavailable(
+                                "Compact Standard + GripArc is not yet defined for this controller. " +
+                                    "Standard remains available; GripArc settings are preserved.",
+                            )
+                        } else if (!selectedPivot) {
+                            combinedPlacement =
+                                if (!isLandscape) {
+                                    GripArcCombinedLayout.resolve(
+                                        gripManifest, viewModel.systemId, safeBounds, viewportBounds,
+                                        arcProfile.side, arcProfile.dx, arcProfile.dy,
+                                        analogCount =
+                                            when (currentControllerConfig?.touchControllerID) {
+                                                TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE -> 2
+                                                TouchControllerID.PSP -> 1
+                                                else -> 0
+                                            },
+                                    )
+                                } else {
+                                    null
+                                }
+                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
+                                ?: GripArcFit.Unavailable(
+                                    "Compact Standard + GripArc cannot fit after trying both sides " +
+                                        "and default positions. " +
+                                        "Standard controls are available for this session; " +
+                                        "GripArc settings are preserved. " +
+                                        "Use portrait orientation or a larger display.",
+                                )
+                        } else if (occupied.any { !it.inside(safeBounds) || it.intersects(viewportBounds.inset(4f)) }) {
                             GripArcFit.Unavailable("Controls need more room below the game screen.")
                         } else {
                             GripArcPositionSolver.resolve(
@@ -400,8 +424,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLandscape = isLandscape,
                 controlBounds =
                     if (touchControlsVisibleState.value) {
-                        if (pivotPlacement != null && fullPos != null) {
-                            pivotPlacement.controls.values.map { bounds ->
+                        if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
+                            (combinedPlacement?.controls ?: pivotPlacement!!.controls).values.map { bounds ->
                                 Rect(
                                     fullPos.left + bounds.left * currentDensity.density,
                                     fullPos.top + bounds.top * currentDensity.density,
@@ -423,15 +447,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // finish, rails, speaker and indicator art remain present from
             // the first frame. Standard retains its original bound observers.
             val hardwareInputBounds =
-                if (pivotPlacement != null && fullPos != null) {
-                    pivotPlacement.controls.map { (key, bounds) ->
+                if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
+                    (combinedPlacement?.controls ?: pivotPlacement!!.controls).map { (key, bounds) ->
                         val seatKey =
                             when (key) {
                                 "D" -> "dpad"
                                 "A", "B", "X", "Y" -> "face-${key.lowercase()}"
                                 "HoldA" -> "hold-a"
                                 "HoldB" -> "hold-b"
-                                "L", "R" -> "shoulder-$key"
+                                "L", "R", "L2", "R2" -> "shoulder-$key"
+                                "AnalogL" -> "analog-left"
+                                "AnalogR" -> "analog-right"
                                 else -> key.lowercase()
                             }
                         seatKey to
@@ -459,7 +485,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isDualScreen =
                         portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
-                    pivotArc = pivotPlacement != null,
+                    pivotArc = pivotPlacement != null || combinedPlacement != null,
                 )
             }
 
@@ -516,7 +542,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             )
                         }
 
-                        if (pivotPlacement != null) {
+                        if (pivotPlacement != null || combinedPlacement != null) {
                             // Keep ConstraintLayout viewport anchors but do NOT
                             // register the Standard controls as extra input owners.
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
@@ -526,7 +552,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
-                                    .offset(x = standardGripReflow.leftX.dp, y = standardGripReflow.leftY.dp)
                                     .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
                                 touchControllerSettings,
                             )
@@ -534,7 +559,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
-                                    .offset(x = standardGripReflow.rightX.dp, y = standardGripReflow.rightY.dp)
                                     .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
                                 touchControllerSettings,
                             )
@@ -565,6 +589,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     )
                 }
             }
+            if (combinedPlacement != null && touchControlsVisibleState.value && !isLoading) {
+                CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
+                    GripArcCombinedControls(combinedPlacement!!, viewModel.systemId)
+                }
+            }
             if (gripPlacement != null && !isLoading) {
                 GripArcControlGroup(
                     placement = gripPlacement,
@@ -575,11 +604,25 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
-            // A persistent dark-on-dark full-screen warning obscured gameplay
-            // controls. Use the platform's legible, transient, accessible toast.
             val layoutError = gripError?.reason ?: pivotError?.reason
+            val dismissedFallback =
+                remember(arcProfile.mode, arcProfile.side, fullPos, viewPos) { mutableStateOf(false) }
+            if (!selectedPivot && gripError != null && touchControlsVisibleState.value && !isLoading &&
+                !dismissedFallback.value
+            ) {
+                AlertDialog(
+                    onDismissRequest = { dismissedFallback.value = true },
+                    title = { Text("GripArc unavailable on this layout") },
+                    text = { Text(gripError.reason) },
+                    confirmButton = {
+                        TextButton(onClick = { dismissedFallback.value = true }) {
+                            Text("Use Standard this session")
+                        }
+                    },
+                )
+            }
             LaunchedEffect(layoutError, touchControlsVisibleState.value) {
-                if (layoutError != null && touchControlsVisibleState.value) {
+                if (layoutError != null && touchControlsVisibleState.value && selectedPivot) {
                     Toast.makeText(appContext, layoutError, Toast.LENGTH_LONG).show()
                 }
             }
