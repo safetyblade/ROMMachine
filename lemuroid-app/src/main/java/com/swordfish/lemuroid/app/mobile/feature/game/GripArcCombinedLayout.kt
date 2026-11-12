@@ -20,7 +20,7 @@ internal object GripArcCombinedLayout {
             SystemID.GAMECUBE ->
                 listOf("D", "A", "B", "X", "Y", "L", "R", "R2", "Start", "Menu", "AnalogL", "AnalogR")
             SystemID.DREAMCAST ->
-                listOf("D", "A", "B", "X", "Y", "L", "R", "L2", "R2", "Select", "Start", "Menu", "AnalogL")
+                listOf("D", "A", "B", "X", "Y", "L", "R", "Start", "Menu", "AnalogL")
             else -> null
         }
 
@@ -97,15 +97,11 @@ internal object GripArcCombinedLayout {
                         put("D", safe.left + mainSize / 2, fieldTop + mainSize / 2, mainSize)
                         // Preserve each console's established face compass, regardless of dock side.
                         val faces =
-                            if (system == SystemID.GAMECUBE) {
-                                listOf(
-                                    "X",
-                                    "A",
-                                    "B",
-                                    "Y",
-                                )
-                            } else {
-                                listOf("A", "B", "Y", "X")
+                            when (system) {
+                                SystemID.GAMECUBE -> listOf("X", "A", "B", "Y")
+                                // Native Dreamcast compass: B east, A south, X west, Y north.
+                                SystemID.DREAMCAST -> listOf("B", "A", "X", "Y")
+                                else -> listOf("A", "B", "Y", "X")
                             }
                         val offsets = listOf(52f to 0f, 0f to 52f, -52f to 0f, 0f to -52f)
                         if ("X" in active) {
