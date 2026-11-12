@@ -13,7 +13,7 @@ plugins {
 
 // New hardware cores require the host's checked GLES negotiation and trigger protocol.
 if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == true) {
-    require(providers.gradleProperty("cartdeckLibretroDroidVersion").orNull == "0.14.0-cartdeck2") {
+    require(providers.gradleProperty("cartdeckLibretroDroidVersion").orNull == "0.14.0-cartdeck3") {
         "Native console APKs require the verified CARTDECK LibretroDroid host"
     }
 }

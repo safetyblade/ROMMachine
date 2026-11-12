@@ -20,6 +20,7 @@ import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.ImmersiveActivity
 import com.swordfish.lemuroid.app.shared.coreoptions.CoreOption
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSideEffects
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
@@ -32,6 +33,7 @@ import com.swordfish.lemuroid.common.dump
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
 import com.swordfish.lemuroid.lib.game.GameLoader
+import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.ExposedSetting
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -96,6 +98,9 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         game = intent.getSerializableExtra(EXTRA_GAME) as Game
         systemCoreConfig = intent.getSerializableExtra(EXTRA_SYSTEM_CORE_CONFIG) as SystemCoreConfig
         system = GameSystem.findById(game.systemId)
+        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            PS2LaunchJournal(applicationContext).stage(PS2LaunchJournal.Stage.ACTIVITY_STARTED)
+        }
 
         val viewModel by viewModels<BaseGameScreenViewModel> {
             BaseGameScreenViewModel.Factory(
@@ -160,7 +165,11 @@ abstract class BaseGameActivity : ImmersiveActivity() {
 
     private fun setUpExceptionsHandler() {
         Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
-            performUnexpectedErrorFinish(exception)
+            if (::systemCoreConfig.isInitialized && systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                runOnUiThread { performUnexpectedErrorFinish(exception) }
+            } else {
+                performUnexpectedErrorFinish(exception)
+            }
         }
     }
 
@@ -301,6 +310,9 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     private fun performSuccessfulActivityFinish() {
+        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            PS2LaunchJournal(applicationContext).stage(PS2LaunchJournal.Stage.CLEAN_EXIT)
+        }
         val resultIntent =
             Intent().apply {
                 putExtra(PLAY_GAME_RESULT_SESSION_DURATION, System.currentTimeMillis() - startGameTime)
@@ -314,10 +326,14 @@ abstract class BaseGameActivity : ImmersiveActivity() {
 
     private fun performUnexpectedErrorFinish(exception: Throwable) {
         Timber.e(exception, "Handling java exception in BaseGameActivity")
+        if (::systemCoreConfig.isInitialized && systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            PS2LaunchJournal(applicationContext).failure(exception.javaClass.simpleName)
+        }
         // A caught, real crash (unlike a slow game) is sufficient to offer the
         // old engine on the next deliberate game launch, never via a retry loop.
         if (::game.isInitialized) {
             EmulatorCompatibilityPreferences(applicationContext).recordConfirmedStartupFailure(game)
+            runCatching { EngineSelectionPreferences(applicationContext).recordFailure(game, "NATIVE_STARTUP") }
         }
         val resultIntent =
             Intent().apply {
@@ -329,11 +345,15 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     private fun performErrorFinish(message: String) {
+        if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+            PS2LaunchJournal(applicationContext).failure("CONTAINED_LOAD_ERROR")
+        }
         // Only a confirmed library/core-start failure triggers fallback; never infer
         // an emulator failure from a slow ROM load or an ordinary in-game freeze.
         val coreLoadMessage = getString(com.swordfish.lemuroid.ext.R.string.game_loader_error_load_core)
         if (message == coreLoadMessage) {
             EmulatorCompatibilityPreferences(applicationContext).recordConfirmedStartupFailure(game)
+            runCatching { EngineSelectionPreferences(applicationContext).recordFailure(game, "NATIVE_STARTUP") }
         }
         val resultIntent =
             Intent().apply {
@@ -438,7 +458,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     companion object {
         const val DIALOG_REQUEST = 100
 
-        private const val EXTRA_GAME = "GAME"
+        internal const val EXTRA_GAME = "GAME"
         private const val EXTRA_LOAD_SAVE = "LOAD_SAVE"
         private const val EXTRA_LEANBACK = "LEANBACK"
         private const val EXTRA_SYSTEM_CORE_CONFIG = "EXTRA_SYSTEM_CORE_CONFIG"
@@ -465,15 +485,23 @@ abstract class BaseGameActivity : ImmersiveActivity() {
                 } else {
                     GameActivity::class.java
                 }
-            activity.startActivityForResult(
+            val gameIntent =
                 Intent(activity, gameActivity).apply {
                     putExtra(EXTRA_GAME, game)
                     putExtra(EXTRA_LOAD_SAVE, loadSave)
                     putExtra(EXTRA_LEANBACK, useLeanback)
                     putExtra(EXTRA_SYSTEM_CORE_CONFIG, systemCoreConfig)
-                },
-                REQUEST_PLAY_GAME,
-            )
+                }
+            val launchIntent =
+                if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                    Intent(
+                        activity,
+                        PS2RecoveryActivity::class.java,
+                    ).putExtra(PS2RecoveryActivity.EXTRA_TARGET, gameIntent)
+                } else {
+                    gameIntent
+                }
+            activity.startActivityForResult(launchIntent, REQUEST_PLAY_GAME)
             activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }
     }

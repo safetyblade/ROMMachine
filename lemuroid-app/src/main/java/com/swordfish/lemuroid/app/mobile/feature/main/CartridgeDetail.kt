@@ -16,7 +16,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,11 +31,12 @@ import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
-import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
-import com.swordfish.lemuroid.app.shared.game.EmulatorModernAssetsProvisioner
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
 import com.swordfish.lemuroid.lib.library.CoreID
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -155,8 +155,21 @@ fun CartridgeDetail(
 @Composable
 private fun CartridgeEmulatorChoice(game: Game) {
     val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
+    val system = GameSystem.findById(game.systemId)
+    val selectableSystems =
+        setOf(
+            SystemID.PSX,
+            SystemID.PSP,
+            SystemID.DREAMCAST,
+            SystemID.GAMECUBE,
+            SystemID.WII,
+            SystemID.PLAYSTATION_2,
+        )
+    if (system.nativeBackend != null || system.systemCoreConfigs.size > 1 || systemId in selectableSystems) {
+        EngineSelectionControls(system, game)
+    }
     if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII)) {
-        NativeEngineChoice(systemId)
+        NativeEngineChoice(systemId, game)
         if (systemId == SystemID.WII) {
             Text(
                 "Choose Classic, sideways Remote or Nunchuk in controller settings. " +
@@ -166,52 +179,14 @@ private fun CartridgeEmulatorChoice(game: Game) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        return
-    }
-    if (systemId != SystemID.PSX && systemId != SystemID.PSP) return
-
-    val context = LocalContext.current.applicationContext
-    val preferences = remember(context) { EmulatorCompatibilityPreferences(context) }
-    var assetsReady by remember(game.id) { mutableStateOf(false) }
-    LaunchedEffect(context, game.id) {
-        assetsReady = EmulatorModernAssetsProvisioner.installIfBundled(context)
-    }
-    // Only expose a switch when the candidate is actually packaged and the
-    // matching PSP assets have already been installed.
-    if (!remember(game.id, assetsReady) { preferences.available(systemId) }) return
-
-    var updated by remember(game.id) {
-        mutableStateOf(preferences.isUpdatedSelectedForGame(systemId, game.id))
-    }
-    Text(
-        if (updated) "Using updated engine for this game" else "Using previous working engine",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    OutlinedButton(
-        onClick = {
-            if (preferences.setGameEngine(systemId, game.id, !updated)) {
-                updated = !updated
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) { Text(if (updated) "Use previous working engine" else "Try updated engine") }
-    TextButton(
-        onClick = {
-            if (preferences.restoreGameDefault(systemId, game.id)) {
-                updated = preferences.isUpdatedSelectedForGame(systemId, game.id)
-            }
-        },
-    ) { Text("Use system default") }
-    if (preferences.lastFailedCandidate(systemId, game.id) != null && !updated) {
-        Text(
-            "The updated engine could not start. The previous working engine is selected.",
-            style = MaterialTheme.typography.bodySmall,
-        )
     }
 }
 
 @Composable
-private fun NativeEngineChoice(systemId: SystemID) {
+private fun NativeEngineChoice(
+    systemId: SystemID,
+    game: Game,
+) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val core =
@@ -232,6 +207,9 @@ private fun NativeEngineChoice(systemId: SystemID) {
                     withContext(Dispatchers.IO) {
                         runCatching {
                             if (NativeCoreProvisioner.choosePrevious(context, core)) {
+                                EngineSelectionPreferences(context).setPreferred(
+                                    GameSystem.findById(game.systemId), core.coreName, game,
+                                )
                                 "Previous engine selected. Game saves are retained."
                             } else {
                                 "No previous engine is installed."
@@ -252,6 +230,9 @@ private fun NativeEngineChoice(systemId: SystemID) {
                     withContext(Dispatchers.IO) {
                         runCatching {
                             NativeCoreProvisioner.chooseCurrent(context, core)
+                            EngineSelectionPreferences(context).setPreferred(
+                                GameSystem.findById(game.systemId), core.coreName, game,
+                            )
                             "Current engine selected. Game saves are retained."
                         }.getOrElse { "The current engine is unavailable." }
                     }

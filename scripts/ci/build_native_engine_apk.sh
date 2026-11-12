@@ -20,10 +20,10 @@ systems=$(cat "$bundle/native-systems.txt")
 bash scripts/ci/build_standalone_apk.sh "$CARTDECK_TEST_VERSION_CODE" \
     -PcartdeckNativeBundleDir="$bundle" -PcartdeckNativeSystems="$systems" \
     -PcartdeckHostMavenRepo="$CARTDECK_HOST_MAVEN_REPO" \
-    -PcartdeckLibretroDroidVersion=0.14.0-cartdeck2
+    -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3
 # The existing verifier copies the single APK and checks package/signature/alignment.
 bash scripts/ci/verify_standalone_apk.sh
-verification_args=(--host-aar "$CARTDECK_HOST_MAVEN_REPO/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck2/LibretroDroid-0.14.0-cartdeck2.aar")
+verification_args=(--host-aar "$CARTDECK_HOST_MAVEN_REPO/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar")
 if [[ "${CARTDECK_REQUIRE_FIVE_ENGINES:-false}" == true ]]; then
     verification_args+=(--require-five-engines)
 fi

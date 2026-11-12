@@ -69,6 +69,11 @@
             android:theme="@style/LemuroidMaterialTheme.Game" />
 
         <activity
+            android:name="com.swordfish.lemuroid.app.shared.game.PS2RecoveryActivity"
+            android:exported="false"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+
+        <activity
             android:name="com.rfandango.haku_x.NativeCoreActivity"
             android:launchMode="singleTop"
             android:exported="false"

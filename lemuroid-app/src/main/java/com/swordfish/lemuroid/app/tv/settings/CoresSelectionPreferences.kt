@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.core.CoresSelection
 import com.swordfish.lemuroid.lib.library.GameSystem
@@ -41,7 +42,8 @@ class CoresSelectionPreferences {
                 .map { it.coreID.coreName }
                 .toTypedArray()
 
-        preference.setOnPreferenceChangeListener { _, _ ->
+        preference.setOnPreferenceChangeListener { _, value ->
+            EngineSelectionPreferences(context).setPreferred(system, value as String)
             LibraryIndexScheduler.scheduleCoreUpdate(context.applicationContext)
             true
         }

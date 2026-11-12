@@ -9,11 +9,12 @@ MAVEN_REPO=${HOST_MAVEN_REPO:-"$WORK/maven"}
 REVISION=8835c3098514390a271e36983957f7bb5f40abf1
 : "${ANDROID_HOME:?Set ANDROID_HOME to the Android SDK}"
 NDK_VERSION=${HOST_NDK_VERSION:-29.0.14206865}
-VERSION=0.14.0-cartdeck2
+VERSION=0.14.0-cartdeck3
 PATCHES=(
     "$ROOT/scripts/ci/patches/libretrodroid-gles-context-validation.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-frontend-gl-state.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-graphics-error.patch"
+    "$ROOT/scripts/ci/patches/libretrodroid-core-frame-signal.patch"
 )
 for patch in "${PATCHES[@]}"; do
     [[ -f "$patch" ]] || { echo "Missing required host patch: $patch" >&2; exit 1; }
