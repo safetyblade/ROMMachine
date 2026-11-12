@@ -18,6 +18,10 @@ internal sealed interface CompositeDeckResolution {
 /** Two rectangles describe one notched island; the renderer traces their shared contour. */
 internal data class PivotIslandShape(val upper: PivotArcBounds, val lower: PivotArcBounds) {
     val regions get() = listOf(upper, lower)
+
+    companion object {
+        const val OUTLINE_WIDTH_DP = 2f
+    }
 }
 
 internal data class CompositeControlDeckPlacement(
@@ -34,6 +38,9 @@ internal data class CompositeControlDeckPlacement(
 internal object CompositeControlDeckSolver {
     private const val GAP = 8f
     private const val EDGE = 6f
+
+    // The housing renderer uses a centered 2dp outline. Reserve its painted edge too.
+    private const val OUTLINE = PivotIslandShape.OUTLINE_WIDTH_DP / 2f
     private val utilities = setOf("Select", "Start", "Menu")
 
     fun resolve(
@@ -61,13 +68,7 @@ internal object CompositeControlDeckSolver {
                 "PivotArc + GripArc requires portrait orientation.",
             )
         }
-        if (safe.width <= 0f || safe.height <= 0f ||
-            listOf(
-                safe.left, safe.top, safe.right, safe.bottom,
-                viewport.left, viewport.top, viewport.right, viewport.bottom,
-            ).any {
-                !it.isFinite()
-            } ||
+        if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
             (active + listOf("X", "Y")).any { it !in baseline.buttonCenters }
         ) {
             return unavailable(
@@ -76,14 +77,7 @@ internal object CompositeControlDeckSolver {
             )
         }
         val safeDeck = PivotArcBounds(safe.left, maxOf(safe.top, viewport.bottom + GAP), safe.right, safe.bottom)
-        val opposite = if (side == GripArcSide.RIGHT) GripArcSide.LEFT else GripArcSide.RIGHT
-        val attempts =
-            listOf(
-                Triple(side, gripDx, gripDy),
-                Triple(opposite, gripDx, gripDy),
-                Triple(side, 0f, 0f),
-                Triple(opposite, 0f, 0f),
-            ).distinct()
+        val attempts = listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)).distinct()
         for ((hand, dx, dy) in attempts) for (dockScale in listOf(0.84f, 0.80f, 0.76f, 0.72f)) {
             val dockFit =
                 GripArcPositionSolver.resolve(
@@ -130,8 +124,9 @@ internal object CompositeControlDeckSolver {
                 val whole = hull(source.values)
                 // Candidate edges derive from safe space and individual reserved material/targets.
                 // Translation applies to the complete approved constellation, never individual slots.
-                val xs = listOf(safe.left + EDGE - whole.left, safe.right - EDGE - whole.right)
-                val ys = listOf(safeDeck.top + EDGE - whole.top, arms[1].top - GAP - EDGE - whole.bottom)
+                val xs = listOf(safe.left + EDGE + OUTLINE - whole.left, safe.right - EDGE - OUTLINE - whole.right)
+                val ys =
+                    listOf(safeDeck.top + EDGE + OUTLINE - whole.top, arms[1].top - GAP - EDGE - OUTLINE - whole.bottom)
                 for (x in xs) for (y in ys) for (requested in listOf(true, false)) {
                     val shiftX = x + if (requested && pivotDx.isFinite()) pivotDx else 0f
                     val shiftY = y + if (requested && pivotDy.isFinite()) pivotDy else 0f
@@ -203,10 +198,10 @@ internal object CompositeControlDeckSolver {
                             PivotArcBounds(innerLeft, notchY, innerRight, bounds.bottom),
                         )
                     if (island.regions.any {
-                            it.width <= 0f || it.height <= 0f || !it.inside(safeDeck) ||
+                            it.width <= 0f || it.height <= 0f || !it.inset(OUTLINE).inside(safeDeck) ||
                                 reserved.any {
                                         r ->
-                                    it.intersects(r)
+                                    it.inset(OUTLINE).intersects(r)
                                 }
                         }
                     ) {
@@ -249,7 +244,7 @@ internal object CompositeControlDeckSolver {
         }
         return unavailable(
             CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE,
-            "The joint PivotArc + GripArc deck cannot fit after trying both sides and default positions.",
+            "The joint PivotArc + GripArc deck cannot fit on your selected side, including its default position.",
         )
     }
 

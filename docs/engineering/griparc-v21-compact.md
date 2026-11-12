@@ -17,10 +17,13 @@ Dreamcast uses one stick. Face compasses and PadKit input identities are retaine
 Validation uses each target plus the two physical L arms, rather than composite
 Standard control-group envelopes. Rendering consumes the resolved rectangles.
 
-Resolution tries the saved side/offset, the opposite side, then default positions
-on both sides. These are transient attempts and do not write cartridge settings.
+Resolution tries the saved side/offset and its default position on that side.
+The player can explicitly try the opposite side for the session. These are
+transient attempts and do not write cartridge settings.
 If none fits, Standard controls remain usable and a dialog offers **Use Standard
-this session**. Unsupported controllers receive a distinct message. Portrait is
+this session**, which disables accessories until the session ends or the saved
+mode/side is explicitly changed. Unsupported controllers receive a distinct
+message. Portrait is
 required for this combined layout; landscape uses the same explicit fallback.
 Standard-only, PivotArc-only, viewport policy, emulator configuration, saved
 profiles, ROM handling, and save paths have no behavioral changes.
@@ -28,8 +31,9 @@ profiles, ROM handling, and save paths have no behavioral changes.
 ## Validation and remaining checks
 
 Geometry tests cover PS2, GameCube, Dreamcast, GBA, and SNES on both sides at
-393dp, 360dp, and 320dp widths with an 852dp-high fixture. They check complete
-control sets, safe bounds, target collisions, viewport exclusion, fixed slots,
+393×852dp, 360×740dp and 320×640dp, plus asymmetric cutout/gesture insets.
+Viewports derive from each screen opening. Checks cover complete control sets,
+safe bounds, collision exclusion, viewport exclusion, fixed slots,
 48dp minimum targets, face compass identity, invalid-offset reset, and rejection
 of a genuinely short deck. These fixtures are not owner handset measurements.
 
@@ -39,10 +43,10 @@ enum. The dedicated renderer was compiled against the real Android touch-input
 module through a temporary source-set extension. These checks do not establish
 that the complete APK builds or that gameplay input works on a device.
 
-The full local Android build is blocked by denied jitpack.io access to the uncached
-LibretroDroid dependency. The repository's existing integrated APK workflow is the
-required delivery build: preserve its package ID, signing key, increasing version
-code, patched host, and all native engines. Do not deliver a stripped replacement.
+The complete APK workflow passed for PR #152's initial joint-deck head
+(`43297106398`). Corrections use focused source checks and hand the next integrated
+build off to CI. Preserve package ID, signing key, increasing version code, patched
+host, and all native engines; do not deliver a stripped replacement.
 
 Before acceptance: require a successful integrated APK build, install-over on the
 owner handset, right/left and counts 1–4, simultaneous D-pad/face/stick/shoulder

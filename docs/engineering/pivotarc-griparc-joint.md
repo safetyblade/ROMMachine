@@ -17,7 +17,8 @@ translation/scaling. The selected dock side mirrors the joint deck without
 swapping key or slot identities; the standalone PivotArc hand preference remains
 saved and unchanged. Insets, viewport, orientation, profiles and offsets are read
 on every layout pass, so no stale geometry cache crosses mode or device changes.
-Saved side/offset attempts precede opposite-side and default-position attempts.
+Saved-side offset attempts precede the default position on that same side.
+Trying the opposite side requires an explicit session choice.
 Failed attempts never update cartridge or global settings.
 
 The joint renderer consumes these exact contours and targets. It suppresses the
@@ -25,7 +26,7 @@ solo PivotArc plate and the accessory's separate housing pass, paints the notche
 island and complete L once, and retains the existing individual input controls,
 Hold indicators, theme tokens and shared hold/chord ownership gate. The artwork
 has no pointer handlers. A joint failure exposes neither partial module, disables
-both virtual hold/chord paths, and offers Standard for the session with settings
+both virtual hold/chord paths, and offers an effective Standard override for the session with settings
 preserved. Physical-controller-only GripArc behavior remains intact.
 
 ## Fast validation
@@ -44,7 +45,8 @@ constants). Targeted KtLint checks cover changed Kotlin files. A touch-input mod
 compilation checks the joint solver, housing and existing renderers with temporary
 profile/palette type scaffolding; this is not a full app build or device result.
 
-CI is handed off through the existing PR workflow. APK completion, install-over,
+CI is handed off through the existing PR workflow. The acceptance checklist is
+`docs/engineering/griparc-device-acceptance.md`. APK completion, install-over,
 Marcus device QA and owner acceptance are a separate session. Shorter decks or
 larger system insets can legitimately require the Standard session fallback;
 fixture fit is not a claim that every 320dp handset fits. Issue #135 stays open.

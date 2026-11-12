@@ -13,19 +13,27 @@ class CompositeControlDeckSolverTest {
         PivotArcLayoutProfile.parse(
             File("src/main/assets/pivotarc/candidate-c-baseline.json").readText(),
         )
-    private val viewport = PivotArcBounds(22f, 84f, 371f, 344f)
+    private val viewport = ControlDeckDeviceFixture(393f, 852f).viewport
 
     @Test fun supportedControllerPathsHaveOneCompleteCollisionFreePlacement() {
-        for (width in listOf(
-            393f,
-            360f,
-            320f,
-        )) for (system in listOf(SystemID.GB, SystemID.GBC, SystemID.GBA, SystemID.SNES)) {
+        for (device in ControlDeckDeviceFixture.representative) for (system in listOf(
+            SystemID.GB,
+            SystemID.GBC,
+            SystemID.GBA,
+            SystemID.SNES,
+        )) {
+            val viewport = device.viewport
             for (side in GripArcSide.values()) {
-                val safe = PivotArcBounds(8f, 8f, width - 8f, 844f)
+                val safe = device.safe
                 val result = CompositeControlDeckSolver.resolve(manifest, baseline, system, safe, viewport, side)
-                assertTrue("$width $system $side: $result", result is CompositeDeckResolution.Fits)
+                // Narrow/short devices may correctly reject a joint deck. Any fit must be physically safe.
+                if (result is CompositeDeckResolution.Unavailable) {
+                    assertEquals(CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE, result.failure)
+                    continue
+                }
                 val p = (result as CompositeDeckResolution.Fits).placement
+                assertTrue(viewport.inside(device.screen))
+                assertTrue(p.dock.housing.inside(safe))
                 assertEquals(viewport, p.viewport)
                 assertEquals(side, p.dock.side)
                 assertEquals(
@@ -43,15 +51,84 @@ class CompositeControlDeckSolverTest {
                     targets[i].intersects(targets[j]),
                 )
                 p.island.regions.forEach { r ->
-                    assertTrue(r.inside(safe))
-                    assertFalse(r.intersects(viewport))
-                    assertTrue(p.dockFootprint.none { it.intersects(r) })
-                    assertTrue(p.dock.targets.values.none { it.intersects(r) })
+                    assertTrue(r.inset(PivotIslandShape.OUTLINE_WIDTH_DP / 2f).inside(safe))
+                    assertFalse(r.inset(PivotIslandShape.OUTLINE_WIDTH_DP / 2f).intersects(viewport))
+                    assertTrue(p.dockFootprint.none { it.intersects(r.inset(PivotIslandShape.OUTLINE_WIDTH_DP / 2f)) })
+                    assertTrue(
+                        p.dock.targets.values.none { it.intersects(r.inset(PivotIslandShape.OUTLINE_WIDTH_DP / 2f)) },
+                    )
+                }
+                p.pivot.controls.forEach { (key, target) ->
+                    val visual = p.pivot.visuals.getValue(key)
+                    assertTrue(visual.w <= target.width && visual.h <= target.height)
+                }
+                manifest.slots.forEach { slot ->
+                    val center = if (side == GripArcSide.RIGHT) slot.centerRight else slot.centerLeft
+                    val target = p.dock.targets.getValue(slot.n)
+                    assertEquals(p.dock.housing.left + center.x * p.dock.scale, target.centerX, 0.05f)
+                    assertEquals(p.dock.housing.top + center.y * p.dock.scale, target.centerY, 0.05f)
+                    val visual = p.dock.visuals.getValue(slot.n)
+                    assertTrue(visual.w <= target.width && visual.h <= target.height)
                 }
                 assertTrue(p.island.upper.width > p.island.lower.width)
                 // Counts only change which of these permanent slots receive input/rendered buttons.
                 for (count in 1..4) assertEquals((1..count).toList(), p.dock.targets.keys.take(count))
             }
+        }
+    }
+
+    @Test fun ownerClassStillFitsAllSupportedPathsOnPreferredSide() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (system in listOf(SystemID.GB, SystemID.GBC, SystemID.GBA, SystemID.SNES)) {
+            for (side in GripArcSide.values()) {
+                val result =
+                    CompositeControlDeckSolver.resolve(
+                        manifest,
+                        baseline,
+                        system,
+                        device.safe,
+                        device.viewport,
+                        side,
+                    )
+                assertTrue("$system $side", result is CompositeDeckResolution.Fits)
+                assertEquals(side, (result as CompositeDeckResolution.Fits).placement.dock.side)
+            }
+        }
+    }
+
+    @Test fun savedOffsetFallbackKeepsPreferredSide() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (side in GripArcSide.values()) {
+            for (offset in listOf(-1000f, 1000f)) {
+                val result =
+                    CompositeControlDeckSolver.resolve(
+                        manifest,
+                        baseline,
+                        SystemID.GBA,
+                        device.safe,
+                        device.viewport,
+                        side,
+                        gripDx = offset,
+                    )
+                assertTrue(result is CompositeDeckResolution.Fits)
+                assertEquals(side, (result as CompositeDeckResolution.Fits).placement.dock.side)
+            }
+        }
+    }
+
+    @Test fun invalidMeasurementsNeverReportFit() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (video in listOf(device.viewport.copy(right = Float.NaN), device.viewport.copy(bottom = 0f))) {
+            val result =
+                CompositeControlDeckSolver.resolve(
+                    manifest,
+                    baseline,
+                    SystemID.GBA,
+                    device.safe,
+                    video,
+                    GripArcSide.RIGHT,
+                )
+            assertEquals(CompositeDeckFailure.INVALID_GEOMETRY, (result as CompositeDeckResolution.Unavailable).failure)
         }
     }
 

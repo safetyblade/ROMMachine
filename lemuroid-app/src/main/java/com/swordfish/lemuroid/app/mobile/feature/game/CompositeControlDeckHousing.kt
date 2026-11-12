@@ -33,7 +33,7 @@ internal fun CompositeControlDeckHousing(
                     close()
                 }
             drawPath(path, tokens.chassis)
-            drawPath(path, tokens.secondary, style = Stroke(2.dp.toPx()))
+            drawPath(path, tokens.secondary, style = Stroke(PivotIslandShape.OUTLINE_WIDTH_DP.dp.toPx()))
             drawPath(path, tokens.accent.copy(alpha = 0.25f), style = Stroke(1.dp.toPx()))
         }
         GripArcHousing(placement.dock, tokens)
