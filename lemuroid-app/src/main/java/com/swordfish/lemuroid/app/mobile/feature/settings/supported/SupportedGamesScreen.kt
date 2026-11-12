@@ -167,7 +167,15 @@ private fun SupportedGameRow(
                     text =
                         stringResource(
                             R.string.cartdeck_formats_engine_details,
-                            entry.system.systemCoreConfigs.joinToString(" / ") { it.coreID.coreDisplayName },
+                            if (entry.system.nativeBackend == "hakux") {
+                                "hakuX (SDL3/Vulkan)"
+                            } else {
+                                entry.system.systemCoreConfigs.joinToString(
+                                    " / ",
+                                ) {
+                                    it.coreID.coreDisplayName
+                                }
+                            },
                         ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

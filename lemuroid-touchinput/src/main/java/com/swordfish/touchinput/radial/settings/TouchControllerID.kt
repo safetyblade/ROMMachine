@@ -55,6 +55,8 @@ import com.swordfish.touchinput.radial.layouts.WSPortraitRight
 import com.swordfish.touchinput.radial.layouts.WiiLayoutProfile
 import com.swordfish.touchinput.radial.layouts.WiiLeft
 import com.swordfish.touchinput.radial.layouts.WiiRight
+import com.swordfish.touchinput.radial.layouts.XboxLeft
+import com.swordfish.touchinput.radial.layouts.XboxRight
 import gg.padkit.PadKitScope
 
 enum class TouchControllerID {
@@ -83,6 +85,7 @@ enum class TouchControllerID {
     WS_LANDSCAPE,
     WS_PORTRAIT,
     NINTENDO_3DS,
+    XBOX,
     WII_CLASSIC,
     WII_SIDEWAYS,
     WII_NUNCHUK,
@@ -257,6 +260,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> WSPortraitLeft(modifier, settings) },
                         { modifier, settings -> WSPortraitRight(modifier, settings) },
+                    )
+
+                XBOX ->
+                    Config(
+                        { modifier, settings -> XboxLeft(modifier, settings) },
+                        { modifier, settings -> XboxRight(modifier, settings) },
                     )
 
                 NINTENDO_3DS ->

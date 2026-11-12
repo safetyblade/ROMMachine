@@ -26,7 +26,9 @@ fun LemuroidControlButton(
     val theme = LocalLemuroidPadTheme.current
     val shape =
         when {
-            label in setOf("L", "R", "L1", "R1", "L2", "R2") -> CartdeckButtonShape.SHOULDER
+            label in setOf("L", "R", "L1", "R1", "L2", "R2", "White", "Black", "LT", "RT") ->
+                CartdeckButtonShape.SHOULDER
+            label == "Back" -> CartdeckButtonShape.PILL
             icon == R.drawable.button_start ||
                 icon == R.drawable.button_select ||
                 icon == R.drawable.button_menu -> CartdeckButtonShape.PILL
@@ -35,6 +37,11 @@ fun LemuroidControlButton(
     val observe = LocalCartdeckControlBounds.current
     val seatId =
         when {
+            label == "Back" -> "select"
+            label == "White" -> "shoulder-L1"
+            label == "Black" -> "shoulder-R1"
+            label == "LT" -> "shoulder-L2"
+            label == "RT" -> "shoulder-R2"
             icon == R.drawable.button_start -> "start"
             icon == R.drawable.button_select -> "select"
             icon == R.drawable.button_menu -> "menu"

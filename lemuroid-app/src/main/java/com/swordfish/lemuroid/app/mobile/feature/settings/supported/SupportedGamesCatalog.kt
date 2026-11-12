@@ -66,6 +66,14 @@ internal object SupportedGamesCatalog {
         runtime: GameGuideRuntime?,
     ): GameGuideSetup {
         if (runtime == null) return GameGuideSetup.CHECKING
+        if (entry.system.nativeBackend == "hakux") {
+            if ("arm64-v8a" !in runtime.deviceAbis) return GameGuideSetup.DEVICE_UNSUPPORTED
+            return if (setOf("libhakuxcore.so", "libSDL3.so").all { it in runtime.installedCoreFiles }) {
+                GameGuideSetup.ENGINE_PRESENT
+            } else {
+                GameGuideSetup.ENGINE_MISSING
+            }
+        }
         val candidates =
             entry.system.systemCoreConfigs.filter { config ->
                 val allowedArchitectures = config.supportedOnlyArchitectures
@@ -92,7 +100,7 @@ internal object SupportedGamesCatalog {
      * No core download, scan, storage mutation or network request is triggered here.
      */
     fun currentRuntime(context: Context): GameGuideRuntime {
-        val coreNames = CoreID.values().map { it.libretroFileName }.toSet()
+        val coreNames = CoreID.values().map { it.libretroFileName }.toSet() + setOf("libhakuxcore.so", "libSDL3.so")
         val searchRoots =
             listOf(
                 File(context.applicationInfo.nativeLibraryDir),

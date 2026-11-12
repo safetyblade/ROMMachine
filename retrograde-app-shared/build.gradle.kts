@@ -57,7 +57,7 @@ android {
     buildFeatures { buildConfig = true }
     defaultConfig {
         val nativeSystems = providers.gradleProperty("cartdeckNativeSystems").orElse("").get()
-        require(nativeSystems.split(",").all { it in setOf("", "dc", "gc", "ps2") })
+        require(nativeSystems.split(",").all { it in setOf("", "dc", "gc", "ps2", "wii", "xbox") })
         buildConfigField("String", "NATIVE_SYSTEMS", "\"$nativeSystems\"")
         javaCompileOptions {
             annotationProcessorOptions {
