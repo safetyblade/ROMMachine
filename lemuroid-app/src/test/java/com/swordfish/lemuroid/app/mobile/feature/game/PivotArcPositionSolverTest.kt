@@ -163,8 +163,9 @@ class PivotArcPositionSolverTest {
 
     @Test fun compactUtilityBankLivesBelowPivotArcAndNeverChangesStandardCoordinates() {
         val controls = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement.controls
-        val coreBottom = controls.filterKeys { it !in setOf("Start", "Select", "Menu") }
-            .values.maxOf { it.bottom }
+        val coreBottom =
+            controls.filterKeys { it !in setOf("Start", "Select", "Menu") }
+                .values.maxOf { it.bottom }
         for (key in listOf("Select", "Start", "Menu")) {
             assertTrue("$key must remain below the core", controls.getValue(key).top >= coreBottom + 7.9f)
         }
