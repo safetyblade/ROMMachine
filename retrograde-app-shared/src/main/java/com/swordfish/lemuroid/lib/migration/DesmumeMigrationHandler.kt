@@ -14,6 +14,7 @@ class DesmumeMigrationHandler(
         game: Game,
         coreID: CoreID,
         defaultData: ByteArray?,
+        allowLegacyRead: Boolean = true,
     ): SaveDataResult {
         if (coreID != CoreID.DESMUME && coreID != CoreID.MELONDS) {
             return SaveDataResult(defaultData, null)
@@ -23,8 +24,18 @@ class DesmumeMigrationHandler(
         val baseFileName = game.saveFileName().substringBeforeLast(".", game.saveFileName())
         val srmFile = File(savesDirectory, "$baseFileName.$SRM_EXTENSION")
         val dsvFile = File(savesDirectory, "$baseFileName.$DSV_EXTENSION")
-        val srmInfo = SaveCandidate(srmFile, defaultData ?: srmFile.readBytesIfValid())
-        val dsvInfo = SaveCandidate(dsvFile, dsvFile.readBytesIfValid())
+        val srmInfo =
+            SaveCandidate(
+                srmFile,
+                defaultData ?: if (allowLegacyRead) srmFile.readBytesIfValid() else null,
+                allowLegacyRead,
+            )
+        val dsvInfo =
+            SaveCandidate(
+                dsvFile,
+                if (allowLegacyRead) dsvFile.readBytesIfValid() else null,
+                allowLegacyRead,
+            )
 
         return when (coreID) {
             CoreID.MELONDS -> selectRawSave(baseFileName, srmInfo, dsvInfo)
@@ -42,8 +53,9 @@ class DesmumeMigrationHandler(
     private data class SaveCandidate(
         val file: File,
         val data: ByteArray?,
+        val allowDiskTimestamp: Boolean = true,
     ) {
-        val isValid: Boolean = file.exists() && file.length() > 0 && data != null
+        val isValid: Boolean = allowDiskTimestamp && file.exists() && file.length() > 0 && data != null
         val timestamp: Long = if (isValid) file.lastModified() else 0
     }
 
@@ -59,7 +71,7 @@ class DesmumeMigrationHandler(
 
         if (srmInfo.data != null) {
             Timber.d("Using SRM save for %s when launching melonDS", baseFileName)
-            return SaveDataResult(srmInfo.data, srmInfo.timestamp)
+            return SaveDataResult(srmInfo.data, srmInfo.timestamp.takeIf { srmInfo.isValid })
         }
 
         if (dsvInfo.data != null) {
