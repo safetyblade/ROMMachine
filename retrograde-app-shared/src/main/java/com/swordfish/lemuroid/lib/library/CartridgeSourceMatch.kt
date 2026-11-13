@@ -37,7 +37,8 @@ object CartridgeSourceMatch {
         scanMarker: Long,
     ): List<Relocation> {
         val existingIds = before.map { it.id }.toSet()
-        val vanished = before.filter { it.lastIndexedAt < scanMarker }
+        val seenIds = after.filter { it.lastIndexedAt == scanMarker }.map { it.id }.toSet()
+        val vanished = before.filter { it.id !in seenIds }
         val arrivals = after.filter { it.lastIndexedAt == scanMarker && it.id !in existingIds }
         val candidates =
             vanished.flatMap { previous ->
