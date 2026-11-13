@@ -29,15 +29,19 @@ enum class GameMenuRoute(
         titleId = R.string.game_menu_title,
         parent = null,
     ),
+    STATES("states", R.string.game_menu_title, HOME),
+    ADVANCED("advanced", R.string.game_menu_settings, HOME),
+    PIVOTARC("pivotarc", R.string.game_menu_edit_touch_controls, CONTROLS),
+    TROUBLESHOOTING("troubleshooting", R.string.game_menu_settings, ADVANCED),
     SAVE(
         route = "save",
         titleId = R.string.game_menu_save,
-        parent = HOME,
+        parent = STATES,
     ),
     LOAD(
         route = "load",
         titleId = R.string.game_menu_load,
-        parent = HOME,
+        parent = STATES,
     ),
     OPTIONS(
         route = "options",

@@ -23,10 +23,21 @@ import android.view.PixelCopy
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import androidx.activity.OnBackPressedCallback
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -38,7 +49,11 @@ import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.touchinput.radial.settings.TouchControllerID
+import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
+import kotlinx.coroutines.launch
 import org.libsdl.app.SDLActivity
 import java.io.File
 
@@ -49,8 +64,14 @@ class NativeCoreActivity : SDLActivity() {
     private var startupFailure: Throwable? = null
     private var ready = false
     private var leaving = false
-    private var paused = false
-    private var menu: AlertDialog? = null
+    private var paused = true
+    private var recoveryDialog: AlertDialog? = null
+    private var menuOpen by mutableStateOf(false)
+    private val pauseGate = GameMenuPauseGate()
+    private val settingsManager by lazy {
+        TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(this))
+    }
+    private val menuShowing get() = menuOpen || recoveryDialog?.isShowing == true
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
@@ -90,14 +111,14 @@ class NativeCoreActivity : SDLActivity() {
         object : Runnable {
             override fun run() {
                 if (!ready || leaving) return
-                if (menu?.isShowing == true) {
+                if (menuShowing) {
                     lastPoll = 0L
                     main.postDelayed(this, 400)
                     return
                 }
                 val now = android.os.SystemClock.elapsedRealtime()
                 val elapsed =
-                    if (lastPoll == 0L || menu?.isShowing == true) {
+                    if (lastPoll == 0L || menuShowing) {
                         0L
                     } else {
                         (now - lastPoll).coerceIn(
@@ -135,8 +156,7 @@ class NativeCoreActivity : SDLActivity() {
                         val window = intent.getLongExtra("cartdeck.relaunchWindow", now)
                         val count = if (now - window < 30000) intent.getIntExtra("cartdeck.relaunchCount", 0) else 0
                         if (count >= 5) {
-                            nativeSetPaused(true)
-                            menu =
+                            recoveryDialog =
                                 AlertDialog.Builder(this@NativeCoreActivity)
                                     .setTitle("CARTDECK · Xbox")
                                     .setMessage(
@@ -147,6 +167,7 @@ class NativeCoreActivity : SDLActivity() {
                                         leave("Repeated Xbox title restarts")
                                     }
                                     .setCancelable(false).show()
+                            syncPause()
                             return
                         }
                         startActivity(
@@ -233,7 +254,9 @@ class NativeCoreActivity : SDLActivity() {
         onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() = showMenu()
+                override fun handleOnBackPressed() {
+                    if (menuOpen) closeMenu() else showMenu()
+                }
             },
         )
         nativeSetPads(1)
@@ -241,21 +264,56 @@ class NativeCoreActivity : SDLActivity() {
             ComposeView(this).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setContent {
-                    XboxGameControls(::onTouchInput) { viewport ->
-                        val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
-                        if (
-                            viewport.width() > 0 && viewport.height() > 0 &&
-                            (
-                                current == null || current.width != viewport.width() ||
-                                    current.height != viewport.height() ||
-                                    current.leftMargin != viewport.left || current.topMargin != viewport.top
-                            )
-                        ) {
-                            mSurface?.layoutParams =
-                                RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
-                                    leftMargin = viewport.left
-                                    topMargin = viewport.top
+                    Box(Modifier.fillMaxSize()) {
+                        XboxGameControls(onInput = ::onTouchInput, settingsManager = settingsManager, onViewport = {
+                                viewport ->
+                            val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
+                            if (
+                                viewport.width() > 0 && viewport.height() > 0 &&
+                                (
+                                    current == null || current.width != viewport.width() ||
+                                        current.height != viewport.height() ||
+                                        current.leftMargin != viewport.left || current.topMargin != viewport.top
+                                )
+                            ) {
+                                mSurface?.layoutParams =
+                                    RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
+                                        leftMargin = viewport.left
+                                        topMargin = viewport.top
+                                    }
+                            }
+                        })
+                        if (menuOpen) {
+                            XboxGameMenu(
+                                title =
+                                    registryGame()?.displayName()
+                                        ?: intent.getStringExtra("cartdeck.gameTitle").orEmpty(),
+                                engineInfo = engine.id,
+                                capabilities =
+                                    XboxMenuCapabilities(
+                                        BuildConfig.DEBUG,
+                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-grid-v1" &&
+                                            !pixelProbeRequested,
+                                        runCatching {
+                                            XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
+                                        }.getOrDefault(false),
+                                    ),
+                                onResume = ::closeMenu,
+                                onReturnToShelf = { leave() },
+                                onCopyReport = { copyDiagnosticSnapshot() },
+                                onProbe = ::requestPixelStageProbe,
+                                onPreviousEngine = ::rollbackEngine,
+                            ) {
+                                XboxMenuControls(settingsManager) { orientation, settings ->
+                                    lifecycleScope.launch {
+                                        settingsManager.storeSettings(
+                                            TouchControllerID.XBOX,
+                                            orientation,
+                                            settings,
+                                        )
+                                    }
                                 }
+                            }
                         }
                     }
                 }
@@ -273,7 +331,7 @@ class NativeCoreActivity : SDLActivity() {
         paused = false
         lastPoll = 0L
         if (ready) {
-            nativeSetPaused(menu?.isShowing == true)
+            syncPause()
             main.removeCallbacks(poll)
             main.postDelayed(poll, 400)
         }
@@ -288,7 +346,7 @@ class NativeCoreActivity : SDLActivity() {
         hardware.clear()
         if (ready) {
             sendHardware()
-            nativeSetPaused(true)
+            syncPause()
         }
         super.onPause()
     }
@@ -340,7 +398,7 @@ class NativeCoreActivity : SDLActivity() {
         }
         pixelCapture = XboxPixelProbeCapture()
         pixelCaptureStarted = android.os.SystemClock.elapsedRealtime()
-        menu?.dismiss() // Resume the existing guest; never relaunch or change its graphics settings.
+        closeMenu() // Resume the same guest before the existing bounded probe.
         main.post(finishPixelCapture)
         main.postDelayed({ captureSurfacePixels() }, 1800)
     }
@@ -408,11 +466,11 @@ class NativeCoreActivity : SDLActivity() {
         registryGame()?.let { game ->
             runCatching { EngineSelectionPreferences(applicationContext).recordFailure(game, watchdog.stage) }
         }
-        nativeSetPaused(true)
+        menuOpen = false
         val report = diagnosticReport(reason)
         runCatching { File(filesDir, "native/xbox/last-launch-report.txt").writeText(report) }
         android.util.Log.e("CARTDECK-Xbox", report)
-        menu =
+        recoveryDialog =
             AlertDialog.Builder(this)
                 .setTitle(if (watchdog.presented) "CARTDECK · Xbox stopped" else "CARTDECK · Xbox not launched")
                 .setMessage(report)
@@ -425,51 +483,31 @@ class NativeCoreActivity : SDLActivity() {
                 .setNegativeButton("Previous engine") { _, _ -> rollbackEngine() }
                 .setPositiveButton("Return to shelf") { _, _ -> leave(report) }
                 .show()
-        menu?.getButton(AlertDialog.BUTTON_NEGATIVE)?.isEnabled =
+        syncPause()
+        recoveryDialog?.getButton(AlertDialog.BUTTON_NEGATIVE)?.isEnabled =
             runCatching { XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback() }.getOrDefault(false)
     }
 
+    private fun syncPause() {
+        if (!ready) return
+        pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let {
+            nativeSetPaused(it)
+        }
+    }
+
     private fun showMenu() {
-        if (!ready || leaving || menu?.isShowing == true) return
+        if (!ready || leaving || menuShowing) return
         releaseTouch()
-        nativeSetPaused(true)
-        menu =
-            AlertDialog.Builder(this).setTitle("CARTDECK · Xbox")
-                .setMessage(intent.getStringExtra("cartdeck.gameTitle"))
-                .setView(
-                    android.widget.LinearLayout(this).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        addView(
-                            android.widget.Button(this@NativeCoreActivity).apply {
-                                text = "Copy engine/GPU report"
-                                setOnClickListener { copyDiagnosticSnapshot() }
-                            },
-                        )
-                        if (BuildConfig.DEBUG) {
-                            addView(
-                                android.widget.Button(this@NativeCoreActivity).apply {
-                                    val supported =
-                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-grid-v1"
-                                    text =
-                                        if (supported) {
-                                            "Probe blank viewport (debug)"
-                                        } else {
-                                            "Probe unavailable in retained engine"
-                                        }
-                                    isEnabled = supported && !pixelProbeRequested
-                                    setOnClickListener { requestPixelStageProbe() }
-                                },
-                            )
-                        }
-                    },
-                )
-                .setPositiveButton("Resume") { _, _ -> }
-                .setNeutralButton("Previous engine") { _, _ -> rollbackEngine() }
-                .setNegativeButton("Return to shelf") { _, _ -> leave() }
-                .setOnDismissListener { if (!paused && !leaving) nativeSetPaused(false) }
-                .show()
-        menu?.getButton(AlertDialog.BUTTON_NEUTRAL)?.isEnabled =
-            XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
+        hardware.clear()
+        sendHardware()
+        menuOpen = true
+        syncPause()
+    }
+
+    private fun closeMenu() {
+        if (!menuOpen) return
+        menuOpen = false
+        syncPause()
     }
 
     private fun rollbackEngine() {
@@ -485,15 +523,45 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     @Deprecated("Android back opens the CARTDECK pause menu")
-    override fun onBackPressed() = showMenu()
+    override fun onBackPressed() {
+        onBackPressedDispatcher.onBackPressed()
+    }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(event)
         val systemBack =
             event.keyCode == KeyEvent.KEYCODE_BACK &&
                 !event.isFromSource(android.view.InputDevice.SOURCE_GAMEPAD)
-        if (systemBack || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
-            if (event.action == KeyEvent.ACTION_UP) showMenu()
+        if (systemBack || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE || event.keyCode == KeyEvent.KEYCODE_MENU) {
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menuOpen) {
+                    if (systemBack) onBackPressedDispatcher.onBackPressed() else closeMenu()
+                } else {
+                    showMenu()
+                }
+            }
+            return true
+        }
+        if (menuShowing || paused || leaving) {
+            if (menuOpen) {
+                if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B) {
+                    if (event.action == KeyEvent.ACTION_UP) onBackPressedDispatcher.onBackPressed()
+                } else {
+                    val routed =
+                        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_A) {
+                            KeyEvent(
+                                event.downTime,
+                                event.eventTime,
+                                event.action,
+                                KeyEvent.KEYCODE_DPAD_CENTER,
+                                event.repeatCount,
+                            )
+                        } else {
+                            event
+                        }
+                    controlOverlay?.dispatchKeyEvent(routed)
+                }
+            }
             return true
         }
         if (hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)) {
@@ -504,6 +572,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menuShowing || paused || leaving) return true
         if (ready && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) {
             hardware.motion { axis -> event.getAxisValue(axis) }
             sendHardware()
@@ -513,8 +582,9 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     private fun onTouchInput(events: List<InputEvent>) {
-        if (!ready || leaving) return
+        if (!ready || leaving || paused || menuShowing) return
         events.forEach { event ->
+            if (menuShowing) return@forEach
             when (event) {
                 is InputEvent.Button -> {
                     if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
@@ -567,6 +637,7 @@ class NativeCoreActivity : SDLActivity() {
     ) {
         if (leaving) return
         leaving = true
+        syncPause()
         main.removeCallbacksAndMessages(null)
         if (!forwarded) {
             val result =
