@@ -97,7 +97,7 @@ def stage_xbox360(source, readelf):
     names = props.get('library.names', '').split(',')
     if not names or len(names) != len(set(names)) or core not in names:
         raise ValueError('Xbox 360: invalid dependency inventory')
-    if any(not re.fullmatch(r'lib[A-Za-z0-9_.+-]+\\.so', name) for name in names):
+    if any(not re.fullmatch(r'lib[A-Za-z0-9_.+-]+\.so', name) for name in names):
         raise ValueError('Xbox 360: invalid library name')
     if set(p.name for p in source.glob('*.so')) != set(names):
         raise ValueError('Xbox 360: binary inventory mismatch')
@@ -123,7 +123,7 @@ def stage_xbox360(source, readelf):
             raise ValueError('Xbox 360: manifest library hash mismatch: ' + name)
         dynamic = subprocess.check_output([readelf, '-dW', str(path)], text=True)
         verify_android_elf(path.read_bytes(), dynamic)
-        needed = set(re.findall(r'\\(NEEDED\\).*\\[(.*?)\\]', dynamic))
+        needed = set(re.findall(r'\(NEEDED\).*\[(.*?)\]', dynamic))
         if needed - SYSTEM - set(names):
             raise ValueError('Xbox 360: unbundled dependency: ' + str(sorted(needed - SYSTEM - set(names))))
         note = subprocess.check_output([readelf, '-nW', str(path)], text=True)
