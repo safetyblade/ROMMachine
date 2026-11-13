@@ -148,6 +148,7 @@
     <string name="controller_wii_classic">Wii Classic Controller</string>
     <string name="controller_wii_sideways">Wii Remote sideways</string>
     <string name="controller_wii_nunchuk">Wii Remote + Nunchuk</string>
+    <string name="controller_wii_gamecube">GameCube Controller (supported Wii games)</string>
     <string name="setting_wii_pointer">Wii pointer input</string>
     <string name="value_wii_pointer_touch">Touch game viewport</string>
     <string name="value_wii_pointer_stick">Right stick (absolute)</string>
