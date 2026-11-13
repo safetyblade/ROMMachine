@@ -545,6 +545,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isLandscape = isLandscape,
                     patternId = if (appearance.highContrast) "none" else appearance.patternId,
                     stampId = if (appearance.highContrast) "none" else appearance.stampId,
+                    decal = if (appearance.highContrast) null else appearance.decal,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
