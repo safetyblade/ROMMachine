@@ -40,15 +40,16 @@ data class ShelfAppearance(
     val reducedMotion: Boolean = false,
     val profiles: List<NamedAppearance> = emptyList(),
     val activeProfileId: String? = null,
+    val curatedDesignId: String? = null,
 ) {
     fun choosePreset(id: String): ShelfAppearance {
         require(id in listOf("original", "pink", "green"))
-        return copy(edition = id, custom = emptyMap(), activeProfileId = null)
+        return copy(edition = id, custom = emptyMap(), activeProfileId = null, curatedDesignId = null)
     }
 
     fun selectProfile(id: String): ShelfAppearance {
         val profile = profiles.first { it.id == id }
-        return copy(edition = profile.baseEdition, custom = profile.custom, activeProfileId = id)
+        return copy(edition = profile.baseEdition, custom = profile.custom, activeProfileId = id, curatedDesignId = null)
     }
 
     fun removeProfile(id: String): ShelfAppearance =
@@ -65,7 +66,7 @@ data class ShelfAppearance(
         require(title.isNotEmpty() && title.length <= 60)
         val profile =
             NamedAppearance(name = title, baseEdition = edition, custom = custom, createdAt = now, updatedAt = now)
-        return copy(profiles = profiles + profile, activeProfileId = profile.id)
+        return copy(profiles = profiles + profile, activeProfileId = profile.id, curatedDesignId = null)
     }
 
     fun renameProfile(
@@ -94,6 +95,7 @@ data class ShelfAppearance(
             edition = duplicate.baseEdition,
             custom = duplicate.custom,
             activeProfileId = duplicate.id,
+            curatedDesignId = null,
         )
     }
 }
@@ -114,6 +116,11 @@ data class ShelfLayout(
         require(sections.map { it.id }.distinct().size == sections.size)
         require(sections.all { it.title.isNotBlank() && it.title.length <= 80 })
         require(appearance.edition in listOf("original", "pink", "green"))
+        require(
+            appearance.curatedDesignId == null ||
+                CartdeckCuratedDesigns.byId(appearance.curatedDesignId) != null,
+        ) { "Unknown curated design" }
+        require(appearance.activeProfileId == null || appearance.curatedDesignId == null)
         require(appearance.profiles.map { it.id }.distinct().size == appearance.profiles.size)
         require(
             appearance.profiles.all {
