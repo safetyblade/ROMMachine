@@ -14,7 +14,7 @@ from verify_hakux_native import verify
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 REVISION = 'a7cdb5a975e31730d488c47f6f10440b16c1e6f4'
-PATCHES = ('hakux-libslirp-4.7-ssize.patch', 'hakux-vulkan-loader-version.patch', 'hakux-confirmed-presentation.patch', 'hakux-gpu-report.patch', 'hakux-presentation-diagnostics.patch', 'hakux-pixel-stage-probe.patch')
+PATCHES = ('hakux-libslirp-4.7-ssize.patch', 'hakux-vulkan-loader-version.patch', 'hakux-confirmed-presentation.patch', 'hakux-gpu-report.patch', 'hakux-presentation-diagnostics.patch', 'hakux-pixel-stage-probe.patch', 'hakux-guest-publication-recovery.patch')
 DEPS = {
     'SDL3': ('libsdl-org/SDL', '829a65d769d935c4852f8159e964312c0957260a'),
     'glslang': ('KhronosGroup/glslang', 'b5782e52ee2f7b3e40bb9c80d15b47016e008bc9'),
@@ -63,7 +63,7 @@ def package(source, deps, build, output, ndk):
                 'license': 'GPL-3.0-or-later; see bundled per-component notices',
                 'core.sha256': digest(output / 'libhakuxcore.so'),
                 'android.ndk': '29.0.14206865', 'android.api': '28', 'arch': 'arm64-v8a',
-                'backend': 'SDL3-Vulkan', 'cartdeck.presentation': 'vk-present-guest-v1', 'cartdeck.pixelProbe': 'async-grid-v1', 'fex.revision': capture('git', '-C', source / 'external/fex', 'rev-parse', 'HEAD')}
+                'backend': 'SDL3-Vulkan', 'cartdeck.presentation': 'vk-present-guest-v1', 'cartdeck.pixelProbe': 'async-grid-v1', 'cartdeck.guestPublication': 'validated-source-v1', 'fex.revision': capture('git', '-C', source / 'external/fex', 'rev-parse', 'HEAD')}
     names = sorted(library.name for library in libraries)
     manifest['library.names'] = ','.join(names)
     manifest.update({'library.' + name + '.sha256': digest(output / name) for name in names})

@@ -1,0 +1,276 @@
+diff --git a/hw/xbox/hle/front/fe.c b/hw/xbox/hle/front/fe.c
+index c23d706711..2c06881143 100644
+--- a/hw/xbox/hle/front/fe.c
++++ b/hw/xbox/hle/front/fe.c
+@@ -1,3 +1,4 @@
++#include "hw/xbox/hle/vk/cartdeck_stage_probe.h"
+ /*
+  * hakuX HLE GPU — front-end command producer.
+  */
+@@ -28,6 +29,8 @@ HleRing *hle_fe_ring(void)
+ 
+ void *hle_fe_begin_raw(uint16_t op, uint32_t len)
+ {
++    cartdeck_stage_hit(CD_FRONT_COMMAND);
++    if (op == HLE_OP_DRAW) cartdeck_stage_hit(CD_FRONT_DRAW);
+     void *p = hle_ring_reserve(&g_ring, op, len);
+     if (likely(p)) {
+         return p;
+diff --git a/hw/xbox/hle/pb/pbmode.c b/hw/xbox/hle/pb/pbmode.c
+index 569f62694b..fb5c3f818d 100644
+--- a/hw/xbox/hle/pb/pbmode.c
++++ b/hw/xbox/hle/pb/pbmode.c
+@@ -1,3 +1,4 @@
++#include "hw/xbox/hle/vk/cartdeck_stage_probe.h"
+ /*
+  * hakuX HLE GPU — push-buffer mode (pbmode.h): the decode thread, the
+  * methods that synchronize D3D with the GPU, and the report gate's scout.
+@@ -804,6 +805,7 @@ static int count_method(void *opaque, unsigned subch, uint32_t m, uint32_t v)
+     }
+     if (g_pb.obj_class[subch] == 0x97) {
+         int r = kelvin(m, v);
++        cartdeck_stage_hit(CD_PB_METHOD);
+         hle_kelvin_method(m, v);                /* its register shadow: the draw state */
+         hle_pbd_method(m, v);
+         return r;
+diff --git a/hw/xbox/hle/vk/back.c b/hw/xbox/hle/vk/back.c
+index 4a4d30175f..044a163033 100644
+--- a/hw/xbox/hle/vk/back.c
++++ b/hw/xbox/hle/vk/back.c
+@@ -26,6 +26,9 @@
+ #include "hw/xbox/hle/vk/guest_ram.h"
+ #include "hw/xbox/hle/vk/quirks.h"
+ 
++#include "cartdeck_stage_probe.h"
++CartdeckStages g_cartdeck_stages;
++
+ #define T (g_hvk.t)
+ 
+ typedef struct HleFrame {
+@@ -1981,9 +1984,19 @@ static void cmd_swap_present(const HleCmdSwap *c)
+     hle_pcache_save(false);
+     hle_pipe_flush(false);              /* the pipelines made, recorded (at most once a second) */
+     HleVkSurf *src = hle_surf_get(c->surf);
++    /* A reserved slot is immediately eligible for a late guest flip. Do not
++     * publish an old/unwritten image when its source is absent or unusable.
++     * Still submit the timeline value so guest fences cannot deadlock. */
++    if (!src || !hle_surf_ensure(src) ||
++        !(src->aspect & VK_IMAGE_ASPECT_COLOR_BIT) || !src->w || !src->h) {
++        cartdeck_stage_hit(CD_SWAP_REJECT);
++        submit(c->value);
++        g_back.st.swaps++;
++        return;
++    }
+     int slot = hle_disp_begin_write(c->swap_id, c->value);
+-    if (src && slot >= 0 && hle_surf_ensure(src) &&
+-        (src->aspect & VK_IMAGE_ASPECT_COLOR_BIT)) {
++    if (slot >= 0) {
++        cartdeck_stage_hit(CD_DISPLAY_WRITE);
+         VkCommandBuffer cb = cb_get();
+         VkImage dst = hle_disp_image(slot);
+         uint32_t dw, dh;
+@@ -2418,6 +2431,7 @@ uint64_t hle_back_submits(void)
+ static void dispatch(const HleCmdHdr *h)
+ {
+     const void *p = hle_cmd_payload(h);
++    cartdeck_stage_hit(CD_BACK_COMMAND);
+     switch (h->op) {
+     case HLE_OP_STATE: case HLE_OP_STATE_PART: case HLE_OP_VIEWPORT: case HLE_OP_VSH:
+     case HLE_OP_OBJ_CREATE: case HLE_OP_KICK: case HLE_OP_DRAW:
+@@ -2527,6 +2541,7 @@ static void dispatch(const HleCmdHdr *h)
+             }
+             g_hle_zeq = zv ? zq : 0;
+             hle_draw_cmd_draw(p, g_back.fr[g_back.cur].cb, g_back.rt, g_back.ds, &g_back.vp);
++            cartdeck_stage_hit(CD_BACK_DRAW);
+             g_back.st.draws++;
+             if (g_pix.active) {
+                 pix_after(p);
+diff --git a/hw/xbox/hle/vk/batch.c b/hw/xbox/hle/vk/batch.c
+index bfea27d488..7dd4271478 100644
+--- a/hw/xbox/hle/vk/batch.c
++++ b/hw/xbox/hle/vk/batch.c
+@@ -1,3 +1,4 @@
++#include "cartdeck_stage_probe.h"
+ /*
+  * hakuX HLE GPU — strip batching.
+  *
+@@ -58,11 +59,13 @@ static void flush(void)
+     VkCommandBuffer cb = g_b.cb;
+     g_b.cb = VK_NULL_HANDLE;
+     if (g_b.draws == 1) {
++        cartdeck_stage_hit(CD_VK_DRAW);
+         R.vkCmdDraw(cb, g_b.count, 1, g_b.first, 0);
+         return;
+     }
+     R.vkCmdBindIndexBuffer(cb, g_b.buf, (VkDeviceSize)g_b.istart * 4, VK_INDEX_TYPE_UINT32);
+     R.vkCmdSetPrimitiveRestartEnable(cb, VK_TRUE);
++    cartdeck_stage_hit(CD_VK_DRAW);
+     R.vkCmdDrawIndexed(cb, g_b.n, 1, 0, (int32_t)g_b.base, 0);
+     R.vkCmdSetPrimitiveRestartEnable(cb, VK_FALSE);
+     hle_draw_ibuf_lost();               /* the draw path's index buffer is no longer bound */
+diff --git a/hw/xbox/hle/vk/cartdeck_stage_probe.h b/hw/xbox/hle/vk/cartdeck_stage_probe.h
+new file mode 100644
+index 0000000000..33b06d8a9f
+--- /dev/null
++++ b/hw/xbox/hle/vk/cartdeck_stage_probe.h
+@@ -0,0 +1,30 @@
++/* Explicit pixel-probe request only. No paths, images, or periodic logging. */
++#ifndef CARTDECK_STAGE_PROBE_H
++#define CARTDECK_STAGE_PROBE_H
++#include <stdint.h>
++#include <stddef.h>
++#include <stdio.h>
++enum CartdeckStage { CD_KERNEL_CALL, CD_FRONT_COMMAND, CD_FRONT_DRAW, CD_BACK_COMMAND,
++    CD_BACK_DRAW, CD_DISPLAY_WRITE, CD_SWAP_REJECT, CD_VK_DRAW, CD_PB_METHOD, CD_STAGE_COUNT };
++typedef struct CartdeckStages { unsigned budget; uint64_t count[CD_STAGE_COUNT]; } CartdeckStages;
++extern CartdeckStages g_cartdeck_stages;
++/* Bounded work even if a device never completes the requested GPU samples. */
++static inline void cartdeck_stage_hit(enum CartdeckStage stage)
++{
++    unsigned left = __atomic_load_n(&g_cartdeck_stages.budget, __ATOMIC_RELAXED);
++    while (left && !__atomic_compare_exchange_n(&g_cartdeck_stages.budget, &left, left - 1,
++                                               0, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {}
++    if (left) __atomic_fetch_add(&g_cartdeck_stages.count[stage], 1, __ATOMIC_RELAXED);
++}
++static inline void cartdeck_stage_report(char *out, size_t size)
++{
++    uint64_t c[CD_STAGE_COUNT];
++    for (unsigned i = 0; i < CD_STAGE_COUNT; i++)
++        c[i] = __atomic_load_n(&g_cartdeck_stages.count[i], __ATOMIC_RELAXED);
++    snprintf(out, size, "kernel_calls=%llu fe_cmd=%llu fe_draw=%llu back_cmd=%llu "
++             "back_draw_dispatch=%llu display_write=%llu swap_reject=%llu vk_draw=%llu pb_method=%llu budget_left=%u",
++             (unsigned long long)c[0], (unsigned long long)c[1], (unsigned long long)c[2],
++             (unsigned long long)c[3], (unsigned long long)c[4], (unsigned long long)c[5],
++             (unsigned long long)c[6], (unsigned long long)c[7], (unsigned long long)c[8], __atomic_load_n(&g_cartdeck_stages.budget, __ATOMIC_RELAXED));
++}
++#endif
+diff --git a/hw/xbox/hle/vk/draw.c b/hw/xbox/hle/vk/draw.c
+index b72476d616..c5afbc48a0 100644
+--- a/hw/xbox/hle/vk/draw.c
++++ b/hw/xbox/hle/vk/draw.c
+@@ -1,3 +1,4 @@
++#include "cartdeck_stage_probe.h"
+ /*
+  * hakuX HLE GPU — back-end draws (P3, first slice): bindless descriptors,
+  * texture images uploaded from the arena, samplers from texture-stage
+@@ -4258,6 +4259,7 @@ void hle_draw_cmd_draw(const HleCmdDraw *c, VkCommandBuffer cb, uint32_t rt_id,
+         int q = g_probe.nvsh ? probe_begin(cb, c, vfirst, (uint64_t)(uintptr_t)g_rec.pipe)
+                                 : -1;
+         if (g_hle_gpucut != 2) {
++            cartdeck_stage_hit(CD_VK_DRAW);
+             T.vkCmdDrawIndexed(cb, g_hle_gpucut == 4 ? MIN(c->count, 3u) : c->count, 1,
+                                c->ib_off / 2, (int32_t)vfirst, 0);
+         }
+@@ -4270,6 +4272,7 @@ void hle_draw_cmd_draw(const HleCmdDraw *c, VkCommandBuffer cb, uint32_t rt_id,
+         if (g_hle_gpucut == 2) {
+             /* debug: the state alone */
+         } else if (g_hle_gpucut == 4) {
++            cartdeck_stage_hit(CD_VK_DRAW);
+             T.vkCmdDraw(cb, MIN(c->count, 3u), 1, vfirst, 0);  /* debug: a draw's own cost */
+         } else if (q < 0 && (c->prim == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP ||
+                       c->prim == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN ||
+@@ -4277,6 +4280,7 @@ void hle_draw_cmd_draw(const HleCmdDraw *c, VkCommandBuffer cb, uint32_t rt_id,
+             hle_batch_draw(cb, (VkPrimitiveTopology)c->prim, vfirst, c->count)) {
+             /* held: recorded with the strips that follow it (a probed draw never is) */
+         } else {
++            cartdeck_stage_hit(CD_VK_DRAW);
+             T.vkCmdDraw(cb, c->count, 1, vfirst, 0);
+         }
+         if (q >= 0) {
+diff --git a/hw/xbox/hle/vk/swapchain.c b/hw/xbox/hle/vk/swapchain.c
+index 231994c95b..01daf902f4 100644
+--- a/hw/xbox/hle/vk/swapchain.c
++++ b/hw/xbox/hle/vk/swapchain.c
+@@ -39,6 +39,7 @@
+ #include <android/native_window.h>
+ #include <pthread.h>
+ #include "cartdeck_pixel_probe.h"
++#include "cartdeck_stage_probe.h"
+ 
+ #define T (g_ps.t)
+ 
+@@ -48,9 +49,13 @@ static int g_probe_requested;
+ static bool g_probe_active, g_probe_transfer;
+ static unsigned g_probe_captured, g_probe_done, g_probe_ticks;
+ static pthread_mutex_t g_probe_lock = PTHREAD_MUTEX_INITIALIZER;
+-static char g_probe_report[2048] = "pixel_probe=disabled";
++static char g_probe_report[3072] = "pixel_probe=disabled";
+ void hle_cartdeck_request_probe(void)
+ {
++    /* The existing probe is one bounded request per process, not a restart loop. */
++    static int armed;
++    if (__atomic_exchange_n(&armed, 1, __ATOMIC_RELAXED)) return;
++    __atomic_store_n(&g_cartdeck_stages.budget, 1000000, __ATOMIC_RELAXED);
+     __atomic_store_n(&g_probe_requested, 1, __ATOMIC_RELAXED);
+ }
+ void hle_cartdeck_probe_report(char *out, size_t size)
+@@ -95,6 +100,7 @@ typedef struct PsFrame {
+     uint8_t *probe_map;
+     bool probe_pending;
+     uint64_t probe_serial;
++    uint32_t probe_swap_id;
+     uint32_t probe_w, probe_h, probe_sw, probe_sh, probe_gamma_changed;
+     unsigned probe_gamma_low, probe_gamma_high;
+     VkFormat probe_fmt;
+@@ -182,18 +188,20 @@ static void probe_collect(PsFrame *f)
+     /* Called only after the existing frame timeline wait succeeds. No added wait,
+      * and no command pool/buffer is freed while a GPU copy might still reference it. */
+     if (!f->probe_pending) return;
+-    char guest[160], swap[160], line[640];
++    char guest[160], swap[160], stages[320], line[1024];
++    cartdeck_stage_report(stages, sizeof(stages));
+     cartdeck_pixel_summary(f->probe_map, 64, guest, sizeof(guest));
+     cartdeck_pixel_summary(f->probe_map + 256, 64, swap, sizeof(swap));
+-    snprintf(line, sizeof(line), "\nserial=%llu guest=%ux%u {%s} swap=%ux%u fmt=%u gamma_changed=%u gamma=%u..%u {%s}",
++    snprintf(line, sizeof(line), "\nserial=%llu guest=%ux%u {%s} swap=%ux%u fmt=%u gamma_changed=%u gamma=%u..%u {%s} guest_swap_id=%u stages_at_collect={%s}",
+              (unsigned long long)f->probe_serial, f->probe_w, f->probe_h, guest,
+              f->probe_sw, f->probe_sh, f->probe_fmt, f->probe_gamma_changed,
+-             f->probe_gamma_low, f->probe_gamma_high, swap);
++             f->probe_gamma_low, f->probe_gamma_high, swap, f->probe_swap_id, stages);
+     pthread_mutex_lock(&g_probe_lock);
+     size_t used = strlen(g_probe_report);
+     snprintf(g_probe_report + used, sizeof(g_probe_report) - used, "%s", line);
+     pthread_mutex_unlock(&g_probe_lock);
+     g_probe_done++;
++    if (g_probe_done == 3) __atomic_store_n(&g_cartdeck_stages.budget, 0, __ATOMIC_RELAXED);
+     probe_drop(f);
+ }
+ /* Forward declaration: the presenter's existing synchronization helper. */
+@@ -1122,6 +1130,7 @@ void hle_present_end(float sx, float sy, bool fxaa, int upscale, bool average, u
+                                      .memoryBarrierCount = 1, .pMemoryBarriers = &host };
+         T.vkCmdPipelineBarrier2(cb, &host_dep);
+         f->probe_pending = true; f->probe_serial = g_ps.serial;
++        f->probe_swap_id = g_ps.f.swap_id;
+         f->probe_w = g_ps.f.w; f->probe_h = g_ps.f.h; f->probe_fmt = g_ps.fmt;
+         f->probe_sw = iw; f->probe_sh = ih;
+         f->probe_gamma_changed = 0; f->probe_gamma_low = 255; f->probe_gamma_high = 0;
+diff --git a/native/app/app_main.c b/native/app/app_main.c
+index 4366c3d138..0ba62e12a0 100644
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -306,7 +306,7 @@ EXPORT JNIEXPORT void JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nati
+ EXPORT JNIEXPORT jstring JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport(JNIEnv *env,
+                                                                                                jclass cls)
+ {
+-    char gpu[768], presentation[192], pixels[2048], report[3072];
++    char gpu[768], presentation[192], pixels[3072], report[4096];
+     hle_cartdeck_gpu_report(gpu, sizeof(gpu));
+     hle_cartdeck_present_report(presentation, sizeof(presentation));
+     hle_cartdeck_probe_report(pixels, sizeof(pixels));
+diff --git a/native/kernel/kernel.c b/native/kernel/kernel.c
+index 801f0ffc80..43aae16d86 100644
+--- a/native/kernel/kernel.c
++++ b/native/kernel/kernel.c
+@@ -1,3 +1,4 @@
++#include "hw/xbox/hle/vk/cartdeck_stage_probe.h"
+ /*
+  * hakuX native core — kernel area, kernel calls and system ops.
+  */
+@@ -1117,6 +1118,7 @@ static void slow_note(const char *what, uint32_t at, const uint32_t *args, uint6
+ 
+ static void kcall(NcKernel *k, NcFrame *f, unsigned ordinal)
+ {
++    cartdeck_stage_hit(CD_KERNEL_CALL);
+     nc_ke_tick_time(k);
+     clock_tick(k);
+     const uint32_t esp = nc_frame_gpr(f, NC_ESP);
