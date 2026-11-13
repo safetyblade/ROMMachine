@@ -29,7 +29,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -207,8 +209,15 @@ class CartridgeExperienceTest {
 
     private fun openArtworkSetup() {
         openSetup()
-        compose.onNodeWithText("Cartridge artwork").performScrollTo().assertIsDisplayed().performClick()
+        // Robolectric's Compose modal sheet uses a separate Android window:
+        // pointer injection into its child text can hit the underlying activity.
+        // Invoke the button's real accessibility OnClick action to exercise
+        // the same navigation callback, then verify the new section renders.
+        compose.onNodeWithTag("cartridge_setup_section_Cartridge artwork")
+            .assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.OnClick)
         settleSheet()
+        compose.onNodeWithText("Back to Setup").assertExists()
         compose.onNodeWithText("Change Cover").assertExists()
     }
 
@@ -218,8 +227,11 @@ class CartridgeExperienceTest {
         }
         compose.onNodeWithText("Open").assertIsDisplayed()
         openSetup()
-        compose.onNodeWithText("Emulator").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithTag("cartridge_setup_section_Emulator")
+            .assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.OnClick)
         settleSheet()
+        compose.onNodeWithText("Back to Setup").assertExists()
         compose.onNodeWithText("hakuX").assertExists()
         compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
         compose.onNodeWithText("Use console preference").assertDoesNotExist()
@@ -274,7 +286,9 @@ class CartridgeExperienceTest {
         var writes = 0
         detail(change = { _, _ -> writes++ })
         openArtworkSetup()
-        compose.onNodeWithText("Change Cover").performScrollTo().performClick()
+        compose.onNodeWithText("Change Cover")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
         val activity = shadowOf(compose.activity)
         val request = activity.nextStartedActivityForResult
         assertEquals(Intent.ACTION_GET_CONTENT, request.intent.action)
@@ -288,7 +302,9 @@ class CartridgeExperienceTest {
         val custom = game.copy(customCoverUri = "file:///local-cover.png")
         detail(selected = custom, reset = { reset = it })
         openArtworkSetup()
-        compose.onNodeWithText("Reset Cover").performScrollTo().performClick()
+        compose.onNodeWithText("Reset Cover")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(game.id, reset?.id)
         assertEquals(game.fileUri, reset?.fileUri)
     }
@@ -381,7 +397,9 @@ class CartridgeExperienceTest {
             cover = uri
         })
         openArtworkSetup()
-        compose.onNodeWithText("Change Cover").performScrollTo().performClick()
+        compose.onNodeWithText("Change Cover")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
         val activity = shadowOf(compose.activity)
         val request = activity.nextStartedActivityForResult
         activity.receiveResult(
