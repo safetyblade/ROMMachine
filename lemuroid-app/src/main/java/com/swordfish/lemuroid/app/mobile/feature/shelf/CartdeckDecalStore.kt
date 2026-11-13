@@ -143,8 +143,9 @@ internal class CartdeckDecalStore(private val context: Context) {
         folder.listFiles()?.forEach { file ->
             val id = file.name.removeSuffix(".png")
             if (file.extension == "png" && id !in retained) {
-                // A grace period protects an in-flight editor and rollback tests.
-                if (System.currentTimeMillis() - file.lastModified() > 10 * 60 * 1000L) file.delete()
+                // Called only AFTER AtomicFile committed the new appearance.
+                // Pending editor work lives in a separate staging directory.
+                file.delete()
             }
         }
         pending.listFiles()?.forEach { file ->
