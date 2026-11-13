@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/audit_cartdeck_brand.py
+          python3 -m unittest discover -s scripts/ci -p 'test_hakux_pixel_probe.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_native_symbols.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_stage_native_bundle.py' -v
