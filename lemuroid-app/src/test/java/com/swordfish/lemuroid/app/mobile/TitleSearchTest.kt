@@ -30,9 +30,17 @@ class TitleSearchTest {
                 custom: String?,
             ) {
                 sql.execSQL(
-                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,customName,cartridgeId)
+                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,
+                        customName,cartridgeId)
                     VALUES(?,? ,? ,? ,'gb',0,0,?,?)""",
-                    arrayOf(id, "$id.gb", "content://fixture/$id", title, custom, java.util.UUID.randomUUID().toString()),
+                    arrayOf(
+                        id,
+                        "$id.gb",
+                        "content://fixture/$id",
+                        title,
+                        custom,
+                        java.util.UUID.randomUUID().toString(),
+                    ),
                 )
             }
 
@@ -75,7 +83,8 @@ class TitleSearchTest {
             sql.beginTransaction()
             try {
                 for (id in 1..5000) sql.execSQL(
-                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,customName,cartridgeId)
+                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,
+                        customName,cartridgeId)
                     VALUES(?,?,?,?,'gb',0,0,?,?)""",
                     arrayOf(
                         id,
