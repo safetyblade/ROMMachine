@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.game
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.AlertDialog
+import android.app.ApplicationExitInfo
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -15,8 +16,10 @@ import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Properties
 
 /** Lives in the shelf process. Native signals in :game cannot kill this recovery UI. */
@@ -120,9 +123,12 @@ class PS2RecoveryActivity : ComponentActivity() {
                 "Stopped after $stage. Your cartridge and saves are retained. Copy the diagnostic report for support.",
             )
             .setNeutralButton("Copy report") { _, _ ->
-                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(ClipData.newPlainText("CARTDECK PS2 diagnostic", buildReport(code)))
-                returnToShelf(stage)
+                lifecycleScope.launch {
+                    val report = withContext(Dispatchers.IO) { buildReport(code) }
+                    (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                        .setPrimaryClip(ClipData.newPlainText("CARTDECK PS2 diagnostic", report))
+                    returnToShelf(stage)
+                }
             }
             .setPositiveButton("Return to shelf") { _, _ -> returnToShelf(stage) }
             .setOnCancelListener { returnToShelf(stage) }
@@ -133,15 +139,36 @@ class PS2RecoveryActivity : ComponentActivity() {
         val record = journal.read()
         val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val started = record.getProperty("started", "0").toLongOrNull() ?: 0L
-        val exit =
+        val pid = record.getProperty("pid", "0").toIntOrNull() ?: 0
+        val exitRecord =
             if (Build.VERSION.SDK_INT >= 30) {
                 runCatching {
-                    manager.getHistoricalProcessExitReasons(packageName, 0, 16)
-                        .firstOrNull { it.processName == "$packageName:game" && it.timestamp >= started }
-                        ?.let { "reason=${it.reason}; status=${it.status}; timestamp=${it.timestamp}" }
+                    manager.getHistoricalProcessExitReasons(packageName, pid.coerceAtLeast(0), 16)
+                        .filter {
+                            it.processName == "$packageName:game" && it.timestamp >= started &&
+                                (pid <= 0 || it.pid == pid)
+                        }
+                        .maxByOrNull { it.timestamp }
                 }.getOrNull()
             } else {
                 null
+            }
+        val exit =
+            if (Build.VERSION.SDK_INT >= 30) {
+                exitRecord?.let {
+                    "reason=${it.reason}; status=${it.status}; timestamp=${it.timestamp}"
+                }
+            } else {
+                null
+            }
+        val nativeTrace =
+            if (Build.VERSION.SDK_INT >= 31 &&
+                exitRecord?.reason == ApplicationExitInfo.REASON_CRASH_NATIVE
+            ) {
+                runCatching { NativeCrashTrace.read(exitRecord.traceInputStream) }
+                    .getOrDefault("Android native trace unavailable. Use the documented ADB capture.")
+            } else {
+                "No matching native tombstone (native traces require Android 12+)."
             }
         val provenance =
             runCatching {
@@ -159,19 +186,29 @@ class PS2RecoveryActivity : ComponentActivity() {
         val glVendor = record.getProperty("glVendor", "unavailable before frontend draw")
         val glRenderer = record.getProperty("glRenderer", "unavailable before frontend draw")
         val glVersion = record.getProperty("glVersion", "unavailable before frontend draw")
-        return listOf(
-            "CARTDECK PS2 launch diagnostic",
-            "app=${BuildConfig.VERSION_NAME}; versionCode=${BuildConfig.VERSION_CODE}",
-            "engine=Play!; host=$host; bundledEngineRevision=$revision",
-            "bundledEngineSHA256=$checksum",
-            "selectedEngineVersion=$selectedVersion; selectedEngineSHA256=$selectedSHA",
-            "device=${Build.MANUFACTURER} ${Build.MODEL}; sdk=${Build.VERSION.SDK_INT}; abi=$abis",
-            "advertisedGLES=$gles; lastVerifiedStage=$stage",
-            "GL_VENDOR=$glVendor; GL_RENDERER=$glRenderer; GL_VERSION=$glVersion",
-            "failure=$code; containedError=$error",
-            "androidProcessExit=${exit ?: "not available"}",
-            "Frontend draw is not core video. Core frame submission does not prove gameplay, sound, input or saves.",
-        ).joinToString("\n")
+        val report =
+            listOf(
+                "CARTDECK PS2 launch diagnostic",
+                "app=${BuildConfig.VERSION_NAME}; versionCode=${BuildConfig.VERSION_CODE}",
+                "engine=Play!; host=$host; bundledEngineRevision=$revision",
+                "bundledEngineSHA256=$checksum",
+                "selectedEngineVersion=$selectedVersion; selectedEngineSHA256=$selectedSHA",
+                "device=${Build.MANUFACTURER} ${Build.MODEL}; sdk=${Build.VERSION.SDK_INT}; abi=$abis",
+                "advertisedGLES=$gles; lastVerifiedStage=$stage",
+                "GL_VENDOR=$glVendor; GL_RENDERER=$glRenderer; GL_VERSION=$glVersion",
+                "failure=$code; containedError=$error",
+                "androidProcessExit=${exit ?: "not available"}",
+                nativeTrace,
+                "Core frame submission alone does not prove gameplay, sound, input or saves.",
+            ).joinToString("\n")
+        runCatching {
+            val target = java.io.File(filesDir, "native/ps2/last-launch-report.txt")
+            target.parentFile?.mkdirs()
+            val pending = java.io.File(target.parentFile, "last-launch-report.pending")
+            pending.writeText(report)
+            check(pending.renameTo(target))
+        }
+        return report
     }
 
     private fun returnToShelf(stage: String) {

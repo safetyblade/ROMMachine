@@ -201,8 +201,16 @@ private fun CartridgeDiagnostics(
         report =
             withContext(Dispatchers.IO) {
                 if (system.id == SystemID.PLAYSTATION_2) {
+                    val savedReport = File(context.filesDir, "native/ps2/last-launch-report.txt")
+                    val saved =
+                        runCatching {
+                            savedReport.takeIf { it.length() in 1..16384 }?.readText()
+                        }.getOrNull()
                     val journal = PS2LaunchJournal(context).read()
-                    listOf("stage", "error", "selectedVersion", "selectedSHA256", "glVendor", "glRenderer", "glVersion")
+                    saved ?: listOf(
+                        "stage", "error", "selectedVersion", "selectedSHA256",
+                        "glVendor", "glRenderer", "glVersion",
+                    )
                         .mapNotNull { key -> journal.getProperty(key)?.let { "$key=$it" } }
                         .joinToString("\n").ifBlank { "No PS2 launch recorded yet." }
                 } else if (system.id == SystemID.XBOX) {
