@@ -666,7 +666,7 @@ fun ShelfAppearanceEditor(
                             }
                         }
                         Text(
-                            "Patterns and stamps are static and never cover gameplay. Personal image import follows separately.",
+                            "Static decoration never covers gameplay. Personal image import follows separately.",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
