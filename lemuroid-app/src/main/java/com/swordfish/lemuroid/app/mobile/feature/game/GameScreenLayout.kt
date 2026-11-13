@@ -2,10 +2,10 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.swordfish.lemuroid.lib.library.SystemID
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
+import com.swordfish.lemuroid.lib.library.SystemID
 
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
