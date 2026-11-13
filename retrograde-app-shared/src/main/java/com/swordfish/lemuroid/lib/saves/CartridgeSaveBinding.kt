@@ -110,6 +110,9 @@ class CartridgeSaveBinding(
                     if (!value.startsWith("savebinding-v1:$cartridge:")) {
                         throw IOException("Invalid save binding manifest: original progress retained")
                     }
+                    if (!target.isDirectory) {
+                        throw IOException("Activated cartridge storage is missing; recovery is required")
+                    }
                     return@withLock target
                 }
 
