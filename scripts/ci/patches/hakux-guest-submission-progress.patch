@@ -1,0 +1,348 @@
+diff --git a/hw/xbox/hle/pb/pbmode.c b/hw/xbox/hle/pb/pbmode.c
+index fb5c3f818d..ddb4ec1fe5 100644
+--- a/hw/xbox/hle/pb/pbmode.c
++++ b/hw/xbox/hle/pb/pbmode.c
+@@ -888,12 +888,14 @@ static void consume_pass(void)
+     }
+     if (g_pb.trap_wait) {
+         if (hle_host_gpu_reg(NV_PGRAPH_INTR) & PGRAPH_INTR_ERROR) {
++            cartdeck_stage_hit(CD_DECODE_TRAP);
+             return;                                 /* the ISR's clear comes back */
+         }
+         g_pb.trap_wait = false;
+         hle_host_gpu_trace(HLE_GTR_RESUME, 1);
+     }
+     if (!fifo_open()) {
++        cartdeck_stage_hit(CD_DECODE_CLOSED);
+         return;                                     /* the ISR's FIFO access comes back */
+     }
+     if (g_trel.pending) {
+@@ -902,6 +904,7 @@ static void consume_pass(void)
+     }
+     if (g_pb.flip_wait) {
+         if (!flip_done()) {
++            cartdeck_stage_hit(CD_DECODE_FLIP);
+             return;                                 /* the next kick or flip comes back */
+         }
+         g_pb.flip_wait = false;
+@@ -910,6 +913,7 @@ static void consume_pass(void)
+     uint32_t base, limit, inst;
+     uint32_t put = hle_host_gpu_reg(NV_PFIFO_CACHE1_DMA_PUT);
+     if (!dma_object(&base, &limit, &inst)) {
++        cartdeck_stage_hit(CD_DECODE_NO_DMA);
+         hle_host_gpu_reg_set(NV_PFIFO_CACHE1_DMA_GET, put);    /* nothing to read it with */
+         g_pb.last_get = put;
+         /* the channel is being set up again (CreateDevice resets GET / PUT
+@@ -1001,6 +1005,7 @@ static void catch_up_check(void)
+ 
+ static void consume(void)
+ {
++    cartdeck_stage_hit(CD_DECODE_PASS);
+     consume_pass();
+     catch_up_check();
+ }
+diff --git a/hw/xbox/hle/vk/cartdeck_stage_probe.h b/hw/xbox/hle/vk/cartdeck_stage_probe.h
+index 33b06d8a9f..9135f5057e 100644
+--- a/hw/xbox/hle/vk/cartdeck_stage_probe.h
++++ b/hw/xbox/hle/vk/cartdeck_stage_probe.h
+@@ -5,8 +5,18 @@
+ #include <stddef.h>
+ #include <stdio.h>
+ enum CartdeckStage { CD_KERNEL_CALL, CD_FRONT_COMMAND, CD_FRONT_DRAW, CD_BACK_COMMAND,
+-    CD_BACK_DRAW, CD_DISPLAY_WRITE, CD_SWAP_REJECT, CD_VK_DRAW, CD_PB_METHOD, CD_STAGE_COUNT };
+-typedef struct CartdeckStages { unsigned budget; uint64_t count[CD_STAGE_COUNT]; } CartdeckStages;
++    CD_BACK_DRAW, CD_DISPLAY_WRITE, CD_SWAP_REJECT, CD_VK_DRAW, CD_PB_METHOD, CD_FIFO_PUT, CD_FIFO_GET, CD_DECODE_PASS, CD_DECODE_TRAP,
++    CD_DECODE_CLOSED, CD_DECODE_FLIP, CD_DECODE_NO_DMA, CD_STAGE_COUNT };
++#define CD_KERNEL_ORDINALS 1024
++#define CD_RECENT_CALLS 4
++/* Guest-owned state is copied on the vCPU; the UI reads atomic snapshots only. */
++typedef struct CartdeckCall { unsigned ordinal, thread, caller, result, running; } CartdeckCall;
++typedef struct CartdeckStages {
++    unsigned budget;
++    uint64_t count[CD_STAGE_COUNT], ordinal[CD_KERNEL_ORDINALS];
++    unsigned snapshot_seq, current_thread, states[6], wait_thread, wait_count, wait_timed, wait_object;
++    CartdeckCall recent[CD_RECENT_CALLS];
++} CartdeckStages;
+ extern CartdeckStages g_cartdeck_stages;
+ /* Bounded work even if a device never completes the requested GPU samples. */
+ static inline void cartdeck_stage_hit(enum CartdeckStage stage)
+@@ -22,9 +32,13 @@ static inline void cartdeck_stage_report(char *out, size_t size)
+     for (unsigned i = 0; i < CD_STAGE_COUNT; i++)
+         c[i] = __atomic_load_n(&g_cartdeck_stages.count[i], __ATOMIC_RELAXED);
+     snprintf(out, size, "kernel_calls=%llu fe_cmd=%llu fe_draw=%llu back_cmd=%llu "
+-             "back_draw_dispatch=%llu display_write=%llu swap_reject=%llu vk_draw=%llu pb_method=%llu budget_left=%u",
++             "back_draw_dispatch=%llu display_write=%llu swap_reject=%llu vk_draw=%llu pb_method=%llu "
++             "fifo_put=%llu fifo_get=%llu decode_pass=%llu decode_trap=%llu decode_closed=%llu "
++             "decode_flip=%llu decode_no_dma=%llu budget_left=%u",
+              (unsigned long long)c[0], (unsigned long long)c[1], (unsigned long long)c[2],
+              (unsigned long long)c[3], (unsigned long long)c[4], (unsigned long long)c[5],
+-             (unsigned long long)c[6], (unsigned long long)c[7], (unsigned long long)c[8], __atomic_load_n(&g_cartdeck_stages.budget, __ATOMIC_RELAXED));
++             (unsigned long long)c[6], (unsigned long long)c[7], (unsigned long long)c[8], (unsigned long long)c[9], (unsigned long long)c[10],
++             (unsigned long long)c[11], (unsigned long long)c[12], (unsigned long long)c[13],
++             (unsigned long long)c[14], (unsigned long long)c[15], __atomic_load_n(&g_cartdeck_stages.budget, __ATOMIC_RELAXED));
+ }
+ #endif
+diff --git a/hw/xbox/hle/vk/swapchain.c b/hw/xbox/hle/vk/swapchain.c
+index 01daf902f4..59a6bd3b6f 100644
+--- a/hw/xbox/hle/vk/swapchain.c
++++ b/hw/xbox/hle/vk/swapchain.c
+@@ -49,7 +49,7 @@ static int g_probe_requested;
+ static bool g_probe_active, g_probe_transfer;
+ static unsigned g_probe_captured, g_probe_done, g_probe_ticks;
+ static pthread_mutex_t g_probe_lock = PTHREAD_MUTEX_INITIALIZER;
+-static char g_probe_report[3072] = "pixel_probe=disabled";
++static char g_probe_report[8192] = "pixel_probe=disabled";
+ void hle_cartdeck_request_probe(void)
+ {
+     /* The existing probe is one bounded request per process, not a restart loop. */
+@@ -183,19 +183,23 @@ static bool probe_buffer(PsFrame *f)
+     }
+     return true;
+ }
++void nc_cartdeck_kernel_report(char *out, size_t size);
++void nc_cartdeck_fifo_report(char *out, size_t size);
+ static void probe_collect(PsFrame *f)
+ {
+     /* Called only after the existing frame timeline wait succeeds. No added wait,
+      * and no command pool/buffer is freed while a GPU copy might still reference it. */
+     if (!f->probe_pending) return;
+-    char guest[160], swap[160], stages[320], line[1024];
++    char guest[160], swap[160], stages[768], kernel[1024], fifo[256], line[2560];
+     cartdeck_stage_report(stages, sizeof(stages));
++    nc_cartdeck_kernel_report(kernel, sizeof(kernel));
++    nc_cartdeck_fifo_report(fifo, sizeof(fifo));
+     cartdeck_pixel_summary(f->probe_map, 64, guest, sizeof(guest));
+     cartdeck_pixel_summary(f->probe_map + 256, 64, swap, sizeof(swap));
+-    snprintf(line, sizeof(line), "\nserial=%llu guest=%ux%u {%s} swap=%ux%u fmt=%u gamma_changed=%u gamma=%u..%u {%s} guest_swap_id=%u stages_at_collect={%s}",
++    snprintf(line, sizeof(line), "\nserial=%llu guest=%ux%u {%s} swap=%ux%u fmt=%u gamma_changed=%u gamma=%u..%u {%s} guest_swap_id=%u stages_at_collect={%s} %s %s",
+              (unsigned long long)f->probe_serial, f->probe_w, f->probe_h, guest,
+              f->probe_sw, f->probe_sh, f->probe_fmt, f->probe_gamma_changed,
+-             f->probe_gamma_low, f->probe_gamma_high, swap, f->probe_swap_id, stages);
++             f->probe_gamma_low, f->probe_gamma_high, swap, f->probe_swap_id, stages, kernel, fifo);
+     pthread_mutex_lock(&g_probe_lock);
+     size_t used = strlen(g_probe_report);
+     snprintf(g_probe_report + used, sizeof(g_probe_report) - used, "%s", line);
+diff --git a/native/app/app_main.c b/native/app/app_main.c
+index 0ba62e12a0..9b868177e3 100644
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -306,7 +306,7 @@ EXPORT JNIEXPORT void JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nati
+ EXPORT JNIEXPORT jstring JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport(JNIEnv *env,
+                                                                                                jclass cls)
+ {
+-    char gpu[768], presentation[192], pixels[3072], report[4096];
++    char gpu[768], presentation[192], pixels[8192], report[9216];
+     hle_cartdeck_gpu_report(gpu, sizeof(gpu));
+     hle_cartdeck_present_report(presentation, sizeof(presentation));
+     hle_cartdeck_probe_report(pixels, sizeof(pixels));
+diff --git a/native/dev/nv2a.c b/native/dev/nv2a.c
+index a1c3a46edc..8671f40282 100644
+--- a/native/dev/nv2a.c
++++ b/native/dev/nv2a.c
+@@ -1,3 +1,4 @@
++#include "hw/xbox/hle/vk/cartdeck_stage_probe.h"
+ /*
+  * hakuX native core — NV2A register space (0xFD000000, 16 MiB), first cut.
+  *
+@@ -53,6 +54,7 @@
+ #define NV_PFIFO_CACHE1_DMA_PUT  0x003240u
+ #define NV_PFIFO_CACHE1_DMA_GET  0x003244u
+ #define NV_PFIFO_CACHE1_REF      0x003248u
++#define NV_PFIFO_CACHE1_DMA_INSTANCE 0x00322Cu
+ #define NV_PFIFO_CACHE1_DMA_SUBROUTINE 0x00324Cu
+ #define NV_PGRAPH_INTR      0x400100u
+ #define NV_PGRAPH_INTR_EN   0x400140u
+@@ -459,6 +461,32 @@ static void dac_write(uint32_t off, uint8_t v)
+     }
+ }
+ 
++/* Channel and direct CACHE1 writes publish through the same ordering.
++ * The scout sees a new PUT before the decoder can, then the register is
++ * released before its wake. GET resets the scout only after publication. */
++static void fifo_dma_write(uint32_t off, uint32_t value)
++{
++    if (off == NV_PFIFO_CACHE1_DMA_PUT) hle_pb_pushed(value);
++    __atomic_store_n(reg(off), value, __ATOMIC_RELEASE);
++    if (off == NV_PFIFO_CACHE1_DMA_PUT) {
++        cartdeck_stage_hit(CD_FIFO_PUT);
++        hle_pb_put();
++    } else if (off == NV_PFIFO_CACHE1_DMA_GET) {
++        cartdeck_stage_hit(CD_FIFO_GET);
++        hle_pb_get();
++    }
++}
++
++/* Existing probe only; atomic register reads, no guest-memory traversal. */
++void nc_cartdeck_fifo_report(char *out, size_t size)
++{
++    if (!g_regs) { snprintf(out, size, "fifo=uninitialized"); return; }
++    snprintf(out, size, "pb_mode=%u pb_active=%u fifo_get=%08x fifo_put=%08x "
++             "fifo_access=%08x pgraph_intr=%08x dma_instance=%08x flip=%08x",
++             (unsigned)g_pbmode, (unsigned)hle_pb_active(), ld(NV_PFIFO_CACHE1_DMA_GET), ld(NV_PFIFO_CACHE1_DMA_PUT),
++             ld(NV_PGRAPH_FIFO), ld(NV_PGRAPH_INTR), ld(NV_PFIFO_CACHE1_DMA_INSTANCE), ld(NV_PGRAPH_SURFACE));
++}
++
+ static void nv2a_write(void *opaque, uint32_t off, uint64_t value, unsigned size)
+ {
+     if (__builtin_expect(g_census.on, 0)) {
+@@ -480,9 +508,8 @@ static void nv2a_write(void *opaque, uint32_t off, uint64_t value, unsigned size
+                    off == NV_PFIFO_CACHE1_DMA_PUT ? "PUT" : "GET", (uint32_t)value,
+                    ld(NV_PFIFO_CACHE1_DMA_GET), ld(NV_PFIFO_CACHE1_DMA_PUT));
+         }
+-        if (off == NV_PFIFO_CACHE1_DMA_GET) {
+-            hle_pb_get();                       /* a channel set-up: the scout syncs again */
+-        }
++        fifo_dma_write(off, (uint32_t)value);
++        return;
+     }
+     if (g_pbmode && size == 4 && (off == NV_USER_DMA_PUT || off == NV_USER_DMA_GET ||
+                                   off == NV_USER_REF)) {
+@@ -493,16 +520,7 @@ static void nv2a_write(void *opaque, uint32_t off, uint64_t value, unsigned size
+                    off == NV_USER_DMA_PUT ? "PUT" : "GET", (uint32_t)value,
+                    ld(NV_PFIFO_CACHE1_DMA_GET), ld(NV_PFIFO_CACHE1_DMA_PUT));
+         }
+-        if (off == NV_USER_DMA_PUT) {
+-            hle_pb_pushed((uint32_t)value);         /* before the decoder can see it */
+-        }
+-        __atomic_store_n(reg(off - NV_USER_DMA_PUT + NV_PFIFO_CACHE1_DMA_PUT), (uint32_t)value,
+-                         __ATOMIC_RELEASE);
+-        if (off == NV_USER_DMA_PUT) {
+-            hle_pb_put();
+-        } else if (off == NV_USER_DMA_GET) {
+-            hle_pb_get();
+-        }
++        fifo_dma_write(off - NV_USER_DMA_PUT + NV_PFIFO_CACHE1_DMA_PUT, (uint32_t)value);
+         return;
+     }
+     if (g_pbmode && size == 4 && off == NV_PGRAPH_FIFO) {
+diff --git a/native/kernel/kernel.c b/native/kernel/kernel.c
+index 43aae16d86..809d0e3a8f 100644
+--- a/native/kernel/kernel.c
++++ b/native/kernel/kernel.c
+@@ -832,6 +832,118 @@ void nc_kernel_dump_recent(int fd)
+     }
+ }
+ 
++/* Snapshot guest-owned thread/recent-call state only on the vCPU, while the
++ * existing explicit probe is armed. UI formatting reads atomic copies. */
++static void cartdeck_kernel_sample(NcKernel *k, unsigned ordinal)
++{
++    if (!__atomic_load_n(&g_cartdeck_stages.budget, __ATOMIC_RELAXED)) return;
++    if (ordinal < CD_KERNEL_ORDINALS)
++        __atomic_fetch_add(&g_cartdeck_stages.ordinal[ordinal], 1, __ATOMIC_RELAXED);
++    /* Histogram every entry, thread/recent snapshots once per 32 entries. */
++    if ((__atomic_load_n(&g_cartdeck_stages.count[CD_KERNEL_CALL], __ATOMIC_RELAXED) & 31u) != 1u) return;
++    __atomic_fetch_add(&g_cartdeck_stages.snapshot_seq, 1, __ATOMIC_SEQ_CST);
++    unsigned states[6] = {0}, wt = 0, wc = 0, wo = 0, timed = 0;
++    for (unsigned i = 0; i < k->threads_hi && i < NC_MAX_THREADS; i++) {
++        const NcThread *t = &k->threads[i];
++        if ((unsigned)t->state < 6) states[t->state]++;
++        if (!wt && t->state == NC_T_WAITING) {
++            wt = t->id; wc = t->wait.count;
++            wo = wc ? t->wait.objects[0] : 0;
++            timed = t->wait.deadline_ns != 0;
++        }
++    }
++    for (unsigned i = 0; i < 6; i++)
++        __atomic_store_n(&g_cartdeck_stages.states[i], states[i], __ATOMIC_RELAXED);
++    __atomic_store_n(&g_cartdeck_stages.current_thread, k->current ? k->current->id : 0, __ATOMIC_RELAXED);
++    __atomic_store_n(&g_cartdeck_stages.wait_thread, wt, __ATOMIC_RELAXED);
++    __atomic_store_n(&g_cartdeck_stages.wait_count, wc, __ATOMIC_RELAXED);
++    __atomic_store_n(&g_cartdeck_stages.wait_object, wo, __ATOMIC_RELAXED);
++    __atomic_store_n(&g_cartdeck_stages.wait_timed, timed, __ATOMIC_RELAXED);
++    /* Reuse the existing recent-export ring, including the pre-probe wait.
++     * No arguments, strings, paths or guest memory are copied. */
++    unsigned end = g_nrecent;
++    for (unsigned n = 0; n < CD_RECENT_CALLS; n++) {
++        CartdeckCall *d = &g_cartdeck_stages.recent[n];
++        unsigned ordinal = 0, thread = 0, ret = 0, result = 0, running = 0;
++        if (n < end) {
++            unsigned i = (end - 1 - n) % RECENT;
++            ordinal = g_recent[i].ordinal; thread = g_recent[i].thread;
++            ret = g_recent[i].ret; result = g_recent[i].result; running = g_recent[i].running;
++        }
++        __atomic_store_n(&d->ordinal, ordinal, __ATOMIC_RELAXED);
++        __atomic_store_n(&d->thread, thread, __ATOMIC_RELAXED);
++        __atomic_store_n(&d->caller, ret, __ATOMIC_RELAXED);
++        __atomic_store_n(&d->result, result, __ATOMIC_RELAXED);
++        __atomic_store_n(&d->running, running, __ATOMIC_RELAXED);
++    }
++    __atomic_fetch_add(&g_cartdeck_stages.snapshot_seq, 1, __ATOMIC_SEQ_CST);
++}
++
++static const char *cartdeck_ordinal_name(unsigned ordinal)
++{
++    switch (ordinal) {
++    case NC_KORDINAL_DPC_RETURN: return "DPC_RETURN";
++    case NC_KORDINAL_ISR_RETURN: return "ISR_RETURN";
++    case NC_KORDINAL_APC_RETURN: return "APC_RETURN";
++    case NC_KORDINAL_CALLOUT_RETURN: return "CALLOUT_RETURN";
++    case NC_KORDINAL_THREAD_RETURN: return "THREAD_RETURN";
++    case NC_KORDINAL_APU_SPIN: return "APU_SPIN";
++    case NC_KORDINAL_TRAP: return "TRAP";
++    case NC_KORDINAL_SEH_RETURN: return "SEH_RETURN";
++    case NC_KORDINAL_SEH_NESTED: return "SEH_NESTED";
++    case NC_KORDINAL_SEH_COLLIDED: return "SEH_COLLIDED";
++    default: {
++        const NcKExport *e = nc_kernel_export(ordinal);
++        return e ? e->name : "unknown";
++    }
++    }
++}
++
++void nc_cartdeck_kernel_report(char *out, size_t size)
++{
++    unsigned begin = __atomic_load_n(&g_cartdeck_stages.snapshot_seq, __ATOMIC_SEQ_CST);
++    unsigned best[4] = {0};
++    uint64_t counts[4] = {0};
++    for (unsigned o = 0; o < CD_KERNEL_ORDINALS; o++) {
++        uint64_t n = __atomic_load_n(&g_cartdeck_stages.ordinal[o], __ATOMIC_RELAXED);
++        for (unsigned j = 0; j < 4; j++) if (n > counts[j]) {
++            for (unsigned k = 3; k > j; k--) { counts[k] = counts[k-1]; best[k] = best[k-1]; }
++            counts[j] = n; best[j] = o; break;
++        }
++    }
++    char top[320] = "", recent[400] = "";
++    size_t used = 0;
++    for (unsigned i = 0; i < 4 && used < sizeof(top); i++) if (counts[i])
++        used += (size_t)snprintf(top + used, sizeof(top) - used, "%s%s(%u):%llu",
++                                i ? "," : "", cartdeck_ordinal_name(best[i]), best[i],
++                                (unsigned long long)counts[i]);
++    used = 0;
++    for (unsigned i = 0; i < CD_RECENT_CALLS && used < sizeof(recent); i++) {
++        const CartdeckCall *c = &g_cartdeck_stages.recent[i];
++        unsigned o = __atomic_load_n(&c->ordinal, __ATOMIC_RELAXED);
++        if (!o) continue;
++        char result[16];
++        if (__atomic_load_n(&c->running, __ATOMIC_RELAXED)) snprintf(result, sizeof(result), "running");
++        else snprintf(result, sizeof(result), "%08x", __atomic_load_n(&c->result, __ATOMIC_RELAXED));
++        used += (size_t)snprintf(recent + used, sizeof(recent) - used, "%st%u:%s@%08x=%s",
++                                used ? "," : "", __atomic_load_n(&c->thread, __ATOMIC_RELAXED),
++                                cartdeck_ordinal_name(o), __atomic_load_n(&c->caller, __ATOMIC_RELAXED), result);
++    }
++    unsigned states[6];
++    for (unsigned i = 0; i < 6; i++) states[i] = __atomic_load_n(&g_cartdeck_stages.states[i], __ATOMIC_RELAXED);
++    unsigned current = __atomic_load_n(&g_cartdeck_stages.current_thread, __ATOMIC_RELAXED);
++    unsigned wt = __atomic_load_n(&g_cartdeck_stages.wait_thread, __ATOMIC_RELAXED);
++    unsigned wc = __atomic_load_n(&g_cartdeck_stages.wait_count, __ATOMIC_RELAXED);
++    unsigned wo = __atomic_load_n(&g_cartdeck_stages.wait_object, __ATOMIC_RELAXED);
++    unsigned timed = __atomic_load_n(&g_cartdeck_stages.wait_timed, __ATOMIC_RELAXED);
++    unsigned end = __atomic_load_n(&g_cartdeck_stages.snapshot_seq, __ATOMIC_SEQ_CST);
++    unsigned consistent = begin && !(begin & 1u) && begin == end;
++    snprintf(out, size, "kernel_top={%s} threads_at_kcall={snapshot_consistent=%u current=%u ready=%u running=%u "
++             "waiting=%u suspended=%u terminated=%u wait0=t%u objects=%u first=%08x timed=%u} recent_exports={%s}",
++             top, consistent, current, states[NC_T_READY], states[NC_T_RUNNING], states[NC_T_WAITING],
++             states[NC_T_SUSPENDED], states[NC_T_TERMINATED], wt, wc, wo, timed, recent);
++}
++
+ static uint8_t *pcr_irql(NcKernel *k)
+ {
+     return (uint8_t *)nc_vm_host(k->vm, k->kpcr_va + 0x24);
+@@ -1119,6 +1231,7 @@ static void slow_note(const char *what, uint32_t at, const uint32_t *args, uint6
+ static void kcall(NcKernel *k, NcFrame *f, unsigned ordinal)
+ {
+     cartdeck_stage_hit(CD_KERNEL_CALL);
++    cartdeck_kernel_sample(k, ordinal);
+     nc_ke_tick_time(k);
+     clock_tick(k);
+     const uint32_t esp = nc_frame_gpr(f, NC_ESP);
