@@ -1,7 +1,7 @@
 # DISPLAY-01 — CARTDECK large-screen UI and gameplay contract
 **Date:** 13 November 2026 · **Owner:** Jonathan Prestwich · **Workstream:** Tablet/TV/landscape presentation.
 **Tracking:** [#162](https://github.com/safetyblade/ROMMachine/issues/162)
-**This PR stage:** Device/display policy and acceptance design **only**. No finished tablet/TV gameplay UI or Fullscreen Fill renderer is claimed.
+**This PR stage:** Device/display policy, safe DS/3DS launch eligibility guard and TV remote dedicated MENU-key routing. No finished tablet/TV UI or Fullscreen Fill renderer is claimed.
 
 ## Target experience
 **Phone portrait:** Existing physical CARTDECK handset shell and touch controls unchanged.
@@ -40,4 +40,4 @@
 - Build/output CI cannot mark completion without a tested paired `Fill`/ `Native` rendering change and a TV remote menu path.
 
 ## Acceptance and source of truth
-See `display-01-acceptance.md`. Only merge UI controls when their corresponding actions work. Policy module is implemented and unit tested in this design PR but **not yet connected** to game routing or renderer.
+See `display-01-acceptance.md`. Only merge UI controls when their corresponding actions work. Policy is now used by GameLauncher to reject TV/landscape dual-screen before core launch; TVGameActivity routes dedicated remote MENU through the existing side-effect menu pipeline. The policy unit tests are present but CI has not yet confirmed them. Tablet UI, manual TV-mode preference, basic remote without MENU, and aspect-mode renderer integration remain UNIMPLEMENTED.
