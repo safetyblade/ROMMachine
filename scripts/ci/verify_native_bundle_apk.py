@@ -2,6 +2,7 @@
 """Check a built engineering APK against its verified private bundle."""
 import argparse
 import hashlib
+import io
 import json
 import pathlib
 import struct
@@ -91,7 +92,7 @@ def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=F
                          'assets/cartdeck/xenia/source-manifest.json'):
                 if item not in archive.namelist():
                     raise ValueError('Xbox 360 provenance/licenses missing: ' + item)
-            with zipfile.ZipFile(archive.open('assets/cartdeck/xenia/xenia-licenses.zip')) as notices:
+            with zipfile.ZipFile(io.BytesIO(archive.read('assets/cartdeck/xenia/xenia-licenses.zip'))) as notices:
                 if not notices.namelist():
                     raise ValueError('Xbox 360 source notices empty')
             dex = [archive.read(n) for n in archive.namelist() if n.endswith('.dex')]
