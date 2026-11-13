@@ -497,7 +497,9 @@ fun ShelfAppearanceEditor(
                         listOf("original", "pink", "green").forEach { id ->
                             EditionOption(
                                 id,
-                                checked = edition == id && selectedId == null && selectedDesignId == null && overrides.isEmpty(),
+                                checked =
+                                    edition == id && selectedId == null &&
+                                    selectedDesignId == null && overrides.isEmpty(),
                                 modifier = Modifier.weight(1f),
                                 onClick = { choosePreset(id) },
                             )
