@@ -37,6 +37,7 @@ class ShelfStore(context: Context) {
                 try {
                     stream.write(encode(after).toByteArray(Charsets.UTF_8))
                     atomic.finishWrite(stream)
+                    runCatching { decalStore.pruneUnused(after.appearance) }
                 } catch (error: Throwable) {
                     atomic.failWrite(stream)
                     throw error
