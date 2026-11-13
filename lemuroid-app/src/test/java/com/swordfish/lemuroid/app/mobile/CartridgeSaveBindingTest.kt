@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.SaveState
 import com.swordfish.lemuroid.lib.saves.SavesManager
@@ -138,4 +139,20 @@ class CartridgeSaveBindingTest {
             // never altering the original. A retry must continue to fail closed.
             assertTrue(runCatching { binding.sramFile(game, legacy, "shared") }.exceptionOrNull() is IOException)
         }
+    @Test fun ambiguousLegacyDsFilesRemainReadOnlyAndUnassigned() {
+        val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
+        val fixture = game(uniqueName(), "content://fixture/ds")
+        val fileBase = fixture.saveFileName().substringBeforeLast('.')
+        val legacy = File(dirs.getSavesDirectory(), "$fileBase.dsv")
+        legacy.writeBytes(byteArrayOf(11, 22, 33))
+        val migrator = DesmumeMigrationHandler(dirs)
+        assertNull(migrator.resolveSaveData(fixture, CoreID.MELONDS, null, false).data)
+        assertNull(migrator.resolveSaveData(fixture, CoreID.DESMUME, null, false).data)
+        val alreadyBound = byteArrayOf(44, 55)
+        val verified = migrator.resolveSaveData(fixture, CoreID.MELONDS, alreadyBound, false)
+        assertArrayEquals(alreadyBound, verified.data)
+        assertNull(verified.timestampOverride)
+        assertArrayEquals(byteArrayOf(11, 22, 33), legacy.readBytes())
+    }
+
 }
