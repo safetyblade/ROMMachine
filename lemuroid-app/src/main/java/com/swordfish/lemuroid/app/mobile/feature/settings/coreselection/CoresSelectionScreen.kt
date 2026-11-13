@@ -51,7 +51,12 @@ fun CoresSelectionScreen(
             }.forEach { system ->
                 var expanded by remember(system.id) { mutableStateOf(false) }
                 TextButton(onClick = { expanded = !expanded }) { Text(stringResource(system.titleResId)) }
-                if (expanded) EngineSelectionControls(system, assetsReady = assetsReady)
+                if (expanded) {
+                    EngineSelectionControls(system, assetsReady = assetsReady)
+                    if (system.id == SystemID.XBOX360) {
+                        com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Troubleshooting()
+                    }
+                }
             }
         }
         ElevatedCard(

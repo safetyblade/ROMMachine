@@ -89,6 +89,11 @@ object GripArcInputCatalog {
                     r2.copy(label = "R"),
                     start,
                 )
+            SystemID.XBOX360 ->
+                listOf(
+                    a, b, x, y, l.copy(label = "LB"), r.copy(label = "RB"),
+                    l2.copy(label = "LT"), r2.copy(label = "RT"), start, select.copy(label = "Back"),
+                )
             else -> emptyList()
         }
 

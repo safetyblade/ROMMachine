@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
@@ -40,6 +42,9 @@ import android.graphics.Rect as AndroidRect
 fun XboxGameControls(
     onInput: (List<InputEvent>) -> Unit,
     settingsManager: TouchControllerSettingsManager? = null,
+    controllerId: TouchControllerID = TouchControllerID.XBOX,
+    game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
+    onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
@@ -99,7 +104,7 @@ fun XboxGameControls(
         val insets = WindowInsets.displayCutout
         val settings =
             remember(orientation, density, insets) {
-                manager.observeSettings(TouchControllerID.XBOX, orientation, density, insets)
+                manager.observeSettings(controllerId, orientation, density, insets)
             }.collectAsState(TouchControllerSettingsManager.Settings()).value
         val root = remember { mutableStateOf<Rect?>(null) }
         val video = remember { mutableStateOf<Rect?>(null) }
@@ -108,6 +113,70 @@ fun XboxGameControls(
             remember(bounds) {
                 { name, rect -> if (bounds[name] != rect) bounds[name] = rect }
             }
+        val arc = game?.let { rememberGripArcProfile(it).value }
+        val manifest =
+            remember(game) { if (game != null) runCatching { GripArcManifest.load(context) }.getOrNull() else null }
+        val inventory =
+            remember(
+                controllerId,
+            ) { com.swordfish.touchinput.radial.settings.NativeControlInventory.forController(controllerId) }
+        val viewport = video.value
+        val origin = root.value
+        val placement =
+            remember(arc, manifest, inventory, viewport, origin, constraints, density) {
+                if (arc?.mode == ArcControlMode.STANDARD_GRIPARC && manifest != null && inventory != null &&
+                    viewport != null && origin != null
+                ) {
+                    val scale = density.density
+                    val safe =
+                        PivotArcBounds(
+                            insets.getLeft(density, androidx.compose.ui.unit.LayoutDirection.Ltr) / scale,
+                            insets.getTop(density) / scale,
+                            (
+                                constraints.maxWidth -
+                                    insets.getRight(density, androidx.compose.ui.unit.LayoutDirection.Ltr)
+                            ) / scale,
+                            (constraints.maxHeight - insets.getBottom(density)) / scale,
+                        )
+                    GripArcCombinedLayout.resolveDockFirst(
+                        manifest,
+                        inventory,
+                        safe,
+                        PivotArcBounds(
+                            (viewport.left - origin.left) / scale,
+                            (viewport.top - origin.top) / scale,
+                            (viewport.right - origin.left) / scale,
+                            (viewport.bottom - origin.top) / scale,
+                        ),
+                        arc.side,
+                        arc.dx,
+                        arc.dy,
+                    )?.takeIf { it.complete }
+                } else {
+                    null
+                }
+            }
+        var fallbackShown by androidx.compose.runtime.remember(game) { androidx.compose.runtime.mutableStateOf(false) }
+        val unavailable =
+            arc != null && arc.mode != ArcControlMode.STANDARD &&
+                (arc.mode != ArcControlMode.STANDARD_GRIPARC || placement == null) && viewport != null
+        if (unavailable && !fallbackShown) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { fallbackShown = true },
+                title = { androidx.compose.material3.Text("Standard controls for this session") },
+                text = {
+                    androidx.compose.material3.Text(
+                        "This native controller layout cannot fit the selected accessory mode " +
+                            "with every input and 48dp targets. Saved cartridge settings are preserved.",
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        fallbackShown = true
+                    }) { androidx.compose.material3.Text("Continue") }
+                },
+            )
+        }
         PadKit(
             Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
             onInputEvents = onInput,
@@ -149,17 +218,23 @@ fun XboxGameControls(
                             )
                         },
                     )
-                    val config = TouchControllerID.getConfig(TouchControllerID.XBOX)
-                    config.leftComposable(
-                        this@PadKit,
-                        Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD),
-                        settings,
-                    )
-                    config.rightComposable(
-                        this@PadKit,
-                        Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD),
-                        settings,
-                    )
+                    if (placement == null) {
+                        val config = TouchControllerID.getConfig(controllerId)
+                        config.leftComposable(
+                            this@PadKit,
+                            Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD),
+                            settings,
+                        )
+                        config.rightComposable(
+                            this@PadKit,
+                            Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD),
+                            settings,
+                        )
+                    }
+                }
+                if (placement != null && arc != null) {
+                    GripArcCombinedControls(placement)
+                    GripArcAccessory(placement.dock, arc, tokens, false, false, onGripPressed)
                 }
             }
         }

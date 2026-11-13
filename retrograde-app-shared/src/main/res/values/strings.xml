@@ -153,4 +153,6 @@
     <string name="value_wii_pointer_touch">Touch game viewport</string>
     <string name="value_wii_pointer_stick">Right stick (absolute)</string>
     <string name="value_wii_pointer_relative">Right stick (relative)</string>
+    <string name="game_system_title_xbox360">Microsoft Xbox 360</string>
+    <string name="game_system_abbr_xbox360">Xbox 360</string>
 </resources>

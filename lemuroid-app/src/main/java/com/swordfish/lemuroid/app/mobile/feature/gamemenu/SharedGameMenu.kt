@@ -57,7 +57,10 @@ internal fun GameMenuTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val saved = appearance ?: remember(context) { ShelfStore(context).read().appearance }
+    val saved =
+        appearance ?: androidx.compose.runtime.produceState(
+            com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance(), context,
+        ) { value = ShelfStore(context).read().appearance }.value
     AppTheme { CartridgeLibraryTheme(saved, content) }
 }
 

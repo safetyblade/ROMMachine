@@ -108,6 +108,7 @@ fun cartridgeSystemLabel(systemId: String): String =
         "gba" -> "GBA"
         "psx" -> "PS1"
         "xbox" -> "Xbox"
+        "xbox360" -> "Xbox 360"
         "wii" -> "Wii"
         else -> systemId.uppercase()
     }
