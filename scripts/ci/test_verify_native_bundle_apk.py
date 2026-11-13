@@ -139,10 +139,10 @@ class FullApkContractTest(unittest.TestCase):
         systems = 'dc,gc,ps2,wii,xbox,xbox360'
         (self.bundle / 'native-systems.txt').write_text(systems + '\n')
         self.entries['classes.dex'] = self.entries['classes.dex'].replace(
-            b'dc,gc,ps2,wii,xbox\\0', systems.encode('utf-8') + b'\\0')
+            b'dc,gc,ps2,wii,xbox\0', systems.encode('utf-8') + b'\0')
         self.entries['classes.dex'] += (
-            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360Activity;\\0'
-            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360GameLauncher;\\0'
+            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360Activity;\0'
+            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360GameLauncher;\0'
         )
         self.entries['AndroidManifest.xml'] += b'com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Activity'
         self.entries['lib/arm64-v8a/libcartdeck_xenia.so'] = elf()
