@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.lib.BuildConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
@@ -116,6 +117,16 @@ class CartdeckConsoleLayoutCoverageTest {
             TouchControllerID.GAMECUBE,
             gc.systemCoreConfigs.first().controllerConfigs.getValue(0).first().touchControllerID,
         )
+    }
+
+    @Test
+    fun dreamcastControllerClearanceIsPortraitAndStandaloneOnly() {
+        assertEquals(24.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 780.dp))
+        assertEquals(12.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 600.dp))
+        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, true, 780.dp))
+        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, false, false, 780.dp))
+        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.PLAYSTATION_2, true, false, 780.dp))
+        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.GBA, true, false, 780.dp))
     }
 
     @Test
