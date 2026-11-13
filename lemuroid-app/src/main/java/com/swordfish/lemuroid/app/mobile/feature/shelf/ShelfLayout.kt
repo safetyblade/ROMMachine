@@ -49,7 +49,12 @@ data class ShelfAppearance(
 
     fun selectProfile(id: String): ShelfAppearance {
         val profile = profiles.first { it.id == id }
-        return copy(edition = profile.baseEdition, custom = profile.custom, activeProfileId = id, curatedDesignId = null)
+        return copy(
+            edition = profile.baseEdition,
+            custom = profile.custom,
+            activeProfileId = id,
+            curatedDesignId = null,
+        )
     }
 
     fun removeProfile(id: String): ShelfAppearance =
