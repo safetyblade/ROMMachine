@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.toSize
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
@@ -183,6 +184,13 @@ fun CartdeckAppearancePreview(
                         clearance = 2.dp.toPx(),
                     )
                 }
+            }
+            if (!appearance.highContrast && appearance.decal != null) {
+                CartdeckDecalLayer(
+                    decal = appearance.decal,
+                    exclusions = emptyList(),
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
             Row(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp * scale),
