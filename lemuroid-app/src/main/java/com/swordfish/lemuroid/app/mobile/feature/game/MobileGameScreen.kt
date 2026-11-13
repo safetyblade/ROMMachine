@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -244,6 +245,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     constraints.maxHeight,
                     LocalDensity.current.density,
                 ) { mutableStateMapOf<String, Set<String>>() }
+            // Retain a complete native measurement contract independently of replacement controls.
+            // Only geometry/profile changes invalidate it; input and appearance recompositions do not.
+            val measuredNativeSnapshot =
+                remember(individualInputs, nativeInputInventory) {
+                    mutableStateOf<Pair<Map<String, Rect>, Set<String>>?>(null)
+                }
             val observeNativeInputs: (String, Set<String>) -> Unit =
                 remember(nativeInputInventory) {
                     { owner, ids -> if (nativeInputInventory[owner] != ids) nativeInputInventory[owner] = ids }
@@ -440,8 +447,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     "Standard remains available; GripArc settings are preserved.",
                             )
                         } else if (!selectedPivot) {
+                            val liveIds = nativeInputInventory.values.flatten().toSet()
+                            val liveBounds = individualInputs.toMap()
+                            if (nativeInventory!!.matchesNativeInputs(liveIds) &&
+                                nativeInventory.controls.all { it.seat in liveBounds }
+                            ) {
+                                SideEffect {
+                                    if (measuredNativeSnapshot.value == null) {
+                                        measuredNativeSnapshot.value = liveBounds to liveIds
+                                    }
+                                }
+                            }
+                            val snapshot = measuredNativeSnapshot.value
                             val measured =
-                                individualInputs.mapValues { (_, rect) ->
+                                (snapshot?.first ?: liveBounds).mapValues { (_, rect) ->
                                     PivotArcBounds(
                                         (rect.left - fullPos.left) / scale,
                                         (rect.top - fullPos.top) / scale,
@@ -449,28 +468,31 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                         (rect.bottom - fullPos.top) / scale,
                                     )
                                 }
-                            val observedIds = nativeInputInventory.values.flatten().toSet()
-                            if (measured.isEmpty() || observedIds.isEmpty()) {
-                                null // Measure the native production layout before attempting combined placement.
-                            } else if (!nativeInventory!!.matchesNativeInputs(observedIds)) {
+                            val observedIds = snapshot?.second ?: liveIds
+                            val measurementsReady = GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)
+                            if (measurementsReady && observedIds.isNotEmpty() &&
+                                !nativeInventory.matchesNativeInputs(observedIds)
+                            ) {
                                 GripArcFit.Unavailable(
                                     "GripArc cannot preserve every input in this native controller profile. " +
                                         "Standard remains available; saved settings are preserved.",
-                                )
-                            } else if (!GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)) {
-                                GripArcFit.Unavailable(
-                                    "This native controller has incomplete measurements. " +
-                                        "Use Standard for this session; your saved GripArc settings are preserved.",
                                 )
                             } else {
                                 nativeProfileValidated = true
                                 combinedPlacement =
                                     if (!isLandscape) {
-                                        GripArcCombinedLayout.resolve(
-                                            gripManifest, nativeInventory, observedIds,
-                                            measured, safeBounds, viewportBounds,
-                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                        )
+                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                            GripArcCombinedLayout.resolve(
+                                                gripManifest, nativeInventory, observedIds,
+                                                measured, safeBounds, viewportBounds,
+                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            )
+                                        } else {
+                                            GripArcCombinedLayout.resolveDockFirst(
+                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            )
+                                        }
                                     } else {
                                         null
                                     }
@@ -713,15 +735,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
             }
-            if (gripPlacement != null && !fullscreenWithGamepad && !isLoading) {
-                GripArcControlGroup(
-                    placement = gripPlacement,
-                    profile = arcProfile,
-                    tokens = shellTokens,
-                    onPressed = viewModel::pressGripArcSlot,
-                    drawHousing = jointPlacement == null,
-                )
-            }
+            GripArcAccessory(
+                placement = gripPlacement,
+                profile = arcProfile,
+                tokens = shellTokens,
+                fullscreenWithGamepad = fullscreenWithGamepad,
+                isLoading = isLoading,
+                onPressed = viewModel::pressGripArcSlot,
+                drawHousing = jointPlacement == null,
+            )
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
             val layoutError = gripError?.reason ?: pivotError?.reason
