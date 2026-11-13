@@ -11,6 +11,8 @@ data class CartdeckCuratedDesign(
     val description: String,
     val baseEdition: String,
     val colours: Map<String, Long>,
+    val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
 )
 
 object CartdeckCuratedDesigns {
@@ -23,6 +25,8 @@ object CartdeckCuratedDesigns {
                 title = "Stealth / Acid",
                 description = "Tactical graphite, olive hardware and acid-green accents",
                 baseEdition = "original",
+                patternId = CartdeckSurfaceDesign.PATTERN_TACTICAL_GRID,
+                stampId = CartdeckSurfaceDesign.STAMP_CHEVRON,
                 colours =
                     mapOf(
                         "chassis" to 0xFF151C20L,
@@ -62,6 +66,8 @@ object CartdeckCuratedDesigns {
             custom = design.colours,
             activeProfileId = null,
             curatedDesignId = design.id,
+            patternId = design.patternId,
+            stampId = design.stampId,
         )
     }
 }
