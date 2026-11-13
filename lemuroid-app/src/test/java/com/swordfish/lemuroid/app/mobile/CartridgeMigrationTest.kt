@@ -37,7 +37,9 @@ class CartridgeMigrationTest {
                             db.execSQL(entity.getString("createSql").replace("\u0024{TABLE_NAME}", table))
                             val indexes = entity.getJSONArray("indices")
                             for (j in 0 until indexes.length()) {
-                                db.execSQL(indexes.getJSONObject(j).getString("createSql").replace("\u0024{TABLE_NAME}", table))
+                                db.execSQL(
+                                    indexes.getJSONObject(j).getString("createSql").replace("\u0024{TABLE_NAME}", table),
+                                )
                             }
                         }
                         val setup = schema.getJSONArray("setupQueries")
@@ -62,7 +64,9 @@ class CartridgeMigrationTest {
         val identities = try {
             val sql = first.openHelper.writableDatabase
             assertEquals(12, sql.version)
-            sql.query("SELECT id,cartridgeId,legacyFileName,legacySourceUri,customName,isFavorite FROM games ORDER BY id").use {
+            sql.query(
+                "SELECT id,cartridgeId,legacyFileName,legacySourceUri,customName,isFavorite FROM games ORDER BY id",
+            ).use {
                 val ids = mutableListOf<String>()
                 while (it.moveToNext()) {
                     val id = it.getInt(0)

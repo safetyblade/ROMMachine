@@ -25,10 +25,16 @@ import java.util.UUID
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class CartridgeIdentityTest {
-    private fun game(uri: String) = Game(
-        fileName = "synthetic.gb", fileUri = uri, title = "Synthetic", systemId = "gb",
-        developer = null, coverFrontUrl = null, lastIndexedAt = 1,
-    )
+    private fun game(uri: String) =
+        Game(
+            fileName = "synthetic.gb",
+            fileUri = uri,
+            title = "Synthetic",
+            systemId = "gb",
+            developer = null,
+            coverFrontUrl = null,
+            lastIndexedAt = 1,
+        )
 
     @Test fun sameNamesHaveDifferentIdsAndCopyPreservesIdentityAndAliases() {
         val first = game("content://fixture/a")
@@ -64,16 +70,21 @@ class CartridgeIdentityTest {
     @Test fun failedSramAndStateWritesReachTheCaller() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val blocked = File(context.cacheDir, "blocked-external-root").apply { writeText("sentinel") }
-        val storageContext = object : android.content.ContextWrapper(context) {
-            override fun getExternalFilesDir(type: String?): File = blocked
-        }
+        val storageContext =
+            object : android.content.ContextWrapper(context) {
+                override fun getExternalFilesDir(type: String?): File = blocked
+            }
         val directories = DirectoriesManager(storageContext)
         val game = game("content://fixture/failure").copy(legacyFileName = "blocked-fixture.gb")
         try {
-            val ramFailure = runCatching { SavesManager(directories).setSaveRAM(game, byteArrayOf(1)) }.exceptionOrNull()
-            val stateFailure = runCatching {
-                StatesManager(directories).setAutoSave(game, CoreID.GAMBATTE, SaveState(byteArrayOf(1), SaveState.Metadata()))
-            }.exceptionOrNull()
+            val ramFailure =
+                runCatching { SavesManager(directories).setSaveRAM(game, byteArrayOf(1)) }.exceptionOrNull()
+            val stateFailure =
+                runCatching {
+                    StatesManager(directories).setAutoSave(
+                        game, CoreID.GAMBATTE, SaveState(byteArrayOf(1), SaveState.Metadata()),
+                    )
+                }.exceptionOrNull()
             assertTrue(ramFailure is IOException)
             assertTrue(stateFailure is IOException)
             assertEquals("sentinel", blocked.readText())

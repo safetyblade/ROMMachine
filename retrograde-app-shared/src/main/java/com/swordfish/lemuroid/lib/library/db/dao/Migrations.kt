@@ -15,7 +15,8 @@ object Migrations {
                 database.query("SELECT id FROM games").use { cursor ->
                     while (cursor.moveToNext()) {
                         database.execSQL(
-                            "UPDATE games SET cartridgeId = ?, legacyFileName = fileName, legacySourceUri = fileUri WHERE id = ?",
+                            """UPDATE games SET cartridgeId = ?, legacyFileName = fileName,
+                                legacySourceUri = fileUri WHERE id = ?""",
                             arrayOf(java.util.UUID.randomUUID().toString(), cursor.getInt(0)),
                         )
                     }

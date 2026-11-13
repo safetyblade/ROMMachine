@@ -7,7 +7,10 @@ The starting workspace was clean at `a9b6e4b7cc9674e52f70ce667440047445b81f84`;
 implementation branched from fetched master, not that older checkout.
 Read #145 and #115 including their comment collections (both empty).
 Read the linked architecture and roadmap via Google Docs.
-Open PRs considered: #192 (appearance collections) and #196 (stacked adaptive patterns).
+Open PRs initially considered: #192 (appearance collections) and #196 (stacked adaptive patterns).
+During implementation master advanced to `6aeade19ed1cfdf9c052ef3bd45685468348d8ab`,
+merging #192 and #200 (shared pause menu). That master was merged into the checkpoint
+branch without conflicts. Their changes are inherited, not part of this implementation diff.
 Master already includes Dreamcast controller clearance #190 and Xbox submission #189;
 no controller geometry, appearance, emulator, registration or native code changes here.
 
@@ -155,6 +158,13 @@ blind downgrade or enable destructive fallback. Roll forward with the same packa
 and a higher version code, retaining v12 fields; or restore the complete pre-install snapshot
 under a tested recovery procedure. Do not copy only a live SQLite main file without WAL.
 Old save files remain at original paths. No copy migration was activated in this slice.
+
+## Changed source files
+
+ApplicationModule, Game, RetrogradeDatabase, Migrations; SavesManager, StatesManager,
+StatesPreviewManager, MelonDsSavesMigrator, DesmumeMigrationHandler; BaseGameScreenViewModel
+and the save failure string. Tests: CartridgeIdentityTest, CartridgeMigrationTest,
+SearchMigrationTest, actual schema-11 fixture. No other functional code is changed by this lane.
 
 ## Delivery boundary
 
