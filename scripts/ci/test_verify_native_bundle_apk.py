@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import hashlib
+import io
 import pathlib
 import struct
 import tempfile
@@ -132,6 +133,43 @@ class FullApkContractTest(unittest.TestCase):
         self.entries['AndroidManifest.xml'] = b'baseline manifest'
         with self.assertRaisesRegex(ValueError, 'not registered'):
             verify(self.write_apk(), self.bundle, True, self.host, True, True)
+
+    def xbox360_expansion(self):
+        self.expansion(xbox=True)
+        systems = 'dc,gc,ps2,wii,xbox,xbox360'
+        (self.bundle / 'native-systems.txt').write_text(systems + '\n')
+        self.entries['classes.dex'] = self.entries['classes.dex'].replace(
+            b'dc,gc,ps2,wii,xbox\\0', systems.encode('utf-8') + b'\\0')
+        self.entries['classes.dex'] += (
+            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360Activity;\\0'
+            b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360GameLauncher;\\0'
+        )
+        self.entries['AndroidManifest.xml'] += b'com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Activity'
+        self.entries['lib/arm64-v8a/libcartdeck_xenia.so'] = elf()
+        self.entries['assets/cartdeck/xenia.properties'] = b'revision=779680ade075d2d2a4c589c6a8d57a8e26c116c0'
+        self.entries['assets/cartdeck/xenia/source-manifest.json'] = b'{"revision":"fixture"}'
+        memory = io.BytesIO()
+        with zipfile.ZipFile(memory, 'w') as archive:
+            archive.writestr('LICENSE', 'BSD 3-Clause fixture')
+        self.entries['assets/cartdeck/xenia/xenia-licenses.zip'] = memory.getvalue()
+
+    def test_xbox360_requires_verified_engine_and_isolated_host(self):
+        self.xbox360_expansion()
+        result = verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
+        self.assertTrue(result['xbox360_native_backend_bundled'])
+        del self.entries['lib/arm64-v8a/libcartdeck_xenia.so']
+        with self.assertRaisesRegex(ValueError, 'native engine is missing'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
+
+    def test_xbox360_rejects_missing_provenance_and_host(self):
+        self.xbox360_expansion()
+        del self.entries['assets/cartdeck/xenia/xenia-licenses.zip']
+        with self.assertRaisesRegex(ValueError, 'provenance/licenses missing'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
+        self.xbox360_expansion()
+        self.entries['AndroidManifest.xml'] = b'baseline Android manifest without isolated activity'
+        with self.assertRaisesRegex(ValueError, 'isolated Activity not registered'):
+            verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
 
     def test_existing_five_engine_apk_cannot_pass_as_wii_expansion(self):
         with self.assertRaisesRegex(ValueError, 'Required library systems'):
