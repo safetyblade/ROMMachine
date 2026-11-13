@@ -77,25 +77,41 @@ class CartdeckScreenPolicyTest {
     }
 
     @Test
-    fun tvHidesAllTouchControlsButLandscapeTabletRemainsPlayableWithoutPad() {
+    fun controllerHidesTouchButtonsForEveryScreenClassAndDisconnectRestoresTouch() {
+        for (screen in listOf(CartdeckScreenClass.HANDHELD, CartdeckScreenClass.TABLET)) {
+            assertTrue(
+                CartdeckScreenPolicy.allowTouchOverlay(
+                    screenClass = screen,
+                    externalControllerConnected = false,
+                ),
+            )
+            assertFalse(
+                CartdeckScreenPolicy.allowTouchOverlay(
+                    screenClass = screen,
+                    externalControllerConnected = true,
+                ),
+            )
+            // The device state updates when an enabled controller disconnects.
+            assertTrue(
+                CartdeckScreenPolicy.allowTouchOverlay(
+                    screenClass = screen,
+                    externalControllerConnected = false,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun televisionNeverDrawsTouchControlsEvenWhenPadIsUnplugged() {
         assertFalse(
             CartdeckScreenPolicy.allowTouchOverlay(
                 CartdeckScreenClass.TELEVISION,
-                landscape = true,
-                externalControllerConnected = false,
-            ),
-        )
-        assertTrue(
-            CartdeckScreenPolicy.allowTouchOverlay(
-                CartdeckScreenClass.TABLET,
-                landscape = true,
                 externalControllerConnected = false,
             ),
         )
         assertFalse(
             CartdeckScreenPolicy.allowTouchOverlay(
-                CartdeckScreenClass.TABLET,
-                landscape = true,
+                CartdeckScreenClass.TELEVISION,
                 externalControllerConnected = true,
             ),
         )

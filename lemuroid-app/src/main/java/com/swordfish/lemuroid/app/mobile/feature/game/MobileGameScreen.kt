@@ -161,6 +161,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val effectiveArcSide = sessionChoice.value.sideFor(arcProfile.side)
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(false)
+        // The existing enabled-gamepad flow already hides the main touch pad
+        // on every device. Fullscreen landscape must also hide GripArc and
+        // decorative physical-shell artwork while keeping game input alive.
+        // Any enabled-controller disconnect automatically restores touch.
+        val fullscreenWithGamepad = isLandscape && !touchControlsVisibleState.value
         val touchControllerSettingsState =
             viewModel
                 .getTouchControlsSettings(LocalDensity.current, WindowInsets.displayCutout)
@@ -496,9 +501,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     null
                 }
             val gripPlacement = (gripResolution as? GripArcFit.Fits)?.placement
-            // An optional hardware pad does not hide this virtual accessory:
-            // physical keys and GripArc keys can remain independent owners.
-            val gripEnabled = gripPlacement != null && !isLoading
+            // GripArc is a visual touch accessory. In controller-driven
+            // fullscreen, hide it along with Standard/PivotArc controls.
+            val gripEnabled = gripPlacement != null && !fullscreenWithGamepad && !isLoading
             DisposableEffect(viewModel, gripEnabled) {
                 viewModel.setGripArcEnabled(gripEnabled)
                 onDispose { viewModel.setGripArcEnabled(false) }
@@ -510,7 +515,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 
-            CartdeckConsoleShell(
+            if (!fullscreenWithGamepad) {
+                CartdeckConsoleShell(
                 tokens = shellTokens,
                 videoBounds = viewPos,
                 rootBounds = fullPos,
@@ -532,7 +538,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     } else {
                         emptyList()
                     },
-            )
+                )
+            }
 
             // PivotArc supplies discrete controller rectangles, unlike
             // Standard's composite AB/ABXY controls. Feed the physical-seat
@@ -608,7 +615,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 constraintSet =
                     GameScreenLayout.buildConstraintSet(
                         isLandscape,
-                        currentControllerConfig?.allowTouchOverlay ?: true,
+                        if (fullscreenWithGamepad) true else currentControllerConfig?.allowTouchOverlay ?: true,
                         portraitMode,
                     ),
             ) {
@@ -702,7 +709,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
             }
-            if (gripPlacement != null && !isLoading) {
+            if (gripPlacement != null && !fullscreenWithGamepad && !isLoading) {
                 GripArcControlGroup(
                     placement = gripPlacement,
                     profile = arcProfile,

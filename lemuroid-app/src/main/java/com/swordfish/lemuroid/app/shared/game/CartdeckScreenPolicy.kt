@@ -72,18 +72,15 @@ internal object CartdeckScreenPolicy {
     }
 
     /**
-     * TV never draws a touch overlay. On touch-only handheld/tablet landscape
-     * the player still needs working on-screen inputs until a real controller
-     * is present. This policy is independent of a core's input ID mapping.
+     * A connected, enabled GAME controller hides visual touch controls for
+     * every device class, including fullscreen portrait. Keep controls when
+     * the user is touch-only; TV has no virtual controls even without a pad.
+     * A TV remote is navigation, not an enabled game controller.
+     * Live enabled-device state drives show/hide and hot-unplug recovery.
      */
     fun allowTouchOverlay(
         screenClass: CartdeckScreenClass,
-        landscape: Boolean,
         externalControllerConnected: Boolean,
     ): Boolean =
-        when {
-            screenClass == CartdeckScreenClass.TELEVISION -> false
-            landscape && externalControllerConnected -> false
-            else -> true
-        }
+        screenClass != CartdeckScreenClass.TELEVISION && !externalControllerConnected
 }

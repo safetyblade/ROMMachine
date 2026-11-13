@@ -41,3 +41,11 @@
 
 ## Acceptance and source of truth
 See `display-01-acceptance.md`. Only merge UI controls when their corresponding actions work. Policy is now used by GameLauncher to reject TV/landscape dual-screen before core launch; TVGameActivity routes dedicated remote MENU through the existing side-effect menu pipeline. The policy unit tests are present but CI has not yet confirmed them. Tablet UI, manual TV-mode preference, basic remote without MENU, and aspect-mode renderer integration remain UNIMPLEMENTED.
+
+## Owner addition — universal controller-driven fullscreen (13 November 2026)
+- **All** handheld/tablet landscape fullscreen and TV sessions: when an **enabled gameplay controller** connects, remove **every** drawn visual touch button, GripArc, PivotArc, hardware-button seats and decorative shell. Display the game in all available space. The shared renderer still needs #167 to replace aspect-fit bars with actual **Fill**.
+- Do **not** classify a TV D-pad remote as a game controller simply because it is an input device; remote is retained for navigation and menu access. Never hide the last usable controls on touch-only phone/tablet.
+- **Controller hotplug:** hide instantly on enable/connection; restore phone/tablet touch UI instantly if the last enabled gamepad disconnects or is disabled, without relaunching or losing input/save state. TV always remains buttonless even if no controller exists.
+- **Portrait touch screens:** connecting a usable pad hides touch buttons as the existing enabled-device flow already does; the future selectable fullscreen mode must also remove decorative console artwork and maximize video. Do not silently force portrait handheld into fullscreen merely because a pad was paired.
+- **Manual control visibility / mixed controls:** if a future setting offers simultaneous GripArc + physical input, it must be an explicit opt-in outside universal fullscreen; never silently draw a touch accessory over fullscreen game frames.
+- Device overlays (gestures/system bars) are distinct from emulated controller buttons. Keep a discoverable, accessible menu via hardware Menu / TV remote and fallback for a controller that has no Menu key.
