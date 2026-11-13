@@ -15,6 +15,10 @@ class SavesManager(
     private val directoriesManager: DirectoriesManager,
     private val binding: CartridgeSaveBinding? = null,
 ) {
+    /** Existing DS conversion code must not read an ambiguous global legacy save. */
+    suspend fun mayReadLegacySave(game: Game): Boolean =
+        binding?.mayImportLegacy(game, true) ?: true
+
     suspend fun getSaveRAM(
         game: Game,
         systemCoreConfig: SystemCoreConfig,
