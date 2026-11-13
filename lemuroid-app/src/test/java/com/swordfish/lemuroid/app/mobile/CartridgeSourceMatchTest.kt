@@ -24,12 +24,14 @@ class CartridgeSourceMatchTest {
     )
 
     @Test fun sameDocumentUnderNewTreeRetainsOriginalIdentity() {
-        val original = game(
+        val original =
+            game(
             "content://com.android.externalstorage.documents/tree/volumeA/document/primary%3AROMS%2Ftest.gb",
             12,
             5,
         )
-        val replacement = game(
+        val replacement =
+            game(
             "content://com.android.externalstorage.documents/tree/volumeB/document/primary%3AROMS%2Ftest.gb",
             22,
             10,
@@ -43,14 +45,16 @@ class CartridgeSourceMatchTest {
     @Test fun neverMergePresentOldDocumentOrAmbiguousCandidate() {
         val original = game("content://com.android.externalstorage.documents/document/primary%3Aone", 12, 5)
         val seen = original.copy(lastIndexedAt = 10)
-        val alias = game(
+        val alias =
+            game(
             "content://com.android.externalstorage.documents/tree/changed/document/primary%3Aone",
             22,
             10,
         )
         assertTrue(CartridgeSourceMatch.uniqueRelocations(listOf(original), listOf(seen, alias), 10).isEmpty())
         val other = original.copy(id = 30, fileUri = original.fileUri.replace("document/", "tree/other/document/"))
-        val candidates = CartridgeSourceMatch.uniqueRelocations(
+        val candidates =
+            CartridgeSourceMatch.uniqueRelocations(
             listOf(original, other),
             listOf(original, other, alias),
             10,
@@ -63,7 +67,8 @@ class CartridgeSourceMatchTest {
         val renamed = game("file:///new/old.gb", 2, 10)
         assertTrue(CartridgeSourceMatch.uniqueRelocations(listOf(original), listOf(original, renamed), 10).isEmpty())
         val document = game("content://com.android.externalstorage.documents/document/primary%3Aone", 1, 5)
-        val otherConsole = game(
+        val otherConsole =
+            game(
             "content://com.android.externalstorage.documents/tree/new/document/primary%3Aone",
             2,
             10,
