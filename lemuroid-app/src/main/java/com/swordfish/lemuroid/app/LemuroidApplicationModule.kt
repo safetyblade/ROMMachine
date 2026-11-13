@@ -77,11 +77,11 @@ import dagger.Module
 import dagger.Provides
 import dagger.android.ContributesAndroidInjector
 import dagger.multibindings.IntoSet
+import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Converter
 import retrofit2.Retrofit
-import kotlinx.coroutines.flow.first
 import java.io.InputStream
 import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
