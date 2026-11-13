@@ -77,6 +77,7 @@ object CartdeckSurfaceDesign {
                     )
                 if (cell.width < step * 0.55f || cell.height < step * 0.55f) continue
                 if (blocked.none { intersects(it, cell) }) cells.add(cell)
+                if (cells.size >= 420) return cells
             }
         }
         return cells
