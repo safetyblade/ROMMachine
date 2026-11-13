@@ -1,0 +1,505 @@
+{
+  "schema": "cartdeck.input02.action-matrix.v0.1",
+  "status": "RESEARCH_AND_DESIGN_ONLY",
+  "date": "2026-11-13",
+  "runtimeEnabled": false,
+  "proposedPolicy": {
+    "userChoosesMode": [
+      "CONSOLE_AUTHENTIC",
+      "MODERN_FUNCTION",
+      "CUSTOM"
+    ],
+    "knownTitle": "Automatically apply verified title/edition profile on selecting MODERN_FUNCTION",
+    "consoleGenreFallback": "If genre is CONFIRMED and majority rule is supported by reviewed examples, offer as automatic preset only after mode opt-in; never silently classify title from console alone",
+    "unknown": "Remain CONSOLE_AUTHENTIC; offer inspect/learn controls",
+    "deviceInputOrder": [
+      "physical controller position",
+      "device normalization",
+      "per-cartridge action profile",
+      "native core/controller adapter"
+    ],
+    "inputRequirements": [
+      "source ownership reference counts",
+      "trigger hysteresis and release",
+      "analog precision preserved only if supported",
+      "menu/shortcuts never remapped",
+      "all native actions retained via fallback or alternate assignments",
+      "multiplayer per-port",
+      "no save or ROM migration"
+    ]
+  },
+  "modernDefaults": {
+    "PLATFORMER": {
+      "JUMP": "FACE_SOUTH"
+    },
+    "RACING": {
+      "ACCELERATE": "TRIGGER_RIGHT",
+      "BRAKE_REVERSE": "TRIGGER_LEFT",
+      "STEER": "STICK_LEFT"
+    },
+    "FOOTBALL": {
+      "PRIMARY_PASS": "FACE_SOUTH"
+    },
+    "FIGHTING": {
+      "status": "NO_AUTOMATIC_ACTION_REMAP"
+    }
+  },
+  "profiles": [
+    {
+      "system": "NES",
+      "verifiedTitle": "Super Mario Bros.",
+      "genre": "PLATFORMER",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://manuals.plus/m/ab1bea73e4818cd21d57680baea3d746921ea179d3cee338ab26f9ef8e7cace7",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "JUMP",
+          "modern": "FACE_SOUTH",
+          "original": "A",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "RUN_ATTACK",
+          "modern": "FACE_WEST",
+          "original": "B",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Do not treat NES A as accelerate outside this game's controls."
+    },
+    {
+      "system": "SNES",
+      "verifiedTitle": "Super Mario World",
+      "genre": "PLATFORMER",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.world-of-nintendo.com/manuals/super_nes/super_mario_world.shtml",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "JUMP",
+          "modern": "FACE_SOUTH",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "RUN_ATTACK",
+          "modern": "FACE_WEST",
+          "original": "Y",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "A is spin jump; preserve distinct option, avoid duplicate loss."
+    },
+    {
+      "system": "GENESIS",
+      "verifiedTitle": "Sonic the Hedgehog",
+      "genre": "PLATFORMER",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.gamesdatabase.org/Media/SYSTEM/Sega_Genesis/Manual/formated/Sonic_The_Hedgehog_-_1991_-_Sega.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "JUMP",
+          "modern": "FACE_SOUTH",
+          "original": "B",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Original A/B/C all jump; select B for modern SOUTH; other original key inputs remain available."
+    },
+    {
+      "system": "N64",
+      "verifiedTitle": "Super Mario 64",
+      "genre": "PLATFORMER",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/nintendo_8/Manual_Nintendo64_SuperMario64_EN.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "JUMP",
+          "modern": "FACE_SOUTH",
+          "original": "A",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Original analog stick moves. Other actions need independent verification before replacement."
+    },
+    {
+      "system": "DREAMCAST",
+      "verifiedTitle": "Sonic Adventure",
+      "genre": "PLATFORMER",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.manualslib.com/manual/318256/Sega-Sonic-Adventure.html?page=2",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "JUMP",
+          "modern": "FACE_SOUTH",
+          "original": "A",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Native Dreamcast button-to-RetroPad adapter still applies."
+    },
+    {
+      "system": "SNES",
+      "verifiedTitle": "Super Mario Kart",
+      "genre": "KART_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.world-of-nintendo.com/manuals/super_nes/super_mario_kart.shtml",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "Y",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "DPAD",
+          "signal": "STICK_TO_DIGITAL"
+        }
+      ],
+      "notes": "SNES B (accelerate) differs from Super Mario World B (jump). L/R retain hop/drift. Do not infer from console alone."
+    },
+    {
+      "system": "N64",
+      "verifiedTitle": "Mario Kart 64",
+      "genre": "KART_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/nintendo_8/Manual_Nintendo64_MarioKart64_EN.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "A",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        },
+        {
+          "action": "DRIFT",
+          "modern": "BUMPER_RIGHT",
+          "original": "R",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Keep Z/C-down items, Spin-Turn simultaneous A+B; beware duplicate key ownership."
+    },
+    {
+      "system": "GBA",
+      "verifiedTitle": "Mario Kart: Super Circuit",
+      "genre": "KART_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.world-of-nintendo.com/manuals/game_boy_advance/mario_kart_super_circuit.shtml",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "A",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "DPAD",
+          "signal": "STICK_TO_DIGITAL"
+        },
+        {
+          "action": "DRIFT",
+          "modern": "BUMPER_RIGHT",
+          "original": "R",
+          "signal": "DIGITAL"
+        }
+      ],
+      "notes": "Retain L for items.  GBA A must not become trigger in unrelated GBA games."
+    },
+    {
+      "system": "NDS",
+      "verifiedTitle": "Mario Kart DS",
+      "genre": "KART_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/nintendo_ds_21/Manual_NintendoDS_MarioKartDS_EN.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "A",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "DPAD",
+          "signal": "STICK_TO_DIGITAL"
+        }
+      ],
+      "notes": "Portrait DS only; DS disallowed in TV/landscape DISPLAY-01; no forced input without portrait support."
+    },
+    {
+      "system": "GAMECUBE",
+      "verifiedTitle": "Mario Kart: Double Dash!!",
+      "genre": "KART_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_GameCube/Manual/formated/Mario_Kart-_Double_Dash_-_Nintendo.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "A",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "B",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "L/R can be used to drift; preserve both and Z/X/Y special functions."
+    },
+    {
+      "system": "PSX",
+      "verifiedTitle": "R4: Ridge Racer Type 4",
+      "genre": "RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://secure.cdn.us.playstation.com/manuals/classic/games/r4-ridge-racer-type-4-manual-en.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "CROSS",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "SQUARE",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "DPAD",
+          "signal": "STICK_TO_DIGITAL"
+        }
+      ],
+      "notes": "L1/L2 shift down; R1/R2 shift up originally, remap requires preserving or reassigning shift without collisions."
+    },
+    {
+      "system": "PLAYSTATION_2",
+      "verifiedTitle": "Gran Turismo 3 A-Spec",
+      "genre": "SIM_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://db.hfsplay.fr/files/2019/09/15/Gran_Turismo_3_-_Manual_-_PS2_POJPPqZ.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "CROSS",
+          "signal": "PRESSURE_OR_DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "SQUARE",
+          "signal": "PRESSURE_OR_DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "DualShock2 pressure sensitive Cross/Square. If the chosen core cannot emulate pressure, declare digital-only instead of claiming proportional throttle. Existing L/R triggers operate camera/view/shift; must preserve capabilities."
+    },
+    {
+      "system": "PSP",
+      "verifiedTitle": "Ridge Racer",
+      "genre": "RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://manuals.plus/m/51bfb33ecef95c62155b02e5e0f129ae0f26c1f5d6e6b76d13c59c29f92fc855",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "CROSS",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "SQUARE",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "PSP original R is nitrous, L changes view; preserve."
+    },
+    {
+      "system": "DREAMCAST",
+      "verifiedTitle": "Crazy Taxi",
+      "genre": "ARCADE_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://gamefaqs.gamespot.com/dreamcast/196990-crazy-taxi/faqs/6845",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "TRIGGER_R",
+          "signal": "ANALOG"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "TRIGGER_L",
+          "signal": "ANALOG"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "Already naturally trigger based. Keep A reverse gear, B drive gear, X destination."
+    },
+    {
+      "system": "XBOX",
+      "verifiedTitle": "Forza Motorsport",
+      "genre": "SIM_RACING",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.gamesdatabase.org/Media/SYSTEM/Microsoft_Xbox/Manual/formated/Forza_Motorsport_-_Microsoft_Game_Studios.pdf",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "ACCELERATE",
+          "modern": "TRIGGER_RIGHT",
+          "original": "TRIGGER_R",
+          "signal": "ANALOG"
+        },
+        {
+          "action": "BRAKE_REVERSE",
+          "modern": "TRIGGER_LEFT",
+          "original": "TRIGGER_L",
+          "signal": "ANALOG"
+        },
+        {
+          "action": "STEER",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "Already naturally modern. Black/White and X/B/Y/A retain ancillary control functions."
+    },
+    {
+      "system": "PLAYSTATION_2",
+      "verifiedTitle": "FIFA Soccer 2005",
+      "genre": "FOOTBALL",
+      "titleVariant": "default",
+      "confidence": "TITLE_MANUAL_BACKED",
+      "sourceUrl": "https://www.psxdatacenter.com/games/U/F/SLUS-01585.html",
+      "direction": "MODERN_TO_ORIGINAL",
+      "bindings": [
+        {
+          "action": "PRIMARY_PASS",
+          "modern": "FACE_SOUTH",
+          "original": "CROSS",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "SHOOT",
+          "modern": "FACE_EAST",
+          "original": "CIRCLE",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "LOB_CROSS",
+          "modern": "FACE_WEST",
+          "original": "SQUARE",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "THROUGH_PASS",
+          "modern": "FACE_NORTH",
+          "original": "TRIANGLE",
+          "signal": "DIGITAL"
+        },
+        {
+          "action": "MOVE",
+          "modern": "STICK_LEFT",
+          "original": "STICK_LEFT",
+          "signal": "ANALOG"
+        }
+      ],
+      "notes": "Attacking context only: same keys do other things in defense, throw-ins and menus. Do not promise context-aware automatic mapping."
+    }
+  ]
+}
