@@ -812,7 +812,7 @@ private fun WiiControllerLaunchChoice(
         title = { Text("Wii controller") },
         text = {
             Column {
-                Text("Sideways Wii Remote is the default. Choose a different controller for this session if needed.")
+                Text("Sideways Wii Remote is the default. Your controller choice is saved for this cartridge.")
                 Text("You can switch again at any time from the game's Wii controller menu.")
                 listOf(
                     "wii_sideways" to "Sideways Wii Remote",

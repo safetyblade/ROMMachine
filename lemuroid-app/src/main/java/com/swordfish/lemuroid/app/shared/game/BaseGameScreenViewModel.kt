@@ -132,6 +132,7 @@ class BaseGameScreenViewModel(
             sideEffects,
             pivotArcHeldInputGate,
             viewModelScope,
+            game,
         )
     private val touchControls =
         GameViewModelTouchControls(
