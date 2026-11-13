@@ -45,6 +45,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import xendroid.compose.Emulator as XeniaEmulator
 
 /** One guest per isolated process. Compose owns only CARTDECK controls and the shared pause menu. */
 class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
@@ -54,7 +55,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
-    private var emulator: xendroid.compose.Emulator? = null
+    private var emulator: XeniaEmulator? = null
     private lateinit var engine: XboxEngineStore.Selection
     private lateinit var surface: SurfaceView
     private var contentReady = false
@@ -113,7 +114,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                     "cartdeck.game",
                                 ) as? com.swordfish.lemuroid.lib.library.db.entity.Game,
                             onGripPressed = { slot, pressed, codes ->
-                                if (pressed && !menuOpen && foreground) {
+                                if (pressed && !menuOpen && this@Xbox360Activity.foreground) {
                                     gripSlots[slot] = codes
                                 } else {
                                     gripSlots.remove(
@@ -244,7 +245,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 // System.load uses immutable verified package paths; never use downloaded APK code or a custom driver.
                 System.load(engine.core.absolutePath)
                 emulator =
-                    xendroid.compose.Emulator().apply {
+                    XeniaEmulator().apply {
                         setup_context(this@Xbox360Activity)
                         val data = Xbox360Engine.data(filesDir)
                         setup_launch_args(
