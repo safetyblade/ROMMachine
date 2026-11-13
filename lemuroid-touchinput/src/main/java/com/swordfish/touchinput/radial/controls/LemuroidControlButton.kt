@@ -2,11 +2,13 @@ package com.swordfish.touchinput.radial.controls
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
@@ -23,6 +25,8 @@ fun LemuroidControlButton(
     label: String? = null,
     icon: Int? = null,
 ) {
+    val inventory = LocalCartdeckNativeInputs.current
+    if (inventory != null) SideEffect { inventory("key:${id.value}", setOf("key:${id.value}")) }
     val theme = LocalLemuroidPadTheme.current
     val shape =
         when {

@@ -19,6 +19,19 @@ screenshot or short input trace for failures.
 | Install-over continuity | Install verified newer APK over existing owner build without uninstall | Same package/certificate; newer version; library, saves, save states, VMU and cartridge settings retained |
 | Standalone regressions | Standard-only and PivotArc-only before/after, same handset | Existing layout, viewport, mappings, holds, engines and save behavior unchanged |
 
+## V2.2 refinement checks
+
+The compact runtime contract is now `griparc-v22-manifest.json`, not a scaled V1
+assembly. For each matrix case, verify the smaller full L, italic GripArc mark,
+fixed slots at counts 1 and 4, and illuminated explicit Hold A/B legends in the
+joint mode. Compare each combined native controller to its standalone version:
+all symbols, face compass, shoulder/trigger/stick roles, utility buttons, wells,
+highlights and pressed states must remain identifiable. Include GameCube Z,
+C-Stick and programmable half-trigger codes, Sony digital/DualShock variants,
+Dreamcast's single stick/native trigger pair, and cartridge switching. Unmapped
+profiles must explicitly retain Standard instead of showing a partial controller.
+**V2.2 physical fit, gameplay, themes and install-over remain NOT TESTED here.**
+
 ## Source fixtures and engineering gates
 
 The tests derive the portrait viewport from the production opening: 22dp side

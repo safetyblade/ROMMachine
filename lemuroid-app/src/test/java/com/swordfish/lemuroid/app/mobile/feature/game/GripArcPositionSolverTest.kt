@@ -9,7 +9,7 @@ import java.io.File
 class GripArcPositionSolverTest {
     private val source =
         GripArcManifest.parse(
-            File("src/main/assets/griparc/griparc-v1-manifest.json").readText(),
+            File("src/main/assets/griparc/griparc-v22-manifest.json").readText(),
         )
     private val safe = PivotArcBounds(8f, 8f, 385f, 844f)
     private val video = PivotArcBounds(22f, 84f, 371f, 344f)
@@ -21,9 +21,9 @@ class GripArcPositionSolverTest {
         .placement
 
     @Test fun approvedManifestUsesPermanentLAndExactlyFourStableSlots() {
-        assertEquals("cartdeck.griparc.assets/1.0.0", source.schema)
-        assertEquals(272f, source.artboard.width, 0.001f)
-        assertEquals(308f, source.artboard.height, 0.001f)
+        assertEquals("cartdeck.griparc.assets/2.2.0", source.schema)
+        assertEquals(160f, source.artboard.width, 0.001f)
+        assertEquals(160f, source.artboard.height, 0.001f)
         assertEquals(listOf("G1", "G2", "G3", "G4"), source.slots.map { it.id })
         val right = placement()
         assertEquals(4, right.targets.size)
@@ -67,7 +67,7 @@ class GripArcPositionSolverTest {
         }
     }
 
-    @Test fun occupiedZonesForceSmallerButUnchangedHousing() {
+    @Test fun occupiedZonesNeverClipCompactHousing() {
         val blocker = PivotArcBounds(80f, 590f, 285f, 760f)
         val fit = placement(blockers = listOf(blocker))
         val arms = GripArcPositionSolver.housingFootprint(fit.housing, fit.scale, fit.side)

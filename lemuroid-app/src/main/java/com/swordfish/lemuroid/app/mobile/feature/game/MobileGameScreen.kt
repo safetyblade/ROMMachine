@@ -73,9 +73,9 @@ import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
-import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
 import gg.padkit.PadKit
@@ -181,6 +181,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
         val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
+        val nativeInventory = touchGamePads?.nativeInventory
         val leftGamePad = touchGamePads?.leftComposable
         val rightGamePad = touchGamePads?.rightComposable
 
@@ -219,8 +220,28 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     pivotSettings.hand,
                     effectiveArcMode,
                     effectiveArcSide,
+                    currentControllerConfig?.touchControllerID,
+                    touchControllerSettings,
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                    LocalDensity.current.density,
                 ) {
                     mutableStateMapOf<String, Rect>()
+                }
+            val nativeInputInventory =
+                remember(
+                    viewModel.systemId,
+                    currentControllerConfig?.touchControllerID,
+                    effectiveArcMode,
+                    effectiveArcSide,
+                    touchControllerSettings,
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                    LocalDensity.current.density,
+                ) { mutableStateMapOf<String, Set<String>>() }
+            val observeNativeInputs: (String, Set<String>) -> Unit =
+                remember(nativeInputInventory) {
+                    { owner, ids -> if (nativeInputInventory[owner] != ids) nativeInputInventory[owner] = ids }
                 }
             val observeBounds: (String, Rect) -> Unit =
                 remember(individualInputs) {
@@ -326,6 +347,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val jointPlacement = (compositeResolution as? CompositeDeckResolution.Fits)?.placement
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
             var combinedPlacement: GripArcCombinedPlacement? = null
+            var nativeProfileValidated = false
             val gripResolution: GripArcFit? =
                 if (
                     effectiveArcMode.hasGrip &&
@@ -407,37 +429,55 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 arcProfile.dx,
                                 arcProfile.dy,
                             )
-                        } else if (!selectedPivot && GripArcCombinedLayout.controlsFor(viewModel.systemId) == null) {
+                        } else if (!selectedPivot && nativeInventory == null) {
                             GripArcFit.Unavailable(
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
                                     "Standard remains available; GripArc settings are preserved.",
                             )
                         } else if (!selectedPivot) {
-                            combinedPlacement =
-                                if (!isLandscape) {
-                                    GripArcCombinedLayout.resolve(
-                                        gripManifest, viewModel.systemId, safeBounds, viewportBounds,
-                                        effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                        analogCount =
-                                            when (currentControllerConfig?.touchControllerID) {
-                                                TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE -> 2
-                                                TouchControllerID.PSP -> 1
-                                                // PR #141 adds TouchControllerID.DREAMCAST;
-                                                // keep one left analog available in combined mode.
-                                                else -> if (viewModel.systemId == SystemID.DREAMCAST) 1 else 0
-                                            },
+                            val measured =
+                                individualInputs.mapValues { (_, rect) ->
+                                    PivotArcBounds(
+                                        (rect.left - fullPos.left) / scale,
+                                        (rect.top - fullPos.top) / scale,
+                                        (rect.right - fullPos.left) / scale,
+                                        (rect.bottom - fullPos.top) / scale,
                                     )
-                                } else {
-                                    null
                                 }
-                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
-                                ?: GripArcFit.Unavailable(
-                                    "Compact Standard + GripArc cannot fit on your selected side, " +
-                                        "including its default position. " +
-                                        "Standard controls are available for this session; " +
-                                        "GripArc settings are preserved. " +
-                                        "Use portrait orientation or a larger display.",
+                            val observedIds = nativeInputInventory.values.flatten().toSet()
+                            if (measured.isEmpty() || observedIds.isEmpty()) {
+                                null // Measure the native production layout before attempting combined placement.
+                            } else if (!nativeInventory!!.matchesNativeInputs(observedIds)) {
+                                GripArcFit.Unavailable(
+                                    "GripArc cannot preserve every input in this native controller profile. " +
+                                        "Standard remains available; saved settings are preserved.",
                                 )
+                            } else if (!GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)) {
+                                GripArcFit.Unavailable(
+                                    "This native controller has incomplete measurements. " +
+                                        "Use Standard for this session; your saved GripArc settings are preserved.",
+                                )
+                            } else {
+                                nativeProfileValidated = true
+                                combinedPlacement =
+                                    if (!isLandscape) {
+                                        GripArcCombinedLayout.resolve(
+                                            gripManifest, nativeInventory, observedIds,
+                                            measured, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        )
+                                    } else {
+                                        null
+                                    }
+                                combinedPlacement?.let { GripArcFit.Fits(it.dock) }
+                                    ?: GripArcFit.Unavailable(
+                                        "Compact Standard + GripArc cannot fit on your selected side, " +
+                                            "including its default position. " +
+                                            "Standard controls are available for this session; " +
+                                            "GripArc settings are preserved. " +
+                                            "Use portrait orientation or a larger display.",
+                                    )
+                            }
                         } else if (occupied.any { !it.inside(safeBounds) || it.intersects(viewportBounds.inset(4f)) }) {
                             GripArcFit.Unavailable("Controls need more room below the game screen.")
                         } else {
@@ -501,17 +541,21 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // the first frame. Standard retains its original bound observers.
             val hardwareInputBounds =
                 if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                    (combinedPlacement?.controls ?: pivotPlacement!!.controls).map { (key, bounds) ->
+                    (combinedPlacement?.seats ?: pivotPlacement!!.controls).map { (key, bounds) ->
                         val seatKey =
-                            when (key) {
-                                "D" -> "dpad"
-                                "A", "B", "X", "Y" -> "face-${key.lowercase()}"
-                                "HoldA" -> "hold-a"
-                                "HoldB" -> "hold-b"
-                                "L", "R", "L2", "R2" -> "shoulder-$key"
-                                "AnalogL" -> "analog-left"
-                                "AnalogR" -> "analog-right"
-                                else -> key.lowercase()
+                            if (combinedPlacement != null) {
+                                key
+                            } else {
+                                when (key) {
+                                    "D" -> "dpad"
+                                    "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+                                    "HoldA" -> "hold-a"
+                                    "HoldB" -> "hold-b"
+                                    "L", "R", "L2", "R2" -> "shoulder-$key"
+                                    "AnalogL" -> "analog-left"
+                                    "AnalogR" -> "analog-right"
+                                    else -> key.lowercase()
+                                }
                             }
                         seatKey to
                             Rect(
@@ -541,7 +585,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isDualScreen =
                         portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                     customColours = appearance.custom.isNotEmpty(),
-                    pivotArc = pivotPlacement != null || combinedPlacement != null,
+                    pivotArc = pivotPlacement != null,
                     drawPivotModule = jointPlacement == null,
                 )
             }
@@ -585,6 +629,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     CompositionLocalProvider(
                         LocalLemuroidPadTheme provides controllerTheme,
                         LocalCartdeckControlBounds provides observeBounds,
+                        LocalCartdeckNativeInputs provides
+                            if (effectiveArcMode == ArcControlMode.STANDARD_GRIPARC) {
+                                observeNativeInputs
+                            } else {
+                                null
+                            },
                     ) {
                         if (!isLandscape) {
                             PadContainer(
@@ -643,12 +693,13 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         heldKeys = heldPivotKeys.value,
                         accent = shellTokens.accent,
                         onToggleHold = viewModel::togglePivotArcHold,
+                        combined = jointPlacement != null,
                     )
                 }
             }
             if (combinedPlacement != null && touchControlsVisibleState.value && !isLoading) {
                 CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
-                    GripArcCombinedControls(combinedPlacement!!, viewModel.systemId)
+                    GripArcCombinedControls(combinedPlacement!!)
                 }
             }
             if (gripPlacement != null && !isLoading) {
@@ -671,7 +722,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         (compositeResolution as? CompositeDeckResolution.Unavailable)?.failure ==
                             CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE
                     } else {
-                        GripArcCombinedLayout.controlsFor(viewModel.systemId) != null &&
+                        nativeProfileValidated &&
                             GripArcInputCatalog.forSystem(viewModel.systemId).isNotEmpty()
                     }
             if ((!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&

@@ -106,10 +106,16 @@ enum class TouchControllerID {
             modifier: Modifier,
             settings: TouchControllerSettingsManager.Settings,
         ) -> Unit,
+        val nativeInventory: NativeControlInventory? = null,
     )
 
     companion object {
         fun getConfig(id: TouchControllerID): Config {
+            val native = getNativeConfig(id)
+            return Config(native.leftComposable, native.rightComposable, NativeControlInventory.forController(id))
+        }
+
+        private fun getNativeConfig(id: TouchControllerID): Config {
             return when (id) {
                 GB ->
                     Config(

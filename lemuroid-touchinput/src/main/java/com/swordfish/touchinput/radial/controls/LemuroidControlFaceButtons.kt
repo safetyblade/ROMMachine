@@ -2,11 +2,13 @@ package com.swordfish.touchinput.radial.controls
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import gg.padkit.PadKitScope
 import gg.padkit.anchors.Anchor
@@ -28,6 +30,8 @@ fun LemuroidControlFaceButtons(
     background: @Composable () -> Unit = {},
     idsForegrounds: PersistentMap<Id.Key, @Composable (State<Boolean>) -> Unit>,
 ) {
+    val inventory = LocalCartdeckNativeInputs.current
+    if (inventory != null) SideEffect { inventory("faces", ids.map { "key:${it.value}" }.toSet()) }
     val theme = LocalLemuroidPadTheme.current
     val observe = LocalCartdeckControlBounds.current
     val key = if (ids.size <= 2) "face-ab" else "face-abxy"
@@ -62,6 +66,18 @@ fun LemuroidControlFaceButtons(
     trackPointers: Boolean = true,
     idsForegrounds: PersistentMap<Id.Key, @Composable (State<Boolean>) -> Unit>,
 ) {
+    val inventory = LocalCartdeckNativeInputs.current
+    if (inventory != null) {
+        SideEffect {
+            inventory(
+                "faces",
+                primaryAnchors.flatMap {
+                        anchor ->
+                    anchor.buttons.map { "key:${it.value}" }
+                }.toSet(),
+            )
+        }
+    }
     val theme = LocalLemuroidPadTheme.current
     val observe = LocalCartdeckControlBounds.current
     val key = if (primaryAnchors.size <= 2) "face-ab" else "face-abxy"
