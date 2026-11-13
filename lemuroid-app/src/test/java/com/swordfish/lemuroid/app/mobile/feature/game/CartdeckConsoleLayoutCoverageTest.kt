@@ -121,12 +121,30 @@ class CartdeckConsoleLayoutCoverageTest {
 
     @Test
     fun dreamcastControllerClearanceIsPortraitAndStandaloneOnly() {
-        assertEquals(24.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 780.dp))
-        assertEquals(12.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 600.dp))
-        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, true, 780.dp))
-        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, false, false, 780.dp))
-        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.PLAYSTATION_2, true, false, 780.dp))
-        assertEquals(0.dp, GameScreenLayout.portraitBottomInsetFor(SystemID.GBA, true, false, 780.dp))
+        assertEquals(
+            24.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 780.dp),
+        )
+        assertEquals(
+            12.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, false, 600.dp),
+        )
+        assertEquals(
+            0.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, true, true, 780.dp),
+        )
+        assertEquals(
+            0.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.DREAMCAST, false, false, 780.dp),
+        )
+        assertEquals(
+            0.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.PLAYSTATION_2, true, false, 780.dp),
+        )
+        assertEquals(
+            0.dp,
+            GameScreenLayout.portraitBottomInsetFor(SystemID.GBA, true, false, 780.dp),
+        )
     }
 
     @Test
