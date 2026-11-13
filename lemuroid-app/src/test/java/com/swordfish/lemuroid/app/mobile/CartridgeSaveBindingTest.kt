@@ -12,7 +12,6 @@ import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -121,7 +120,11 @@ class CartridgeSaveBindingTest {
             val scopeHash =
                 MessageDigest.getInstance("SHA-256").digest("shared".toByteArray(Charsets.UTF_8))
                     .joinToString("") { "%02x".format(it) }
-            val candidate = File(dirs.getSavesDirectory(), "cartridges/${game.cartridgeId}/sram/$scopeHash/${legacy.name}")
+            val candidate =
+                File(
+                    dirs.getSavesDirectory(),
+                    "cartridges/${game.cartridgeId}/sram/$scopeHash/${legacy.name}",
+                )
             candidate.parentFile!!.mkdirs()
             candidate.writeBytes(byteArrayOf(99))
             val binding = CartridgeSaveBinding(dirs) { listOf(game) }
