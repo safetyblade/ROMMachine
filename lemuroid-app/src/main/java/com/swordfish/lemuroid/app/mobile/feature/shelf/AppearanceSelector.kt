@@ -435,6 +435,16 @@ fun ShelfAppearanceEditor(
             stagedAssets.filterNot { it in appliedAssets }.forEach(decalStore::discard)
         }
     }
+    var expandedDecoration by remember { mutableStateOf(false) }
+    var modified by remember { mutableStateOf(false) }
+    var expandedEditor by remember { mutableStateOf(false) }
+    var expandedAccessibility by remember { mutableStateOf(false) }
+    val expandedGroups = remember { mutableStateListOf<String>() }
+    var picker by remember { mutableStateOf<String?>(null) }
+    var nameAction by remember { mutableStateOf<String?>(null) }
+    var typedName by remember { mutableStateOf("") }
+    var renameTargetId by remember { mutableStateOf<String?>(null) }
+    var warning by remember { mutableStateOf<String?>(null) }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             coroutineScope.launch {
@@ -448,16 +458,6 @@ fun ShelfAppearanceEditor(
             }
         }
     }
-    var expandedDecoration by remember { mutableStateOf(false) }
-    var modified by remember { mutableStateOf(false) }
-    var expandedEditor by remember { mutableStateOf(false) }
-    var expandedAccessibility by remember { mutableStateOf(false) }
-    val expandedGroups = remember { mutableStateListOf<String>() }
-    var picker by remember { mutableStateOf<String?>(null) }
-    var nameAction by remember { mutableStateOf<String?>(null) }
-    var typedName by remember { mutableStateOf("") }
-    var renameTargetId by remember { mutableStateOf<String?>(null) }
-    var warning by remember { mutableStateOf<String?>(null) }
 
     val base = presetRoles(edition)
     val original = presetRoles("original")
