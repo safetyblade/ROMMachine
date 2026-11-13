@@ -64,8 +64,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckAppearancePreview
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
-import java.util.UUID
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /** Runtime swatches are resolved from the same generated resources used by the cartridges. */
 @Composable
@@ -445,19 +445,20 @@ fun ShelfAppearanceEditor(
     var typedName by remember { mutableStateOf("") }
     var renameTargetId by remember { mutableStateOf<String?>(null) }
     var warning by remember { mutableStateOf<String?>(null) }
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            coroutineScope.launch {
-                runCatching { decalStore.importImage(uri) }
-                    .onSuccess { id ->
-                        stagedAssets.add(id)
-                        decal = CartdeckPersonalDecal(assetId = id)
-                        modified = true
-                        warning = null
-                    }.onFailure { warning = it.message ?: "Could not import artwork" }
+    val imagePicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                coroutineScope.launch {
+                    runCatching { decalStore.importImage(uri) }
+                        .onSuccess { id ->
+                            stagedAssets.add(id)
+                            decal = CartdeckPersonalDecal(assetId = id)
+                            modified = true
+                            warning = null
+                        }.onFailure { warning = it.message ?: "Could not import artwork" }
+                }
             }
         }
-    }
 
     val base = presetRoles(edition)
     val original = presetRoles("original")
@@ -787,12 +788,13 @@ fun ShelfAppearanceEditor(
                                 modified = true
                             }) { Text("Remove decal") }
                             TextButton(onClick = {
-                                decal = current.copy(
-                                    anchor = CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
-                                    scale = 0.65f,
-                                    rotation = 0f,
-                                    opacity = 0.85f,
-                                )
+                                decal =
+                                    current.copy(
+                                        anchor = CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
+                                        scale = 0.65f,
+                                        rotation = 0f,
+                                        opacity = 0.85f,
+                                    )
                                 modified = true
                             }) { Text("Reset placement") }
                         }
