@@ -18,6 +18,7 @@ context(PadKitScope)
 fun BaseLayoutLeft(
     modifier: Modifier = Modifier,
     settings: TouchControllerSettingsManager.Settings,
+    primaryDialSizeFactor: Float = 1f,
     primaryDial: @Composable () -> Unit,
     secondaryDials: @Composable LayoutRadialSecondaryDialsScope.() -> Unit,
 ) {
@@ -40,7 +41,7 @@ fun BaseLayoutLeft(
                 .padding(LocalLemuroidPadTheme.current.padding),
         primaryDial = primaryDial,
         secondaryDials = secondaryDials,
-        primaryDialMaxSize = 160.dp * interpolatedDialSize,
+        primaryDialMaxSize = 160.dp * interpolatedDialSize * primaryDialSizeFactor,
         secondaryDialsBaseRotationInDegrees = settings.rotation * TouchControllerSettingsManager.MAX_ROTATION,
     )
 }
