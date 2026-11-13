@@ -1,0 +1,47 @@
+name: CARTDECK Xbox 360 engineering
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/ci/*xbox360*'
+      - 'scripts/ci/xbox360/**'
+      - 'lemuroid-app/src/**/xbox360/**'
+      - '.github/workflows/cartdeck-xbox360-engineering.yml'
+permissions:
+  contents: read
+concurrency:
+  group: xbox360-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: bash scripts/ci/bootstrap_gradle.sh
+      - run: '"$GRADLE_BIN" ktlintCheck --no-daemon --max-workers=2'
+      - run: python3 -m unittest discover -s scripts/ci -p 'test_xbox360*.py' -v
+  native-xbox360:
+    needs: source-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: sudo apt-get update && sudo apt-get install -y glslang-tools spirv-tools
+      - run: sdkmanager 'ndk;29.0.14206865' 'cmake;3.30.3' 'platforms;android-35'
+      - name: Build pinned native Xbox 360 runtime only
+        run: python3 scripts/ci/build_xbox360_native.py "$RUNNER_TEMP/xbox360"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_XBOX360_NATIVE_ENGINEERING
+          path: ${{ runner.temp }}/xbox360
+          if-no-files-found: error
