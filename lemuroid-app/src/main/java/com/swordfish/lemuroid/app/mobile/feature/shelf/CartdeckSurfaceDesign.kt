@@ -178,7 +178,12 @@ internal fun DrawScope.drawCartdeckSurfaceDesign(
 
     if (stampId == CartdeckSurfaceDesign.STAMP_NONE) return
     val stamp =
-        CartdeckSurfaceDesign.stampSeat(frame, exclusions, requestedSize = cellSize * 2.1f, clearance)
+        CartdeckSurfaceDesign.stampSeat(
+            frame = frame,
+            exclusions = exclusions,
+            requestedSize = cellSize * 2.1f,
+            clearance = clearance,
+        )
             ?: return
     val center = stamp.center
     val radius = minOf(stamp.width, stamp.height) * 0.38f
