@@ -41,15 +41,20 @@ internal fun CartdeckDecalLayer(
                 baseSize = 98.dp.toPx(),
                 clearance = 8.dp.toPx(),
             ) ?: return@Canvas
-        // Inscribed image fits inside the 1.414x safety square at ANY allowed rotation.
+        // The image is aspect-contained in the inscribed square. Its rotation
+        // stays inside the larger exclusion-tested envelope.
+        val image = asset ?: return@Canvas
         val side = seat.width / sqrt(2f)
-        val left = seat.center.x - side / 2f
-        val top = seat.center.y - side / 2f
+        val aspect = image.width.toFloat() / image.height.toFloat()
+        val width = if (aspect >= 1f) side else side * aspect
+        val height = if (aspect >= 1f) side / aspect else side
+        val left = seat.center.x - width / 2f
+        val top = seat.center.y - height / 2f
         rotate(degrees = decal.rotation, pivot = seat.center) {
             drawImage(
-                image = asset!!,
+                image = image,
                 dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
-                dstSize = IntSize(side.roundToInt(), side.roundToInt()),
+                dstSize = IntSize(width.roundToInt(), height.roundToInt()),
                 alpha = decal.opacity,
             )
         }
