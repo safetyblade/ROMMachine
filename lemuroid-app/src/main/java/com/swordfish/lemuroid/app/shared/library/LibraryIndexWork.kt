@@ -53,8 +53,31 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
                     val names =
                         retrogradeDb.gameDao().selectShelfGames().first()
                             .associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
+                    val moves =
+                        report.relocations.associate { relocation ->
+                            shelfGameKey(relocation.systemId, relocation.originalUri) to
+                                shelfGameKey(relocation.systemId, relocation.currentUri)
+                        }
                     ShelfStore(applicationContext).update { layout ->
-                        layout.reconcile(names, removeMissing = true)
+                        val known = layout.sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
+                        // A pre-existing destination shelf key is an ownership conflict;
+                        // keep the original layout rather than overwriting a player's slot.
+                        if (moves.any { (old, new) -> old in known && new in known }) {
+                            throw IllegalStateException("Ambiguous shelf identity move; old layout preserved")
+                        }
+                        val moved =
+                            layout.copy(
+                                sections =
+                                    layout.sections.map { section ->
+                                        section.copy(
+                                            cells =
+                                                section.cells.map { cell ->
+                                                    cell.copy(gameKey = moves[cell.gameKey] ?: cell.gameKey)
+                                                },
+                                        )
+                                    },
+                            )
+                        moved.reconcile(names, removeMissing = true)
                     }
                     report
                 }
