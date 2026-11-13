@@ -23,10 +23,10 @@ data class NamedAppearance(
     val name: String,
     val baseEdition: String,
     val custom: Map<String, Long> = emptyMap(),
-    val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
-    val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = createdAt,
+    val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
 )
 
 /**
