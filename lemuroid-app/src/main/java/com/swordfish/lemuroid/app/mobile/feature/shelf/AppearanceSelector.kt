@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -180,7 +181,13 @@ private fun CuratedDesignOption(
     checked: Boolean,
     onClick: () -> Unit,
 ) {
-    val preview = ShelfAppearance(edition = design.baseEdition, custom = design.colours)
+    val preview =
+        ShelfAppearance(
+            edition = design.baseEdition,
+            custom = design.colours,
+            patternId = design.patternId,
+            stampId = design.stampId,
+        )
     Column(
         modifier =
             Modifier.fillMaxWidth()
@@ -316,6 +323,21 @@ private fun CartdeckConsoleHardwarePreview(
         Canvas(Modifier.fillMaxSize().padding(9.dp)) {
             val w = size.width
             val h = size.height
+            drawCartdeckSurfaceDesign(
+                patternId = appearance.patternId,
+                stampId = appearance.stampId,
+                frame = Rect(0f, 0f, w, h),
+                exclusions =
+                    listOf(
+                        Rect(w * 0.12f, h * 0.07f, w * 0.88f, h * 0.49f),
+                        Rect(w * 0.15f, h * 0.57f, w * 0.47f, h),
+                        Rect(w * 0.51f, h * 0.52f, w * 0.93f, h),
+                    ),
+                lineColour = accent,
+                stampColour = ink,
+                cellSize = maxOf(11.dp.toPx(), minOf(w, h) / 5f),
+                clearance = 2.dp.toPx(),
+            )
             drawRoundRect(
                 secondary,
                 topLeft = Offset(w * 0.12f, h * 0.07f),
@@ -377,6 +399,9 @@ fun ShelfAppearanceEditor(
     val named = remember { mutableStateListOf<NamedAppearance>().apply { addAll(appearance.profiles) } }
     var selectedId by remember { mutableStateOf(appearance.activeProfileId) }
     var selectedDesignId by remember { mutableStateOf(appearance.curatedDesignId) }
+    var patternId by remember { mutableStateOf(appearance.patternId) }
+    var stampId by remember { mutableStateOf(appearance.stampId) }
+    var expandedDecoration by remember { mutableStateOf(false) }
     var modified by remember { mutableStateOf(false) }
     var expandedEditor by remember { mutableStateOf(false) }
     var expandedAccessibility by remember { mutableStateOf(false) }
@@ -400,6 +425,8 @@ fun ShelfAppearanceEditor(
             named.toList(),
             if (modified) null else selectedId,
             if (modified) null else selectedDesignId,
+            patternId,
+            stampId,
         )
 
     fun choosePreset(id: String) {
@@ -407,6 +434,8 @@ fun ShelfAppearanceEditor(
         overrides.clear()
         selectedId = null
         selectedDesignId = null
+        patternId = CartdeckSurfaceDesign.PATTERN_NONE
+        stampId = CartdeckSurfaceDesign.STAMP_NONE
         modified = false
         warning = null
     }
@@ -417,6 +446,8 @@ fun ShelfAppearanceEditor(
         overrides.putAll(item.custom)
         selectedId = item.id
         selectedDesignId = null
+        patternId = item.patternId
+        stampId = item.stampId
         modified = false
         warning = null
     }
@@ -427,6 +458,8 @@ fun ShelfAppearanceEditor(
         overrides.putAll(design.colours)
         selectedId = null
         selectedDesignId = design.id
+        patternId = design.patternId
+        stampId = design.stampId
         modified = false
         warning = null
     }
@@ -595,7 +628,10 @@ fun ShelfAppearanceEditor(
                                 if (i >= 0) {
                                     named[i] =
                                         named[i].copy(
-                                            baseEdition = edition, custom = overrides.toMap(),
+                                            baseEdition = edition,
+                                            custom = overrides.toMap(),
+                                            patternId = patternId,
+                                            stampId = stampId,
                                             updatedAt = System.currentTimeMillis(),
                                         )
                                     modified = false
@@ -604,9 +640,36 @@ fun ShelfAppearanceEditor(
                         }
                     }
                     Text(
-                        "Build your own finish from any starting point. Patterns, stickers and lighting follow.",
+                        "Start from any finish and customise its surface. Personal designs remain yours.",
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    TextButton(onClick = { expandedDecoration = !expandedDecoration }) {
+                        Text(if (expandedDecoration) "Hide patterns and stamps" else "Customise patterns and stamps")
+                    }
+                    if (expandedDecoration) {
+                        Text("Surface pattern", style = MaterialTheme.typography.titleSmall)
+                        CartdeckSurfaceDesign.patterns.forEach { (id, title) ->
+                            TextButton(onClick = {
+                                patternId = id
+                                modified = true
+                            }) {
+                                Text(if (patternId == id) "✓ $title" else title)
+                            }
+                        }
+                        Text("Personal stamp", style = MaterialTheme.typography.titleSmall)
+                        CartdeckSurfaceDesign.stamps.forEach { (id, title) ->
+                            TextButton(onClick = {
+                                stampId = id
+                                modified = true
+                            }) {
+                                Text(if (stampId == id) "✓ $title" else title)
+                            }
+                        }
+                        Text(
+                            "Patterns and stamps are static and never cover gameplay. Personal image import follows separately.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     TextButton(onClick = { expandedEditor = !expandedEditor }) {
                         Text(if (expandedEditor) "Hide colour editor" else "Edit colours and materials")
                     }
@@ -749,6 +812,8 @@ fun ShelfAppearanceEditor(
                                 name = typedName.trim(),
                                 baseEdition = edition,
                                 custom = overrides.toMap(),
+                                patternId = patternId,
+                                stampId = stampId,
                             )
                         named.add(item)
                         selectedId = item.id
