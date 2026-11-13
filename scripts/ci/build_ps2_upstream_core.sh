@@ -30,9 +30,13 @@ fi
 git -C "$src" diff --binary > "$out/source.patch"
 sha256sum "$patch_file" "$out/source.patch" > "$out/patch-sha256.txt"
 build="$work/build"
+# Add debug information without replacing Android toolchain or Release flags.
+printf 'add_compile_options(-g)\n' > "$out/cartdeck-symbols.cmake"
+sha256sum "$out/cartdeck-symbols.cmake" >> "$out/patch-sha256.txt"
 cmake -S "$src" -B "$build" -G Ninja \
     -DBUILD_LIBRETRO_CORE=ON -DBUILD_PLAY=OFF -DBUILD_TESTS=OFF \
     -DCMAKE_BUILD_TYPE=Release -DANDROID_ABI=arm64-v8a \
+    -DCMAKE_PROJECT_INCLUDE="$out/cartdeck-symbols.cmake" \
     -DANDROID_NDK="$ANDROID_NDK_HOME" -DANDROID_PLATFORM=android-28 \
     -DANDROID_STL=c++_static \
     -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384 \
@@ -43,6 +47,8 @@ test -s "$core"
 toolbin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
 # Keep the unstripped build output for debugging; verify the exact packaged copy.
 "$toolbin/llvm-strip" --strip-unneeded -o "$out/libplay_modern_libretro_android.so" "$core"
+python3 "$root/scripts/ci/native_symbols.py" --readelf "$toolbin/llvm-readelf" retain \
+    --unstripped "$core" --packaged "$out/libplay_modern_libretro_android.so" --output "$out/symbols"
 core="$out/libplay_modern_libretro_android.so"
 "$toolbin/llvm-readelf" -h -lW "$core" > "$out/elf.txt"
 grep -q 'Machine:.*AArch64' "$out/elf.txt"

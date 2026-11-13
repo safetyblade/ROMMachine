@@ -76,6 +76,10 @@ allprojects {
             project.android.compileSdkVersion 35
             project.android.ndkVersion '$NDK_VERSION'
             project.android.defaultConfig.ndk.abiFilters.add('arm64-v8a')
+            project.android.defaultConfig.externalNativeBuild.cmake {
+                cFlags '-g'
+                cppFlags '-g'
+            }
             project.publishing.publications.release {
                 groupId = 'com.github.Swordfish90'
                 artifactId = 'LibretroDroid'
@@ -94,6 +98,9 @@ GRADLE
 )
 ARTIFACT="$MAVEN_REPO/com/github/Swordfish90/LibretroDroid/$VERSION/LibretroDroid-$VERSION.aar"
 [[ -f "$ARTIFACT" ]]
+python3 "$ROOT/scripts/ci/native_symbols.py" \
+    --readelf "$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+    retain-aar --aar "$ARTIFACT" --search "$SOURCE/libretrodroid" --output "$WORK/symbols"
 {
     printf 'source=https://github.com/Swordfish90/LibretroDroid\nrevision=%s\n' "$REVISION"
     printf 'abi=arm64-v8a\nndk=%s\n' "$NDK_VERSION"

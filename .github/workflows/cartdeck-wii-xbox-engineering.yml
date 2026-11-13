@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/audit_cartdeck_brand.py
+          python3 -m unittest discover -s scripts/ci -p 'test_native_symbols.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_native_bundle_apk.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_stage_native_bundle.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_hakux_native.py' -v
@@ -134,6 +135,15 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Retain exact Play native symbols for handset traces
+        if: matrix.engine == 'ps2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps2-native-symbols
+          path: work/native-packages/ps2/symbols/
+          if-no-files-found: error
+          retention-days: 14
+
   native-host:
     name: Patched Android graphics and input host
     needs: [source-preflight]
@@ -177,6 +187,14 @@ jobs:
           path: work/host-package/
           if-no-files-found: error
           retention-days: 1
+
+      - name: Retain exact Android host symbols for handset traces
+        uses: actions/upload-artifact@v4
+        with:
+          name: libretrodroid-native-symbols
+          path: ${{ runner.temp }}/cartdeck-host/symbols/
+          if-no-files-found: error
+          retention-days: 14
 
   native-xbox:
     name: Android ARM64 hakuX SDL3 backend
