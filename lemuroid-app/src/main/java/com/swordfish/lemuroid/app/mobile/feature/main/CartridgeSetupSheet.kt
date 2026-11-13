@@ -75,7 +75,11 @@ internal fun CartridgeSetupSheet(
                 listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting").forEach { name ->
                     TextButton(
                         onClick = { section = name },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("cartridge_setup_section_$name"),
                     ) { Text(name) }
                 }
             } else {
