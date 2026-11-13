@@ -87,6 +87,7 @@ fun ShelfBoard(
         if (layout.appearance.highContrast) CartdeckSurfaceDesign.PATTERN_NONE else layout.appearance.patternId
     val decorationStamp =
         if (layout.appearance.highContrast) CartdeckSurfaceDesign.STAMP_NONE else layout.appearance.stampId
+    val personalDecal = if (layout.appearance.highContrast) null else layout.appearance.decal
     val byKey = remember(games) { games.associateBy { shelfGameKey(it.systemId, it.fileUri) } }
     val positions = remember { mutableStateMapOf<String, Pair<Rect, DropPosition>>() }
     var dragging by remember { mutableStateOf<String?>(null) }
@@ -120,6 +121,14 @@ fun ShelfBoard(
                     clearance = 12.dp.toPx(),
                 )
             }
+        }
+        if (personalDecal != null) {
+            // Controller-first/TV-sized library: theme identity is visible in
+            // navigation, never on top of the running game or native input.
+            CartdeckDecalLayer(
+                decal = personalDecal,
+                exclusions = emptyList(),
+            )
         }
         val columns = maxOf(1, floor((maxWidth.value - 24f) / 72f).toInt())
         val width = ((maxWidth.value - 24f - 4f * (columns - 1)) / columns).dp.coerceAtLeast(48.dp)
