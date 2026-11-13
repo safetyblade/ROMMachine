@@ -111,7 +111,7 @@ def stage_xbox360(source, readelf):
         listed.add(relative)
         if not (source / relative).is_file() or sha(source / relative) != digest:
             raise ValueError('Xbox 360: package checksum mismatch: ' + relative)
-    if not set(names) | {'xenia.properties', 'xenia-licenses.zip', 'source-manifest.json'} <= listed:
+    if not (set(names) | {'xenia.properties', 'xenia-licenses.zip', 'source-manifest.json'}) <= listed:
         raise ValueError('Xbox 360: incomplete engine/source-notice package')
     if props.get('core.sha256') != sha(source / core):
         raise ValueError('Xbox 360: core checksum mismatch')
@@ -133,7 +133,8 @@ def stage_xbox360(source, readelf):
             symbols = subprocess.check_output([readelf, '--dyn-syms', '-W', str(path)], text=True)
             if 'JNI_OnLoad' not in symbols:
                 raise ValueError('Xbox 360: missing JNI_OnLoad')
-            if props.get('native.build_id') not in note:
+            expected_id = props.get('native.build_id', '')
+            if not re.fullmatch('[0-9a-f]+', expected_id) or ('Build ID: ' + expected_id) not in note:
                 raise ValueError('Xbox 360: wrong core build ID')
         entries.append((path, 'jniLibs/arm64-v8a/' + name))
     with zipfile.ZipFile(source / 'xenia-licenses.zip') as licenses:
