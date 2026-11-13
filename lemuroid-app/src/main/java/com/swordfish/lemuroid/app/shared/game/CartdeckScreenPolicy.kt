@@ -81,6 +81,5 @@ internal object CartdeckScreenPolicy {
     fun allowTouchOverlay(
         screenClass: CartdeckScreenClass,
         externalControllerConnected: Boolean,
-    ): Boolean =
-        screenClass != CartdeckScreenClass.TELEVISION && !externalControllerConnected
+    ): Boolean = screenClass != CartdeckScreenClass.TELEVISION && !externalControllerConnected
 }
