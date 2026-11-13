@@ -907,11 +907,18 @@ fun ShelfAppearanceEditor(
                             } else {
                                 draft
                             }
-                        appliedAssets = stagedAssets.filter { asset ->
-                            saved.decal?.assetId == asset ||
-                                saved.profiles.any { it.decal?.assetId == asset }
-                        }.toSet()
+                        val toKeep =
+                            stagedAssets.filter { asset ->
+                                saved.decal?.assetId == asset ||
+                                    saved.profiles.any { it.decal?.assetId == asset }
+                            }.toSet()
+                        val result = runCatching { toKeep.forEach(decalStore::promote) }
+                        if (result.isFailure) {
+                            warning = result.exceptionOrNull()?.message ?: "Could not save artwork"
+                            return@TextButton
+                        }
                         onSave(saved)
+                        appliedAssets = toKeep
                         onDismiss()
                     }) { Text("Apply") }
                 }
