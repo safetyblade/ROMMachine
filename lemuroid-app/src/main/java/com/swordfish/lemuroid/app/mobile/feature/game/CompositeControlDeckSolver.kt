@@ -94,7 +94,7 @@ internal object CompositeControlDeckSolver {
             val dock = (dockFit as? GripArcFit.Fits)?.placement ?: continue
             val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, hand)
             val reserved = arms + dock.targets.values
-            for (scale in listOf(1.08f, 1f)) {
+            for (scale in listOf(1.08f, 1f, 0.9f, 0.8f, 0.7f)) {
                 val source =
                     (active.filterNot { it in utilities } + listOf("X", "Y")).distinct().associateWith { key ->
                         val spec = baseline.buttonCenters.getValue(key)

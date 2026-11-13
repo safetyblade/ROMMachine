@@ -94,6 +94,46 @@ class GripArcCombinedLayoutTest {
         }
     }
 
+    @Test fun oversizedStandardArtworkReflowsAfterDockReservation() {
+        for (device in ControlDeckDeviceFixture.representative) for (side in GripArcSide.values()) {
+            for (controller in controllers) {
+                val native = NativeControlInventory.forController(controller)!!
+                // Complete observations can be unusably large or outside the current safe region.
+                val oversized =
+                    measured(native).mapValues { (_, r) ->
+                        PivotArcBounds(r.left * 2f, r.top * 2f, r.right * 2f, r.bottom * 2f)
+                    }
+                val p =
+                    GripArcCombinedLayout.resolve(
+                        manifest, native, native.inputIds, oversized,
+                        device.safe, device.viewport, side, 0f, 0f,
+                    )
+                assertNotNull("responsive $controller $side $device", p)
+                assertTrue(p!!.complete)
+                val reserved =
+                    GripArcPositionSolver.housingFootprint(p.dock.housing, p.dock.scale, side) +
+                        p.dock.targets.values
+                val boxes = p.controls.values.toList()
+                boxes.forEach {
+                    assertTrue(it.width >= 48f && it.height >= 48f)
+                    assertTrue(it.inside(device.safe))
+                    assertFalse(it.intersects(device.viewport))
+                    assertTrue(reserved.none { r -> r.intersects(it) })
+                }
+                for (i in boxes.indices) for (j in i + 1 until boxes.size) {
+                    assertFalse(boxes[i].intersects(boxes[j]))
+                }
+                assertEquals(
+                    p,
+                    GripArcCombinedLayout.resolve(
+                        manifest, native, native.inputIds, oversized,
+                        device.safe, device.viewport, side, 0f, 0f,
+                    ),
+                )
+            }
+        }
+    }
+
     @Test fun missingNativeGeometryIsRejectedRatherThanDroppingControls() {
         val native = NativeControlInventory.forController(TouchControllerID.PSX_DUALSHOCK)!!
         val d = ControlDeckDeviceFixture(393f, 852f)
