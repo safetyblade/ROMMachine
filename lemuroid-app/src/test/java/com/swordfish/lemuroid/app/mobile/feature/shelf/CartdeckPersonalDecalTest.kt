@@ -89,36 +89,38 @@ class CartdeckPersonalDecalTest {
     }
 
     @Test
-    fun imageImportIsPrivateStagedAndCopiesCanShareTheSameArtwork() = runBlocking {
-        val app = ApplicationProvider.getApplicationContext<Application>()
-        val store = CartdeckDecalStore(app)
-        val input = File(app.cacheDir, "cartdeck-test-decal.png")
-        val bmp = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
-        input.outputStream().use { assertTrue(bmp.compress(Bitmap.CompressFormat.PNG, 100, it)) }
-        bmp.recycle()
-        val id = store.importImage(Uri.fromFile(input))
-        try {
-            val staging = File(app.cacheDir, "cartdeck/decal-pending/$id.png")
-            val durable = File(app.filesDir, "cartdeck/decals/$id.png")
-            assertTrue(staging.isFile)
-            assertNotNull(store.readImage(id))
-            store.promote(id)
-            assertTrue(durable.isFile)
-            assertFalse(staging.exists())
-            val saved =
-                ShelfAppearance(decal = CartdeckPersonalDecal(id)).saveNewProfile("Custom", 100L)
-            val copied = saved.duplicateProfile(saved.profiles.first().id, now = 200L)
-            assertEquals(id, copied.profiles.last().decal?.assetId)
-            val recreated = decode(encode(ShelfLayout(appearance = copied))).appearance
-            assertEquals(copied, recreated)
-            durable.setLastModified(System.currentTimeMillis() - 12 * 60 * 1000L)
-            store.pruneUnused(copied)
-            assertTrue("Shared personal image is still referenced", durable.exists())
-            store.pruneUnused(ShelfAppearance())
-            assertFalse("Unreferenced image can be removed", durable.exists())
-        } finally {
-            store.discard(id)
-            input.delete()
+    fun imageImportIsPrivateStagedAndCopiesCanShareTheSameArtwork() {
+        runBlocking {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            val store = CartdeckDecalStore(app)
+            val input = File(app.cacheDir, "cartdeck-test-decal.png")
+            val bmp = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+            input.outputStream().use { assertTrue(bmp.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bmp.recycle()
+            val id = store.importImage(Uri.fromFile(input))
+            try {
+                val staging = File(app.cacheDir, "cartdeck/decal-pending/$id.png")
+                val durable = File(app.filesDir, "cartdeck/decals/$id.png")
+                assertTrue(staging.isFile)
+                assertNotNull(store.readImage(id))
+                store.promote(id)
+                assertTrue(durable.isFile)
+                assertFalse(staging.exists())
+                val saved =
+                    ShelfAppearance(decal = CartdeckPersonalDecal(id)).saveNewProfile("Custom", 100L)
+                val copied = saved.duplicateProfile(saved.profiles.first().id, now = 200L)
+                assertEquals(id, copied.profiles.last().decal?.assetId)
+                val recreated = decode(encode(ShelfLayout(appearance = copied))).appearance
+                assertEquals(copied, recreated)
+                durable.setLastModified(System.currentTimeMillis() - 12 * 60 * 1000L)
+                store.pruneUnused(copied)
+                assertTrue("Shared personal image is still referenced", durable.exists())
+                store.pruneUnused(ShelfAppearance())
+                assertFalse("Unreferenced image can be removed", durable.exists())
+            } finally {
+                store.discard(id)
+                input.delete()
+            }
         }
     }
 }
