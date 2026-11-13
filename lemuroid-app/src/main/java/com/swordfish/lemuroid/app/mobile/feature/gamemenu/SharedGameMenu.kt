@@ -33,6 +33,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +59,10 @@ internal fun GameMenuTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val saved = appearance ?: remember(context) { ShelfStore(context).read().appearance }
+    val persisted by produceState(initialValue = ShelfAppearance(), key1 = context) {
+        value = ShelfStore(context).read().appearance
+    }
+    val saved = appearance ?: persisted
     AppTheme { CartridgeLibraryTheme(saved, content) }
 }
 
