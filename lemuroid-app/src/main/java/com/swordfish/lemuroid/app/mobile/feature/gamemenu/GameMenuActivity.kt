@@ -8,45 +8,21 @@ import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesViewModel
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
@@ -140,49 +116,29 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun GameMenuScreen(gameMenuRequest: GameMenuRequest) {
-        AppTheme {
+        GameMenuTheme {
             val navController = rememberNavController()
-            val navBackStackEntry = navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry.value?.destination
-
-            val currentRoute =
-                currentDestination?.route
-                    ?.let { GameMenuRoute.findByRoute(it) }
-                    ?: GameMenuRoute.HOME
-
-            SideMenu {
-                TopAppBar(
-                    title = {
-                        Text(
-                            when (currentRoute) {
-                                GameMenuRoute.GRIPARC -> "GripArc"
-                                GameMenuRoute.CONTROLS -> "Controls"
-                                else -> stringResource(currentRoute.titleId)
-                            },
-                        )
-                    },
-                    windowInsets = WindowInsets(0.dp),
-                    navigationIcon = {
-                        AnimatedContent(targetState = currentRoute.canGoBack(), label = "Back") { canGoBack ->
-                            if (canGoBack) {
-                                IconButton(onClick = { navController.popBackStack() }) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
-                                        stringResource(R.string.back),
-                                    )
-                                }
-                            } else {
-                                IconButton(onClick = { onResult { } }) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        stringResource(R.string.close),
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
-                Divider(modifier = Modifier.fillMaxWidth())
+            val entry = navController.currentBackStackEntryAsState().value
+            val route = entry?.destination?.route?.let { GameMenuRoute.findByRoute(it) } ?: GameMenuRoute.HOME
+            val page =
+                when (route) {
+                    GameMenuRoute.HOME -> "Paused"
+                    GameMenuRoute.CONTROLS -> "Controls"
+                    GameMenuRoute.STATES -> "Save / Load"
+                    GameMenuRoute.OPTIONS -> "Game Settings"
+                    GameMenuRoute.ADVANCED -> "Advanced"
+                    GameMenuRoute.GRIPARC -> "GripArc"
+                    GameMenuRoute.PIVOTARC -> "PivotArc"
+                    else -> stringResource(route.titleId)
+                }
+            GameMenuPanel(
+                gameMenuRequest.game.displayName(),
+                com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel(gameMenuRequest.game.systemId),
+                page,
+                route.canGoBack(),
+                onBack = { if (!navController.popBackStack()) onResult { } },
+                onResume = { onResult { } },
+            ) {
                 NavHost(
                     modifier =
                         Modifier
@@ -194,6 +150,11 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 ) {
                     composable(GameMenuRoute.HOME) {
                         GameMenuHomeScreen(navController, gameMenuRequest, ::onResult)
+                    }
+                    composable(GameMenuRoute.STATES) { GameMenuStatesHome(navController, gameMenuRequest) }
+                    composable(GameMenuRoute.ADVANCED) { GameMenuAdvancedScreen(gameMenuRequest, ::onResult) }
+                    composable(GameMenuRoute.PIVOTARC) {
+                        com.swordfish.lemuroid.app.mobile.feature.settings.layout.PivotArcSettingsScreen()
                     }
                     composable(GameMenuRoute.SAVE) {
                         GameMenuStatesScreen(
@@ -230,45 +191,19 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                         )
                     }
                     composable(GameMenuRoute.CONTROLS) {
-                        GameMenuControlsScreen(navController, gameMenuRequest, ::onResult)
+                        GameMenuControlsScreen(navController, gameMenuRequest, ::onResult) {
+                            com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions(
+                                viewModel(factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager)),
+                                gameMenuRequest,
+                            )
+                        }
                     }
                     composable(GameMenuRoute.GRIPARC) {
                         GripArcEditorScreen(gameMenuRequest.game)
                     }
                     composable(GameMenuRoute.OPTIONS) {
-                        GameMenuCoreOptionsScreen(
-                            viewModel(
-                                factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager),
-                            ),
-                            gameMenuRequest,
-                        )
+                        GameMenuCoreOptionsScreen(gameMenuRequest)
                     }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun SideMenu(content: @Composable () -> Unit) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            val panelWidth =
-                remember(maxWidth) {
-                    minOf(maxWidth * 0.8f, 400f.dp)
-                }
-
-            Surface(
-                modifier =
-                    Modifier
-                        .padding()
-                        .fillMaxHeight()
-                        .width(panelWidth)
-                        .clip(MaterialTheme.shapes.large),
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    content()
                 }
             }
         }

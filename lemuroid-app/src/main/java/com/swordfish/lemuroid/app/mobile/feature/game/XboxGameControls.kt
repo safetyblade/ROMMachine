@@ -39,6 +39,7 @@ import android.graphics.Rect as AndroidRect
 @Composable
 fun XboxGameControls(
     onInput: (List<InputEvent>) -> Unit,
+    settingsManager: TouchControllerSettingsManager? = null,
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
@@ -82,7 +83,10 @@ fun XboxGameControls(
                 ),
             )
         }
-    val manager = remember { TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(context)) }
+    val manager =
+        settingsManager ?: remember {
+            TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(context))
+        }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
         val orientation =

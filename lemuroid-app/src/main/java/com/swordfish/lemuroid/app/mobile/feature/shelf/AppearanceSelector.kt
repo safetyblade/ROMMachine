@@ -173,6 +173,60 @@ private fun EditionOption(
     }
 }
 
+/** First-party designs are immutable selections; only Save as new creates a user-owned copy. */
+@Composable
+private fun CuratedDesignOption(
+    design: CartdeckCuratedDesign,
+    checked: Boolean,
+    onClick: () -> Unit,
+) {
+    val preview = ShelfAppearance(edition = design.baseEdition, custom = design.colours)
+    Column(
+        modifier =
+            Modifier.fillMaxWidth()
+                .border(
+                    if (checked) 2.dp else 1.dp,
+                    if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    RoundedCornerShape(12.dp),
+                ).clickable(onClick = onClick)
+                .semantics {
+                    selected = checked
+                    contentDescription = design.title + ", custom design"
+                }.padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Text(
+            if (checked) "✓ 001 · " + design.title else "001 · " + design.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(design.description, style = MaterialTheme.typography.bodySmall)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text("Handheld", style = MaterialTheme.typography.labelSmall)
+                CartdeckConsoleHardwarePreview(preview, height = 96.dp)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("Shelf", style = MaterialTheme.typography.labelSmall)
+                CartdeckAppearancePreview(preview, height = 96.dp)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("chassis", "secondary", "accent", "focus", "onChassis").forEach { role ->
+                Box(
+                    Modifier.size(23.dp)
+                        .background(Color(design.colours.getValue(role).toInt()), CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+            }
+        }
+        Text(
+            "Colour finish available now. Patterns, stamps and LED effects follow in later phases.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
 @Composable
 private fun ColourPicker(
     role: String,
@@ -322,9 +376,9 @@ fun ShelfAppearanceEditor(
     val overrides = remember { mutableStateMapOf<String, Long>().apply { putAll(appearance.custom) } }
     val named = remember { mutableStateListOf<NamedAppearance>().apply { addAll(appearance.profiles) } }
     var selectedId by remember { mutableStateOf(appearance.activeProfileId) }
+    var selectedDesignId by remember { mutableStateOf(appearance.curatedDesignId) }
     var modified by remember { mutableStateOf(false) }
     var expandedEditor by remember { mutableStateOf(false) }
-    var expandedNames by remember { mutableStateOf(false) }
     var expandedAccessibility by remember { mutableStateOf(false) }
     val expandedGroups = remember { mutableStateListOf<String>() }
     var picker by remember { mutableStateOf<String?>(null) }
@@ -345,12 +399,14 @@ fun ShelfAppearanceEditor(
             reducedMotion,
             named.toList(),
             if (modified) null else selectedId,
+            if (modified) null else selectedDesignId,
         )
 
     fun choosePreset(id: String) {
         edition = id
         overrides.clear()
         selectedId = null
+        selectedDesignId = null
         modified = false
         warning = null
     }
@@ -360,6 +416,17 @@ fun ShelfAppearanceEditor(
         overrides.clear()
         overrides.putAll(item.custom)
         selectedId = item.id
+        selectedDesignId = null
+        modified = false
+        warning = null
+    }
+
+    fun chooseCuratedDesign(design: CartdeckCuratedDesign) {
+        edition = design.baseEdition
+        overrides.clear()
+        overrides.putAll(design.colours)
+        selectedId = null
+        selectedDesignId = design.id
         modified = false
         warning = null
     }
@@ -418,19 +485,41 @@ fun ShelfAppearanceEditor(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "Customise your console hardware and cartridge shelf together.",
+                        "Choose a base colour, explore a custom design, or create your own.",
                         style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text("Base colours", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "The original CARTDECK editions.",
+                        style = MaterialTheme.typography.bodySmall,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("original", "pink", "green").forEach { id ->
                             EditionOption(
                                 id,
-                                checked = edition == id && selectedId == null,
+                                checked =
+                                    edition == id && selectedId == null &&
+                                        selectedDesignId == null && overrides.isEmpty(),
                                 modifier = Modifier.weight(1f),
                                 onClick = { choosePreset(id) },
                             )
                         }
                     }
+                    HorizontalDivider()
+                    Text("Custom designs", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "CARTDECK-designed finishes. Choose one, or save a personal variation below.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    CartdeckCuratedDesigns.designs.forEach { design ->
+                        CuratedDesignOption(
+                            design = design,
+                            checked = selectedDesignId == design.id && !modified,
+                            onClick = { chooseCuratedDesign(design) },
+                        )
+                    }
+                    HorizontalDivider()
+                    Text("Current preview", style = MaterialTheme.typography.titleSmall)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -444,68 +533,19 @@ fun ShelfAppearanceEditor(
                             CartdeckAppearancePreview(draft, height = 118.dp)
                         }
                     }
-                    TextButton(onClick = { expandedEditor = !expandedEditor }) {
-                        Text(if (expandedEditor) "Hide colours" else "Customise colours")
-                    }
-                    if (expandedEditor) {
-                        roles.forEach { (group, tokens) ->
-                            TextButton(onClick = {
-                                if (group in expandedGroups) {
-                                    expandedGroups.remove(group)
-                                } else {
-                                    expandedGroups.add(group)
-                                }
-                            }) { Text(if (group in expandedGroups) "▾ " + group else "▸ " + group) }
-                            if (group in expandedGroups) {
-                                tokens.forEach { (key, label) ->
-                                    val color = overrides[key]?.let { Color(it.toInt()) } ?: base.getValue(key)
-                                    Row(
-                                        Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Row(
-                                            Modifier.weight(1f).clickable { picker = key }
-                                                .semantics {
-                                                    contentDescription = "$label, ${colourHex(color)}, change colour"
-                                                }.padding(vertical = 5.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        ) {
-                                            Box(
-                                                Modifier.size(44.dp).background(color, RoundedCornerShape(8.dp))
-                                                    .border(
-                                                        1.dp,
-                                                        MaterialTheme.colorScheme.outline,
-                                                        RoundedCornerShape(8.dp),
-                                                    ),
-                                            )
-                                            Column {
-                                                Text(label, style = MaterialTheme.typography.bodyMedium)
-                                                Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
-                                            }
-                                        }
-                                        if (overrides.containsKey(key)) {
-                                            TextButton(onClick = {
-                                                overrides.remove(key)
-                                                modified = true
-                                            }) { Text("Reset") }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        TextButton(onClick = {
-                            overrides.clear()
-                            modified = true
-                        }) {
-                            Text("Reset custom colours")
-                        }
-                    }
                     HorizontalDivider()
-                    TextButton(onClick = { expandedNames = !expandedNames }) {
-                        Text(if (expandedNames) "▾ My appearances" else "▸ My appearances")
+                    Text("My appearances", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Save, edit, copy, rename and delete your own looks. Factory designs stay unchanged.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (named.isEmpty()) {
+                        Text(
+                            "No saved appearances yet. Select a base colour or custom design, then Save as new.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
-                    if (expandedNames) {
+                    Column {
                         named.forEach { item ->
                             Row(
                                 Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -561,6 +601,67 @@ fun ShelfAppearanceEditor(
                                     modified = false
                                 }
                             }) { Text("Update selected") }
+                        }
+                    }
+                    Text(
+                        "Build your own finish from any starting point. Patterns, stickers and lighting follow.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    TextButton(onClick = { expandedEditor = !expandedEditor }) {
+                        Text(if (expandedEditor) "Hide colour editor" else "Edit colours and materials")
+                    }
+                    if (expandedEditor) {
+                        roles.forEach { (group, tokens) ->
+                            TextButton(onClick = {
+                                if (group in expandedGroups) {
+                                    expandedGroups.remove(group)
+                                } else {
+                                    expandedGroups.add(group)
+                                }
+                            }) { Text(if (group in expandedGroups) "▾ " + group else "▸ " + group) }
+                            if (group in expandedGroups) {
+                                tokens.forEach { (key, label) ->
+                                    val color = overrides[key]?.let { Color(it.toInt()) } ?: base.getValue(key)
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Row(
+                                            Modifier.weight(1f).clickable { picker = key }
+                                                .semantics {
+                                                    contentDescription = "$label, ${colourHex(color)}, change colour"
+                                                }.padding(vertical = 5.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Box(
+                                                Modifier.size(44.dp).background(color, RoundedCornerShape(8.dp))
+                                                    .border(
+                                                        1.dp,
+                                                        MaterialTheme.colorScheme.outline,
+                                                        RoundedCornerShape(8.dp),
+                                                    ),
+                                            )
+                                            Column {
+                                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                                Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                        if (overrides.containsKey(key)) {
+                                            TextButton(onClick = {
+                                                overrides.remove(key)
+                                                modified = true
+                                            }) { Text("Reset") }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        TextButton(onClick = {
+                            overrides.clear()
+                            modified = true
+                        }) {
+                            Text("Reset custom colours")
                         }
                     }
                     HorizontalDivider()
@@ -651,6 +752,7 @@ fun ShelfAppearanceEditor(
                             )
                         named.add(item)
                         selectedId = item.id
+                        selectedDesignId = null
                         modified = false
                     }
                     nameAction = null

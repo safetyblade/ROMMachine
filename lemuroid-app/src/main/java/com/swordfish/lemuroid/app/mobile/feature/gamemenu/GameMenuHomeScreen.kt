@@ -16,6 +16,7 @@ import androidx.navigation.NavController
 import com.alorma.compose.settings.storage.memory.rememberMemoryBooleanSettingState
 import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
@@ -30,8 +31,31 @@ fun GameMenuHomeScreen(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
 ) {
+    val capabilities =
+        GameMenuCapabilities(
+            controls = true,
+            states = gameMenuRequest.coreConfig.statesSupported,
+            settings = gameMenuRequest.advancedCoreOptions.isNotEmpty() || gameMenuRequest.coreOptions.isNotEmpty(),
+            advanced = true,
+        )
+    SharedGameMenuHome(capabilities) { action ->
+        when (action) {
+            GameMenuAction.RESUME -> onResult { }
+            GameMenuAction.CONTROLS -> navController.navigateToRoute(GameMenuRoute.CONTROLS)
+            GameMenuAction.STATES -> navController.navigateToRoute(GameMenuRoute.STATES)
+            GameMenuAction.SETTINGS -> navController.navigateToRoute(GameMenuRoute.OPTIONS)
+            GameMenuAction.ADVANCED -> navController.navigateToRoute(GameMenuRoute.ADVANCED)
+            GameMenuAction.RETURN_TO_SHELF -> onResult { putExtra(GameMenuContract.RESULT_QUIT, true) }
+        }
+    }
+}
+
+@Composable
+fun GameMenuStatesHome(
+    navController: NavController,
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
+) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        WiiControllerPicker(gameMenuRequest, onResult)
         if (gameMenuRequest.coreConfig.statesSupported) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.game_menu_save)) },
@@ -55,20 +79,15 @@ fun GameMenuHomeScreen(
                 onClick = { navController.navigateToRoute(GameMenuRoute.LOAD) },
             )
         }
+    }
+}
 
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.game_menu_quit)) },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.ic_menu_quit),
-                    contentDescription = stringResource(id = R.string.game_menu_quit),
-                )
-            },
-            onClick = {
-                onResult { putExtra(GameMenuContract.RESULT_QUIT, true) }
-            },
-        )
-
+@Composable
+fun GameMenuAdvancedScreen(
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
+    onResult: KFunction1<Intent.() -> Unit, Unit>,
+) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.game_menu_restart)) },
             icon = {
@@ -129,31 +148,15 @@ fun GameMenuHomeScreen(
                 },
             )
         }
+    }
+}
 
-        LemuroidSettingsMenuLink(
-            title = { Text("Controls") },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.ic_menu_controls),
-                    contentDescription = "Controls",
-                )
-            },
-            onClick = { navController.navigateToRoute(GameMenuRoute.CONTROLS) },
-        )
-
-        if (gameMenuRequest.advancedCoreOptions.isNotEmpty() || gameMenuRequest.coreOptions.isNotEmpty()) {
-            LemuroidSettingsMenuLink(
-                title = { Text(text = stringResource(id = R.string.game_menu_settings)) },
-                icon = {
-                    Icon(
-                        painterResource(R.drawable.ic_menu_settings),
-                        contentDescription = stringResource(id = R.string.game_menu_settings),
-                    )
-                },
-                onClick = { navController.navigateToRoute(GameMenuRoute.OPTIONS) },
-            )
-        }
-
+@Composable
+private fun TiltControls(
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
+    onResult: KFunction1<Intent.() -> Unit, Unit>,
+) {
+    Column {
         if (gameMenuRequest.allTiltConfigurations.isNotEmpty()) {
             val tiltConfigurationEntries =
                 gameMenuRequest.allTiltConfigurations
@@ -193,9 +196,18 @@ fun GameMenuControlsScreen(
     navController: NavController,
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
+    controllerOptions: @Composable () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         WiiControllerPicker(gameMenuRequest, onResult)
+        controllerOptions()
+        TiltControls(gameMenuRequest, onResult)
+        val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
+        if (system != null && PivotArcLayoutProfile.activeFor(system) != null) {
+            GameMenuLink("PivotArc", R.drawable.ic_menu_controls) {
+                navController.navigateToRoute(GameMenuRoute.PIVOTARC)
+            }
+        }
         LemuroidSettingsMenuLink(
             title = { Text("GripArc") },
             icon = {
@@ -220,7 +232,7 @@ fun GameMenuControlsScreen(
 }
 
 /**
- * Accessible immediately from the open game's menu, and again under Controls.
+ * Available under Controls; not duplicated on the Home page.
  * Selection closes the menu and updates the active Libretro controller type.
  * No game restart, ROM modification or separate emulator installation.
  */
