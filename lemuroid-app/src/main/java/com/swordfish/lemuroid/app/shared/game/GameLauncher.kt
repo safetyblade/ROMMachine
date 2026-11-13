@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game
 
 import android.app.Activity
+import android.content.res.Configuration
 import android.widget.Toast
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -38,6 +39,27 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                val screenClass =
+                    CartdeckScreenPolicy.screenClass(
+                        isTvHardware =
+                            activity.packageManager.hasSystemFeature("android.hardware.type.television") ||
+                                activity.packageManager.hasSystemFeature("android.software.leanback"),
+                        explicitTvMode = leanback,
+                        smallestWidthDp = activity.resources.configuration.smallestScreenWidthDp,
+                    )
+                val landscape = activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+                if (
+                    CartdeckScreenPolicy.eligibility(system.id, screenClass, landscape) ==
+                    CartdeckScreenEligibility.REQUIRES_PORTRAIT_DUAL_SCREEN
+                ) {
+                    Toast.makeText(
+                        activity,
+                        "DS dual-screen games require portrait handheld/tablet mode. " +
+                            "They are unavailable in TV and landscape modes.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    return@launch
+                }
                 // Asset readiness must not depend on opening the optional Setup UI.
                 if (system.id in setOf(SystemID.PSX, SystemID.PSP)) {
                     EmulatorModernAssetsProvisioner.installIfBundled(activity.applicationContext)

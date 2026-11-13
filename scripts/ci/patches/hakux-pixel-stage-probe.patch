@@ -1,0 +1,301 @@
+diff --git a/hw/xbox/hle/vk/cartdeck_pixel_probe.h b/hw/xbox/hle/vk/cartdeck_pixel_probe.h
+new file mode 100644
+index 0000000..5149d3a
+--- /dev/null
++++ b/hw/xbox/hle/vk/cartdeck_pixel_probe.h
+@@ -0,0 +1,24 @@
++/* CARTDECK debug-only numerical samples; no captured images leave native memory. */
++#ifndef CARTDECK_PIXEL_PROBE_H
++#define CARTDECK_PIXEL_PROBE_H
++#include <stdint.h>
++#include <stddef.h>
++#include <stdio.h>
++#include <inttypes.h>
++static inline void cartdeck_pixel_summary(const uint8_t *pixels, size_t count, char *out, size_t size)
++{
++    uint64_t hash = UINT64_C(14695981039346656037);
++    unsigned lo = 255, hi = 0, white = 0, black = 0, alo = 255, ahi = 0;
++    for (size_t i = 0; i < count; i++) {
++        const uint8_t *p = pixels + i * 4;
++        for (unsigned c = 0; c < 4; c++) { hash ^= p[c]; hash *= UINT64_C(1099511628211); }
++        for (unsigned c = 0; c < 3; c++) { if (p[c] < lo) lo = p[c]; if (p[c] > hi) hi = p[c]; }
++        white += p[0] >= 250 && p[1] >= 250 && p[2] >= 250;
++        black += p[0] <= 5 && p[1] <= 5 && p[2] <= 5;
++        if (p[3] < alo) alo = p[3];
++        if (p[3] > ahi) ahi = p[3];
++    }
++    snprintf(out, size, "n=%zu rgb=%u..%u white=%u black=%u alpha=%u..%u fnv=%016" PRIx64,
++             count, lo, hi, white, black, alo, ahi, hash);
++}
++#endif
+diff --git a/hw/xbox/hle/vk/swapchain.c b/hw/xbox/hle/vk/swapchain.c
+index 03741f8..231994c 100644
+--- a/hw/xbox/hle/vk/swapchain.c
++++ b/hw/xbox/hle/vk/swapchain.c
+@@ -37,10 +37,34 @@
+ #include "hw/xbox/hle/vk/swapchain.h"
+
+ #include <android/native_window.h>
++#include <pthread.h>
++#include "cartdeck_pixel_probe.h"
+
+ #define T (g_ps.t)
+
+ static bool g_cartdeck_confirmed;
++/* Explicit debug request only, at most three asynchronous 8x8 sample pairs per process. */
++static int g_probe_requested;
++static bool g_probe_active, g_probe_transfer;
++static unsigned g_probe_captured, g_probe_done, g_probe_ticks;
++static pthread_mutex_t g_probe_lock = PTHREAD_MUTEX_INITIALIZER;
++static char g_probe_report[2048] = "pixel_probe=disabled";
++void hle_cartdeck_request_probe(void)
++{
++    __atomic_store_n(&g_probe_requested, 1, __ATOMIC_RELAXED);
++}
++void hle_cartdeck_probe_report(char *out, size_t size)
++{
++    pthread_mutex_lock(&g_probe_lock);
++    snprintf(out, size, "%s", g_probe_report);
++    pthread_mutex_unlock(&g_probe_lock);
++}
++static void probe_status(const char *text)
++{
++    pthread_mutex_lock(&g_probe_lock);
++    snprintf(g_probe_report, sizeof(g_probe_report), "%s", text);
++    pthread_mutex_unlock(&g_probe_lock);
++}
+ static int g_cartdeck_submit_result = VK_NOT_READY;
+ static int g_cartdeck_present_result = VK_NOT_READY;
+ void hle_cartdeck_present_report(char *out, size_t size)
+@@ -66,6 +90,14 @@ typedef struct PsFrame {
+     VkDescriptorSet set[2];     /* the window pass's, FXAA's */
+     uint64_t value;             /* its last submit's on the timeline */
+     bool ramp_stale;            /* its share of the ramp buffer is behind */
++    VkBuffer probe_buf;
++    VkDeviceMemory probe_mem;
++    uint8_t *probe_map;
++    bool probe_pending;
++    uint64_t probe_serial;
++    uint32_t probe_w, probe_h, probe_sw, probe_sh, probe_gamma_changed;
++    unsigned probe_gamma_low, probe_gamma_high;
++    VkFormat probe_fmt;
+ } PsFrame;
+
+ static struct {
+@@ -118,6 +150,77 @@ static struct {
+     uint64_t shown_key;
+ } g_ps;
+
++static void probe_drop(PsFrame *f)
++{
++    if (f->probe_map) T.vkUnmapMemory(g_hvk.dev, f->probe_mem);
++    if (f->probe_buf) T.vkDestroyBuffer(g_hvk.dev, f->probe_buf, NULL);
++    if (f->probe_mem) T.vkFreeMemory(g_hvk.dev, f->probe_mem, NULL);
++    f->probe_map = NULL; f->probe_buf = VK_NULL_HANDLE; f->probe_mem = VK_NULL_HANDLE;
++    f->probe_pending = false;
++}
++static bool probe_buffer(PsFrame *f)
++{
++    VkBufferCreateInfo ci = { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 512,
++                              .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT };
++    if (T.vkCreateBuffer(g_hvk.dev, &ci, NULL, &f->probe_buf) != VK_SUCCESS) return false;
++    VkMemoryRequirements mr;
++    T.vkGetBufferMemoryRequirements(g_hvk.dev, f->probe_buf, &mr);
++    int mt = hle_vk_memtype(mr.memoryTypeBits,
++        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
++    VkMemoryAllocateInfo ai = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
++                                .allocationSize = mr.size, .memoryTypeIndex = (uint32_t)mt };
++    if (mt < 0 || T.vkAllocateMemory(g_hvk.dev, &ai, NULL, &f->probe_mem) != VK_SUCCESS ||
++        T.vkBindBufferMemory(g_hvk.dev, f->probe_buf, f->probe_mem, 0) != VK_SUCCESS ||
++        T.vkMapMemory(g_hvk.dev, f->probe_mem, 0, 512, 0, (void **)&f->probe_map) != VK_SUCCESS) {
++        probe_drop(f);
++        return false;
++    }
++    return true;
++}
++static void probe_collect(PsFrame *f)
++{
++    /* Called only after the existing frame timeline wait succeeds. No added wait,
++     * and no command pool/buffer is freed while a GPU copy might still reference it. */
++    if (!f->probe_pending) return;
++    char guest[160], swap[160], line[640];
++    cartdeck_pixel_summary(f->probe_map, 64, guest, sizeof(guest));
++    cartdeck_pixel_summary(f->probe_map + 256, 64, swap, sizeof(swap));
++    snprintf(line, sizeof(line), "\nserial=%llu guest=%ux%u {%s} swap=%ux%u fmt=%u gamma_changed=%u gamma=%u..%u {%s}",
++             (unsigned long long)f->probe_serial, f->probe_w, f->probe_h, guest,
++             f->probe_sw, f->probe_sh, f->probe_fmt, f->probe_gamma_changed,
++             f->probe_gamma_low, f->probe_gamma_high, swap);
++    pthread_mutex_lock(&g_probe_lock);
++    size_t used = strlen(g_probe_report);
++    snprintf(g_probe_report + used, sizeof(g_probe_report) - used, "%s", line);
++    pthread_mutex_unlock(&g_probe_lock);
++    g_probe_done++;
++    probe_drop(f);
++}
++/* Forward declaration: the presenter's existing synchronization helper. */
++static void barrier(VkCommandBuffer cb, VkImage img, VkImageLayout old, VkImageLayout next,
++                    VkPipelineStageFlags2 src_stage, VkAccessFlags2 src_access,
++                    VkPipelineStageFlags2 dst_stage, VkAccessFlags2 dst_access);
++static void probe_copy(VkCommandBuffer cb, PsFrame *f, VkImage image, uint32_t w, uint32_t h,
++                       VkImageLayout old, VkImageLayout next, VkDeviceSize offset)
++{
++    barrier(cb, image, old, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
++            VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
++            VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT);
++    VkBufferImageCopy regions[64] = {0};
++    for (unsigned i = 0; i < 64; i++) {
++        regions[i].bufferOffset = offset + i * 4;
++        regions[i].imageSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
++        regions[i].imageOffset = (VkOffset3D){ (int32_t)(((i % 8) * 2 + 1) * (uint64_t)w / 16),
++                                             (int32_t)(((i / 8) * 2 + 1) * (uint64_t)h / 16), 0 };
++        regions[i].imageExtent = (VkExtent3D){1, 1, 1};
++    }
++    T.vkCmdCopyImageToBuffer(cb, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, f->probe_buf, 64, regions);
++    barrier(cb, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, next,
++            VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
++            next == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ? VK_PIPELINE_STAGE_2_NONE : VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
++            next == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ? 0 : (VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT));
++}
++
+ /* ---- shaders ---- */
+
+ /* rect: x0, y0, x1, y1 in the window's clip space; rot: that space turned
+@@ -586,6 +689,13 @@ static bool make_swapchain(uint32_t w, uint32_t h)
+     VkCompositeAlphaFlagBitsKHR ca = (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
+                                          ? VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
+                                          : VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
++    g_probe_transfer = g_probe_active && (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) &&
++        (fmt.format == VK_FORMAT_R8G8B8A8_UNORM || fmt.format == VK_FORMAT_B8G8R8A8_UNORM ||
++         fmt.format == VK_FORMAT_R8G8B8A8_SRGB || fmt.format == VK_FORMAT_B8G8R8A8_SRGB);
++    if (g_probe_active && !g_probe_transfer) {
++        probe_status("pixel_probe=unsupported swapchain transfer-source usage or 4-byte format");
++        g_probe_done = 3;
++    }
+     VkSwapchainKHR old = g_ps.sc;
+     if (old) {
+         idle();
+@@ -594,7 +704,9 @@ static bool make_swapchain(uint32_t w, uint32_t h)
+         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface = g_ps.surf,
+         .minImageCount = n, .imageFormat = fmt.format, .imageColorSpace = fmt.colorSpace,
+         .imageExtent = { w, h }, .imageArrayLayers = 1,
+-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
++        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
++            (g_probe_active && (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
++                ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE, .preTransform = tf, .compositeAlpha = ca,
+         .presentMode = VK_PRESENT_MODE_FIFO_KHR, .clipped = VK_TRUE, .oldSwapchain = old };
+     VkSwapchainKHR sc = VK_NULL_HANDLE;
+@@ -674,6 +786,7 @@ static void lose_window(void)
+
+ bool hle_present_unchanged(struct ANativeWindow *win, uint64_t key)
+ {
++    if (__atomic_load_n(&g_probe_requested, __ATOMIC_RELAXED) && g_probe_done < 3) return false;
+     if (!g_ps.shown || !win || win != g_ps.win || g_ps.stale || !g_ps.sc || key != g_ps.shown_key ||
+         (uint32_t)ANativeWindow_getWidth(win) != g_ps.wsize.width ||
+         (uint32_t)ANativeWindow_getHeight(win) != g_ps.wsize.height || hle_disp_gamma_seq() != g_ps.ramp_gen) {
+@@ -720,6 +833,11 @@ bool hle_present_begin(struct ANativeWindow *win, uint32_t *w, uint32_t *h)
+     if (!g_ps.surf) {
+         return false;
+     }
++    if (__atomic_load_n(&g_probe_requested, __ATOMIC_RELAXED) && !g_probe_active) {
++        g_probe_active = true;
++        g_ps.stale = true;
++        probe_status("pixel_probe=requested; async 8x8 guest/swap samples; maximum=3");
++    }
+     const uint32_t ww = (uint32_t)ANativeWindow_getWidth(win), wh = (uint32_t)ANativeWindow_getHeight(win);
+     if ((!g_ps.sc || g_ps.stale || ww != g_ps.wsize.width || wh != g_ps.wsize.height) && !make_swapchain(ww, wh)) {
+         return false;
+@@ -729,6 +847,7 @@ bool hle_present_begin(struct ANativeWindow *win, uint32_t *w, uint32_t *h)
+     if (!wait_value(f->value)) {
+         return false;
+     }
++    probe_collect(f);
+     const int64_t ta0 = hle_now_ns();
+     g_wait_ns += ta0 - tw0;
+     VkResult r = T.vkAcquireNextImageKHR(g_hvk.dev, g_ps.sc, 100000000ull, f->acquired, VK_NULL_HANDLE,
+@@ -927,6 +1046,17 @@ void hle_present_end(float sx, float sy, bool fxaa, int upscale, bool average, u
+     VkCommandBufferBeginInfo bi = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                     .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+     T.vkBeginCommandBuffer(cb, &bi);
++    bool probing = g_probe_active && g_probe_transfer && g_probe_captured < 3 && g_probe_done < 3 &&
++                   g_ps.have && g_ps.f.w && g_ps.f.h && (g_probe_ticks++ % 30 == 0);
++    if (probing && !probe_buffer(f)) {
++        probe_status("pixel_probe=buffer allocation failed; normal rendering retained");
++        g_probe_captured = g_probe_done = 3;
++        probing = false;
++    }
++    if (probing) {
++        probe_copy(cb, f, g_ps.f.img, g_ps.f.w, g_ps.f.h,
++                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0);
++    }
+     VkImageView src = g_ps.have ? g_ps.f.view : VK_NULL_HANDLE;
+     bool fxaa_done = false;
+     /* The frame's writes need no barrier here: each writer of a display
+@@ -983,9 +1113,30 @@ void hle_present_end(float sx, float sy, bool fxaa, int upscale, bool average, u
+         log_path(p, fxaa_done, (uint32_t)(vw + 0.5f), (uint32_t)(vh + 0.5f));
+     }
+     T.vkCmdEndRendering(cb);
++    if (probing) {
++        probe_copy(cb, f, dst, iw, ih, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 256);
++        VkMemoryBarrier2 host = { .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
++            .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT, .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
++            .dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT, .dstAccessMask = VK_ACCESS_2_HOST_READ_BIT };
++        VkDependencyInfo host_dep = { .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
++                                     .memoryBarrierCount = 1, .pMemoryBarriers = &host };
++        T.vkCmdPipelineBarrier2(cb, &host_dep);
++        f->probe_pending = true; f->probe_serial = g_ps.serial;
++        f->probe_w = g_ps.f.w; f->probe_h = g_ps.f.h; f->probe_fmt = g_ps.fmt;
++        f->probe_sw = iw; f->probe_sh = ih;
++        f->probe_gamma_changed = 0; f->probe_gamma_low = 255; f->probe_gamma_high = 0;
++        for (unsigned channel = 0; channel < 3; channel++) for (unsigned i = 0; i < 256; i++) {
++            unsigned v = g_ps.ramp[channel][i];
++            f->probe_gamma_changed += v != i;
++            if (v < f->probe_gamma_low) f->probe_gamma_low = v;
++            if (v > f->probe_gamma_high) f->probe_gamma_high = v;
++        }
++        g_probe_captured++;
++    } else {
+     barrier(cb, dst, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+             VK_PIPELINE_STAGE_2_NONE, 0);
++    }
+     T.vkEndCommandBuffer(cb);
+
+     /* The present waits for the pass on the GPU: Turnip's hands the
+@@ -1027,6 +1178,8 @@ void hle_present_end(float sx, float sy, bool fxaa, int upscale, bool average, u
+         g_ps.submitted = value;
+         f->value = value;
+     } else {
++        if (f->probe_pending) { probe_drop(f); g_probe_done = g_probe_captured = 3;
++            probe_status("pixel_probe=submit failed; samples unavailable"); }
+         hle_vk_check(r, "vkQueueSubmit2 (present)");
+     }
+     if (g_ps.using) {
+diff --git a/native/app/app_main.c b/native/app/app_main.c
+index 6b1e311..4366c3d 100644
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -297,13 +297,20 @@ EXPORT JNIEXPORT jint JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nati
+
+ void hle_cartdeck_gpu_report(char *out, size_t size);
+ void hle_cartdeck_present_report(char *out, size_t size);
++void hle_cartdeck_probe_report(char *out, size_t size);
++void hle_cartdeck_request_probe(void);
++EXPORT JNIEXPORT void JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeRequestPixelProbe(JNIEnv *env, jclass cls)
++{
++    hle_cartdeck_request_probe();
++}
+ EXPORT JNIEXPORT jstring JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetGpuReport(JNIEnv *env,
+                                                                                                jclass cls)
+ {
+-    char gpu[768], presentation[192], report[1024];
++    char gpu[768], presentation[192], pixels[2048], report[3072];
+     hle_cartdeck_gpu_report(gpu, sizeof(gpu));
+     hle_cartdeck_present_report(presentation, sizeof(presentation));
+-    snprintf(report, sizeof(report), "%s; %s", gpu, presentation);
++    hle_cartdeck_probe_report(pixels, sizeof(pixels));
++    snprintf(report, sizeof(report), "%s; %s; %s", gpu, presentation, pixels);
+     return (*env)->NewStringUTF(env, report);
+ }
+
+# End of CARTDECK pixel-stage patch.

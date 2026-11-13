@@ -9,24 +9,29 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.PixelCopy
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
@@ -51,6 +56,9 @@ class NativeCoreActivity : SDLActivity() {
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
     private var presentationRecorded = false
+    private var pixelProbeRequested = false
+    private var surfacePixelReport = "surface_pixel_probe=disabled"
+    private var controlOverlay: ComposeView? = null
     private val poll =
         object : Runnable {
             override fun run() {
@@ -225,6 +233,7 @@ class NativeCoreActivity : SDLActivity() {
                     }
                 }
             }
+        controlOverlay = controls
         mLayout?.addView(
             controls,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
@@ -275,6 +284,7 @@ class NativeCoreActivity : SDLActivity() {
             "Native failure category: ${nativeGetFatalKind()}\n" +
             "${gpuReport()}\n" +
             "Presentation probe: ${presentationContract()}\n" +
+            "$surfacePixelReport\n" +
             "HDD and saves retained. No automatic relaunch was attempted."
     }
 
@@ -284,6 +294,69 @@ class NativeCoreActivity : SDLActivity() {
         getSystemService(ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText("CARTDECK Xbox diagnostic", report))
         android.widget.Toast.makeText(this, "Engine/GPU report copied", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    /** One explicit debug action; no continuous readback or image file export. */
+    private fun requestPixelStageProbe() {
+        if (!BuildConfig.DEBUG || pixelProbeRequested || leaving) return
+        if (engine.properties.getProperty("cartdeck.pixelProbe") != "async-grid-v1") return
+        pixelProbeRequested = true
+        surfacePixelReport = "surface_pixel_probe=requested"
+        if (runCatching { nativeRequestPixelProbe() }.isFailure) {
+            surfacePixelReport = "surface_pixel_probe=native probe unavailable in this engine"
+            copyDiagnosticSnapshot()
+            return
+        }
+        menu?.dismiss() // Resume the existing guest; never relaunch or change its graphics settings.
+        main.postDelayed({ captureSurfacePixels() }, 1800)
+    }
+
+    private fun captureSurfacePixels() {
+        if (leaving || isFinishing || paused) return
+        val surface = mSurface
+        if (Build.VERSION.SDK_INT < 24 || surface == null || !surface.holder.surface.isValid) {
+            surfacePixelReport = "surface_pixel_probe=surface unavailable"
+            copyDiagnosticSnapshot()
+            return
+        }
+        val visible = android.graphics.Rect()
+        val clipped = surface.getGlobalVisibleRect(visible)
+        val overlay = controlOverlay
+        val layers =
+            "surface=${surface.width}x${surface.height} shown=${surface.isShown} " +
+                "alpha=${surface.alpha} z=${surface.z} visible=$clipped:$visible; " +
+                "controls=${overlay?.width}x${overlay?.height} alpha=${overlay?.alpha} opaque=${overlay?.isOpaque}"
+        val bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
+        var completed = false
+        main.postDelayed({
+            if (!completed && !leaving) {
+                surfacePixelReport = "surface_pixel_probe=callback timeout; $layers"
+                copyDiagnosticSnapshot()
+            }
+        }, 3000)
+        try {
+            PixelCopy.request(surface, bitmap, { result ->
+                completed = true
+                try {
+                    surfacePixelReport =
+                        if (result == PixelCopy.SUCCESS) {
+                            val pixels = IntArray(32 * 32)
+                            bitmap.getPixels(pixels, 0, 32, 0, 0, 32, 32)
+                            "surface_pixel_probe={${FramePixelSummary.argb(pixels)}}; $layers"
+                        } else {
+                            "surface_pixel_probe=PixelCopy result $result; $layers"
+                        }
+                    if (!leaving && !isFinishing) copyDiagnosticSnapshot()
+                } finally {
+                    bitmap.recycle()
+                }
+            }, main)
+        } catch (error: Exception) {
+            completed = true
+            bitmap.recycle()
+            surfacePixelReport = "surface_pixel_probe=request unavailable; $layers"
+            copyDiagnosticSnapshot()
+        }
     }
 
     private fun showFailure(reason: String) {
@@ -319,9 +392,30 @@ class NativeCoreActivity : SDLActivity() {
             AlertDialog.Builder(this).setTitle("CARTDECK · Xbox")
                 .setMessage(intent.getStringExtra("cartdeck.gameTitle"))
                 .setView(
-                    android.widget.Button(this).apply {
-                        text = "Copy engine/GPU report"
-                        setOnClickListener { copyDiagnosticSnapshot() }
+                    android.widget.LinearLayout(this).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        addView(
+                            android.widget.Button(this@NativeCoreActivity).apply {
+                                text = "Copy engine/GPU report"
+                                setOnClickListener { copyDiagnosticSnapshot() }
+                            },
+                        )
+                        if (BuildConfig.DEBUG) {
+                            addView(
+                                android.widget.Button(this@NativeCoreActivity).apply {
+                                    val supported =
+                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-grid-v1"
+                                    text =
+                                        if (supported) {
+                                            "Probe blank viewport (debug)"
+                                        } else {
+                                            "Probe unavailable in retained engine"
+                                        }
+                                    isEnabled = supported && !pixelProbeRequested
+                                    setOnClickListener { requestPixelStageProbe() }
+                                },
+                            )
+                        }
                     },
                 )
                 .setPositiveButton("Resume") { _, _ -> }
@@ -483,6 +577,8 @@ class NativeCoreActivity : SDLActivity() {
         @JvmStatic external fun nativeGetBootState(): Int
 
         @JvmStatic external fun nativeGetGpuReport(): String
+
+        @JvmStatic external fun nativeRequestPixelProbe()
 
         @JvmStatic external fun nativeGetRelaunch(): Boolean
 
