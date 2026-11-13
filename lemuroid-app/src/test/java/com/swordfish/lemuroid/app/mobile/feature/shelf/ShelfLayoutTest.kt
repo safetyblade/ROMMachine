@@ -207,6 +207,66 @@ class ShelfLayoutTest {
         assertEquals(emptyMap<String, Long>(), removed.choosePreset("original").custom)
     }
 
+    @Test fun curatedDesignIsReversibleAndNeverOverwritesSavedUserAppearances() {
+        val baseline =
+            ShelfLayout()
+                .reconcile(mapOf("gba-a" to "Game A", "psx-b" to "Game B"))
+                .insertSpace(ShelfLayout.UNSORTED)
+        val owned =
+            baseline.appearance.choosePreset("pink")
+                .copy(custom = mapOf("accent" to 0xFFBEDAAAL))
+                .saveNewProfile("My Pink", now = 150L)
+        val selected = CartdeckCuratedDesigns.apply(owned, CartdeckCuratedDesigns.STEALTH_ACID_ID)
+        assertEquals(CartdeckCuratedDesigns.STEALTH_ACID_ID, selected.curatedDesignId)
+        assertEquals("original", selected.edition)
+        assertEquals(0xFF151C20L, selected.custom["chassis"])
+        assertEquals(0xFF9BC74AL, selected.custom["accent"])
+        assertEquals(null, selected.activeProfileId)
+        assertEquals(owned.profiles, selected.profiles)
+
+        val persisted = decode(encode(baseline.copy(appearance = selected)))
+        assertEquals(baseline.sections, persisted.sections)
+        assertEquals(selected, persisted.appearance)
+
+        val backToBase = persisted.appearance.choosePreset("original")
+        assertEquals(null, backToBase.curatedDesignId)
+        assertTrue(backToBase.custom.isEmpty())
+        val backToUser = persisted.appearance.selectProfile(owned.profiles.single().id)
+        assertEquals(null, backToUser.curatedDesignId)
+        assertEquals(0xFFBEDAAAL, backToUser.custom["accent"])
+        val myAcid = persisted.appearance.saveNewProfile("My Acid", now = 200L)
+        assertEquals(null, myAcid.curatedDesignId)
+        assertEquals(2, myAcid.profiles.size)
+        assertEquals(selected.custom, myAcid.profiles.last().custom)
+        assertEquals(owned.profiles.first(), myAcid.profiles.first())
+    }
+
+    @Test fun curatedDesignPaletteMeetsShelfContrastAndOldV2DataStillLoads() {
+        val design = CartdeckCuratedDesigns.designs.single()
+        val selected = CartdeckCuratedDesigns.apply(ShelfAppearance(), design.id)
+        val colours = shelfMaterials(selected)
+        assertTrue(colorContrast(colours.sectionText, colours.shelfBackboard) >= 4.5f)
+        assertTrue(colorContrast(colours.focusOutline, colours.shelfBackboard) >= 3f)
+        assertTrue(colorContrast(colours.focusOutline, colours.vacantCell) >= 3f)
+
+        val legacy =
+            ShelfLayout().copy(
+                appearance =
+                    ShelfAppearance()
+                        .choosePreset("green")
+                        .copy(custom = mapOf("button" to 0xFF223344L))
+                        .saveNewProfile("Old style", now = 12L),
+            )
+        val json = org.json.JSONObject(encode(legacy))
+        json.getJSONObject("appearance").apply {
+            put("appearanceVersion", 2)
+            remove("curatedDesignId")
+        }
+        val migrated = decode(json.toString())
+        assertEquals(legacy, migrated)
+        assertEquals(legacy, decode(encode(migrated)))
+    }
+
     @Test fun unsupportedAppearanceSchemaNeverSilentlyOverwritesUserData() {
         val json = org.json.JSONObject(encode(ShelfLayout()))
         json.getJSONObject("appearance").put("appearanceVersion", 999)
