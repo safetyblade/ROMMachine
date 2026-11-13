@@ -173,6 +173,60 @@ private fun EditionOption(
     }
 }
 
+/** First-party designs are immutable selections; only Save as new creates a user-owned copy. */
+@Composable
+private fun CuratedDesignOption(
+    design: CartdeckCuratedDesign,
+    checked: Boolean,
+    onClick: () -> Unit,
+) {
+    val preview = ShelfAppearance(edition = design.baseEdition, custom = design.colours)
+    Column(
+        modifier =
+            Modifier.fillMaxWidth()
+                .border(
+                    if (checked) 2.dp else 1.dp,
+                    if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    RoundedCornerShape(12.dp),
+                ).clickable(onClick = onClick)
+                .semantics {
+                    selected = checked
+                    contentDescription = design.title + ", custom design"
+                }.padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Text(
+            if (checked) "✓ 001 · " + design.title else "001 · " + design.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(design.description, style = MaterialTheme.typography.bodySmall)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text("Handheld", style = MaterialTheme.typography.labelSmall)
+                CartdeckConsoleHardwarePreview(preview, height = 96.dp)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("Shelf", style = MaterialTheme.typography.labelSmall)
+                CartdeckAppearancePreview(preview, height = 96.dp)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("chassis", "secondary", "accent", "focus", "onChassis").forEach { role ->
+                Box(
+                    Modifier.size(23.dp)
+                        .background(Color(design.colours.getValue(role).toInt()), CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+            }
+        }
+        Text(
+            "Colour finish available now. Patterns, stamps and LED effects follow in later phases.",
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
 @Composable
 private fun ColourPicker(
     role: String,
@@ -322,9 +376,9 @@ fun ShelfAppearanceEditor(
     val overrides = remember { mutableStateMapOf<String, Long>().apply { putAll(appearance.custom) } }
     val named = remember { mutableStateListOf<NamedAppearance>().apply { addAll(appearance.profiles) } }
     var selectedId by remember { mutableStateOf(appearance.activeProfileId) }
+    var selectedDesignId by remember { mutableStateOf(appearance.curatedDesignId) }
     var modified by remember { mutableStateOf(false) }
     var expandedEditor by remember { mutableStateOf(false) }
-    var expandedNames by remember { mutableStateOf(false) }
     var expandedAccessibility by remember { mutableStateOf(false) }
     val expandedGroups = remember { mutableStateListOf<String>() }
     var picker by remember { mutableStateOf<String?>(null) }
@@ -345,12 +399,14 @@ fun ShelfAppearanceEditor(
             reducedMotion,
             named.toList(),
             if (modified) null else selectedId,
+            if (modified) null else selectedDesignId,
         )
 
     fun choosePreset(id: String) {
         edition = id
         overrides.clear()
         selectedId = null
+        selectedDesignId = null
         modified = false
         warning = null
     }
@@ -360,6 +416,17 @@ fun ShelfAppearanceEditor(
         overrides.clear()
         overrides.putAll(item.custom)
         selectedId = item.id
+        selectedDesignId = null
+        modified = false
+        warning = null
+    }
+
+    fun chooseCuratedDesign(design: CartdeckCuratedDesign) {
+        edition = design.baseEdition
+        overrides.clear()
+        overrides.putAll(design.colours)
+        selectedId = null
+        selectedDesignId = design.id
         modified = false
         warning = null
     }
