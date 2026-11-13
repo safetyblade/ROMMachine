@@ -469,27 +469,30 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             val observedIds = snapshot?.second ?: liveIds
-                            if (measured.isEmpty() || observedIds.isEmpty()) {
-                                null // Measure the native production layout before attempting combined placement.
-                            } else if (!nativeInventory!!.matchesNativeInputs(observedIds)) {
+                            val measurementsReady = GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)
+                            if (measurementsReady && observedIds.isNotEmpty() &&
+                                !nativeInventory.matchesNativeInputs(observedIds)
+                            ) {
                                 GripArcFit.Unavailable(
                                     "GripArc cannot preserve every input in this native controller profile. " +
                                         "Standard remains available; saved settings are preserved.",
-                                )
-                            } else if (!GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)) {
-                                GripArcFit.Unavailable(
-                                    "This native controller has incomplete measurements. " +
-                                        "Use Standard for this session; your saved GripArc settings are preserved.",
                                 )
                             } else {
                                 nativeProfileValidated = true
                                 combinedPlacement =
                                     if (!isLandscape) {
-                                        GripArcCombinedLayout.resolve(
-                                            gripManifest, nativeInventory, observedIds,
-                                            measured, safeBounds, viewportBounds,
-                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                        )
+                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                            GripArcCombinedLayout.resolve(
+                                                gripManifest, nativeInventory, observedIds,
+                                                measured, safeBounds, viewportBounds,
+                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            )
+                                        } else {
+                                            GripArcCombinedLayout.resolveDockFirst(
+                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            )
+                                        }
                                     } else {
                                         null
                                     }
@@ -732,15 +735,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
             }
-            if (gripPlacement != null && !fullscreenWithGamepad && !isLoading) {
-                GripArcControlGroup(
-                    placement = gripPlacement,
-                    profile = arcProfile,
-                    tokens = shellTokens,
-                    onPressed = viewModel::pressGripArcSlot,
-                    drawHousing = jointPlacement == null,
-                )
-            }
+            GripArcAccessory(
+                placement = gripPlacement,
+                profile = arcProfile,
+                tokens = shellTokens,
+                fullscreenWithGamepad = fullscreenWithGamepad,
+                isLoading = isLoading,
+                onPressed = viewModel::pressGripArcSlot,
+                drawHousing = jointPlacement == null,
+            )
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
             val layoutError = gripError?.reason ?: pivotError?.reason

@@ -25,11 +25,28 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlinx.coroutines.flow.collect
+
+/** Shared production visibility gate, exercised by Compose rendering tests. */
+@Composable
+internal fun GripArcAccessory(
+    placement: GripArcPlacement?,
+    profile: GripArcProfile,
+    tokens: CartdeckEditionTokens,
+    fullscreenWithGamepad: Boolean,
+    isLoading: Boolean,
+    onPressed: (Int, Boolean, Set<Int>) -> Unit,
+    drawHousing: Boolean = true,
+) {
+    if (placement != null && !fullscreenWithGamepad && !isLoading) {
+        GripArcControlGroup(placement, profile, tokens, onPressed, drawHousing)
+    }
+}
 
 /**
  * V2.2 native material: compact permanent L, chamfered contour,
@@ -76,6 +93,7 @@ internal fun GripArcControlGroup(
                     Modifier
                         .offset(x = rect.left.dp, y = rect.top.dp)
                         .size(rect.width.dp, rect.height.dp)
+                        .testTag("griparc-slot-$slot")
                         .clickable(
                             interactionSource = interaction,
                             indication = null,
@@ -140,7 +158,8 @@ internal fun GripArcHousing(
         modifier =
             Modifier
                 .offset(x = housing.left.dp, y = housing.top.dp)
-                .size(housing.width.dp, housing.height.dp),
+                .size(housing.width.dp, housing.height.dp)
+                .testTag("griparc-housing"),
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val u = size.width / 160f

@@ -23,6 +23,7 @@ class GripArcCombinedLayoutTest {
             TouchControllerID.PSP,
             TouchControllerID.GAMECUBE,
             TouchControllerID.DREAMCAST,
+            TouchControllerID.XBOX,
         )
 
     // Synthetic native-bound fixture. Runtime uses the actual native composable observations.
@@ -130,6 +131,26 @@ class GripArcCombinedLayoutTest {
                         device.safe, device.viewport, side, 0f, 0f,
                     ),
                 )
+            }
+        }
+    }
+
+    @Test fun firstFrameNeedsNoMeasurementsFromControlsBeingReplaced() {
+        for (device in ControlDeckDeviceFixture.representative) for (controller in controllers) {
+            for (side in GripArcSide.values()) {
+                val native = NativeControlInventory.forController(controller)!!
+                val p =
+                    GripArcCombinedLayout.resolveDockFirst(
+                        manifest,
+                        native,
+                        device.safe,
+                        device.viewport,
+                        side,
+                        0f,
+                        0f,
+                    )
+                assertNotNull("initial $controller $side $device", p)
+                assertTrue(p!!.complete)
             }
         }
     }

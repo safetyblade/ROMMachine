@@ -24,6 +24,20 @@ internal object GripArcCombinedLayout {
         measured: Map<String, PivotArcBounds>,
     ): Boolean = native.controls.all { measured[it.seat]?.isFiniteArea() == true }
 
+    /** Native inventory supplies a complete initial layout before live artwork measurements arrive. */
+    fun resolveDockFirst(
+        manifest: GripArcManifest,
+        native: NativeControlInventory,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+        side: GripArcSide,
+        dx: Float,
+        dy: Float,
+    ): GripArcCombinedPlacement? {
+        if (!safe.isFiniteArea() || !viewport.isFiniteArea()) return null
+        return reflow(manifest, native, native.inputIds, safe, viewport, side, dx, dy)
+    }
+
     fun resolve(
         manifest: GripArcManifest,
         native: NativeControlInventory,
@@ -197,11 +211,13 @@ internal object GripArcCombinedLayout {
         dy: Float,
     ): GripArcCombinedPlacement? {
         val dock =
-            (
-                GripArcPositionSolver.resolve(
-                    manifest, safe, viewport, emptyList(), side, dx, dy,
-                ) as? GripArcFit.Fits
-            )?.placement ?: return null
+            listOf(dx to dy, 0f to 0f).distinct().firstNotNullOfOrNull { (x, y) ->
+                (
+                    GripArcPositionSolver.resolve(
+                        manifest, safe, viewport, emptyList(), side, x, y,
+                    ) as? GripArcFit.Fits
+                )?.placement
+            } ?: return null
         val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
         val top = maxOf(safe.top, viewport.bottom + 8f)
         val groups =
@@ -263,7 +279,10 @@ internal object GripArcCombinedLayout {
                         kotlin.math.abs(x - preferredX) + kotlin.math.abs(y - preferredY)
                     }.firstOrNull { (x, y) ->
                         val seat = PivotArcBounds(x, y, x + hull.width, y + hull.height)
-                        (reserved + seats.values).none { seat.inset(4f).intersects(it.inset(3f)) }
+                        val correctHand =
+                            first.kind == NativeControlKind.UTILITY ||
+                                (if (first.leftHand) seat.centerX <= safe.centerX else seat.centerX >= safe.centerX)
+                        correctHand && (reserved + seats.values).none { seat.inset(4f).intersects(it.inset(3f)) }
                     } ?: break
                 specs.forEach { spec ->
                     val r = parts.getValue(spec.key)
