@@ -50,7 +50,7 @@ class NativeCoreActivity : SDLActivity() {
     private val touch = XboxPadState()
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
-    private var successRecorded = false
+    private var presentationRecorded = false
     private val poll =
         object : Runnable {
             override fun run() {
@@ -83,11 +83,11 @@ class NativeCoreActivity : SDLActivity() {
                         shown && verified,
                         shown && !verified,
                     )
-                if (watchdog.presented && !successRecorded) {
+                if (watchdog.presented && !presentationRecorded) {
                     registryGame()?.let { game ->
-                        runCatching { EngineSelectionPreferences(applicationContext).recordSuccess(game) }
+                        runCatching { EngineSelectionPreferences(applicationContext).recordPresentation(game) }
                     }
-                    successRecorded = true
+                    presentationRecorded = true
                 }
                 val fatal = nativeGetFatal() ?: timeout
                 if (fatal != null) {

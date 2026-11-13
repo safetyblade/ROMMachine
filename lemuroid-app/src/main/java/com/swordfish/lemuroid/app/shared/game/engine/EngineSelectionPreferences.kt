@@ -155,8 +155,24 @@ class EngineSelectionPreferences(private val context: Context) {
         writeOutcome(game, event)
     }
 
+    /** Accepted submission/presentation is evidence, not a proven compatible engine. */
+    fun recordPresentation(game: Game) {
+        val event = outcome(game)
+        val selected = event.getProperty("selectedIdentity") ?: return
+        event.setProperty("presentationAccepted", selected)
+        event.setProperty("stage", "PRESENT_ACCEPTED")
+        // Do not clear failures, rotate successful/previous engines or change preferences.
+        writeOutcome(game, event)
+    }
+
     /** Called only after an observed graphical frame, never after activity creation or a timeout. */
     fun recordSuccess(game: Game) {
+        // hakuX's existing callback only proves a VkQueuePresent result, even
+        // when every sampled guest pixel is white. It cannot promote fallback proof.
+        if (game.systemId == SystemID.XBOX.dbname) {
+            recordPresentation(game)
+            return
+        }
         val event = outcome(game)
         val selected = event.getProperty("lastSelected") ?: return
         val previous = event.getProperty("successful")
