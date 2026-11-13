@@ -7,8 +7,8 @@ diff --git a/Source/ui_libretro/main_libretro.cpp b/Source/ui_libretro/main_libr
 +#include "android/JavaVM.h"
 +#endif
  #include "PtrStream.h"
-@@ -26,2 +29,12 @@
- static bool first_run = false;
+@@ -25,2 +28,12 @@
+ static CPS2VM* m_virtualMachine = nullptr;
 +
 +#ifdef __ANDROID__
 +// The LibretroDroid host dlopens Play; Play's JNI_OnLoad is not called.
@@ -19,4 +19,4 @@ diff --git a/Source/ui_libretro/main_libretro.cpp b/Source/ui_libretro/main_libr
 +    Framework::CJavaVM::SetJavaVM(vm);
 +}
 +#endif
- 
+ static bool first_run = false;
