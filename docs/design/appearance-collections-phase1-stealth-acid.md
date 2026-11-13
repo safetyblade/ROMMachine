@@ -33,7 +33,7 @@ All remaining material tokens are in `CartdeckCuratedDesigns.kt`. The original c
 - The catalog is a data object containing immutable first-party palette mappings: `CartdeckCuratedDesigns`. Later special designs can register additional entries without new renderer paths.
 - `ShelfAppearance.curatedDesignId` is an **optional** selection identity, stored separately from `activeProfileId`. Curated selection is represented by existing semantic colour overrides, so current console and shelf painters automatically display it.
 - A personal copy captures the actual colour roles in a new `NamedAppearance` and **clears curated identity**; user-owned changes never mutate immutable curated designs.
-- ShelfStore appearance sub-schema advances from **2 to 3**. V1/V2 reading remains supported, and the same AtomicFile still commits appearance state and shelf layout without touching ROMs, cartridges, save data, app identity or emulator settings.
+- ShelfStore keeps **appearanceVersion 2** with an additive optional `curatedDesignId`. Older V2 builds ignore the new key but still read and apply the complete colour map, retaining safe rollback. V1/V2 reading remains supported, and the same AtomicFile commits appearance state and shelf layout without touching ROMs, cartridges, save data, app identity or emulator settings.
 - No new Android permission, online theme source or asset download; no runtime engine or input change; no independent theme render pipeline.
 - Never introduce a forced gameplay badge/banner or shrink/maximise the viewport differently because a theme was selected.
 
@@ -49,9 +49,9 @@ All remaining material tokens are in `CartdeckCuratedDesigns.kt`. The original c
 - Stealth / Acid is selectable, reversible with Cancel, durable after Apply/relaunch/install-over and uses the real shelf/console material tokens.
 - Reopening Appearance reselects Stealth / Acid; switching to Base clears its active identity. Switching to an existing personal profile also clears it.
 - Starting from Stealth / Acid and using Save as new produces an independent personal copy with the palette retained. Renaming/duplicating/removing that copy never edits the factory design.
-- Existing V1/V2 named appearances, colours, shelf sections, game order and save data persist with no loss. Unknown newer appearance schema is not silently overwritten.
+- Existing V1/V2 named appearances, colours, shelf sections, game order and save data persist with no loss. Unknown newer appearance schema is not silently overwritten; an old build may drop the optional curated ID on a subsequent save, but the selected custom palette remains readable.
 - Readable shelf text/focus and accessibility remain; 48dp targets, TalkBack, high-contrast and reduced-motion behaviour should be device-tested.
 - All native console controller inventories, GripArc, PivotArc, ROM operations, launch/resume, native game content and PS1/PSP/DC/GC/PS2/Xbox builds are unchanged. Known release blocker #135 is separate.
 - Tests/CI, signed ARM64 APK, owner handset screenshots, install-over and Marcus independent QA required before an implementation PASS.
 
-**Rollback:** revert the feature branch/PR. Existing appearance versions remain available; do not install a rollback build over user-edited v3 appearance files without first confirming the old reader's schema compatibility.
+**Rollback:** revert the feature branch/PR. Existing appearance versions remain available; the Phase 1 file keeps schema V2 and remains readable to older V2 builds, which will retain the applied colour overrides but may not retain curated-selection metadata after re-saving.
