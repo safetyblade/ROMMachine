@@ -27,6 +27,7 @@ data class NamedAppearance(
     val updatedAt: Long = createdAt,
     val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    val decal: CartdeckPersonalDecal? = null,
 )
 
 /**
@@ -45,6 +46,7 @@ data class ShelfAppearance(
     val curatedDesignId: String? = null,
     val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    val decal: CartdeckPersonalDecal? = null,
 ) {
     fun choosePreset(id: String): ShelfAppearance {
         require(id in listOf("original", "pink", "green"))
@@ -55,6 +57,7 @@ data class ShelfAppearance(
             curatedDesignId = null,
             patternId = CartdeckSurfaceDesign.PATTERN_NONE,
             stampId = CartdeckSurfaceDesign.STAMP_NONE,
+            decal = null,
         )
     }
 
@@ -67,6 +70,7 @@ data class ShelfAppearance(
             curatedDesignId = null,
             patternId = profile.patternId,
             stampId = profile.stampId,
+            decal = profile.decal,
         )
     }
 
@@ -89,6 +93,7 @@ data class ShelfAppearance(
                 custom = custom,
                 patternId = patternId,
                 stampId = stampId,
+                decal = decal,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -124,6 +129,7 @@ data class ShelfAppearance(
             curatedDesignId = null,
             patternId = duplicate.patternId,
             stampId = duplicate.stampId,
+            decal = duplicate.decal,
         )
     }
 }
@@ -146,9 +152,12 @@ data class ShelfLayout(
         require(appearance.edition in listOf("original", "pink", "green"))
         require(CartdeckSurfaceDesign.validPattern(appearance.patternId))
         require(CartdeckSurfaceDesign.validStamp(appearance.stampId))
+        appearance.decal?.validate()
         require(
             appearance.profiles.all {
-                CartdeckSurfaceDesign.validPattern(it.patternId) && CartdeckSurfaceDesign.validStamp(it.stampId)
+                CartdeckSurfaceDesign.validPattern(it.patternId) &&
+                    CartdeckSurfaceDesign.validStamp(it.stampId) &&
+                    (it.decal == null || runCatching { it.decal.validate() }.isSuccess)
             },
         )
         require(
