@@ -57,7 +57,13 @@ class LemuroidLibrary(
     private val biosManager: BiosManager,
     private val customCoverManager: CustomCoverManager,
 ) {
-    data class IndexSummary(val added: Int, val removed: Int, val skipped: Int, val discProblems: Int = 0)
+    data class IndexSummary(
+        val added: Int,
+        val removed: Int,
+        val skipped: Int,
+        val discProblems: Int = 0,
+        val relocations: List<CartridgeSourceMatch.Relocation> = emptyList(),
+    )
 
     /**
      * A scan is authoritative ONLY after every enabled provider and directory was
@@ -80,6 +86,10 @@ class LemuroidLibrary(
             throw error
         }
 
+        // Match only already-enumerated unique stable SAF documents. Never change
+        // a cartridge identity while scanning an incomplete provider or by filename.
+        val relocations = reconcileVerifiedSourceChanges(previousGames, startedAtMs)
+
         // Cleanup follows completed enumeration, never finally/catch.
         cleanUp(startedAtMs)
         val after =
@@ -91,7 +101,40 @@ class LemuroidLibrary(
             removed = (before - after).size,
             skipped = skipped.get(),
             discProblems = discProblems.get(),
+            relocations = relocations,
         )
+    }
+
+    private suspend fun reconcileVerifiedSourceChanges(
+        before: List<Game>,
+        scannedAt: Long,
+    ): List<CartridgeSourceMatch.Relocation> {
+        val now = retrogradedb.gameDao().selectShelfGames().first()
+        val relocations = CartridgeSourceMatch.uniqueRelocations(before, now, scannedAt)
+        if (relocations.isEmpty()) return emptyList()
+        val byOldId = before.associateBy { it.id }
+        val byUri = now.associateBy { it.fileUri }
+        val accepted = mutableListOf<CartridgeSourceMatch.Relocation>()
+        relocations.forEach { match ->
+            val original = byOldId[match.gameId] ?: return@forEach
+            val candidate = byUri[match.currentUri] ?: return@forEach
+            if (candidate.cartridgeId == original.cartridgeId) return@forEach
+            retrogradedb.withTransaction {
+                // Preserve original Room integer ID, UUID, art, favourites and aliases;
+                // re-parent current disc files before removing the transient new record.
+                retrogradedb.dataFileDao().transferToExistingGame(candidate.id, original.id)
+                retrogradedb.gameDao().delete(listOf(candidate))
+                retrogradedb.gameDao().update(
+                    original.copy(
+                        fileUri = candidate.fileUri,
+                        fileName = candidate.fileName,
+                        lastIndexedAt = scannedAt,
+                    ),
+                )
+            }
+            accepted += match
+        }
+        return accepted
     }
 
     @OptIn(FlowPreview::class)
