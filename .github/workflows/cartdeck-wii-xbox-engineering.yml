@@ -587,12 +587,34 @@ jobs:
             echo "No failed unit-test build with completed APK; QA snapshot not produced."
             exit 0
           fi
+          : "${CARTDECK_VERSION_CODE:?No audited version code}"
+          # The existing build script runs JVM tests before assemble. On a test
+          # failure no APK normally exists, so the old QA fallback was dead code.
+          # Assemble ONLY the identical debug variant from the already verified
+          # native bundle after a confirmed JVM-test failure; never skip tests in
+          # the release build, and never turn the red workflow green.
+          if ! find lemuroid-app/build/outputs/apk -type f -name '*.apk' -print -quit 2>/dev/null | grep -q .; then
+            test -s dist/cartdeck/bundle/native-systems.txt || {
+              echo "Complete native bundle unavailable; cannot assemble owner QA APK."
+              exit 0
+            }
+            systems=$(tr -d '\r\n' < dist/cartdeck/bundle/native-systems.txt)
+            "$GRADLE_BIN" :lemuroid-app:assembleFreeBundleDebug \
+              -Pcartdeck.dev.standaloneId=true \
+              -Pcartdeck.p0.phoneArm64Only=true \
+              -Pcartdeck.p0.testVersionCode="$CARTDECK_VERSION_CODE" \
+              -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/dist/cartdeck/bundle" \
+              -PcartdeckNativeSystems="$systems" \
+              -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/host-input/maven" \
+              -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+              -Pkotlin.compiler.execution.strategy=in-process \
+              --no-daemon --no-configuration-cache --max-workers=2
+          fi
           mapfile -t candidates < <(find lemuroid-app/build/outputs/apk -type f -name '*.apk' | sort)
           if [[ "${#candidates[@]}" -ne 1 || ! -s "${candidates[0]}" ]]; then
-            echo "APK not assembled; QA snapshot not produced."
+            echo "No complete APK assembled; QA snapshot not produced."
             exit 0
           fi
-          : "${CARTDECK_VERSION_CODE:?No audited version code}"
           bash scripts/ci/verify_standalone_apk.sh
           python3 scripts/ci/verify_native_bundle_apk.py \
             dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
