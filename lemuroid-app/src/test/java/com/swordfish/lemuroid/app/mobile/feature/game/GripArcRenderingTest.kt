@@ -68,8 +68,8 @@ class GripArcRenderingTest {
                     null
                 }
             val dock =
-                joint?.dock ?: GripArcCombinedLayout.resolve(
-                    manifest, native, native.inputIds, oversized, device.safe, device.viewport, profile.side, 0f, 0f,
+                joint?.dock ?: GripArcCombinedLayout.resolveDockFirst(
+                    manifest, native, device.safe, device.viewport, profile.side, 0f, 0f,
                 )!!.dock
             val tokens = compose.activity.resolveCartdeckEdition(edition)
             CompositionLocalProvider(LocalDensity provides Density(1f)) {
