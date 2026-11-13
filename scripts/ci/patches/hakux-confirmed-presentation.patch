@@ -1,0 +1,63 @@
+--- a/native/app/present.c
++++ b/native/app/present.c
+@@ -105,7 +105,7 @@
+ 
+ bool nc_present_shown(void)
+ {
+-    return __atomic_load_n(&g_shown, __ATOMIC_RELAXED);
++    return hle_present_confirmed();
+ }
+ 
+ static void debug_poll(void)
+--- a/hw/xbox/hle/vk/swapchain.h
++++ b/hw/xbox/hle/vk/swapchain.h
+@@ -9,6 +9,9 @@
+ #include <stdint.h>
+ 
+ struct ANativeWindow;
++
++/* True only after Vulkan accepts a present containing a guest frame. */
++bool hle_present_confirmed(void);
+ 
+ /* A frame smaller than its place in the window: scaled up bilinearly, or by
+  * Snapdragon Game Super Resolution (a larger one is always averaged down). */
+--- a/hw/xbox/hle/vk/swapchain.c
++++ b/hw/xbox/hle/vk/swapchain.c
+@@ -39,6 +39,12 @@
+ #include <android/native_window.h>
+ 
+ #define T (g_ps.t)
++
++static bool g_cartdeck_confirmed;
++bool hle_present_confirmed(void)
++{
++    return __atomic_load_n(&g_cartdeck_confirmed, __ATOMIC_RELAXED);
++}
+ #define PS_FRAMES 3             /* the presenter's submits in flight */
+ #define PS_RAMP 1024            /* a frame's share of the ramp buffer (768 used) */
+ 
+@@ -1031,6 +1037,9 @@
+         hle_vk_queue_unlock();
+     }
+     if (pr == VK_SUCCESS || pr == VK_SUBOPTIMAL_KHR) {
++        if (g_ps.have) {
++            __atomic_store_n(&g_cartdeck_confirmed, true, __ATOMIC_RELAXED);
++        }
+         g_ps.shown = true;
+         g_ps.shown_key = key;
+     }
+--- a/native/app/app_main.c
++++ b/native/app/app_main.c
+@@ -289,6 +289,12 @@
+     return nc_present_shown() ? JNI_TRUE : JNI_FALSE;
+ }
+ 
++EXPORT JNIEXPORT jint JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetBootState(JNIEnv *env,
++                                                                                              jclass cls)
++{
++    return SDL_GetAtomicInt(&g_core_state);
++}
++
+ /* The FPS overlay (NativeCoreActivity): the title's frame rate and pacing,
+  * and 1 when it renders by push-buffer decoding (else 0: D3D's hooks). */
+ EXPORT JNIEXPORT jfloatArray JNICALL Java_com_rfandango_haku_1x_NativeCoreActivity_nativeGetFrameStats(JNIEnv *env,

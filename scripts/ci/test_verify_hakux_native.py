@@ -21,7 +21,7 @@ def elf(machine=183, alignment=16384):
 
 
 METHODS = ['SDL_main'] + ['Java_com_rfandango_haku_1x_NativeCoreActivity_' + name for name in
-                          ['nativeGetFatal', 'nativeGetRelaunch', 'nativeGetQuit', 'nativeSetPads',
+                          ['nativeGetFatal', 'nativeGetFatalKind', 'nativeGetFrameShown', 'nativeGetBootState', 'nativeGetGpuReport', 'nativeGetRelaunch', 'nativeGetQuit', 'nativeSetPads',
                            'nativeSetPaused', 'nativeSetOverlayPad', 'nativeSetPad']]
 
 
@@ -76,6 +76,21 @@ class NativePackageTest(unittest.TestCase):
             return self.readelf(command, text).replace('nativeGetQuit', 'unrelatedSymbol')
         with patch('verify_hakux_native.subprocess.check_output', side_effect=missing):
             with self.assertRaisesRegex(ValueError, 'nativeGetQuit'):
+                verify(self.directory)
+
+    def test_presentation_probe_cannot_be_omitted_from_packaged_runtime(self):
+        def missing(command, text):
+            return self.readelf(command, text).replace('nativeGetFrameShown', 'unrelatedSymbol')
+        with patch('verify_hakux_native.subprocess.check_output', side_effect=missing):
+            with self.assertRaisesRegex(ValueError, 'nativeGetFrameShown'):
+                verify(self.directory)
+
+
+    def test_gpu_diagnostics_cannot_be_omitted_from_packaged_runtime(self):
+        def missing(command, text):
+            return self.readelf(command, text).replace('nativeGetGpuReport', 'unrelatedSymbol')
+        with patch('verify_hakux_native.subprocess.check_output', side_effect=missing):
+            with self.assertRaisesRegex(ValueError, 'nativeGetGpuReport'):
                 verify(self.directory)
 
 
