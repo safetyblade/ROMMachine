@@ -3,7 +3,10 @@ package com.swordfish.lemuroid.app.mobile
 import android.app.Activity
 import android.app.Application
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.net.Uri
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
@@ -12,12 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -63,6 +64,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
@@ -159,22 +161,55 @@ class CartridgeExperienceTest {
         val directory = File("build/reports/cartridge-setup").apply { mkdirs() }
 
         fun capture(
-            tag: String,
+            view: View,
             name: String,
         ) {
-            val bitmap = compose.onNodeWithTag(tag).captureToImage().asAndroidBitmap()
-            File(directory, name).outputStream().use {
-                org.junit.Assert.assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it))
+            compose.runOnIdle {
+                assertTrue("Capture target must be laid out", view.width > 0 && view.height > 0)
+                val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+                try {
+                    // Robolectric has no real Choreographer/window compositor for
+                    // captureToImage's OnDraw/PixelCopy handshake. Draw the actual
+                    // native-graphics decor view, including the separate sheet dialog.
+                    view.draw(Canvas(bitmap))
+                    val colors =
+                        (0 until 10).flatMap { y ->
+                            (0 until 10).map { x -> bitmap.getPixel(x * bitmap.width / 10, y * bitmap.height / 10) }
+                        }.toSet()
+                    assertTrue("Capture must contain rendered UI, not a blank bitmap", colors.size > 1)
+                    File(directory, name).outputStream().use {
+                        assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+                    }
+                } finally {
+                    bitmap.recycle()
+                }
             }
         }
-        capture("cartridge_front", "front.png")
-        compose.onNodeWithText("Setup").performClick()
-        capture("cartridge_setup", "setup.png")
+        capture(compose.activity.window.decorView, "front.png")
+        openSetup()
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue("Setup must have a visible native dialog", dialog?.isShowing == true)
+        capture(dialog.window!!.decorView, "setup.png")
+    }
+
+    private fun settleSheet() {
+        // Advance virtual animation time, never wall-clock sleep. Sheet anchors
+        // and hit targets must settle before injecting the next pointer gesture.
+        compose.mainClock.advanceTimeBy(1000)
+        compose.waitForIdle()
+    }
+
+    private fun openSetup() {
+        compose.onNodeWithText("Setup").assertIsDisplayed().performClick()
+        settleSheet()
+        compose.onNodeWithTag("cartridge_setup").assertIsDisplayed()
     }
 
     private fun openArtworkSetup() {
-        compose.onNodeWithText("Setup").performClick()
-        compose.onNodeWithText("Cartridge artwork").performClick()
+        openSetup()
+        compose.onNodeWithText("Cartridge artwork").performScrollTo().assertIsDisplayed().performClick()
+        settleSheet()
+        compose.onNodeWithText("Change Cover").assertExists()
     }
 
     @Test fun singleXboxEngineDoesNotOfferFakeAlternatives() {
@@ -182,8 +217,9 @@ class CartridgeExperienceTest {
             CartridgeLibraryTheme { CartridgeDetail(cartridge(2, "Xbox fixture", "xbox"), {}, {}, { _, _ -> }, {}) }
         }
         compose.onNodeWithText("Open").assertIsDisplayed()
-        compose.onNodeWithText("Setup").performClick()
-        compose.onNodeWithText("Emulator").performClick()
+        openSetup()
+        compose.onNodeWithText("Emulator").performScrollTo().assertIsDisplayed().performClick()
+        settleSheet()
         compose.onNodeWithText("hakuX").assertExists()
         compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
         compose.onNodeWithText("Use console preference").assertDoesNotExist()
@@ -196,7 +232,7 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Open").assertIsEnabled()
         compose.onNodeWithText("Change Cover").assertDoesNotExist()
         compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
-        compose.onNodeWithText("Setup").performClick()
+        openSetup()
         compose.onNodeWithText("Emulator").assertExists()
         compose.onNodeWithText("Controls").assertExists()
         compose.onNodeWithText("Cartridge artwork").assertExists()
