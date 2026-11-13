@@ -192,3 +192,22 @@ internal fun decode(json: String): ShelfLayout {
             },
     ).validate()
 }
+
+/** Optional V2 field: old appearance records still load without a decal. */
+internal fun decalToJson(decal: CartdeckPersonalDecal): JSONObject =
+    JSONObject().apply {
+        put("assetId", decal.assetId)
+        put("anchor", decal.anchor)
+        put("scale", decal.scale.toDouble())
+        put("rotation", decal.rotation.toDouble())
+        put("opacity", decal.opacity.toDouble())
+    }
+
+internal fun decalFromJson(json: JSONObject): CartdeckPersonalDecal =
+    CartdeckPersonalDecal(
+        assetId = json.getString("assetId"),
+        anchor = json.optString("anchor", CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT),
+        scale = json.optDouble("scale", 0.65).toFloat(),
+        rotation = json.optDouble("rotation", 0.0).toFloat(),
+        opacity = json.optDouble("opacity", 0.85).toFloat(),
+    ).validate()
