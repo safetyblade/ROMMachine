@@ -139,6 +139,7 @@ class CartridgeSaveBindingTest {
             // never altering the original. A retry must continue to fail closed.
             assertTrue(runCatching { binding.sramFile(game, legacy, "shared") }.exceptionOrNull() is IOException)
         }
+
     @Test fun ambiguousLegacyDsFilesRemainReadOnlyAndUnassigned() {
         val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
         val fixture = game(uniqueName(), "content://fixture/ds")
@@ -154,5 +155,4 @@ class CartridgeSaveBindingTest {
         assertNull(verified.timestampOverride)
         assertArrayEquals(byteArrayOf(11, 22, 33), legacy.readBytes())
     }
-
 }
