@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 class ShelfStore(context: Context) {
     private val file = File(context.filesDir, "cartdeck/shelf-layout-v1.json")
     private val atomic = AtomicFile(file)
+    private val decalStore = CartdeckDecalStore(context.applicationContext)
     private val lock = locks.getOrPut(file.absolutePath) { Mutex() }
 
     companion object {
