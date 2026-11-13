@@ -35,6 +35,11 @@ class DirectoriesManager(private val appContext: Context) {
             mkdirs()
         }
 
+    fun getSaveBindingsDirectory(): File =
+        File(appContext.filesDir, "cartdeck/save-bindings").apply {
+            mkdirs()
+        }
+
     fun getInternalRomsDirectory(): File =
         File(appContext.getExternalFilesDir(null), "roms").apply {
             mkdirs()
