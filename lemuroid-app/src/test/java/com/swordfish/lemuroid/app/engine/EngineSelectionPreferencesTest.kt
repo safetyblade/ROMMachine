@@ -9,6 +9,7 @@ import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -84,6 +85,38 @@ class EngineSelectionPreferencesTest {
         preferences.beginLaunch(game, fallback.engine)
         preferences.recordFailure(game, "CORE_STOPPED")
         assertBlocked(preferences)
+    }
+
+    @Test
+    fun acceptedPresentationDoesNotReplaceProvenEngineOrClearFailure() {
+        val preferences = EngineSelectionPreferences(context)
+        preferences.beginLaunch(game, engines[0])
+        preferences.recordSuccess(game)
+        preferences.beginLaunch(game, engines[1])
+        preferences.recordPresentation(game)
+        assertEquals(engines[0].id, preferences.select(game, system.systemCoreConfigs[1]).engine.id)
+        preferences.recordFailure(game, "NATIVE_STOPPED")
+        preferences.recordPresentation(game)
+        assertEquals("NATIVE_STOPPED", preferences.failureStage(game))
+        assertNull(preferences.previous(game))
+    }
+
+    @Test
+    fun xboxPresentCallbackCannotCreateGraphicalSuccessEvenThroughLegacyMethod() {
+        val preferences = EngineSelectionPreferences(context)
+        val xbox = GameSystem.findById(SystemID.XBOX.dbname)
+        val cartridge = game.copy(systemId = xbox.id.dbname, fileUri = "content://fixtures/xbox-presentation")
+        preferences.beginLaunch(cartridge, NativeEngineRegistry.engines(xbox).single())
+        preferences.recordSuccess(cartridge)
+        val records =
+            java.io.File(context.filesDir, "native-engine-outcomes").listFiles().orEmpty()
+                .filter { it.name.startsWith("game_xbox_") && it.extension == "properties" }
+                .map { file -> java.util.Properties().apply { file.inputStream().use { load(it) } } }
+        val evidence = records.single { it.getProperty("lastSelected") == "hakux" }
+        assertEquals("PRESENT_ACCEPTED", evidence.getProperty("stage"))
+        assertTrue(evidence.getProperty("presentationAccepted").startsWith("hakux:"))
+        assertNull(evidence.getProperty("successful"))
+        assertNull(evidence.getProperty("previous"))
     }
 
     private fun assertBlocked(preferences: EngineSelectionPreferences) {
