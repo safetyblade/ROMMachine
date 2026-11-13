@@ -643,12 +643,13 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         isLandscape,
                         useFullLandscapeViewport,
                         portraitMode,
-                        portraitBottomInset = GameScreenLayout.portraitBottomInsetFor(
-                            viewModel.systemId,
-                            effectiveArcMode == ArcControlMode.STANDARD,
-                            isLandscape,
-                            maxHeight,
-                        ),
+                        portraitBottomInset =
+                            GameScreenLayout.portraitBottomInsetFor(
+                                viewModel.systemId,
+                                effectiveArcMode == ArcControlMode.STANDARD,
+                                isLandscape,
+                                maxHeight,
+                            ),
                     ),
             ) {
                 Box(
