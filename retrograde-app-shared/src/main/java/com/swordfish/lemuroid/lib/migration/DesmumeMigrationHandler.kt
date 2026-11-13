@@ -20,7 +20,7 @@ class DesmumeMigrationHandler(
         }
 
         val savesDirectory = directoriesManager.getSavesDirectory()
-        val baseFileName = game.fileName.substringBeforeLast(".", game.fileName)
+        val baseFileName = game.saveFileName().substringBeforeLast(".", game.saveFileName())
         val srmFile = File(savesDirectory, "$baseFileName.$SRM_EXTENSION")
         val dsvFile = File(savesDirectory, "$baseFileName.$DSV_EXTENSION")
         val srmInfo = SaveCandidate(srmFile, defaultData ?: srmFile.readBytesIfValid())

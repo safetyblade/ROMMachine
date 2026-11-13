@@ -10,7 +10,7 @@ object MelonDsSavesMigrator : SavesMigrator {
         directoriesManager: DirectoriesManager,
     ): ByteArray? {
         val savesDirectory = directoriesManager.getSavesDirectory()
-        val previousSaveFileName = "${game.fileName.substringBeforeLast(".")}.sav"
+        val previousSaveFileName = "${game.saveFileName().substringBeforeLast(".")}.sav"
         val previousSaveFile = File(savesDirectory, previousSaveFileName)
 
         return if (previousSaveFile.exists() && previousSaveFile.length() > 0) {

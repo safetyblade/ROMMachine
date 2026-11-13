@@ -20,16 +20,19 @@
 package com.swordfish.lemuroid.lib.library.db.entity
 
 import androidx.recyclerview.widget.DiffUtil
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.io.Serializable
+import java.util.UUID
 
 @Entity(
     tableName = "games",
     indices = [
         Index("id", unique = true),
         Index("fileUri", unique = true),
+        Index("cartridgeId", unique = true),
         Index("title"),
         Index("systemId"),
         Index("lastIndexedAt"),
@@ -51,7 +54,15 @@ data class Game(
     val isFavorite: Boolean = false,
     val customName: String? = null,
     val customCoverUri: String? = null,
+    /** Permanent installed-cartridge identity; never derived from title, filename or URI. */
+    @ColumnInfo(defaultValue = "''")
+    val cartridgeId: String = UUID.randomUUID().toString(),
+    /** Frozen compatibility aliases. A refresh may change fileName without moving player data. */
+    val legacyFileName: String? = fileName,
+    val legacySourceUri: String? = fileUri,
 ) : Serializable {
+    fun saveFileName(): String = legacyFileName ?: fileName
+
     fun displayName(): String = customName ?: title
 
     fun displayCoverUrl(): String? = customCoverUri ?: coverFrontUrl
