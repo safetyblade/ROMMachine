@@ -23,15 +23,11 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
+import com.swordfish.lemuroid.lib.library.SystemID
 
 @Composable
-fun GameMenuCoreOptionsScreen(
-    viewModel: GameMenuCoreOptionsViewModel,
-    gameMenuRequest: GameMenuActivity.GameMenuRequest,
-) {
+fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest) {
     val context = LocalContext.current
-
-    val connectedGamePads by viewModel.connectedGamePads.collectAsState(0)
 
     val allOptions =
         remember(gameMenuRequest) {
@@ -40,7 +36,6 @@ fun GameMenuCoreOptionsScreen(
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         CoreOptions(gameMenuRequest.game.systemId, allOptions, context)
-        ControllersOptions(gameMenuRequest, maxOf(1, connectedGamePads), context)
     }
 }
 
@@ -80,6 +75,15 @@ private fun CoreOptions(
 }
 
 @Composable
+fun GameMenuControllerOptions(
+    viewModel: GameMenuCoreOptionsViewModel,
+    gameMenuRequest: GameMenuActivity.GameMenuRequest,
+) {
+    val connectedGamePads by viewModel.connectedGamePads.collectAsState(0)
+    ControllersOptions(gameMenuRequest, maxOf(1, connectedGamePads), LocalContext.current)
+}
+
+@Composable
 private fun ControllersOptions(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     connectedGamePads: Int,
@@ -90,7 +94,10 @@ private fun ControllersOptions(
     val visibleControllers =
         (0 until connectedGamePads)
             .map { it to controllers[it] }
-            .filter { (_, controllers) -> controllers != null && controllers.size >= 2 }
+            .filter { (port, controllers) ->
+                controllers != null && controllers.size >= 2 &&
+                    !(port == 0 && gameMenuRequest.game.systemId == SystemID.WII.dbname)
+            }
 
     if (visibleControllers.isEmpty()) {
         return

@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/audit_cartdeck_brand.py
+          python3 -m unittest discover -s scripts/ci -p 'test_game_menu_contract.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_hakux_pixel_probe.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_hakux_guest_publication.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_hakux_guest_submission.py' -v
