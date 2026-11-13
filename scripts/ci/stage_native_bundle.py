@@ -84,7 +84,68 @@ def stage_xbox(source, readelf):
     return entries
 
 
-def stage(sources, destination, readelf, wii=False, xbox=None):
+def stage_xbox360(source, readelf):
+    """Stage only a verified pinned Xenia package, never its large source/symbol archives."""
+    revision = '779680ade075d2d2a4c589c6a8d57a8e26c116c0'
+    core = 'libcartdeck_xenia.so'
+    props = dict(line.split('=', 1) for line in (source / 'xenia.properties').read_text().splitlines()
+                 if line.strip() and not line.startswith('#'))
+    if props.get('revision') != revision or props.get('core.library') != core:
+        raise ValueError('Xbox 360: unexpected native revision/core')
+    if props.get('arch') != 'arm64-v8a' or props.get('backend') != 'Xenia-ARM64-Vulkan':
+        raise ValueError('Xbox 360: unexpected architecture/backend')
+    names = props.get('library.names', '').split(',')
+    if not names or len(names) != len(set(names)) or core not in names:
+        raise ValueError('Xbox 360: invalid dependency inventory')
+    if any(not re.fullmatch(r'lib[A-Za-z0-9_.+-]+\\.so', name) for name in names):
+        raise ValueError('Xbox 360: invalid library name')
+    if set(p.name for p in source.glob('*.so')) != set(names):
+        raise ValueError('Xbox 360: binary inventory mismatch')
+    listed = set()
+    for line in (source / 'sha256.txt').read_text().splitlines():
+        digest, relative = line.split('  ', 1)
+        pure = pathlib.PurePosixPath(relative)
+        if (not re.fullmatch('[0-9a-f]{64}', digest) or pure.is_absolute() or
+                len(pure.parts) != 1 or relative in listed):
+            raise ValueError('Xbox 360: unsafe or duplicate manifest entry')
+        listed.add(relative)
+        if not (source / relative).is_file() or sha(source / relative) != digest:
+            raise ValueError('Xbox 360: package checksum mismatch: ' + relative)
+    if not set(names) | {'xenia.properties', 'xenia-licenses.zip', 'source-manifest.json'} <= listed:
+        raise ValueError('Xbox 360: incomplete engine/source-notice package')
+    if props.get('core.sha256') != sha(source / core):
+        raise ValueError('Xbox 360: core checksum mismatch')
+    from verify_hakux_native import SYSTEM
+    entries = []
+    for name in names:
+        path = source / name
+        if props.get('library.' + name + '.sha256') != sha(path):
+            raise ValueError('Xbox 360: manifest library hash mismatch: ' + name)
+        dynamic = subprocess.check_output([readelf, '-dW', str(path)], text=True)
+        verify_android_elf(path.read_bytes(), dynamic)
+        needed = set(re.findall(r'\\(NEEDED\\).*\\[(.*?)\\]', dynamic))
+        if needed - SYSTEM - set(names):
+            raise ValueError('Xbox 360: unbundled dependency: ' + str(sorted(needed - SYSTEM - set(names))))
+        note = subprocess.check_output([readelf, '-nW', str(path)], text=True)
+        if not re.search(r'Build ID: [0-9a-f]+', note):
+            raise ValueError('Xbox 360: missing ELF build ID: ' + name)
+        if name == core:
+            symbols = subprocess.check_output([readelf, '--dyn-syms', '-W', str(path)], text=True)
+            if 'JNI_OnLoad' not in symbols:
+                raise ValueError('Xbox 360: missing JNI_OnLoad')
+            if props.get('native.build_id') not in note:
+                raise ValueError('Xbox 360: wrong core build ID')
+        entries.append((path, 'jniLibs/arm64-v8a/' + name))
+    with zipfile.ZipFile(source / 'xenia-licenses.zip') as licenses:
+        if not licenses.namelist():
+            raise ValueError('Xbox 360: missing license notices')
+    entries += [(source / 'xenia.properties', 'assets/cartdeck/xenia.properties'),
+                (source / 'xenia-licenses.zip', 'assets/cartdeck/xenia/xenia-licenses.zip'),
+                (source / 'source-manifest.json', 'assets/cartdeck/xenia/source-manifest.json')]
+    return entries
+
+
+def stage(sources, destination, readelf, wii=False, xbox=None, xbox360=None):
     if destination.exists():
         raise ValueError('Use a fresh staging directory; never merge engine versions')
     # Validate every selected engine before creating the new bundle.
@@ -113,6 +174,20 @@ def stage(sources, destination, readelf, wii=False, xbox=None):
         validated.extend(entries)
     if xbox:
         validated.extend(stage_xbox(xbox, readelf))
+    if xbox360:
+        validated.extend(stage_xbox360(xbox360, readelf))
+    # Never allow two native engines to silently overwrite a same-name .so.
+    destinations = {}
+    deduplicated = []
+    for source, relative in validated:
+        previous = destinations.get(relative)
+        if previous is not None:
+            if sha(previous) != sha(source):
+                raise ValueError('Native package collision at ' + relative)
+            continue
+        destinations[relative] = source
+        deduplicated.append((source, relative))
+    validated = deduplicated
     for source, relative in validated:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -121,6 +196,7 @@ def stage(sources, destination, readelf, wii=False, xbox=None):
     systems = [k for k in sources if k in {'dc', 'gc', 'ps2'}]
     systems += ['wii'] if wii else []
     systems += ['xbox'] if xbox else []
+    systems += ['xbox360'] if xbox360 else []
     (destination / 'native-systems.txt').write_text(','.join(systems) + '\n')
     (destination / 'bundle-sha256.txt').write_text(''.join(
         f'{sha(destination / relative)}  {relative}\n' for _, relative in validated))
@@ -132,13 +208,14 @@ if __name__ == '__main__':
     parser.add_argument('--readelf', default='readelf')
     parser.add_argument('--wii', action='store_true', help='Enable Wii with the existing Dolphin package')
     parser.add_argument('--xbox', type=pathlib.Path, help='Verified hakuX native Android package')
+    parser.add_argument('--xbox360', type=pathlib.Path, help='Verified Xenia native Android package')
     for engine in ENGINES:
         parser.add_argument('--' + engine, type=pathlib.Path)
     args = parser.parse_args()
     sources = {name: getattr(args, name) for name in ENGINES if getattr(args, name)}
     if not sources:
         parser.error('Select at least one locally built engine')
-    stage(sources, args.output, args.readelf, args.wii, args.xbox)
+    stage(sources, args.output, args.readelf, args.wii, args.xbox, args.xbox360)
     print('Verified private bundle:', args.output)
     print('Gradle properties: -PcartdeckNativeBundleDir=' + str(args.output.resolve()) +
           ' -PcartdeckNativeSystems=' + (args.output / 'native-systems.txt').read_text().strip())
