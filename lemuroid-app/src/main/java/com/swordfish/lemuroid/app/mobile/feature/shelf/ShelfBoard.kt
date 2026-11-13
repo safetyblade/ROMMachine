@@ -65,7 +65,7 @@ import kotlin.math.roundToInt
 
 private data class ShelfItem(val key: String, val section: ShelfSection, val row: ShelfRow? = null)
 
-private data class DropPosition(val section: String, val before: String?, val spaces: Int = 0)
+private data class DropPosition(val section: String, val before: String?)
 
 /** Lazy vertical rows: there is deliberately no horizontally scrolling container. */
 @Composable
@@ -196,7 +196,6 @@ fun ShelfBoard(
                                     DropPosition(
                                         item.section.id,
                                         if (cell == null) next else cell.id,
-                                        if (cell == null) column - row.cells.size + 1 else 0,
                                     )
                                 val game = cell?.gameKey?.let(byKey::get)
                                 key(cellKey) {
@@ -241,23 +240,13 @@ fun ShelfBoard(
                                                                     val id = dragging
                                                                     val destination = hover
                                                                     if (id != null && destination != null) {
-                                                                        onEdit { initial ->
-                                                                            var updated = initial
-                                                                            var before = destination.before
-                                                                            repeat(destination.spaces) {
-                                                                                val gap = ShelfCell()
-                                                                                updated =
-                                                                                    updated.insertSpaceWithId(
-                                                                                        destination.section,
-                                                                                        destination.before,
-                                                                                        gap,
-                                                                                    )
-                                                                                before = gap.id
-                                                                            }
-                                                                            updated.moveCell(
+                                                                        // Padded columns are visual only.
+                                                                        // Only explicit Insert space reserves gaps.
+                                                                        onEdit {
+                                                                            it.moveCell(
                                                                                 id,
                                                                                 destination.section,
-                                                                                before,
+                                                                                destination.before,
                                                                             )
                                                                         }
                                                                     }
@@ -371,7 +360,7 @@ fun ShelfBoard(
                                                                 if (cell?.gameKey != null) {
                                                                     cell.titleHint
                                                                 } else if (reserved) {
-                                                                    "Reserved"
+                                                                    "Empty"
                                                                 } else {
                                                                     "+ Space"
                                                                 },
@@ -488,26 +477,6 @@ fun ShelfRail() {
         Box(Modifier.fillMaxWidth().height(6.dp).background(colors.shelfShadow))
     }
 }
-
-fun ShelfLayout.insertSpaceWithId(
-    sectionId: String,
-    before: String?,
-    space: ShelfCell,
-): ShelfLayout =
-    copy(
-        sections =
-            sections.map { section ->
-                if (section.id != sectionId) {
-                    section
-                } else {
-                    val cells = section.cells.toMutableList()
-                    val index = before?.let { id -> cells.indexOfFirst { it.id == id } } ?: cells.size
-                    require(index >= 0)
-                    cells.add(index, space)
-                    section.copy(cells = cells)
-                }
-            },
-    ).validate()
 
 fun ShelfLayout.moveBy(
     cellId: String,

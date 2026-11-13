@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
 import java.security.MessageDigest
+import java.util.Locale
 import java.util.UUID
 
 /** Presentation state only. Never use cells as ROM, game or save records. */
@@ -12,6 +13,9 @@ data class ShelfCell(
 )
 
 data class ShelfSection(val id: String, val title: String, val cells: List<ShelfCell> = emptyList())
+
+/** Sort mode changes only shelf presentation; not ROM identity or saved game data. */
+enum class ShelfArrangeMode { TITLE_A_TO_Z, CONSOLE_THEN_TITLE }
 
 /** A named colour-only profile. Never a game, ROM, library or save record. */
 data class NamedAppearance(
@@ -251,6 +255,37 @@ data class ShelfLayout(
                         section.copy(cells = list)
                     }
                 },
+        ).validate()
+    }
+
+    /** Explicitly close every shelf gap/blank row, preserving original game and section order. */
+    fun removeAllSpaces(): ShelfLayout =
+        copy(
+            sections = sections.map { section ->
+                section.copy(cells = section.cells.filter { it.gameKey != null })
+            },
+        ).validate()
+
+    /** Deterministic in-section reordering. Game keys, cells and sections are retained. */
+    fun autoArrange(
+        mode: ShelfArrangeMode,
+        systemsByGameKey: Map<String, String> = emptyMap(),
+    ): ShelfLayout {
+        val compact = removeAllSpaces()
+        val byTitle = compareBy<ShelfCell>(
+            { it.titleHint.trim().lowercase(Locale.ROOT) },
+            { it.gameKey.orEmpty() },
+        )
+        val comparator =
+            when (mode) {
+                ShelfArrangeMode.TITLE_A_TO_Z -> byTitle
+                ShelfArrangeMode.CONSOLE_THEN_TITLE ->
+                    compareBy<ShelfCell> {
+                        systemsByGameKey[it.gameKey.orEmpty()].orEmpty().lowercase(Locale.ROOT)
+                    }.then(byTitle)
+            }
+        return compact.copy(
+            sections = compact.sections.map { it.copy(cells = it.cells.sortedWith(comparator)) },
         ).validate()
     }
 
