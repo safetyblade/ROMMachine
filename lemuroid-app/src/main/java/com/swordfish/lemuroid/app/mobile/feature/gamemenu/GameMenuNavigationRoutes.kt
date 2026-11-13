@@ -31,7 +31,6 @@ enum class GameMenuRoute(
     ),
     STATES("states", R.string.game_menu_title, HOME),
     ADVANCED("advanced", R.string.game_menu_settings, HOME),
-    PIVOTARC("pivotarc", R.string.game_menu_edit_touch_controls, CONTROLS),
     TROUBLESHOOTING("troubleshooting", R.string.game_menu_settings, ADVANCED),
     SAVE(
         route = "save",
@@ -53,6 +52,7 @@ enum class GameMenuRoute(
         titleId = R.string.game_menu_edit_touch_controls,
         parent = HOME,
     ),
+    PIVOTARC("pivotarc", R.string.game_menu_edit_touch_controls, CONTROLS),
     GRIPARC(
         route = "griparc",
         titleId = R.string.game_menu_edit_touch_controls,
