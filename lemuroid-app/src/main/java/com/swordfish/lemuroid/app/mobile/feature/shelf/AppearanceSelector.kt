@@ -499,7 +499,7 @@ fun ShelfAppearanceEditor(
                                 id,
                                 checked =
                                     edition == id && selectedId == null &&
-                                    selectedDesignId == null && overrides.isEmpty(),
+                                        selectedDesignId == null && overrides.isEmpty(),
                                 modifier = Modifier.weight(1f),
                                 onClick = { choosePreset(id) },
                             )
