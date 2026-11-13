@@ -16,15 +16,18 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
@@ -35,6 +38,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionContro
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
+import com.swordfish.lemuroid.lib.core.VersionedCoreStore
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
@@ -49,6 +53,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /** Observe the existing record by ID, including asynchronous cover changes. No new storage. */
 @Composable
@@ -116,21 +121,27 @@ fun CartridgeDetail(
         }
     // Consumed before dispatch, so rapid taps cannot launch twice. Reopening permits a retry.
     var opening by remember(game.id) { mutableStateOf(false) }
+    var setup by rememberSaveable(game.id) { mutableStateOf(false) }
     Column(
-        Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        Modifier.testTag("cartridge_front").fillMaxWidth().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.Start)) {
-            Text(stringResource(R.string.cartdeck_back_to_shelf))
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.Start).heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.cartdeck_back_to_shelf))
+            }
+            Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
+            Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
+            val profile = rememberGripArcProfile(game).value
+            if (profile.mode.hasGrip || profile.mode.hasPivot) {
+                Text("ARC · ${profile.mode.label}", style = MaterialTheme.typography.labelSmall)
+            }
+            CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
         }
-        Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
-        Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
-        if (rememberGripArcProfile(game).value.mode.hasGrip) {
-            Text("ARC · GripArc active", style = MaterialTheme.typography.labelSmall)
-        }
-        CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
-        CartridgeEmulatorChoice(game)
         Button(
             onClick = {
                 if (!opening) {
@@ -141,14 +152,18 @@ fun CartridgeDetail(
             enabled = !opening,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) { Text(stringResource(R.string.cartdeck_open)) }
-        OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.cartdeck_change_cover))
+        TextButton(onClick = { setup = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text("Setup")
         }
-        TextButton(
-            onClick = { onResetCover(game) },
-            enabled = game.customCoverUri != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.cartdeck_reset_cover)) }
+    }
+    if (setup) {
+        CartridgeSetupSheet(
+            game = game,
+            onDismiss = { setup = false },
+            onChangeCover = { picker.launch("image/*") },
+            onResetCover = { onResetCover(game) },
+            emulator = { CartridgeEmulatorChoice(game) },
+        )
     }
 }
 
@@ -156,29 +171,9 @@ fun CartridgeDetail(
 private fun CartridgeEmulatorChoice(game: Game) {
     val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
     val system = GameSystem.findById(game.systemId)
-    val selectableSystems =
-        setOf(
-            SystemID.PSX,
-            SystemID.PSP,
-            SystemID.DREAMCAST,
-            SystemID.GAMECUBE,
-            SystemID.WII,
-            SystemID.PLAYSTATION_2,
-        )
-    if (system.nativeBackend != null || system.systemCoreConfigs.size > 1 || systemId in selectableSystems) {
-        EngineSelectionControls(system, game)
-    }
+    EngineSelectionControls(system, game, showFallbackPolicy = false)
     if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII)) {
         NativeEngineChoice(systemId, game)
-        if (systemId == SystemID.WII) {
-            Text(
-                "Choose Classic, sideways Remote or Nunchuk in controller settings. " +
-                    "Touch the game picture to point; pointer settings also offer the right stick. " +
-                    "Press the right stick for Wii Home. Shake buttons emulate motion. " +
-                    "Phone motion sensors and physical Wii Remotes are unavailable in this build.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
     }
 }
 
@@ -198,29 +193,38 @@ private fun NativeEngineChoice(
         }
     var busy by remember(systemId) { mutableStateOf(false) }
     var message by remember(systemId) { mutableStateOf<String?>(null) }
-    OutlinedButton(
-        enabled = !busy,
-        onClick = {
-            busy = true
-            scope.launch {
-                message =
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            if (NativeCoreProvisioner.choosePrevious(context, core)) {
-                                EngineSelectionPreferences(context).setPreferred(
-                                    GameSystem.findById(game.systemId), core.coreName, game,
-                                )
-                                "Previous engine selected. Game saves are retained."
-                            } else {
-                                "No previous engine is installed."
-                            }
-                        }.getOrElse { "The previous engine is unavailable." }
-                    }
-                busy = false
+    var previousAvailable by remember(systemId) { mutableStateOf(false) }
+    LaunchedEffect(systemId, busy) {
+        previousAvailable =
+            withContext(Dispatchers.IO) {
+                VersionedCoreStore(File(context.filesDir, "native-engine-versions")).canRollback(core.coreName)
             }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) { Text("Use previous engine") }
+    }
+    if (previousAvailable) {
+        OutlinedButton(
+            enabled = !busy,
+            onClick = {
+                busy = true
+                scope.launch {
+                    message =
+                        withContext(Dispatchers.IO) {
+                            runCatching {
+                                if (NativeCoreProvisioner.choosePrevious(context, core)) {
+                                    EngineSelectionPreferences(context).setPreferred(
+                                        GameSystem.findById(game.systemId), core.coreName, game,
+                                    )
+                                    "Previous engine selected. Game saves are retained."
+                                } else {
+                                    "No previous engine is installed."
+                                }
+                            }.getOrElse { "The previous engine is unavailable." }
+                        }
+                    busy = false
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Use previous version") }
+    }
     TextButton(
         enabled = !busy,
         onClick = {
@@ -239,6 +243,6 @@ private fun NativeEngineChoice(
                 busy = false
             }
         },
-    ) { Text("Use current engine") }
+    ) { Text("Use current version / retry") }
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
 }

@@ -17,6 +17,27 @@ class DebugCoreVersionStoreTest {
             .joinToString("") { "%02x".format(it) }
 
     @Test
+    fun rollbackAvailabilityRequiresADistinctVerifiedPreviousVersion() {
+        val root = Files.createTempDirectory("version-choice-").toFile()
+        try {
+            val store = com.swordfish.lemuroid.lib.core.VersionedCoreStore(File(root, "store"))
+            val first = File(root, "first.so").apply { writeText("v1") }
+            val second = File(root, "second.so").apply { writeText("v2") }
+            store.install("flycast", "v1", first, sha(first.readBytes()))
+            store.activate("flycast", "v1")
+            assertFalse(store.canRollback("flycast"))
+            store.install("flycast", "v2", second, sha(second.readBytes()))
+            store.activate("flycast", "v2")
+            assertTrue(store.canRollback("flycast"))
+            store.select("flycast")!!.coreFile.writeText("corrupt")
+            assertFalse(store.canRollback("flycast"))
+            assertEquals("v1", store.select("flycast")?.version)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun preserveActiveAndFallbackOnCorruption() {
         val root = Files.createTempDirectory("dc02-test-").toFile()
         try {

@@ -10,6 +10,7 @@ import com.swordfish.lemuroid.lib.core.CoresSelection
 import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,10 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                // Asset readiness must not depend on opening the optional Setup UI.
+                if (system.id in setOf(SystemID.PSX, SystemID.PSP)) {
+                    EmulatorModernAssetsProvisioner.installIfBundled(activity.applicationContext)
+                }
                 val enginePreferences = EngineSelectionPreferences(activity.applicationContext)
                 val legacyCoreConfig =
                     if (system.nativeBackend == null) {
