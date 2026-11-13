@@ -115,12 +115,15 @@ fun SecondaryButtonMenuPlaceholder(settings: TouchControllerSettingsManager.Sett
 
 context(PadKitScope, LayoutRadialSecondaryDialsScope)
 @Composable
-fun SecondaryAnalogLeft() {
+fun SecondaryAnalogLeft(
+    positionDegrees: Float = -80f,
+    radialScale: Float = 2.0f,
+) {
     LemuroidControlAnalog(
         modifier =
             Modifier
-                .radialPosition(-80f)
-                .radialScale(2.0f),
+                .radialPosition(positionDegrees)
+                .radialScale(radialScale),
         id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
         analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
         hardwareSeatId = "analog-left",
