@@ -62,7 +62,7 @@ internal fun encode(layout: ShelfLayout): String =
                 put("highContrast", layout.appearance.highContrast)
                 put("reducedMotion", layout.appearance.reducedMotion)
                 put("custom", JSONObject(layout.appearance.custom))
-                put("appearanceVersion", 3)
+                put("appearanceVersion", 2)
                 put("activeProfileId", layout.appearance.activeProfileId ?: JSONObject.NULL)
                 put("curatedDesignId", layout.appearance.curatedDesignId ?: JSONObject.NULL)
                 put(
@@ -120,7 +120,7 @@ internal fun decode(json: String): ShelfLayout {
     val appearance = root.getJSONObject("appearance")
     val custom = appearance.optJSONObject("custom") ?: JSONObject()
     val profiles = appearance.optJSONArray("profiles") ?: JSONArray()
-    require(appearance.optInt("appearanceVersion", 1) in 1..3) { "Unknown appearance schema; retaining stored file" }
+    require(appearance.optInt("appearanceVersion", 1) in 1..2) { "Unknown appearance schema; retaining stored file" }
     val sections = root.getJSONArray("sections")
     return ShelfLayout(
         version = root.getInt("version"),
