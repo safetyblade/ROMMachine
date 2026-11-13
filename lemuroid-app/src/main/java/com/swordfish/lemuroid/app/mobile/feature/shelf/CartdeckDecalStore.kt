@@ -19,6 +19,7 @@ import java.util.UUID
  */
 internal class CartdeckDecalStore(private val context: Context) {
     private val folder = File(context.filesDir, "cartdeck/decals")
+    private val pending = File(context.cacheDir, "cartdeck/decal-pending")
 
     companion object {
         const val MAX_IMPORT_BYTES = 8 * 1024 * 1024
@@ -33,6 +34,8 @@ internal class CartdeckDecalStore(private val context: Context) {
         }
         return File(folder, "$id.png")
     }
+
+    private fun pendingFile(id: String): File = File(pending, assetFile(id).name)
 
     suspend fun importImage(uri: Uri): String =
         withContext(Dispatchers.IO) {
@@ -71,9 +74,14 @@ internal class CartdeckDecalStore(private val context: Context) {
                 require(decoded.compress(Bitmap.CompressFormat.PNG, 100, normalized)) { "Image encoding failed" }
                 val payload = normalized.toByteArray()
                 require(payload.size <= MAX_IMPORT_BYTES) { "The processed image is too large" }
+                val currentBytes =
+                    folder.listFiles()?.sumOf { it.length() } ?: 0L
+                require(currentBytes + payload.size <= 64L * 1024 * 1024) {
+                    "CARTDECK personal artwork storage is full"
+                }
                 val id = UUID.randomUUID().toString()
-                val file = assetFile(id)
-                require(folder.isDirectory || folder.mkdirs()) { "Could not create decal storage" }
+                val file = pendingFile(id)
+                require(pending.isDirectory || pending.mkdirs()) { "Could not create decal staging storage" }
                 val atomic = AtomicFile(file)
                 val output = atomic.startWrite()
                 try {
@@ -92,23 +100,55 @@ internal class CartdeckDecalStore(private val context: Context) {
     suspend fun readImage(id: String): ImageBitmap? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val file = assetFile(id)
+                val owned = assetFile(id)
+                val file = if (owned.isFile) owned else pendingFile(id)
                 if (!file.isFile || file.length() <= 0 || file.length() > MAX_IMPORT_BYTES) return@runCatching null
                 val image = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching null
                 image.asImageBitmap()
             }.getOrNull()
         }
 
-    /** Only editor-created, uncommitted imports are discarded; never shared saved-profile assets. */
-    fun discard(id: String) {
-        runCatching { assetFile(id).delete() }
+    /** Move selected artwork from temporary cache into durable private storage. */
+    fun promote(id: String) {
+        val source = pendingFile(id)
+        val destination = assetFile(id)
+        if (destination.isFile) return
+        require(source.isFile) { "The selected artwork is no longer available" }
+        require(folder.isDirectory || folder.mkdirs()) { "Cannot create decal storage" }
+        // Use AtomicFile for a crash-safe cross-directory commit.
+        val atomic = AtomicFile(destination)
+        val output = atomic.startWrite()
+        try {
+            source.inputStream().use { it.copyTo(output) }
+            atomic.finishWrite(output)
+            source.delete()
+        } catch (error: Throwable) {
+            atomic.failWrite(output)
+            throw error
+        }
     }
 
-    fun removeUnreferenced(id: String, saved: ShelfAppearance) {
-        val retained =
-            saved.decal?.assetId == id ||
-                saved.profiles.any { it.decal?.assetId == id }
-        if (!retained) discard(id)
+    /** Discard only editor-created staging images, never shared saved-profile assets. */
+    fun discard(id: String) {
+        runCatching { pendingFile(id).delete() }
+    }
+
+    /** Safe after ShelfStore has successfully committed the new metadata. */
+    fun pruneUnused(saved: ShelfAppearance) {
+        val retained = buildSet {
+            saved.decal?.assetId?.let(::add)
+            saved.profiles.mapNotNull { it.decal?.assetId }.forEach(::add)
+        }
+        folder.listFiles()?.forEach { file ->
+            val id = file.name.removeSuffix(".png")
+            if (file.extension == "png" && id !in retained) {
+                // A grace period protects an in-flight editor and rollback tests.
+                if (System.currentTimeMillis() - file.lastModified() > 10 * 60 * 1000L) file.delete()
+            }
+        }
+        pending.listFiles()?.forEach { file ->
+            if (System.currentTimeMillis() - file.lastModified() > 24 * 60 * 60 * 1000L) file.delete()
+        }
     }
 
     private fun isSupportedImage(bytes: ByteArray): Boolean {
