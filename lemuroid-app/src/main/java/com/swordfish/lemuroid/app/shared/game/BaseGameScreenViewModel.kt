@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.WindowInsets
+import com.swordfish.lemuroid.R
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
