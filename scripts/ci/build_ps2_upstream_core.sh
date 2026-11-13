@@ -6,7 +6,10 @@ source_sha=1f27232772e484bfb79364b751b84f41f4c87481
 : "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to Android NDK 29.0.14206865}"
 out="${1:?Usage: build_ps2_upstream_core.sh OUTPUT_DIRECTORY}"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
-patch_file="$root/scripts/ci/patches/play-android-private-storage-gles.patch"
+patches=(
+    "$root/scripts/ci/patches/play-android-private-storage-gles.patch"
+    "$root/scripts/ci/patches/play-java-vm-host-bridge.patch"
+)
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 # Retain source/cache on request for incremental local builds.
@@ -20,15 +23,17 @@ test "$(sed -n 's/^Pkg.Revision *= *//p' "$ANDROID_NDK_HOME/source.properties")"
 git -C "$src" checkout --detach "$source_sha"
 test "$(git -C "$src" rev-parse HEAD)" = "$source_sha"
 git -C "$src" submodule update --init --recursive --depth 1 --jobs 2
-if git -C "$src" apply --reverse --check "$patch_file" 2>/dev/null; then
-    : # Already patched incremental source tree.
-else
-    git -C "$src" apply --check "$patch_file"
-    git -C "$src" apply "$patch_file"
-fi
+for patch_file in "${patches[@]}"; do
+    if git -C "$src" apply --reverse --check "$patch_file" 2>/dev/null; then
+        : # Already patched incremental source tree.
+    else
+        git -C "$src" apply --check "$patch_file"
+        git -C "$src" apply "$patch_file"
+    fi
+done
 # Do not build a tree containing untracked source patches without recording them.
 git -C "$src" diff --binary > "$out/source.patch"
-sha256sum "$patch_file" "$out/source.patch" > "$out/patch-sha256.txt"
+sha256sum "${patches[@]}" "$out/source.patch" > "$out/patch-sha256.txt"
 build="$work/build"
 # Add debug information without replacing Android toolchain or Release flags.
 printf 'add_compile_options(-g)\n' > "$out/cartdeck-symbols.cmake"
@@ -58,7 +63,7 @@ loads = [int(line.split()[-1], 16) for line in pathlib.Path(sys.argv[1]).read_te
 assert loads and min(loads) >= 16384, f'16 KiB ELF alignment failed: {loads}'
 PY
 "$toolbin/llvm-nm" -D --defined-only "$core" | awk '{print $NF}' > "$out/symbols.txt"
-for symbol in retro_init retro_deinit retro_load_game retro_run retro_set_environment retro_get_system_av_info retro_serialize retro_unserialize; do
+for symbol in retro_init retro_deinit retro_load_game retro_run retro_set_environment retro_get_system_av_info retro_serialize retro_unserialize cartdeck_set_java_vm; do
     grep -Fxq "$symbol" "$out/symbols.txt"
 done
 "$toolbin/llvm-readelf" -dW "$core" > "$out/dependencies.txt"

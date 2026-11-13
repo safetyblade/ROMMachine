@@ -1,0 +1,22 @@
+diff --git a/Source/ui_libretro/main_libretro.cpp b/Source/ui_libretro/main_libretro.cpp
+--- a/Source/ui_libretro/main_libretro.cpp
++++ b/Source/ui_libretro/main_libretro.cpp
+@@ -13,2 +13,5 @@
+ #include "PathUtils.h"
++#ifdef __ANDROID__
++#include "android/JavaVM.h"
++#endif
+ #include "PtrStream.h"
+@@ -25,2 +28,12 @@
+ static CPS2VM* m_virtualMachine = nullptr;
++
++#ifdef __ANDROID__
++// The LibretroDroid host dlopens Play; Play's JNI_OnLoad is not called.
++// Receive the actual process JavaVM before CPS2VM creates its worker.
++extern "C" __attribute__((visibility("default")))
++void cartdeck_set_java_vm(JavaVM* vm)
++{
++    Framework::CJavaVM::SetJavaVM(vm);
++}
++#endif
+ static bool first_run = false;
