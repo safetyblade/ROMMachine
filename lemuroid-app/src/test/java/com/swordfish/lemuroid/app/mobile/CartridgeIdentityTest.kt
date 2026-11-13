@@ -47,49 +47,53 @@ class CartridgeIdentityTest {
         assertEquals(first.fileUri, renamed.legacySourceUri)
     }
 
-    @Test fun installedSramAndStatesStillReadAfterSameDocumentRename() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Application>()
-        val directories = DirectoriesManager(context)
-        val game = game("content://fixture/rename").copy(legacyFileName = "installed-fixture.gb")
-        val sram = byteArrayOf(5, 7, 11)
-        val original = File(directories.getSavesDirectory(), "installed-fixture.srm")
-        original.writeBytes(sram)
-        val saves = SavesManager(directories)
-        val states = StatesManager(directories)
-        val core = CoreID.GAMBATTE
-        val state = SaveState(byteArrayOf(13, 17), SaveState.Metadata())
-        states.setAutoSave(game, core, state)
-        states.setSlotSave(game, state, core, 0)
-        val renamed = game.copy(fileName = "renamed.gb")
-        assertArrayEquals(sram, saves.getSaveRAM(renamed, SystemCoreConfig(core, hashMapOf())))
-        assertArrayEquals(state.state, states.getAutoSave(renamed, core)!!.state)
-        assertArrayEquals(state.state, states.getSlotSave(renamed, core, 0)!!.state)
-        assertArrayEquals(sram, original.readBytes())
-    }
-
-    @Test fun failedSramAndStateWritesReachTheCaller() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Application>()
-        val blocked = File(context.cacheDir, "blocked-external-root").apply { writeText("sentinel") }
-        val storageContext =
-            object : android.content.ContextWrapper(context) {
-                override fun getExternalFilesDir(type: String?): File = blocked
-            }
-        val directories = DirectoriesManager(storageContext)
-        val game = game("content://fixture/failure").copy(legacyFileName = "blocked-fixture.gb")
-        try {
-            val ramFailure =
-                runCatching { SavesManager(directories).setSaveRAM(game, byteArrayOf(1)) }.exceptionOrNull()
-            val stateFailure =
-                runCatching {
-                    StatesManager(directories).setAutoSave(
-                        game, CoreID.GAMBATTE, SaveState(byteArrayOf(1), SaveState.Metadata()),
-                    )
-                }.exceptionOrNull()
-            assertTrue(ramFailure is IOException)
-            assertTrue(stateFailure is IOException)
-            assertEquals("sentinel", blocked.readText())
-        } finally {
-            blocked.delete()
+    @Test fun installedSramAndStatesStillReadAfterSameDocumentRename() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            val directories = DirectoriesManager(context)
+            val game = game("content://fixture/rename").copy(legacyFileName = "installed-fixture.gb")
+            val sram = byteArrayOf(5, 7, 11)
+            val original = File(directories.getSavesDirectory(), "installed-fixture.srm")
+            original.writeBytes(sram)
+            val saves = SavesManager(directories)
+            val states = StatesManager(directories)
+            val core = CoreID.GAMBATTE
+            val state = SaveState(byteArrayOf(13, 17), SaveState.Metadata())
+            states.setAutoSave(game, core, state)
+            states.setSlotSave(game, state, core, 0)
+            val renamed = game.copy(fileName = "renamed.gb")
+            assertArrayEquals(sram, saves.getSaveRAM(renamed, SystemCoreConfig(core, hashMapOf())))
+            assertArrayEquals(state.state, states.getAutoSave(renamed, core)!!.state)
+            assertArrayEquals(state.state, states.getSlotSave(renamed, core, 0)!!.state)
+            assertArrayEquals(sram, original.readBytes())
         }
-    }
+
+    @Test fun failedSramAndStateWritesReachTheCaller() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            val blocked = File(context.cacheDir, "blocked-external-root").apply { writeText("sentinel") }
+            val storageContext =
+                object : android.content.ContextWrapper(context) {
+                    override fun getExternalFilesDir(type: String?): File = blocked
+                }
+            val directories = DirectoriesManager(storageContext)
+            val game = game("content://fixture/failure").copy(legacyFileName = "blocked-fixture.gb")
+            try {
+                val ramFailure =
+                    runCatching { SavesManager(directories).setSaveRAM(game, byteArrayOf(1)) }.exceptionOrNull()
+                val stateFailure =
+                    runCatching {
+                        StatesManager(directories).setAutoSave(
+                            game,
+                            CoreID.GAMBATTE,
+                            SaveState(byteArrayOf(1), SaveState.Metadata()),
+                        )
+                    }.exceptionOrNull()
+                assertTrue(ramFailure is IOException)
+                assertTrue(stateFailure is IOException)
+                assertEquals("sentinel", blocked.readText())
+            } finally {
+                blocked.delete()
+            }
+        }
 }

@@ -106,7 +106,10 @@ Local attempts:
   `com.github.Swordfish90:LibretroDroid:0.14.0` and other dependencies in offline mode.
 * Standalone ktlintCheck: BLOCKED resolving uncached ktlint runtime dependencies
   (including kotlin-logging and sarif4k). No lint or Kotlin test PASS is claimed.
+* Existing Python Dreamcast descriptor fixtures: PASS (9 tests); this does not execute Kotlin or gameplay.
 * `git diff --check`: PASS. This is whitespace validation only.
+* Initial candidate run 43510195913: fast source contracts PASS; Kotlin lint FAIL in new
+  test formatting. Corrections committed; replacement run must pass before any merge.
 * Integrated ARM64: baseline FAIL as above; candidate CI must be inspected separately.
 * APK: none produced locally. No install-over or gameplay success claimed.
 
@@ -164,7 +167,7 @@ Old save files remain at original paths. No copy migration was activated in this
 ApplicationModule, Game, RetrogradeDatabase, Migrations; SavesManager, StatesManager,
 StatesPreviewManager, MelonDsSavesMigrator, DesmumeMigrationHandler; BaseGameScreenViewModel
 and the save failure string. Tests: CartridgeIdentityTest, CartridgeMigrationTest,
-SearchMigrationTest, actual schema-11 fixture. No other functional code is changed by this lane.
+SearchMigrationTest, TitleSearchTest SQL fixtures (new required UUID), actual schema-11 fixture. No other functional code is changed by this lane.
 
 ## Delivery boundary
 
