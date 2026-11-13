@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.tv.game
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
@@ -23,6 +24,19 @@ class TVGameActivity : BaseGameActivity() {
     @Composable
     override fun GameScreen(viewModel: BaseGameScreenViewModel) {
         TVGameScreen(viewModel)
+    }
+
+    // An actual remote MENU key must open the same in-game menu as controller
+    // MENU or the existing Start+Select shortcut. Do not steal DPAD/OK or
+    // Android system HOME keys, which may also be used in active gameplay.
+    override fun onKeyDown(
+        keyCode: Int,
+        event: KeyEvent,
+    ): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU && event.repeatCount == 0) {
+            if (requestGameMenuFromHardware()) return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun initializeFlows() {

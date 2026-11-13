@@ -341,6 +341,13 @@ class BaseGameScreenViewModel(
             }
         }
 
+    /** Remote/Menu action uses the same existing side-effect path as a controller shortcut. */
+    fun requestGameMenuFromHardware(): Boolean {
+        if (loadingState.value) return false
+        sideEffects.showMenu(tilt, inputs)
+        return true
+    }
+
     fun requestFinish() {
         pivotArcHeldInputGate.clear()
         if (loadingState.value) return

@@ -154,6 +154,12 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         initialiseFlows()
     }
 
+    /** TV remote dedicated MENU key; never synthesize emulator gameplay input. */
+    protected fun requestGameMenuFromHardware(): Boolean {
+        if (!::baseGameScreenViewModel.isInitialized) return false
+        return baseGameScreenViewModel.requestGameMenuFromHardware()
+    }
+
     @Composable
     abstract fun GameScreen(viewModel: BaseGameScreenViewModel)
 
