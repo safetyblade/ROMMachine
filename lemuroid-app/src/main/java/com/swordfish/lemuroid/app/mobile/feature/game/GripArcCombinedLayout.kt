@@ -1,140 +1,185 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
-import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
+import com.swordfish.touchinput.radial.settings.NativeControlKind
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 
-/** Resolved together, in root-local dp. No dependency on Standard group measurements. */
+/** Native inventory, painted seats, visuals and input bounds resolve together. */
 internal data class GripArcCombinedPlacement(
     val dock: GripArcPlacement,
     val controls: Map<String, PivotArcBounds>,
-)
+    val visuals: Map<String, PivotArcSize>,
+    val seats: Map<String, PivotArcBounds>,
+    val native: NativeControlInventory,
+    val observedInputIds: Set<String>,
+) {
+    val complete: Boolean get() =
+        controls.keys == native.controls.map { it.key }.toSet() && visuals.keys == controls.keys &&
+            native.matchesNativeInputs(observedInputIds)
+}
 
 internal object GripArcCombinedLayout {
-    fun controlsFor(system: SystemID): List<String>? =
-        when (system) {
-            SystemID.GB, SystemID.GBC, SystemID.NGC -> listOf("D", "A", "B", "Select", "Start", "Menu")
-            SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
-            SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
-            SystemID.PSP -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu", "AnalogL")
-            SystemID.PSX, SystemID.PLAYSTATION_2 ->
-                listOf("D", "A", "B", "X", "Y", "L", "R", "L2", "R2", "Select", "Start", "Menu", "AnalogL", "AnalogR")
-            SystemID.GAMECUBE ->
-                listOf("D", "A", "B", "X", "Y", "L", "R", "R2", "Start", "Menu", "AnalogL", "AnalogR")
-            SystemID.DREAMCAST ->
-                listOf("D", "A", "B", "X", "Y", "L", "R", "Start", "Menu", "AnalogL")
-            else -> null
-        }
+    fun hasMeasurements(
+        native: NativeControlInventory,
+        measured: Map<String, PivotArcBounds>,
+    ): Boolean = native.controls.all { measured[it.seat]?.isFiniteArea() == true }
 
     fun resolve(
         manifest: GripArcManifest,
-        system: SystemID,
+        native: NativeControlInventory,
+        observedInputIds: Set<String>,
+        measured: Map<String, PivotArcBounds>,
         safe: PivotArcBounds,
         viewport: PivotArcBounds,
         side: GripArcSide,
         dx: Float,
         dy: Float,
-        analogCount: Int? = null,
     ): GripArcCombinedPlacement? {
-        if (!safe.isFiniteArea() || !viewport.isFiniteArea()) return null
-        val active =
-            controlsFor(system)?.filter {
-                when (it) {
-                    "AnalogL" -> analogCount == null || analogCount >= 1
-                    "AnalogR" -> analogCount == null || analogCount >= 2
-                    else -> true
-                }
-            } ?: return null
-        // Preserve the player's side. The UI can explicitly request the opposite side for this session.
-        for ((hand, x, y) in listOf(Triple(side, dx, dy), Triple(side, 0f, 0f)).distinct()) {
-            for (dockScale in listOf(0.84f, 0.80f, 0.76f, 0.72f)) {
-                val dock =
-                    (
-                        GripArcPositionSolver.resolve(
-                            manifest, safe, viewport, emptyList(), hand, x, y, dockScale,
-                        ) as? GripArcFit.Fits
-                    )?.placement
-                        ?: continue
-                val reserved =
-                    GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, hand) + dock.targets.values
-                val top = maxOf(safe.top, viewport.bottom + 8f)
-                val rail = active.filter { it in setOf("L", "R", "L2", "R2", "Select", "Start", "Menu") }
-                // A second rail row is allowed on narrow devices, with 48dp targets throughout.
-                val columns = ((safe.width + 4f) / 52f).toInt().coerceAtLeast(1)
-                val rows = (rail.size + columns - 1) / columns
-                val arm = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, hand).first()
-                val armLeft = if (hand == GripArcSide.RIGHT) arm.left else safe.left + safe.right - arm.right
-                // Prefer the open inside corner. Narrow devices can use the upper area above the arm.
-                for (faceX in listOf(armLeft - 80f, safe.right - 78f).distinct()) {
-                    for (mainSize in listOf(104f, 96f)) {
-                        val targets = linkedMapOf<String, PivotArcBounds>()
-
-                        fun put(
-                            key: String,
-                            cx: Float,
-                            cy: Float,
-                            w: Float,
-                            h: Float = w,
-                        ) {
-                            val mirroredX = if (hand == GripArcSide.LEFT) safe.left + safe.right - cx else cx
-                            targets[key] = PivotArcBounds(mirroredX - w / 2, cy - h / 2, mirroredX + w / 2, cy + h / 2)
-                        }
-                        rail.forEachIndexed { i, key ->
-                            val count = minOf(columns, rail.size - (i / columns) * columns)
-                            put(
-                                key,
-                                safe.centerX + (i % columns - (count - 1) / 2f) * 52f,
-                                top + 24f + (i / columns) * 52f,
-                                48f,
-                            )
-                        }
-                        val fieldTop = top + rows * 52f + 8f
-                        val faceY = fieldTop + 74f
-                        put("D", safe.left + mainSize / 2, fieldTop + mainSize / 2, mainSize)
-                        // Preserve each console's established face compass, regardless of dock side.
-                        val faces =
-                            when (system) {
-                                SystemID.GAMECUBE -> listOf("X", "A", "B", "Y")
-                                // Native Dreamcast compass: B east, A south, X west, Y north.
-                                SystemID.DREAMCAST -> listOf("B", "A", "X", "Y")
-                                else -> listOf("A", "B", "Y", "X")
-                            }
-                        val offsets = listOf(52f to 0f, 0f to 52f, -52f to 0f, 0f to -52f)
-                        if ("X" in active) {
-                            faces.zip(offsets).forEach { (key, offset) ->
-                                put(
-                                    key,
-                                    faceX + (if (hand == GripArcSide.LEFT) -offset.first else offset.first),
-                                    faceY + offset.second,
-                                    48f,
-                                )
-                            }
+        if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
+            !native.matchesNativeInputs(observedInputIds) || !hasMeasurements(native, measured)
+        ) {
+            return null
+        }
+        val primaryLeft = if (native.controller == TouchControllerID.GAMECUBE) "analog-left" else "dpad"
+        val leftAnchor = measured[primaryLeft] ?: return null
+        val faceSeat = native.controls.firstOrNull { it.kind == NativeControlKind.FACE }?.seat ?: return null
+        val rightAnchor = measured.getValue(faceSeat)
+        val bases =
+            native.controls.associate { spec ->
+                val r = measured.getValue(spec.seat)
+                val base =
+                    if (spec.kind == NativeControlKind.FACE) {
+                        val diameter = minOf(r.width, r.height)
+                        val size = maxOf(48f, diameter * 0.28f)
+                        val x = r.centerX + spec.faceX * maxOf(56f, diameter * 0.31f)
+                        val y = r.centerY + spec.faceY * maxOf(56f, diameter * 0.31f)
+                        PivotArcBounds(x - size / 2, y - size / 2, x + size / 2, y + size / 2)
+                    } else {
+                        r
+                    }
+                spec.key to base
+            }
+        for ((dockX, dockY) in listOf(dx to dy, 0f to 0f).distinct()) {
+            val fit = GripArcPositionSolver.resolve(manifest, safe, viewport, emptyList(), side, dockX, dockY)
+            val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
+            val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
+            // Preserve the selected native constellation; no replacement shoulder/face grid.
+            for (up in listOf(0f, 16f, 32f, 48f, 64f, 80f, 96f)) for (inward in listOf(10f, 16f, 24f)) {
+                val controls = linkedMapOf<String, PivotArcBounds>()
+                val visuals = linkedMapOf<String, PivotArcSize>()
+                native.controls.forEach { spec ->
+                    val r = bases.getValue(spec.key)
+                    val anchor = if (spec.leftHand) leftAnchor else rightAnchor
+                    val shift =
+                        if (spec.leftHand == (side == GripArcSide.LEFT)) {
+                            if (side == GripArcSide.LEFT) inward else -inward
                         } else {
-                            put("A", faceX + (if (hand == GripArcSide.LEFT) -26f else 26f), fieldTop + 36f, 48f)
-                            put("B", faceX + (if (hand == GripArcSide.LEFT) 26f else -26f), fieldTop + 66f, 48f)
+                            0f
                         }
-                        val analogY = fieldTop + 148f + 12f + 40f
-                        if ("AnalogL" in active) put("AnalogL", safe.left + 44f, analogY, 80f)
-                        if ("AnalogR" in active) put("AnalogR", safe.left + 136f, analogY, 80f)
-                        val boxes = targets.values.toList()
-                        if (boxes.any {
-                                !it.inside(safe) || it.intersects(viewport.inset(4f)) ||
-                                    reserved.any {
-                                            r ->
-                                        it.intersects(r.inset(4f))
-                                    }
+                    val x = anchor.centerX + (r.centerX - anchor.centerX) * 0.90f + shift
+                    val y = anchor.centerY + (r.centerY - anchor.centerY) * 0.90f - up
+                    val w = maxOf(48.1f, r.width * 0.90f)
+                    val h = maxOf(48.1f, r.height * 0.90f)
+                    controls[spec.key] = PivotArcBounds(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
+                    visuals[spec.key] = PivotArcSize(r.width * 0.90f, r.height * 0.90f)
+                }
+                // Keep each native hand constellation intact when its painted edge needs a small safe-inset correction.
+                var edgeFits = true
+                for (left in listOf(true, false)) {
+                    val keys = native.controls.filter { it.leftHand == left }.map { it.key }
+                    val group = keys.map { controls.getValue(it) }
+                    val min = group.minOf { it.left }
+                    val max = group.maxOf { it.right }
+                    val correction =
+                        when {
+                            min - 3f < safe.left -> safe.left + 3f - min
+                            max + 3f > safe.right -> safe.right - 3f - max
+                            else -> 0f
+                        }
+                    val dockShift = if (left == (side == GripArcSide.LEFT)) inward else 0f
+                    if (kotlin.math.abs(correction) + dockShift > 24f) {
+                        edgeFits = false
+                        break
+                    }
+                    keys.forEach {
+                            key ->
+                        controls[key] =
+                            controls.getValue(key).let { r ->
+                                r.copy(left = r.left + correction, right = r.right + correction)
                             }
-                        ) {
-                            continue
-                        }
-                        if (boxes.indices.any {
-                                    i ->
-                                (i + 1 until boxes.size).any { j -> boxes[i].intersects(boxes[j].inset(2f)) }
-                            }
-                        ) {
-                            continue
-                        }
-                        return GripArcCombinedPlacement(dock, targets)
                     }
                 }
+                if (!edgeFits) continue
+                if (controls.keys != native.controls.map { it.key }.toSet()) return null
+                val boxes = controls.values.toList()
+                if (boxes.any {
+                        !it.inside(safe) || it.intersects(viewport.inset(4f)) ||
+                            reserved.any {
+                                    r ->
+                                it.inset(4f).intersects(r)
+                            }
+                    }
+                ) {
+                    continue
+                }
+                if (boxes.indices.any {
+                            i ->
+                        (i + 1 until boxes.size).any {
+                                j ->
+                            boxes[i].inset(1f).intersects(boxes[j].inset(1f))
+                        }
+                    }
+                ) {
+                    continue
+                }
+                val seats =
+                    native.controls.groupBy { it.seat }.mapValues { (_, specs) ->
+                        val parts =
+                            specs.map { spec ->
+                                val hit = controls.getValue(spec.key)
+                                val art = visuals.getValue(spec.key)
+                                PivotArcBounds(
+                                    hit.centerX - art.w / 2,
+                                    hit.centerY - art.h / 2,
+                                    hit.centerX + art.w / 2,
+                                    hit.centerY + art.h / 2,
+                                )
+                            }
+                        PivotArcBounds(
+                            parts.minOf { it.left },
+                            parts.minOf { it.top },
+                            parts.maxOf { it.right },
+                            parts.maxOf { it.bottom },
+                        )
+                    }
+                // Reserve the actual native paired/quad well artwork as well as individual hit regions.
+                if (seats.values.any {
+                        !it.inset(3f).inside(safe) || it.inset(3f).intersects(viewport) ||
+                            reserved.any {
+                                    r ->
+                                it.inset(3f).intersects(r)
+                            }
+                    }
+                ) {
+                    continue
+                }
+                // Use the same margins as the native hardware-seat painter, so it cannot silently drop a well.
+                if (seats.any { (key, r) ->
+                        seats.any { (other, bounds) ->
+                            other != key && r.inset(3f).intersects(bounds.inset(4f))
+                        }
+                    }
+                ) {
+                    continue
+                }
+                return GripArcCombinedPlacement(
+                    dock,
+                    controls,
+                    visuals,
+                    seats,
+                    native,
+                    observedInputIds.toSet(),
+                ).takeIf { it.complete }
             }
         }
         return null

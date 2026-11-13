@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-/** Runtime geometry sourced directly from the approved PR #126 manifest. */
+/** V2.2 compact material geometry; slot identities and programming remain unchanged. */
 @Serializable
 data class GripArcManifestPoint(val x: Float, val y: Float)
 
@@ -36,15 +36,15 @@ data class GripArcManifest(
 
         fun parse(text: String): GripArcManifest =
             decoder.decodeFromString<GripArcManifest>(text).also { manifest ->
-                require(manifest.schema == "cartdeck.griparc.assets/1.0.0")
-                require(manifest.artboard.width == 272f && manifest.artboard.height == 308f)
+                require(manifest.schema == "cartdeck.griparc.assets/2.2.0")
+                require(manifest.artboard.width == 160f && manifest.artboard.height == 160f)
                 require(manifest.slots.map { it.id } == listOf("G1", "G2", "G3", "G4"))
                 require(manifest.slots.map { it.n } == listOf(1, 2, 3, 4))
-                require(manifest.slots.all { it.hitTarget.w >= 80f && it.hitTarget.h >= 52f })
+                require(manifest.slots.all { it.hitTarget.w >= 48f && it.hitTarget.h >= 48f })
             }
 
         fun load(context: Context): GripArcManifest =
-            context.assets.open("griparc/griparc-v1-manifest.json")
+            context.assets.open("griparc/griparc-v22-manifest.json")
                 .bufferedReader().use { parse(it.readText()) }
     }
 }
@@ -67,44 +67,32 @@ sealed interface GripArcFit {
     data class Unavailable(val reason: String) : GripArcFit
 }
 
-/**
- * This solver translates/scales one permanent 272×308 L assembly.
- * G1–G4 always keep the approved manifest centres. No button reflow.
- * Only the painted vertical and horizontal arms of the permanent L count as
- * physical housing. The open interior is available for ordinary controls.
- * Active touch slots are checked separately; the full four-slot footprint
- * remains reserved regardless of current count.
- */
+/** One fixed compact 160×160dp assembly. No progressive shrinking of touch targets. */
 object GripArcPositionSolver {
     private const val SAFE_GAP = 8f
     private const val MIN_TARGET = 48f
-    private val scales = listOf(0.84f, 0.80f, 0.76f, 0.72f)
+    private val scales = listOf(1f)
 
-    /**
-     * Actual permanent L material, in approved 272 x 308 source coordinates.
-     * Right vertical arm: x 157..265, entire height. Bottom: y 219..298.
-     * Left mirrors x around the 272-unit centre. Do NOT use the enclosing
-     * rectangle: the unused top-inside area is intentionally open.
-     */
+    /** Same two physical arms as the V2.2 rendered contour; the inside corner remains open. */
     internal fun housingFootprint(
         housing: PivotArcBounds,
         scale: Float,
         side: GripArcSide,
     ): List<PivotArcBounds> {
-        val armLeft = if (side == GripArcSide.RIGHT) 157f else 7f
-        val armRight = if (side == GripArcSide.RIGHT) 265f else 115f
+        val armLeft = if (side == GripArcSide.RIGHT) 96f else 4f
+        val armRight = if (side == GripArcSide.RIGHT) 156f else 64f
         return listOf(
             PivotArcBounds(
                 housing.left + armLeft * scale,
-                housing.top + 12f * scale,
+                housing.top + 4f * scale,
                 housing.left + armRight * scale,
-                housing.top + 298f * scale,
+                housing.top + 156f * scale,
             ),
             PivotArcBounds(
-                housing.left + 7f * scale,
-                housing.top + 219f * scale,
-                housing.left + 265f * scale,
-                housing.top + 298f * scale,
+                housing.left + 4f * scale,
+                housing.top + 116f * scale,
+                housing.left + 156f * scale,
+                housing.top + 156f * scale,
             ),
         )
     }
@@ -117,7 +105,7 @@ object GripArcPositionSolver {
         side: GripArcSide,
         dx: Float = 0f,
         dy: Float = 0f,
-        maxScale: Float = 0.84f,
+        maxScale: Float = 1f,
     ): GripArcFit {
         if (!dx.isFinite() || !dy.isFinite() || !safe.isFiniteArea() || !viewport.isFiniteArea()) {
             return GripArcFit.Unavailable("GripArc has invalid screen measurements.")
@@ -170,7 +158,7 @@ object GripArcPositionSolver {
                 }
                 val visuals =
                     manifest.slots.associate { slot ->
-                        slot.n to PivotArcSize(slot.visual.w * scale * 0.9f, slot.visual.h * scale * 0.9f)
+                        slot.n to PivotArcSize(slot.visual.w * scale, slot.visual.h * scale)
                     }
                 return GripArcFit.Fits(GripArcPlacement(housing, targets, visuals, scale, side))
             }

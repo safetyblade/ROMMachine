@@ -42,6 +42,7 @@ fun PadKitScope.PivotArcControlGroup(
     heldKeys: Set<Int>,
     accent: Color,
     onToggleHold: (Int) -> Unit,
+    combined: Boolean = false,
 ) {
     val observe = LocalCartdeckControlBounds.current
     Box(Modifier.fillMaxSize()) {
@@ -72,6 +73,7 @@ fun PadKitScope.PivotArcControlGroup(
                 PivotArcHoldSwitch(
                     modifier = position,
                     label = if (key == "HoldA") "A" else "B",
+                    showLabel = combined,
                     diameter = visual.w,
                     active = code in heldKeys,
                     accent = accent,
@@ -169,6 +171,7 @@ private fun PivotArcHoldSwitch(
     active: Boolean,
     accent: Color,
     onToggle: () -> Unit,
+    showLabel: Boolean = false,
 ) {
     Box(
         modifier =
@@ -204,9 +207,9 @@ private fun PivotArcHoldSwitch(
                 )
             }
             Text(
-                text = "H",
+                text = if (showLabel) "Hold $label" else "H",
                 color = if (active) accent else Color.LightGray,
-                fontSize = 10.sp,
+                fontSize = if (showLabel) 8.sp else 10.sp,
             )
         }
     }

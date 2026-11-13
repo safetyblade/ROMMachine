@@ -185,4 +185,16 @@ class PivotArcHeldInputGateTest {
         assertEquals(1, events.count { it == KeyEvent.ACTION_UP to b })
         assertEquals(1, events.count { it == KeyEvent.ACTION_UP to a })
     }
+
+    @Test fun nativeStickPressAndProgrammedHalfTriggerChordShareOwnership() {
+        gate.setGripEnabled(true)
+        val half = KeyEvent.KEYCODE_BUTTON_THUMBL
+        gate.setSource(half, "touch", true)
+        gate.setGripSlot(1, true, setOf(half, KeyEvent.KEYCODE_BUTTON_THUMBR))
+        gate.setSource(half, "touch", false)
+        assertEquals(0, events.count { it == KeyEvent.ACTION_UP to half })
+        gate.setGripSlot(1, false)
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to half })
+        assertEquals(1, events.count { it == KeyEvent.ACTION_UP to KeyEvent.KEYCODE_BUTTON_THUMBR })
+    }
 }

@@ -8,7 +8,7 @@ import org.junit.Test
 import java.io.File
 
 class CompositeControlDeckSolverTest {
-    private val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v1-manifest.json").readText())
+    private val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v22-manifest.json").readText())
     private val baseline =
         PivotArcLayoutProfile.parse(
             File("src/main/assets/pivotarc/candidate-c-baseline.json").readText(),
@@ -69,6 +69,10 @@ class CompositeControlDeckSolverTest {
                     assertEquals(p.dock.housing.top + center.y * p.dock.scale, target.centerY, 0.05f)
                     val visual = p.dock.visuals.getValue(slot.n)
                     assertTrue(visual.w <= target.width && visual.h <= target.height)
+                }
+                p.wordmark?.let { brand ->
+                    assertTrue(brand.inside(p.island.upper))
+                    assertTrue(targets.none { brand.intersects(it) })
                 }
                 assertTrue(p.island.upper.width > p.island.lower.width)
                 // Counts only change which of these permanent slots receive input/rendered buttons.

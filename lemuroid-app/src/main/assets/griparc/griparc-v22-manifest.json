@@ -1,0 +1,89 @@
+{
+  "schema": "cartdeck.griparc.assets/2.2.0",
+  "artboard": {
+    "width": 160,
+    "height": 160
+  },
+  "slots": [
+    {
+      "id": "G1",
+      "n": 1,
+      "centerRight": {
+        "x": 124,
+        "y": 28
+      },
+      "centerLeft": {
+        "x": 36,
+        "y": 28
+      },
+      "visual": {
+        "w": 38,
+        "h": 26
+      },
+      "hitTarget": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    {
+      "id": "G2",
+      "n": 2,
+      "centerRight": {
+        "x": 124,
+        "y": 80
+      },
+      "centerLeft": {
+        "x": 36,
+        "y": 80
+      },
+      "visual": {
+        "w": 38,
+        "h": 26
+      },
+      "hitTarget": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    {
+      "id": "G3",
+      "n": 3,
+      "centerRight": {
+        "x": 124,
+        "y": 132
+      },
+      "centerLeft": {
+        "x": 36,
+        "y": 132
+      },
+      "visual": {
+        "w": 38,
+        "h": 26
+      },
+      "hitTarget": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    {
+      "id": "G4",
+      "n": 4,
+      "centerRight": {
+        "x": 60,
+        "y": 132
+      },
+      "centerLeft": {
+        "x": 100,
+        "y": 132
+      },
+      "visual": {
+        "w": 38,
+        "h": 26
+      },
+      "hitTarget": {
+        "w": 48,
+        "h": 48
+      }
+    }
+  ]
+}

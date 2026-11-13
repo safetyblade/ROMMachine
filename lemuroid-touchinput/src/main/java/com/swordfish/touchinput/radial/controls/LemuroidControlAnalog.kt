@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
+import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
@@ -24,6 +26,12 @@ fun LemuroidControlAnalog(
     id: Id.ContinuousDirection,
     hardwareSeatId: String = "analog",
 ) {
+    val inventory = LocalCartdeckNativeInputs.current
+    if (inventory != null) {
+        SideEffect {
+            inventory(hardwareSeatId, setOfNotNull("analog:${id.value}", analogPressId?.let { "key:${it.value}" }))
+        }
+    }
     val theme = LocalLemuroidPadTheme.current
     val observe = LocalCartdeckControlBounds.current
     Box(

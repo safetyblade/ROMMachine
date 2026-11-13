@@ -9,3 +9,7 @@ import androidx.compose.ui.geometry.Rect
  */
 val LocalCartdeckControlBounds =
     compositionLocalOf<((String, Rect) -> Unit)?> { null }
+
+/** Read-only native input inventory; never intercepts or delivers PadKit events. */
+val LocalCartdeckNativeInputs =
+    compositionLocalOf<((String, Set<String>) -> Unit)?> { null }

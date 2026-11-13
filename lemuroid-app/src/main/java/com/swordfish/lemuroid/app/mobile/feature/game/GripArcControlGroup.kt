@@ -32,7 +32,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlinx.coroutines.flow.collect
 
 /**
- * Native rendering of PR #126: permanent full L, source-accurate shell contour,
+ * V2.2 native material: compact permanent L, chamfered contour,
  * four fixed internal slot centres and elongated L/R-like shoulder buttons.
  * The housing has no pointer handlers; inactive slots do not exist in UI.
  */
@@ -105,36 +105,34 @@ internal fun GripArcHousing(
     val outer =
         remember {
             Path().apply {
-                moveTo(161f, 12f)
-                lineTo(245f, 12f)
-                quadraticBezierTo(265f, 12f, 265f, 32f)
-                lineTo(265f, 277f)
-                quadraticBezierTo(265f, 298f, 244f, 298f)
-                lineTo(18f, 298f)
-                quadraticBezierTo(7f, 298f, 7f, 287f)
-                lineTo(7f, 231f)
-                quadraticBezierTo(7f, 219f, 20f, 219f)
-                lineTo(148f, 219f)
-                quadraticBezierTo(157f, 219f, 157f, 208f)
-                lineTo(157f, 32f)
-                quadraticBezierTo(157f, 12f, 161f, 12f)
+                moveTo(104f, 4f)
+                lineTo(148f, 4f)
+                lineTo(156f, 12f)
+                lineTo(156f, 148f)
+                lineTo(148f, 156f)
+                lineTo(12f, 156f)
+                lineTo(4f, 148f)
+                lineTo(4f, 124f)
+                lineTo(12f, 116f)
+                lineTo(96f, 116f)
+                lineTo(96f, 12f)
                 close()
             }
         }
     val inner =
         remember {
             Path().apply {
-                moveTo(173f, 23f)
-                lineTo(242f, 23f)
-                quadraticBezierTo(254f, 23f, 254f, 37f)
-                lineTo(254f, 273f)
-                quadraticBezierTo(254f, 285f, 242f, 285f)
-                lineTo(20f, 285f)
-                lineTo(20f, 231f)
-                lineTo(149f, 231f)
-                quadraticBezierTo(168f, 231f, 168f, 212f)
-                lineTo(168f, 37f)
-                quadraticBezierTo(168f, 23f, 173f, 23f)
+                moveTo(106f, 10f)
+                lineTo(146f, 10f)
+                lineTo(150f, 16f)
+                lineTo(150f, 145f)
+                lineTo(145f, 150f)
+                lineTo(14f, 150f)
+                lineTo(10f, 145f)
+                lineTo(10f, 127f)
+                lineTo(15f, 122f)
+                lineTo(102f, 122f)
+                lineTo(102f, 16f)
                 close()
             }
         }
@@ -145,10 +143,10 @@ internal fun GripArcHousing(
                 .size(housing.width.dp, housing.height.dp),
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            val u = size.width / 272f
+            val u = size.width / 160f
             withTransform({
                 scale(scaleX = u, scaleY = u, pivot = Offset.Zero)
-                if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(136f, 154f))
+                if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(80f, 80f))
             }) {
                 drawPath(outer, tokens.chassis)
                 drawPath(outer, tokens.secondary, style = Stroke(width = 2.2f))
@@ -156,31 +154,31 @@ internal fun GripArcHousing(
                 drawPath(inner, tokens.secondary.copy(alpha = 0.42f), style = Stroke(width = 1.4f))
                 drawLine(
                     tokens.accent.copy(alpha = 0.65f),
-                    Offset(259f, 53f),
-                    Offset(259f, 276f),
+                    Offset(153f, 22f),
+                    Offset(153f, 144f),
                     strokeWidth = 3.5f,
                 )
                 drawLine(
                     tokens.accent.copy(alpha = 0.65f),
-                    Offset(259f, 276f),
-                    Offset(35f, 291f),
+                    Offset(153f, 144f),
+                    Offset(22f, 153f),
                     strokeWidth = 2.2f,
                 )
                 drawLine(
                     tokens.focus.copy(alpha = 0.45f),
-                    Offset(173f, 28f),
-                    Offset(240f, 28f),
+                    Offset(106f, 15f),
+                    Offset(144f, 15f),
                     strokeWidth = 1.3f,
                 )
                 drawLine(
                     tokens.onChassis.copy(alpha = 0.26f),
-                    Offset(165f, 42f),
-                    Offset(165f, 204f),
+                    Offset(99f, 24f),
+                    Offset(99f, 108f),
                     strokeWidth = 1.2f,
                 )
-                for (p in listOf(Offset(164f, 29f), Offset(245f, 37f), Offset(18f, 277f), Offset(247f, 290f))) {
-                    drawCircle(tokens.bezel, radius = 5.5f, center = p)
-                    drawCircle(tokens.secondary, radius = 5.5f, center = p, style = Stroke(width = 1.3f))
+                for (p in listOf(Offset(102f, 14f), Offset(147f, 14f), Offset(14f, 144f), Offset(147f, 145f))) {
+                    drawCircle(tokens.bezel, radius = 2.8f, center = p)
+                    drawCircle(tokens.secondary, radius = 2.8f, center = p, style = Stroke(width = 1.3f))
                     drawLine(
                         tokens.onChassis.copy(alpha = 0.55f),
                         p - Offset(2f, 0f),
@@ -193,15 +191,16 @@ internal fun GripArcHousing(
         Box(
             modifier =
                 Modifier
-                    .offset(x = ((if (left) 65f else 209f) * placement.scale - 38f).dp, y = (42f * placement.scale).dp)
-                    .width(76.dp)
-                    .height(18.dp),
+                    .offset(x = ((if (left) 36f else 124f) * placement.scale - 24f).dp, y = (4f * placement.scale).dp)
+                    .width(48.dp)
+                    .height(10.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "GripArc",
                 color = tokens.onChassis,
-                fontSize = 11.sp,
+                fontSize = 8.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 maxLines = 1,
             )
         }

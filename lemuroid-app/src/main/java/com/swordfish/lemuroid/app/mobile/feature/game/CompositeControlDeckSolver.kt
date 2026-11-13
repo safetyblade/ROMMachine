@@ -32,6 +32,7 @@ internal data class CompositeControlDeckPlacement(
     val pivot: PivotArcPlacement,
     val futureFaces: Map<String, PivotArcBounds>,
     val island: PivotIslandShape,
+    val wordmark: PivotArcBounds? = null,
 )
 
 /** Combined-only, dock-first resolution. Solo layouts and saved profiles are never modified. */
@@ -78,7 +79,7 @@ internal object CompositeControlDeckSolver {
         }
         val safeDeck = PivotArcBounds(safe.left, maxOf(safe.top, viewport.bottom + GAP), safe.right, safe.bottom)
         val attempts = listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)).distinct()
-        for ((hand, dx, dy) in attempts) for (dockScale in listOf(0.84f, 0.80f, 0.76f, 0.72f)) {
+        for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
             val dockFit =
                 GripArcPositionSolver.resolve(
                     manifest,
@@ -220,13 +221,23 @@ internal object CompositeControlDeckSolver {
                     val visuals =
                         controls.mapValues { (key, _) ->
                             if (key.startsWith("Hold")) {
-                                PivotArcSize(28f, 28f)
+                                PivotArcSize(36f, 36f)
                             } else {
                                 baseline.buttonCenters.getValue(key).visual.let {
                                     val factor = if (key in utilities) 1f else scale
                                     PivotArcSize(it.w * factor, it.h * factor)
                                 }
                             }
+                        }
+                    val brand =
+                        PivotArcBounds(
+                            island.upper.right - 96f,
+                            island.upper.top + 10f,
+                            island.upper.right - 8f,
+                            island.upper.top + 34f,
+                        ).takeIf { candidate ->
+                            candidate.inside(island.upper) &&
+                                (boxes + reserved).none { candidate.inset(4f).intersects(it) }
                         }
                     return CompositeDeckResolution.Fits(
                         CompositeControlDeckPlacement(
@@ -237,6 +248,7 @@ internal object CompositeControlDeckSolver {
                             PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
                             future,
                             island,
+                            brand,
                         ),
                     )
                 }
