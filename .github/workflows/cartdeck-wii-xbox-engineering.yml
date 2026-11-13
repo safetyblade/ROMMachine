@@ -359,6 +359,7 @@ jobs:
           for source in \
             lemuroid-app/build/test-results/testFreeBundleDebugUnitTest \
             lemuroid-app/build/reports/tests/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/reports/cartridge-setup \
             lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json \
             lemuroid-app/build/generated/cartdeck-native/aapt2-evidence; do
             if [ -e "$source" ]; then
@@ -540,6 +541,7 @@ jobs:
           for source in \
             lemuroid-app/build/test-results/testFreeBundleDebugUnitTest \
             lemuroid-app/build/reports/tests/testFreeBundleDebugUnitTest \
+            lemuroid-app/build/reports/cartridge-setup \
             lemuroid-app/build/generated/cartdeck-native/native-assets-manifest.json \
             lemuroid-app/build/generated/cartdeck-native/aapt2-evidence; do
             if [ -e "$source" ]; then

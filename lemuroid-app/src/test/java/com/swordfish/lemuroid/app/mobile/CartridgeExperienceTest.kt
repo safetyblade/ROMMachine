@@ -12,15 +12,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -58,6 +62,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
@@ -147,6 +152,59 @@ class CartridgeExperienceTest {
         compose.onNodeWithContentDescription("$title, GBC").assertExists()
     }
 
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun capturesCartridgeFrontAndProgressiveSetup() {
+        detail(cartridge(2, "Xbox fixture", "xbox"))
+        val directory = File("build/reports/cartridge-setup").apply { mkdirs() }
+
+        fun capture(
+            tag: String,
+            name: String,
+        ) {
+            val bitmap = compose.onNodeWithTag(tag).captureToImage().asAndroidBitmap()
+            File(directory, name).outputStream().use {
+                org.junit.Assert.assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it))
+            }
+        }
+        capture("cartridge_front", "front.png")
+        compose.onNodeWithText("Setup").performClick()
+        capture("cartridge_setup", "setup.png")
+    }
+
+    private fun openArtworkSetup() {
+        compose.onNodeWithText("Setup").performClick()
+        compose.onNodeWithText("Cartridge artwork").performClick()
+    }
+
+    @Test fun singleXboxEngineDoesNotOfferFakeAlternatives() {
+        compose.setContent {
+            CartridgeLibraryTheme { CartridgeDetail(cartridge(2, "Xbox fixture", "xbox"), {}, {}, { _, _ -> }, {}) }
+        }
+        compose.onNodeWithText("Open").assertIsDisplayed()
+        compose.onNodeWithText("Setup").performClick()
+        compose.onNodeWithText("Emulator").performClick()
+        compose.onNodeWithText("hakuX").assertExists()
+        compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
+        compose.onNodeWithText("Use console preference").assertDoesNotExist()
+        compose.onNodeWithText("Use previous version").assertDoesNotExist()
+        compose.onNodeWithText("Fallback policy for this console").assertDoesNotExist()
+    }
+
+    @Test fun cartridgeFrontKeepsTechnicalControlsBehindSetupWithoutChangingChoices() {
+        detail()
+        compose.onNodeWithText("Open").assertIsEnabled()
+        compose.onNodeWithText("Change Cover").assertDoesNotExist()
+        compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
+        compose.onNodeWithText("Setup").performClick()
+        compose.onNodeWithText("Emulator").assertExists()
+        compose.onNodeWithText("Controls").assertExists()
+        compose.onNodeWithText("Cartridge artwork").assertExists()
+        compose.onNodeWithText("Close Setup").performClick()
+        compose.onNodeWithText("Open").assertIsEnabled()
+        compose.onNodeWithText("Change Cover").assertDoesNotExist()
+    }
+
     @Test fun selectFrontCoverDoesNotLaunchAndOpenDispatchesOnce() {
         var selected by mutableStateOf(false)
         var launches = 0
@@ -160,7 +218,7 @@ class CartridgeExperienceTest {
             }
         }
         compose.onNodeWithContentDescription("Atlas, GB").performClick()
-        compose.onNodeWithText("Open").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
         assertEquals(0, launches)
         compose.onNodeWithText("Open").performClick()
         compose.onNodeWithText("Open").assertIsNotEnabled().performClick()
@@ -179,6 +237,7 @@ class CartridgeExperienceTest {
     @Test fun coverPickerCancelDoesNotWriteArtwork() {
         var writes = 0
         detail(change = { _, _ -> writes++ })
+        openArtworkSetup()
         compose.onNodeWithText("Change Cover").performScrollTo().performClick()
         val activity = shadowOf(compose.activity)
         val request = activity.nextStartedActivityForResult
@@ -192,6 +251,7 @@ class CartridgeExperienceTest {
         var reset: Game? = null
         val custom = game.copy(customCoverUri = "file:///local-cover.png")
         detail(selected = custom, reset = { reset = it })
+        openArtworkSetup()
         compose.onNodeWithText("Reset Cover").performScrollTo().performClick()
         assertEquals(game.id, reset?.id)
         assertEquals(game.fileUri, reset?.fileUri)
@@ -200,6 +260,7 @@ class CartridgeExperienceTest {
     @Test fun originalFallbackNeedsNoArtworkAndDoesNotOfferFalseResume() {
         detail()
         compose.onNodeWithText("Atlas").assertExists()
+        openArtworkSetup()
         compose.onNodeWithText("Reset Cover").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithText("Resume").assertDoesNotExist()
     }
@@ -219,7 +280,8 @@ class CartridgeExperienceTest {
                 }
             }
         }
-        compose.onNodeWithText("Open").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
+        openArtworkSetup()
         compose.onNodeWithText("Change Cover").performScrollTo().assertIsEnabled()
     }
 
@@ -269,7 +331,7 @@ class CartridgeExperienceTest {
             }
         }
         compose.onNodeWithText("Atlas").assertExists()
-        compose.onNodeWithText("Open").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -282,6 +344,7 @@ class CartridgeExperienceTest {
             selected = record
             cover = uri
         })
+        openArtworkSetup()
         compose.onNodeWithText("Change Cover").performScrollTo().performClick()
         val activity = shadowOf(compose.activity)
         val request = activity.nextStartedActivityForResult

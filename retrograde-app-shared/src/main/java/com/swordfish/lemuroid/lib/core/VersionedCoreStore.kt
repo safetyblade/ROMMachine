@@ -84,6 +84,13 @@ class VersionedCoreStore(
     }
 
     @Synchronized
+    fun canRollback(platform: String): Boolean {
+        validateSegment(platform)
+        val previous = pointer(platform, "previous.version") ?: return false
+        return verified(platform, previous) != null && previous != select(platform)?.version
+    }
+
+    @Synchronized
     fun rollback(platform: String): Boolean {
         validateSegment(platform)
         val previous = pointer(platform, "previous.version") ?: return false
