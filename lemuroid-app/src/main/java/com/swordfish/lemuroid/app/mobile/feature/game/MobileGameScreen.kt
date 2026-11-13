@@ -517,27 +517,27 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             if (!fullscreenWithGamepad) {
                 CartdeckConsoleShell(
-                tokens = shellTokens,
-                videoBounds = viewPos,
-                rootBounds = fullPos,
-                isLandscape = isLandscape,
-                controlBounds =
-                    if (touchControlsVisibleState.value) {
-                        if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                            (combinedPlacement?.controls ?: pivotPlacement!!.controls).values.map { bounds ->
-                                Rect(
-                                    fullPos.left + bounds.left * currentDensity.density,
-                                    fullPos.top + bounds.top * currentDensity.density,
-                                    fullPos.left + bounds.right * currentDensity.density,
-                                    fullPos.top + bounds.bottom * currentDensity.density,
-                                )
+                    tokens = shellTokens,
+                    videoBounds = viewPos,
+                    rootBounds = fullPos,
+                    isLandscape = isLandscape,
+                    controlBounds =
+                        if (touchControlsVisibleState.value) {
+                            if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
+                                (combinedPlacement?.controls ?: pivotPlacement!!.controls).values.map { bounds ->
+                                    Rect(
+                                        fullPos.left + bounds.left * currentDensity.density,
+                                        fullPos.top + bounds.top * currentDensity.density,
+                                        fullPos.left + bounds.right * currentDensity.density,
+                                        fullPos.top + bounds.bottom * currentDensity.density,
+                                    )
+                                }
+                            } else {
+                                listOfNotNull(leftPadBounds.value, rightPadBounds.value)
                             }
                         } else {
-                            listOfNotNull(leftPadBounds.value, rightPadBounds.value)
-                        }
-                    } else {
-                        emptyList()
-                    },
+                            emptyList()
+                        },
                 )
             }
 
@@ -610,12 +610,16 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 gameView.viewport = viewport
             }
 
+            // With a physical pad, take all landscape space rather than
+            // reserving the old left/right touchscreen side containers.
+            val useFullLandscapeViewport =
+                fullscreenWithGamepad || (currentControllerConfig?.allowTouchOverlay ?: true)
             ConstraintLayout(
                 modifier = Modifier.fillMaxSize(),
                 constraintSet =
                     GameScreenLayout.buildConstraintSet(
                         isLandscape,
-                        if (fullscreenWithGamepad) true else currentControllerConfig?.allowTouchOverlay ?: true,
+                        useFullLandscapeViewport,
                         portraitMode,
                     ),
             ) {
