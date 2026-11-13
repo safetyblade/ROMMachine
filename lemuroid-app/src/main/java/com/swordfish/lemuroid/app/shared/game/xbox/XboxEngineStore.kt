@@ -5,9 +5,19 @@ import java.security.MessageDigest
 import java.util.Properties
 
 /** An atomic, immutable package selection. Engine rollback never deletes or replaces console data. */
-class XboxEngineStore(private val root: File) {
-    data class Selection(val id: String, val directory: File, val properties: Properties) {
-        val core get() = File(directory, "libhakuxcore.so")
+class XboxEngineStore(
+    private val root: File,
+    private val coreName: String = "libhakuxcore.so",
+    private val requiredLibraries: Set<String> = setOf("libhakuxcore.so", "libSDL3.so"),
+    private val manifestName: String = "hakux.properties",
+) {
+    data class Selection(
+        val id: String,
+        val directory: File,
+        val properties: Properties,
+        private val coreName: String = "libhakuxcore.so",
+    ) {
+        val core get() = File(directory, coreName)
         val sdl get() = File(directory, "libSDL3.so")
     }
 
@@ -40,7 +50,7 @@ class XboxEngineStore(private val root: File) {
                 File(pending, "hakux-licenses.zip").writeBytes(notices)
                 File(
                     pending,
-                    "hakux.properties",
+                    manifestName,
                 ).outputStream().use { properties.store(it, "Verified CARTDECK Xbox package") }
                 check(pending.renameTo(target)) { "Cannot finish Xbox engine installation" }
             } finally {
@@ -88,21 +98,21 @@ class XboxEngineStore(private val root: File) {
         if (!validId(id)) return null
         return runCatching {
             val dir = File(File(root, "versions"), id)
-            val props = Properties().apply { File(dir, "hakux.properties").inputStream().use { load(it) } }
+            val props = Properties().apply { File(dir, manifestName).inputStream().use { load(it) } }
             check(props.getProperty("revision") + "-" + props.getProperty("core.sha256").take(12) == id)
             libraries(props).forEach {
                     name ->
                 check(hash(File(dir, name)) == props.getProperty("library.$name.sha256"))
             }
-            Selection(id, dir, props)
+            Selection(id, dir, props, coreName)
         }.getOrNull()
     }
 
     private fun libraries(props: Properties): List<String> {
         val names = props.getProperty("library.names").split(",")
         require(names.distinct().size == names.size && names.all { it.matches(Regex("lib[A-Za-z0-9_]+\\.so")) })
-        require(names.containsAll(listOf("libhakuxcore.so", "libSDL3.so")))
-        require(props.getProperty("library.libhakuxcore.so.sha256") == props.getProperty("core.sha256"))
+        require(names.containsAll(requiredLibraries))
+        require(props.getProperty("library.$coreName.sha256") == props.getProperty("core.sha256"))
         return names
     }
 
