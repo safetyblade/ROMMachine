@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.lib.storage.scanner
 
+import com.swordfish.lemuroid.lib.library.DiscReferences
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -53,13 +54,31 @@ object NextGenDiscIdentity {
                 val tracks = gdiText?.let(::parseGdi)
                 when {
                     tracks == null -> Result(null, "invalid-or-unreadable-gdi")
-                    availableTrackNames != null && !availableTrackNames.containsAll(tracks) ->
+                    availableTrackNames != null &&
+                        tracks.any { DiscReferences.resolve(it, availableTrackNames) == null } ->
                         Result(null, "missing-gdi-tracks")
                     else -> Result(Platform.DREAMCAST, "gdi-manifest", tracks)
                 }
             }
             else -> Result(null, "shared-or-unsupported-container")
         }
+    }
+
+    /** A GD-ROM CUE explicitly declares its density areas; generic CD cues stay unknown. */
+    fun probeDreamcastCue(text: String): Result {
+        val tracks = DiscReferences.cue(text) ?: return Result(null, "invalid-cue")
+        val gdrom = Regex("(?m)^\\s*REM\\s+HIGH-DENSITY\\s+AREA\\s*$").containsMatchIn(text)
+        return if (gdrom) {
+            Result(Platform.DREAMCAST, "cue-gdrom-density", tracks)
+        } else {
+            Result(null, "ambiguous-cue", tracks)
+        }
+    }
+
+    fun hasDreamcastBootSector(header: ByteArray): Boolean {
+        val magic = "SEGA SEGAKATANA ".toByteArray(StandardCharsets.US_ASCII)
+        return listOf(0, 16, 24, 150 * 2048, 150 * 2352 + 16, 150 * 2352 + 24)
+            .any { matches(header, it, magic) }
     }
 
     /**
@@ -197,7 +216,7 @@ object NextGenDiscIdentity {
             magic.indices.all { bytes[offset + it] == magic[it] }
 
     private fun parseGdi(text: String): List<String>? {
-        val lines = text.lines().map(String::trim).filter(String::isNotEmpty)
+        val lines = text.removePrefix("\uFEFF").lines().map(String::trim).filter(String::isNotEmpty)
         val count = lines.firstOrNull()?.toIntOrNull() ?: return null
         if (count !in 1..99 || lines.size != count + 1) return null
         var previousLba = -1L

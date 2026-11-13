@@ -26,5 +26,5 @@ object DiscPlaylist {
     fun containsAllDiscs(
         text: String,
         availableNames: Set<String>,
-    ): Boolean = parse(text)?.all { it in availableNames } == true
+    ): Boolean = parse(text)?.all { DiscReferences.resolve(it, availableNames) != null } == true
 }

@@ -427,6 +427,7 @@ class GameViewModelRetroGameView(
                         }
                     appContext.getString(message)
                 }
+                is GameLoaderError.DiscFamily -> gameError.recovery
                 is GameLoaderError.Generic -> {
                     appContext.getString(R.string.game_loader_error_generic)
                 }

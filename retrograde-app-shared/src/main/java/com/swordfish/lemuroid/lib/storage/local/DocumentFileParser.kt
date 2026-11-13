@@ -171,10 +171,14 @@ object DocumentFileParser {
     ): NextGenDiscIdentity.Result? {
         return runCatching {
             when (file.extension.lowercase(java.util.Locale.US)) {
-                "gdi" ->
+                "gdi", "cue" ->
                     context.contentResolver.openInputStream(file.uri)?.use {
                         val text = it.takeIf { file.size in 1..65536 }?.bufferedReader()?.readText()
-                        NextGenDiscIdentity.probe(file.name, gdiText = text)
+                        if (file.extension.equals("cue", true)) {
+                            text?.let(NextGenDiscIdentity::probeDreamcastCue)
+                        } else {
+                            NextGenDiscIdentity.probe(file.name, gdiText = text)
+                        }
                     }
                 // Unlike a shared .iso suffix, a real Nintendo CISO's mapped
                 // first block identifies GameCube/Wii without folder guesses.

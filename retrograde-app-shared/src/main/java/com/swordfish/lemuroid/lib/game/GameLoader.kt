@@ -147,7 +147,21 @@ class GameLoader(
                         val useVFS = systemCoreConfig.supportsLibretroVFS && directLoad
                         val dataFiles = retrogradeDatabase.dataFileDao().selectDataFilesForGame(game.id)
                         lemuroidLibrary.getGameFiles(game, dataFiles, useVFS)
-                    }.getOrElse { throw it }
+                    }.getOrElse {
+                        if (system.id == SystemID.DREAMCAST &&
+                            game.fileName.substringAfterLast('.', "").lowercase(java.util.Locale.US) in
+                            setOf("gdi", "cue", "m3u")
+                        ) {
+                            throw GameLoaderException(
+                                GameLoaderError.DiscFamily(
+                                    "Disc family is incomplete. Restore the original descriptor and all " +
+                                        "tracks in one folder, restore folder access, and refresh the shelf.",
+                                ),
+                                it,
+                            )
+                        }
+                        throw it
+                    }
 
                 val saveRAM =
                     runCatching {

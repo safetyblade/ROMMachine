@@ -8,6 +8,8 @@ sealed class GameLoaderError {
 
     object Generic : GameLoaderError()
 
+    data class DiscFamily(val recovery: String) : GameLoaderError()
+
     object LoadCore : GameLoaderError()
 
     object NativeEngineDisabled : GameLoaderError()
