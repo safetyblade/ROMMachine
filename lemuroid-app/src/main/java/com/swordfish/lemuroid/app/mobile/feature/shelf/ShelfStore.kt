@@ -65,6 +65,8 @@ internal fun encode(layout: ShelfLayout): String =
                 put("appearanceVersion", 2)
                 put("activeProfileId", layout.appearance.activeProfileId ?: JSONObject.NULL)
                 put("curatedDesignId", layout.appearance.curatedDesignId ?: JSONObject.NULL)
+                put("patternId", layout.appearance.patternId)
+                put("stampId", layout.appearance.stampId)
                 put(
                     "profiles",
                     JSONArray().apply {
@@ -75,6 +77,8 @@ internal fun encode(layout: ShelfLayout): String =
                                     put("name", profile.name)
                                     put("baseEdition", profile.baseEdition)
                                     put("custom", JSONObject(profile.custom))
+                                    put("patternId", profile.patternId)
+                                    put("stampId", profile.stampId)
                                     put("createdAt", profile.createdAt)
                                     put("updatedAt", profile.updatedAt)
                                 },
@@ -140,6 +144,8 @@ internal fun decode(json: String): ShelfLayout {
                             name = record.getString("name"),
                             baseEdition = record.getString("baseEdition"),
                             custom = overrides.keys().asSequence().associateWith { overrides.getLong(it) },
+                            patternId = record.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
+                            stampId = record.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
                             createdAt = record.optLong("createdAt"),
                             updatedAt = record.optLong("updatedAt"),
                         )
@@ -159,6 +165,8 @@ internal fun decode(json: String): ShelfLayout {
                     } else {
                         appearance.getString("curatedDesignId")
                     },
+                patternId = appearance.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
+                stampId = appearance.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
             ),
         sections =
             (0 until sections.length()).map { index ->
