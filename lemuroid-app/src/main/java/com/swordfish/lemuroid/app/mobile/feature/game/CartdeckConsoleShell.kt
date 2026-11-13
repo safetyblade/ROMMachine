@@ -104,7 +104,13 @@ internal fun CartdeckConsoleShell(
                 drawCartdeckSurfaceDesign(
                     patternId = patternId,
                     stampId = stampId,
-                    frame = Rect(edge + 7.dp.toPx(), edge + 7.dp.toPx(), size.width - edge - 7.dp.toPx(), size.height - edge - 7.dp.toPx()),
+                    frame =
+                        Rect(
+                            edge + 7.dp.toPx(),
+                            edge + 7.dp.toPx(),
+                            size.width - edge - 7.dp.toPx(),
+                            size.height - edge - 7.dp.toPx(),
+                        ),
                     exclusions = exclusions,
                     lineColour = tokens.accent,
                     stampColour = tokens.onChassis,
