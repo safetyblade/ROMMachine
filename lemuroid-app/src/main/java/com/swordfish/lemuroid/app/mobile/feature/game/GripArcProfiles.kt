@@ -149,12 +149,19 @@ class GripArcProfileStore(context: Context) {
             defaultFor(game).copy(
                 mode = if (previousGlobal) ArcControlMode.PIVOTARC else ArcControlMode.STANDARD,
             )
-        val raw = preferences.getString(key(game), null) ?: return fallback
+        val raw =
+            preferences.getString(key(game), null)
+                ?: preferences.getString(legacyKey(game, game.legacySourceUri ?: game.fileUri), null)
+                ?: preferences.getString(legacyKey(game, game.fileUri), null)
+                ?: return fallback
         return decode(raw, fallback, GripArcInputCatalog.forGame(game).map { it.code }.toSet())
     }
 
     /** Saved mode overrides global PivotArc; older unconfigured cartridges retain the existing global choice. */
-    fun hasSelection(game: Game): Boolean = preferences.contains(key(game))
+    fun hasSelection(game: Game): Boolean =
+        preferences.contains(key(game)) ||
+            preferences.contains(legacyKey(game, game.legacySourceUri ?: game.fileUri)) ||
+            preferences.contains(legacyKey(game, game.fileUri))
 
     fun save(
         game: Game,
@@ -172,7 +179,13 @@ class GripArcProfileStore(context: Context) {
         preferences.unregisterOnSharedPreferenceChangeListener(listener)
     }
 
-    private fun key(game: Game): String = "game:" + shelfGameKey(game.systemId, game.fileUri)
+    /** UUID becomes the durable key; retain read-only compatibility with old URI keys. */
+    private fun key(game: Game): String = "cartridge:" + game.cartridgeId
+
+    private fun legacyKey(
+        game: Game,
+        uri: String,
+    ): String = "game:" + shelfGameKey(game.systemId, uri)
 
     companion object {
         const val VERSION = 1
@@ -226,8 +239,8 @@ class GripArcProfileStore(context: Context) {
 fun rememberGripArcProfile(game: Game): State<GripArcProfile> {
     val context = LocalContext.current.applicationContext
     val store = remember(context) { GripArcProfileStore(context) }
-    val state = remember(game.systemId, game.fileUri, store) { mutableStateOf(store.read(game)) }
-    DisposableEffect(game.systemId, game.fileUri, store) {
+    val state = remember(game.cartridgeId, store) { mutableStateOf(store.read(game)) }
+    DisposableEffect(game.cartridgeId, store) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
                 state.value = store.read(game)
