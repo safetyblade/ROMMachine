@@ -1,11 +1,14 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,15 +28,18 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -58,6 +65,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckAppearancePre
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 /** Runtime swatches are resolved from the same generated resources used by the cartridges. */
 @Composable
@@ -313,7 +321,7 @@ private fun CartdeckConsoleHardwarePreview(
     val button = role("button")
     val accent = role("accent")
     val ink = role("onChassis")
-    Box(
+    BoxWithConstraints(
         modifier =
             Modifier.fillMaxWidth().height(height)
                 .background(chassis, RoundedCornerShape(10.dp))
@@ -382,6 +390,20 @@ private fun CartdeckConsoleHardwarePreview(
                 )
             }
         }
+        if (appearance.decal != null && !appearance.highContrast) {
+            val density = LocalDensity.current
+            val w = with(density) { maxWidth.toPx() }
+            val h = with(density) { maxHeight.toPx() }
+            CartdeckDecalLayer(
+                decal = appearance.decal,
+                exclusions =
+                    listOf(
+                        Rect(w * 0.12f, h * 0.07f, w * 0.88f, h * 0.49f),
+                        Rect(w * 0.15f, h * 0.57f, w * 0.47f, h),
+                        Rect(w * 0.51f, h * 0.52f, w * 0.93f, h),
+                    ),
+            )
+        }
     }
 }
 
@@ -401,6 +423,31 @@ fun ShelfAppearanceEditor(
     var selectedDesignId by remember { mutableStateOf(appearance.curatedDesignId) }
     var patternId by remember { mutableStateOf(appearance.patternId) }
     var stampId by remember { mutableStateOf(appearance.stampId) }
+    var decal by remember { mutableStateOf(appearance.decal) }
+    var expandedDecal by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val decalStore = remember(context) { CartdeckDecalStore(context) }
+    val coroutineScope = rememberCoroutineScope()
+    val stagedAssets = remember { mutableStateListOf<String>() }
+    var appliedAssets by remember { mutableStateOf(emptySet<String>()) }
+    DisposableEffect(decalStore) {
+        onDispose {
+            stagedAssets.filterNot { it in appliedAssets }.forEach(decalStore::discard)
+        }
+    }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                runCatching { decalStore.importImage(uri) }
+                    .onSuccess { id ->
+                        stagedAssets.add(id)
+                        decal = CartdeckPersonalDecal(assetId = id)
+                        modified = true
+                        warning = null
+                    }.onFailure { warning = it.message ?: "Could not import artwork" }
+            }
+        }
+    }
     var expandedDecoration by remember { mutableStateOf(false) }
     var modified by remember { mutableStateOf(false) }
     var expandedEditor by remember { mutableStateOf(false) }
@@ -427,6 +474,7 @@ fun ShelfAppearanceEditor(
             if (modified) null else selectedDesignId,
             patternId,
             stampId,
+            decal,
         )
 
     fun choosePreset(id: String) {
@@ -436,6 +484,7 @@ fun ShelfAppearanceEditor(
         selectedDesignId = null
         patternId = CartdeckSurfaceDesign.PATTERN_NONE
         stampId = CartdeckSurfaceDesign.STAMP_NONE
+        decal = null
         modified = false
         warning = null
     }
@@ -448,6 +497,7 @@ fun ShelfAppearanceEditor(
         selectedDesignId = null
         patternId = item.patternId
         stampId = item.stampId
+        decal = item.decal
         modified = false
         warning = null
     }
@@ -460,6 +510,7 @@ fun ShelfAppearanceEditor(
         selectedDesignId = design.id
         patternId = design.patternId
         stampId = design.stampId
+        decal = null
         modified = false
         warning = null
     }
@@ -611,6 +662,7 @@ fun ShelfAppearanceEditor(
                                     named.remove(item)
                                     if (selectedId == item.id) {
                                         selectedId = null
+                                        decal = null
                                         modified = true
                                     }
                                 }) { Text("Delete") }
@@ -632,6 +684,7 @@ fun ShelfAppearanceEditor(
                                             custom = overrides.toMap(),
                                             patternId = patternId,
                                             stampId = stampId,
+                                            decal = decal,
                                             updatedAt = System.currentTimeMillis(),
                                         )
                                     modified = false
@@ -669,6 +722,80 @@ fun ShelfAppearanceEditor(
                             "Static decoration never covers gameplay. Personal image import follows separately.",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                    }
+                    TextButton(onClick = { expandedDecal = !expandedDecal }) {
+                        Text(if (expandedDecal) "Hide personal decal editor" else "Personal decals")
+                    }
+                    if (expandedDecal) {
+                        Text(
+                            "Your own artwork stays on this device and belongs to a saved My Appearance.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        if (selectedId == null) {
+                            Text(
+                                "Choose a saved appearance or use Save as new before importing.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        TextButton(
+                            enabled = selectedId != null,
+                            onClick = {
+                                imagePicker.launch(arrayOf("image/png", "image/webp", "image/jpeg"))
+                            },
+                        ) {
+                            Text(if (decal == null) "Import image" else "Replace image")
+                        }
+                        decal?.let { current ->
+                            Text("Position", style = MaterialTheme.typography.titleSmall)
+                            CartdeckPersonalDecal.anchors.forEach { (id, title) ->
+                                TextButton(onClick = {
+                                    decal = current.copy(anchor = id)
+                                    modified = true
+                                }) {
+                                    Text(if (current.anchor == id) "✓ $title" else title)
+                                }
+                            }
+                            Text("Scale: ${(current.scale * 100).toInt()}%")
+                            Slider(
+                                value = current.scale,
+                                onValueChange = {
+                                    decal = current.copy(scale = it)
+                                    modified = true
+                                },
+                                valueRange = 0.25f..1f,
+                            )
+                            Text("Rotation: ${current.rotation.toInt()}°")
+                            Slider(
+                                value = current.rotation,
+                                onValueChange = {
+                                    decal = current.copy(rotation = it)
+                                    modified = true
+                                },
+                                valueRange = -90f..90f,
+                            )
+                            Text("Opacity: ${(current.opacity * 100).toInt()}%")
+                            Slider(
+                                value = current.opacity,
+                                onValueChange = {
+                                    decal = current.copy(opacity = it)
+                                    modified = true
+                                },
+                                valueRange = 0.10f..1f,
+                            )
+                            TextButton(onClick = {
+                                decal = null
+                                modified = true
+                            }) { Text("Remove decal") }
+                            TextButton(onClick = {
+                                decal = current.copy(
+                                    anchor = CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
+                                    scale = 0.65f,
+                                    rotation = 0f,
+                                    opacity = 0.85f,
+                                )
+                                modified = true
+                            }) { Text("Reset placement") }
+                        }
                     }
                     TextButton(onClick = { expandedEditor = !expandedEditor }) {
                         Text(if (expandedEditor) "Hide colour editor" else "Edit colours and materials")
@@ -758,7 +885,33 @@ fun ShelfAppearanceEditor(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     TextButton(onClick = {
-                        onSave(draft)
+                        val saved =
+                            if (selectedId != null && modified) {
+                                val selected = selectedId
+                                val updated =
+                                    named.map { item ->
+                                        if (item.id == selected) {
+                                            item.copy(
+                                                baseEdition = edition,
+                                                custom = overrides.toMap(),
+                                                patternId = patternId,
+                                                stampId = stampId,
+                                                decal = decal,
+                                                updatedAt = System.currentTimeMillis(),
+                                            )
+                                        } else {
+                                            item
+                                        }
+                                    }
+                                draft.copy(profiles = updated, activeProfileId = selected)
+                            } else {
+                                draft
+                            }
+                        appliedAssets = stagedAssets.filter { asset ->
+                            saved.decal?.assetId == asset ||
+                                saved.profiles.any { it.decal?.assetId == asset }
+                        }.toSet()
+                        onSave(saved)
                         onDismiss()
                     }) { Text("Apply") }
                 }
@@ -814,6 +967,7 @@ fun ShelfAppearanceEditor(
                                 custom = overrides.toMap(),
                                 patternId = patternId,
                                 stampId = stampId,
+                                decal = decal,
                             )
                         named.add(item)
                         selectedId = item.id
