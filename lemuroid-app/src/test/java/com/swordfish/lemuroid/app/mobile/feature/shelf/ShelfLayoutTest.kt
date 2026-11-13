@@ -19,12 +19,16 @@ import java.io.File
 @Config(sdk = [28], application = Application::class)
 class ShelfLayoutTest {
     @Test fun removeAllSpacesKeepsOrderSectionsAndAppearance() {
-        var layout = ShelfLayout().reconcile(mapOf("a" to "Zelda", "b" to "Animal", "c" to "Mario"))
-            .createSection("My Games")
+        var layout =
+            ShelfLayout()
+                .reconcile(mapOf("a" to "Zelda", "b" to "Animal", "c" to "Mario"))
+                .createSection("My Games")
         val section = layout.sections.last().id
-        layout = layout.insertSpace(ShelfLayout.UNSORTED, "game:b")
-            .insertSpace(ShelfLayout.UNSORTED, row = true)
-            .moveCell("game:c", section).insertSpace(section)
+        layout =
+            layout.insertSpace(ShelfLayout.UNSORTED, "game:b")
+                .insertSpace(ShelfLayout.UNSORTED, row = true)
+                .moveCell("game:c", section)
+                .insertSpace(section)
         val expected = layout.sections.map { it.id to it.cells.mapNotNull { cell -> cell.gameKey } }
         val compact = layout.removeAllSpaces()
         assertEquals(expected, compact.sections.map { it.id to it.cells.mapNotNull { cell -> cell.gameKey } })
@@ -35,9 +39,12 @@ class ShelfLayoutTest {
     }
 
     @Test fun autoArrangeSortsWithinSectionsDeterministically() {
-        var layout = ShelfLayout().reconcile(
-            linkedMapOf("z" to "Zelda", "c" to "Chrono", "a" to "Animal", "m" to "Mario"),
-        ).createSection("Manual")
+        var layout =
+            ShelfLayout()
+                .reconcile(
+                    linkedMapOf("z" to "Zelda", "c" to "Chrono", "a" to "Animal", "m" to "Mario"),
+                )
+                .createSection("Manual")
         val section = layout.sections.last().id
         layout = layout.moveCell("game:m", section).insertSpace(ShelfLayout.UNSORTED, "game:a")
         val title = layout.autoArrange(ShelfArrangeMode.TITLE_A_TO_Z)
