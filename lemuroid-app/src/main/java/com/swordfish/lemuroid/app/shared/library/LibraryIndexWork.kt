@@ -65,6 +65,7 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
                     "added" to summary.added,
                     "removed" to summary.removed,
                     "skipped" to summary.skipped,
+                    "discProblems" to summary.discProblems,
                 ),
             )
         } catch (cancelled: CancellationException) {

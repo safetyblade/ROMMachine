@@ -25,6 +25,7 @@ import androidx.core.net.toUri
 import androidx.leanback.preference.LeanbackPreferenceFragment
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.lib.R
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -114,6 +115,17 @@ class LocalStorageProvider(
         dataFiles: List<DataFile>,
         allowVirtualFiles: Boolean,
     ): RomFiles {
+        if (game.systemId == SystemID.DREAMCAST.dbname &&
+            game.fileName.substringAfterLast('.', "").lowercase(java.util.Locale.US) in setOf("gdi", "cue", "m3u")
+        ) {
+            val members = listOf(getGameRom(game)) + dataFiles.map { getDataFile(it) }
+            val sources =
+                members.associate { file ->
+                    file.name to DiscFamilyStager.Source(file.length(), file.lastModified()) { file.inputStream() }
+                }
+            val target = GameCacheUtils.getCacheFileForGame(LOCAL_STORAGE_CACHE_SUBFOLDER, context, game).parentFile!!
+            return RomFiles.Standard(DiscFamilyStager.stage(game.fileName, sources, target))
+        }
         return RomFiles.Standard(listOf(getGameRom(game)) + dataFiles.map { getDataFile(it) })
     }
 

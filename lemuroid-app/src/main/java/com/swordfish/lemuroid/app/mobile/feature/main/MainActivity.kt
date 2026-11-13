@@ -275,7 +275,13 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                                 outcome.outputData.getInt("added", 0),
                                                 outcome.outputData.getInt("removed", 0),
                                                 outcome.outputData.getInt("skipped", 0),
-                                            ),
+                                            ) +
+                                                if (outcome.outputData.getInt("discProblems", 0) > 0) {
+                                                    " Some discs were skipped. Restore the descriptor and tracks " +
+                                                        "in one folder; ambiguous discs need a console folder."
+                                                } else {
+                                                    ""
+                                                },
                                         )
                                     } else {
                                         refreshMessages.showSnackbar(

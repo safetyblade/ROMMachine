@@ -7,6 +7,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragment
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.lib.R
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -133,6 +134,26 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
 
         val isZipped = originalDocument.isZipped() && originalDocument.name != game.fileName
 
+        if (game.systemId == SystemID.DREAMCAST.dbname &&
+            game.fileName.substringAfterLast('.', "").lowercase(java.util.Locale.US) in setOf("gdi", "cue", "m3u")
+        ) {
+            val members = listOf(game.fileName to game.fileUri) + dataFiles.map { it.fileName to it.fileUri }
+            val sources =
+                members.associate { (name, uriText) ->
+                    val uri = Uri.parse(uriText)
+                    val document = DocumentFile.fromSingleUri(context, uri)
+                    name to
+                        DiscFamilyStager.Source(
+                            document?.length()?.coerceAtLeast(0) ?: 0,
+                            document?.lastModified()?.coerceAtLeast(0) ?: 0,
+                        ) {
+                            context.contentResolver.openInputStream(uri)
+                                ?: throw java.io.IOException("Disc unavailable; restore folder access and refresh")
+                        }
+                }
+            val target = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game).parentFile!!
+            return RomFiles.Standard(DiscFamilyStager.stage(game.fileName, sources, target))
+        }
         return when {
             isZipped && dataFiles.isEmpty() -> getGameRomFilesZipped(game, originalDocument)
             allowVirtualFiles -> getGameRomFilesVirtual(game, dataFiles)

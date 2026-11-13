@@ -57,6 +57,25 @@ class GdiFamilyRefreshTest {
         StorageFilesMerger.mergeDataFiles(provider(null), listOf(file("disc.gdi"), file("Track 1.bin")))
     }
 
+    @Test
+    fun cueAndGdiCaseDifferencesGroupRealSourcesWithoutRenamingShelfIdentity() {
+        val cue = "FILE \"Track 1.BIN\" BINARY\n TRACK 01 MODE1/2352\n INDEX 01 00:00:00"
+        val groups =
+            StorageFilesMerger.mergeDataFiles(
+                provider(cue),
+                listOf(file("disc.CUE"), file("track 1.bin"), file("unrelated.bin")),
+            )
+        assertEquals(setOf("disc.CUE", "unrelated.bin"), groups.map { it.primaryFile.name }.toSet())
+        assertEquals("track 1.bin", groups.single { it.primaryFile.name == "disc.CUE" }.dataFiles.single().name)
+        val gdi =
+            StorageFilesMerger.mergeDataFiles(
+                provider(descriptor),
+                listOf(file("disc.GDI"), file("track 1.BIN"), file("TRACK02.RAW")),
+            )
+        assertEquals(1, gdi.size)
+        assertEquals(2, gdi.single().dataFiles.size)
+    }
+
     private fun file(name: String) = BaseStorageFile(name, 100, Uri.parse("content://fixture/$name"))
 
     private fun provider(text: String?): StorageProvider =

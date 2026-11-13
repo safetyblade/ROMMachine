@@ -50,7 +50,7 @@ object NativeGameSystems {
                     ),
                 ),
                 uniqueExtensions = listOf("gdi", "cdi"),
-                supportedExtensions = listOf("gdi", "chd", "m3u", "cdi"),
+                supportedExtensions = listOf("gdi", "cue", "chd", "m3u", "cdi"),
                 hasMultiDiskSupport = true,
                 scanOptions =
                     GameSystem.Companion.ScanOptions(

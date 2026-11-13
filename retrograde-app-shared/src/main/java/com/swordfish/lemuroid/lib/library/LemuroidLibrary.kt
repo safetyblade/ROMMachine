@@ -35,6 +35,7 @@ import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
+import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import dagger.Lazy
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -56,7 +57,7 @@ class LemuroidLibrary(
     private val biosManager: BiosManager,
     private val customCoverManager: CustomCoverManager,
 ) {
-    data class IndexSummary(val added: Int, val removed: Int, val skipped: Int)
+    data class IndexSummary(val added: Int, val removed: Int, val skipped: Int, val discProblems: Int = 0)
 
     /**
      * A scan is authoritative ONLY after every enabled provider and directory was
@@ -70,9 +71,10 @@ class LemuroidLibrary(
         val startedAtMs = maxOf(System.currentTimeMillis(), (previousGames.maxOfOrNull { it.lastIndexedAt } ?: 0L) + 1)
         val before = previousGames.map { it.systemId to it.fileUri }.toSet()
         val skipped = AtomicInteger(0)
+        val discProblems = AtomicInteger(0)
 
         try {
-            indexProviders(startedAtMs, skipped)
+            indexProviders(startedAtMs, skipped, discProblems)
         } catch (error: Exception) {
             Timber.e(error, "Library refresh failed; existing games will not be pruned")
             throw error
@@ -88,6 +90,7 @@ class LemuroidLibrary(
             added = (after - before).size,
             removed = (before - after).size,
             skipped = skipped.get(),
+            discProblems = discProblems.get(),
         )
     }
 
@@ -95,11 +98,12 @@ class LemuroidLibrary(
     private suspend fun indexProviders(
         startedAtMs: Long,
         skipped: AtomicInteger,
+        discProblems: AtomicInteger,
     ) {
         val gameMetadata = gameMetadataProvider.get()
         val enabledProviders = storageProviderRegistry.get().enabledProviders
         enabledProviders.asFlow()
-            .flatMapConcat { indexSingleProvider(it, startedAtMs, gameMetadata, skipped) }
+            .flatMapConcat { indexSingleProvider(it, startedAtMs, gameMetadata, skipped, discProblems) }
             .collect()
     }
 
@@ -109,11 +113,12 @@ class LemuroidLibrary(
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
         skipped: AtomicInteger,
+        discProblems: AtomicInteger,
     ): Flow<Unit> {
         return provider.listBaseStorageFiles()
             .flatMapConcat { StorageFilesMerger.mergeDataFiles(provider, it).asFlow() }
             .batchWithSizeAndTime(MAX_BUFFER_SIZE, MAX_TIME)
-            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata, skipped) }
+            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata, skipped, discProblems) }
     }
 
     private suspend fun processBatch(
@@ -122,6 +127,7 @@ class LemuroidLibrary(
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
         skipped: AtomicInteger,
+        discProblems: AtomicInteger,
     ) = flow<Unit> {
         val entries = batch.map { fetchEntriesFromDatabase(it) }
 
@@ -135,6 +141,11 @@ class LemuroidLibrary(
         // Includes unrecognised files (and BIOS candidates); no false claim that
         // every skipped item was a playable ROM.
         skipped.addAndGet(newEntries.count { it is ScanEntry.File })
+        discProblems.addAndGet(
+            newEntries.count {
+                it is ScanEntry.File && it.file.primaryFile.extension in setOf("gdi", "cue", "m3u")
+            },
+        )
         handleNewEntries(newEntries, startedAtMs, provider)
     }
 
@@ -286,7 +297,13 @@ class LemuroidLibrary(
         val names = groupedStorageFile.allFiles().map { it.name }.toSet()
         for (cue in groupedStorageFile.allFiles().filter { it.extension == "cue" }) {
             val requested = StorageFilesMerger.cueFileNames(provider, cue)
-            if (requested == null || !names.containsAll(requested)) return ScanEntry.File(groupedStorageFile)
+            if (requested == null ||
+                requested.any {
+                    DiscReferences.resolve(it, names) == null
+                }
+            ) {
+                return ScanEntry.File(groupedStorageFile)
+            }
         }
         for (playlist in groupedStorageFile.allFiles().filter { it.extension.equals("m3u", ignoreCase = true) }) {
             if (playlist.size !in 1..DiscPlaylist.MAX_BYTES) return ScanEntry.File(groupedStorageFile)
@@ -302,6 +319,65 @@ class LemuroidLibrary(
                     ?: throw java.io.IOException("Cannot read GDI descriptor ${descriptor.name}")
             val identity = NextGenDiscIdentity.probe(descriptor.name, gdiText = text, availableTrackNames = names)
             if (identity.platform != NextGenDiscIdentity.Platform.DREAMCAST) return ScanEntry.File(groupedStorageFile)
+        }
+        // Descriptor identity owns the cartridge. Do not let an arbitrary track's
+        // database filename override a positively identified Dreamcast disc/playlist.
+        val primary = groupedStorageFile.primaryFile
+
+        fun isDreamcast(file: BaseStorageFile): Boolean {
+            val parsed = safeStorageFile(provider, file) ?: return false
+            if (file.extension != "cue") return parsed.systemID == SystemID.DREAMCAST
+            if (parsed.systemID != null && parsed.systemID != SystemID.DREAMCAST) return false
+            val requested = StorageFilesMerger.cueFileNames(provider, file) ?: return false
+            val matched = requested.mapNotNull { DiscReferences.resolve(it, names) }
+            var boot = false
+            val dataTracks =
+                groupedStorageFile.dataFiles
+                    .filter { it.name in matched && it.extension in setOf("bin", "raw") }.take(3)
+            for (track in dataTracks) {
+                val header =
+                    provider.getInputStream(track.uri)?.use { input ->
+                        val bytes = ByteArray(352840)
+                        var count = 0
+                        while (count < bytes.size) {
+                            val read = input.read(bytes, count, bytes.size - count)
+                            if (read <= 0) break
+                            count += read
+                        }
+                        bytes.copyOf(count)
+                    } ?: throw java.io.IOException("Cannot read disc track")
+                // Positive legacy evidence beats a misplaced Dreamcast folder.
+                val legacy =
+                    SerialScanner.extractInfo(
+                        track.name,
+                        java.io.ByteArrayInputStream(header),
+                    ).systemID
+                if (legacy != null && legacy != SystemID.DREAMCAST) return false
+                boot = boot || NextGenDiscIdentity.hasDreamcastBootSector(header)
+            }
+            return parsed.systemID == SystemID.DREAMCAST || boot
+        }
+
+        val dreamcast =
+            when (primary.extension) {
+                "cue" -> isDreamcast(primary)
+                "m3u" -> {
+                    val text = provider.getInputStream(primary.uri)?.use { it.bufferedReader().readText() }.orEmpty()
+                    val requested = DiscPlaylist.parse(text).orEmpty()
+                    requested.isNotEmpty() &&
+                        requested.all { name ->
+                            val actual = DiscReferences.resolve(name, names)
+                            groupedStorageFile.dataFiles.firstOrNull { it.name == actual }?.let(::isDreamcast) == true
+                        }
+                }
+                else -> false
+            }
+        if (dreamcast && GameSystem.all().any { it.id == SystemID.DREAMCAST }) {
+            val parsed = safeStorageFile(provider, primary) ?: return ScanEntry.File(groupedStorageFile)
+            val identified = parsed.copy(systemID = SystemID.DREAMCAST)
+            val metadata = metadataProvider.retrieveMetadata(identified)
+            val game = convertGameMetadataToGame(groupedStorageFile, identified, metadata, startedAtMs)
+            return buildScanEntry(groupedStorageFile, game)
         }
         val game =
             sortedFilesForScanning(groupedStorageFile).asFlow()
