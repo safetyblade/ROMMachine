@@ -67,8 +67,9 @@ internal class CartdeckDecalStore(private val context: Context) {
             ) {
                 options.inSampleSize *= 2
             }
-            val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                ?: error("Image could not be decoded")
+            val decoded =
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                    ?: error("Image could not be decoded")
             try {
                 val normalized = ByteArrayOutputStream()
                 require(decoded.compress(Bitmap.CompressFormat.PNG, 100, normalized)) { "Image encoding failed" }
@@ -136,10 +137,11 @@ internal class CartdeckDecalStore(private val context: Context) {
 
     /** Safe after ShelfStore has successfully committed the new metadata. */
     fun pruneUnused(saved: ShelfAppearance) {
-        val retained = buildSet {
-            saved.decal?.assetId?.let(::add)
-            saved.profiles.mapNotNull { it.decal?.assetId }.forEach(::add)
-        }
+        val retained =
+            buildSet {
+                saved.decal?.assetId?.let(::add)
+                saved.profiles.mapNotNull { it.decal?.assetId }.forEach(::add)
+            }
         folder.listFiles()?.forEach { file ->
             val id = file.name.removeSuffix(".png")
             if (file.extension == "png" && id !in retained) {
