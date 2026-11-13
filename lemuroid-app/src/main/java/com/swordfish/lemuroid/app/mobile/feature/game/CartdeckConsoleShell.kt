@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
 import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
@@ -46,6 +48,7 @@ internal fun CartdeckConsoleShell(
     controlBounds: List<Rect> = emptyList(),
     patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    decal: CartdeckPersonalDecal? = null,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -338,6 +341,23 @@ internal fun CartdeckConsoleShell(
                     }
                 }
             }
+        }
+
+        if (decal != null && hole != null) {
+            val w = with(density) { maxWidth.toPx() }
+            val h = with(density) { maxHeight.toPx() }
+            val protectedBrand =
+                if (!isLandscape && seatFits) {
+                    Rect(w / 2f - 120.dp.value * density.density, 0f, w / 2f + 120.dp.value * density.density, 84.dp.value * density.density)
+                } else if (compactSeat) {
+                    Rect(w / 2f - 54.dp.value * density.density, h - 66.dp.value * density.density, w / 2f + 54.dp.value * density.density, h)
+                } else {
+                    null
+                }
+            CartdeckDecalLayer(
+                decal = decal,
+                exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
+            )
         }
 
         // Full brand returns above the standard manufactured screen; the
