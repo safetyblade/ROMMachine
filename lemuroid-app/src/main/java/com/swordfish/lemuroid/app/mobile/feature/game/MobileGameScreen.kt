@@ -818,6 +818,7 @@ private fun WiiControllerLaunchChoice(
                     "wii_sideways" to "Sideways Wii Remote",
                     "wii_classic" to "Classic Controller",
                     "wii_nunchuk" to "Wii Remote + Nunchuk",
+                    "wii_gamecube" to "GameCube Controller (supported Wii games)",
                 ).forEach { (name, label) ->
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
