@@ -3,6 +3,13 @@ name: CARTDECK Wii and Xbox engineering APKs
 # Shared native pipeline: existing five engines, Wii and the independent Xbox backend.
 # Authenticated Actions QA artifacts only; no GitHub Release publishing.
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/cartdeck-wii-xbox-engineering.yml'
+      - 'scripts/ci/stage_native_bundle.py'
+      - 'scripts/ci/verify_native_bundle_apk.py'
+      - 'scripts/ci/test_stage_native_bundle.py'
+      - 'scripts/ci/test_verify_native_bundle_apk.py'
   workflow_call:
     inputs:
       include_xbox360:
@@ -253,7 +260,7 @@ jobs:
   native-xbox360:
     name: Android ARM64 Xenia engine — optional isolated build
     needs: [source-preflight]
-    if: inputs.include_xbox360 == true
+    if: inputs.include_xbox360 == true || (github.event_name == 'pull_request' && github.head_ref == 'feat/xbox360-verified-apk-packaging')
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -719,7 +726,7 @@ jobs:
           retention-days: 7
 
   apk-xbox360:
-    if: inputs.include_xbox360 == true
+    if: inputs.include_xbox360 == true || (github.event_name == 'pull_request' && github.head_ref == 'feat/xbox360-verified-apk-packaging')
     name: Build and verify opt-in Wii, Xbox and Xbox 360 APK
     needs: [source-preflight, native-engines, native-host, native-xbox, native-xbox360]
     runs-on: ubuntu-24.04
