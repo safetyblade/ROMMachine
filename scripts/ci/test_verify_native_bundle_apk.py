@@ -167,7 +167,7 @@ class FullApkContractTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'provenance/licenses missing'):
             verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
         self.xbox360_expansion()
-        self.entries['AndroidManifest.xml'] = b'baseline Android manifest without isolated activity'
+        self.entries['AndroidManifest.xml'] = b'com.rfandango.haku_x.NativeCoreActivity'
         with self.assertRaisesRegex(ValueError, 'isolated Activity not registered'):
             verify(self.write_apk(), self.bundle, True, self.host, True, True, True)
 
