@@ -103,6 +103,9 @@ object NativeGameSystems {
                                         ControllerConfigs.WII_SIDEWAYS,
                                         ControllerConfigs.WII_CLASSIC,
                                         ControllerConfigs.WII_NUNCHUK,
+                                        // RetroPad device 1: only usable in Wii software that
+                                        // explicitly supports GameCube controller input.
+                                        ControllerConfigs.WII_GAMECUBE,
                                     ),
                             ),
                         supportedOnlyArchitectures = setOf("arm64-v8a"),

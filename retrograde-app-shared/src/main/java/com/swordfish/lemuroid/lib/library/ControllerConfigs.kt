@@ -228,6 +228,20 @@ object ControllerConfigs {
             libretroId = 769,
         )
 
+    /**
+     * GameCube pad on Wii through Dolphin's standard RetroPad joypad device (1).
+     * This reuses the verified GameCube touch geometry and inputs, but is a
+     * distinct saved Wii preference. Only Wii software supporting this pad
+     * will accept it; it is not a substitute for Wii Remote motion/pointer.
+     */
+    val WII_GAMECUBE =
+        GAMECUBE.copy(
+            name = "wii_gamecube",
+            displayName = R.string.controller_wii_gamecube,
+            libretroId = 1,
+            libretroDescriptor = null,
+        )
+
     val PSP =
         ControllerConfig(
             "default",

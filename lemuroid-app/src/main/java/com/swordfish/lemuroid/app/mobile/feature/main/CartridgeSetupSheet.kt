@@ -118,9 +118,11 @@ private fun CartridgeControlChoices(
     var message by remember(game.fileUri) { mutableStateOf<String?>(null) }
     if (system.id == SystemID.WII) {
         Text(
-            "Choose Classic, sideways Remote or Nunchuk below. Touch the game picture to point; " +
-                "pointer settings also offer the right stick. Press the right stick for Wii Home. " +
-                "Shake buttons emulate motion. Phone motion sensors and physical Wii Remotes are unavailable.",
+            "Choose Sideways Wii Remote, Classic, Remote + Nunchuk or GameCube Controller below. " +
+                "GameCube input only works in Wii software that supports a GameCube pad. " +
+                "Touch the game picture to point with Wii Remote profiles; pointer settings also offer " +
+                "the right stick. Press the right stick for Wii Home. Shake buttons emulate motion. " +
+                "Phone motion sensors and physical Wii Remotes are unavailable.",
         )
     }
     Text("Control layout preference")
