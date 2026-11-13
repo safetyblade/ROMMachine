@@ -99,3 +99,66 @@ fun SectionEditor(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+/**
+ * All actions edit presentation only and use the existing atomic store and
+ * Undo. A-Z and console sort never move games between sections.
+ */
+@Composable
+fun ShelfEditToolsDialog(
+    onDismiss: () -> Unit,
+    onAddSection: () -> Unit,
+    onRemoveAllSpaces: () -> Unit,
+    onArrangeTitle: () -> Unit,
+    onArrangeConsole: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit shelf") },
+        text = {
+            Column {
+                TextButton(onClick = {
+                    onAddSection()
+                    onDismiss()
+                }) { Text("Add section") }
+                TextButton(onClick = {
+                    onRemoveAllSpaces()
+                    onDismiss()
+                }) {
+                    Column {
+                        Text("Remove all empty spaces")
+                        Text(
+                            "Close gaps and empty rows, keeping game order",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                TextButton(onClick = {
+                    onArrangeTitle()
+                    onDismiss()
+                }) {
+                    Column {
+                        Text("Auto-arrange A–Z")
+                        Text(
+                            "Sort each section by title and close gaps",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                TextButton(onClick = {
+                    onArrangeConsole()
+                    onDismiss()
+                }) {
+                    Column {
+                        Text("Auto-arrange by console")
+                        Text(
+                            "Group by console and title within each section",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}

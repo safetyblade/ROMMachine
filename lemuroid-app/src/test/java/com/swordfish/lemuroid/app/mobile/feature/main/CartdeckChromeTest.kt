@@ -64,7 +64,7 @@ class CartdeckChromeTest {
 
     @Test fun contextualDockExitsToExistingNavigationWithoutDiscardingChanges() {
         var arranging by mutableStateOf(true)
-        var createdSections = 0
+        var editToolsCalls = 0
         var undoCalls = 0
         compose.setContent {
             CartridgeLibraryTheme {
@@ -74,13 +74,13 @@ class CartdeckChromeTest {
                     arrangingShelf = arranging,
                     canUndoShelf = false,
                     onDoneArrange = { arranging = false },
-                    onAddSection = { createdSections++ },
+                    onEditTools = { editToolsCalls++ },
                     onUndoShelf = { undoCalls++ },
                 )
             }
         }
-        compose.onNodeWithText("Add section").performClick()
-        assertTrue(createdSections == 1)
+        compose.onNodeWithText("Tools").performClick()
+        assertTrue(editToolsCalls == 1)
         compose.onNodeWithText("Undo").assertIsNotEnabled()
         assertTrue(undoCalls == 0)
         compose.onNodeWithText("Home").assertDoesNotExist()
