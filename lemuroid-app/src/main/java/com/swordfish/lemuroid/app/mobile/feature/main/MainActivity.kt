@@ -59,10 +59,10 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSetti
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.supported.SupportedGamesScreen
 import com.swordfish.lemuroid.app.mobile.feature.shelf.SectionEditor
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfArrangeMode
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfEditToolsDialog
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearanceEditor
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfArrangeMode
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfEditToolsDialog
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator

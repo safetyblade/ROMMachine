@@ -261,9 +261,10 @@ data class ShelfLayout(
     /** Explicitly close every shelf gap/blank row, preserving original game and section order. */
     fun removeAllSpaces(): ShelfLayout =
         copy(
-            sections = sections.map { section ->
-                section.copy(cells = section.cells.filter { it.gameKey != null })
-            },
+            sections =
+                sections.map { section ->
+                    section.copy(cells = section.cells.filter { it.gameKey != null })
+                },
         ).validate()
 
     /** Deterministic in-section reordering. Game keys, cells and sections are retained. */
@@ -272,10 +273,11 @@ data class ShelfLayout(
         systemsByGameKey: Map<String, String> = emptyMap(),
     ): ShelfLayout {
         val compact = removeAllSpaces()
-        val byTitle = compareBy<ShelfCell>(
-            { it.titleHint.trim().lowercase(Locale.ROOT) },
-            { it.gameKey.orEmpty() },
-        )
+        val byTitle =
+            compareBy<ShelfCell>(
+                { it.titleHint.trim().lowercase(Locale.ROOT) },
+                { it.gameKey.orEmpty() },
+            )
         val comparator =
             when (mode) {
                 ShelfArrangeMode.TITLE_A_TO_Z -> byTitle
