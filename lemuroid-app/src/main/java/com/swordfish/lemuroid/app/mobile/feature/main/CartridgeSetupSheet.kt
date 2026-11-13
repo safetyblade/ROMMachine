@@ -151,12 +151,12 @@ private fun CartridgeControlChoices(
     if (config == null) return
     var controller by remember(game.fileUri) { mutableStateOf<String?>(null) }
     LaunchedEffect(game.fileUri, config) {
-        controller = manager.getControllerConfigs(system.id, config)[0]?.name
+        controller = manager.getControllerConfigs(system.id, config, game)[0]?.name
     }
     config.controllerConfigs[0]?.takeIf { it.size > 1 }?.forEach { option ->
         TextButton(onClick = {
             scope.launch {
-                if (manager.selectController(system.id, config, 0, option.name)) controller = option.name
+                if (manager.selectController(system.id, config, 0, option.name, game)) controller = option.name
             }
         }) { Text(stringResource(option.displayName) + if (controller == option.name) " · selected" else "") }
     }

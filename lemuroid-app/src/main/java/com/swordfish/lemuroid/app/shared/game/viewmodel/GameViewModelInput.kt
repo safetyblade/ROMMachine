@@ -60,6 +60,7 @@ class GameViewModelInput(
     private val sideEffects: GameViewModelSideEffects,
     private val pivotArcHoldGate: PivotArcHeldInputGate,
     private val scope: CoroutineScope,
+    private val game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
 ) : DefaultLifecycleObserver {
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
 
@@ -114,7 +115,7 @@ class GameViewModelInput(
         val controller =
             systemCoreConfig.controllerConfigs[0]?.firstOrNull { it.name == name } ?: return
         scope.launch {
-            if (controllerConfigsManager.selectController(system.id, systemCoreConfig, 0, name)) {
+            if (controllerConfigsManager.selectController(system.id, systemCoreConfig, 0, name, game)) {
                 controllerConfigsState.value = controllerConfigsState.value + (0 to controller)
             }
         }
@@ -472,7 +473,7 @@ class GameViewModelInput(
     private suspend fun initializeControllersConfigFlow() {
         try {
             retroGameView.waitRetroGameViewInitialized()
-            val controllers = controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig)
+            val controllers = controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig, game)
             controllerConfigsState.value = controllers
         } catch (e: Exception) {
             Timber.e(e)
