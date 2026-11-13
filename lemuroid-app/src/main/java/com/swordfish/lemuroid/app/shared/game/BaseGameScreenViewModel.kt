@@ -163,8 +163,11 @@ class BaseGameScreenViewModel(
 
     private inline fun withLoading(block: () -> Unit) {
         loadingState.value = true
-        block()
-        loadingState.value = false
+        try {
+            block()
+        } finally {
+            loadingState.value = false
+        }
     }
 
     fun gripArcProfile(): StateFlow<GripArcProfile> = gripArcProfileState
@@ -297,7 +300,14 @@ class BaseGameScreenViewModel(
     suspend fun saveSlot(index: Int) {
         if (loadingState.value) return
         withLoading {
-            saves.saveSlot(index)
+            try {
+                saves.saveSlot(index)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Timber.e(error, "Save slot write failed")
+                sideEffects.showToast(appContext.getString(R.string.game_save_write_failed))
+            }
         }
     }
 
@@ -355,8 +365,15 @@ class BaseGameScreenViewModel(
         viewModelScope.launch {
             withLoading {
                 val snapshot = saves.captureSaveSnapshot(true) ?: return@launch
-                saves.writeSaveSnapshot(snapshot)
-                sideEffects.requestSuccessfulFinish()
+                try {
+                    saves.writeSaveSnapshot(snapshot)
+                    sideEffects.requestSuccessfulFinish()
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Timber.e(error, "Save before finish failed")
+                    sideEffects.showToast(appContext.getString(R.string.game_save_write_failed))
+                }
             }
         }
     }
@@ -366,7 +383,14 @@ class BaseGameScreenViewModel(
         if (loadingState.value) return
         GameService.schedule {
             val snapshot = saves.captureSaveSnapshot(false)
-            saves.writeSaveSnapshot(snapshot)
+            try {
+                saves.writeSaveSnapshot(snapshot)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Timber.e(error, "Background save failed")
+                sideEffects.showToast(appContext.getString(R.string.game_save_write_failed))
+            }
         }
     }
 

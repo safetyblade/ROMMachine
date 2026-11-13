@@ -107,7 +107,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         runCatchingWithRetry(FILE_ACCESS_RETRIES) {
             writeStateToDisk(fileName, coreName, saveState.state)
             writeMetadataToDisk(fileName, coreName, saveState.metadata)
-        }
+        }.getOrThrow()
     }
 
     private fun writeMetadataToDisk(
@@ -146,12 +146,12 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         return File(statesDirectories, "$stateFileName.metadata")
     }
 
-    private fun getAutoSaveFileName(game: Game) = "${game.fileName}.state"
+    private fun getAutoSaveFileName(game: Game) = "${game.saveFileName()}.state"
 
     private fun getSlotSaveFileName(
         game: Game,
         index: Int,
-    ) = "${game.fileName}.slot${index + 1}"
+    ) = "${game.saveFileName()}.slot${index + 1}"
 
     companion object {
         const val MAX_STATES = 4

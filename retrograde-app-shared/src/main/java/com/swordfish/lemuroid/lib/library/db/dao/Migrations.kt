@@ -4,6 +4,27 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object Migrations {
+    val VERSION_11_12: Migration =
+        object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE games ADD COLUMN cartridgeId TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE games ADD COLUMN legacyFileName TEXT")
+                database.execSQL("ALTER TABLE games ADD COLUMN legacySourceUri TEXT")
+                // Room executes the whole migration in its upgrade transaction. Existing IDs,
+                // foreign keys, titles, artwork and favourites remain untouched.
+                database.query("SELECT id FROM games").use { cursor ->
+                    while (cursor.moveToNext()) {
+                        database.execSQL(
+                            """UPDATE games SET cartridgeId = ?, legacyFileName = fileName,
+                                legacySourceUri = fileUri WHERE id = ?""",
+                            arrayOf(java.util.UUID.randomUUID().toString(), cursor.getInt(0)),
+                        )
+                    }
+                }
+                database.execSQL("CREATE UNIQUE INDEX index_games_cartridgeId ON games(cartridgeId)")
+            }
+        }
+
     val VERSION_10_11: Migration =
         object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {

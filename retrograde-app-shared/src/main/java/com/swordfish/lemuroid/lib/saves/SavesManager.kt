@@ -65,7 +65,7 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                     val saveFile = getSaveFile(getSaveRAMFileName(game), coreID)
                     saveFile.writeBytesAtomic(data)
                 }
-            result.getOrNull()
+            result.getOrThrow()
         }
     }
 
@@ -107,7 +107,7 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
             )
 
     /** This name should make it compatible with RetroArch so that users can freely sync saves across the two application. */
-    private fun getSaveRAMFileName(game: Game) = "${game.fileName.substringBeforeLast(".")}.srm"
+    private fun getSaveRAMFileName(game: Game) = "${game.saveFileName().substringBeforeLast(".")}.srm"
 
     companion object {
         private const val FILE_ACCESS_RETRIES = 3

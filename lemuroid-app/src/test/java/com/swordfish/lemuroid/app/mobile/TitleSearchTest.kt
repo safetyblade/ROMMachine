@@ -30,9 +30,17 @@ class TitleSearchTest {
                 custom: String?,
             ) {
                 sql.execSQL(
-                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,customName)
-                    VALUES(?,? ,? ,? ,'gb',0,0,?)""",
-                    arrayOf(id, "$id.gb", "content://fixture/$id", title, custom),
+                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,
+                        customName,cartridgeId)
+                    VALUES(?,? ,? ,? ,'gb',0,0,?,?)""",
+                    arrayOf(
+                        id,
+                        "$id.gb",
+                        "content://fixture/$id",
+                        title,
+                        custom,
+                        java.util.UUID.randomUUID().toString(),
+                    ),
                 )
             }
 
@@ -75,9 +83,17 @@ class TitleSearchTest {
             sql.beginTransaction()
             try {
                 for (id in 1..5000) sql.execSQL(
-                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,customName)
-                    VALUES(?,?,?,?,'gb',0,0,?)""",
-                    arrayOf(id, "$id.gb", "content://fixture/$id", "Orbit Adventure $id", "My Shelf $id"),
+                    """INSERT INTO games(id,fileName,fileUri,title,systemId,lastIndexedAt,isFavorite,
+                        customName,cartridgeId)
+                    VALUES(?,?,?,?,'gb',0,0,?,?)""",
+                    arrayOf(
+                        id,
+                        "$id.gb",
+                        "content://fixture/$id",
+                        "Orbit Adventure $id",
+                        "My Shelf $id",
+                        java.util.UUID.randomUUID().toString(),
+                    ),
                 )
                 sql.setTransactionSuccessful()
             } finally {

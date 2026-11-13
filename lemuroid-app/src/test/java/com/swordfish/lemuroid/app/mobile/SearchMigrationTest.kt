@@ -74,16 +74,28 @@ class SearchMigrationTest {
         val save = File(context.filesDir, "migration-save.srm").apply { writeText("sentinel-existing-save") }
         val db =
             Room.databaseBuilder(context, RetrogradeDatabase::class.java, name)
-                .addMigrations(Migrations.VERSION_10_11).allowMainThreadQueries().build()
+                .addMigrations(Migrations.VERSION_10_11, Migrations.VERSION_11_12).allowMainThreadQueries().build()
         try {
             val sql = db.openHelper.writableDatabase
-            assertEquals(11, sql.version)
+            assertEquals(12, sql.version)
             val after =
                 sql.query("SELECT * FROM games").use { cursor ->
                     cursor.moveToFirst()
                     (0 until cursor.columnCount).map { cursor.getString(it) }
                 }
-            assertEquals(before, after)
+            assertEquals(before, after.take(before.size))
+            sql.query("SELECT cartridgeId, legacyFileName, legacySourceUri FROM games WHERE id = 41").use {
+                assertTrue(it.moveToFirst())
+                java.util.UUID.fromString(it.getString(0))
+                assertEquals("orbit.gb", it.getString(1))
+                assertEquals("content://persisted/rom", it.getString(2))
+            }
+            // Changing the source display name must leave the compatibility alias intact.
+            sql.execSQL("UPDATE games SET fileName = 'renamed.gb' WHERE id = 41")
+            sql.query("SELECT legacyFileName FROM games WHERE id = 41").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("orbit.gb", it.getString(0))
+            }
             for (query in listOf("orb adv", "my isl")) sql.query(TitleSearch.query(query)).use {
                 assertEquals(1, it.count)
                 assertTrue(it.moveToFirst())

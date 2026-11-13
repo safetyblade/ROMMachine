@@ -259,4 +259,5 @@
     <string name="tilt_configuration_buttons_l1_r1">L1 - R1</string>
     <string name="tilt_configuration_buttons_l2_r2">L2 - R2</string>
 
+    <string name="game_save_write_failed">Save failed. Check free space and storage access before leaving the game.</string>
 </resources>
