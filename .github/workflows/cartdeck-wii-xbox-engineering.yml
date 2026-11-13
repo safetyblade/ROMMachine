@@ -572,6 +572,63 @@ jobs:
             cp "$manifest" "dist/cartdeck/evidence/native-assets-$variant.json"
           done < <(find lemuroid-app/build/generated -name native-assets-manifest.json -type f 2>/dev/null)
 
+      # A failing Compose/JVM assertion remains a RED release gate. When the
+      # preceding Gradle invocation already assembled an APK, allow the owner
+      # to diagnose the current handset behaviour with a distinctly named,
+      # non-release, package/signature/native-verified engineering snapshot.
+      # Never claim that this is a passing or release-qualified build.
+      - name: Prepare an explicitly UNVERIFIED handset QA APK after unit-test failure
+        id: device_qa
+        if: failure()
+        run: |
+          set -euo pipefail
+          log="dist/cartdeck/evidence/build-and-tests-attempt-1.log"
+          if ! test -s "$log" || ! grep -qE '> Task :lemuroid-app:testFreeBundleDebugUnitTest FAILED' "$log"; then
+            echo "No failed unit-test build with completed APK; QA snapshot not produced."
+            exit 0
+          fi
+          mapfile -t candidates < <(find lemuroid-app/build/outputs/apk -type f -name '*.apk' | sort)
+          if [[ "${#candidates[@]}" -ne 1 || ! -s "${candidates[0]}" ]]; then
+            echo "APK not assembled; QA snapshot not produced."
+            exit 0
+          fi
+          : "${CARTDECK_VERSION_CODE:?No audited version code}"
+          bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_native_bundle_apk.py \
+            dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk dist/cartdeck/bundle \
+            --require-five-engines --require-wii --require-xbox \
+            --host-aar work/host-input/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
+            > dist/cartdeck/evidence/native-bundle-device-qa.json
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c 4 dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk
+          mv dist/cartdeck/CARTDECK_STANDALONE_ARM64_DEBUG.apk \
+            dist/cartdeck/CARTDECK_DEVICE_QA_NOT_RELEASE.apk
+          cat > dist/cartdeck/NOT_RELEASE_READ_FIRST.txt <<EOF
+          CARTDECK OWNER DEVICE QA ONLY — NOT A VERIFIED RELEASE
+          Source commit: ${GITHUB_SHA}
+          Source branch: ${GITHUB_REF_NAME}
+          The workflow FAILED JVM unit-test verification. Do not describe this
+          artifact as a green build or publish it to users.
+          The exact package, debug signature, version and native engine bundle
+          passed the existing APK identity/manifest checks independently.
+          This snapshot is solely for the owner's manual handset investigation.
+          The failing tests and logs remain retained in failure evidence.
+          EOF
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload isolated NOT-RELEASE handset QA snapshot
+        if: failure() && steps.device_qa.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_DEVICE_QA_UNVERIFIED
+          path: |
+            dist/cartdeck/CARTDECK_DEVICE_QA_NOT_RELEASE.apk
+            dist/cartdeck/NOT_RELEASE_READ_FIRST.txt
+            dist/cartdeck/evidence/signing.txt
+            dist/cartdeck/evidence/package.txt
+            dist/cartdeck/evidence/native-bundle-device-qa.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload the verified expansion APK and evidence
         uses: actions/upload-artifact@v4
         with:
