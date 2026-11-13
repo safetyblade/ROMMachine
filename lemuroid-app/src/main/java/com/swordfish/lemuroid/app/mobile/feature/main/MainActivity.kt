@@ -59,6 +59,8 @@ import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSetti
 import com.swordfish.lemuroid.app.mobile.feature.settings.savesync.SaveSyncSettingsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.settings.supported.SupportedGamesScreen
 import com.swordfish.lemuroid.app.mobile.feature.shelf.SectionEditor
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfArrangeMode
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfEditToolsDialog
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearanceEditor
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
@@ -186,6 +188,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             val arrangingShelf = rememberSaveable { mutableStateOf(false) }
             val editingSection = remember { mutableStateOf<ShelfSection?>(null) }
             val creatingSection = remember { mutableStateOf(false) }
+            val shelfEditTools = remember { mutableStateOf(false) }
             val editingAppearance = remember { mutableStateOf(false) }
             val shelfReady = shelfState.layout != null && shelfState.error == null
 
@@ -195,13 +198,14 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     arrangingShelf.value = false
                     editingSection.value = null
                     creatingSection.value = false
+                    shelfEditTools.value = false
                     editingAppearance.value = false
                 }
             }
             BackHandler(
                 enabled =
                     currentRoute == MainRoute.HOME && arrangingShelf.value &&
-                        editingSection.value == null && !creatingSection.value &&
+                        editingSection.value == null && !creatingSection.value && !shelfEditTools.value &&
                         !editingAppearance.value,
             ) {
                 arrangingShelf.value = false
@@ -303,7 +307,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         arrangingShelf = arrangingShelf.value,
                         canUndoShelf = shelfState.canUndo,
                         onDoneArrange = { arrangingShelf.value = false },
-                        onAddSection = { creatingSection.value = true },
+                        onEditTools = { shelfEditTools.value = true },
                         onUndoShelf = shelfViewModel::undo,
                     )
                 },
@@ -483,6 +487,15 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 }
             }
 
+            if (shelfEditTools.value) {
+                ShelfEditToolsDialog(
+                    onDismiss = { shelfEditTools.value = false },
+                    onAddSection = { creatingSection.value = true },
+                    onRemoveAllSpaces = { shelfViewModel.edit { it.removeAllSpaces() } },
+                    onArrangeTitle = { shelfViewModel.autoArrange(ShelfArrangeMode.TITLE_A_TO_Z) },
+                    onArrangeConsole = { shelfViewModel.autoArrange(ShelfArrangeMode.CONSOLE_THEN_TITLE) },
+                )
+            }
             if (creatingSection.value || editingSection.value != null) {
                 SectionEditor(
                     section = editingSection.value,

@@ -18,6 +18,48 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class ShelfLayoutTest {
+    @Test fun removeAllSpacesKeepsOrderSectionsAndAppearance() {
+        var layout = ShelfLayout().reconcile(mapOf("a" to "Zelda", "b" to "Animal", "c" to "Mario"))
+            .createSection("My Games")
+        val section = layout.sections.last().id
+        layout = layout.insertSpace(ShelfLayout.UNSORTED, "game:b")
+            .insertSpace(ShelfLayout.UNSORTED, row = true)
+            .moveCell("game:c", section).insertSpace(section)
+        val expected = layout.sections.map { it.id to it.cells.mapNotNull { cell -> cell.gameKey } }
+        val compact = layout.removeAllSpaces()
+        assertEquals(expected, compact.sections.map { it.id to it.cells.mapNotNull { cell -> cell.gameKey } })
+        assertTrue(compact.sections.all { it.cells.all { cell -> cell.gameKey != null } })
+        assertEquals(layout.appearance, compact.appearance)
+        assertEquals(compact, compact.removeAllSpaces())
+        assertEquals(compact, decode(encode(compact)))
+    }
+
+    @Test fun autoArrangeSortsWithinSectionsDeterministically() {
+        var layout = ShelfLayout().reconcile(
+            linkedMapOf("z" to "Zelda", "c" to "Chrono", "a" to "Animal", "m" to "Mario"),
+        ).createSection("Manual")
+        val section = layout.sections.last().id
+        layout = layout.moveCell("game:m", section).insertSpace(ShelfLayout.UNSORTED, "game:a")
+        val title = layout.autoArrange(ShelfArrangeMode.TITLE_A_TO_Z)
+        assertEquals(listOf("a", "c", "z"), title.sections.first().cells.map { it.gameKey })
+        assertEquals(listOf("m"), title.sections.last().cells.map { it.gameKey })
+        assertEquals(layout.sections.map { it.id }, title.sections.map { it.id })
+        val systems = mapOf("z" to "snes", "c" to "gba", "a" to "ps2", "m" to "gba")
+        val console = layout.autoArrange(ShelfArrangeMode.CONSOLE_THEN_TITLE, systems)
+        assertEquals(listOf("c", "a", "z"), console.sections.first().cells.map { it.gameKey })
+        assertEquals(console, console.autoArrange(ShelfArrangeMode.CONSOLE_THEN_TITLE, systems))
+        assertEquals(setOf("a", "z", "c", "m"), console.sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet())
+    }
+
+    @Test fun movingIntoVisualPaddingDoesNotPersistExtraSlots() {
+        val layout = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B", "c" to "C"))
+        val moved = layout.moveCell("game:a", ShelfLayout.UNSORTED)
+        assertEquals(listOf("b", "c", "a"), moved.sections.first().cells.map { it.gameKey })
+        assertEquals(0, moved.sections.first().cells.count { it.gameKey == null })
+        assertEquals(3, moved.sections.first().rows(5).single().cells.size)
+        assertEquals(3, decode(encode(moved)).sections.first().cells.size)
+    }
+
     @Test fun missingAndReindexedGamesKeepIdentityAndEmptyRows() {
         val a = shelfGameKey("gb", "content://rom/a")
         val b = shelfGameKey("gba", "content://rom/b")

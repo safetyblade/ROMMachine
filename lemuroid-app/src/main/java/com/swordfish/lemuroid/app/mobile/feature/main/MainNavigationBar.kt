@@ -46,7 +46,7 @@ fun MainNavigationBar(
     arrangingShelf: Boolean = false,
     canUndoShelf: Boolean = false,
     onDoneArrange: () -> Unit = {},
-    onAddSection: () -> Unit = {},
+    onEditTools: () -> Unit = {},
     onUndoShelf: () -> Unit = {},
 ) {
     AnimatedVisibility(
@@ -83,9 +83,9 @@ fun MainNavigationBar(
                     }
                     TextButton(
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        onClick = onAddSection,
+                        onClick = onEditTools,
                     ) {
-                        Text(stringResource(R.string.cartdeck_add_section), maxLines = 1)
+                        Text("Tools", maxLines = 1)
                     }
                     TextButton(
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),

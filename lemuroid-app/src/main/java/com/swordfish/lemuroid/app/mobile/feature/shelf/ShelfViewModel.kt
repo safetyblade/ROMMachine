@@ -30,6 +30,7 @@ class ShelfViewModel(context: Context) : ViewModel() {
     val state = mutableState.asStateFlow()
     private val undo = ArrayDeque<ShelfLayout>()
     private var identities = emptyMap<String, String>()
+    private var systemsByGameKey = emptyMap<String, String>()
 
     init {
         reload()
@@ -66,6 +67,7 @@ class ShelfViewModel(context: Context) : ViewModel() {
 
     fun reconcile(games: List<Game>) {
         identities = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
+        systemsByGameKey = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.systemId }
         edit(recordUndo = false) { it.reconcile(identities) }
     }
 
@@ -91,6 +93,10 @@ class ShelfViewModel(context: Context) : ViewModel() {
                 }
             }
         }
+    }
+
+    fun autoArrange(mode: ShelfArrangeMode) {
+        edit { it.autoArrange(mode, systemsByGameKey) }
     }
 
     fun undo() {
