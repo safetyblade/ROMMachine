@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.shared.compose.ui
 
 import android.content.Context
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -55,9 +56,11 @@ import androidx.compose.ui.unit.toSize
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
@@ -165,6 +168,22 @@ fun CartdeckAppearancePreview(
                     .clip(RoundedCornerShape(10.dp))
                     .background(materials.shelfBackboard),
         ) {
+            // The miniature shelf is the same original design, not a colour-
+            // only placeholder. Patterns stay behind the real cartridge art.
+            if (!appearance.highContrast && appearance.patternId != CartdeckSurfaceDesign.PATTERN_NONE) {
+                Canvas(Modifier.fillMaxSize()) {
+                    drawCartdeckSurfaceDesign(
+                        patternId = appearance.patternId,
+                        stampId = CartdeckSurfaceDesign.STAMP_NONE,
+                        frame = Rect(0f, 0f, size.width, size.height),
+                        exclusions = emptyList(),
+                        lineColour = materials.interactionAccent.copy(alpha = 0.42f),
+                        stampColour = materials.edgeHighlight,
+                        cellSize = 26.dp.toPx(),
+                        clearance = 2.dp.toPx(),
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 13.dp * scale),
                 horizontalArrangement = Arrangement.spacedBy(12.dp * scale),

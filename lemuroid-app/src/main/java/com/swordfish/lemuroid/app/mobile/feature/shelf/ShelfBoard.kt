@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -39,6 +40,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -81,6 +83,10 @@ fun ShelfBoard(
     header: (@Composable () -> Unit)? = null,
 ) {
     val colors = LocalShelfMaterials.current
+    val decorationPattern =
+        if (layout.appearance.highContrast) CartdeckSurfaceDesign.PATTERN_NONE else layout.appearance.patternId
+    val decorationStamp =
+        if (layout.appearance.highContrast) CartdeckSurfaceDesign.STAMP_NONE else layout.appearance.stampId
     val byKey = remember(games) { games.associateBy { shelfGameKey(it.systemId, it.fileUri) } }
     val positions = remember { mutableStateMapOf<String, Pair<Rect, DropPosition>>() }
     var dragging by remember { mutableStateOf<String?>(null) }
@@ -96,6 +102,25 @@ fun ShelfBoard(
     var anchor by rememberSaveable { mutableStateOf<String?>(null) }
     var anchorOffset by rememberSaveable { mutableStateOf(0) }
     BoxWithConstraints(modifier.background(colors.roomBackdrop).onGloballyPositioned { viewport = it.boundsInRoot() }) {
+        // The same saved design carries into landscape, tablet and controller-
+        // first library navigation. This layer is decorative and non-touchable.
+        if (
+            decorationPattern != CartdeckSurfaceDesign.PATTERN_NONE ||
+            decorationStamp != CartdeckSurfaceDesign.STAMP_NONE
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawCartdeckSurfaceDesign(
+                    patternId = decorationPattern,
+                    stampId = decorationStamp,
+                    frame = Rect(0f, 0f, size.width, size.height),
+                    exclusions = emptyList(),
+                    lineColour = colors.interactionAccent,
+                    stampColour = colors.edgeHighlight,
+                    cellSize = 32.dp.toPx(),
+                    clearance = 12.dp.toPx(),
+                )
+            }
+        }
         val columns = maxOf(1, floor((maxWidth.value - 24f) / 72f).toInt())
         val width = ((maxWidth.value - 24f - 4f * (columns - 1)) / columns).dp.coerceAtLeast(48.dp)
         val items =
@@ -145,7 +170,21 @@ fun ShelfBoard(
                 if (item.row == null) {
                     DropSurface("header:${item.section.id}", DropPosition(item.section.id, null), positions) {
                         Row(
-                            Modifier.fillMaxWidth().background(colors.roomBackdrop).padding(vertical = 12.dp),
+                            Modifier.fillMaxWidth().background(colors.roomBackdrop)
+                                .drawBehind {
+                                    if (decorationPattern != CartdeckSurfaceDesign.PATTERN_NONE) {
+                                        drawCartdeckSurfaceDesign(
+                                            patternId = decorationPattern,
+                                            stampId = CartdeckSurfaceDesign.STAMP_NONE,
+                                            frame = Rect(0f, 0f, size.width, size.height),
+                                            exclusions = emptyList(),
+                                            lineColour = colors.interactionAccent.copy(alpha = 0.45f),
+                                            stampColour = colors.edgeHighlight,
+                                            cellSize = 28.dp.toPx(),
+                                            clearance = 0f,
+                                        )
+                                    }
+                                }.padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(

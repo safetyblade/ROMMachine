@@ -28,7 +28,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 /**
@@ -42,6 +44,8 @@ internal fun CartdeckConsoleShell(
     rootBounds: Rect?,
     isLandscape: Boolean,
     controlBounds: List<Rect> = emptyList(),
+    patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -73,6 +77,47 @@ internal fun CartdeckConsoleShell(
                     hole?.let { addRoundRect(RoundRect(it, CornerRadius(2.dp.toPx()))) }
                 }
             drawPath(shellPath, tokens.chassis)
+
+            // Responsive, noninteractive decoration; a valid measured aperture
+            // is required before painting. Never paint into video, PadKit
+            // bounds, or the protected CARTDECK brand seat.
+            if (hole != null) {
+                val reservedBrand =
+                    when {
+                        !isLandscape && seatFits ->
+                            Rect(
+                                size.width / 2f - 120.dp.toPx(),
+                                8.dp.toPx(),
+                                size.width / 2f + 120.dp.toPx(),
+                                80.dp.toPx(),
+                            )
+                        compactSeat ->
+                            Rect(
+                                size.width / 2f - 50.dp.toPx(),
+                                size.height - 63.dp.toPx(),
+                                size.width / 2f + 50.dp.toPx(),
+                                size.height,
+                            )
+                        else -> null
+                    }
+                val exclusions = listOf(hole) + controls + listOfNotNull(reservedBrand)
+                drawCartdeckSurfaceDesign(
+                    patternId = patternId,
+                    stampId = stampId,
+                    frame =
+                        Rect(
+                            edge + 7.dp.toPx(),
+                            edge + 7.dp.toPx(),
+                            size.width - edge - 7.dp.toPx(),
+                            size.height - edge - 7.dp.toPx(),
+                        ),
+                    exclusions = exclusions,
+                    lineColour = tokens.accent,
+                    stampColour = tokens.onChassis,
+                    cellSize = maxOf(23.dp.toPx(), minOf(size.width, size.height) / 14f),
+                    clearance = 7.dp.toPx(),
+                )
+            }
             // Draw the P1-C2A solid control-deck.svg geometry directly on
             // the noninteractive shell. That places decorative hardware seats
             // ABOVE the manufactured deck but BELOW the functional PadKit.

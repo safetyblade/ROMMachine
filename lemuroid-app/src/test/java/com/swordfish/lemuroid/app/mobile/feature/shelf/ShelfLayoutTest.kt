@@ -267,6 +267,58 @@ class ShelfLayoutTest {
         assertEquals(legacy, decode(encode(migrated)))
     }
 
+    @Test
+    fun stealthAcidPatternsAndStampsSurviveLocalSaveAndLegacyMigration() {
+        val base =
+            ShelfLayout()
+                .reconcile(mapOf("gba-1" to "Cartridge one"))
+                .insertSpace(ShelfLayout.UNSORTED, row = true)
+        val curated =
+            CartdeckCuratedDesigns.apply(
+                base.appearance,
+                CartdeckCuratedDesigns.STEALTH_ACID_ID,
+            )
+        assertEquals(CartdeckSurfaceDesign.PATTERN_TACTICAL_GRID, curated.patternId)
+        assertEquals(CartdeckSurfaceDesign.STAMP_CHEVRON, curated.stampId)
+        assertEquals(CartdeckCuratedDesigns.STEALTH_ACID_ID, curated.curatedDesignId)
+
+        val mine =
+            curated.copy(
+                patternId = CartdeckSurfaceDesign.PATTERN_CAMO,
+                stampId = CartdeckSurfaceDesign.STAMP_SMILEY,
+            ).saveNewProfile("My Camo", now = 321L)
+        assertEquals(null, mine.curatedDesignId)
+        assertEquals(CartdeckSurfaceDesign.PATTERN_CAMO, mine.profiles.single().patternId)
+        val persisted = decode(encode(base.copy(appearance = mine)))
+        assertEquals(base.sections, persisted.sections)
+        assertEquals(mine, persisted.appearance)
+        val selected = persisted.appearance.selectProfile(mine.profiles.single().id)
+        assertEquals(CartdeckSurfaceDesign.STAMP_SMILEY, selected.stampId)
+        assertEquals(CartdeckSurfaceDesign.PATTERN_CAMO, selected.patternId)
+        val reset = selected.choosePreset("green")
+        assertEquals(CartdeckSurfaceDesign.PATTERN_NONE, reset.patternId)
+        assertEquals(CartdeckSurfaceDesign.STAMP_NONE, reset.stampId)
+        assertEquals(mine.profiles, reset.profiles)
+
+        val previous = org.json.JSONObject(encode(base))
+        previous.getJSONObject("appearance").apply {
+            remove("patternId")
+            remove("stampId")
+        }
+        assertEquals(base, decode(previous.toString()))
+        assertEquals(2, previous.getJSONObject("appearance").getInt("appearanceVersion"))
+    }
+
+    @Test
+    fun unknownDecorativeOptionsCannotCorruptSavedAppearances() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ShelfLayout(appearance = ShelfAppearance(patternId = "nonexistent")).validate()
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ShelfLayout(appearance = ShelfAppearance(stampId = "nonexistent")).validate()
+        }
+    }
+
     @Test fun unsupportedAppearanceSchemaNeverSilentlyOverwritesUserData() {
         val json = org.json.JSONObject(encode(ShelfLayout()))
         json.getJSONObject("appearance").put("appearanceVersion", 999)
