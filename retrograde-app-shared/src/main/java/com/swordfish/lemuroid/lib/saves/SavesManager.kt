@@ -11,7 +11,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class SavesManager(private val directoriesManager: DirectoriesManager) {
+class SavesManager(
+    private val directoriesManager: DirectoriesManager,
+    private val binding: CartridgeSaveBinding? = null,
+) {
     suspend fun getSaveRAM(
         game: Game,
         systemCoreConfig: SystemCoreConfig,
@@ -19,7 +22,7 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
         return withContext(Dispatchers.IO) {
             val result =
                 runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-                    val saveFile = getSaveFile(getSaveRAMFileName(game), systemCoreConfig.coreID)
+                    val saveFile = getSaveFile(game, systemCoreConfig.coreID)
                     if (saveFile.exists() && saveFile.length() > 0) {
                         saveFile.readBytes()
                     } else {
@@ -28,7 +31,7 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                             // Seed only an absent candidate slot; never synchronise back
                             // over the fallback, or overwrite newer candidate progress.
                             // GameLoader retained a verified baseline backup before this.
-                            val previous = getSaveFile(getSaveRAMFileName(game), CoreID.PCSX_REARMED)
+                            val previous = getSaveFile(game, CoreID.PCSX_REARMED)
                             if (previous.isFile && previous.length() == PlayStationMemoryCard.SIZE.toLong()) {
                                 val card = previous.readBytes()
                                 if (PlayStationMemoryCard.isRawCard(card)) {
@@ -42,11 +45,15 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                             null
                         } else {
                             val savesMigrator = systemCoreConfig.getSavesMigrator()
-                            savesMigrator?.loadPreviousSaveForGame(game, directoriesManager)
+                            if (binding == null || binding.mayImportLegacy(game, true)) {
+                                savesMigrator?.loadPreviousSaveForGame(game, directoriesManager)
+                            } else {
+                                null
+                            }
                         }
                     }
                 }
-            result.getOrNull()
+            result.getOrThrow()
         }
     }
 
@@ -62,7 +69,7 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                         return@runCatchingWithRetry
                     }
 
-                    val saveFile = getSaveFile(getSaveRAMFileName(game), coreID)
+                    val saveFile = getSaveFile(game, coreID)
                     saveFile.writeBytesAtomic(data)
                 }
             result.getOrThrow()
@@ -74,26 +81,26 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
         coreID: CoreID? = null,
     ): SaveInfo {
         return withContext(Dispatchers.IO) {
-            val saveFile = getSaveFile(getSaveRAMFileName(game), coreID)
+            val saveFile = getSaveFile(game, coreID)
             val fileExists = saveFile.exists() && saveFile.length() > 0
             SaveInfo(fileExists, saveFile.lastModified())
         }
     }
 
     private suspend fun getSaveFile(
-        fileName: String,
+        game: Game,
         coreID: CoreID?,
     ): File {
-        return withContext(Dispatchers.IO) {
-            val root = directoriesManager.getSavesDirectory()
-            val directory =
-                if (isIsolatedEngine(coreID)) {
-                    File(root, "engine-save-ram/${coreID!!.coreName}").apply { mkdirs() }
-                } else {
-                    root // Existing save paths are never renamed or overwritten by migration.
-                }
-            File(directory, fileName)
-        }
+        val root = directoriesManager.getSavesDirectory()
+        val scope = if (isIsolatedEngine(coreID)) coreID!!.coreName else "shared"
+        val legacyDirectory =
+            if (isIsolatedEngine(coreID)) {
+                File(root, "engine-save-ram/$scope").apply { mkdirs() }
+            } else {
+                root
+            }
+        val legacy = File(legacyDirectory, getSaveRAMFileName(game))
+        return binding?.sramFile(game, legacy, scope) ?: legacy
     }
 
     private fun isIsolatedEngine(coreID: CoreID?): Boolean =
