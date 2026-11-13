@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.lib.library.SystemID
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
@@ -14,19 +16,39 @@ object GameScreenLayout {
     const val CONSTRAINTS_GAME_VIEW = "gameView"
     const val CONSTRAINTS_GAME_CONTAINER = "gameContainer"
 
+    /**
+     * Dreamcast's single analog dial extends below its radial D-pad cluster.
+     * Move only the standalone portrait controller deck inside the manufactured
+     * shell, leaving enough bottom/gesture clearance on compact handsets.
+     * Combined GripArc/PivotArc owns its own measured geometry and stays unchanged.
+     */
+    fun portraitBottomInsetFor(
+        systemId: SystemID,
+        standardMode: Boolean,
+        isLandscape: Boolean,
+        availableHeight: Dp,
+    ): Dp {
+        if (systemId != SystemID.DREAMCAST || !standardMode || isLandscape) return 0.dp
+        return if (availableHeight >= 680.dp) 24.dp else 12.dp
+    }
+
     fun buildConstraintSet(
         isLandscape: Boolean,
         allowTouchOverlay: Boolean,
         portraitMode: CartdeckViewportPolicy.PortraitMode,
+        portraitBottomInset: Dp = 0.dp,
     ): ConstraintSet {
         return when {
-            !isLandscape -> buildConstraintSetPortrait(portraitMode)
+            !isLandscape -> buildConstraintSetPortrait(portraitMode, portraitBottomInset)
             allowTouchOverlay -> buildConstraintSetLandscape()
             else -> buildConstraintSetLandscapeNoOverlay()
         }
     }
 
-    private fun buildConstraintSetPortrait(portraitMode: CartdeckViewportPolicy.PortraitMode): ConstraintSet {
+    private fun buildConstraintSetPortrait(
+        portraitMode: CartdeckViewportPolicy.PortraitMode,
+        bottomInset: Dp,
+    ): ConstraintSet {
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -74,12 +96,12 @@ object GameScreenLayout {
 
             constrain(rightPad) {
                 width = Dimension.fillToConstraints
-                bottom.linkTo(parent.bottom)
+                bottom.linkTo(parent.bottom, margin = bottomInset)
             }
 
             constrain(leftPad) {
                 width = Dimension.fillToConstraints
-                bottom.linkTo(parent.bottom)
+                bottom.linkTo(parent.bottom, margin = bottomInset)
             }
 
             constrain(gameContainer) {
