@@ -19,6 +19,14 @@ import gg.padkit.ids.Id
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 
+internal object DreamcastPadGeometry {
+    // Dreamcast-only tuning; do not alter other systems' PadKit dial behaviour.
+    const val DPAD_FACTOR = 0.90f
+    const val ANALOG_POSITION_DEGREES = -50f
+    const val ANALOG_RADIAL_SCALE = 1.80f
+    const val TRIGGER_POSITION_DEGREES = 90f
+}
+
 /**
  * Sega Dreamcast / Flycast touch pad; never reuse DualShock symbols.
  *
@@ -39,6 +47,7 @@ fun PadKitScope.DreamcastLeft(
     BaseLayoutLeft(
         settings = settings,
         modifier = modifier,
+        primaryDialSizeFactor = DreamcastPadGeometry.DPAD_FACTOR,
         primaryDial = {
             LemuroidControlCross(
                 id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_DPAD),
@@ -46,11 +55,14 @@ fun PadKitScope.DreamcastLeft(
         },
         secondaryDials = {
             LemuroidControlButton(
-                modifier = Modifier.radialPosition(90f),
+                modifier = Modifier.radialPosition(DreamcastPadGeometry.TRIGGER_POSITION_DEGREES),
                 id = Id.Key(KeyEvent.KEYCODE_BUTTON_L2),
                 label = "L",
             )
-            SecondaryAnalogLeft()
+            SecondaryAnalogLeft(
+                positionDegrees = DreamcastPadGeometry.ANALOG_POSITION_DEGREES,
+                radialScale = DreamcastPadGeometry.ANALOG_RADIAL_SCALE,
+            )
             SecondaryButtonMenuPlaceholder(settings)
         },
     )
@@ -92,7 +104,7 @@ fun PadKitScope.DreamcastRight(
         },
         secondaryDials = {
             LemuroidControlButton(
-                modifier = Modifier.radialPosition(60f),
+                modifier = Modifier.radialPosition(DreamcastPadGeometry.TRIGGER_POSITION_DEGREES),
                 id = Id.Key(KeyEvent.KEYCODE_BUTTON_R2),
                 label = "R",
             )
