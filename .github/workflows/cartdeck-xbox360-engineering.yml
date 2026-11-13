@@ -23,10 +23,20 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Use preinstalled Android SDK (avoid obsolete tools package)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$sdk/cmdline-tools"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -n "$manager" && test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          echo "CARTDECK_SDKMANAGER=$manager" >> "$GITHUB_ENV"
+      - run: '"$CARTDECK_SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platforms;android-35"'
       - run: bash scripts/ci/bootstrap_gradle.sh
       - run: '"$GRADLE_BIN" ktlintCheck --no-daemon --max-workers=2'
-      - run: sdkmanager 'platforms;android-35'
+      - run: '"$CARTDECK_SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platforms;android-35"'
       - run: '"$GRADLE_BIN" -p scripts/ci/xbox360-tests test --no-daemon --max-workers=2'
       - run: python3 -m unittest discover -s scripts/ci -p 'test_xbox360*.py' -v
   native-xbox360:
@@ -39,9 +49,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - name: Use preinstalled Android SDK (avoid obsolete tools package)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$sdk/cmdline-tools"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -n "$manager" && test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          echo "CARTDECK_SDKMANAGER=$manager" >> "$GITHUB_ENV"
       - run: sudo apt-get update && sudo apt-get install -y glslang-tools spirv-tools
-      - run: sdkmanager 'ndk;29.0.14206865' 'cmake;3.30.3' 'platforms;android-35'
+      - run: '"$CARTDECK_SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "ndk;29.0.14206865" "cmake;3.30.3" "platforms;android-35"'
       - name: Build pinned native Xbox 360 runtime only
         run: python3 scripts/ci/build_xbox360_native.py "$RUNNER_TEMP/xbox360"
       - uses: actions/upload-artifact@v4
