@@ -1,0 +1,39 @@
+diff --git a/libretrodroid/src/main/cpp/core.cpp b/libretrodroid/src/main/cpp/core.cpp
+--- a/libretrodroid/src/main/cpp/core.cpp
++++ b/libretrodroid/src/main/cpp/core.cpp
+@@ -18,2 +18,3 @@
+ #include <dlfcn.h>
++#include <jni.h>
+ #include "core.h"
+@@ -23,2 +24,4 @@
+ namespace libretrodroid {
++
++extern JavaVM* cartdeckJvm;
+ 
+@@ -43,2 +46,10 @@
+     }
++    // dlopen does not invoke JNI_OnLoad; provide Play's optional JVM bridge.
++    if (auto registerVm = reinterpret_cast<void (*)(JavaVM*)>(
++            dlsym(libHandle, "cartdeck_set_java_vm"))) {
++        if (cartdeckJvm == nullptr) {
++            throw std::runtime_error("Play JavaVM unavailable before retro_init");
++        }
++        registerVm(cartdeckJvm);
++    }
+     retro_cheat_reset = (void (*)()) get_symbol(libHandle, "retro_cheat_reset");
+diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+--- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+@@ -47,2 +47,5 @@
+ namespace libretrodroid {
++
++// Process JavaVM captured by the actual JNI session before opening Play.
++JavaVM* cartdeckJvm = nullptr;
+ 
+@@ -360,2 +363,6 @@
+     try {
++        // Play's CPS2VM starts an independent native thread in retro_init.
++        if (env->GetJavaVM(&cartdeckJvm) != JNI_OK || cartdeckJvm == nullptr) {
++            throw std::runtime_error("Unable to acquire JavaVM for native core");
++        }
+         auto corePath = JniString(env, soFilePath);
