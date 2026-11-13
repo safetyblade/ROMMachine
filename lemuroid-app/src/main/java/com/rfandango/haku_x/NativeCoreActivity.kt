@@ -35,6 +35,7 @@ import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import gg.padkit.inputevents.InputEvent
@@ -59,6 +60,32 @@ class NativeCoreActivity : SDLActivity() {
     private var pixelProbeRequested = false
     private var surfacePixelReport = "surface_pixel_probe=disabled"
     private var controlOverlay: ComposeView? = null
+    private var pixelCapture: XboxPixelProbeCapture? = null
+    private var pixelCaptureStarted = 0L
+    private val finishPixelCapture =
+        object : Runnable {
+            override fun run() {
+                val capture = pixelCapture ?: return
+                if (leaving || paused || isFinishing) {
+                    capture.cancel()
+                    pixelCapture = null
+                    surfacePixelReport += "\ncapture_status=CANCELED"
+                    return
+                }
+                // This reads bounded CPU diagnostic text; it schedules no new GPU readbacks.
+                val native = gpuReport()
+                val elapsed = android.os.SystemClock.elapsedRealtime() - pixelCaptureStarted
+                val result = capture.observe(elapsed, native)
+                if (result == null) {
+                    main.postDelayed(this, 250)
+                } else {
+                    surfacePixelReport += "\ncapture_status=${result.status}; native_pairs=${result.nativePairs}/3; " +
+                        "samples do not establish gameplay"
+                    pixelCapture = null
+                    copyDiagnosticSnapshot(native)
+                }
+            }
+        }
     private val poll =
         object : Runnable {
             override fun run() {
@@ -253,6 +280,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun onPause() {
+        cancelPixelCapture()
         paused = true
         lastPoll = 0L
         main.removeCallbacks(poll)
@@ -273,7 +301,10 @@ class NativeCoreActivity : SDLActivity() {
     private fun presentationContract(): String =
         engine.properties.getProperty("cartdeck.presentation", "legacy acquired image")
 
-    private fun diagnosticReport(reason: String): String {
+    private fun diagnosticReport(
+        reason: String,
+        capturedGpuReport: String? = null,
+    ): String {
         var safeReason = reason.take(2000).replace(filesDir.absolutePath, "[app storage]")
         listOf(disc, intent.getStringExtra("cartdeck.gameUri"), intent.getStringExtra("cartdeck.gameTitle"))
             .filterNotNull().filter { it.isNotBlank() }.forEach { safeReason = safeReason.replace(it, "[content]") }
@@ -282,14 +313,14 @@ class NativeCoreActivity : SDLActivity() {
             "Device: ${android.os.Build.MODEL}; Android ${android.os.Build.VERSION.SDK_INT}\n" +
             "Stage: ${watchdog.stage}; guest frame presented: ${watchdog.presented}\n" +
             "Native failure category: ${nativeGetFatalKind()}\n" +
-            "${gpuReport()}\n" +
+            "${capturedGpuReport ?: gpuReport()}\n" +
             "Presentation probe: ${presentationContract()}\n" +
             "$surfacePixelReport\n" +
             "HDD and saves retained. No automatic relaunch was attempted."
     }
 
-    private fun copyDiagnosticSnapshot() {
-        val report = diagnosticReport("Manual diagnostic snapshot; not an engine failure")
+    private fun copyDiagnosticSnapshot(capturedGpuReport: String? = null) {
+        val report = diagnosticReport("Manual diagnostic snapshot; not an engine failure", capturedGpuReport)
         runCatching { File(filesDir, "native/xbox/last-launch-report.txt").writeText(report) }
         getSystemService(ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText("CARTDECK Xbox diagnostic", report))
@@ -307,16 +338,19 @@ class NativeCoreActivity : SDLActivity() {
             copyDiagnosticSnapshot()
             return
         }
+        pixelCapture = XboxPixelProbeCapture()
+        pixelCaptureStarted = android.os.SystemClock.elapsedRealtime()
         menu?.dismiss() // Resume the existing guest; never relaunch or change its graphics settings.
+        main.post(finishPixelCapture)
         main.postDelayed({ captureSurfacePixels() }, 1800)
     }
 
     private fun captureSurfacePixels() {
-        if (leaving || isFinishing || paused) return
+        if (leaving || isFinishing || paused || pixelCapture == null) return
         val surface = mSurface
         if (Build.VERSION.SDK_INT < 24 || surface == null || !surface.holder.surface.isValid) {
             surfacePixelReport = "surface_pixel_probe=surface unavailable"
-            copyDiagnosticSnapshot()
+            pixelCapture?.surfaceResult(false)
             return
         }
         val visible = android.graphics.Rect()
@@ -330,14 +364,17 @@ class NativeCoreActivity : SDLActivity() {
         var completed = false
         main.postDelayed({
             if (!completed && !leaving) {
-                surfacePixelReport = "surface_pixel_probe=callback timeout; $layers"
-                copyDiagnosticSnapshot()
+                completed = true
+                if (pixelCapture?.surfaceResult(false) == true) {
+                    surfacePixelReport = "surface_pixel_probe=callback timeout; $layers"
+                }
             }
         }, 3000)
         try {
             PixelCopy.request(surface, bitmap, { result ->
-                completed = true
                 try {
+                    if (completed || pixelCapture?.surfaceResult(result == PixelCopy.SUCCESS) != true) return@request
+                    completed = true
                     surfacePixelReport =
                         if (result == PixelCopy.SUCCESS) {
                             val pixels = IntArray(32 * 32)
@@ -346,7 +383,6 @@ class NativeCoreActivity : SDLActivity() {
                         } else {
                             "surface_pixel_probe=PixelCopy result $result; $layers"
                         }
-                    if (!leaving && !isFinishing) copyDiagnosticSnapshot()
                 } finally {
                     bitmap.recycle()
                 }
@@ -354,12 +390,21 @@ class NativeCoreActivity : SDLActivity() {
         } catch (error: Exception) {
             completed = true
             bitmap.recycle()
-            surfacePixelReport = "surface_pixel_probe=request unavailable; $layers"
-            copyDiagnosticSnapshot()
+            if (pixelCapture?.surfaceResult(false) == true) {
+                surfacePixelReport = "surface_pixel_probe=request unavailable; $layers"
+            }
         }
     }
 
+    private fun cancelPixelCapture() {
+        pixelCapture?.cancel()
+        if (pixelCapture != null) surfacePixelReport += "\ncapture_status=CANCELED"
+        pixelCapture = null
+        main.removeCallbacks(finishPixelCapture)
+    }
+
     private fun showFailure(reason: String) {
+        cancelPixelCapture()
         registryGame()?.let { game ->
             runCatching { EngineSelectionPreferences(applicationContext).recordFailure(game, watchdog.stage) }
         }
