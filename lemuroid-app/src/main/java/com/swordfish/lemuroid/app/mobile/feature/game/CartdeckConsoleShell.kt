@@ -348,9 +348,13 @@ internal fun CartdeckConsoleShell(
             val h = with(density) { maxHeight.toPx() }
             val protectedBrand =
                 if (!isLandscape && seatFits) {
-                    Rect(w / 2f - 120.dp.value * density.density, 0f, w / 2f + 120.dp.value * density.density, 84.dp.value * density.density)
+                    val half = with(density) { 120.dp.toPx() }
+                    val bottom = with(density) { 84.dp.toPx() }
+                    Rect(w / 2f - half, 0f, w / 2f + half, bottom)
                 } else if (compactSeat) {
-                    Rect(w / 2f - 54.dp.value * density.density, h - 66.dp.value * density.density, w / 2f + 54.dp.value * density.density, h)
+                    val half = with(density) { 54.dp.toPx() }
+                    val top = h - with(density) { 66.dp.toPx() }
+                    Rect(w / 2f - half, top, w / 2f + half, h)
                 } else {
                     null
                 }
