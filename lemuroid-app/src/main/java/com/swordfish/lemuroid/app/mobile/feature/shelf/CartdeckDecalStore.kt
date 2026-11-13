@@ -75,7 +75,8 @@ internal class CartdeckDecalStore(private val context: Context) {
                 val payload = normalized.toByteArray()
                 require(payload.size <= MAX_IMPORT_BYTES) { "The processed image is too large" }
                 val currentBytes =
-                    folder.listFiles()?.sumOf { it.length() } ?: 0L
+                    (folder.listFiles()?.sumOf { it.length() } ?: 0L) +
+                        (pending.listFiles()?.sumOf { it.length() } ?: 0L)
                 require(currentBytes + payload.size <= 64L * 1024 * 1024) {
                     "CARTDECK personal artwork storage is full"
                 }
