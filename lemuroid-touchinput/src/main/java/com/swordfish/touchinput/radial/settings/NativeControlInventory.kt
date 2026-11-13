@@ -57,7 +57,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.SNES, TouchControllerID.PSX,
                     TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP,
                     TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
-                    TouchControllerID.XBOX,
+                    TouchControllerID.XBOX, TouchControllerID.XBOX360,
                 )
             // Unmapped auxiliary variants retain native/Standard until their complete measured contract exists.
             if (id !in supported) return null
@@ -74,7 +74,13 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
             val faces =
                 when (id) {
                     TouchControllerID.GAMECUBE -> listOf("X", "A", "B", "Y")
-                    TouchControllerID.DREAMCAST, TouchControllerID.XBOX -> listOf("B", "A", "X", "Y")
+                    TouchControllerID.DREAMCAST, TouchControllerID.XBOX, TouchControllerID.XBOX360 ->
+                        listOf(
+                            "B",
+                            "A",
+                            "X",
+                            "Y",
+                        )
                     else -> listOf("A", "B", "Y", "X")
                 }
             val code =
@@ -143,7 +149,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     "L",
                     if (numbered) {
                         "shoulder-L1"
-                    } else if (id == TouchControllerID.XBOX) {
+                    } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
                         "shoulder-L1"
                     } else {
                         "shoulder-L"
@@ -151,8 +157,8 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     if (dcTriggers) KeyEvent.KEYCODE_BUTTON_L2 else KeyEvent.KEYCODE_BUTTON_L1,
                     if (numbered) {
                         "L1"
-                    } else if (id == TouchControllerID.XBOX) {
-                        "White"
+                    } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
+                        if (id == TouchControllerID.XBOX360) "LB" else "White"
                     } else {
                         "L"
                     },
@@ -162,7 +168,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     "R",
                     if (numbered) {
                         "shoulder-R1"
-                    } else if (id == TouchControllerID.XBOX) {
+                    } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
                         "shoulder-R1"
                     } else {
                         "shoulder-R"
@@ -170,26 +176,31 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     if (dcTriggers) KeyEvent.KEYCODE_BUTTON_R2 else KeyEvent.KEYCODE_BUTTON_R1,
                     if (numbered) {
                         "R1"
-                    } else if (id == TouchControllerID.XBOX) {
-                        "Black"
+                    } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
+                        if (id == TouchControllerID.XBOX360) "RB" else "Black"
                     } else {
                         "R"
                     },
                 )
             }
-            if (id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.XBOX)) {
+            if (id in
+                setOf(
+                    TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK,
+                    TouchControllerID.XBOX, TouchControllerID.XBOX360,
+                )
+            ) {
                 button(
                     "L2",
                     "shoulder-L2",
                     KeyEvent.KEYCODE_BUTTON_L2,
-                    if (id == TouchControllerID.XBOX) "LT" else "L2",
+                    if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) "LT" else "L2",
                     left = true,
                 )
                 button(
                     "R2",
                     "shoulder-R2",
                     KeyEvent.KEYCODE_BUTTON_R2,
-                    if (id == TouchControllerID.XBOX) "RT" else "R2",
+                    if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) "RT" else "R2",
                 )
             }
             if (id == TouchControllerID.GAMECUBE) button("Z", "aux-Z", KeyEvent.KEYCODE_BUTTON_R2)
@@ -198,8 +209,16 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     "Select",
                     "select",
                     KeyEvent.KEYCODE_BUTTON_SELECT,
-                    if (id == TouchControllerID.XBOX) "Back" else "Select",
-                    if (id == TouchControllerID.XBOX) null else NativeControlIcon.SELECT,
+                    if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
+                        "Back"
+                    } else {
+                        "Select"
+                    },
+                    if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
+                        null
+                    } else {
+                        NativeControlIcon.SELECT
+                    },
                     true,
                 )
             }
@@ -208,7 +227,8 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
             if (id in
                 setOf(
                     TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP,
-                    TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST, TouchControllerID.XBOX,
+                    TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
+                    TouchControllerID.XBOX, TouchControllerID.XBOX360,
                 )
             ) {
                 result +=
@@ -218,7 +238,12 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                         pressCode = KeyEvent.KEYCODE_BUTTON_THUMBL, leftHand = true,
                     )
             }
-            if (id in setOf(TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE, TouchControllerID.XBOX)) {
+            if (id in
+                setOf(
+                    TouchControllerID.PSX_DUALSHOCK, TouchControllerID.GAMECUBE,
+                    TouchControllerID.XBOX, TouchControllerID.XBOX360,
+                )
+            ) {
                 result +=
                     NativeControlSpec(
                         "AnalogR", "analog-right", NativeControlKind.ANALOG,

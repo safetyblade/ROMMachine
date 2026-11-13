@@ -14,7 +14,7 @@ import java.util.Properties
 
 /** Describes actual integrated implementations. Unbuilt upstream projects are never selectable engines. */
 object NativeEngineRegistry {
-    enum class Host { LIBRETRO, HAKUX_SDL3 }
+    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID }
 
     data class Engine(
         val id: String,
@@ -51,6 +51,19 @@ object NativeEngineRegistry {
     data class Eligibility(val eligible: Boolean, val reason: String? = null)
 
     fun engines(system: GameSystem): List<Engine> {
+        if (system.nativeBackend == "xenia") {
+            return listOf(
+                Engine(
+                    "xenia-android", "Xenia Edge", system.id, Host.XENIA_ANDROID, null,
+                    system.supportedExtensions.toSet(), 29, setOf("arm64-v8a"), 0, 0x00401000,
+                    emptyList(), "Pinned XenDroid native ARM64 runtime", "native/xbox360",
+                    "Persistent Xbox 360 content; no save states or automatic save conversion",
+                    "Xbox 360 dual analog, ABXY, LB/RB, LT/RT, Start/Back; Guide opens CARTDECK menu",
+                    "System Vulkan; independentBlend required. Xclipse gameplay is a separate gate. No save states.",
+                    "cartdeck/xenia.properties",
+                ),
+            )
+        }
         if (system.nativeBackend == "hakux") {
             return listOf(
                 Engine(
@@ -172,14 +185,27 @@ object NativeEngineRegistry {
         val hardware = hardwareEligibility(engine, hardware(context))
         if (!hardware.eligible) return hardware
         if (extension != null && extension.lowercase() !in engine.formats) {
-            return Eligibility(false, "This engine does not support this file format")
+            return Eligibility(
+                false,
+                if (engine.host == Host.XENIA_ANDROID) {
+                    "Xbox 360 supports verified ISO, XEX folders, ZAR and XCP. " +
+                        "M3U disc switching is unavailable. Your cartridge and saves are retained."
+                } else {
+                    "This engine does not support this file format"
+                },
+            )
         }
         if (engine.core in setOf(CoreID.PCSX_REARMED_MODERN, CoreID.PPSSPP_MODERN)) {
             if (!EmulatorCompatibilityPreferences(context).available(engine.system)) {
                 return Eligibility(false, "Matching engine and verified support assets are unavailable")
             }
         }
-        val binaryName = if (engine.host == Host.HAKUX_SDL3) "libhakuxcore.so" else engine.core?.libretroFileName
+        val binaryName =
+            when (engine.host) {
+                Host.HAKUX_SDL3 -> "libhakuxcore.so"
+                Host.XENIA_ANDROID -> "libcartdeck_xenia.so"
+                else -> engine.core?.libretroFileName
+            }
         // Legacy cores retain their existing verified install/provisioning path.
         if (engine.manifest != null) {
             val binary = binaryName?.let { File(context.applicationInfo.nativeLibraryDir, it) }
@@ -210,7 +236,12 @@ object NativeEngineRegistry {
                 val revision = manifest.getProperty("revision") ?: manifest.getProperty("upstream.revision")
                 val digest = manifest.getProperty("core.sha256")
                 val active =
-                    if (engine.host == Host.HAKUX_SDL3) {
+                    if (engine.host == Host.XENIA_ANDROID) {
+                        File(
+                            context.filesDir,
+                            "native-engines/xbox360/active.version",
+                        ).takeIf { it.isFile }?.readText()?.trim()
+                    } else if (engine.host == Host.HAKUX_SDL3) {
                         File(
                             context.filesDir,
                             "native-engines/xbox/active.version",

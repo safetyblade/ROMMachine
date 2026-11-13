@@ -85,3 +85,6 @@
 
 ## LibretroDroid
 -keep class com.swordfish.libretrodroid.** { *; }
+
+# Pinned Xenia JNI RegisterNatives ABI and nested Config/Path fields.
+-keep class xendroid.** { *; }

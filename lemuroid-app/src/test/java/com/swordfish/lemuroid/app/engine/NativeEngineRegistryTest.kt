@@ -25,6 +25,10 @@ class NativeEngineRegistryTest {
                 if (system.id == SystemID.XBOX) {
                     assertEquals(NativeEngineRegistry.Host.HAKUX_SDL3, engine.host)
                     assertEquals(null, engine.core)
+                } else if (system.id == SystemID.XBOX360) {
+                    assertEquals(NativeEngineRegistry.Host.XENIA_ANDROID, engine.host)
+                    assertEquals(null, engine.core)
+                    assertEquals("native/xbox360", engine.stateNamespace)
                 } else {
                     assertEquals(NativeEngineRegistry.Host.LIBRETRO, engine.host)
                     assertTrue(engine.core != null)

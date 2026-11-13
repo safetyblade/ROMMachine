@@ -31,6 +31,13 @@ class CartdeckConsoleLayoutCoverageTest {
             systems.map { it.id }.toSet(),
         )
         for (system in systems) {
+            if (system.id == SystemID.XBOX360) {
+                assertEquals("xenia", system.nativeBackend)
+                assertTrue(system.systemCoreConfigs.isEmpty())
+                assertNotNull(TouchControllerID.getConfig(TouchControllerID.XBOX360))
+                assertTrue(GripArcInputCatalog.forSystem(system.id).isNotEmpty())
+                continue
+            }
             if (system.id == SystemID.XBOX) {
                 assertEquals("hakux", system.nativeBackend)
                 assertTrue(

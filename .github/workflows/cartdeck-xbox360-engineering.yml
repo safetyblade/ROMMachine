@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/ci/*xbox360*'
       - 'scripts/ci/xbox360/**'
+      - 'scripts/ci/xbox360-tests/**'
+      - '**/Xbox360ContentIdentity.kt'
       - 'lemuroid-app/src/**/xbox360/**'
       - '.github/workflows/cartdeck-xbox360-engineering.yml'
 permissions:
@@ -34,6 +36,8 @@ jobs:
       - run: '"$CARTDECK_SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platforms;android-35"'
       - run: bash scripts/ci/bootstrap_gradle.sh
       - run: '"$GRADLE_BIN" ktlintCheck --no-daemon --max-workers=2'
+      - run: '"$CARTDECK_SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platforms;android-35"'
+      - run: '"$GRADLE_BIN" -p scripts/ci/xbox360-tests test --no-daemon --max-workers=2'
       - run: python3 -m unittest discover -s scripts/ci -p 'test_xbox360*.py' -v
   native-xbox360:
     needs: source-preflight
