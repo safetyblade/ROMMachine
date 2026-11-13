@@ -47,16 +47,16 @@ class NativeStageContractTest(unittest.TestCase):
             z.writestr('LICENSE', 'BSD 3-Clause fixture')
         (folder / 'source-manifest.json').write_text('{"revision":"fixture"}')
         (folder / 'xenia.properties').write_text(
-            'revision=779680ade075d2d2a4c589c6a8d57a8e26c116c0\\n'
-            'core.library=libcartdeck_xenia.so\\n'
-            'core.sha256=' + hashlib.sha256(elf()).hexdigest() + '\\n'
-            'library.names=libcartdeck_xenia.so\\n'
-            'library.libcartdeck_xenia.so.sha256=' + hashlib.sha256(elf()).hexdigest() + '\\n'
-            'native.build_id=abc123\\n'
-            'arch=arm64-v8a\\nbackend=Xenia-ARM64-Vulkan\\n')
+            'revision=779680ade075d2d2a4c589c6a8d57a8e26c116c0\n'
+            'core.library=libcartdeck_xenia.so\n'
+            'core.sha256=' + hashlib.sha256(elf()).hexdigest() + '\n'
+            'library.names=libcartdeck_xenia.so\n'
+            'library.libcartdeck_xenia.so.sha256=' + hashlib.sha256(elf()).hexdigest() + '\n'
+            'native.build_id=abc123\n'
+            'arch=arm64-v8a\nbackend=Xenia-ARM64-Vulkan\n')
         entries = ['libcartdeck_xenia.so', 'xenia-licenses.zip', 'xenia.properties', 'source-manifest.json']
         (folder / 'sha256.txt').write_text(''.join(
-            hashlib.sha256((folder / n).read_bytes()).hexdigest() + '  ' + n + '\\n'
+            hashlib.sha256((folder / n).read_bytes()).hexdigest() + '  ' + n + '\n'
             for n in entries))
         return folder
 
@@ -74,7 +74,7 @@ class NativeStageContractTest(unittest.TestCase):
             entries = stage_xbox360(folder, 'readelf')
             stage({}, self.root / 'x360-out', 'readelf', xbox360=folder)
         self.assertIn('jniLibs/arm64-v8a/libcartdeck_xenia.so', [entry[1] for entry in entries])
-        self.assertEqual((self.root / 'x360-out/native-systems.txt').read_text(), 'xbox360\\n')
+        self.assertEqual((self.root / 'x360-out/native-systems.txt').read_text(), 'xbox360\n')
         self.assertTrue((self.root / 'x360-out/assets/cartdeck/xenia.properties').is_file())
 
     def test_xbox360_tampered_native_dependency_is_rejected(self):
