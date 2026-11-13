@@ -33,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -59,10 +58,20 @@ internal fun GameMenuTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val persisted by produceState(initialValue = ShelfAppearance(), key1 = context) {
-        value = ShelfStore(context).read().appearance
-    }
-    val saved = appearance ?: persisted
+    // ShelfStore.read is suspend; load the saved palette without blocking composition.
+    // Never overwrite a corrupt or newer shelf file while displaying the menu.
+    val saved =
+        produceState(initialValue = appearance ?: ShelfAppearance(), key1 = context, key2 = appearance) {
+            if (appearance == null) {
+                try {
+                    value = ShelfStore(context).read().appearance
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    timber.log.Timber.e(error, "Unable to read CARTDECK menu appearance; retained shelf data")
+                }
+            }
+        }.value
     AppTheme { CartridgeLibraryTheme(saved, content) }
 }
 
