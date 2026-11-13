@@ -41,8 +41,7 @@ internal object CartdeckScreenPolicy {
         }
 
     /** A wide device may host a medium window; layouts adapt to available width. */
-    fun isExpandedMenu(availableWidthDp: Int): Boolean =
-        availableWidthDp >= TABLET_EXPANDED_WIDTH_DP
+    fun isExpandedMenu(availableWidthDp: Int): Boolean = availableWidthDp >= TABLET_EXPANDED_WIDTH_DP
 
     fun defaultPresentation(
         screenClass: CartdeckScreenClass,
