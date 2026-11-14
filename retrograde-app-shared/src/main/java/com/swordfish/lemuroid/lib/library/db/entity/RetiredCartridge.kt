@@ -49,7 +49,10 @@ data class RetiredCartridge(
     fun displayName(): String = customName ?: title
 
     companion object {
-        fun fromGame(game: Game, retiredAt: Long) =
+        fun fromGame(
+            game: Game,
+            retiredAt: Long,
+        ) =
             RetiredCartridge(
                 cartridgeId = game.cartridgeId,
                 formerGameId = game.id,
