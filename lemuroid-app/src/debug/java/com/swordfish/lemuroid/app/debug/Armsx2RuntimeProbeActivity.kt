@@ -344,6 +344,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     current,
                 )
             ) {
+                reopenEngine = "armsx2-android"
                 restart()
             }
         }
@@ -357,6 +358,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     current,
                 )
             ) {
+                reopenEngine = CoreID.PLAY_MODERN.coreName
                 restart()
             }
         }
@@ -368,6 +370,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private var reopen = false
+    private var reopenEngine: String? = null
 
     private fun startIfReady() {
         val disc = image ?: return
@@ -544,6 +547,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             setResult(
                 if (failed || shutdown.isAlive) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
                 Intent().putExtra("cartdeck.reopen", reopen)
+                    .putExtra("cartdeck.reopen.engine", reopenEngine)
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, report)
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
                     .putExtra(
