@@ -41,9 +41,11 @@ class XboxPadState {
         return true
     }
 
+    fun motion(axis: (Int) -> Float) = motion(axis, null)
+
     fun motion(
         axis: (Int) -> Float,
-        device: InputDevice? = null,
+        device: InputDevice?,
     ) {
         val (rightX, rightY) = ControllerHardwareProfile.rightStickAxes(device)
         lx = stick(axis(MotionEvent.AXIS_X))
