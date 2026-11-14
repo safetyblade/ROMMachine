@@ -52,8 +52,7 @@ data class RetiredCartridge(
         fun fromGame(
             game: Game,
             retiredAt: Long,
-        ) =
-            RetiredCartridge(
+        ) = RetiredCartridge(
                 cartridgeId = game.cartridgeId,
                 formerGameId = game.id,
                 fileName = game.fileName,
