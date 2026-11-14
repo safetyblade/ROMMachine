@@ -131,10 +131,12 @@ class LemuroidLibrary(
                 handleExistingEntries(existing, startedAtMs)
                 handleNewGames(added, startedAtMs)
                 val moves = reconcileVerifiedSourceChanges(current, startedAtMs)
+                onPhase("retired_identity_recovery")
+                val recovered = reconcileVerifiedRetiredCartridges(current, startedAtMs)
                 onPhase("database_cleanup")
-                removeDeletedGames(startedAtMs)
+                retireAndRemoveDeletedGames(startedAtMs)
                 removeDeletedDataFiles(startedAtMs)
-                moves
+                moves + recovered
             }
         onPhase("bios_cleanup")
         removeDeletedBios(startedAtMs)
@@ -179,6 +181,33 @@ class LemuroidLibrary(
                 )
             }
             accepted += match
+        }
+        return accepted
+    }
+
+    private suspend fun reconcileVerifiedRetiredCartridges(
+        before: List<Game>,
+        scannedAt: Long,
+    ): List<CartridgeSourceMatch.Relocation> {
+        val retired = retrogradedb.retiredCartridgeDao().selectAll()
+        if (retired.isEmpty()) return emptyList()
+        val scanned = retrogradedb.gameDao().selectShelfGames().first()
+        val matches = CartridgeSourceMatch.uniqueRetiredMatches(retired, before, scanned, scannedAt)
+        // Do not reactivate a retired UUID if it is already held by a live row.
+        // Ambiguous arrivals stay new, and the original record remains recoverable.
+        val activeIds = scanned.map { it.cartridgeId }.toSet()
+        val accepted = mutableListOf<CartridgeSourceMatch.Relocation>()
+        for ((old, candidate) in matches) {
+            if (old.cartridgeId in activeIds) continue
+            retrogradedb.gameDao().update(old.restore(candidate))
+            retrogradedb.retiredCartridgeDao().delete(listOf(old))
+            accepted += CartridgeSourceMatch.Relocation(
+                old.formerGameId,
+                old.cartridgeId,
+                old.systemId,
+                old.fileUri,
+                candidate.fileUri,
+            )
         }
         return accepted
     }
@@ -470,12 +499,15 @@ class LemuroidLibrary(
         retrogradedb.dataFileDao().delete(dataFiles)
     }
 
-    private fun removeDeletedGames(startedAtMs: Long) {
-        Timber.d("Deleting games from db before: $startedAtMs")
+    private fun retireAndRemoveDeletedGames(startedAtMs: Long) {
         val games = retrogradedb.gameDao().selectByLastIndexedAtLessThan(startedAtMs)
-
-        // A refresh removes stale library rows, not user-created artwork,
-        // save RAM or states. Explicit delete/backup policy is separate.
+        if (games.isEmpty()) return
+        // This happens inside the same Room transaction as scan cleanup.
+        // Lost ROM access never makes player identity or frozen aliases vanish.
+        retrogradedb.retiredCartridgeDao().insert(
+            games.map { com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge.fromGame(it, startedAtMs) },
+        )
+        // Retired records are not launchable; no file or save data is deleted.
         retrogradedb.gameDao().delete(games)
     }
 
