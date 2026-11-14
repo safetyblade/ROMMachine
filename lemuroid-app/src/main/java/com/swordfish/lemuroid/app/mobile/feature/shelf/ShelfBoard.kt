@@ -436,9 +436,11 @@ fun ShelfBoard(
                                                             if (arrange) menu = item.section to cell else onSelect(game)
                                                         },
                                                         Modifier
-                                                            .focusRequester(
-                                                                focusRequests.getOrPut(cell.id) { FocusRequester() },
-                                                            )
+                                                            .focusRequester(focusRequester)
+                                                            .onGloballyPositioned {
+                                                                focusRequests[cell.id] = focusRequester
+                                                            }
+                                                            .then(editingActions)
                                                             .alpha(if (dragging == cell.id) 0.25f else 1f)
                                                             .graphicsLayer {
                                                                 rotationY = if (turning == cell.id) turn.value else 0f

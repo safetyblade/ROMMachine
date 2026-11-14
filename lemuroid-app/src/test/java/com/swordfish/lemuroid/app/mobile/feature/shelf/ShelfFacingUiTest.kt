@@ -9,9 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -31,7 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28], application = Application::class)
+@Config(sdk = [28], application = Application::class, qualifiers = "w393dp-h1200dp-mdpi")
 class ShelfFacingUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -222,6 +224,103 @@ class ShelfFacingUiTest {
             assertTrue(flight.showFront)
             assertEquals(0f, flight.rotationY)
             assertEquals(320f / 390f, flight.bounds.width / flight.bounds.height, 0.001f)
+        }
+    }
+
+    @Test fun frontDragPreservesSectionsVacanciesAndIntentionalRowBoundaries() {
+        var layout by mutableStateOf(library())
+        var selections = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                ShelfBoard(layout, games, { selections++ }, {}, arrange = true, onEdit = { layout = it(layout) })
+            }
+        }
+        val orbitId = "game:${shelfGameKey(orbit.systemId, orbit.fileUri)}"
+        for (scenario in listOf("section", "vacancy", "before-row", "after-row")) {
+            compose.runOnIdle {
+                val base = library().setFacing(atlasId, CartridgeFacing.FRONT)
+                layout =
+                    when (scenario) {
+                        "section" ->
+                            base.createSection("Destination").let {
+                                it.moveCell(orbitId, it.sections.last().id)
+                            }
+                        "vacancy" -> base.insertSpace(ShelfLayout.UNSORTED, orbitId)
+                        "before-row" -> base.insertSpace(ShelfLayout.UNSORTED, atlasId, row = true)
+                        else -> base.insertSpace(ShelfLayout.UNSORTED, orbitId, row = true)
+                    }
+            }
+            val before = layout
+            val from = compose.onNodeWithContentDescription("Atlas, GB, front facing")
+            val targetBounds =
+                if (scenario == "vacancy" || scenario == "before-row") {
+                    compose.onAllNodesWithContentDescription(
+                        "Reserved empty shelf space",
+                    )[0].fetchSemanticsNode().boundsInRoot
+                } else {
+                    compose.onNodeWithContentDescription("Orbit, GB, spine facing").fetchSemanticsNode().boundsInRoot
+                }
+            val target =
+                if (scenario == "section" || scenario == "after-row") {
+                    targetBounds.center.copy(x = targetBounds.right - 4f)
+                } else {
+                    targetBounds.center
+                }
+            val delta = target - from.fetchSemanticsNode().boundsInRoot.center
+            from.performTouchInput { swipe(center, center + delta, 500) }
+            compose.runOnIdle {
+                val cells = layout.sections.flatMap { it.cells }
+                assertEquals(before.sections.flatMap { it.cells }.map { it.id }.toSet(), cells.map { it.id }.toSet())
+                assertEquals(2, cells.count { it.gameKey != null })
+                assertEquals(CartridgeFacing.FRONT, cells.single { it.id == atlasId }.facing)
+                when (scenario) {
+                    "section" -> assertTrue(layout.sections.last().cells.any { it.id == atlasId })
+                    "vacancy" -> assertEquals(null, cells.first().gameKey)
+                    "before-row" ->
+                        assertTrue(
+                            cells.indexOfFirst { it.id == atlasId } < cells.indexOfFirst { it.emptyRow },
+                        )
+                    else -> assertTrue(cells.indexOfFirst { it.id == atlasId } > cells.indexOfFirst { it.emptyRow })
+                }
+                assertEquals(0, selections)
+            }
+        }
+    }
+
+    @Test fun animatedTurnCommitsAtMidpointAndRestoresFocusAfterWrapping() {
+        // Four preceding spines fill most of the first row. Atlas must wrap
+        // to the next row when its footprint expands to three slots.
+        val preceding = (3..6).map { atlas.copy(id = it, title = "Earlier $it", fileUri = "content://test/$it") }
+        val records = preceding + atlas
+        var layout by mutableStateOf(
+            ShelfLayout().reconcile(
+                records.associate {
+                    shelfGameKey(it.systemId, it.fileUri) to it.displayName()
+                },
+            ),
+        )
+        compose.setContent {
+            CartridgeLibraryTheme {
+                ShelfBoard(layout, records, {}, {}, arrange = true, onEdit = {
+                    layout = it(layout).copy(revision = layout.revision + 1)
+                })
+            }
+        }
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").performClick()
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithText("Show front").performClick()
+        compose.mainClock.advanceTimeBy(60)
+        compose.runOnIdle {
+            assertEquals(CartridgeFacing.SPINE, layout.sections.single().cells.last().facing)
+        }
+        compose.mainClock.advanceTimeBy(400)
+        compose.mainClock.autoAdvance = true
+        compose.onNodeWithContentDescription("Atlas, GB, front facing").assertIsDisplayed().assertIsFocused()
+        compose.runOnIdle {
+            assertEquals(
+                records.map { shelfGameKey(it.systemId, it.fileUri) },
+                layout.sections.single().cells.map { it.gameKey },
+            )
         }
     }
 }
