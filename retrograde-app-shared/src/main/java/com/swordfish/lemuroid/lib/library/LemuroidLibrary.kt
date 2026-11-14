@@ -20,7 +20,6 @@
 package com.swordfish.lemuroid.lib.library
 
 import androidx.room.withTransaction
-import com.swordfish.lemuroid.common.coroutines.batchWithSizeAndTime
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
@@ -37,18 +36,12 @@ import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import dagger.Lazy
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import timber.log.Timber
-import java.util.concurrent.atomic.AtomicInteger
 
 class LemuroidLibrary(
     private val retrogradedb: RetrogradeDatabase,
@@ -70,28 +63,81 @@ class LemuroidLibrary(
      * enumerated successfully. In particular, never prune on an IO/SAF failure
      * or coroutine cancellation: prior games and saves must remain discoverable.
      */
-    suspend fun indexLibrary(): IndexSummary {
+    suspend fun indexLibrary(onPhase: (String) -> Unit = {}): IndexSummary {
+        onPhase("prepare")
         val previousGames = retrogradedb.gameDao().selectShelfGames().first()
         // Two quick refreshes (or a backwards wall-clock adjustment) must not
         // reuse an index marker and leave removed games on the shelf.
         val startedAtMs = maxOf(System.currentTimeMillis(), (previousGames.maxOfOrNull { it.lastIndexedAt } ?: 0L) + 1)
         val before = previousGames.map { it.systemId to it.fileUri }.toSet()
-        val skipped = AtomicInteger(0)
-        val discProblems = AtomicInteger(0)
-
-        try {
-            indexProviders(startedAtMs, skipped, discProblems)
-        } catch (error: Exception) {
-            Timber.e(error, "Library refresh failed; existing games will not be pruned")
-            throw error
+        val staged = mutableListOf<Pair<StorageProvider, ScanEntry>>()
+        val metadata = gameMetadataProvider.get()
+        onPhase("permission_enumeration")
+        for (provider in storageProviderRegistry.get().enabledProviders) {
+            provider.listBaseStorageFiles().collect { files ->
+                onPhase("disc_identification")
+                val grouped = StorageFilesMerger.mergeDataFiles(provider, files)
+                for (file in grouped) {
+                    // Bound metadata memory; overflow fails before touching Room.
+                    check(staged.size < 100_000) { "Library scan staging limit exceeded" }
+                    val existing = fetchEntriesFromDatabase(file)
+                    val entry =
+                        if (existing is ScanEntry.File) {
+                            buildEntryFromMetadata(file, provider, metadata, startedAtMs, onPhase)
+                        } else {
+                            existing
+                        }
+                    staged += provider to entry
+                }
+                onPhase("permission_enumeration")
+            }
         }
-
-        // Match only already-enumerated unique stable SAF documents. Never change
-        // a cartridge identity while scanning an incomplete provider or by filename.
-        val relocations = reconcileVerifiedSourceChanges(previousGames, startedAtMs)
-
-        // Cleanup follows completed enumeration, never finally/catch.
-        cleanUp(startedAtMs)
+        val entries = staged.map { it.second }
+        val skipped = entries.count { it is ScanEntry.File }
+        val discProblems =
+            entries.count { it is ScanEntry.File && it.file.primaryFile.extension in setOf("gdi", "cue", "m3u") }
+        onPhase("validate")
+        val uris =
+            entries.map { entry ->
+                when (entry) {
+                    is ScanEntry.File -> entry.file.primaryFile.uri.toString()
+                    is ScanEntry.GameFile -> entry.file.primaryFile.uri.toString()
+                }
+            }
+        require(uris.size == uris.toSet().size) { "Duplicate source in scan" }
+        // BIOS imports retain their existing engine-owned paths. Complete all
+        // provider reads before the library transaction; never delete on failure.
+        onPhase("bios_import")
+        for ((provider, entry) in staged) {
+            if (entry is ScanEntry.File) handleUnknownFiles(provider, entry.file.allFiles(), startedAtMs)
+        }
+        onPhase("database")
+        val relocations =
+            retrogradedb.withTransaction {
+                // Re-read player metadata at commit time, so edits made during
+                // slow provider enumeration cannot be replaced by stale copies.
+                val current = retrogradedb.gameDao().selectShelfGames().first()
+                val games = entries.filterIsInstance<ScanEntry.GameFile>()
+                val refreshed =
+                    games.map {
+                        buildScanEntry(
+                            it.file,
+                            retrogradedb.gameDao().selectByFileUri(it.game.fileUri) ?: it.game,
+                        )
+                    }
+                        .filterIsInstance<ScanEntry.GameFile>()
+                val existing = refreshed.filter { it.game.id != 0 }
+                val added = refreshed.filter { it.game.id == 0 }
+                handleExistingEntries(existing, startedAtMs)
+                handleNewGames(added, startedAtMs)
+                val moves = reconcileVerifiedSourceChanges(current, startedAtMs)
+                onPhase("database_cleanup")
+                removeDeletedGames(startedAtMs)
+                removeDeletedDataFiles(startedAtMs)
+                moves
+            }
+        onPhase("bios_cleanup")
+        removeDeletedBios(startedAtMs)
         val after =
             retrogradedb.gameDao().selectShelfGames().first()
                 .map { it.systemId to it.fileUri }.toSet()
@@ -99,8 +145,8 @@ class LemuroidLibrary(
         return IndexSummary(
             added = (after - before).size,
             removed = (before - after).size,
-            skipped = skipped.get(),
-            discProblems = discProblems.get(),
+            skipped = skipped,
+            discProblems = discProblems,
             relocations = relocations,
         )
     }
@@ -135,61 +181,6 @@ class LemuroidLibrary(
             accepted += match
         }
         return accepted
-    }
-
-    @OptIn(FlowPreview::class)
-    private suspend fun indexProviders(
-        startedAtMs: Long,
-        skipped: AtomicInteger,
-        discProblems: AtomicInteger,
-    ) {
-        val gameMetadata = gameMetadataProvider.get()
-        val enabledProviders = storageProviderRegistry.get().enabledProviders
-        enabledProviders.asFlow()
-            .flatMapConcat { indexSingleProvider(it, startedAtMs, gameMetadata, skipped, discProblems) }
-            .collect()
-    }
-
-    @OptIn(FlowPreview::class)
-    private fun indexSingleProvider(
-        provider: StorageProvider,
-        startedAtMs: Long,
-        gameMetadata: GameMetadataProvider,
-        skipped: AtomicInteger,
-        discProblems: AtomicInteger,
-    ): Flow<Unit> {
-        return provider.listBaseStorageFiles()
-            .flatMapConcat { StorageFilesMerger.mergeDataFiles(provider, it).asFlow() }
-            .batchWithSizeAndTime(MAX_BUFFER_SIZE, MAX_TIME)
-            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata, skipped, discProblems) }
-    }
-
-    private suspend fun processBatch(
-        batch: List<GroupedStorageFiles>,
-        provider: StorageProvider,
-        startedAtMs: Long,
-        gameMetadata: GameMetadataProvider,
-        skipped: AtomicInteger,
-        discProblems: AtomicInteger,
-    ) = flow<Unit> {
-        val entries = batch.map { fetchEntriesFromDatabase(it) }
-
-        val existingEntries = entries.filterIsInstance<ScanEntry.GameFile>()
-        handleExistingEntries(existingEntries, startedAtMs)
-
-        val newEntries =
-            entries.filterIsInstance<ScanEntry.File>()
-                .map { buildEntryFromMetadata(it.file, provider, gameMetadata, startedAtMs) }
-
-        // Includes unrecognised files (and BIOS candidates); no false claim that
-        // every skipped item was a playable ROM.
-        skipped.addAndGet(newEntries.count { it is ScanEntry.File })
-        discProblems.addAndGet(
-            newEntries.count {
-                it is ScanEntry.File && it.file.primaryFile.extension in setOf("gdi", "cue", "m3u")
-            },
-        )
-        handleNewEntries(newEntries, startedAtMs, provider)
     }
 
     private fun fetchEntriesFromDatabase(storageFile: GroupedStorageFiles): ScanEntry {
@@ -268,24 +259,6 @@ class LemuroidLibrary(
         )
     }
 
-    private fun handleNewEntries(
-        entries: List<ScanEntry>,
-        startedAtMs: Long,
-        provider: StorageProvider,
-    ) {
-        val gameFiles =
-            entries
-                .filterIsInstance<ScanEntry.GameFile>()
-
-        val unknownFiles =
-            entries
-                .filterIsInstance<ScanEntry.File>()
-                .flatMap { it.file.allFiles() }
-
-        handleNewGames(gameFiles, startedAtMs)
-        handleUnknownFiles(provider, unknownFiles, startedAtMs)
-    }
-
     private fun handleNewGames(
         pairs: List<ScanEntry.GameFile>,
         startedAtMs: Long,
@@ -334,7 +307,9 @@ class LemuroidLibrary(
         provider: StorageProvider,
         metadataProvider: GameMetadataProvider,
         startedAtMs: Long,
+        onPhase: (String) -> Unit,
     ): ScanEntry {
+        onPhase("disc_identification")
         // New imports must retain the full GDI family. Existing entries use the
         // existing-record branch and survive a temporarily missing companion.
         val names = groupedStorageFile.allFiles().map { it.name }.toSet()
@@ -418,6 +393,7 @@ class LemuroidLibrary(
         if (dreamcast && GameSystem.all().any { it.id == SystemID.DREAMCAST }) {
             val parsed = safeStorageFile(provider, primary) ?: return ScanEntry.File(groupedStorageFile)
             val identified = parsed.copy(systemID = SystemID.DREAMCAST)
+            onPhase("metadata")
             val metadata = metadataProvider.retrieveMetadata(identified)
             val game = convertGameMetadataToGame(groupedStorageFile, identified, metadata, startedAtMs)
             return buildScanEntry(groupedStorageFile, game)
@@ -426,6 +402,7 @@ class LemuroidLibrary(
             sortedFilesForScanning(groupedStorageFile).asFlow()
                 .mapNotNull { safeStorageFile(provider, it) }
                 .mapNotNull { storageFile ->
+                    onPhase("metadata")
                     val metadata = metadataProvider.retrieveMetadata(storageFile)
                     convertGameMetadataToGame(groupedStorageFile, storageFile, metadata, startedAtMs)
                 }
@@ -441,16 +418,6 @@ class LemuroidLibrary(
         // A file read/parse failure makes enumeration incomplete. Do not
         // silently skip it and then delete its previously indexed game.
         return provider.getStorageFile(baseStorageFile)
-    }
-
-    private suspend fun cleanUp(startedAtMs: Long) {
-        // Filesystem BIOS handling is upstream behaviour; the two library
-        // record tables must be pruned as one transaction or not at all.
-        removeDeletedBios(startedAtMs)
-        retrogradedb.withTransaction {
-            removeDeletedGames(startedAtMs)
-            removeDeletedDataFiles(startedAtMs)
-        }
     }
 
     private fun removeDeletedBios(startedAtMs: Long) {

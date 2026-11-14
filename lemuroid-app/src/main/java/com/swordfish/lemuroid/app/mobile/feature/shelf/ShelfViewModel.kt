@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.app.shared.library.LibraryRefreshJournal
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ class ShelfViewModel(context: Context) : ViewModel() {
 
     data class State(val layout: ShelfLayout? = null, val error: String? = null, val canUndo: Boolean = false)
 
+    private val refreshJournal = LibraryRefreshJournal(context.applicationContext)
     private val store = ShelfStore(context.applicationContext)
     private val serial = Mutex()
     private val mutableState = MutableStateFlow(State())
@@ -68,7 +70,9 @@ class ShelfViewModel(context: Context) : ViewModel() {
     fun reconcile(games: List<Game>) {
         identities = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
         systemsByGameKey = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.systemId }
-        edit(recordUndo = false) { it.reconcile(identities) }
+        edit(recordUndo = false) { layout ->
+            if (refreshJournal.pending()) layout else layout.reconcile(identities)
+        }
     }
 
     fun edit(
@@ -102,6 +106,7 @@ class ShelfViewModel(context: Context) : ViewModel() {
     fun undo() {
         viewModelScope.launch {
             serial.withLock {
+                if (refreshJournal.pending()) return@withLock
                 val previous = undo.lastOrNull() ?: return@withLock
                 runCatching {
                     store.update {
