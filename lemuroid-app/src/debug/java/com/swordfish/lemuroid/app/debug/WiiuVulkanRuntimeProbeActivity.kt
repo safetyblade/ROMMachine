@@ -19,7 +19,7 @@ import java.io.File
  * packaged separately from CARTDECK's existing GLES/LibretroDroid engines.
  */
 class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
-    private lateinit var display: SurfaceView
+    private lateinit var renderSurface: SurfaceView
     private lateinit var status: TextView
     private var loaded = false
     private var running = false
@@ -56,7 +56,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             runCatching {
                 System.loadLibrary("cartdeckwiiuvulkanhost")
             }.isSuccess
-        display = SurfaceView(this)
+        renderSurface = SurfaceView(this)
         status =
             TextView(this).apply {
                 text =
@@ -65,12 +65,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             }
         setContentView(
             FrameLayout(this).apply {
-                addView(display)
+                addView(renderSurface)
                 addView(status)
             },
         )
-        display.holder.addCallback(this)
-        display.setOnTouchListener { view, event ->
+        renderSurface.holder.addCallback(this)
+        renderSurface.setOnTouchListener { view, event ->
             if (!loaded || !running || view.width <= 0 || view.height <= 0) return@setOnTouchListener false
             // The presenter fills the Surface; Cemu maps these full-output
             // coordinates into its selected GamePad viewport itself.
