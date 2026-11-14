@@ -53,12 +53,19 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
                     refreshLock.withLock {
                         val journal = LibraryRefreshJournal(applicationContext)
                         val shelf = ShelfStore(applicationContext)
-                        journal.reconcile(retrogradeDb.gameDao().selectShelfGames().first(), shelf)
+                        journal.reconcile(
+                            retrogradeDb.gameDao().selectShelfGames().first(),
+                            shelf,
+                            retrogradeDb.retiredCartridgeDao().selectAll(),
+                        )
                         if (inputData.getBoolean("recoverOnly", false)) {
                             return@withLock LemuroidLibrary.IndexSummary(0, 0, 0)
                         }
                         phase = "journal_prepare"
-                        journal.prepare(retrogradeDb.gameDao().selectShelfGames().first())
+                        journal.prepare(
+                            retrogradeDb.gameDao().selectShelfGames().first(),
+                            retrogradeDb.retiredCartridgeDao().selectAll(),
+                        )
                         val report = lemuroidLibrary.indexLibrary { phase = it }
                         phase = "shelf_reconciliation"
                         journal.reconcile(retrogradeDb.gameDao().selectShelfGames().first(), shelf)
