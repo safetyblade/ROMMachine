@@ -23,6 +23,13 @@ class GameCrashActivity : Activity() {
         findViewById<TextView>(R.id.text2).apply {
             isVisible = !messageDetail.isNullOrEmpty()
             text = messageDetail
+            setTextIsSelectable(true)
+        }
+        findViewById<android.widget.Button>(R.id.copyReport).setOnClickListener {
+            getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
+                android.content.ClipData.newPlainText("CARTDECK engine report", "$message\n$messageDetail"),
+            )
+            android.widget.Toast.makeText(this, "Engine report copied", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -53,7 +53,7 @@ object Armsx2Storage {
             ) {
                 add("DISC")
             }
-            if (paths.bios.listFiles()?.none { it.isFile && it.length() > 0L } != false) {
+            if (paths.bios.listFiles()?.none { it.isFile && it.length() > 0L && !it.name.startsWith(".") } != false) {
                 add("BIOS")
             }
             if (paths.resources.listFiles()?.none { it.isFile || it.isDirectory } != false) {

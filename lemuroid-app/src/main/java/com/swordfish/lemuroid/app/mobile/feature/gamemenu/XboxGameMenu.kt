@@ -42,6 +42,7 @@ internal fun XboxGameMenu(
     appearance: ShelfAppearance? = null,
     console: String = "Xbox",
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
+    recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
     GameMenuTheme(appearance) {
@@ -81,6 +82,7 @@ internal fun XboxGameMenu(
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text("Current engine", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
                         Text(engineInfo, Modifier.padding(horizontal = 16.dp))
+                        recovery()
                         GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
                         if (capabilities.rollback) GameMenuLink("Previous Engine", onClick = onPreviousEngine)
                         GameMenuLink("Troubleshooting") { nav.navigateToRoute(GameMenuRoute.TROUBLESHOOTING) }

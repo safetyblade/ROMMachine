@@ -28,13 +28,22 @@ class GameLaunchTaskHandler(
         data: Intent?,
     ) {
         rescheduleBackgroundWork(activity.applicationContext)
+        val nativeCrash = com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.consumeCrash(activity)
+        if (resultCode == Activity.RESULT_CANCELED && nativeCrash != null) {
+            handleUnsuccessfulGameFinish(
+                activity,
+                "The native engine stopped unexpectedly. Your saves were retained.",
+                nativeCrash,
+            )
+            return
+        }
         when (resultCode) {
             Activity.RESULT_OK -> handleSuccessfulGameFinish(activity, enableRatingFlow, data)
             BaseGameActivity.RESULT_ERROR ->
                 handleUnsuccessfulGameFinish(
                     activity,
-                    data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR)!!,
-                    null,
+                    "The engine could not start or stopped unexpectedly. Your saves were retained.",
+                    data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR) ?: nativeCrash,
                 )
             BaseGameActivity.RESULT_UNEXPECTED_ERROR ->
                 handleUnsuccessfulGameFinish(

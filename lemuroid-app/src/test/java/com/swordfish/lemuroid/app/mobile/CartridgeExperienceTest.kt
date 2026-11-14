@@ -493,5 +493,6 @@ class CartridgeExperienceTest {
         assertEquals("GBC", cartridgeSystemLabel("gbc"))
         assertEquals("GBA", cartridgeSystemLabel("gba"))
         assertEquals("PS1", cartridgeSystemLabel("psx"))
+        assertEquals("X360", cartridgeSystemLabel("xbox360"))
     }
 }

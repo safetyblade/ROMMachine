@@ -20,7 +20,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,11 +29,11 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
-import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuContent
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
@@ -247,7 +246,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 }
                             }
                         }
-                        if (!menuOpen && message.isNotEmpty()) GameMenuTheme { Text(message) }
+                        if (!menuOpen && message.isNotEmpty() && !failed) CartdeckLoadingScreen(message)
                         if (menuOpen) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "Wii U",
@@ -342,6 +341,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 selection = prepared.first
                 sandbox = prepared.second
                 media = prepared.third
+                com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.begin(
+                    this@WiiuVulkanRuntimeProbeActivity,
+                    "Wii U",
+                    prepared.second,
+                )
                 System.load(File(prepared.first.directory, WiiuEngine.HOST).absolutePath)
                 loaded = true
                 startIfReady()
@@ -370,7 +374,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 failed = true
                 message = "Wii U could not start (${error.javaClass.simpleName}). " +
                     "Check media, resources and storage. Saves were retained."
-                report = message
+                report = "$message\n${error.stackTraceToString()}"
                 openMenu()
             }
         }
@@ -547,9 +551,15 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 report += "\nWIIU_SHUTDOWN_TIMED_OUT"
             }
             sandbox?.let { File(it, "last-report.txt").writeText(report.take(16384)) }
+            if (stopped) {
+                com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.finish(
+                    this@WiiuVulkanRuntimeProbeActivity,
+                )
+            }
             setResult(
                 if (failed) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
-                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
+                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, report)
+                    .putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
                     .putExtra(
                         BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
                         intent.getBooleanExtra("cartdeck.leanback", false),

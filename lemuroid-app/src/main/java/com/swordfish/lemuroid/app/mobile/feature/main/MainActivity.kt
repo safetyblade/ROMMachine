@@ -76,6 +76,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometr
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
@@ -133,6 +134,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
     @Inject
     lateinit var inputDeviceManager: InputDeviceManager
+
+    @Inject
+    lateinit var gameLauncher: GameLauncher
 
     private val reviewManager = ReviewManager()
 
@@ -608,6 +612,25 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
         when (requestCode) {
             BaseGameActivity.REQUEST_PLAY_GAME -> {
                 GlobalScope.safeLaunch {
+                    if (data?.getBooleanExtra("cartdeck.reopen", false) == true) {
+                        val game =
+                            data.getSerializableExtra(
+                                BaseGameActivity.PLAY_GAME_RESULT_GAME,
+                            ) as? com.swordfish.lemuroid.lib.library.db.entity.Game
+                        if (game != null) {
+                            var attempts = 0
+                            while (GameProcessLock.isHeldByAnotherProcess(this@MainActivity) && attempts++ < 100) {
+                                kotlinx.coroutines.delay(100)
+                            }
+                            gameLauncher.launchGameAsync(
+                                this@MainActivity,
+                                game,
+                                false,
+                                data.getBooleanExtra(BaseGameActivity.PLAY_GAME_RESULT_LEANBACK, false),
+                            )
+                        }
+                        return@safeLaunch
+                    }
                     gameLaunchTaskHandler.handleGameFinish(
                         true,
                         this@MainActivity,

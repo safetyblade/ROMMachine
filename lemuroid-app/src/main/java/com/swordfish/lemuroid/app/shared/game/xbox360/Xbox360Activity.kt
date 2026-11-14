@@ -33,6 +33,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
@@ -97,6 +98,11 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         val root = FrameLayout(this)
         surface = SurfaceView(this).also { it.holder.addCallback(this) }
         root.addView(surface, FrameLayout.LayoutParams(-1, -1))
@@ -139,14 +145,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (message.isNotEmpty() && !menuOpen) {
-                            com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme(null) {
-                                androidx.compose.material3.Text(
-                                    message,
-                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
+                        if (message.isNotEmpty() && !menuOpen && !failed) CartdeckLoadingScreen(message)
                         if (menuOpen && failed) {
                             com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme {
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPanel(

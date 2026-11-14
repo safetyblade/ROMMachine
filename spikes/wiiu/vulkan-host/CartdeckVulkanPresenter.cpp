@@ -1,6 +1,7 @@
 // WIIU-02: minimal real Vulkan image handoff for the pinned Cemu Libretro ABI.
 // No software test can replace physical GPU / presentation / save QA.
 #include "CartdeckVulkanPresenter.h"
+#include "VulkanNegotiation.h"
 #include <algorithm>
 #include <cstring>
 
@@ -44,9 +45,10 @@ VkInstance CartdeckVulkanPresenter::createInstanceWrapper(
     void* opaque, const VkInstanceCreateInfo* request) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(opaque);
     if (!self || !request) return VK_NULL_HANDLE;
-    std::vector<const char*> extensions(
-        request->ppEnabledExtensionNames,
-        request->ppEnabledExtensionNames + request->enabledExtensionCount);
+    std::vector<const char*> extensions;
+    if (request->enabledExtensionCount)
+        extensions.assign(request->ppEnabledExtensionNames,
+            request->ppEnabledExtensionNames + request->enabledExtensionCount);
     for (const char* name : {VK_KHR_SURFACE_EXTENSION_NAME,
                              VK_KHR_ANDROID_SURFACE_EXTENSION_NAME}) {
         if (!includes(extensions, name)) extensions.push_back(name);
@@ -65,9 +67,10 @@ VkDevice CartdeckVulkanPresenter::createDeviceWrapper(
     VkPhysicalDevice gpu, void* opaque, const VkDeviceCreateInfo* request) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(opaque);
     if (!self || !request || gpu != self->gpu_) return VK_NULL_HANDLE;
-    std::vector<const char*> extensions(
-        request->ppEnabledExtensionNames,
-        request->ppEnabledExtensionNames + request->enabledExtensionCount);
+    std::vector<const char*> extensions;
+    if (request->enabledExtensionCount)
+        extensions.assign(request->ppEnabledExtensionNames,
+            request->ppEnabledExtensionNames + request->enabledExtensionCount);
     if (!includes(extensions, VK_KHR_SWAPCHAIN_EXTENSION_NAME))
         extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     VkDeviceCreateInfo created = *request;
@@ -136,9 +139,8 @@ bool CartdeckVulkanPresenter::initialize(
     const retro_hw_render_context_negotiation_interface_vulkan* negotiation,
     std::string* error) {
     if (ready() || window_) return fail(error, "VULKAN_ALREADY_INITIALISED");
-    if (!window || !negotiation || negotiation->interface_version < 2 ||
-        !negotiation->create_instance || !negotiation->create_device2)
-        return fail(error, "VULKAN_CONTEXT_NEGOTIATION_V2_REQUIRED");
+    if (!window || !supportsVulkanNegotiation(negotiation))
+        return fail(error, "VULKAN_CONTEXT_NEGOTIATION_CALLBACK_MISSING");
     window_ = window;
     ANativeWindow_acquire(window_);
     negotiation_ = negotiation;
@@ -147,8 +149,14 @@ bool CartdeckVulkanPresenter::initialize(
     fallback.apiVersion = VK_API_VERSION_1_1;
     const VkApplicationInfo* requested = negotiation_->get_application_info ?
         negotiation_->get_application_info() : &fallback;
-    instance_ = negotiation_->create_instance(
-        vkGetInstanceProcAddr, requested, &createInstanceWrapper, this);
+    if (!requested) requested = &fallback;
+    if (negotiation_->interface_version >= 2 && negotiation_->create_instance) {
+        instance_ = negotiation_->create_instance(vkGetInstanceProcAddr, requested, &createInstanceWrapper, this);
+    } else {
+        VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+        info.pApplicationInfo = requested;
+        instance_ = createInstanceWrapper(this, &info);
+    }
     if (!instance_) return fail(error, "VULKAN_INSTANCE_CREATE_FAILED");
 
     VkAndroidSurfaceCreateInfoKHR sci{VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR};
@@ -193,10 +201,11 @@ bool CartdeckVulkanPresenter::initialize(
         return fail(error, "VULKAN_NO_SWAPCHAIN_EXTENSION");
 
     context_ = {};
-    if (!negotiation_->create_device2(
+    if (!negotiateVulkanDevice(negotiation_,
             &context_, instance_, gpu_, surface_, vkGetInstanceProcAddr,
             &createDeviceWrapper, this))
         return fail(error, "VULKAN_CEMU_DEVICE_NEGOTIATION_FAILED");
+    device_ = context_.device;
     // Never fall back to another GPU/queue silently, or present on a queue
     // that cannot own Cemu's frame image.
     if (!context_.device || context_.gpu != gpu_ ||
