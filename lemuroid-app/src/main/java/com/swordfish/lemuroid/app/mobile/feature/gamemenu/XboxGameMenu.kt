@@ -107,6 +107,7 @@ internal fun XboxMenuControls(
     manager: TouchControllerSettingsManager,
     controllerId: TouchControllerID = TouchControllerID.XBOX,
     onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
+    physicalMapping: @Composable () -> Unit = {},
 ) {
     var orientation by remember { mutableStateOf(TouchControllerSettingsManager.Orientation.PORTRAIT) }
     val density = LocalDensity.current
@@ -116,6 +117,7 @@ internal fun XboxMenuControls(
     }.collectAsState(TouchControllerSettingsManager.Settings())
     var edited by remember(settings, orientation) { mutableStateOf(settings) }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
+        physicalMapping()
         Text("Touch controls", style = MaterialTheme.typography.titleMedium)
         GameMenuLink(
             if (orientation == TouchControllerSettingsManager.Orientation.PORTRAIT) "Portrait" else "Landscape",
