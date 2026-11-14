@@ -19,6 +19,7 @@ data class CartdeckLighting(
         const val MODE_OFF = "off"
         const val MODE_STATIC = "static"
         const val MODE_FEEDBACK = "feedback"
+        const val MODE_CONTROLLER = "controller"
 
         const val SCREEN = "screen"
         const val SIDE_RAILS = "side-rails"
@@ -36,7 +37,7 @@ data class CartdeckLighting(
     }
 
     fun validate(): CartdeckLighting {
-        require(mode in setOf(MODE_OFF, MODE_STATIC, MODE_FEEDBACK)) { "Unsupported lighting mode" }
+        require(mode in setOf(MODE_OFF, MODE_STATIC, MODE_FEEDBACK, MODE_CONTROLLER)) { "Unsupported lighting mode" }
         require(intensity in 0..100) { "Invalid lighting intensity" }
         require(colour == null || colour in 0L..0xFFFFFFFFL) { "Invalid lighting colour" }
         require(zones.all { it in availableZones }) { "Unsupported lighting zone" }
@@ -57,7 +58,7 @@ data class CartdeckLighting(
         feedbackStrength: Float = 0f,
     ): Color {
         val strength =
-            if (mode == MODE_FEEDBACK && feedbackStrength.isFinite()) {
+            if ((mode == MODE_FEEDBACK || mode == MODE_CONTROLLER) && feedbackStrength.isFinite()) {
                 feedbackStrength.coerceIn(0f, 1f)
             } else {
                 0f
