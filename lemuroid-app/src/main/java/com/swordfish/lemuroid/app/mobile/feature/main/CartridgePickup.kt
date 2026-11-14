@@ -96,6 +96,7 @@ fun CartridgePickup(
     var root by remember { mutableStateOf(Rect.Zero) }
     var closing by remember(gameId) { mutableStateOf(false) }
     val geometry = LocalCartridgeGeometry.current
+    val sourceFront = remember(gameId) { gameId in geometry.frontFacing }
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
     val focus = remember { FocusRequester() }
@@ -142,7 +143,7 @@ fun CartridgePickup(
         if (!settled) Box(Modifier.fillMaxSize().clickable {}.clearAndSetSemantics {})
         if (!settled && sourceBounds != null && target != null && game != null) {
             val destination = target!!
-            val flight = cartridgeFlight(sourceBounds, destination, progress.value)
+            val flight = cartridgeFlight(sourceBounds, destination, progress.value, sourceFront)
             val bounds = flight.bounds
             Box(
                 Modifier.offset {

@@ -61,9 +61,9 @@ class CartridgeV1RepairTest {
                 )
             }
         }
-        val first = compose.onNodeWithContentDescription("Cartridge 1, GB").getUnclippedBoundsInRoot()
-        val second = compose.onNodeWithContentDescription("Cartridge 2, GB").getUnclippedBoundsInRoot()
-        val sixth = compose.onNodeWithContentDescription("Cartridge 6, GB").getUnclippedBoundsInRoot()
+        val first = compose.onNodeWithContentDescription("Cartridge 1, GB, spine facing").getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithContentDescription("Cartridge 2, GB, spine facing").getUnclippedBoundsInRoot()
+        val sixth = compose.onNodeWithContentDescription("Cartridge 6, GB, spine facing").getUnclippedBoundsInRoot()
         org.junit.Assert.assertTrue(second.left > first.left)
         org.junit.Assert.assertTrue(sixth.top > first.top)
         org.junit.Assert.assertTrue((first.right - first.left).value >= 48f)
@@ -86,7 +86,7 @@ class CartridgeV1RepairTest {
                 )
             }
         }
-        val cartridge = compose.onNodeWithContentDescription("Atlas, GB")
+        val cartridge = compose.onNodeWithContentDescription("Atlas, GB, spine facing")
         val gap = compose.onNodeWithContentDescription("Reserved empty shelf space")
         val delta = gap.fetchSemanticsNode().boundsInRoot.center - cartridge.fetchSemanticsNode().boundsInRoot.center
         cartridge.performTouchInput { swipe(center, center + delta, 500) }
@@ -117,8 +117,11 @@ class CartridgeV1RepairTest {
                 CartridgeLibraryTheme { CartridgeSpine(game, {}) }
             }
         }
-        val initial = compose.onNodeWithContentDescription("Atlas, GB").getUnclippedBoundsInRoot()
+        val initial = compose.onNodeWithContentDescription("Atlas, GB, spine facing").getUnclippedBoundsInRoot()
         compose.runOnIdle { font.value = 2f }
-        assertEquals(initial, compose.onNodeWithContentDescription("Atlas, GB").getUnclippedBoundsInRoot())
+        assertEquals(
+            initial,
+            compose.onNodeWithContentDescription("Atlas, GB, spine facing").getUnclippedBoundsInRoot(),
+        )
     }
 }

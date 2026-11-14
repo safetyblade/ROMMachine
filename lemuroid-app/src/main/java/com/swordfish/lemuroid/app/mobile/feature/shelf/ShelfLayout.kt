@@ -4,13 +4,18 @@ import java.security.MessageDigest
 import java.util.Locale
 import java.util.UUID
 
+enum class CartridgeFacing { SPINE, FRONT }
+
 /** Presentation state only. Never use cells as ROM, game or save records. */
 data class ShelfCell(
     val id: String = UUID.randomUUID().toString(),
     val gameKey: String? = null,
     val titleHint: String = "",
     val emptyRow: Boolean = false,
-)
+    val facing: CartridgeFacing = CartridgeFacing.SPINE,
+) {
+    fun span(columns: Int): Int = if (gameKey != null && facing == CartridgeFacing.FRONT) minOf(3, columns) else 1
+}
 
 data class ShelfSection(val id: String, val title: String, val cells: List<ShelfCell> = emptyList())
 
@@ -212,6 +217,20 @@ data class ShelfLayout(
         ).validate()
     }
 
+    fun setFacing(
+        cellId: String,
+        facing: CartridgeFacing,
+    ): ShelfLayout {
+        val cell = sections.flatMap { it.cells }.first { it.id == cellId }
+        require(cell.gameKey != null) { "Only cartridges have a facing" }
+        return copy(
+            sections =
+                sections.map { section ->
+                    section.copy(cells = section.cells.map { if (it.id == cellId) it.copy(facing = facing) else it })
+                },
+        ).validate()
+    }
+
     fun createSection(title: String): ShelfLayout =
         copy(sections = sections + ShelfSection(UUID.randomUUID().toString(), checkedTitle(title))).validate()
 
@@ -383,11 +402,13 @@ fun ShelfSection.rows(columns: Int): List<ShelfRow> {
     require(columns >= 1)
     val rows = mutableListOf<ShelfRow>()
     val pending = mutableListOf<ShelfCell>()
+    var used = 0
 
     fun flush() {
         if (pending.isNotEmpty()) {
             rows += ShelfRow("$id:${pending.first().id}", id, pending.toList())
             pending.clear()
+            used = 0
         }
     }
     cells.forEach { cell ->
@@ -395,8 +416,11 @@ fun ShelfSection.rows(columns: Int): List<ShelfRow> {
             flush()
             rows += ShelfRow("$id:${cell.id}", id, listOf(cell), intentionalEmpty = true)
         } else {
+            val span = cell.span(columns)
+            if (used + span > columns) flush()
             pending += cell
-            if (pending.size == columns) flush()
+            used += span
+            if (used == columns) flush()
         }
     }
     flush()

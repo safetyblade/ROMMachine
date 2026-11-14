@@ -135,7 +135,7 @@ class CartridgeExperienceTest {
         home(HomeViewModel.UIState(indexInProgress = true, discoveryGames = listOf(game)))
         compose.onNodeWithText("Add Cartridges").assertIsNotEnabled()
         compose.onNodeWithText("Adding cartridges… Your library stays available.").assertExists()
-        compose.onNodeWithContentDescription("Atlas, GB").assertExists()
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
     }
 
     @Test fun populatedShelfShowsMultipleSystemsWithIdenticalSelectionContract() {
@@ -144,8 +144,8 @@ class CartridgeExperienceTest {
         home(HomeViewModel.UIState(indexInProgress = false, discoveryGames = listOf(game, second)), onSelect = {
             selected = it
         })
-        compose.onNodeWithContentDescription("Atlas, GB").assertExists()
-        compose.onNodeWithContentDescription("Orbit, GBA").performClick()
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+        compose.onNodeWithContentDescription("Orbit, GBA, spine facing").performClick()
         assertEquals(second, selected)
     }
 
@@ -153,7 +153,7 @@ class CartridgeExperienceTest {
         val title = "An exceptionally long original cartridge title with a complete accessible name"
         val long = cartridge(3, title, "gbc")
         compose.setContent { CartridgeLibraryTheme { CartridgeSpine(long, {}) } }
-        compose.onNodeWithContentDescription("$title, GBC").assertExists()
+        compose.onNodeWithContentDescription("$title, GBC, spine facing").assertExists()
     }
 
     @Test
@@ -265,7 +265,7 @@ class CartridgeExperienceTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Atlas, GB").performClick()
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").performClick()
         compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
         assertEquals(0, launches)
         compose.onNodeWithText("Open").performClick()
@@ -369,10 +369,12 @@ class CartridgeExperienceTest {
                 )
             }
         }
-        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription("Cartridge 16, GB"))
-        compose.onNodeWithContentDescription("Cartridge 16, GB").assertExists()
+        compose.onNode(
+            hasScrollToIndexAction(),
+        ).performScrollToNode(hasContentDescription("Cartridge 16, GB, spine facing"))
+        compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithContentDescription("Cartridge 16, GB").assertExists()
+        compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
     }
 
     @Test
@@ -468,9 +470,9 @@ class CartridgeExperienceTest {
         }
         try {
             compose.waitUntil(10_000) {
-                compose.onAllNodesWithContentDescription("Atlas, GB").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithContentDescription("Atlas, GB, spine facing").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithContentDescription("Atlas, GB").performClick()
+            compose.onNodeWithContentDescription("Atlas, GB, spine facing").performClick()
             assertEquals(favourite, selected)
             assertEquals(1, selections)
         } finally {

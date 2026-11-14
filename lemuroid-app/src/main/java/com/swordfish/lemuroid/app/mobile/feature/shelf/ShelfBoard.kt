@@ -1,5 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
+import android.provider.Settings
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +36,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -41,6 +46,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -49,6 +56,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -59,9 +67,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -81,6 +91,7 @@ fun ShelfBoard(
     onEdit: ((ShelfLayout) -> ShelfLayout) -> Unit = {},
     onSectionEdit: (ShelfSection) -> Unit = {},
     header: (@Composable () -> Unit)? = null,
+    artworkRevision: Int = 0,
 ) {
     val colors = LocalShelfMaterials.current
     val decorationPattern =
@@ -96,7 +107,58 @@ fun ShelfBoard(
     var hover by remember { mutableStateOf<DropPosition?>(null) }
     var menu by remember { mutableStateOf<Pair<ShelfSection, ShelfCell>?>(null) }
 
-    fun hitTest() = positions.values.lastOrNull { it.first.contains(pointer) }?.second
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val systemReduced =
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    val currentLayout by rememberUpdatedState(layout)
+    val turn = remember { Animatable(0f) }
+    var turning by remember { mutableStateOf<String?>(null) }
+    val focusRequests = remember { mutableStateMapOf<String, FocusRequester>() }
+
+    fun flip(cell: ShelfCell) {
+        if (turning != null || dragging != null) return
+        val facing = if (cell.facing == CartridgeFacing.SPINE) CartridgeFacing.FRONT else CartridgeFacing.SPINE
+        scope.launch {
+            turning = cell.id
+            try {
+                if (!(currentLayout.appearance.reducedMotion || systemReduced)) turn.animateTo(90f, tween(110))
+                onEdit { it.setFacing(cell.id, facing) }
+                // The atomic writer publishes asynchronously. Exchange content edge-on,
+                // then reveal only after the new footprint has been measured.
+                withTimeoutOrNull(3000) {
+                    snapshotFlow {
+                        currentLayout.sections.flatMap { it.cells }.firstOrNull { it.id == cell.id }?.facing
+                    }.first { it == facing }
+                }
+                withFrameNanos { }
+                if (!(currentLayout.appearance.reducedMotion || systemReduced)) {
+                    turn.snapTo(-90f)
+                    turn.animateTo(0f, tween(110))
+                }
+                withTimeoutOrNull(3000) {
+                    snapshotFlow { focusRequests[cell.id] }.first { it != null }
+                }?.requestFocus()
+            } finally {
+                turn.snapTo(0f)
+                turning = null
+            }
+        }
+    }
+
+    fun hitTest(): DropPosition? {
+        val hit = positions.values.lastOrNull { it.first.contains(pointer) } ?: return null
+        val target = hit.second
+        val cells = currentLayout.sections.firstOrNull { it.id == target.section }?.cells.orEmpty()
+        val index = cells.indexOfFirst { it.id == target.before }
+        // Both halves of the complete footprint are insertion targets. Explicit
+        // vacancies keep the existing swap semantics instead of being consumed.
+        return if (index >= 0 && cells[index].gameKey != null && pointer.x > hit.first.center.x) {
+            target.copy(before = cells.getOrNull(index + 1)?.id)
+        } else {
+            target
+        }
+    }
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
     val scroll = rememberLazyListState()
@@ -140,8 +202,8 @@ fun ShelfBoard(
                 }
             }
         val headerOffset = if (header == null) 0 else 1
-        LaunchedEffect(columns) {
-            anchor?.let { id ->
+        LaunchedEffect(columns, layout.revision) {
+            (turning ?: anchor)?.let { id ->
                 val index = items.indexOfFirst { it.row?.cells?.any { cell -> cell.id == id } == true }
                 if (index >= 0) scroll.scrollToItem(index + headerOffset, anchorOffset)
             }
@@ -226,7 +288,7 @@ fun ShelfBoard(
                                         row.cells.first()
                                     }
                                 } else {
-                                    row.cells + List(columns - row.cells.size) { null }
+                                    row.cells + List(columns - row.cells.sumOf { it.span(columns) }) { null }
                                 }
                             cells.forEachIndexed { column, cell ->
                                 val next =
@@ -246,10 +308,61 @@ fun ShelfBoard(
                                         if (cell == null) next else cell.id,
                                     )
                                 val game = cell?.gameKey?.let(byKey::get)
+                                val span = if (row.intentionalEmpty) 1 else cell?.span(columns) ?: 1
+                                val footprint = width * span + 4.dp * (span - 1)
+                                val canDrag = arrange && !row.intentionalEmpty && turning == null
+                                val editingActions =
+                                    Modifier.semantics {
+                                        if (arrange && cell != null) {
+                                            customActions =
+                                                listOfNotNull(
+                                                    if (cell.gameKey != null) {
+                                                        CustomAccessibilityAction(
+                                                            cell.facing.actionLabel(),
+                                                        ) {
+                                                            flip(cell)
+                                                            true
+                                                        }
+                                                    } else {
+                                                        null
+                                                    },
+                                                    CustomAccessibilityAction("Move earlier") {
+                                                        onEdit { it.moveBy(cell.id, -1) }
+                                                        true
+                                                    },
+                                                    CustomAccessibilityAction("Move later") {
+                                                        onEdit { it.moveBy(cell.id, 1) }
+                                                        true
+                                                    },
+                                                    CustomAccessibilityAction("Move to section") {
+                                                        menu = item.section to cell
+                                                        true
+                                                    },
+                                                    CustomAccessibilityAction("Move up") {
+                                                        onEdit { it.moveBy(cell.id, -columns) }
+                                                        true
+                                                    },
+                                                    CustomAccessibilityAction("Move down") {
+                                                        onEdit { it.moveBy(cell.id, columns) }
+                                                        true
+                                                    },
+                                                    CustomAccessibilityAction("Insert space before") {
+                                                        onEdit { it.insertSpace(item.section.id, cell.id) }
+                                                        true
+                                                    },
+                                                )
+                                        }
+                                    }
                                 key(cellKey) {
+                                    val focusRequester = remember(cell?.facing) { FocusRequester() }
+                                    DisposableEffect(cellKey, focusRequester) {
+                                        onDispose {
+                                            if (focusRequests[cellKey] === focusRequester) focusRequests.remove(cellKey)
+                                        }
+                                    }
                                     DropSurface(cellKey, target, positions) {
                                         Box(
-                                            Modifier.width(width).height(width * (340f / 94f))
+                                            Modifier.width(footprint).height(width * (340f / 94f))
                                                 .border(
                                                     if (hover == target && dragging != null) 3.dp else 0.dp,
                                                     if (hover == target) {
@@ -259,7 +372,7 @@ fun ShelfBoard(
                                                     },
                                                 )
                                                 .then(
-                                                    if (arrange && cell != null && !row.intentionalEmpty) {
+                                                    if (canDrag && cell != null) {
                                                         Modifier.pointerInput(cell.id) {
                                                             detectDragGestures(
                                                                 onDragStart = { start ->
@@ -310,40 +423,28 @@ fun ShelfBoard(
                                                         Modifier
                                                     },
                                                 )
-                                                .semantics {
-                                                    if (cell != null) {
-                                                        customActions =
-                                                            listOf(
-                                                                CustomAccessibilityAction("Move to section") {
-                                                                    menu = item.section to cell
-                                                                    true
-                                                                },
-                                                                CustomAccessibilityAction("Move up") {
-                                                                    onEdit { it.moveBy(cell.id, -columns) }
-                                                                    true
-                                                                },
-                                                                CustomAccessibilityAction("Move down") {
-                                                                    onEdit { it.moveBy(cell.id, columns) }
-                                                                    true
-                                                                },
-                                                                CustomAccessibilityAction("Insert space before") {
-                                                                    onEdit { it.insertSpace(item.section.id, cell.id) }
-                                                                    true
-                                                                },
-                                                            )
-                                                    }
-                                                },
+                                                .then(if (game == null) editingActions else Modifier),
                                         ) {
                                             if (game != null) {
-                                                Box {
-                                                    CartridgeSpine(
+                                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                                                    ShelfCartridge(
                                                         game,
+                                                        cell.facing,
+                                                        width,
+                                                        footprint,
                                                         {
                                                             if (arrange) menu = item.section to cell else onSelect(game)
                                                         },
-                                                        Modifier.alpha(
-                                                            if (dragging == cell.id) 0.25f else 1f,
-                                                        ),
+                                                        Modifier
+                                                            .focusRequester(
+                                                                focusRequests.getOrPut(cell.id) { FocusRequester() },
+                                                            )
+                                                            .alpha(if (dragging == cell.id) 0.25f else 1f)
+                                                            .graphicsLayer {
+                                                                rotationY = if (turning == cell.id) turn.value else 0f
+                                                                cameraDistance = 12f * density.density
+                                                            },
+                                                        artworkRevision = artworkRevision,
                                                         onLongClick = {
                                                             if (arrange) {
                                                                 menu = item.section to cell
@@ -353,7 +454,6 @@ fun ShelfBoard(
                                                                 )
                                                             }
                                                         },
-                                                        width = width,
                                                     )
                                                     if (rememberGripArcProfile(game).value.mode.hasGrip) {
                                                         Text(
@@ -441,15 +541,19 @@ fun ShelfBoard(
         }
         val dragged = layout.sections.flatMap { it.cells }.firstOrNull { it.id == dragging }
         dragged?.gameKey?.let(byKey::get)?.let { game ->
-            CartridgeSpine(
+            val footprint = width * dragged.span(columns) + 4.dp * (dragged.span(columns) - 1)
+            ShelfCartridge(
                 game,
+                dragged.facing,
+                width,
+                footprint,
                 {},
                 Modifier.offset {
                     IntOffset(
                         (
                             pointer.x - viewport.left -
                                 with(density) {
-                                    width.toPx() / 2
+                                    footprint.toPx() / 2
                                 }
                         ).roundToInt(),
                         (pointer.y - viewport.top - with(density) { width.toPx() }).roundToInt(),
@@ -460,7 +564,7 @@ fun ShelfBoard(
                     scaleX = 1.04f
                     scaleY = 1.04f
                 },
-                width = width,
+                artworkRevision = artworkRevision,
                 registerGeometry = false,
             )
         }
@@ -470,6 +574,12 @@ fun ShelfBoard(
             menu = null
         }, title = { Text(if (cell.gameKey == null) "Shelf space" else cell.titleHint) }, text = {
             Column {
+                if (cell.gameKey != null) {
+                    TextButton(onClick = {
+                        menu = null
+                        flip(cell)
+                    }, enabled = turning == null) { Text(cell.facing.actionLabel()) }
+                }
                 layout.sections.forEach {
                         target ->
                     TextButton(onClick = {
@@ -536,3 +646,5 @@ fun ShelfLayout.moveBy(
     val before = if (target > index) section.cells.getOrNull(target + 1)?.id else section.cells[target].id
     return moveCell(cellId, section.id, before)
 }
+
+internal fun CartridgeFacing.actionLabel(): String = if (this == CartridgeFacing.SPINE) "Show front" else "Show spine"
