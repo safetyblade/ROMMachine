@@ -1,7 +1,9 @@
 package com.swordfish.lemuroid.lib.library
 
-import android.net.Uri
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import java.net.URI
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 /**
  * High-confidence source relocation only. A SAF document ID is provider-specific;
@@ -18,14 +20,21 @@ object CartridgeSourceMatch {
     )
 
     private fun documentIdentity(source: String): Pair<String, String>? {
-        val uri = runCatching { Uri.parse(source) }.getOrNull() ?: return null
-        if (uri.scheme != "content") return null
-        val authority = uri.authority ?: return null
+        // URI identity is pure Java so this comparison behaves the same in
+        // production Android and JVM tests (android.net.Uri is mocked in
+        // plain JUnit). Decode only the opaque document ID, not path slashes.
+        val uri = runCatching { URI(source) }.getOrNull() ?: return null
+        if (uri.scheme != "content" || uri.rawUserInfo != null || uri.port != -1) return null
+        val authority = uri.host ?: return null
         if (!authority.endsWith(".documents")) return null
-        val parts = uri.pathSegments
+        val parts = uri.rawPath?.split('/') ?: return null
         val documentIndex = parts.indexOf("document")
         if (documentIndex < 0 || parts.size <= documentIndex + 1) return null
-        val documentId = parts[documentIndex + 1]
+        val documentId =
+            runCatching {
+                // URLDecoder treats + as space, but + is literal in URI paths.
+                URLDecoder.decode(parts[documentIndex + 1].replace("+", "%2B"), StandardCharsets.UTF_8.name())
+            }.getOrNull() ?: return null
         if (documentId.isBlank()) return null
         return authority to documentId
     }
