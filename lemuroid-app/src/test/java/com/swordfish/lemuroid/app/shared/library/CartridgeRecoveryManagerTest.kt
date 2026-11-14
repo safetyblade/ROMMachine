@@ -30,14 +30,14 @@ class CartridgeRecoveryManagerTest {
         uri: String,
         name: String,
     ) = Game(
-            fileName = "$name.gba",
-            fileUri = uri,
-            title = name,
-            systemId = "gba",
-            developer = null,
-            coverFrontUrl = null,
-            lastIndexedAt = 10,
-        )
+        fileName = "$name.gba",
+        fileUri = uri,
+        title = name,
+        systemId = "gba",
+        developer = null,
+        coverFrontUrl = null,
+        lastIndexedAt = 10,
+    )
 
     private suspend fun withInventory(
         block: suspend (Application, RetrogradeDatabase, Game, Game, RetiredCartridge, ShelfStore) -> Unit,
