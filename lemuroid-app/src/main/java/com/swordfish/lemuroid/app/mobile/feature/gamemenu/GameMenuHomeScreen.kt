@@ -197,8 +197,8 @@ fun GameMenuControlsScreen(
     navController: NavController,
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
-    controllerOptions: @Composable () -> Unit = {},
     physicalControllerOptions: @Composable () -> Unit = {},
+    controllerOptions: @Composable () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         WiiControllerPicker(gameMenuRequest, onResult)
