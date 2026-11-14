@@ -12,6 +12,7 @@ import zipfile
 
 from verify_hakux_native import SYSTEM
 from verify_gamecube_core import verify_android_elf
+from xbox360_native_abi import require_jni_entry
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 REVISION = '779680ade075d2d2a4c589c6a8d57a8e26c116c0'
@@ -45,10 +46,20 @@ def verify(directory, readelf):
             raise ValueError('Native build ID missing: ' + name)
         if name == CORE:
             symbols = subprocess.check_output([readelf, '--dyn-syms', '-W', str(path)], text=True)
-            if 'JNI_OnLoad' not in symbols:
-                raise ValueError('JNI entry missing')
+            require_jni_entry(symbols)
         result[name] = {'sha256': sha(path), 'build_id': build[1], 'needed': sorted(needed)}
     return result
+
+
+def source_archive_filter(member):
+    # Keep source directories named build, notably xenia/tools/build: those
+    # scripts are required to regenerate the guest SPIR-V shader headers.
+    parts = pathlib.PurePosixPath(member.name).parts[1:]
+    if any(part in {'.git', '.gradle', '.cxx'} for part in parts):
+        return None
+    if parts[:1] == ('build',) or parts[:2] in {('app', 'build'), ('emulator-core', 'build')}:
+        return None
+    return member
 
 
 def main():
@@ -117,7 +128,18 @@ def main():
     (output / 'xenia.properties').write_text(''.join(k+'='+v+'\n' for k,v in manifest.items()))
     (output / 'sha256.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in output.iterdir() if p.is_file()))
     with tarfile.open(output / 'corresponding-source.tar.xz', 'w:xz', preset=1) as archive:
-        archive.add(source, arcname='XenDroid', filter=lambda t: None if '.git' in pathlib.PurePosixPath(t.name).parts or 'build' in pathlib.PurePosixPath(t.name).parts or '.cxx' in pathlib.PurePosixPath(t.name).parts else t)
+        archive.add(source, arcname='XenDroid', filter=source_archive_filter)
+    provenance['source_archive_sha256'] = sha(output / 'corresponding-source.tar.xz')
+    provenance['build_recipe_sha256'] = sha(pathlib.Path(__file__))
+    (output / 'source-manifest.json').write_text(json.dumps(provenance, indent=2) + '\n')
+    (output / 'sha256.txt').write_text(''.join(
+        sha(p) + '  ' + p.name + '\n' for p in sorted(output.iterdir())
+        if p.is_file() and p.name != 'sha256.txt'))
+    print(json.dumps({'result': 'XENIA_NATIVE_SOURCE_AND_ABI_VERIFIED',
+                      'revision': REVISION, 'libraries': inventory,
+                      'source_archive_sha256': provenance['source_archive_sha256'],
+                      'build_recipe_sha256': provenance['build_recipe_sha256'],
+                      'gameplay_verified': False}, indent=2), flush=True)
 
 
 if __name__ == '__main__':
