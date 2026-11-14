@@ -27,6 +27,11 @@ print("Pinned Cemu source and recursive submodules: PASS")
 PY
 export VCPKG_FORCE_SYSTEM_BINARIES=1
 export VCPKG_MAX_CONCURRENCY=4
+# Upstream CI bootstraps the pinned vcpkg submodule before CMake manifests.
+# Without this step a fresh, clean Android runner has no executable vcpkg.
+test -f "$WORK/source/dependencies/vcpkg/bootstrap-vcpkg.sh"
+bash "$WORK/source/dependencies/vcpkg/bootstrap-vcpkg.sh"
+test -x "$WORK/source/dependencies/vcpkg/vcpkg"
 cmake -S "$WORK/source" -B "$WORK/build" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
