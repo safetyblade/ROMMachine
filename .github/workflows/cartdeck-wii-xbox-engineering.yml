@@ -165,7 +165,7 @@ jobs:
             -Pcartdeck.p0.testVersionCode="$version_code" \
             -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/host-input/maven" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
-            -PcartdeckNativeSystems=dc,gc,ps2,wii,xbox,xbox360 \
+            -PcartdeckNativeSystems=dc,gc,ps2,wii,xbox \
             -Pkotlin.compiler.execution.strategy=in-process \
             --no-daemon --no-configuration-cache --max-workers=2 \
             2>&1 | tee "$RUNNER_TEMP/cartdeck-kotlin-gate.log"
@@ -175,10 +175,10 @@ jobs:
           {
             echo '### CARTDECK Android compile / JVM test gate FAILED'
             echo 'Native emulator builds were blocked because shared application verification did not pass.'
-            echo 'Look at the first compiler error or failed test, rather than rerunning unchanged APK workflows.'
+            echo 'Identify the first configuration, compiler or test error before retrying this SHA.'
             echo '```text'
             if [ -s "$RUNNER_TEMP/cartdeck-kotlin-gate.log" ]; then
-              grep -E 'e: file:|error:|FAILED|FAILURE: Build failed|tests completed' \
+              grep -E 'e: file:|error:|FAILED|FAILURE: Build failed|tests completed|Failed requirement|Build file|What went wrong|Could not resolve|Execution failed' \
                 "$RUNNER_TEMP/cartdeck-kotlin-gate.log" | head -n 35 || true
             fi
             echo '```'
