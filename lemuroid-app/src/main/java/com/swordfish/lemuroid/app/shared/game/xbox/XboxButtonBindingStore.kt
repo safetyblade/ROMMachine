@@ -66,13 +66,15 @@ class XboxButtonBindingStore(context: Context) {
         cartridge: String?,
     ): String {
         val raw = descriptor + "\n" + (cartridge ?: "DEVICE")
-        val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        val digest =
+            MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it.toInt() and 255) }
         return "cartdeck.xbox.input.v1.$digest."
     }
 
     companion object {
-        val editableKeys = listOf(
+        val editableKeys =
+            listOf(
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B,
             KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y,
             KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1,
