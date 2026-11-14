@@ -8,7 +8,7 @@ import com.swordfish.lemuroid.lib.core.CoreVariable
 object NativeGameSystems {
     fun enabled(): List<GameSystem> {
         val requested = BuildConfig.NATIVE_SYSTEMS.split(",").toSet()
-        return configurations().filter { it.id == SystemID.XBOX360 || it.id.dbname in requested }
+        return configurations().filter { it.id.dbname in requested }
     }
 
     fun configurations(): List<GameSystem> =
