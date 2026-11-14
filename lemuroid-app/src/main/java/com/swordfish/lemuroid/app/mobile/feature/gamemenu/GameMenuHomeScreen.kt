@@ -4,8 +4,8 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.alorma.compose.settings.storage.memory.rememberMemoryBooleanSettingState
 import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
@@ -23,7 +24,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.lib.library.SystemID
-import com.swordfish.lemuroid.R
 import kotlin.reflect.KFunction1
 
 @Composable
@@ -249,7 +249,8 @@ private fun WiiControllerPicker(
     if (controllers.size < 2) return
     val chosen =
         WiiControllerCompatibility.selectVerifiedOrFallback(
-            controllers.map { it.name }, gameMenuRequest.currentControllerName,
+            controllers.map { it.name },
+            gameMenuRequest.currentControllerName,
         )
     val selected = controllers.indexOfFirst { it.name == chosen }.coerceAtLeast(0)
     val variant = WiiControllerCompatibility.variant(controllers[selected].name)
