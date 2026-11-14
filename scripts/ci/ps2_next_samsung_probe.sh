@@ -19,7 +19,7 @@ command -v aapt >/dev/null || { echo "Android aapt required to check private pac
 command -v apksigner >/dev/null || { echo "Android apksigner required" >&2; exit 1; }
 PACKAGE=dev.prestwich.cartdeck.ps2lab.debug
 EXPECTED='package: name='\''dev.prestwich.cartdeck.ps2lab.debug'\'''
-[[ "$(adb devices -l | grep -cE $'\tdevice\b' || true)" -eq 1 ]] ||
+[[ "$(adb devices -l | awk '$2 == "device" { count++ } END { print count+0 }')" -eq 1 ]] ||
   { echo "Exactly one authorised ADB device required" >&2; exit 1; }
 [[ "$(adb shell getprop ro.product.model | tr -d '\r')" == "SM-S721B" ]] ||
   { echo "Only approved Samsung SM-S721B is in this QA script" >&2; exit 1; }
@@ -40,19 +40,14 @@ game_id=c3882b50-8b41-47cf-8219-f00b70c79e20
 sandbox="files/native/ps2/armsx2/cartridges/$game_id"
 adb shell run-as "$PACKAGE" mkdir -p \
   files/ps2-next-lab files/native/ps2/armsx2/bios "$sandbox/resources"
-prefix="/data/local/tmp/cartdeck-ps2-probe-$$"
-cleanup() { adb shell rm -rf "$prefix" >/dev/null 2>&1 || true; }
-trap cleanup EXIT
-adb shell mkdir -p "$prefix"
-adb push "$DISC" "$prefix/fixture.iso" >/dev/null
-adb push "$BIOS" "$prefix/user-bios.bin" >/dev/null
-adb push "$RESOURCES/." "$prefix/resources/" >/dev/null
-adb shell run-as "$PACKAGE" cp "$prefix/fixture.iso" files/ps2-next-lab/fixture.iso
-adb shell run-as "$PACKAGE" cp "$prefix/user-bios.bin" files/native/ps2/armsx2/bios/user-bios.bin
-adb shell run-as "$PACKAGE" cp -R "$prefix/resources/." "$sandbox/resources/"
-# Remove world-readable staging inputs immediately (cleanup trap also handles failure).
-cleanup
-trap - EXIT
+# Stream files directly to app-private storage via run-as, without a
+# world-readable /data/local/tmp intermediary. -T avoids PTY byte conversion.
+adb shell -T run-as "$PACKAGE" sh -c 'cat > files/ps2-next-lab/fixture.iso' < "$DISC"
+adb shell -T run-as "$PACKAGE" sh -c 'cat > files/native/ps2/armsx2/bios/user-bios.bin' < "$BIOS"
+tar -C "$RESOURCES" -cf - . |
+  adb shell -T run-as "$PACKAGE" sh -c "cd '$sandbox/resources' && tar -xf -"
+adb shell run-as "$PACKAGE" test -s files/ps2-next-lab/fixture.iso
+adb shell run-as "$PACKAGE" test -s files/native/ps2/armsx2/bios/user-bios.bin
 adb logcat -c
 adb shell am start -n "$PACKAGE/com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity" \
   > "$REPORT/start-result.txt"
