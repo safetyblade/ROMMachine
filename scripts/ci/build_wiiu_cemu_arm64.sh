@@ -6,6 +6,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 : "${ANDROID_HOME:?Set ANDROID_HOME to an Android SDK with the pinned NDK}"
 NDK_VERSION=29.0.14206865
 NDK="$ANDROID_HOME/ndk/$NDK_VERSION"
+# vcpkg's Android triplet runs its own compiler probe. It does not inherit the
+# outer CMAKE_TOOLCHAIN_FILE's NDK discovery.
+export ANDROID_NDK_HOME="$NDK"
 SOURCE_SHA=444c585202302a7f4b319bafb4cf72156a8cac8b
 WORK="${1:?Specify a clean output directory}"
 [[ ! -e "$WORK" ]] || { echo "Output directory already exists; refusing stale binary" >&2; exit 1; }
@@ -21,8 +24,11 @@ python3 - "$ROOT" "$WORK/source" <<'PY'
 import pathlib
 import sys
 sys.path.insert(0, str(pathlib.Path(sys.argv[1]) / "scripts/ci"))
-from wiiu_cemu_contract import check_source
+from wiiu_cemu_contract import check_source, patch_android_manifest_features
+import json
 check_source(sys.argv[2])
+proof = patch_android_manifest_features(sys.argv[2])
+(pathlib.Path(sys.argv[2]).parent / "source-patches.json").write_text(json.dumps([proof], indent=2) + "\n")
 print("Pinned Cemu source and recursive submodules: PASS")
 PY
 export VCPKG_FORCE_SYSTEM_BINARIES=1
@@ -34,7 +40,9 @@ bash "$WORK/source/dependencies/vcpkg/bootstrap-vcpkg.sh"
 test -x "$WORK/source/dependencies/vcpkg/vcpkg"
 cmake -S "$WORK/source" -B "$WORK/build" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+  -DCMAKE_TOOLCHAIN_FILE="$WORK/source/dependencies/vcpkg/scripts/buildsystems/vcpkg.cmake" \
+  -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+  -DCEMU_TARGET_ANDROID=ON \
   -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_STL=c++_static \
   -DVCPKG_TARGET_TRIPLET=arm64-android -DVCPKG_HOST_TRIPLET=x64-linux \
   -DENABLE_LIBRETRO=ON -DENABLE_OPENGL=OFF -DENABLE_VULKAN=ON \
@@ -51,4 +59,37 @@ python3 "$ROOT/scripts/ci/wiiu_cemu_contract.py" \
   --readelf "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
   --report "$WORK/native-evidence.json"
 echo "Native ELF proof available at $WORK/native-evidence.json"
-echo "STOP: Vulkan CARTDECK frontend, APK, and Wii U gameplay remain unverified."
+if [[ "${CARTDECK_WIIU_BUILD_VULKAN_HOST:-false}" == "true" ]]; then
+  cmake -S "$ROOT/spikes/wiiu/vulkan-host" -B "$WORK/host-build" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+    -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 \
+    -DCEMU_LIBRETRO_HEADERS="$WORK/source/src/libretro"
+  cmake --build "$WORK/host-build" --target cartdeckwiiuvulkanhost -- -j 4
+  HOST="$WORK/host-build/libcartdeckwiiuvulkanhost.so"
+  test -s "$HOST"
+  "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h -lW "$HOST" > "$WORK/vulkan-host-elf.txt"
+  python3 - "$HOST" "$WORK/vulkan-host-elf.txt" "$WORK/native-evidence.json" "$ROOT" <<'PY'
+import hashlib
+import json
+import pathlib
+import re
+import sys
+import subprocess
+sys.path.insert(0, str(pathlib.Path(sys.argv[4]) / 'scripts/ci'))
+from verify_gamecube_core import verify_android_elf
+so = pathlib.Path(sys.argv[1])
+readelf_output = pathlib.Path(sys.argv[2]).read_text()
+verify_android_elf(so.read_bytes(), '')
+assert "AArch64" in readelf_output
+proof_path = pathlib.Path(sys.argv[3])
+proof = json.loads(proof_path.read_text())
+proof['adapter_source_revision'] = subprocess.check_output(['git', '-C', sys.argv[4], 'rev-parse', 'HEAD'], text=True).strip()
+proof['host_sha256'] = hashlib.sha256(so.read_bytes()).hexdigest()
+proof_path.write_text(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+print("Android ARM64 Wii U Vulkan presenter ELF compiled; real frame QA still missing")
+PY
+  cp "$HOST" "$WORK/cartdeck_wiiu_vulkan_host_arm64.so"
+fi
+python3 "$ROOT/scripts/ci/wiiu_notices.py" --work "$WORK"
+echo "Native build and notices ready; device gameplay remains unverified."

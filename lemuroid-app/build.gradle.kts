@@ -32,6 +32,10 @@ android {
             applicationId = "dev.prestwich.cartdeck"
         }
 
+        if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck.wiiulab"
+        }
+
         // P0 test-only overrides. No override means the original production configuration.
         // Keep the existing package ID and test-signing certificate between updates.
         providers.gradleProperty("cartdeck.p0.testVersionCode").orNull?.let { value ->
@@ -115,6 +119,9 @@ android {
                     "*/*/*_libretro_android.so", "**/liblibretrodroid.so",
                     "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
                 )
+            if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+                keepDebugSymbols += setOf("**/libcemu_libretro_android.so", "**/libcartdeckwiiuvulkanhost.so")
+            }
             useLegacyPackaging = true
         }
         resources {
