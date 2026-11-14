@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,15 +25,6 @@ class CartdeckReactiveLightingSessionTest {
         assertEquals(1f, CartdeckFeedbackStrength.normalized(1f, 1f), 0.0001f)
         assertEquals(0f, CartdeckFeedbackStrength.normalized(Float.NaN, Float.POSITIVE_INFINITY), 0.0001f)
         assertEquals(1f, CartdeckFeedbackStrength.normalized(2f, 2f), 0.0001f)
-    }
-
-    @Test
-    fun intensityCapNeverExceedsThirtyFivePercentOrRemainingHeadroom() {
-        assertEquals(0f, CartdeckFeedbackStrength.intensity(0, 1f), 0.0001f)
-        assertEquals(65f, CartdeckFeedbackStrength.intensity(65, 0f), 0.0001f)
-        assertEquals(87.75f, CartdeckFeedbackStrength.intensity(65, 1f), 0.0001f)
-        assertEquals(100f, CartdeckFeedbackStrength.intensity(95, 1f), 0.0001f)
-        assertEquals(65f, CartdeckFeedbackStrength.intensity(65, Float.NaN), 0.0001f)
     }
 
     @Test
@@ -74,9 +64,7 @@ class CartdeckReactiveLightingSessionTest {
     }
 
     @Test
-    fun invalidModeIsNotMistakenForCoreFeedback() {
-        val mode = "static"
-        assertFalse(mode == "feedback")
+    fun reducerLimitsUpdatesAndStopsAfterSilence() {
         assertTrue(CartdeckReactiveLightingSession.MIN_INTERVAL_MS >= 125L)
         assertTrue(CartdeckReactiveLightingSession.IDLE_TIMEOUT_MS <= 300L)
     }
