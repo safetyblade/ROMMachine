@@ -26,6 +26,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -38,6 +39,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -46,7 +48,10 @@ import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -76,7 +81,14 @@ class NativeCoreActivity : SDLActivity() {
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
     private val gameplayControllers by lazy { GameplayControllerPresence(this) }
+    private val xboxBindings by lazy { XboxButtonBindingStore(this) }
+    private val hardwareOwners = XboxHardwareKeyRouter()
     private var physicalPadConnected by mutableStateOf(false)
+    private var controllerDevices by mutableStateOf<List<android.view.InputDevice>>(emptyList())
+    private var captureMappingTarget by mutableStateOf<Int?>(null)
+    private var mappingPerCartridge by mutableStateOf(true)
+    private var lastPhysicalInput by mutableStateOf("None")
+    private var mappingRevision by mutableStateOf(0)
     private val touch = XboxPadState()
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
@@ -256,11 +268,19 @@ class NativeCoreActivity : SDLActivity() {
         ready = true
         // Observe already-paired and hot-plugged gameplay pads; a TV remote does not qualify.
         gameplayControllers.start { devices ->
+            controllerDevices = devices
+            val activeIds = devices.map { it.id }.toSet()
+            val orphaned = hardwareOwners.removeDisconnected(activeIds)
+            if (orphaned.isNotEmpty()) {
+                orphaned.forEach { (code, down) -> hardware.key(code, down) }
+                sendHardware()
+            }
             val connected = devices.isNotEmpty()
             if (physicalPadConnected != connected) {
                 physicalPadConnected = connected
                 releaseTouch()
                 if (!connected) {
+                    hardwareOwners.clear()
                     hardware.clear()
                     sendHardware()
                 }
@@ -323,15 +343,49 @@ class NativeCoreActivity : SDLActivity() {
                                 onProbe = ::requestPixelStageProbe,
                                 onPreviousEngine = ::rollbackEngine,
                             ) {
-                                XboxMenuControls(settingsManager) { orientation, settings ->
-                                    lifecycleScope.launch {
-                                        settingsManager.storeSettings(
-                                            TouchControllerID.XBOX,
-                                            orientation,
-                                            settings,
+                                XboxMenuControls(
+                                    manager = settingsManager,
+                                    onSave = { orientation, settings ->
+                                        lifecycleScope.launch {
+                                            settingsManager.storeSettings(
+                                                TouchControllerID.XBOX,
+                                                orientation,
+                                                settings,
+                                            )
+                                        }
+                                    },
+                                    physicalMapping = {
+                                        val activePad = controllerDevices.firstOrNull()
+                                        val cartridge = if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
+                                        val mappings = remember(activePad, cartridge, mappingRevision) {
+                                            activePad?.let { pad ->
+                                                XboxButtonBindingStore.editableKeys.associateWith { target ->
+                                                    xboxBindings.mappedSources(pad, target, cartridge)
+                                                        .joinToString(" / ") {
+                                                            KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_BUTTON_")
+                                                                .removePrefix("KEYCODE_DPAD_")
+                                                        }
+                                                }
+                                            }.orEmpty()
+                                        }
+                                        XboxPhysicalMappingPanel(
+                                            controllerName = activePad?.name,
+                                            pendingTarget = captureMappingTarget,
+                                            lastInput = lastPhysicalInput,
+                                            perCartridge = mappingPerCartridge,
+                                            mappings = mappings,
+                                            onScopeChange = { mappingPerCartridge = it; captureMappingTarget = null },
+                                            onStartCapture = { captureMappingTarget = it },
+                                            onCancelCapture = { captureMappingTarget = null },
+                                            onReset = {
+                                                if (activePad != null) {
+                                                    xboxBindings.reset(activePad, cartridge)
+                                                    mappingRevision++
+                                                }
+                                            },
                                         )
-                                    }
-                                }
+                                    },
+                                )
                             }
                         }
                     }
@@ -363,6 +417,8 @@ class NativeCoreActivity : SDLActivity() {
         main.removeCallbacks(poll)
         releaseTouch()
         hardware.clear()
+        hardwareOwners.clear()
+        captureMappingTarget = null
         if (ready) {
             sendHardware()
             syncPause()
@@ -561,6 +617,27 @@ class NativeCoreActivity : SDLActivity() {
             }
             return true
         }
+        if (menuOpen && event.device?.let(ControllerHardwareProfile::isGameplayPad) == true) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                lastPhysicalInput = KeyEvent.keyCodeToString(event.keyCode).removePrefix("KEYCODE_BUTTON_")
+            }
+            val requested = captureMappingTarget
+            if (requested != null && event.keyCode in XboxButtonBindingStore.editableKeys) {
+                if (event.action == KeyEvent.ACTION_UP) {
+                    val selected = controllerDevices.firstOrNull { it.id == event.deviceId }
+                    if (selected != null &&
+                        xboxBindings.save(
+                            selected, event.keyCode, requested,
+                            if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null,
+                        )
+                    ) {
+                        mappingRevision++
+                        captureMappingTarget = null
+                    }
+                }
+                return true
+            }
+        }
         if (menuShowing || paused || leaving) {
             if (menuOpen) {
                 if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B) {
@@ -583,6 +660,16 @@ class NativeCoreActivity : SDLActivity() {
             }
             return true
         }
+        if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
+            event.keyCode in XboxButtonBindingStore.editableKeys
+        ) {
+            val mapped = xboxBindings.output(event.device, event.keyCode, registryGame()?.fileUri?.toString())
+            val emitted = hardwareOwners.route(
+                event.deviceId, event.keyCode, event.action == KeyEvent.ACTION_DOWN, mapped,
+            )
+            if (emitted != null && hardware.key(emitted.first, emitted.second)) sendHardware()
+            return true
+        }
         if (hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)) {
             sendHardware()
             return true
@@ -592,8 +679,10 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (menuShowing || paused || leaving) return true
-        if (ready && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion { axis -> event.getAxisValue(axis) }
+        if (ready && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK) &&
+            event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
+        ) {
+            hardware.motion({ axis -> event.getAxisValue(axis) }, event.device)
             sendHardware()
             return true
         }
@@ -695,6 +784,7 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun onDestroy() {
         gameplayControllers.stop()
+        hardwareOwners.clear()
         main.removeCallbacksAndMessages(null)
         releaseTouch()
         // SDL sends QUIT; upstream currently terminates its dedicated process rather than draining the core thread.
