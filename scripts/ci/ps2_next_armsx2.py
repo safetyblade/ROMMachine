@@ -136,11 +136,21 @@ def inspect_dependency(path, readelf):
     verify_android_elf(library.read_bytes(), dynamic)
     notes = output(readelf, "-nW", library)
     build = re.search(r"Build ID:\s*([0-9a-fA-F]+)", notes)
-    if not build:
+    # The upstream Rust-produced librashader C ABI library has no GNU build-id
+    # note. A build-id is a symbolication identifier, not an Android loading
+    # requirement. Only this exact source-pinned Rust dependency may omit it:
+    # verify_android_elf above still enforces AArch64, ET_DYN and 16 KiB LOAD;
+    # sha256 below binds the actual bytes throughout private APK publication.
+    if not build and library.name != "liblibrashader_capi.so":
         raise ValueError("Missing ELF build ID: " + library.name)
     return {
         "sha256": sha256(library),
-        "build_id": build.group(1).lower(),
+        "build_id": build.group(1).lower() if build else None,
+        "symbolication_build_id_available": bool(build),
+        "provenance": (
+            "GNU_BUILD_ID_AND_SHA256" if build
+            else "PINNED_RUST_SOURCE_AND_SHA256_NO_GNU_BUILD_ID"
+        ),
         "needed": sorted(needed_libraries(dynamic)),
         "size_bytes": library.stat().st_size,
     }
