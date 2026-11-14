@@ -64,6 +64,7 @@ def main():
     badging = Path(args.aapt_badging).read_text(encoding="utf-8")
     outcome = verify(args.apk, args.bundle, badging)
     Path(args.report).write_text(json.dumps(outcome, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(outcome, indent=2, sort_keys=True))
     print("PS2 native APK bytes verified; device launch and gameplay remain UNVERIFIED.")
 
 
