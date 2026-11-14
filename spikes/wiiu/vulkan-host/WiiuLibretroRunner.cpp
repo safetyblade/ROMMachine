@@ -178,7 +178,8 @@ void video(const void* data, unsigned width, unsigned height, size_t) {
     auto* s = active;
     if (!s || stop_requested.load()) return;
     if (data != RETRO_HW_FRAME_BUFFER_VALID) {
-        // A repeat/null frame is NOT proof of visible game output.
+        // A blank/repeat frame is NOT proof of visible game output.
+        if (!s->presenter.presentBlank(&s->error)) stop_requested.store(true);
         return;
     }
     s->got_video = true;
@@ -252,6 +253,10 @@ std::string run(ANativeWindow* window, const std::string& root,
         for (unsigned i = 0; i < frames && !stop_requested.load(); ++i) {
             if (!session.presenter.acquire(&session.error)) break;
             session.core.run();
+            // Cemu may still be booting without any video callback. Consume the
+            // acquired swapchain image safely; don't deadlock on the next frame.
+            if (session.presenter.hasAcquiredFrame() &&
+                !session.presenter.presentBlank(&session.error)) break;
             if (!session.error.empty()) break;
         }
     }
