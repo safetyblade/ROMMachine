@@ -25,7 +25,8 @@ public final class NativeApp {
 
     public static synchronized boolean tryLoad() {
         if (loaded) return true;
-        if (Build.VERSION.SDK_INT < 29 || !Build.SUPPORTED_ABIS[0].equals("arm64-v8a")) {
+        if (Build.VERSION.SDK_INT < 29 ||
+                !java.util.Arrays.asList(Build.SUPPORTED_ABIS).contains("arm64-v8a")) {
             loadStatus = "UNSUPPORTED_ANDROID_ABI";
             return false;
         }

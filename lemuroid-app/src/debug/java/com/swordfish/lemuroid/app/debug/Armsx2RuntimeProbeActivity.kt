@@ -27,12 +27,14 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private lateinit var status: TextView
     private lateinit var surface: SurfaceView
 
-    @Volatile private var nativeReady = false
+    @Volatile
+    private var nativeReady = false
 
-    @Volatile private var stopping = false
+    @Volatile
+    private var stopping = false
 
+    private var surfacePublished = false
     private var vmStarted = false
-    private var gameImage: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +54,6 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         // Fixed test UUID ensures isolation from real shelf cartridges.
         val sandbox = Armsx2Storage.paths(filesDir, TEST_CARTRIDGE_ID)
         val disc = File(filesDir, "ps2-next-lab/fixture.iso")
-        gameImage = disc
         val missing = Armsx2Storage.missingRequirements(sandbox, disc)
         if (missing.isNotEmpty()) {
             report("PS2_NEXT_BLOCKED: ${missing.joinToString(",")}")
@@ -88,7 +89,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun startVm(disc: File) {
-        if (vmStarted || stopping || !nativeReady) return
+        if (vmStarted || stopping || !nativeReady || !surfacePublished) return
         if (!disc.isFile) {
             report("PS2_NEXT_BLOCKED: DISC")
             return
@@ -117,7 +118,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     ) {
         if (!nativeReady || stopping || !holder.surface.isValid || width <= 0 || height <= 0) return
         runCatching { NativeApp.onNativeSurfaceChanged(holder.surface, width, height) }
-            .onFailure { report("PS2_NEXT_SURFACE_FAILED: ${it.javaClass.simpleName}") }
+            .onSuccess { surfacePublished = true }
+            .onFailure {
+                surfacePublished = false
+                report("PS2_NEXT_SURFACE_FAILED: ${it.javaClass.simpleName}")
+            }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -133,11 +138,16 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         height: Int,
     ) {
         publishSurface(holder, width, height)
+        gameImageForProbe()?.let(::startVm)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        surfacePublished = false
         if (nativeReady && !stopping) runCatching { NativeApp.onNativeSurfaceDestroyed() }
     }
+
+    private fun gameImageForProbe(): File? =
+        File(filesDir, "ps2-next-lab/fixture.iso").takeIf { it.isFile }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
