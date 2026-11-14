@@ -243,7 +243,11 @@ abstract class LemuroidApplicationModule {
         fun cartridgeSaveBinding(
             directoriesManager: DirectoriesManager,
             db: RetrogradeDatabase,
-        ) = CartridgeSaveBinding(directoriesManager) { db.gameDao().selectShelfGames().first() }
+        ) = CartridgeSaveBinding(
+            directoriesManager,
+            { db.retiredCartridgeDao().selectAll() },
+            { db.gameDao().selectShelfGames().first() },
+        )
 
         @Provides
         @PerApp

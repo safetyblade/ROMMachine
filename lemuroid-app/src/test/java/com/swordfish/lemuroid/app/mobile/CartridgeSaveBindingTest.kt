@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.SaveState
@@ -46,6 +47,71 @@ class CartridgeSaveBindingTest {
     private fun uniqueName() = "save-binding-${UUID.randomUUID()}.gb"
 
     private val config = SystemCoreConfig(CoreID.GAMBATTE, hashMapOf())
+
+    @Test fun explicitLegacySramChoiceImportsOnlyToSelectedCartridgeAndRetainsOriginal() =
+        runBlocking {
+            val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
+            val name = uniqueName()
+            val first = game(name, "content://fixture/first")
+            val second = game(name, "content://fixture/second")
+            val original = File(dirs.getSavesDirectory(), "${name.substringBeforeLast('.')}.srm")
+            val bytes = byteArrayOf(10, 20, 30, 40)
+            original.writeBytes(bytes)
+            val binding = CartridgeSaveBinding(dirs) { listOf(first, second) }
+            val firstUnassigned = binding.sramFile(first, original, "shared")
+            assertFalse(firstUnassigned.exists())
+            val candidate = binding.pendingSharedSram(first)!!
+            assertTrue(candidate.sha256.length == 64)
+            val recovered = binding.confirmSharedSramRecovery(first, candidate.sha256)
+            assertArrayEquals(bytes, recovered.readBytes())
+            assertArrayEquals(bytes, original.readBytes())
+            assertEquals(recovered, binding.confirmSharedSramRecovery(first, candidate.sha256))
+            assertArrayEquals(bytes, SavesManager(dirs, binding).getSaveRAM(first, config))
+            assertNull(SavesManager(dirs, binding).getSaveRAM(second, config))
+            val marker =
+                File(
+                    dirs.getSaveBindingsDirectory(),
+                    "${first.cartridgeId}/sram/${MessageDigest.getInstance("SHA-256")
+                        .digest("shared".toByteArray()).joinToString("") { "%02x".format(it) }}.active",
+                )
+            assertTrue(marker.readText().contains("user-confirmed-shared-sram"))
+        }
+
+    @Test fun explicitRecoveryRejectsNewerProgressOrChangedHistoricalFingerprint() =
+        runBlocking {
+            val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
+            val name = uniqueName()
+            val first = game(name, "content://fixture/first")
+            val second = game(name, "content://fixture/second")
+            val source = File(dirs.getSavesDirectory(), "${name.substringBeforeLast('.')}.srm")
+            source.writeBytes(byteArrayOf(1, 2, 3))
+            val binding = CartridgeSaveBinding(dirs) { listOf(first, second) }
+            val selection = binding.pendingSharedSram(first)!!
+            source.writeBytes(byteArrayOf(5, 6, 7))
+            assertTrue(
+                runCatching { binding.confirmSharedSramRecovery(first, selection.sha256) }.exceptionOrNull() != null,
+            )
+            val current = binding.sramFile(first, source, "shared")
+            current.parentFile!!.mkdirs()
+            current.writeBytes(byteArrayOf(99, 100))
+            val changed = binding.pendingSharedSram(first)!!
+            assertTrue(
+                runCatching { binding.confirmSharedSramRecovery(first, changed.sha256) }.exceptionOrNull() != null,
+            )
+            assertArrayEquals(byteArrayOf(99, 100), current.readBytes())
+            assertArrayEquals(byteArrayOf(5, 6, 7), source.readBytes())
+        }
+
+    @Test fun absentRetiredCartridgeWithSameSaveAliasBlocksAutomaticLegacyImport() =
+        runBlocking {
+            val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
+            val name = uniqueName()
+            val live = game(name, "content://fixture/live")
+            val retired = RetiredCartridge.fromGame(game(name, "content://fixture/missing"), 10L)
+            val binding = CartridgeSaveBinding(dirs, { listOf(retired) }, { listOf(live) })
+            assertFalse(binding.mayImportLegacy(live, true))
+            assertFalse(binding.mayImportLegacy(live, false))
+        }
 
     @Test fun distinctCartridgesCannotReadOrOverwriteSameFilenameSram() =
         runBlocking {

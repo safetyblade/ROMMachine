@@ -92,6 +92,7 @@ import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import dagger.Provides
@@ -111,6 +112,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
     @Inject
     lateinit var saveSyncManager: SaveSyncManager
+
+    @Inject
+    lateinit var cartridgeSaveBinding: CartridgeSaveBinding
 
     @Inject
     lateinit var retrogradeDb: RetrogradeDatabase
@@ -193,6 +197,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             val creatingSection = remember { mutableStateOf(false) }
             val shelfEditTools = remember { mutableStateOf(false) }
             val editingAppearance = remember { mutableStateOf(false) }
+            val recoveryOpen = remember { mutableStateOf(false) }
             val shelfReady = shelfState.layout != null && shelfState.error == null
 
             LaunchedEffect(currentRoute) {
@@ -423,6 +428,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                         ),
                                 ),
                             navController = navController,
+                            onOpenRecovery = { recoveryOpen.value = true },
                         )
                     }
                     composable(MainRoute.SETTINGS_SUPPORTED_GAMES) {
@@ -497,6 +503,15 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                 }
+            }
+
+            if (recoveryOpen.value) {
+                CartridgeRecoveryDialog(
+                    database = retrogradeDb,
+                    binding = cartridgeSaveBinding,
+                    onDismiss = { recoveryOpen.value = false },
+                    onUpdated = { shelfViewModel.reload(clearUndo = true) },
+                )
             }
 
             if (shelfEditTools.value) {

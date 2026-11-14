@@ -49,23 +49,25 @@ data class RetiredCartridge(
     fun displayName(): String = customName ?: title
 
     companion object {
-        fun fromGame(game: Game, retiredAt: Long) =
-            RetiredCartridge(
-                cartridgeId = game.cartridgeId,
-                formerGameId = game.id,
-                fileName = game.fileName,
-                fileUri = game.fileUri,
-                title = game.title,
-                systemId = game.systemId,
-                developer = game.developer,
-                coverFrontUrl = game.coverFrontUrl,
-                lastPlayedAt = game.lastPlayedAt,
-                isFavorite = game.isFavorite,
-                customName = game.customName,
-                customCoverUri = game.customCoverUri,
-                legacyFileName = game.legacyFileName,
-                legacySourceUri = game.legacySourceUri,
-                retiredAt = retiredAt,
-            )
+        fun fromGame(
+            game: Game,
+            retiredAt: Long,
+        ) = RetiredCartridge(
+            cartridgeId = game.cartridgeId,
+            formerGameId = game.id,
+            fileName = game.fileName,
+            fileUri = game.fileUri,
+            title = game.title,
+            systemId = game.systemId,
+            developer = game.developer,
+            coverFrontUrl = game.coverFrontUrl,
+            lastPlayedAt = game.lastPlayedAt,
+            isFavorite = game.isFavorite,
+            customName = game.customName,
+            customCoverUri = game.customCoverUri,
+            legacyFileName = game.legacyFileName,
+            legacySourceUri = game.legacySourceUri,
+            retiredAt = retiredAt,
+        )
     }
 }
