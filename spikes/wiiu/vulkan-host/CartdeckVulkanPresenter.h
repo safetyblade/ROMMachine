@@ -22,6 +22,8 @@ public:
                     std::string* error);
     bool acquire(std::string* error);
     bool present(unsigned width, unsigned height, std::string* error);
+    bool presentBlank(std::string* error);
+    bool hasAcquiredFrame() const { return acquired_; }
     void stop();
 
     retro_hw_render_interface_vulkan* interface() { return &frontend_; }
