@@ -110,7 +110,7 @@ class XboxEngineStore(
 
     private fun libraries(props: Properties): List<String> {
         val names = props.getProperty("library.names").split(",")
-        require(names.distinct().size == names.size && names.all { it.matches(Regex("lib[A-Za-z0-9_]+\\.so")) })
+        require(names.distinct().size == names.size && names.all { it.matches(Regex("lib[A-Za-z0-9_.+-]+\\.so")) })
         require(names.containsAll(requiredLibraries))
         require(props.getProperty("library.$coreName.sha256") == props.getProperty("core.sha256"))
         return names
