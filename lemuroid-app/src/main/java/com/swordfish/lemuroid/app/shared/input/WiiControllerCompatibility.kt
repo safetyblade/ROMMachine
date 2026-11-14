@@ -7,7 +7,10 @@ package com.swordfish.lemuroid.app.shared.input
  */
 object WiiControllerCompatibility {
     enum class Variant {
-        CLASSIC, SIDEWAYS_REMOTE, REMOTE_WITH_NUNCHUK, OTHER
+        CLASSIC,
+        SIDEWAYS_REMOTE,
+        REMOTE_WITH_NUNCHUK,
+        OTHER,
     }
 
     fun variant(coreControllerName: String): Variant {
@@ -30,7 +33,8 @@ object WiiControllerCompatibility {
             ?: supportedNames.first()
     }
 
-    fun help(variant: Variant): String = when (variant) {
+    fun help(variant: Variant): String =
+        when (variant) {
         Variant.CLASSIC -> "Use this where the Wii game itself supports Classic Controller input."
         Variant.SIDEWAYS_REMOTE -> "Sideways Remote maps directional and face inputs; not all games support it."
         Variant.REMOTE_WITH_NUNCHUK ->
