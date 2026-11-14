@@ -70,6 +70,7 @@ internal fun encode(layout: ShelfLayout): String =
                 put("patternId", layout.appearance.patternId)
                 put("stampId", layout.appearance.stampId)
                 put("decal", layout.appearance.decal?.let(::decalToJson) ?: JSONObject.NULL)
+                put("lighting", lightingToJson(layout.appearance.lighting))
                 put(
                     "profiles",
                     JSONArray().apply {
@@ -83,6 +84,7 @@ internal fun encode(layout: ShelfLayout): String =
                                     put("patternId", profile.patternId)
                                     put("stampId", profile.stampId)
                                     put("decal", profile.decal?.let(::decalToJson) ?: JSONObject.NULL)
+                                    put("lighting", lightingToJson(profile.lighting))
                                     put("createdAt", profile.createdAt)
                                     put("updatedAt", profile.updatedAt)
                                 },
@@ -152,6 +154,7 @@ internal fun decode(json: String): ShelfLayout {
                             patternId = record.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
                             stampId = record.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
                             decal = record.optJSONObject("decal")?.let(::decalFromJson),
+                            lighting = record.optJSONObject("lighting")?.let(::lightingFromJson) ?: CartdeckLighting(),
                             createdAt = record.optLong("createdAt"),
                             updatedAt = record.optLong("updatedAt"),
                         )
@@ -174,6 +177,7 @@ internal fun decode(json: String): ShelfLayout {
                 patternId = appearance.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
                 stampId = appearance.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
                 decal = appearance.optJSONObject("decal")?.let(::decalFromJson),
+                lighting = appearance.optJSONObject("lighting")?.let(::lightingFromJson) ?: CartdeckLighting(),
             ),
         sections =
             (0 until sections.length()).map { index ->
