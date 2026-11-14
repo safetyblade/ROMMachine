@@ -30,7 +30,8 @@ object Migrations {
                     """.trimIndent(),
                 )
                 database.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_retired_cartridges_systemId` ON `retired_cartridges` (`systemId`)",
+                    "CREATE INDEX IF NOT EXISTS `index_retired_cartridges_systemId` " +
+                        "ON `retired_cartridges` (`systemId`)",
                 )
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_retired_cartridges_fileUri` ON `retired_cartridges` (`fileUri`)",
