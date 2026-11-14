@@ -5,6 +5,7 @@ import android.util.AtomicFile
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import org.json.JSONObject
 import java.io.File
 
@@ -15,11 +16,15 @@ internal class LibraryRefreshJournal(context: Context) {
 
     fun pending(): Boolean = file.exists() || File(file.path + ".bak").exists()
 
-    fun prepare(games: List<Game>) {
+    fun prepare(games: List<Game>, retired: List<RetiredCartridge> = emptyList()) {
         check(!pending()) { "Previous refresh requires recovery" }
         file.parentFile!!.mkdirs()
         val identities = JSONObject()
-        games.forEach { identities.put(it.cartridgeId, shelfGameKey(it.systemId, it.fileUri)) }
+        retired.forEach { identities.put(it.cartridgeId, shelfGameKey(it.systemId, it.fileUri)) }
+        games.forEach {
+            check(!identities.has(it.cartridgeId)) { "Live cartridge conflicts with retired identity" }
+            identities.put(it.cartridgeId, shelfGameKey(it.systemId, it.fileUri))
+        }
         val stream = atomic.startWrite()
         try {
             stream.write(
@@ -35,6 +40,7 @@ internal class LibraryRefreshJournal(context: Context) {
     suspend fun reconcile(
         games: List<Game>,
         shelf: ShelfStore,
+        retired: List<RetiredCartridge> = emptyList(),
     ) {
         if (!pending()) return
         val root = atomic.openRead().bufferedReader().use { JSONObject(it.readText()) }
@@ -46,7 +52,11 @@ internal class LibraryRefreshJournal(context: Context) {
                 val current = shelfGameKey(game.systemId, game.fileUri)
                 if (old == current) null else old to current
             }.toMap()
-        val names = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
+        // Keep unavailable positions in the same shelf sections/slots.
+        // Retired cartridges are never represented as launchable Game objects.
+        val names =
+            retired.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() } +
+                games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
         shelf.update { layout ->
             val known = layout.sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
             check(moves.none { (old, new) -> old in known && new in known }) { "Ambiguous shelf identity move" }
