@@ -24,7 +24,10 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class CartridgeRecoveryManagerTest {
-    private fun cartridge(uri: String, name: String) =
+    private fun cartridge(
+        uri: String,
+        name: String,
+    ) =
         Game(
             fileName = "$name.gba",
             fileUri = uri,
@@ -40,14 +43,16 @@ class CartridgeRecoveryManagerTest {
     ) {
         val context = ApplicationProvider.getApplicationContext<Application>()
         File(context.filesDir, "cartdeck").deleteRecursively()
-        val db = Room.inMemoryDatabaseBuilder(context, RetrogradeDatabase::class.java)
-            .allowMainThreadQueries().build()
-        val former = cartridge("content://fixture/old", "Original").copy(
-            customName = "My cartridge",
-            customCoverUri = "file:///cover.jpg",
-            isFavorite = true,
-            lastPlayedAt = 23L,
-        )
+        val db =
+            Room.inMemoryDatabaseBuilder(context, RetrogradeDatabase::class.java)
+                .allowMainThreadQueries().build()
+        val former =
+            cartridge("content://fixture/old", "Original").copy(
+                customName = "My cartridge",
+                customCoverUri = "file:///cover.jpg",
+                isFavorite = true,
+                lastPlayedAt = 23L,
+            )
         val retired = RetiredCartridge.fromGame(former, 50L)
         val incoming = cartridge("content://fixture/new", "Replacement")
         db.retiredCartridgeDao().insert(listOf(retired))
@@ -109,8 +114,9 @@ class CartridgeRecoveryManagerTest {
     @Test fun manualJournalCanReplayAfterCommitBeforeShelfUpdateWithoutGuessingOwnership() =
         runBlocking {
             withInventory { context, db, _, incoming, retired, shelf ->
-                val originalCell = shelf.read().sections.flatMap { it.cells }
-                    .single { it.gameKey == retiredShelfKey(retired.cartridgeId) }
+                val originalCell =
+                    shelf.read().sections.flatMap { it.cells }
+                        .single { it.gameKey == retiredShelfKey(retired.cartridgeId) }
                 val journal = LibraryRefreshJournal(context)
                 journal.prepareManualRecovery(
                     db.gameDao().selectShelfGames().first(),
