@@ -24,8 +24,11 @@ python3 - "$ROOT" "$WORK/source" <<'PY'
 import pathlib
 import sys
 sys.path.insert(0, str(pathlib.Path(sys.argv[1]) / "scripts/ci"))
-from wiiu_cemu_contract import check_source
+from wiiu_cemu_contract import check_source, patch_android_manifest_features
+import json
 check_source(sys.argv[2])
+proof = patch_android_manifest_features(sys.argv[2])
+(pathlib.Path(sys.argv[2]).parent / "source-patches.json").write_text(json.dumps([proof], indent=2) + "\n")
 print("Pinned Cemu source and recursive submodules: PASS")
 PY
 export VCPKG_FORCE_SYSTEM_BINARIES=1

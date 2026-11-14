@@ -27,6 +27,26 @@ FORBIDDEN_LIBRARIES = ("libc.so.6", "libstdc++.so.6", "ld-linux", "libGL.so")
 SONAME = re.compile(r"lib[A-Za-z0-9_+.-]+\.so\Z")
 
 
+CMAKE_SHA256 = "0710017b1bacaad2a2815b0f40c4efa060da67632fcb79529e4006de1bcf197a"
+USB_GUARD = 'if (NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS" AND NOT WEBOS)'
+USB_GUARD_FIXED = 'if ((NOT DEFINED ENABLE_LIBUSB OR ENABLE_LIBUSB) AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS" AND NOT WEBOS)'
+
+
+def patch_android_manifest_features(root):
+    """Make the dependency manifest respect the existing explicit raw-USB OFF option."""
+    path = pathlib.Path(root) / "CMakeLists.txt"
+    before = path.read_bytes()
+    if hashlib.sha256(before).hexdigest() != CMAKE_SHA256:
+        raise ValueError("Pinned Cemu CMake source drift before manifest patch")
+    old, new = USB_GUARD.encode(), USB_GUARD_FIXED.encode()
+    if before.count(old) != 1:
+        raise ValueError("Pinned USB manifest guard missing/duplicated")
+    path.write_bytes(before.replace(old, new))
+    return {"path": "CMakeLists.txt", "before_sha256": CMAKE_SHA256,
+            "after_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "purpose": "Respect explicit ENABLE_LIBUSB=OFF; Android controllers use Libretro"}
+
+
 def command(*args, cwd=None):
     return subprocess.check_output([str(x) for x in args], cwd=cwd, text=True).strip()
 
@@ -98,7 +118,9 @@ def main():
     symbols = command(a.readelf, "--dyn-syms", "-W", a.binary)
     notes = command(a.readelf, "-nW", a.binary)
     result = check_binary(data, dynamic, symbols, notes)
+    patches = a.source.parent / "source-patches.json"
     result.update({
+        "source_patches": json.loads(patches.read_text()) if patches.is_file() else [],
         "source": source, "ndk": NDK_VERSION,
         "core_sha256": hashlib.sha256(data).hexdigest(),
         "core_size_bytes": len(data),

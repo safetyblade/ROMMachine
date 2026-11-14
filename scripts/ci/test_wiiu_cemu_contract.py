@@ -2,6 +2,12 @@
 """Offline fail-closed tests for WIIU-01's source/ELF gate."""
 import struct
 import unittest
+import hashlib
+import pathlib
+import subprocess
+import tempfile
+from unittest.mock import patch
+import wiiu_cemu_contract as contract
 
 from wiiu_cemu_contract import (
     REQUIRED_LIBRETRO, SOURCE_SHA, check_binary,
@@ -74,6 +80,30 @@ class WiiuCemuContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "BuildID"):
             self.valid(notes="no build id")
 
+
+
+class ManifestUsbOptionTests(unittest.TestCase):
+    def test_explicit_raw_usb_off_does_not_pull_usb_build_dependencies(self):
+        for setting, expected in ((None, 'usb'), ('ON', 'usb'), ('OFF', '')):
+            with self.subTest(setting=setting), tempfile.TemporaryDirectory() as tmp:
+                root = pathlib.Path(tmp)
+                declared = '' if setting is None else 'set(ENABLE_LIBUSB ' + setting + ')\n'
+                source = declared + 'set(CMAKE_SYSTEM_NAME Android)\n' + contract.USB_GUARD + '\nlist(APPEND VCPKG_MANIFEST_FEATURES usb)\nendif()\nmessage(STATUS "FEATURES=${VCPKG_MANIFEST_FEATURES}")\n'
+                path = root / 'CMakeLists.txt'
+                path.write_text(source)
+                before = hashlib.sha256(path.read_bytes()).hexdigest()
+                with patch.object(contract, 'CMAKE_SHA256', before):
+                    proof = contract.patch_android_manifest_features(root)
+                self.assertNotEqual(proof['before_sha256'], proof['after_sha256'])
+                result = subprocess.check_output(['cmake', '-P', str(path)], text=True)
+                self.assertEqual('-- FEATURES=' + expected, result.strip())
+
+    def test_pinned_build_patch_rejects_modified_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'CMakeLists.txt').write_text('unreviewed source')
+            with self.assertRaisesRegex(ValueError, 'source drift'):
+                contract.patch_android_manifest_features(root)
 
 if __name__ == "__main__":
     unittest.main()
