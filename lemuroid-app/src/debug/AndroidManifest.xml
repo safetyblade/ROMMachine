@@ -5,5 +5,6 @@
         <activity android:name="com.swordfish.lemuroid.app.debug.DreamcastRuntimeProbeActivity" android:exported="true" />
         <activity android:name="com.swordfish.lemuroid.app.debug.GameCubeRuntimeProbeActivity" android:exported="true" />
         <activity android:name="com.swordfish.lemuroid.app.debug.PlayStation2RuntimeProbeActivity" android:exported="true" />
+        <activity android:name="com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity" android:exported="true" android:process=":ps2next" android:theme="@style/LemuroidMaterialTheme.Game" />
     </application>
 </manifest>
