@@ -119,6 +119,9 @@ android {
                     "*/*/*_libretro_android.so", "**/liblibretrodroid.so",
                     "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
                 )
+            if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+                keepDebugSymbols += setOf("**/libcemu_libretro_android.so", "**/libcartdeckwiiuvulkanhost.so")
+            }
             useLegacyPackaging = true
         }
         resources {

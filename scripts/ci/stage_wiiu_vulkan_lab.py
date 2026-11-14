@@ -38,6 +38,14 @@ def stage(work, output, readelf):
         proof.get("source", {}).get("revision") != CEMU_SHA
     ) or proof.get("vulkan_frontend_verified") is not False:
         raise ValueError("Cemu native proof invalid or not pinned")
+    if proof.get("adapter_working_tree_unpublished"):
+        raise ValueError("Host source must match its recorded commit before packaging")
+    revision = proof.get("adapter_source_revision", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("Adapter source revision missing")
+    notices = work / "cemu-licenses.zip"
+    if not notices.is_file() or sha(notices) != proof.get("notices_sha256"):
+        raise ValueError("Verified dependency notices missing")
     verified = {}
     for source, target in INPUTS.items():
         f = work / source
@@ -47,6 +55,24 @@ def stage(work, output, readelf):
         from subprocess import check_output
         dynamic = check_output([str(readelf), "-dW", str(f)], text=True)
         verify_android_elf(f.read_bytes(), dynamic)
+        symbols = check_output([str(readelf), "--dyn-syms", "-W", str(f)], text=True)
+        notes = check_output([str(readelf), "-nW", str(f)], text=True)
+        if source.startswith("cemu_"):
+            from wiiu_cemu_contract import check_binary
+            check_binary(f.read_bytes(), dynamic, symbols, notes)
+        else:
+            prefix = "Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_"
+            exported = set()
+            for line in symbols.splitlines():
+                fields = line.split()
+                if len(fields) >= 8 and fields[3:6] == ["FUNC", "GLOBAL", "DEFAULT"] and fields[6] != "UND":
+                    exported.add(fields[7])
+            required = {prefix + name for name in (
+                "nativeRun", "nativePrepare", "nativeStop", "nativePause", "nativeReport",
+                "nativeController", "nativeToggleScreen", "nativeButton", "nativeAxis", "nativePointer", "nativeSurface",
+            )}
+            if required - exported or not re.search(r"Build ID: [a-f0-9]+", notes):
+                raise ValueError("Wii U host JNI ABI or crash BuildID missing")
         needed = set(re.findall(r'\(NEEDED\).*\[(.*?)\]', dynamic))
         missing = needed - SYSTEM - set(INPUTS.values())
         if missing:
@@ -62,6 +88,16 @@ def stage(work, output, readelf):
         shutil.copyfile(work / source, libs / target)
         if sha(libs / target) != verified[target]["sha256"]:
             raise ValueError("Staged native ELF byte mismatch: " + target)
+    assets = output / "assets/cartdeck"
+    assets.mkdir(parents=True)
+    props = {
+        "revision": revision, "upstream.revision": CEMU_SHA,
+        "core.sha256": verified["libcemu_libretro_android.so"]["sha256"],
+        "library.names": ",".join(sorted(verified)),
+    }
+    props.update({"library." + name + ".sha256": meta["sha256"] for name, meta in verified.items()})
+    (assets / "cemu.properties").write_text("".join(key + "=" + value + "\n" for key, value in sorted(props.items())))
+    shutil.copyfile(notices, assets / "cemu-licenses.zip")
     report = {
         "result": "WIIU_SOURCE_VERIFIED_PRIVATE_JNI_BUNDLE_ONLY",
         "cemu_source_sha": CEMU_SHA,

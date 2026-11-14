@@ -29,6 +29,8 @@ public:
     retro_hw_render_interface_vulkan* interface() { return &frontend_; }
     bool ready() const { return device_ != VK_NULL_HANDLE && swapchain_ != VK_NULL_HANDLE; }
     unsigned presentedFrames() const { return presented_frames_; }
+    std::string deviceDescription() const;
+    bool replaceSurface(ANativeWindow* window, std::string* error);
 
 private:
     static VkInstance createInstanceWrapper(void* opaque, const VkInstanceCreateInfo* request);
@@ -46,6 +48,8 @@ private:
     static void setSignalSemaphore(void* handle, VkSemaphore semaphore);
 
     bool createSwapchain(std::string* error);
+    void destroySwapchain();
+    bool resize_pending_ = false;
     static bool fail(std::string* error, const char* message);
 
     ANativeWindow* window_ = nullptr;

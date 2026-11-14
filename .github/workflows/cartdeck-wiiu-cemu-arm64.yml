@@ -14,6 +14,8 @@ on:
       - "spikes/wiiu/vulkan-host/**"
       - "scripts/ci/stage_wiiu_vulkan_lab.py"
       - "lemuroid-app/src/debug/**"
+      - "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/wiiu/**"
+      - "scripts/ci/wiiu_notices.py"
       - "lemuroid-app/build.gradle.kts"
       - ".github/workflows/cartdeck-wiiu-cemu-arm64.yml"
   pull_request:
@@ -44,7 +46,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run WIIU-01 contract tests
-        run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_cemu_contract.py" -v
+        run: python3 -m unittest discover -s scripts/ci -p "test_wiiu*.py" -v
       - name: Native audio behavior tests
         run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_audio.py" -v
 
@@ -96,6 +98,7 @@ jobs:
         with:
           name: wiiu-cemu-verified-arm64-core-private-not-an-apk
           path: |
+            ${{ runner.temp }}/wiiu-cemu-arm64/cemu-licenses.zip
             ${{ runner.temp }}/wiiu-cemu-arm64/native-evidence.json
             ${{ runner.temp }}/wiiu-cemu-arm64/cemu_libretro_android_arm64.so
             ${{ runner.temp }}/wiiu-cemu-arm64/cartdeck_wiiu_vulkan_host_arm64.so
@@ -157,12 +160,14 @@ jobs:
           "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
             -Pcartdeck.wiiu.labId=true \
             -Pcartdeck.p0.phoneArm64Only=true \
-            -Pcartdeck.p0.testVersionCode=90571000 \
+            -Pcartdeck.p0.testVersionCode=90611402 \
             -PcartdeckNativeBundleDir="$RUNNER_TEMP/wiiu-private-payload" \
             -PcartdeckHostMavenRepo="$WIIU_HOST_MAVEN" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
             -Pkotlin.compiler.execution.strategy=in-process \
             --no-daemon --no-configuration-cache --max-workers=2
+      - name: Runtime storage, pad, viewport and complete-pair rollback contracts
+        run: '"$GRADLE_BIN" -p scripts/ci/wiiu-tests test --no-daemon --max-workers=2'
       - name: Verify signed private Android package and unmodified JNI libraries
         shell: bash
         run: |
@@ -173,7 +178,7 @@ jobs:
           mkdir -p dist/wiiu-private
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" > dist/wiiu-private/package.txt
           grep -F "package: name='dev.prestwich.cartdeck.wiiulab.debug'" dist/wiiu-private/package.txt
-          grep -F "versionCode='90571000'" dist/wiiu-private/package.txt
+          grep -F "versionCode='90611402'" dist/wiiu-private/package.txt
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK" > dist/wiiu-private/signing.txt
           "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c 4 "$APK"
           python3 - "$APK" "$RUNNER_TEMP/wiiu-private-payload/wiiu-bundle-evidence.json" <<'PY'
@@ -191,7 +196,7 @@ jobs:
           print('Private Wii U lab APK contains exact source-verified core and host; gameplay UNVERIFIED')
           PY
           cp "$APK" dist/wiiu-private/CARTDECK_WIIU_VULKAN_ARM64_PRIVATE_TEST.apk
-          sha256sum dist/wiiu-private/*.apk > dist/wiiu-private/apk-sha256.txt
+          sha256sum dist/wiiu-private/*.apk | tee dist/wiiu-private/apk-sha256.txt
       - uses: actions/upload-artifact@v4
         with:
           name: CARTDECK_WIIU_VULKAN_ARM64_PRIVATE_TEST_APK

@@ -24,6 +24,17 @@ VkExtent2D clampExtent(const VkSurfaceCapabilitiesKHR& caps, ANativeWindow* wind
 
 CartdeckVulkanPresenter::~CartdeckVulkanPresenter() { stop(); }
 
+std::string CartdeckVulkanPresenter::deviceDescription() const {
+    if (!gpu_) return "vulkan_device=UNAVAILABLE";
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(gpu_, &properties);
+    return std::string("renderer=Vulkan; driver_selection=STOCK\nvulkan_device=") + properties.deviceName +
+        "\nvendor_id=" + std::to_string(properties.vendorID) +
+        "\ndevice_id=" + std::to_string(properties.deviceID) +
+        "\ndriver_version=" + std::to_string(properties.driverVersion) +
+        "\nvulkan_api=" + std::to_string(properties.apiVersion);
+}
+
 bool CartdeckVulkanPresenter::fail(std::string* err, const char* message) {
     if (err) *err = message;
     return false;
@@ -102,7 +113,10 @@ void CartdeckVulkanPresenter::setCommandBuffers(
 }
 void CartdeckVulkanPresenter::waitSync(void* h) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(h);
-    if (self && self->queue_) vkQueueWaitIdle(self->queue_);
+    if (self && self->queue_) {
+        std::lock_guard<std::mutex> lock(self->queue_mutex_);
+        vkQueueWaitIdle(self->queue_);
+    }
 }
 void CartdeckVulkanPresenter::lockQueue(void* h) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(h);
@@ -292,15 +306,25 @@ bool CartdeckVulkanPresenter::createSwapchain(std::string* error) {
 bool CartdeckVulkanPresenter::acquire(std::string* error) {
     if (!ready()) return fail(error, "VULKAN_RENDERER_NOT_READY");
     if (acquired_) return fail(error, "VULKAN_FRAME_ALREADY_ACQUIRED");
+    if (resize_pending_) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        if (vkDeviceWaitIdle(device_) != VK_SUCCESS) return fail(error, "VULKAN_RESIZE_DEVICE_LOST");
+        destroySwapchain();
+        if (!createSwapchain(error)) return false;
+        resize_pending_ = false;
+    }
     saw_image_ = false;
     unsupported_command_buffers_ = false;
     source_semaphores_.clear();
     reuse_signal_ = VK_NULL_HANDLE;
     VkResult ret = vkAcquireNextImageKHR(
         device_, swapchain_, UINT64_MAX, acquired_sem_, VK_NULL_HANDLE, &image_index_);
-    if (ret == VK_ERROR_OUT_OF_DATE_KHR || ret == VK_SUBOPTIMAL_KHR)
-        return fail(error, "VULKAN_SWAPCHAIN_RESIZE_REQUIRED");
-    if (ret != VK_SUCCESS) return fail(error, "VULKAN_ACQUIRE_FAILED");
+    if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
+        resize_pending_ = true;
+        return fail(error, "VULKAN_ACQUIRE_OUT_OF_DATE_RETRY");
+    }
+    if (ret == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
+    if (ret != VK_SUCCESS && ret != VK_SUBOPTIMAL_KHR) return fail(error, "VULKAN_ACQUIRE_FAILED");
     acquired_ = true;
     return true;
 }
@@ -314,6 +338,12 @@ bool CartdeckVulkanPresenter::present(
         return fail(error, "VULKAN_CORE_FRAME_UNSUPPORTED");
     if (!source_image_.create_info.image || width == 0 || height == 0)
         return fail(error, "VULKAN_INVALID_CORE_IMAGE");
+    VkFormatProperties srcFormat{}, dstFormat{};
+    vkGetPhysicalDeviceFormatProperties(gpu_, source_image_.create_info.format, &srcFormat);
+    vkGetPhysicalDeviceFormatProperties(gpu_, surface_format_, &dstFormat);
+    if (!(srcFormat.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+        !(dstFormat.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+        return fail(error, "VULKAN_FRAME_FORMAT_CANNOT_BLIT");
 
     VkCommandBuffer cmd = commands_[image_index_];
     if (vkResetCommandBuffer(cmd, 0) != VK_SUCCESS)
@@ -345,14 +375,35 @@ bool CartdeckVulkanPresenter::present(
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
                          0, nullptr, 2, bars);
 
+    // Clear only the uncovered bars. This never counts as guest image evidence.
+    VkClearColorValue black{};
+    black.float32[3] = 1.0f;
+    vkCmdClearColorImage(cmd, bars[1].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        &black, 1, &bars[1].subresourceRange);
+    VkImageMemoryBarrier afterClear = bars[1];
+    afterClear.oldLayout = afterClear.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    afterClear.srcAccessMask = afterClear.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         0, 0, nullptr, 0, nullptr, 1, &afterClear);
+    uint32_t fitWidth = extent_.width;
+    uint32_t fitHeight = static_cast<uint32_t>(uint64_t(fitWidth) * height / width);
+    if (fitHeight > extent_.height) {
+        fitHeight = extent_.height;
+        fitWidth = static_cast<uint32_t>(uint64_t(fitHeight) * width / height);
+    }
+    fitWidth = std::max(1u, fitWidth);
+    fitHeight = std::max(1u, fitHeight);
+    const int32_t left = static_cast<int32_t>((extent_.width - fitWidth) / 2);
+    const int32_t top = static_cast<int32_t>((extent_.height - fitHeight) / 2);
+
     VkImageBlit blit{};
     blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.srcSubresource.layerCount = 1;
     blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.dstSubresource.layerCount = 1;
     blit.srcOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
-    blit.dstOffsets[1] = {static_cast<int32_t>(extent_.width),
-                          static_cast<int32_t>(extent_.height), 1};
+    blit.dstOffsets[0] = {left, top, 0};
+    blit.dstOffsets[1] = {left + static_cast<int32_t>(fitWidth), top + static_cast<int32_t>(fitHeight), 1};
     vkCmdBlitImage(cmd, bars[0].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    bars[1].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                    1, &blit, VK_FILTER_NEAREST);
@@ -403,9 +454,12 @@ bool CartdeckVulkanPresenter::present(
         vkQueueWaitIdle(queue_);  // Conservative single-frame pacing for initial QA.
     }
     acquired_ = false;
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-        return fail(error, "VULKAN_SWAPCHAIN_RESIZE_REQUIRED");
-    if (result != VK_SUCCESS) return fail(error, "VULKAN_PRESENT_FAILED");
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        resize_pending_ = true;
+        return true;  // No presentation counted; recreate at the next frame boundary.
+    }
+    if (result == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) return fail(error, "VULKAN_PRESENT_FAILED");
     ++presented_frames_;
     return true;
 }
@@ -470,14 +524,15 @@ bool CartdeckVulkanPresenter::presentBlank(std::string* error) {
         vkQueueWaitIdle(queue_);
     }
     acquired_ = false;
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) { resize_pending_ = true; return true; }
+    if (result == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         return fail(error, "VULKAN_BLANK_PRESENT_FAILED");
     // A black loading frame MUST NOT increment confirmed game-image callbacks.
     return true;
 }
 
-void CartdeckVulkanPresenter::stop() {
-    if (device_) vkDeviceWaitIdle(device_);
+void CartdeckVulkanPresenter::destroySwapchain() {
     if (acquired_sem_) vkDestroySemaphore(device_, acquired_sem_, nullptr);
     if (rendered_sem_) vkDestroySemaphore(device_, rendered_sem_, nullptr);
     acquired_sem_ = rendered_sem_ = VK_NULL_HANDLE;
@@ -487,6 +542,34 @@ void CartdeckVulkanPresenter::stop() {
     swapchain_ = VK_NULL_HANDLE;
     images_.clear();
     commands_.clear();
+    acquired_ = false;
+    saw_image_ = false;
+}
+
+bool CartdeckVulkanPresenter::replaceSurface(ANativeWindow* window, std::string* error) {
+    if (!window || !device_) return fail(error, "VULKAN_REPLACEMENT_SURFACE_INVALID");
+    std::lock_guard<std::mutex> lock(queue_mutex_);
+    if (vkDeviceWaitIdle(device_) != VK_SUCCESS) return fail(error, "VULKAN_SURFACE_DEVICE_LOST");
+    destroySwapchain();
+    if (surface_) vkDestroySurfaceKHR(instance_, surface_, nullptr);
+    surface_ = VK_NULL_HANDLE;
+    ANativeWindow_acquire(window);
+    if (window_) ANativeWindow_release(window_);
+    window_ = window;
+    VkAndroidSurfaceCreateInfoKHR info{VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR};
+    info.window = window_;
+    if (vkCreateAndroidSurfaceKHR(instance_, &info, nullptr, &surface_) != VK_SUCCESS)
+        return fail(error, "VULKAN_SURFACE_RECREATE_FAILED");
+    VkBool32 supported = VK_FALSE;
+    if (vkGetPhysicalDeviceSurfaceSupportKHR(gpu_, family_, surface_, &supported) != VK_SUCCESS || !supported)
+        return fail(error, "VULKAN_REPLACEMENT_QUEUE_CANNOT_PRESENT");
+    resize_pending_ = false;
+    return createSwapchain(error);
+}
+
+void CartdeckVulkanPresenter::stop() {
+    if (device_) vkDeviceWaitIdle(device_);
+    destroySwapchain();
     if (negotiation_ && negotiation_->destroy_device && device_)
         negotiation_->destroy_device();
     if (device_) vkDestroyDevice(device_, nullptr);

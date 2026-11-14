@@ -10,6 +10,9 @@
 #include <atomic>
 #include <array>
 #include <cmath>
+#include <chrono>
+#include <mutex>
+#include <thread>
 #include <cstdarg>
 #include <cstring>
 #include <filesystem>
@@ -21,6 +24,26 @@ namespace {
 std::atomic<bool> stop_requested{false};
 std::atomic<uint32_t> pressed_buttons{0};
 std::atomic<unsigned> frame_count{0};
+std::atomic<unsigned> image_width{0}, image_height{0};
+std::atomic<uint64_t> submitted_audio{0};
+std::atomic<bool> frontend_paused{false};
+std::mutex surface_mutex;
+ANativeWindow* pending_window = nullptr;
+unsigned surface_generation = 0;
+
+void clearPendingSurface() {
+    std::lock_guard<std::mutex> lock(surface_mutex);
+    if (pending_window) ANativeWindow_release(pending_window);
+    pending_window = nullptr;
+    surface_generation = 0;
+}
+std::atomic<unsigned> requested_controller{1};
+std::atomic<unsigned> applied_controller{1};
+std::atomic<unsigned> screen_requests{0};
+std::atomic<bool> tab_down{false};
+std::atomic<unsigned> host_stage{0};
+std::mutex diagnostics_mutex;
+std::string gpu_diagnostics;
 std::array<std::atomic<int16_t>, 4> axes{};
 std::atomic<int16_t> pointer_x{0}, pointer_y{0};
 std::atomic<bool> pointer_down{false};
@@ -48,14 +71,15 @@ struct CoreApi {
     decltype(&retro_unload_game) unload_game = nullptr;
     decltype(&retro_run) run = nullptr;
     decltype(&retro_get_system_av_info) get_av_info = nullptr;
+    decltype(&retro_set_controller_port_device) set_controller = nullptr;
 
     template<typename F> bool loadSymbol(F& target, const char* name) {
         target = reinterpret_cast<F>(dlsym(library, name));
         return target != nullptr;
     }
-    bool open() {
+    bool open(const std::string& path) {
         // Android only loads the SHA-checked core packaged beside this library.
-        library = dlopen("libcemu_libretro_android.so", RTLD_NOW | RTLD_LOCAL);
+        library = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!library) return false;
         return loadSymbol(set_environment, "retro_set_environment") &&
                loadSymbol(set_video, "retro_set_video_refresh") &&
@@ -68,7 +92,8 @@ struct CoreApi {
                loadSymbol(load_game, "retro_load_game") &&
                loadSymbol(unload_game, "retro_unload_game") &&
                loadSymbol(run, "retro_run") &&
-               loadSymbol(get_av_info, "retro_get_system_av_info");
+               loadSymbol(get_av_info, "retro_get_system_av_info") &&
+               loadSymbol(set_controller, "retro_set_controller_port_device");
     }
     void close() {
         if (library) dlclose(library);
@@ -125,6 +150,7 @@ bool environment(unsigned command, void* data) {
                 if (opt->default_value) s->options[opt->key] = opt->default_value;
             }
             s->options["cemu_gpu_api"] = "Vulkan";
+            s->options["cemu_next_screen_layout_button"] = "Tab";
             return true;
         }
         case RETRO_ENVIRONMENT_GET_VARIABLE: {
@@ -201,15 +227,19 @@ void video(const void* data, unsigned width, unsigned height, size_t) {
         return;
     }
     s->got_video = true;
+    image_width.store(width);
+    image_height.store(height);
+    const auto previous = s->presenter.presentedFrames();
     if (!s->presenter.present(width, height, &s->error))
         stop_requested.store(true);
     else
-        frame_count.fetch_add(1);
+        frame_count.fetch_add(s->presenter.presentedFrames() - previous);
 }
 size_t audioBatch(const int16_t* data, size_t frames) {
-    if (!active || stop_requested.load()) return 0;
+    if (!active || stop_requested.load() || frontend_paused.load()) return 0;
     std::string error;
     auto consumed = active->audio.write(data, frames, &error);
+    submitted_audio.fetch_add(consumed);
     if (!error.empty()) {
         __android_log_print(ANDROID_LOG_ERROR, "CARTDECK_WIIU_AUDIO", "%s", error.c_str());
         active->audio_failed.store(true);
@@ -224,6 +254,7 @@ void audio(int16_t left, int16_t right) {
 void inputPoll() {}
 int16_t input(unsigned port, unsigned device, unsigned index, unsigned id) {
     if (port) return 0;
+    if (device == RETRO_DEVICE_KEYBOARD && !index && id == RETROK_TAB) return tab_down.load();
     if (device == RETRO_DEVICE_ANALOG && index < 2 && id < 2)
         return axes[index * 2 + id].load();
     if (device == RETRO_DEVICE_POINTER && !index) {
@@ -243,7 +274,8 @@ std::string jstringValue(JNIEnv* env, jstring str) {
     return output;
 }
 std::string run(ANativeWindow* window, const std::string& root,
-                const std::string& disc, unsigned frames) {
+                const std::string& disc, unsigned frames,
+                const std::string& coreLibrary, const std::string& mediaDirectory) {
     WiiuSession session;
     session.system = root + "/system";
     session.save = root + "/saves";
@@ -257,7 +289,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     // The user must independently supply a lawful test image, keys and any
     // missing resources. Strict app-private staging; never arbitrary SAF access.
     try {
-        const auto base = std::filesystem::canonical(root);
+        const auto base = std::filesystem::canonical(mediaDirectory);
         const auto source = std::filesystem::canonical(disc);
         if (!std::filesystem::is_regular_file(source) || source.string().find(base.string() + "/") != 0)
             return "WIIU_BLOCKED_PRIVATE_FIXTURE";
@@ -266,7 +298,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     } catch (const std::exception&) {
         return "WIIU_BLOCKED_PRIVATE_FIXTURE";
     }
-    if (!session.core.open()) return "WIIU_BLOCKED_NATIVE_CORE_OR_DEPENDENCIES";
+    if (!session.core.open(coreLibrary)) return "WIIU_BLOCKED_NATIVE_CORE_OR_DEPENDENCIES";
     active = &session;
     session.core.set_environment(environment);
     session.core.set_video(video);
@@ -276,18 +308,29 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.core.set_input_state(input);
     session.core.init();
     session.initialized = true;
+    host_stage.store(1);
+    const auto initial_controller = requested_controller.load();
+    session.core.set_controller(0, initial_controller);
+    applied_controller.store(initial_controller);
     retro_game_info game{};
     game.path = session.disc.c_str();
     session.loaded = !stop_requested.load() && session.core.load_game(&game);
+    if (session.loaded) host_stage.store(2);
     if (!session.loaded) session.error = "WIIU_CORE_LOAD_FAILED";
     if (session.loaded && (!session.got_hw || !session.negotiation))
         session.error = "WIIU_VULKAN_RENDER_REQUEST_MISSING";
     if (session.error.empty() && stop_requested.load()) session.error = "WIIU_CANCELLED";
+    unsigned handled_surface_generation = 0;
     if (session.error.empty() &&
         !session.presenter.initialize(window, session.negotiation, &session.error))
         session.error = "WIIU_VULKAN_INIT_" + session.error;
     if (session.error.empty() && session.hw.context_reset)
         session.hw.context_reset();
+    if (session.error.empty()) {
+        host_stage.store(3);
+        std::lock_guard<std::mutex> lock(diagnostics_mutex);
+        gpu_diagnostics = session.presenter.deviceDescription();
+    }
     if (session.error.empty()) {
         retro_system_av_info av{};
         session.core.get_av_info(&av);
@@ -299,8 +342,36 @@ std::string run(ANativeWindow* window, const std::string& root,
                 static_cast<int32_t>(av.timing.sample_rate), &session.error);
     }
     if (session.error.empty()) {
-        for (unsigned i = 0; i < frames && !stop_requested.load(); ++i) {
-            if (!session.presenter.acquire(&session.error)) break;
+        for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
+            {
+                std::lock_guard<std::mutex> lock(surface_mutex);
+                if (surface_generation != handled_surface_generation && pending_window) {
+                    if (!session.presenter.replaceSurface(pending_window, &session.error)) break;
+                    handled_surface_generation = surface_generation;
+                }
+            }
+            if (frontend_paused.load()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+            const auto device = requested_controller.load();
+            if (device != applied_controller.load()) {
+                session.core.set_controller(0, device);
+                applied_controller.store(device);
+            }
+            if (tab_down.load()) tab_down.store(false);
+            else if (screen_requests.load()) {
+                screen_requests.fetch_sub(1);
+                tab_down.store(true);
+            }
+            if (!session.presenter.acquire(&session.error)) {
+                if (session.error == "VULKAN_ACQUIRE_OUT_OF_DATE_RETRY") {
+                    session.error.clear();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                break;
+            }
             session.core.run();
             // Cemu may still be booting without any video callback. Consume the
             // acquired swapchain image safely; don't deadlock on the next frame.
@@ -317,6 +388,8 @@ std::string run(ANativeWindow* window, const std::string& root,
     // Never treat a completed run loop as gameplay proof.
     session.core.close();
     active = nullptr;
+    host_stage.store(4);
+    clearPendingSurface();
     if (session.error.empty() && session.audio_failed.load())
         session.error = "WIIU_AUDIO_WRITE_FAILED_SEE_NATIVE_LOG";
     const unsigned presented = frame_count.load();
@@ -331,13 +404,15 @@ std::string run(ANativeWindow* window, const std::string& root,
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeRun(
-    JNIEnv* env, jobject, jobject surface, jstring root, jstring disc, jint maxFrames) {
-    if (maxFrames <= 0 || maxFrames > 36000)
+    JNIEnv* env, jobject, jobject surface, jstring root, jstring disc, jint maxFrames,
+    jstring coreLibrary, jstring mediaDirectory) {
+    if (maxFrames < 0 || maxFrames > 36000)
         return env->NewStringUTF("WIIU_BLOCKED_UNBOUNDED_FRAME_REQUEST");
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
     std::string outcome = run(window, jstringValue(env, root),
                               jstringValue(env, disc),
-                              static_cast<unsigned>(maxFrames));
+                              static_cast<unsigned>(maxFrames),
+                              jstringValue(env, coreLibrary), jstringValue(env, mediaDirectory));
     if (window) ANativeWindow_release(window);
     return env->NewStringUTF(outcome.c_str());
 }
@@ -376,4 +451,50 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     // UI prepares before starting the VM thread. A subsequent stop must never
     // be erased by a late-starting nativeRun after Surface destruction/pause.
     stop_requested.store(false);
+    frontend_paused.store(false);
+    clearPendingSurface();
+    submitted_audio.store(0);
+    host_stage.store(0);
+    tab_down.store(false);
+    screen_requests.store(0);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePause(
+    JNIEnv*, jobject, jboolean paused) { frontend_paused.store(paused); }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeController(
+    JNIEnv*, jobject, jboolean pro) {
+    // Pinned Cemu RETRO_DEVICE_PRO = RETRO_DEVICE_SUBCLASS(JOYPAD, 1).
+    requested_controller.store(pro ? 513u : RETRO_DEVICE_JOYPAD);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeToggleScreen(
+    JNIEnv*, jobject) { screen_requests.fetch_add(1); }
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeReport(
+    JNIEnv* env, jobject) {
+    std::lock_guard<std::mutex> lock(diagnostics_mutex);
+    const auto out = "host_stage=" + std::to_string(host_stage.load()) +
+        "\nimage_width=" + std::to_string(image_width.load()) +
+        "\nimage_height=" + std::to_string(image_height.load()) +
+        "\npresented_image_callbacks=" + std::to_string(frame_count.load()) +
+        "\naudio_submitted_frames=" + std::to_string(submitted_audio.load()) +
+        "\ncontroller_device_requested=" + std::to_string(applied_controller.load()) +
+        "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
+    return env->NewStringUTF(out.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeSurface(
+    JNIEnv* env, jobject, jobject surface) {
+    ANativeWindow* next = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
+    std::lock_guard<std::mutex> lock(surface_mutex);
+    if (pending_window) ANativeWindow_release(pending_window);
+    pending_window = next;
+    ++surface_generation;
+    if (!next) frontend_paused.store(true);
 }

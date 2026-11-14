@@ -75,6 +75,7 @@ import json
 import pathlib
 import re
 import sys
+import subprocess
 sys.path.insert(0, str(pathlib.Path(sys.argv[4]) / 'scripts/ci'))
 from verify_gamecube_core import verify_android_elf
 so = pathlib.Path(sys.argv[1])
@@ -83,10 +84,12 @@ verify_android_elf(so.read_bytes(), '')
 assert "AArch64" in readelf_output
 proof_path = pathlib.Path(sys.argv[3])
 proof = json.loads(proof_path.read_text())
+proof['adapter_source_revision'] = subprocess.check_output(['git', '-C', sys.argv[4], 'rev-parse', 'HEAD'], text=True).strip()
 proof['host_sha256'] = hashlib.sha256(so.read_bytes()).hexdigest()
 proof_path.write_text(json.dumps(proof, indent=2, sort_keys=True) + '\n')
 print("Android ARM64 Wii U Vulkan presenter ELF compiled; real frame QA still missing")
 PY
   cp "$HOST" "$WORK/cartdeck_wiiu_vulkan_host_arm64.so"
 fi
-echo "STOP: Vulkan CARTDECK frontend APK and Wii U gameplay remain unverified."
+python3 "$ROOT/scripts/ci/wiiu_notices.py" --work "$WORK"
+echo "Native build and notices ready; device gameplay remains unverified."
