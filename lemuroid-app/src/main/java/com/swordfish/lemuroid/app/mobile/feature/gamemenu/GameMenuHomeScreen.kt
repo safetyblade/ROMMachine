@@ -197,9 +197,11 @@ fun GameMenuControlsScreen(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
     controllerOptions: @Composable () -> Unit = {},
+    physicalControllerOptions: @Composable () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         WiiControllerPicker(gameMenuRequest, onResult)
+        physicalControllerOptions()
         controllerOptions()
         TiltControls(gameMenuRequest, onResult)
         val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
