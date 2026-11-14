@@ -50,9 +50,13 @@ class CartdeckFeedbackLightingTest {
         val static = light.copy(mode = CartdeckLighting.MODE_STATIC)
         assertEquals(baseline, light.tint(Color.Green, 0f).alpha, 0.0001f)
         assertEquals(baseline, static.tint(Color.Green, 1f).alpha, 0.0001f)
-        assertEquals(0.65f * 0.78f, baseline, 0.0001f)
-        assertEquals(0.8775f * 0.78f, full, 0.0001f)
-        assertTrue(full <= baseline * 1.35f + 0.001f)
+        // Packed sRGB Color stores 8-bit alpha. Compare against the physical
+        // alpha quantisation step, not an unattainable 0.0001f precision.
+        val alphaStep = 1f / 255f
+        assertEquals(0.65f * 0.78f, baseline, alphaStep)
+        assertEquals(0.8775f * 0.78f, full, alphaStep)
+        // Both samples can round in opposite directions by half a step.
+        assertTrue(full <= baseline * 1.35f + 2f * alphaStep)
         assertEquals(baseline, light.tint(Color.Green, Float.NaN).alpha, 0.0001f)
         assertEquals(0f, light.copy(intensity = 0).tint(Color.Green, 1f).alpha, 0.0001f)
         assertTrue(light.copy(intensity = 100).tint(Color.Green, 1f).alpha <= 0.78f)
