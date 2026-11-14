@@ -389,6 +389,9 @@ data class ShelfLayout(
     private fun checkedTitle(title: String): String = title.trim().also { require(it.isNotEmpty() && it.length <= 80) }
 }
 
+/** Reserved presentation key for an unavailable cartridge, never a launchable URI. */
+fun retiredShelfKey(cartridgeId: String): String = "retired:$cartridgeId"
+
 /** Stable through Room ID churn. This hashes identity; it never rewrites the source URI. */
 fun shelfGameKey(
     system: String,
