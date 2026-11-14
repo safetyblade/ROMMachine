@@ -25,6 +25,9 @@ data class NamedAppearance(
     val custom: Map<String, Long> = emptyMap(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = createdAt,
+    val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    val decal: CartdeckPersonalDecal? = null,
 )
 
 /**
@@ -41,10 +44,21 @@ data class ShelfAppearance(
     val profiles: List<NamedAppearance> = emptyList(),
     val activeProfileId: String? = null,
     val curatedDesignId: String? = null,
+    val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    val decal: CartdeckPersonalDecal? = null,
 ) {
     fun choosePreset(id: String): ShelfAppearance {
         require(id in listOf("original", "pink", "green"))
-        return copy(edition = id, custom = emptyMap(), activeProfileId = null, curatedDesignId = null)
+        return copy(
+            edition = id,
+            custom = emptyMap(),
+            activeProfileId = null,
+            curatedDesignId = null,
+            patternId = CartdeckSurfaceDesign.PATTERN_NONE,
+            stampId = CartdeckSurfaceDesign.STAMP_NONE,
+            decal = null,
+        )
     }
 
     fun selectProfile(id: String): ShelfAppearance {
@@ -54,6 +68,9 @@ data class ShelfAppearance(
             custom = profile.custom,
             activeProfileId = id,
             curatedDesignId = null,
+            patternId = profile.patternId,
+            stampId = profile.stampId,
+            decal = profile.decal,
         )
     }
 
@@ -70,7 +87,16 @@ data class ShelfAppearance(
         val title = name.trim()
         require(title.isNotEmpty() && title.length <= 60)
         val profile =
-            NamedAppearance(name = title, baseEdition = edition, custom = custom, createdAt = now, updatedAt = now)
+            NamedAppearance(
+                name = title,
+                baseEdition = edition,
+                custom = custom,
+                patternId = patternId,
+                stampId = stampId,
+                decal = decal,
+                createdAt = now,
+                updatedAt = now,
+            )
         return copy(profiles = profiles + profile, activeProfileId = profile.id, curatedDesignId = null)
     }
 
@@ -101,6 +127,9 @@ data class ShelfAppearance(
             custom = duplicate.custom,
             activeProfileId = duplicate.id,
             curatedDesignId = null,
+            patternId = duplicate.patternId,
+            stampId = duplicate.stampId,
+            decal = duplicate.decal,
         )
     }
 }
@@ -121,6 +150,16 @@ data class ShelfLayout(
         require(sections.map { it.id }.distinct().size == sections.size)
         require(sections.all { it.title.isNotBlank() && it.title.length <= 80 })
         require(appearance.edition in listOf("original", "pink", "green"))
+        require(CartdeckSurfaceDesign.validPattern(appearance.patternId))
+        require(CartdeckSurfaceDesign.validStamp(appearance.stampId))
+        appearance.decal?.validate()
+        require(
+            appearance.profiles.all {
+                CartdeckSurfaceDesign.validPattern(it.patternId) &&
+                    CartdeckSurfaceDesign.validStamp(it.stampId) &&
+                    (it.decal == null || runCatching { it.decal.validate() }.isSuccess)
+            },
+        )
         require(
             appearance.curatedDesignId == null ||
                 CartdeckCuratedDesigns.byId(appearance.curatedDesignId) != null,

@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 class ShelfStore(context: Context) {
     private val file = File(context.filesDir, "cartdeck/shelf-layout-v1.json")
     private val atomic = AtomicFile(file)
+    private val decalStore = CartdeckDecalStore(context.applicationContext)
     private val lock = locks.getOrPut(file.absolutePath) { Mutex() }
 
     companion object {
@@ -36,6 +37,7 @@ class ShelfStore(context: Context) {
                 try {
                     stream.write(encode(after).toByteArray(Charsets.UTF_8))
                     atomic.finishWrite(stream)
+                    runCatching { decalStore.pruneUnused(after.appearance) }
                 } catch (error: Throwable) {
                     atomic.failWrite(stream)
                     throw error
@@ -65,6 +67,9 @@ internal fun encode(layout: ShelfLayout): String =
                 put("appearanceVersion", 2)
                 put("activeProfileId", layout.appearance.activeProfileId ?: JSONObject.NULL)
                 put("curatedDesignId", layout.appearance.curatedDesignId ?: JSONObject.NULL)
+                put("patternId", layout.appearance.patternId)
+                put("stampId", layout.appearance.stampId)
+                put("decal", layout.appearance.decal?.let(::decalToJson) ?: JSONObject.NULL)
                 put(
                     "profiles",
                     JSONArray().apply {
@@ -75,6 +80,9 @@ internal fun encode(layout: ShelfLayout): String =
                                     put("name", profile.name)
                                     put("baseEdition", profile.baseEdition)
                                     put("custom", JSONObject(profile.custom))
+                                    put("patternId", profile.patternId)
+                                    put("stampId", profile.stampId)
+                                    put("decal", profile.decal?.let(::decalToJson) ?: JSONObject.NULL)
                                     put("createdAt", profile.createdAt)
                                     put("updatedAt", profile.updatedAt)
                                 },
@@ -140,6 +148,9 @@ internal fun decode(json: String): ShelfLayout {
                             name = record.getString("name"),
                             baseEdition = record.getString("baseEdition"),
                             custom = overrides.keys().asSequence().associateWith { overrides.getLong(it) },
+                            patternId = record.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
+                            stampId = record.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
+                            decal = record.optJSONObject("decal")?.let(::decalFromJson),
                             createdAt = record.optLong("createdAt"),
                             updatedAt = record.optLong("updatedAt"),
                         )
@@ -159,6 +170,9 @@ internal fun decode(json: String): ShelfLayout {
                     } else {
                         appearance.getString("curatedDesignId")
                     },
+                patternId = appearance.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
+                stampId = appearance.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
+                decal = appearance.optJSONObject("decal")?.let(::decalFromJson),
             ),
         sections =
             (0 until sections.length()).map { index ->
@@ -180,3 +194,22 @@ internal fun decode(json: String): ShelfLayout {
             },
     ).validate()
 }
+
+/** Optional V2 field: old appearance records still load without a decal. */
+internal fun decalToJson(decal: CartdeckPersonalDecal): JSONObject =
+    JSONObject().apply {
+        put("assetId", decal.assetId)
+        put("anchor", decal.anchor)
+        put("scale", decal.scale.toDouble())
+        put("rotation", decal.rotation.toDouble())
+        put("opacity", decal.opacity.toDouble())
+    }
+
+internal fun decalFromJson(json: JSONObject): CartdeckPersonalDecal =
+    CartdeckPersonalDecal(
+        assetId = json.getString("assetId"),
+        anchor = json.optString("anchor", CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT),
+        scale = json.optDouble("scale", 0.65).toFloat(),
+        rotation = json.optDouble("rotation", 0.0).toFloat(),
+        opacity = json.optDouble("opacity", 0.85).toFloat(),
+    ).validate()

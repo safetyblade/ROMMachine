@@ -28,7 +28,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 /**
@@ -42,6 +46,9 @@ internal fun CartdeckConsoleShell(
     rootBounds: Rect?,
     isLandscape: Boolean,
     controlBounds: List<Rect> = emptyList(),
+    patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
+    stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
+    decal: CartdeckPersonalDecal? = null,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -73,6 +80,47 @@ internal fun CartdeckConsoleShell(
                     hole?.let { addRoundRect(RoundRect(it, CornerRadius(2.dp.toPx()))) }
                 }
             drawPath(shellPath, tokens.chassis)
+
+            // Responsive, noninteractive decoration; a valid measured aperture
+            // is required before painting. Never paint into video, PadKit
+            // bounds, or the protected CARTDECK brand seat.
+            if (hole != null) {
+                val reservedBrand =
+                    when {
+                        !isLandscape && seatFits ->
+                            Rect(
+                                size.width / 2f - 120.dp.toPx(),
+                                8.dp.toPx(),
+                                size.width / 2f + 120.dp.toPx(),
+                                80.dp.toPx(),
+                            )
+                        compactSeat ->
+                            Rect(
+                                size.width / 2f - 50.dp.toPx(),
+                                size.height - 63.dp.toPx(),
+                                size.width / 2f + 50.dp.toPx(),
+                                size.height,
+                            )
+                        else -> null
+                    }
+                val exclusions = listOf(hole) + controls + listOfNotNull(reservedBrand)
+                drawCartdeckSurfaceDesign(
+                    patternId = patternId,
+                    stampId = stampId,
+                    frame =
+                        Rect(
+                            edge + 7.dp.toPx(),
+                            edge + 7.dp.toPx(),
+                            size.width - edge - 7.dp.toPx(),
+                            size.height - edge - 7.dp.toPx(),
+                        ),
+                    exclusions = exclusions,
+                    lineColour = tokens.accent,
+                    stampColour = tokens.onChassis,
+                    cellSize = maxOf(23.dp.toPx(), minOf(size.width, size.height) / 14f),
+                    clearance = 7.dp.toPx(),
+                )
+            }
             // Draw the P1-C2A solid control-deck.svg geometry directly on
             // the noninteractive shell. That places decorative hardware seats
             // ABOVE the manufactured deck but BELOW the functional PadKit.
@@ -293,6 +341,27 @@ internal fun CartdeckConsoleShell(
                     }
                 }
             }
+        }
+
+        if (decal != null && hole != null) {
+            val w = with(density) { maxWidth.toPx() }
+            val h = with(density) { maxHeight.toPx() }
+            val protectedBrand =
+                if (!isLandscape && seatFits) {
+                    val half = with(density) { 120.dp.toPx() }
+                    val bottom = with(density) { 84.dp.toPx() }
+                    Rect(w / 2f - half, 0f, w / 2f + half, bottom)
+                } else if (compactSeat) {
+                    val half = with(density) { 54.dp.toPx() }
+                    val top = h - with(density) { 66.dp.toPx() }
+                    Rect(w / 2f - half, top, w / 2f + half, h)
+                } else {
+                    null
+                }
+            CartdeckDecalLayer(
+                decal = decal,
+                exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
+            )
         }
 
         // Full brand returns above the standard manufactured screen; the

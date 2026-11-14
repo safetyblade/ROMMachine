@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <title>CARTDECK Stealth/Acid original tactical grid material tile</title>
+  <rect width="96" height="96" fill="#151C20"/>
+  <g stroke="#465840" stroke-opacity=".42" stroke-width="1" fill="none">
+    <path d="M0 0H96M0 24H96M0 48H96M0 72H96M0 96H96"/>
+    <path d="M0 0V96M24 0V96M48 0V96M72 0V96M96 0V96"/>
+  </g>
+  <g stroke="#9BC74A" stroke-opacity=".43" stroke-width="1.4" fill="none">
+    <path d="M36 48H60M48 36V60"/>
+    <path d="M4 4H15M4 4V15M81 81H92M92 81V92"/>
+  </g>
+  <circle cx="48" cy="48" r="2" fill="#9BC74A" opacity=".42"/>
+</svg>
