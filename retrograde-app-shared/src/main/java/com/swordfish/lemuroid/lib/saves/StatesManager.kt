@@ -13,7 +13,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 
-class StatesManager(private val directoriesManager: DirectoriesManager) {
+class StatesManager(
+    private val directoriesManager: DirectoriesManager,
+    private val binding: CartridgeSaveBinding? = null,
+) {
     suspend fun getSlotSave(
         game: Game,
         coreID: CoreID,
@@ -22,7 +25,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
     ): SaveState? =
         withContext(Dispatchers.IO) {
             assert(index in 0 until MAX_STATES)
-            getSaveState(getSlotSaveFileName(game, index), namespace)
+            getSaveState(game, getSlotSaveFileName(game, index), namespace)
         }
 
     suspend fun setSlotSave(
@@ -33,7 +36,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
         assert(index in 0 until MAX_STATES)
-        setSaveState(getSlotSaveFileName(game, index), namespace, saveState)
+        setSaveState(game, getSlotSaveFileName(game, index), namespace, saveState)
     }
 
     suspend fun getAutoSaveInfo(
@@ -42,7 +45,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         namespace: String = coreID.coreName,
     ): SaveInfo =
         withContext(Dispatchers.IO) {
-            val autoSaveFile = getStateFile(getAutoSaveFileName(game), namespace)
+            val autoSaveFile = getStateFile(game, getAutoSaveFileName(game), namespace)
             val autoSaveHasData = autoSaveFile.length() > 0
             SaveInfo(autoSaveFile.exists() && autoSaveHasData, autoSaveFile.lastModified())
         }
@@ -52,7 +55,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         coreID: CoreID,
         namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
-        getSaveState(getAutoSaveFileName(game), namespace)
+        getSaveState(game, getAutoSaveFileName(game), namespace)
     }
 
     suspend fun setAutoSave(
@@ -61,7 +64,7 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         saveState: SaveState,
         namespace: String = coreID.coreName,
     ) = withContext(Dispatchers.IO) {
-        setSaveState(getAutoSaveFileName(game), namespace, saveState)
+        setSaveState(game, getAutoSaveFileName(game), namespace, saveState)
     }
 
     suspend fun getSavedSlotsInfo(
@@ -71,18 +74,19 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
     ): List<SaveInfo> =
         withContext(Dispatchers.IO) {
             (0 until MAX_STATES)
-                .map { getStateFile(getSlotSaveFileName(game, it), namespace) }
+                .map { getStateFile(game, getSlotSaveFileName(game, it), namespace) }
                 .map { SaveInfo(it.exists(), it.lastModified()) }
                 .toList()
         }
 
     private suspend fun getSaveState(
+        game: Game,
         fileName: String,
         coreName: String,
     ): SaveState? {
         return runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-            val saveFile = getStateFile(fileName, coreName)
-            val metadataFile = getMetadataStateFile(fileName, coreName)
+            val saveFile = getStateFile(game, fileName, coreName)
+            val metadataFile = getMetadataStateFile(game, fileName, coreName)
             if (saveFile.exists()) {
                 val byteArray = saveFile.readBytesUncompressedAtomic()
                 val stateMetadata =
@@ -96,54 +100,61 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
             } else {
                 null
             }
-        }.getOrNull()
+        }.getOrThrow()
     }
 
     private suspend fun setSaveState(
+        game: Game,
         fileName: String,
         coreName: String,
         saveState: SaveState,
     ) {
         runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-            writeStateToDisk(fileName, coreName, saveState.state)
-            writeMetadataToDisk(fileName, coreName, saveState.metadata)
+            writeStateToDisk(game, fileName, coreName, saveState.state)
+            writeMetadataToDisk(game, fileName, coreName, saveState.metadata)
         }.getOrThrow()
     }
 
-    private fun writeMetadataToDisk(
+    private suspend fun writeMetadataToDisk(
+        game: Game,
         fileName: String,
         coreName: String,
         metadata: SaveState.Metadata,
     ) {
-        val metadataFile = getMetadataStateFile(fileName, coreName)
+        val metadataFile = getMetadataStateFile(game, fileName, coreName)
         metadataFile.writeTextAtomic(Json.encodeToString(SaveState.Metadata.serializer(), metadata))
     }
 
-    private fun writeStateToDisk(
+    private suspend fun writeStateToDisk(
+        game: Game,
         fileName: String,
         coreName: String,
         stateArray: ByteArray,
     ) {
-        val saveFile = getStateFile(fileName, coreName)
+        val saveFile = getStateFile(game, fileName, coreName)
         saveFile.writeBytesCompressedAtomic(stateArray)
     }
 
-    private fun getStateFile(
+    private suspend fun getStateFile(
+        game: Game,
         fileName: String,
         coreName: String,
     ): File {
-        val statesDirectories = File(directoriesManager.getStatesDirectory(), coreName)
-        statesDirectories.mkdirs()
-        return File(statesDirectories, fileName)
+        val directory =
+            binding?.stateDirectory(game, coreName)
+                ?: File(directoriesManager.getStatesDirectory(), coreName).apply { mkdirs() }
+        return File(directory, fileName)
     }
 
-    private fun getMetadataStateFile(
+    private suspend fun getMetadataStateFile(
+        game: Game,
         stateFileName: String,
         coreName: String,
     ): File {
-        val statesDirectories = File(directoriesManager.getStatesDirectory(), coreName)
-        statesDirectories.mkdirs()
-        return File(statesDirectories, "$stateFileName.metadata")
+        val directory =
+            binding?.stateDirectory(game, coreName)
+                ?: File(directoriesManager.getStatesDirectory(), coreName).apply { mkdirs() }
+        return File(directory, "$stateFileName.metadata")
     }
 
     private fun getAutoSaveFileName(game: Game) = "${game.saveFileName()}.state"

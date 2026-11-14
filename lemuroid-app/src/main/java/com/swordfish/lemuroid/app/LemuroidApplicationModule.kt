@@ -58,6 +58,7 @@ import com.swordfish.lemuroid.lib.library.db.dao.Migrations
 import com.swordfish.lemuroid.lib.library.metadata.GameMetadataProvider
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.SavesCoherencyEngine
 import com.swordfish.lemuroid.lib.saves.SavesManager
 import com.swordfish.lemuroid.lib.saves.StatesManager
@@ -76,6 +77,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.android.ContributesAndroidInjector
 import dagger.multibindings.IntoSet
+import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Converter
@@ -237,17 +239,34 @@ abstract class LemuroidApplicationModule {
         @Provides
         @PerApp
         @JvmStatic
-        fun statesManager(directoriesManager: DirectoriesManager) = StatesManager(directoriesManager)
+        fun cartridgeSaveBinding(
+            directoriesManager: DirectoriesManager,
+            db: RetrogradeDatabase,
+        ) = CartridgeSaveBinding(directoriesManager) { db.gameDao().selectShelfGames().first() }
 
         @Provides
         @PerApp
         @JvmStatic
-        fun savesManager(directoriesManager: DirectoriesManager) = SavesManager(directoriesManager)
+        fun statesManager(
+            directoriesManager: DirectoriesManager,
+            binding: CartridgeSaveBinding,
+        ) = StatesManager(directoriesManager, binding)
 
         @Provides
         @PerApp
         @JvmStatic
-        fun statesPreviewManager(directoriesManager: DirectoriesManager) = StatesPreviewManager(directoriesManager)
+        fun savesManager(
+            directoriesManager: DirectoriesManager,
+            binding: CartridgeSaveBinding,
+        ) = SavesManager(directoriesManager, binding)
+
+        @Provides
+        @PerApp
+        @JvmStatic
+        fun statesPreviewManager(
+            directoriesManager: DirectoriesManager,
+            binding: CartridgeSaveBinding,
+        ) = StatesPreviewManager(directoriesManager, binding)
 
         @Provides
         @PerApp

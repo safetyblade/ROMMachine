@@ -20,6 +20,12 @@ interface DataFileDao {
     @Insert
     fun insert(dataFiles: List<DataFile>)
 
+    @Query("UPDATE datafiles SET gameId = :oldGameId WHERE gameId = :newGameId")
+    fun transferToExistingGame(
+        newGameId: Int,
+        oldGameId: Int,
+    )
+
     @Delete
     fun delete(dataFiles: List<DataFile>)
 }

@@ -166,7 +166,12 @@ class GameLoader(
                 val saveRAM =
                     runCatching {
                         val data = savesManager.getSaveRAM(game, systemCoreConfig)
-                        desmumeMigrationHandler.resolveSaveData(game, systemCoreConfig.coreID, data)
+                        desmumeMigrationHandler.resolveSaveData(
+                            game,
+                            systemCoreConfig.coreID,
+                            data,
+                            savesManager.mayReadLegacySave(game),
+                        )
                     }.getOrElse { throw GameLoaderException(GameLoaderError.Saves) }
                 val saveRAMData = saveRAM.data
 
