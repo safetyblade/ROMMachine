@@ -1,9 +1,9 @@
 package com.swordfish.lemuroid.lib.library
 
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 /**
  * High-confidence source relocation only. A SAF document ID is provider-specific;
