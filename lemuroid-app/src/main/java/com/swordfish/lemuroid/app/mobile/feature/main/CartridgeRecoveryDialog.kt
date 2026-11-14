@@ -133,7 +133,11 @@ fun CartridgeRecoveryDialog(
                 if (legacyMode || chosenRetired != null) {
                     OutlinedTextField(
                         value = query,
-                        onValueChange = { query = it; selectedGameId = null; acknowledged = false },
+                        onValueChange = {
+                            query = it
+                            selectedGameId = null
+                            acknowledged = false
+                        },
                         label = { Text("Find indexed cartridge") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -141,7 +145,10 @@ fun CartridgeRecoveryDialog(
                     eligible.take(45).forEach { game ->
                         TextButton(
                             enabled = !working,
-                            onClick = { selectedGameId = game.id; acknowledged = false },
+                            onClick = {
+                                selectedGameId = game.id
+                                acknowledged = false
+                            },
                         ) {
                             Text(
                                 (if (selectedGameId == game.id) "✓ " else "") +
@@ -182,8 +189,9 @@ fun CartridgeRecoveryDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = !working && acknowledged && chosenGame != null &&
-                    (if (legacyMode) legacy != null else chosenRetired != null),
+                enabled =
+                    !working && acknowledged && chosenGame != null &&
+                        (if (legacyMode) legacy != null else chosenRetired != null),
                 onClick = {
                     val target = chosenGame ?: return@TextButton
                     working = true
