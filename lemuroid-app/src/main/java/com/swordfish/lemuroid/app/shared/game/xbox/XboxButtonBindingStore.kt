@@ -45,7 +45,7 @@ class XboxButtonBindingStore(context: Context) {
     ): Boolean {
         val prefix = scope(device.descriptor, cartridge)
         val editor = prefs.edit()
-        prefs.all.keys.filter { it.startsWith(prefix) }.forEach(editor::remove)
+        prefs.all.keys.filter { it.startsWith(prefix) }.forEach { editor.remove(it) }
         return editor.commit()
     }
 
