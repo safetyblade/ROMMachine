@@ -763,6 +763,8 @@ fun ShelfAppearanceEditor(
                                 lighting = lighting.copy(mode = CartdeckLighting.MODE_STATIC)
                                 modified = true
                             }) { Text(if (lighting.mode == CartdeckLighting.MODE_STATIC) "✓ Static" else "Static") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = {
                                 lighting = lighting.copy(mode = CartdeckLighting.MODE_FEEDBACK)
                                 modified = true
@@ -772,6 +774,18 @@ fun ShelfAppearanceEditor(
                                         "✓ Game feedback"
                                     } else {
                                         "Game feedback"
+                                    },
+                                )
+                            }
+                            TextButton(onClick = {
+                                lighting = lighting.copy(mode = CartdeckLighting.MODE_CONTROLLER)
+                                modified = true
+                            }) {
+                                Text(
+                                    if (lighting.mode == CartdeckLighting.MODE_CONTROLLER) {
+                                        "✓ Controller activity"
+                                    } else {
+                                        "Controller activity"
                                     },
                                 )
                             }
@@ -821,14 +835,15 @@ fun ShelfAppearanceEditor(
                                 }
                             }
                             Text(
-                                if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) {
-                                    "Game feedback responds to actual core rumble when the game supports it " +
-                                        "and your existing rumble setting is enabled. No rumble means static light. " +
-                                        "Reduced motion keeps the static level. " +
-                                        "In controller-fullscreen, the shell is hidden."
-                                } else {
-                                    "Static lighting has no animation or game interaction."
-                                },
+                                when (lighting.mode) {
+                                    CartdeckLighting.MODE_FEEDBACK ->
+                                        "Game feedback responds to actual core rumble when the game supports it " +
+                                            "and your rumble setting is enabled. No rumble means static light."
+                                    CartdeckLighting.MODE_CONTROLLER ->
+                                        "Controller activity responds to mapped in-game touch and gamepad button presses, " +
+                                            "not detected game events. Menu and held repeats do not trigger it."
+                                    else -> "Static lighting has no animation or game interaction."
+                                } + " Reduced motion keeps lighting static; controller-fullscreen hides the shell.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
