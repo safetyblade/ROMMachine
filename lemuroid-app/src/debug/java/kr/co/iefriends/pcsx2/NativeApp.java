@@ -41,6 +41,32 @@ public final class NativeApp {
         return loaded;
     }
 
+    public static synchronized boolean loadSelected(File directory, String coreName) {
+        if (loaded) return true;
+        try {
+            // Preload the verified selected closure by SONAME before the engine.
+            for (String name : new String[]{"libc++_shared.so", "liblibrashader_capi.so", coreName}) {
+                System.load(new File(directory, name).getAbsolutePath());
+            }
+            loaded = true;
+            loadStatus = "VERIFIED_SELECTED_ENGINE_LOADED";
+        } catch (UnsatisfiedLinkError error) {
+            loadStatus = "SELECTED_NATIVE_LIBRARY_OR_DEPENDENCY_FAILED";
+        }
+        return loaded;
+    }
+
+    public static native com.armsx2.BiosInfo getBiosInfoFromFd(int fd);
+    public static native void renderVulkan();
+    public static native void renderOpenGL();
+    public static native void setAffinityMode(int mode);
+    public static native void setCustomVulkanDriver(String directory, String name, String redirect, String hook);
+    public static native boolean writeSystemReport(String path);
+    public static native String getPerfSnapshot();
+    public static native int getPresentedFrameCount();
+    public static native String getLastBootError();
+    public static native String getCustomDriverStatus();
+
     private static long pageSize() {
         try {
             long size = Os.sysconf(OsConstants._SC_PAGESIZE);

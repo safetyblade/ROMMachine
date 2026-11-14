@@ -380,7 +380,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         val engine = selection ?: return
         val image = media ?: return
         val root = sandbox ?: return
-        if (!loaded || started || leaving || !hostForeground || menuOpen || !renderSurface.holder.surface.isValid) return
+        if (!loaded || started || leaving || !hostForeground || menuOpen ||
+            !renderSurface.holder.surface.isValid
+        ) {
+            return
+        }
         started = true
         nativePrepare()
         nativeController(proController)
@@ -445,7 +449,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun syncPause() {
-        if (loaded) nativePause(!hostForeground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid)
+        if (loaded) {
+            nativePause(
+                !hostForeground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid,
+            )
+        }
     }
 
     private fun openMenu() {

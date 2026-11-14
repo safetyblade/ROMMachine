@@ -108,6 +108,17 @@ class GameLauncher(
                         null
                     }
                 val selection = withContext(Dispatchers.IO) { enginePreferences.select(game, legacyCoreConfig) }
+                if (selection.engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID) {
+                    enginePreferences.beginLaunch(game, selection.engine)
+                    activity.startActivityForResult(
+                        Intent().setClassName(activity, "com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity")
+                            .putExtra("cartdeck.game", game).putExtra("cartdeck.leanback", leanback)
+                            .putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
+                        BaseGameActivity.REQUEST_PLAY_GAME,
+                    )
+                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    return@launch
+                }
                 if (system.nativeBackend == "hakux") {
                     if (com.swordfish.lemuroid.app.shared.game.xbox.XboxGameLauncher.launch(activity, game, leanback)) {
                         runCatching { enginePreferences.beginLaunch(game, selection.engine) }

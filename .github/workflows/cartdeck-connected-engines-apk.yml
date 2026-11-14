@@ -1,0 +1,196 @@
+name: CARTDECK connected PS2 Wii U Xbox 360 APK
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  connected-apk:
+    name: Build connected CARTDECK ARM64 APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      CARTDECK_APK_MAX_MIB: '256'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Locate the existing passed native input artifacts
+        id: inputs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ids = [14116265838, 14115852235, 14115797791, 14115726591, 14115323552,
+                         14115651191, 14116123727, 14115725803, 14114153891, 14116921782];
+            let reusable = true;
+            for (const artifact_id of ids) {
+              try {
+                const result = await github.rest.actions.getArtifact({...context.repo, artifact_id});
+                if (result.data.expired) reusable = false;
+              } catch (error) {
+                if (error.status !== 404 && error.status !== 410) throw error;
+                reusable = false;
+              }
+            }
+            core.setOutput('reuse', String(reusable));
+            core.info(reusable ? 'Reuse the passed genuine engines; no native recompilation.' :
+                                'Native input retention expired; compile pinned sources once.');
+      - name: Download the passed five-engine, Wii, hakuX and Xenia builds
+        if: steps.inputs.outputs.reuse == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43598603237
+          pattern: native-engine-*
+          path: work/connected/legacy
+      - uses: actions/download-artifact@v4
+        if: steps.inputs.outputs.reuse == 'true'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43598603237
+          name: hakux-android-backend
+          path: work/connected/hakux
+      - uses: actions/download-artifact@v4
+        if: steps.inputs.outputs.reuse == 'true'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43598603237
+          name: xenia-android-backend
+          path: work/connected/xenia
+      - uses: actions/download-artifact@v4
+        if: steps.inputs.outputs.reuse == 'true'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43598603237
+          name: patched-libretrodroid-host
+          path: work/connected/host
+      - name: Download both passed genuine ARMSX2 page models
+        if: steps.inputs.outputs.reuse == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43595931102
+          name: ps2-armsx2-native-verified-private
+          path: work/connected/armsx2
+      - name: Download the passed Cemu core and Vulkan host build
+        if: steps.inputs.outputs.reuse == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 43601391744
+          name: wiiu-cemu-verified-arm64-core-private-not-an-apk
+          path: work/connected/cemu
+      - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'build-tools;34.0.0'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          bash scripts/ci/bootstrap_gradle.sh
+      - uses: actions/setup-java@v4
+        if: steps.inputs.outputs.reuse != 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Refresh expired inputs from the real pinned sources
+        if: steps.inputs.outputs.reuse != 'true'
+        run: bash scripts/ci/build_connected_native_inputs.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Package source-licensed PS2 resources for the existing engines
+        run: >-
+          python3 scripts/ci/package_ps2_runtime_support.py
+          --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
+      - name: Connect the real engines to one CARTDECK payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          llvm="$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          python3 scripts/ci/stage_native_bundle.py --output work/connected/bundle --readelf "$llvm/llvm-readelf" \
+            --ps1 work/connected/legacy/native-engine-ps1 \
+            --psp work/connected/legacy/native-engine-psp \
+            --dc work/connected/legacy/native-engine-dc \
+            --gc work/connected/legacy/native-engine-gc \
+            --ps2 work/connected/legacy/native-engine-ps2 --wii \
+            --xbox work/connected/hakux --xbox360 work/connected/xenia
+          python3 scripts/ci/stage_wiiu_vulkan_lab.py --work work/connected/cemu \
+            --output work/connected/cemu-payload --readelf "$llvm/llvm-readelf"
+          python3 scripts/ci/merge_verified_native_payloads.py \
+            --source work/connected/cemu-payload --destination work/connected/bundle
+          python3 scripts/ci/stage_connected_ps2.py --work work/connected/armsx2 \
+            --bundle work/connected/bundle --llvm "$llvm"
+      - name: Compile the connected application, mandatory checks and upgrade APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          version_code=$(bash scripts/ci/engineering_version_code.sh)
+          echo "CARTDECK_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          export CARTDECK_VERSION_CODE="$version_code"
+          export CARTDECK_OUTPUT=dist/connected
+          mkdir -p "$CARTDECK_OUTPUT/evidence"
+          git rev-parse HEAD > "$CARTDECK_OUTPUT/evidence/app-source-sha.txt"
+          "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+            -Pcartdeck.dev.standaloneId=true -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p0.testVersionCode="$version_code" -Pcartdeck.p1emu.enabled=true \
+            -PcartdeckNativeSystems="$(cat work/connected/bundle/native-systems.txt)" \
+            -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/work/connected/bundle" \
+            -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/connected/host/maven" \
+            -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2
+          bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_native_bundle_apk.py \
+            "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" work/connected/bundle \
+            --require-five-engines --require-wii --require-xbox --require-xbox360 \
+            --host-aar work/connected/host/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
+            > "$CARTDECK_OUTPUT/evidence/preserved-engines.json"
+          python3 scripts/ci/verify_connected_apk.py \
+            --apk "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" --bundle work/connected/bundle \
+            | tee "$CARTDECK_OUTPUT/evidence/connected-engines.json"
+          cp work/connected/bundle/ps2-connected-evidence.json "$CARTDECK_OUTPUT/evidence/"
+          cp work/connected/cemu/native-evidence.json "$CARTDECK_OUTPUT/evidence/cemu-native-source.json"
+          cp work/connected/xenia/source-manifest.json "$CARTDECK_OUTPUT/evidence/xenia-native-source.json"
+          cp work/connected/armsx2/native-evidence.json "$CARTDECK_OUTPUT/evidence/armsx2-native-source.json"
+      - name: Publish the actual combined upgrade APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG
+          path: dist/connected/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain exact ARMSX2 and Xenia crash symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: connected-emulator-native-symbols
+          path: |
+            work/connected/armsx2/verified/page-4096/libemucore_4k.so
+            work/connected/armsx2/verified/page-16384/libemucore_16k.so
+            work/connected/xenia/symbols/
+            work/connected/cemu/cartdeck_wiiu_vulkan_host_arm64.so
+          if-no-files-found: error
+          retention-days: 30
+      - name: Keep build failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connected-apk-failure
+          path: |
+            lemuroid-app/build/reports/ktlint/
+            lemuroid-app/build/test-results/
+          if-no-files-found: warn

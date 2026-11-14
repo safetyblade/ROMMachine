@@ -14,7 +14,11 @@ object WiiuEngine {
     const val MANIFEST = "cartdeck/cemu.properties"
     const val UPSTREAM = "444c585202302a7f4b319bafb4cf72156a8cac8b"
     val engineeringBuild: Boolean
-        get() = BuildConfig.DEBUG && BuildConfig.APPLICATION_ID == "dev.prestwich.cartdeck.wiiulab.debug"
+        get() =
+            BuildConfig.DEBUG && (
+                BuildConfig.P1_EMU_ENABLED ||
+                    BuildConfig.APPLICATION_ID == "dev.prestwich.cartdeck.wiiulab.debug"
+            )
 
     fun store(files: File) =
         XboxEngineStore(
@@ -25,7 +29,7 @@ object WiiuEngine {
         )
 
     fun install(context: Context): XboxEngineStore.Selection {
-        check(engineeringBuild) { "Cemu is available only in the opt-in Wii U engineering build" }
+        check(engineeringBuild) { "This APK does not include the connected Cemu engine" }
         check(Build.VERSION.SDK_INT >= 28 && "arm64-v8a" in Build.SUPPORTED_ABIS) {
             "Cemu requires Android ARM64 API 28 or newer"
         }

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -14,7 +15,7 @@ import java.util.Properties
 
 /** Describes actual integrated implementations. Unbuilt upstream projects are never selectable engines. */
 object NativeEngineRegistry {
-    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID, CEMU_VULKAN }
+    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID, CEMU_VULKAN, ARMSX2_ANDROID }
 
     data class Engine(
         val id: String,
@@ -100,7 +101,21 @@ object NativeEngineRegistry {
         if (modern != null && configs.none { it.coreID == modern } && configs.isNotEmpty()) {
             configs += configs.first().copy(coreID = modern, statesVersion = configs.first().statesVersion + 1)
         }
-        return configs.map { config -> describe(system, config) }
+        val engines = configs.map { config -> describe(system, config) }
+        if (system.id == SystemID.PLAYSTATION_2 && Armsx2Engine.engineeringBuild) {
+            return listOf(
+                Engine(
+                    "armsx2-android", "ARMSX2", system.id, Host.ARMSX2_ANDROID, null,
+                    setOf("iso", "chd"), 29, setOf("arm64-v8a"), 0, 0x00401000,
+                    listOf("User-owned PS2 BIOS"), "Pinned ARMSX2 resources",
+                    "native/ps2/armsx2", "Independent memory cards; Play! data retained separately",
+                    "DualShock, analog sticks, L2/R2 and game menu",
+                    "Stock Vulkan / OpenGL. Device gameplay and performance require physical acceptance.",
+                    Armsx2Engine.MANIFEST,
+                ),
+            ) + engines
+        }
+        return engines
     }
 
     private fun describe(
@@ -218,6 +233,7 @@ object NativeEngineRegistry {
                 Host.HAKUX_SDL3 -> "libhakuxcore.so"
                 Host.XENIA_ANDROID -> "libcartdeck_xenia.so"
                 Host.CEMU_VULKAN -> "libcemu_libretro_android.so"
+                Host.ARMSX2_ANDROID -> Armsx2Engine.coreName()
                 else -> engine.core?.libretroFileName
             }
         // Legacy cores retain their existing verified install/provisioning path.
@@ -250,7 +266,12 @@ object NativeEngineRegistry {
                 val revision = manifest.getProperty("revision") ?: manifest.getProperty("upstream.revision")
                 val digest = manifest.getProperty("core.sha256")
                 val active =
-                    if (engine.host == Host.CEMU_VULKAN) {
+                    if (engine.host == Host.ARMSX2_ANDROID) {
+                        File(
+                            context.filesDir,
+                            "native-engines/armsx2/active.version",
+                        ).takeIf { it.isFile }?.readText()?.trim()
+                    } else if (engine.host == Host.CEMU_VULKAN) {
                         File(
                             context.filesDir,
                             "native-engines/wiiu/active.version",

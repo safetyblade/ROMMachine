@@ -20,6 +20,11 @@ if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == tr
 
 android {
     defaultConfig {
+        buildConfigField(
+            "boolean",
+            "P1_EMU_ENABLED",
+            (providers.gradleProperty("cartdeck.p1emu.enabled").orNull == "true").toString(),
+        )
         versionCode = 252
         versionName = "1.17.0" // Always remember to update Cores Tag!
         applicationId = "com.swordfish.lemuroid"
@@ -34,6 +39,7 @@ android {
 
         if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck.ps2lab"
+        }
         if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck.wiiulab"
         }
@@ -123,6 +129,10 @@ android {
                 )
             if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
                 keepDebugSymbols += setOf("**/libcemu_libretro_android.so", "**/libcartdeckwiiuvulkanhost.so")
+            }
+            if (providers.gradleProperty("cartdeck.p1emu.enabled").orNull == "true") {
+                // The connected bundle is already stripped and hash-bound to retained native symbols.
+                keepDebugSymbols += "**/*.so"
             }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {

@@ -1,139 +1,435 @@
 package com.swordfish.lemuroid.app.debug
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.os.Process
+import android.os.SystemClock
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.FrameLayout
-import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2PadMapping
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
+import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.lib.library.CoreID
+import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.touchinput.radial.settings.TouchControllerID
+import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
+import gg.padkit.inputevents.InputEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kr.co.iefriends.pcsx2.NativeApp
 import java.io.File
+import java.io.FileOutputStream
 
-/**
- * Unlisted, debug-only ARMSX2 JNI integration probe. Never launched by the public game library.
- *
- * Test fixtures, BIOS and source-licensed emulator resources must be staged in this app's
- * own private files directory. An absent core or any missing input results in a blocked screen.
- * Process isolation is enforced in the debug AndroidManifest.
- */
+/** CARTDECK's opt-in in-process ARMSX2 host; Play! remains independently selectable. */
 class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
-    private lateinit var status: TextView
     private lateinit var surface: SurfaceView
+    private var game: Game? = null
+    private var paths: Armsx2Storage.Paths? = null
+    private var engine: XboxEngineStore.Selection? = null
+    private var image: File? = null
+    private var loaded = false
+    private var ready = false
+    private var started = false
+    private var hostForeground = false
+    private var leaving = false
+    private var failed = false
+    private var vm: Thread? = null
+    private var menu by mutableStateOf(false)
+    private var connected by mutableStateOf(false)
+    private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
+    private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
+    private val hardware = XboxPadState()
+    private val touch = XboxPadState()
+    private val grip = XboxPadState()
+    private val slots = mutableMapOf<Int, Set<Int>>()
+    private val presence by lazy { GameplayControllerPresence(this) }
+    private val settings by lazy {
+        TouchControllerSettingsManager(getSharedPreferences("armsx2-controller-layout", MODE_PRIVATE))
+    }
 
-    @Volatile
-    private var nativeReady = false
-
-    @Volatile
-    private var stopping = false
-
-    private var surfacePublished = false
-    private var vmStarted = false
+    private val importBios =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                lifecycleScope.launch {
+                    if (started && !failed) return@launch
+                    runCatching {
+                        withContext(Dispatchers.IO) {
+                            val root = requireNotNull(paths).bios
+                            check(root.isDirectory || root.mkdirs())
+                            val pending = File(root, ".bios.pending")
+                            var size = 0L
+                            contentResolver.openInputStream(uri)?.use { input ->
+                                FileOutputStream(pending).use { output ->
+                                    val buffer = ByteArray(8192)
+                                    while (true) {
+                                        val count = input.read(buffer)
+                                        if (count < 0) break
+                                        size += count
+                                        check(size <= 16L * 1024 * 1024) { "BIOS file exceeds import limit" }
+                                        output.write(buffer, 0, count)
+                                    }
+                                    check(size > 0) { "Empty BIOS file" }
+                                    output.fd.sync()
+                                }
+                            } ?: error("Cannot read selected BIOS")
+                            check(loaded) { "Load the verified engine before BIOS validation" }
+                            val fd =
+                                android.os.ParcelFileDescriptor.open(
+                                    pending,
+                                    android.os.ParcelFileDescriptor.MODE_READ_ONLY,
+                                ).detachFd()
+                            check(
+                                NativeApp.getBiosInfoFromFd(fd) != null,
+                            ) { "The selected file is not a supported PS2 BIOS" }
+                            check(pending.renameTo(File(root, "bios.bin")))
+                        }
+                    }.onSuccess { message = "User BIOS imported. Return to Shelf and reopen this cartridge." }
+                        .onFailure { message = "BIOS import failed. Memory cards were retained." }
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        surface = SurfaceView(this)
-        status =
-            TextView(this).apply {
-                text = "PS2-NEXT JNI probe: checking private test prerequisites"
-                setPadding(20, 20, 20, 20)
-            }
-        setContentView(
-            FrameLayout(this).apply {
-                addView(surface)
-                addView(status)
-            },
-        )
-        surface.holder.addCallback(this)
-
-        // Fixed test UUID ensures isolation from real shelf cartridges.
-        val sandbox = Armsx2Storage.paths(filesDir, TEST_CARTRIDGE_ID)
-        val disc = File(filesDir, "ps2-next-lab/fixture.iso")
-        val missing = Armsx2Storage.missingRequirements(sandbox, disc)
-        if (missing.isNotEmpty()) {
-            report("PS2_NEXT_BLOCKED: ${missing.joinToString(",")}")
-            return
+        game = intent.getSerializableExtra("cartdeck.game") as? Game
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-
-        Thread(
-            {
-                if (!NativeApp.tryLoad()) {
-                    report("PS2_NEXT_BLOCKED: ${NativeApp.loadStatus()}")
-                    return@Thread
-                }
-                runCatching {
-                    Armsx2Storage.createPrivateDirectories(sandbox)
-                    NativeApp.allowPrivateRoot(sandbox.globalRoot)
-                    NativeApp.initialize(
-                        sandbox.gameRoot.absolutePath,
-                        sandbox.bios.absolutePath,
-                        Build.VERSION.SDK_INT,
-                    )
-                }.onFailure {
-                    report("PS2_NEXT_INIT_FAILED: ${it.javaClass.simpleName}")
-                }.onSuccess {
-                    nativeReady = true
-                    runOnUiThread {
-                        if (!stopping) {
-                            if (surface.holder.surface.isValid) {
-                                publishSurface(surface.holder, surface.width, surface.height)
+        surface = SurfaceView(this).also { it.holder.addCallback(this) }
+        val root = FrameLayout(this)
+        root.addView(surface, FrameLayout.LayoutParams(-1, -1))
+        root.addView(
+            ComposeView(this).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+                setContent {
+                    Box(Modifier.fillMaxSize()) {
+                        XboxGameControls(
+                            ::touchInput,
+                            settings,
+                            TouchControllerID.PSX_DUALSHOCK,
+                            physicalControllerConnected = connected,
+                            game = game,
+                            onGripPressed = { slot, down, codes ->
+                                if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
+                                grip.clear()
+                                slots.values.flatten().toSet().forEach { grip.key(it, true) }
+                                sendInput()
+                            },
+                        ) { viewport ->
+                            if (viewport.width() > 0 && viewport.height() > 0) {
+                                val old = surface.layoutParams as FrameLayout.LayoutParams
+                                if (old.width != viewport.width() || old.height != viewport.height() ||
+                                    old.leftMargin != viewport.left || old.topMargin != viewport.top
+                                ) {
+                                    surface.layoutParams =
+                                        FrameLayout.LayoutParams(viewport.width(), viewport.height()).apply {
+                                            leftMargin = viewport.left
+                                            topMargin = viewport.top
+                                        }
+                                }
                             }
-                            startVm(disc)
+                        }
+                        if (!menu && message.isNotEmpty()) GameMenuTheme { Text(message) }
+                        if (menu) {
+                            XboxGameMenu(
+                                title = game?.displayName() ?: "PlayStation 2",
+                                engineInfo = engine?.id ?: "ARMSX2 unavailable",
+                                capabilities =
+                                    XboxMenuCapabilities(
+                                        false,
+                                        false,
+                                        engine != null && Armsx2Engine.store(filesDir).canRollback(),
+                                    ),
+                                onResume = {
+                                    if (!failed) {
+                                        menu = false
+                                        syncPause()
+                                        startIfReady()
+                                    }
+                                },
+                                onReturnToShelf = ::leave,
+                                onCopyReport = ::copyReport,
+                                onProbe = {},
+                                onPreviousEngine = { if (Armsx2Engine.store(filesDir).rollback()) leave() },
+                                console = "PlayStation 2",
+                                storageHelp = message.ifEmpty { "Independent ARMSX2 memory cards and in-game saves." },
+                            ) {
+                                GameMenuLink("Use Play! on next Open (separate memory cards)") {
+                                    game?.let { current ->
+                                        if (EngineSelectionPreferences(this@Armsx2RuntimeProbeActivity).setPreferred(
+                                                GameSystem.findById(current.systemId),
+                                                CoreID.PLAY_MODERN.coreName,
+                                                current,
+                                            )
+                                        ) {
+                                            leave()
+                                        }
+                                    }
+                                }
+                                GameMenuLink("Capture stock GPU and driver diagnostics") {
+                                    lifecycleScope.launch {
+                                        if (loaded) {
+                                            withContext(Dispatchers.IO) {
+                                                val output = File(requireNotNull(paths).gameRoot, "driver-report.json")
+                                                if (NativeApp.writeSystemReport(output.absolutePath)) {
+                                                    report += "\n" + output.readText().take(16384)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                GameMenuLink("Renderer on next launch: switch Vulkan / OpenGL") {
+                                    val prefs = getSharedPreferences("armsx2-runtime", MODE_PRIVATE)
+                                    val next =
+                                        if (prefs.getString("renderer", "Vulkan") == "Vulkan") "OpenGL" else "Vulkan"
+                                    prefs.edit().putString("renderer", next).apply()
+                                    message = "$next selected for next launch. Uses the stock system driver."
+                                }
+                                GameMenuLink(
+                                    "Import user-owned PS2 BIOS after a failed launch",
+                                ) { importBios.launch(arrayOf("*/*")) }
+                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK) { orientation, edited ->
+                                    lifecycleScope.launch {
+                                        settings.storeSettings(
+                                            TouchControllerID.PSX_DUALSHOCK,
+                                            orientation,
+                                            edited,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             },
-            "cartdeck-ps2-next-init",
-        ).start()
-    }
-
-    private fun startVm(disc: File) {
-        if (vmStarted || stopping || !nativeReady || !surfacePublished) return
-        if (!disc.isFile) {
-            report("PS2_NEXT_BLOCKED: DISC")
-            return
-        }
-        vmStarted = true
-        report("PS2_NEXT_VM_START_REQUESTED (not a gameplay pass)")
-        Thread(
-            {
-                val result = runCatching { NativeApp.runVMThread(disc.absolutePath) }
-                report(
-                    if (result.isSuccess && result.getOrDefault(false)) {
-                        "PS2_NEXT_VM_RETURNED (gameplay not verified)"
-                    } else {
-                        "PS2_NEXT_VM_FAILED: ${result.exceptionOrNull()?.javaClass?.simpleName ?: "FAILED"}"
-                    },
-                )
+            FrameLayout.LayoutParams(-1, -1),
+        )
+        setContentView(root)
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    openMenu()
+                }
             },
-            "cartdeck-ps2-next-vm",
-        ).start()
+        )
+        lifecycleScope.launch {
+            try {
+                GameProcessLock.acquireExclusive(this@Armsx2RuntimeProbeActivity)
+                val current = requireNotNull(game) { "Open a PS2 cartridge from Shelf" }
+                val job = coroutineContext
+                withContext(Dispatchers.IO) {
+                    val data = Armsx2Storage.paths(filesDir, current.cartridgeId)
+                    paths = data
+                    Armsx2Storage.createPrivateDirectories(data)
+                    val selected = Armsx2Engine.install(this@Armsx2RuntimeProbeActivity)
+                    engine = selected
+                    Armsx2Engine.resources(this@Armsx2RuntimeProbeActivity, data, selected.properties)
+                    image =
+                        Armsx2Content.stage(
+                            this@Armsx2RuntimeProbeActivity, Uri.parse(current.fileUri), current.cartridgeId,
+                        ) {
+                            job.ensureActive()
+                        }
+                    check(
+                        NativeApp.loadSelected(selected.directory, Armsx2Engine.coreName()),
+                    ) { NativeApp.loadStatus() }
+                    loaded = true
+                    val missing = Armsx2Storage.missingRequirements(data, requireNotNull(image))
+                    check(missing.isEmpty()) { "PS2 prerequisites missing: ${missing.joinToString()}" }
+                    NativeApp.allowPrivateRoot(data.globalRoot)
+                    NativeApp.initialize(data.gameRoot.absolutePath, data.bios.absolutePath, Build.VERSION.SDK_INT)
+                    NativeApp.setCustomVulkanDriver("", "", "", "")
+                    NativeApp.setAffinityMode(0) // Let the Samsung scheduler place threads; no Adreno assumptions.
+                    val renderer = getSharedPreferences("armsx2-runtime", MODE_PRIVATE).getString("renderer", "Vulkan")
+                    if (renderer == "OpenGL") NativeApp.renderOpenGL() else NativeApp.renderVulkan()
+                    ready = true
+                }
+                startIfReady()
+                while (!leaving) {
+                    if (ready && started) {
+                        report = "engine=${engine?.id}\ndriver_selection=STOCK\n" + NativeApp.getCustomDriverStatus() +
+                            "\npresented_frames=${NativeApp.getPresentedFrameCount()}\n" + NativeApp.getPerfSnapshot() +
+                            "\ngameplay=UNVERIFIED"
+                        withContext(
+                            Dispatchers.IO,
+                        ) { File(requireNotNull(paths).gameRoot, "last-report.txt").writeText(report.take(16384)) }
+                        if (NativeApp.getPresentedFrameCount() > 0 && !failed) {
+                            message = ""
+                            EngineSelectionPreferences(this@Armsx2RuntimeProbeActivity).recordPresentation(current)
+                        }
+                    }
+                    delay(1000)
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                failed = true
+                message = "ARMSX2 could not start (${error.javaClass.simpleName}). Check BIOS, media and storage."
+                val bootError = if (loaded) runCatching { NativeApp.getLastBootError() }.getOrDefault("") else ""
+                report = "$message\n$bootError"
+                openMenu()
+            }
+        }
     }
 
-    private fun publishSurface(
-        holder: SurfaceHolder,
-        width: Int,
-        height: Int,
-    ) {
-        if (!nativeReady || stopping || !holder.surface.isValid || width <= 0 || height <= 0) return
-        runCatching { NativeApp.onNativeSurfaceChanged(holder.surface, width, height) }
-            .onSuccess { surfacePublished = true }
-            .onFailure {
-                surfacePublished = false
-                report("PS2_NEXT_SURFACE_FAILED: ${it.javaClass.simpleName}")
+    private fun startIfReady() {
+        val disc = image ?: return
+        if (!ready || started || leaving || !hostForeground || menu || !surface.holder.surface.isValid) return
+        NativeApp.onNativeSurfaceCreated()
+        NativeApp.onNativeSurfaceChanged(surface.holder.surface, surface.width, surface.height)
+        surface.display?.refreshRate?.let { NativeApp.setDisplayRefreshRate(it) }
+        started = true
+        vm =
+            Thread({
+                val outcome = runCatching { NativeApp.runVMThread(disc.absolutePath) }
+                runOnUiThread {
+                    if (!leaving) {
+                        failed = true
+                        report = "ARMSX2_VM_RETURNED=${outcome.getOrDefault(false)}\n" + NativeApp.getLastBootError()
+                        message = "ARMSX2 session ended. Copy the report or return to Shelf."
+                        openMenu()
+                    }
+                }
+            }, "cartdeck-armsx2-vm").also { it.start() }
+    }
+
+    private fun touchInput(events: List<InputEvent>) {
+        if (menu || !hostForeground || leaving) return
+        events.forEach {
+            when (it) {
+                is InputEvent.Button ->
+                    if (it.id == KeyEvent.KEYCODE_BUTTON_MODE) {
+                        if (!it.pressed) openMenu()
+                    } else {
+                        touch.key(it.id, it.pressed)
+                    }
+                is InputEvent.DiscreteDirection -> touch.direction(it.id, it.direction.x, it.direction.y)
+                is InputEvent.ContinuousDirection -> touch.direction(it.id, it.direction.x, it.direction.y)
             }
+        }
+        sendInput()
+    }
+
+    private fun sendInput() {
+        if (!ready || !started) return
+        val base = Xbox360Pad.merged(hardware, touch)
+        val accessory = Xbox360Pad.values(grip)
+        val pad =
+            IntArray(
+                24,
+            ) { if (kotlin.math.abs(base[it]) >= kotlin.math.abs(accessory[it])) base[it] else accessory[it] }
+        val keys =
+            intArrayOf(
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B,
+                KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_SELECT,
+                KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1,
+                KeyEvent.KEYCODE_BUTTON_THUMBL, KeyEvent.KEYCODE_BUTTON_THUMBR,
+            )
+        keys.forEachIndexed { index, code ->
+            Armsx2PadMapping.button(
+                code,
+                pad[index] != 0,
+            )?.let { NativeApp.setPadButton(it.nativeCode, it.range, it.pressed) }
+        }
+        val values =
+            Armsx2PadMapping.trigger(pad[14] / 255f, false).let { listOf(it) } +
+                Armsx2PadMapping.trigger(pad[15] / 255f, true) +
+                Armsx2PadMapping.stick((pad[16] + pad[18]) / 32767f, -(pad[17] + pad[19]) / 32767f, false) +
+                Armsx2PadMapping.stick((pad[20] + pad[22]) / 32767f, -(pad[21] + pad[23]) / 32767f, true)
+        values.forEach { NativeApp.setPadButton(it.nativeCode, it.range, it.pressed) }
+    }
+
+    private fun releaseInput() {
+        hardware.clear()
+        touch.clear()
+        grip.clear()
+        slots.clear()
+        sendInput()
+    }
+
+    private fun syncPause() {
+        if (ready && started) {
+            if (!hostForeground || menu || leaving) NativeApp.pause() else NativeApp.resume()
+        }
+    }
+
+    private fun openMenu() {
+        menu = true
+        releaseInput()
+        syncPause()
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
+            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            return true
+        }
+        if (!menu && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
+            hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+        ) {
+            sendInput()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (!menu && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
+            hardware.motion({ event.getAxisValue(it) }, event.device)
+            sendInput()
+            return true
+        }
+        return super.dispatchGenericMotionEvent(event)
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        if (nativeReady) {
-            runCatching { NativeApp.onNativeSurfaceCreated() }
-        }
+        if (ready && started) NativeApp.onNativeSurfaceCreated()
+        startIfReady()
     }
 
     override fun surfaceChanged(
@@ -142,83 +438,78 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
-        publishSurface(holder, width, height)
-        gameImageForProbe()?.let(::startVm)
+        if (ready && started && holder.surface.isValid) NativeApp.onNativeSurfaceChanged(holder.surface, width, height)
+        startIfReady()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        surfacePublished = false
-        if (nativeReady && !stopping) runCatching { NativeApp.onNativeSurfaceDestroyed() }
-    }
-
-    private fun gameImageForProbe(): File? = File(filesDir, "ps2-next-lab/fixture.iso").takeIf { it.isFile }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
-        val input = Armsx2PadMapping.button(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
-        if (nativeReady && vmStarted && input != null &&
-            event.action in setOf(KeyEvent.ACTION_UP, KeyEvent.ACTION_DOWN)
-        ) {
-            runCatching { NativeApp.setPadButton(input.nativeCode, input.range, input.pressed) }
-            return true
-        }
-        return super.dispatchKeyEvent(event)
-    }
-
-    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        if (!nativeReady || !vmStarted ||
-            (event.source and InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK
-        ) {
-            return super.onGenericMotionEvent(event)
-        }
-        val inputs =
-            Armsx2PadMapping.stick(
-                event.getAxisValue(MotionEvent.AXIS_X),
-                event.getAxisValue(MotionEvent.AXIS_Y),
-                right = false,
-            ) +
-                Armsx2PadMapping.stick(
-                    event.getAxisValue(MotionEvent.AXIS_Z),
-                    event.getAxisValue(MotionEvent.AXIS_RZ),
-                    right = true,
-                ) +
-                listOf(
-                    Armsx2PadMapping.trigger(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), right = false),
-                    Armsx2PadMapping.trigger(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), right = true),
-                )
-        runCatching {
-            inputs.forEach { NativeApp.setPadButton(it.nativeCode, it.range, it.pressed) }
-        }
-        return true
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (nativeReady && vmStarted) runCatching { NativeApp.pause() }
+        releaseInput()
+        if (ready) NativeApp.onNativeSurfaceDestroyed()
     }
 
     override fun onResume() {
         super.onResume()
-        if (nativeReady && vmStarted) runCatching { NativeApp.resume() }
+        hostForeground = true
+        presence.start { connected = it.isNotEmpty() }
+        syncPause()
+        startIfReady()
+    }
+
+    override fun onPause() {
+        hostForeground = false
+        presence.stop()
+        releaseInput()
+        syncPause()
+        super.onPause()
+    }
+
+    private fun copyReport() {
+        (
+            getSystemService(
+                CLIPBOARD_SERVICE,
+            ) as ClipboardManager
+        ).setPrimaryClip(ClipData.newPlainText("CARTDECK ARMSX2", report.take(16384)))
+    }
+
+    private fun leave() {
+        if (leaving) return
+        leaving = true
+        releaseInput()
+        val shutdown =
+            Thread(
+                { if (loaded) runCatching { NativeApp.shutdown() } },
+                "cartdeck-armsx2-stop",
+            ).also { it.start() }
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) { shutdown.join(8000) }
+            paths?.let { File(it.gameRoot, "last-report.txt").writeText(report.take(16384)) }
+            setResult(
+                if (failed || shutdown.isAlive) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
+                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
+                        intent.getBooleanExtra("cartdeck.leanback", false),
+                    )
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,
+                        SystemClock.elapsedRealtime() -
+                            intent.getLongExtra("cartdeck.startTime", SystemClock.elapsedRealtime()),
+                    ),
+            )
+            finish()
+        }
     }
 
     override fun onDestroy() {
-        stopping = true
-        if (nativeReady) {
-            Thread({ runCatching { NativeApp.shutdown() } }, "cartdeck-ps2-next-shutdown").start()
-        }
+        presence.stop()
         super.onDestroy()
-    }
-
-    private fun report(message: String) {
-        Log.i(TAG, message)
-        runOnUiThread {
-            if (!isDestroyed && !isFinishing) status.text = message
-        }
-    }
-
-    companion object {
-        private const val TAG = "CARTDECK_PS2_NEXT"
-        private const val TEST_CARTRIDGE_ID = "c3882b50-8b41-47cf-8219-f00b70c79e20"
+        Thread(
+            {
+                val stop = Thread({ if (!leaving && loaded) runCatching { NativeApp.shutdown() } }).also { it.start() }
+                stop.join(8000)
+                Process.killProcess(Process.myPid())
+            },
+            "cartdeck-armsx2-process-stop",
+        ).start()
     }
 }
