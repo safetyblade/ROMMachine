@@ -54,6 +54,14 @@ internal class CartdeckReactiveLightingSession(
         if (listening) events.trySend(CartdeckFeedbackStrength.normalized(strong, weak))
     }
 
+    /**
+     * A forwarded gameplay button-down edge, not a claim that the game
+     * registered a hit or emitted rumble. No event details are retained.
+     */
+    fun onControllerActivity() {
+        if (listening) events.trySend(CONTROLLER_ACTIVITY_STRENGTH)
+    }
+
     fun configure(enabled: Boolean) {
         listening = enabled
         if (!enabled) {
@@ -78,7 +86,8 @@ internal class CartdeckReactiveLightingSession(
     }
 
     companion object {
-        const val MIN_INTERVAL_MS = 125L // At most 8 effective feedback updates/second.
+        const val CONTROLLER_ACTIVITY_STRENGTH = 0.75f
+        const val MIN_INTERVAL_MS = 125L // At most 8 effective lighting updates/second.
         const val IDLE_TIMEOUT_MS = 300L // No polling; restore static light on silence.
     }
 }
