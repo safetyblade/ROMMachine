@@ -61,6 +61,7 @@ def main():
     for tool in ('glslangValidator', 'spirv-opt', 'spirv-dis'):
         if not shutil.which(tool):
             raise RuntimeError('Missing host shader compiler: ' + tool)
+    work.mkdir(parents=True, exist_ok=True)
     source = work / 'source'
     run('git', 'clone', '--no-checkout', 'https://github.com/rfandango/XenDroid.git', source)
     run('git', '-C', source, 'checkout', '--detach', REVISION)
@@ -110,6 +111,9 @@ def main():
     for name in inventory:
         manifest['library.'+name+'.sha256'] = sha(output / name)
     manifest['core.sha256'] = sha(output / CORE)
+    for name in inventory:
+        inventory[name]['sha256'] = sha(output / name)
+    (output / 'source-manifest.json').write_text(json.dumps(provenance, indent=2)+'\n')
     (output / 'xenia.properties').write_text(''.join(k+'='+v+'\n' for k,v in manifest.items()))
     (output / 'sha256.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in output.iterdir() if p.is_file()))
     with tarfile.open(output / 'corresponding-source.tar.xz', 'w:xz', preset=1) as archive:

@@ -2,6 +2,7 @@
 """Check a built engineering APK against its verified private bundle."""
 import argparse
 import hashlib
+import io
 import json
 import pathlib
 import struct
@@ -33,8 +34,8 @@ ENGINE_LIBRARIES = {
 LEGACY_LIBRARIES = {'libpcsx_rearmed_libretro_android.so', 'libppsspp_libretro_android.so'}
 
 
-def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=False, require_xbox=False):
-    require_five_engines = require_five_engines or require_wii or require_xbox
+def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=False, require_xbox=False, require_xbox360=False):
+    require_five_engines = require_five_engines or require_wii or require_xbox or require_xbox360
     expected = (bundle / 'bundle-sha256.txt').read_text().splitlines()
     result = {'bundle_files_verified': 0, 'native_elf_16k_failures': [],
               'native_library_count': 0, 'stored_native_count': 0}
@@ -51,6 +52,8 @@ def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=F
                 required_systems.add('wii')
             if require_xbox:
                 required_systems.add('xbox')
+            if require_xbox360:
+                required_systems.add('xbox360')
             if set(systems.split(',')) != required_systems:
                 raise ValueError('Required library systems must be enabled: ' + ','.join(sorted(required_systems)))
             # The non-minified engineering APK must carry the actual compiled registry flag.
@@ -81,6 +84,27 @@ def verify(apk, bundle, require_five_engines=False, host_aar=None, require_wii=F
             if activity.encode() not in manifest and activity.encode('utf-16le') not in manifest:
                 raise ValueError('Xbox internal activity is not registered')
             result['xbox_native_backend_bundled'] = True
+        if require_xbox360:
+            if 'libcartdeck_xenia.so' not in libraries:
+                raise ValueError('Xbox 360 native engine is missing')
+            for item in ('assets/cartdeck/xenia.properties',
+                         'assets/cartdeck/xenia/xenia-licenses.zip',
+                         'assets/cartdeck/xenia/source-manifest.json'):
+                if item not in archive.namelist():
+                    raise ValueError('Xbox 360 provenance/licenses missing: ' + item)
+            with zipfile.ZipFile(io.BytesIO(archive.read('assets/cartdeck/xenia/xenia-licenses.zip'))) as notices:
+                if not notices.namelist():
+                    raise ValueError('Xbox 360 source notices empty')
+            dex = [archive.read(n) for n in archive.namelist() if n.endswith('.dex')]
+            for descriptor in (b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360Activity;',
+                               b'Lcom/swordfish/lemuroid/app/shared/game/xbox360/Xbox360GameLauncher;'):
+                if not any(descriptor in data for data in dex):
+                    raise ValueError('Xbox 360 internal host missing: ' + descriptor.decode())
+            activity = 'com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Activity'
+            manifest = archive.read('AndroidManifest.xml')
+            if activity.encode() not in manifest and activity.encode('utf-16le') not in manifest:
+                raise ValueError('Xbox 360 isolated Activity not registered')
+            result['xbox360_native_backend_bundled'] = True
         if host_aar is not None:
             with zipfile.ZipFile(host_aar) as host:
                 expected_host = host.read('jni/arm64-v8a/liblibretrodroid.so')
@@ -125,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--host-aar', type=pathlib.Path)
     parser.add_argument('--require-wii', action='store_true')
     parser.add_argument('--require-xbox', action='store_true')
+    parser.add_argument('--require-xbox360', action='store_true')
     args = parser.parse_args()
     print(json.dumps(verify(args.apk, args.bundle, args.require_five_engines, args.host_aar,
-                            args.require_wii, args.require_xbox), indent=2))
+                            args.require_wii, args.require_xbox, args.require_xbox360), indent=2))

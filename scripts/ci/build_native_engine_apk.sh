@@ -33,6 +33,9 @@ fi
 if [[ "${CARTDECK_REQUIRE_XBOX:-false}" == true ]]; then
     verification_args+=(--require-xbox)
 fi
+if [[ "${CARTDECK_REQUIRE_XBOX360:-false}" == true ]]; then
+    verification_args+=(--require-xbox360)
+fi
 python3 scripts/ci/verify_native_bundle_apk.py \
     "$output/CARTDECK_STANDALONE_ARM64_DEBUG.apk" "$bundle" \
     "${verification_args[@]}" \

@@ -74,6 +74,12 @@
             android:theme="@style/LemuroidMaterialTheme.Game" />
 
         <activity
+            android:name="com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Activity"
+            android:exported="false"
+            android:process=":xbox360"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+        <activity
             android:name="com.rfandango.haku_x.NativeCoreActivity"
             android:launchMode="singleTop"
             android:exported="false"

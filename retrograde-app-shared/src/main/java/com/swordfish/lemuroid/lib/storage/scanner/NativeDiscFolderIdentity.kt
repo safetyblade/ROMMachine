@@ -12,6 +12,9 @@ import java.util.Locale
 object NativeDiscFolderIdentity {
     private val extensions =
         mapOf(
+            // Retain an explicitly filed playlist as a cartridge with an import explanation.
+            // This does not advertise M3U as an executable engine format.
+            SystemID.XBOX360 to setOf("iso", "xex", "xcp", "zar", "m3u"),
             SystemID.DREAMCAST to setOf("gdi", "cue", "chd", "m3u", "cdi"),
             SystemID.GAMECUBE to setOf("gcm", "iso", "rvz", "gcz", "ciso", "tgc"),
             SystemID.PLAYSTATION_2 to setOf("iso", "chd", "cso", "isz"),
@@ -19,6 +22,9 @@ object NativeDiscFolderIdentity {
 
     private val folders =
         mapOf(
+            "xbox360" to SystemID.XBOX360,
+            "xbox 360" to SystemID.XBOX360,
+            "microsoft xbox 360" to SystemID.XBOX360,
             "dc" to SystemID.DREAMCAST,
             "dreamcast" to SystemID.DREAMCAST,
             "sega dreamcast" to SystemID.DREAMCAST,

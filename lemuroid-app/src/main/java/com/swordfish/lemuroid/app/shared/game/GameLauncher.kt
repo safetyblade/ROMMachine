@@ -81,6 +81,12 @@ class GameLauncher(
                     }
                     return@launch
                 }
+                if (system.nativeBackend == "xenia") {
+                    com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360GameLauncher.launch(activity, game, leanback)
+                    enginePreferences.beginLaunch(game, selection.engine)
+                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    return@launch
+                }
                 val selectedCoreConfig =
                     PSPModernCoreConfig.configure(
                         PlayStationModernCoreConfig.configure(

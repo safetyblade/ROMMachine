@@ -1,10 +1,12 @@
 package com.swordfish.lemuroid.app.mobile
 
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.NativeGameSystems
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NativeDiscFolderIdentityTest {
@@ -121,6 +123,48 @@ class NativeDiscFolderIdentityTest {
         assertNull(NativeDiscFolderIdentity.infer("game.cdi", "/ROMs/game.cdi", enabled))
         assertNull(NativeDiscFolderIdentity.infer("game.chd", "/ROMs/game.chd", enabled))
         assertNull(NativeDiscFolderIdentity.infer("game.cso", "/ROMs/game.cso", enabled))
+    }
+
+    @Test
+    fun xbox360DiscoveryIsAvailableWithoutBundledEngineAndDoesNotConfuseOriginalXbox() {
+        val all = GameSystem.all().map { it.id }.toSet()
+        assertTrue(
+            "Xbox 360 shelf indexing is independent of APK engine packaging",
+            SystemID.XBOX360 in all,
+        )
+        assertEquals(
+            SystemID.XBOX360,
+            NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Xbox360/Example.iso", all),
+        )
+        assertEquals(
+            SystemID.XBOX360,
+            NativeDiscFolderIdentity.infer("default.xex", "/ROMS/Xbox_360/Example/default.xex", all),
+        )
+        assertEquals(
+            SystemID.XBOX360,
+            NativeDiscFolderIdentity.infer(
+                "Example.ISO",
+                "/tree/primary%3AROMS/document/primary%3AROMS%2FXbox360%2FExample.ISO",
+                all,
+            ),
+        )
+        assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Example.iso", all))
+        assertNull(
+            NativeDiscFolderIdentity.infer(
+                "Example.iso",
+                "/ROMS/Xbox360/PS2/Example.iso",
+                all + SystemID.PLAYSTATION_2,
+            ),
+        )
+        assertEquals(
+            SystemID.XBOX,
+            NativeDiscFolderIdentity.resolve(
+                "Example.iso",
+                "/ROMS/Xbox360/Example.iso",
+                all,
+                verified = SystemID.XBOX,
+            ),
+        )
     }
 
     @Test

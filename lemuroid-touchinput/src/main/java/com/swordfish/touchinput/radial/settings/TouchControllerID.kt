@@ -92,6 +92,7 @@ enum class TouchControllerID {
     WS_PORTRAIT,
     NINTENDO_3DS,
     XBOX,
+    XBOX360,
     WII_CLASSIC,
     WII_SIDEWAYS,
     WII_NUNCHUK,
@@ -286,6 +287,11 @@ enum class TouchControllerID {
                         { modifier, settings -> WSPortraitRight(modifier, settings) },
                     )
 
+                XBOX360 ->
+                    Config(
+                        { modifier, settings -> XboxLeft(modifier, settings, true) },
+                        { modifier, settings -> XboxRight(modifier, settings, true) },
+                    )
                 XBOX ->
                     Config(
                         { modifier, settings -> XboxLeft(modifier, settings) },
