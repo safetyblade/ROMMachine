@@ -6,7 +6,6 @@ import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
-import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.app.mobile.shared.NotificationsManager
 import com.swordfish.lemuroid.app.utils.android.createSyncForegroundInfo
 import com.swordfish.lemuroid.lib.injection.AndroidWorkerInjection
@@ -19,6 +18,8 @@ import dagger.multibindings.IntoMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -44,44 +45,28 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
 
         setForegroundAsync(foregroundInfo)
 
+        var phase = "recovery"
+        val runId = java.util.UUID.randomUUID().toString()
         return try {
             val summary =
                 withContext(Dispatchers.IO) {
-                    val report = lemuroidLibrary.indexLibrary()
-                    // Only a completely successful provider enumeration may
-                    // prune vanished cartridges from CARTDECK's separate shelf.
-                    val names =
-                        retrogradeDb.gameDao().selectShelfGames().first()
-                            .associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
-                    val moves =
-                        report.relocations.associate { relocation ->
-                            shelfGameKey(relocation.systemId, relocation.originalUri) to
-                                shelfGameKey(relocation.systemId, relocation.currentUri)
+                    refreshLock.withLock {
+                        val journal = LibraryRefreshJournal(applicationContext)
+                        val shelf = ShelfStore(applicationContext)
+                        journal.reconcile(retrogradeDb.gameDao().selectShelfGames().first(), shelf)
+                        if (inputData.getBoolean("recoverOnly", false)) {
+                            return@withLock LemuroidLibrary.IndexSummary(0, 0, 0)
                         }
-                    ShelfStore(applicationContext).update { layout ->
-                        val known = layout.sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
-                        // A pre-existing destination shelf key is an ownership conflict;
-                        // keep the original layout rather than overwriting a player's slot.
-                        if (moves.any { (old, new) -> old in known && new in known }) {
-                            throw IllegalStateException("Ambiguous shelf identity move; old layout preserved")
-                        }
-                        val moved =
-                            layout.copy(
-                                sections =
-                                    layout.sections.map { section ->
-                                        section.copy(
-                                            cells =
-                                                section.cells.map { cell ->
-                                                    cell.copy(gameKey = moves[cell.gameKey] ?: cell.gameKey)
-                                                },
-                                        )
-                                    },
-                            )
-                        moved.reconcile(names, removeMissing = true)
+                        phase = "journal_prepare"
+                        journal.prepare(retrogradeDb.gameDao().selectShelfGames().first())
+                        val report = lemuroidLibrary.indexLibrary { phase = it }
+                        phase = "shelf_reconciliation"
+                        journal.reconcile(retrogradeDb.gameDao().selectShelfGames().first(), shelf)
+                        report
                     }
-                    report
                 }
 
+            phase = "core_scheduling"
             LibraryIndexScheduler.scheduleCoreUpdate(applicationContext)
             Result.success(
                 workDataOf(
@@ -94,16 +79,21 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            Timber.e(error, "ROM folder refresh failed; existing library and shelf were not pruned")
+            Timber.e(error, "ROM folder refresh failed during %s; recovery journal retained if pending", phase)
             // Preserve the full exception in private debug logs, but return
             // only a sanitized category/message to the player.
             Result.failure(
                 workDataOf(
                     "errorCode" to LibraryRefreshFailure.code(error),
+                    "report" to LibraryRefreshFailure.report(runId, phase, error),
                     "error" to LibraryRefreshFailure.userMessage(error),
                 ),
             )
         }
+    }
+
+    companion object {
+        private val refreshLock = Mutex()
     }
 
     @dagger.Module(subcomponents = [Subcomponent::class])

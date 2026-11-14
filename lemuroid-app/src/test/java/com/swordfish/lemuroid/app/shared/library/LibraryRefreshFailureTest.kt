@@ -9,6 +9,15 @@ import java.io.IOException
 
 class LibraryRefreshFailureTest {
     @Test
+    fun copiedReportContainsPhaseButNeverExceptionDetails() {
+        val report = LibraryRefreshFailure.report("synthetic-run", "database", IOException("content://secret/game.gba"))
+        assertTrue(report.contains("Phase: database"))
+        assertTrue(report.contains("Category: file_read"))
+        assertFalse(report.contains("secret"))
+        assertFalse(report.contains("game.gba"))
+    }
+
+    @Test
     fun staleAndroidSafPermissionIsActionableAndPathFree() {
         val exception = SecurityException("Cannot access content://com.android.providers/secret-data")
         assertEquals(LibraryRefreshFailure.FOLDER_ACCESS, LibraryRefreshFailure.code(exception))

@@ -102,6 +102,40 @@ class LibraryRefreshRoundTripTest {
             }
         }
 
+    @Test fun failedEnumerationDoesNotPublishPreparedNewGamesOrRenameExistingOnes() =
+        runBlocking {
+            withLibrary { library, db, provider ->
+                val source = file("original.gba", "original")
+                provider.files = listOf(source)
+                library.indexLibrary()
+                val original = db.gameDao().selectShelfGames().first().single()
+                provider.files = listOf(source.copy(name = "renamed.gba")) +
+                    (1..250).map { file("new$it.gba", "new$it") }
+                provider.failAfterEnumeration = true
+                assertThrows(IOException::class.java) { runBlocking { library.indexLibrary() } }
+                assertEquals(listOf(original), db.gameDao().selectShelfGames().first())
+            }
+        }
+
+    @Test fun failureInsideCommitRollsBackInsertsUpdatesAndCleanupTogether() =
+        runBlocking {
+            withLibrary { library, db, provider ->
+                provider.files = listOf(file("original.gba", "original"))
+                library.indexLibrary()
+                val original = db.gameDao().selectShelfGames().first().single()
+                provider.files = listOf(file("replacement.gba", "replacement"))
+                assertThrows(IOException::class.java) {
+                    runBlocking {
+                        library.indexLibrary { phase ->
+                            if (phase == "database_cleanup") throw IOException("Injected commit failure")
+                        }
+                    }
+                }
+                assertEquals(listOf(original), db.gameDao().selectShelfGames().first())
+                assertEquals(1, library.indexLibrary().added)
+            }
+        }
+
     private suspend fun withLibrary(block: suspend (LemuroidLibrary, RetrogradeDatabase, FakeProvider) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val db = Room.inMemoryDatabaseBuilder(context, RetrogradeDatabase::class.java).allowMainThreadQueries().build()

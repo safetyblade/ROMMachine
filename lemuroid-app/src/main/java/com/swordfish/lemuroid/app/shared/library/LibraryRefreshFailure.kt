@@ -29,6 +29,15 @@ internal object LibraryRefreshFailure {
         return SCAN_FAILURE
     }
 
+    fun report(
+        runId: String,
+        phase: String,
+        error: Throwable,
+    ): String =
+        "CARTDECK refresh report v1\nRun: $runId\nPhase: $phase\nCategory: ${code(error)}\n" +
+            "Recovery: pending operations replay from committed database on next startup/refresh.\n" +
+            "No ROM names, paths, titles or provider messages included."
+
     fun userMessage(error: Throwable): String =
         when (code(error)) {
             FOLDER_ACCESS ->
@@ -36,6 +45,6 @@ internal object LibraryRefreshFailure {
             FILE_READ ->
                 "A ROM or folder could not be read. Check files in the selected ROMS folder and retry."
             else ->
-                "Library scan failed. Existing cartridges and saves were protected. Check issue #115."
+                "Library scan failed. Saved progress is protected; shelf recovery will retry. Check issue #115."
         }
 }

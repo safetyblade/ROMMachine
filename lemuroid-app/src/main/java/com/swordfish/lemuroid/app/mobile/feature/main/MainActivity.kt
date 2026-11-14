@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.main
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -17,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -288,10 +291,19 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                                 },
                                         )
                                     } else {
-                                        refreshMessages.showSnackbar(
-                                            outcome.outputData.getString("error")
-                                                ?: getString(R.string.cartdeck_refresh_failed),
-                                        )
+                                        val result =
+                                            refreshMessages.showSnackbar(
+                                                outcome.outputData.getString("error")
+                                                    ?: getString(R.string.cartdeck_refresh_failed),
+                                                actionLabel = getString(R.string.cartdeck_copy_refresh_report),
+                                            )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            val report =
+                                                outcome.outputData.getString("report")
+                                                    ?: "CARTDECK refresh: no worker report available."
+                                            getSystemService(ClipboardManager::class.java)
+                                                .setPrimaryClip(ClipData.newPlainText("CARTDECK refresh", report))
+                                        }
                                     }
                                 } catch (error: Exception) {
                                     refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))

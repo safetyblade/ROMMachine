@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import java.util.UUID
 
 object LibraryIndexScheduler {
@@ -20,6 +21,16 @@ object LibraryIndexScheduler {
             )
             .enqueue()
         return work.id
+    }
+
+    fun recoverPendingRefresh(applicationContext: Context) {
+        if (!LibraryRefreshJournal(applicationContext).pending()) return
+        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            LIBRARY_INDEX_WORK_ID,
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<LibraryIndexWork>()
+                .setInputData(workDataOf("recoverOnly" to true)).build(),
+        )
     }
 
     fun scheduleCoreUpdate(applicationContext: Context) {
