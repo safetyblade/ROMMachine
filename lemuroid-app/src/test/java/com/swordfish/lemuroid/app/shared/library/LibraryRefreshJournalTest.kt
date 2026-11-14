@@ -51,7 +51,9 @@ class LibraryRefreshJournalTest {
 
             LibraryRefreshJournal(context).prepare(emptyList(), listOf(retired))
             val reimported =
-                original.copy(fileUri = "content://com.android.externalstorage.documents/tree/new/document/primary%3Aold")
+                original.copy(
+                    fileUri = "content://com.android.externalstorage.documents/tree/new/document/primary%3Aold",
+                )
             LibraryRefreshJournal(context).reconcile(listOf(reimported), shelf)
             val restored = shelf.read().sections.flatMap { it.cells }.single()
             assertEquals(originalCell.id, restored.id)
