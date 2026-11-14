@@ -20,6 +20,23 @@ from verify_gamecube_core import verify_android_elf
 UPSTREAM = "https://github.com/ARMSX2/ARMSX2.git"
 SOURCE_SHA = "7a999782377e61fb96eca65e476b5ec0d182058e"
 NDK_REV = "29.0.14206865"
+# Source-pinned shaderc DEPS from ARMSX2's vendored shaderc tree.  The
+# upstream snapshot contains CMake but omits these source checkouts.
+# Tests and unrelated libraries are disabled by upstream Android CMake.
+SHADERC_DEPS = {
+    "spirv-headers": (
+        "https://github.com/KhronosGroup/SPIRV-Headers.git",
+        "465055f6c9128772e20082e893d974146acf7a02",
+    ),
+    "spirv-tools": (
+        "https://github.com/KhronosGroup/SPIRV-Tools.git",
+        "e4bceacf59fdfe742047e94e41ef65a48999a0dd",
+    ),
+    "glslang": (
+        "https://github.com/KhronosGroup/glslang.git",
+        "09c541ee5b22bbac307987b50d86ec2b4f683d75",
+    ),
+}
 WRAPPER = pathlib.Path("platforms/android/gradlew")
 REQUIRED_JNI = (
     "Java_kr_co_iefriends_pcsx2_NativeApp_initialize",
@@ -115,6 +132,35 @@ def pinned_checkout(source):
     return source
 
 
+
+def stage_shaderc_dependencies(source):
+    """Check and restore exact source commits named by upstream shaderc/DEPS."""
+    root = pathlib.Path(source) / "platforms/android/app/src/main/cpp/3rdparty/shaderc"
+    deps_file = root / "DEPS"
+    if not deps_file.is_file():
+        raise ValueError("Pinned upstream shaderc DEPS missing")
+    declarations = deps_file.read_text(encoding="utf-8")
+    for name, (_, revision) in SHADERC_DEPS.items():
+        if revision not in declarations:
+            raise ValueError("Upstream shaderc DEPS revision drift for " + name)
+    recorded = {}
+    for name, (url, revision) in SHADERC_DEPS.items():
+        destination = root / "third_party" / name
+        if destination.exists() and not (destination / ".git").exists():
+            raise ValueError("Unverifiable shaderc dependency directory: " + str(destination))
+        if not destination.exists():
+            destination.mkdir(parents=True)
+            run("git", "init", "-q", destination)
+            run("git", "-C", destination, "remote", "add", "origin", url)
+            run("git", "-C", destination, "fetch", "--depth=1", "--no-tags", "origin", revision)
+            run("git", "-C", destination, "checkout", "--detach", revision)
+        head = output("git", "-C", destination, "rev-parse", "HEAD")
+        if head != revision:
+            raise ValueError("Shaderc dependency source mismatch: " + name + ": " + head)
+        recorded[name] = {"revision": revision, "upstream": url}
+    return recorded
+
+
 def collect_notices(source):
     """Inventory source licences. This does not itself clear distribution."""
     root = pathlib.Path(source)
@@ -182,6 +228,7 @@ def execute(args):
         raise ValueError("Pinned Android NDK " + NDK_REV + " not found in ANDROID_HOME")
     source = pinned_checkout(root / "source")
     submodules = output("git", "-C", source, "submodule", "status", "--recursive")
+    shaderc = stage_shaderc_dependencies(source)
     notices = collect_notices(source)
     binaries = root / "verified"
     binaries.mkdir()
@@ -191,6 +238,7 @@ def execute(args):
         "source_sha": SOURCE_SHA,
         "ndk": NDK_REV,
         "submodules": submodules.splitlines(),
+        "shaderc_dependencies": shaderc,
         "notices": notices,
         "notice_count": len(notices),
         "artifacts": [],
