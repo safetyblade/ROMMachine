@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile
 
 import com.swordfish.lemuroid.lib.library.CartridgeSourceMatch
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,6 +25,49 @@ class CartridgeSourceMatchTest {
         coverFrontUrl = null,
         lastIndexedAt = seen,
     )
+
+    @Test fun retiredMatchRequiresUniqueDocumentAndConsoleAndRejectsAmbiguity() {
+        val old = game("$provider/tree/a/document/primary%3Atombstone", 42, 5)
+        val tombstone = RetiredCartridge.fromGame(old, 10L)
+        val other = game("$provider/tree/b/document/primary%3Atombstone", 72, 12)
+        val matched = CartridgeSourceMatch.uniqueRetiredMatches(listOf(tombstone), emptyList(), listOf(other), 12)
+        assertEquals(1, matched.size)
+        assertEquals(old.cartridgeId, matched.single().first.cartridgeId)
+
+        val another = other.copy(id = 73)
+        assertTrue(
+            CartridgeSourceMatch.uniqueRetiredMatches(
+                listOf(tombstone),
+                emptyList(),
+                listOf(other, another),
+                12,
+            ).isEmpty(),
+        )
+        assertTrue(
+            CartridgeSourceMatch.uniqueRetiredMatches(
+                listOf(tombstone),
+                listOf(old),
+                listOf(other),
+                12,
+            ).isEmpty(),
+        )
+        assertTrue(
+            CartridgeSourceMatch.uniqueRetiredMatches(
+                listOf(tombstone),
+                emptyList(),
+                listOf(other.copy(systemId = "gba")),
+                12,
+            ).isEmpty(),
+        )
+        assertTrue(
+            CartridgeSourceMatch.uniqueRetiredMatches(
+                listOf(tombstone),
+                emptyList(),
+                listOf(other.copy(fileUri = "$provider/document/primary%3Aother")),
+                12,
+            ).isEmpty(),
+        )
+    }
 
     @Test fun sameDocumentUnderNewTreeRetainsOriginalIdentity() {
         val original = game("$provider/tree/volumeA/document/primary%3Aone", 12, 5)
