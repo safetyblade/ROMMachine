@@ -50,7 +50,7 @@ DENIED_DEPENDENCIES = ("libc.so.6", "libstdc++.so.6", "ld-linux", "discord_partn
 # Libraries supplied by Android itself, not app-private ELF payloads.
 ANDROID_SYSTEM_LIBRARIES = frozenset({
     "libc.so", "libm.so", "libdl.so", "liblog.so", "libandroid.so",
-    "libEGL.so", "libGLESv2.so", "libGLESv3.so", "libvulkan.so",
+    "libEGL.so", "libGLESv1_CM.so", "libGLESv2.so", "libGLESv3.so", "libvulkan.so",
     "libz.so", "libjnigraphics.so", "libmediandk.so", "libOpenSLES.so",
     "libaaudio.so", "libnativewindow.so", "libbinder_ndk.so",
     "libsync.so",
@@ -261,6 +261,26 @@ def collect_notices(source):
     return sorted(notices)
 
 
+def patch_rust_linker(source):
+    """Retain build IDs and 16 KiB alignment in the actual Rust link, not a verifier exception."""
+    path = pathlib.Path(source) / (
+        "platforms/android/app/src/main/cpp/3rdparty/librashader/CMakeLists.txt"
+    )
+    before = path.read_bytes()
+    old = b'"RUSTFLAGS=-C link-arg=-Wl,-soname,liblibrashader_capi.so"'
+    new = (b'"RUSTFLAGS=-C link-arg=-Wl,-soname,liblibrashader_capi.so '
+           b'-C link-arg=-Wl,--build-id=sha1 -C link-arg=-Wl,-z,max-page-size=16384"')
+    if before.count(old) != 1:
+        raise ValueError("Pinned librashader linker flags drift; refuse patch")
+    path.write_bytes(before.replace(old, new))
+    return {
+        "path": path.relative_to(source).as_posix(),
+        "before_sha256": hashlib.sha256(before).hexdigest(),
+        "after_sha256": sha256(path),
+        "purpose": "GNU build ID and 16 KiB Rust ELF alignment",
+    }
+
+
 def locate_build(source, stem):
     root = source / "platforms/android/app"
     # Gradle's AGP CXX outputs are not stable across plugin versions.
@@ -317,6 +337,7 @@ def execute(args):
     submodules = output("git", "-C", source, "submodule", "status", "--recursive")
     shaderc = stage_shaderc_dependencies(source)
     notices = collect_notices(source)
+    rust_linker_patch = patch_rust_linker(source)
     binaries = root / "verified"
     binaries.mkdir()
     report = {
@@ -326,6 +347,7 @@ def execute(args):
         "ndk": NDK_REV,
         "submodules": submodules.splitlines(),
         "shaderc_dependencies": shaderc,
+        "source_patches": [rust_linker_patch],
         "notices": notices,
         "notice_count": len(notices),
         "artifacts": [],

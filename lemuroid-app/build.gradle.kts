@@ -32,6 +32,10 @@ android {
             applicationId = "dev.prestwich.cartdeck"
         }
 
+        if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck.ps2lab"
+        }
+
         // P0 test-only overrides. No override means the original production configuration.
         // Keep the existing package ID and test-signing certificate between updates.
         providers.gradleProperty("cartdeck.p0.testVersionCode").orNull?.let { value ->

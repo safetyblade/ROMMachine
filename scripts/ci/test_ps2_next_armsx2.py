@@ -122,6 +122,29 @@ class NativeGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "GPLv3"):
                 candidate.collect_notices(tmp)
 
+    def test_rust_linker_patch_adds_real_buildid_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            p = root / "platforms/android/app/src/main/cpp/3rdparty/librashader/CMakeLists.txt"
+            p.parent.mkdir(parents=True)
+            p.write_text('"RUSTFLAGS=-C link-arg=-Wl,-soname,liblibrashader_capi.so"')
+            proof = candidate.patch_rust_linker(root)
+            self.assertNotEqual(proof['before_sha256'], proof['after_sha256'])
+            self.assertIn('--build-id=sha1', p.read_text())
+            self.assertIn('max-page-size=16384', p.read_text())
+            with self.assertRaisesRegex(ValueError, 'drift'):
+                candidate.patch_rust_linker(root)
+
+    def test_rust_dependency_without_buildid_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = pathlib.Path(tmp) / 'liblibrashader_capi.so'
+            p.write_bytes(fake_elf() + b'r' * 65536)
+            with patch.object(candidate, 'output', side_effect=[
+                'Shared library: [libc.so]', 'No build ID',
+            ]):
+                with self.assertRaisesRegex(ValueError, 'Missing ELF build ID'):
+                    candidate.inspect_dependency(p, 'llvm-readelf')
+
     def test_nonempty_build_root_rejected_before_any_source_fetch(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = pathlib.Path(tmp)
