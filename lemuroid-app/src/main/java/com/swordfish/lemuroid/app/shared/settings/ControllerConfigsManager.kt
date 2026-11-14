@@ -22,9 +22,16 @@ class ControllerConfigsManager(private val sharedPreferences: Lazy<SharedPrefere
                 .associate { (port, controllers) ->
                     val preferences = sharedPreferences.get()
                     val cartridgeKey = cartridgeKey(systemId, systemCoreConfig.coreID, port, game)
+                    val legacySource = game?.legacySourceUri ?: game?.fileUri
                     val names =
                         listOfNotNull(
                             cartridgeKey?.let { preferences.getString(it, null) },
+                            legacySource?.let {
+                                legacyCartridgeKey(systemId, systemCoreConfig.coreID, port, game, it)
+                            }?.let { preferences.getString(it, null) },
+                            game?.fileUri?.let {
+                                legacyCartridgeKey(systemId, systemCoreConfig.coreID, port, game, it)
+                            }?.let { preferences.getString(it, null) },
                             preferences.getString(
                                 getSharedPreferencesId(systemId.dbname, systemCoreConfig.coreID, port),
                                 null,
@@ -65,15 +72,33 @@ class ControllerConfigsManager(private val sharedPreferences: Lazy<SharedPrefere
         }
 
     companion object {
-        /** URI identity survives refresh/rename and does not expose storage paths in preference keys. */
+        /** Stable cartridge UUID: verified source relocation keeps its controller choice. */
         fun cartridgeKey(
             systemId: SystemID,
             coreID: CoreID,
             port: Int,
             game: Game?,
-        ): String? {
-            if (systemId != SystemID.WII || game == null || game.systemId != systemId.dbname) return null
-            val identity = "${game.systemId}\n${game.fileUri}"
+        ): String? =
+            game?.takeIf { systemId == SystemID.WII && it.systemId == systemId.dbname }
+                ?.let { hashedCartridgeKey(systemId, coreID, port, "${it.systemId}\n${it.cartridgeId}") }
+
+        /** Read older URI-keyed selections without mutating the player's preferences. */
+        fun legacyCartridgeKey(
+            systemId: SystemID,
+            coreID: CoreID,
+            port: Int,
+            game: Game?,
+            source: String,
+        ): String? =
+            game?.takeIf { systemId == SystemID.WII && it.systemId == systemId.dbname }
+                ?.let { hashedCartridgeKey(systemId, coreID, port, "${it.systemId}\n$source") }
+
+        private fun hashedCartridgeKey(
+            systemId: SystemID,
+            coreID: CoreID,
+            port: Int,
+            identity: String,
+        ): String {
             val digest =
                 MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
                     .joinToString("") { "%02x".format(it.toInt() and 255) }
