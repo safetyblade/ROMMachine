@@ -536,7 +536,7 @@ fun ShelfBoard(
                                 }
                             }
                         }
-                        ShelfRail()
+                        ShelfRail(lighting = layout.appearance.lighting, highContrast = layout.appearance.highContrast)
                     }
                 }
             }
@@ -624,11 +624,20 @@ private fun DropSurface(
 }
 
 @Composable
-fun ShelfRail() {
+fun ShelfRail(
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+) {
     val colors = LocalShelfMaterials.current
+    val railColour =
+        if (lighting.active(CartdeckLighting.SHELF_RAIL, highContrast)) {
+            lighting.tint(colors.interactionAccent)
+        } else {
+            colors.edgeHighlight
+        }
     Column(Modifier.fillMaxWidth().height(22.dp).graphicsLayer { shadowElevation = 6.dp.toPx() }) {
         Box(Modifier.fillMaxWidth().height(5.dp).background(colors.shelfGroove))
-        Box(Modifier.fillMaxWidth().height(2.dp).background(colors.edgeHighlight))
+        Box(Modifier.fillMaxWidth().height(2.dp).background(railColour))
         Box(
             Modifier.fillMaxWidth().height(
                 9.dp,
