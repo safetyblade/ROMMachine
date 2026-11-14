@@ -27,7 +27,10 @@ object Armsx2PadMapping {
         }
 
     /** Pressure uses the same 0..32767 ABI as the native DualShock pad. */
-    fun trigger(value: Float, right: Boolean): PadState {
+    fun trigger(
+        value: Float,
+        right: Boolean,
+    ): PadState {
         val pressure = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f
         val magnitude = (pressure * 32767f).roundToInt()
         return PadState(
