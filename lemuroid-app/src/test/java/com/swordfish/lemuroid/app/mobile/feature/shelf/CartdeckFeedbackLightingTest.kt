@@ -21,8 +21,10 @@ class CartdeckFeedbackLightingTest {
         assertEquals(CartdeckLighting.MODE_OFF, decode(old.toString()).appearance.lighting.mode)
 
         val static = CartdeckLighting(mode = CartdeckLighting.MODE_STATIC, intensity = 47)
-        assertEquals(static, decode(encode(base.copy(appearance = base.appearance.copy(lighting = static))))
-            .appearance.lighting)
+        val staticRoundTrip =
+            decode(encode(base.copy(appearance = base.appearance.copy(lighting = static))))
+                .appearance.lighting
+        assertEquals(static, staticRoundTrip)
 
         val feedback =
             CartdeckLighting(
@@ -64,12 +66,14 @@ class CartdeckFeedbackLightingTest {
         val settings = CartdeckLighting(mode = CartdeckLighting.MODE_FEEDBACK)
         val strips = CartdeckLightingGeometry.candidates(frame, video, controls, 3f, 9f, settings)
         assertTrue(strips.isNotEmpty())
-        assertTrue(strips.none { light ->
-            (listOf(video) + controls).any { area ->
-                light.left < area.right && light.right > area.left &&
-                    light.top < area.bottom && light.bottom > area.top
+        val anyOverlap =
+            strips.any { light ->
+                (listOf(video) + controls).any { area ->
+                    light.left < area.right && light.right > area.left &&
+                        light.top < area.bottom && light.bottom > area.top
+                }
             }
-        })
+        assertFalse(anyOverlap)
         assertEquals(
             CartdeckLightingGeometry.candidates(
                 frame,
@@ -83,9 +87,16 @@ class CartdeckFeedbackLightingTest {
         )
         assertFalse(settings.active(CartdeckLighting.SCREEN, highContrast = true))
         assertTrue(settings.active(CartdeckLighting.SHELF_RAIL))
-        assertTrue(CartdeckLightingGeometry.candidates(
-            frame, video, controls, 3f, 9f, settings.copy(mode = CartdeckLighting.MODE_OFF),
-        ).isEmpty())
+        val offStrips =
+            CartdeckLightingGeometry.candidates(
+                frame,
+                video,
+                controls,
+                3f,
+                9f,
+                settings.copy(mode = CartdeckLighting.MODE_OFF),
+            )
+        assertTrue(offStrips.isEmpty())
     }
 
     @Test
