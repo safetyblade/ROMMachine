@@ -573,14 +573,17 @@ class NativeCoreActivity : SDLActivity() {
     private fun showMenu() {
         if (!ready || leaving || menuShowing) return
         releaseTouch()
+        hardwareOwners.clear()
         hardware.clear()
         sendHardware()
+        captureMappingTarget = null
         menuOpen = true
         syncPause()
     }
 
     private fun closeMenu() {
         if (!menuOpen) return
+        captureMappingTarget = null
         menuOpen = false
         syncPause()
     }
