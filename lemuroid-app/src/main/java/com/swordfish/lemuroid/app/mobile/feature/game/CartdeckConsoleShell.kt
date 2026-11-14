@@ -31,6 +31,8 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
 import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
@@ -49,6 +51,8 @@ internal fun CartdeckConsoleShell(
     patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
     decal: CartdeckPersonalDecal? = null,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -340,6 +344,39 @@ internal fun CartdeckConsoleShell(
                         )
                     }
                 }
+            }
+        }
+
+        if (lighting.mode == CartdeckLighting.MODE_STATIC && hole != null) {
+            Canvas(Modifier.fillMaxSize()) {
+                val brandSeat =
+                    when {
+                        !isLandscape && seatFits ->
+                            Rect(
+                                size.width / 2f - 120.dp.toPx(),
+                                0f,
+                                size.width / 2f + 120.dp.toPx(),
+                                84.dp.toPx(),
+                            )
+                        compactSeat ->
+                            Rect(
+                                size.width / 2f - 54.dp.toPx(),
+                                size.height - 66.dp.toPx(),
+                                size.width / 2f + 54.dp.toPx(),
+                                size.height,
+                            )
+                        else -> null
+                    }
+                drawCartdeckLighting(
+                    lighting = lighting,
+                    accent = tokens.accent,
+                    video = hole,
+                    controls = controls,
+                    brand = listOfNotNull(brandSeat),
+                    highContrast = highContrast,
+                    thickness = 2.5.dp.toPx(),
+                    clearance = 8.dp.toPx(),
+                )
             }
         }
 
