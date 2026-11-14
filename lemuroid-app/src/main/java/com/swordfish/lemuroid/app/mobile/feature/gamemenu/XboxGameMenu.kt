@@ -40,6 +40,8 @@ internal fun XboxGameMenu(
     onProbe: () -> Unit,
     onPreviousEngine: () -> Unit,
     appearance: ShelfAppearance? = null,
+    console: String = "Xbox",
+    storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
     controls: @Composable () -> Unit,
 ) {
     GameMenuTheme(appearance) {
@@ -56,7 +58,7 @@ internal fun XboxGameMenu(
             }
         GameMenuPanel(
             title,
-            "Xbox",
+            console,
             page,
             route.canGoBack(),
             onBack = { if (!nav.popBackStack()) onResume() },
@@ -88,7 +90,7 @@ internal fun XboxGameMenu(
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text(
                             "Copy the engine/GPU report from Advanced when requesting help. " +
-                                "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
+                                storageHelp,
                             Modifier.padding(16.dp),
                         )
                         if (capabilities.showProbe) GameMenuLink("Probe blank viewport (debug)", onClick = onProbe)
@@ -103,13 +105,14 @@ internal fun XboxGameMenu(
 @Composable
 internal fun XboxMenuControls(
     manager: TouchControllerSettingsManager,
+    controllerId: TouchControllerID = TouchControllerID.XBOX,
     onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
 ) {
     var orientation by remember { mutableStateOf(TouchControllerSettingsManager.Orientation.PORTRAIT) }
     val density = LocalDensity.current
     val insets = WindowInsets.displayCutout
     val settings by remember(manager, orientation, density, insets) {
-        manager.observeSettings(TouchControllerID.XBOX, orientation, density, insets)
+        manager.observeSettings(controllerId, orientation, density, insets)
     }.collectAsState(TouchControllerSettingsManager.Settings())
     var edited by remember(settings, orientation) { mutableStateOf(settings) }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
