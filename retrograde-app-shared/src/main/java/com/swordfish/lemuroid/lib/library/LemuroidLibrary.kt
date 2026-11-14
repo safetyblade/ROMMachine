@@ -204,11 +204,11 @@ class LemuroidLibrary(
             accepted +=
                 CartridgeSourceMatch.Relocation(
                     old.formerGameId,
-                old.cartridgeId,
-                old.systemId,
-                old.fileUri,
-                candidate.fileUri,
-            )
+                    old.cartridgeId,
+                    old.systemId,
+                    old.fileUri,
+                    candidate.fileUri,
+                )
         }
         return accepted
     }
