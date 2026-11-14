@@ -26,6 +26,9 @@ object NativeDiscFolderIdentity {
             "wiiu" to SystemID.WII_U,
             "wii u" to SystemID.WII_U,
             "nintendo wii u" to SystemID.WII_U,
+            // A nested Wii folder makes a Wii U container ambiguous; do not misfile it.
+            "wii" to SystemID.WII,
+            "nintendo wii" to SystemID.WII,
             "xbox360" to SystemID.XBOX360,
             "xbox 360" to SystemID.XBOX360,
             "microsoft xbox 360" to SystemID.XBOX360,
@@ -94,6 +97,7 @@ object NativeDiscFolderIdentity {
                 .distinct()
         if (candidates.size != 1) return null
         val system = candidates.single()
-        return system.takeIf { it in enabled && extension in extensions.getValue(it) }
+        // Wii still uses its existing dedicated scanner; absence here must never crash discovery.
+        return system.takeIf { it in enabled && extension in extensions[system].orEmpty() }
     }
 }

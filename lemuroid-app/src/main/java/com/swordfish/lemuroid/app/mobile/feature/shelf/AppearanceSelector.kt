@@ -840,8 +840,9 @@ fun ShelfAppearanceEditor(
                                         "Game feedback responds to actual core rumble when the game supports it " +
                                             "and your rumble setting is enabled. No rumble means static light."
                                     CartdeckLighting.MODE_CONTROLLER ->
-                                        "Controller activity responds to mapped in-game touch and gamepad button presses, " +
-                                            "not detected game events. Menu and held repeats do not trigger it."
+                                        "Controller activity responds to mapped in-game touch and " +
+                                            "gamepad button presses, not detected game events. " +
+                                            "Menu and held repeats do not trigger it."
                                     else -> "Static lighting has no animation or game interaction."
                                 } + " Reduced motion keeps lighting static; controller-fullscreen hides the shell.",
                                 style = MaterialTheme.typography.bodySmall,

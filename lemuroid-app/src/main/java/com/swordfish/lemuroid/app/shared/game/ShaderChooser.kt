@@ -65,6 +65,7 @@ object ShaderChooser {
             SystemID.WS -> ShaderConfig.LCD
             SystemID.WSC -> ShaderConfig.LCD
             SystemID.NINTENDO_3DS -> ShaderConfig.LCD
+            SystemID.WII_U -> ShaderConfig.Default
             SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII, SystemID.XBOX, SystemID.XBOX360 -> ShaderConfig.Default
         }
     }
@@ -289,6 +290,8 @@ object ShaderChooser {
             SystemID.WS -> upscale16BitsMobile
             SystemID.WSC -> upscale16BitsMobile
             SystemID.NINTENDO_3DS -> modern
+            // Wii U's experimental Vulkan path must not enable Libretro GLES shaders.
+            SystemID.WII_U -> ShaderConfig.Default
             SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII, SystemID.XBOX, SystemID.XBOX360 -> modern
         }
     }

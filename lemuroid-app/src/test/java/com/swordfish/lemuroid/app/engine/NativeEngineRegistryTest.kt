@@ -17,6 +17,11 @@ class NativeEngineRegistryTest {
         val systems = (GameSystem.all() + NativeGameSystems.configurations()).distinctBy { it.id }
         systems.forEach { system ->
             val engines = NativeEngineRegistry.engines(system)
+            if (system.id == SystemID.WII_U) {
+                // Catalogue-visible Wii U must not fabricate a GLES/Libretro engine before Cemu's Vulkan host ships.
+                assertTrue("Wii U has no integrated runtime yet", engines.isEmpty())
+                return@forEach
+            }
             assertTrue(system.id.dbname, engines.isNotEmpty())
             assertEquals(engines.size, engines.map { it.id }.distinct().size)
             engines.forEach { engine ->

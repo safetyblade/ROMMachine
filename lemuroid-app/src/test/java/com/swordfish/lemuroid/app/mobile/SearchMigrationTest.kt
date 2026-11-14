@@ -74,10 +74,11 @@ class SearchMigrationTest {
         val save = File(context.filesDir, "migration-save.srm").apply { writeText("sentinel-existing-save") }
         val db =
             Room.databaseBuilder(context, RetrogradeDatabase::class.java, name)
-                .addMigrations(Migrations.VERSION_10_11, Migrations.VERSION_11_12).allowMainThreadQueries().build()
+                .addMigrations(Migrations.VERSION_10_11, Migrations.VERSION_11_12, Migrations.VERSION_12_13)
+                .allowMainThreadQueries().build()
         try {
             val sql = db.openHelper.writableDatabase
-            assertEquals(12, sql.version)
+            assertEquals(13, sql.version)
             val after =
                 sql.query("SELECT * FROM games").use { cursor ->
                     cursor.moveToFirst()
