@@ -1,0 +1,42 @@
+name: CARTDECK PS2-NEXT-C1 pinned JNI callback contract (not gameplay)
+
+on:
+  push:
+    branches:
+      - feat/ps2-next-c-jni-callback-contract
+    paths:
+      - "lemuroid-app/src/debug/java/kr/co/iefriends/pcsx2/**"
+      - "scripts/ci/test_ps2_next_jni_contract.py"
+      - ".github/workflows/cartdeck-ps2-next-jni-contract.yml"
+  pull_request:
+    paths:
+      - "lemuroid-app/src/debug/java/kr/co/iefriends/pcsx2/**"
+      - "scripts/ci/test_ps2_next_jni_contract.py"
+      - ".github/workflows/cartdeck-ps2-next-jni-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jni-source-contract:
+    name: Source-pinned Java descriptors + disabled HTTP binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify debug-only native callback and class declarations
+        run: python3 -m unittest discover -s scripts/ci -p "test_ps2_next_jni_contract.py" -v
+      - name: Assert no promoted release path or gameplay claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f lemuroid-app/src/debug/java/kr/co/iefriends/pcsx2/HttpClient.java
+          test ! -f lemuroid-app/src/main/java/kr/co/iefriends/pcsx2/HttpClient.java
+          ! grep -q ARMSX2 retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/NativeGameSystems.kt
+          echo "Debug-only callback ABI test, NOT native source build or gameplay acceptance."

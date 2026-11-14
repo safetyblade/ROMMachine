@@ -5,6 +5,7 @@ on:
     branches:
       - feat/ps2-armsx2-native-feasibility
       - feat/ps2-next-b-embedded-host
+      - feat/ps2-next-c-jni-callback-contract
     paths:
       - ".github/workflows/cartdeck-ps2-next-armsx2.yml"
       - "scripts/ci/ps2_next_armsx2.py"
