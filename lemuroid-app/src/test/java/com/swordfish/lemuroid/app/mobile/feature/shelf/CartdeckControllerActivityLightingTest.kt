@@ -70,11 +70,13 @@ class CartdeckControllerActivityLightingTest {
         )
         assertTrue(safe.isNotEmpty())
         assertFalse(controller.active(CartdeckLighting.SCREEN, highContrast = true))
-        assertTrue(safe.none { strip ->
-            (controls + video).any { blocked ->
-                strip.left < blocked.right && strip.right > blocked.left &&
-                    strip.top < blocked.bottom && strip.bottom > blocked.top
+        val anyOverlap =
+            safe.any { strip ->
+                (controls + video).any { blocked ->
+                    strip.left < blocked.right && strip.right > blocked.left &&
+                        strip.top < blocked.bottom && strip.bottom > blocked.top
+                }
             }
-        })
+        assertFalse(anyOverlap)
     }
 }
