@@ -29,11 +29,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
-import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
-import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
