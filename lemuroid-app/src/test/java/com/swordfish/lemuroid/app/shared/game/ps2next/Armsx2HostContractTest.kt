@@ -78,4 +78,20 @@ class Armsx2HostContractTest {
         assertEquals(listOf(120, 121, 122, 123), reset.map { it.nativeCode })
         assertTrue(reset.all { !it.pressed && it.range == 0 })
     }
+
+    @Test
+    fun triggerPressureAndReleaseMatchNativeDualShockAbi() {
+        val half = Armsx2PadMapping.trigger(0.5f, right = false)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, half.nativeCode)
+        assertEquals(16384, half.range)
+        assertTrue(half.pressed)
+        val full = Armsx2PadMapping.trigger(2f, right = true)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, full.nativeCode)
+        assertEquals(32767, full.range)
+        for (value in listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY)) {
+            val released = Armsx2PadMapping.trigger(value, right = true)
+            assertEquals(0, released.range)
+            assertFalse(released.pressed)
+        }
+    }
 }
