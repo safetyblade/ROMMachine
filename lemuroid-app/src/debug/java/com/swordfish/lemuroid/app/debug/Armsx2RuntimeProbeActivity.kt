@@ -181,6 +181,10 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     event.getAxisValue(MotionEvent.AXIS_Z),
                     event.getAxisValue(MotionEvent.AXIS_RZ),
                     right = true,
+                ) +
+                listOf(
+                    Armsx2PadMapping.trigger(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), right = false),
+                    Armsx2PadMapping.trigger(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), right = true),
                 )
         runCatching {
             inputs.forEach { NativeApp.setPadButton(it.nativeCode, it.range, it.pressed) }
