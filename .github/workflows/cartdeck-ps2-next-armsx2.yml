@@ -11,12 +11,22 @@ on:
       - "scripts/ci/ps2_next_armsx2.py"
       - "scripts/ci/test_ps2_next_armsx2.py"
       - "docs/engineering/ps2-armsx2-native-host.md"
+      - "scripts/ci/stage_ps2_next_lab.py"
+      - "scripts/ci/test_stage_ps2_next_lab.py"
+      - "scripts/ci/verify_ps2_next_lab_apk.py"
+      - "lemuroid-app/src/debug/**"
+      - "lemuroid-app/build.gradle.kts"
   pull_request:
     paths:
       - ".github/workflows/cartdeck-ps2-next-armsx2.yml"
       - "scripts/ci/ps2_next_armsx2.py"
       - "scripts/ci/test_ps2_next_armsx2.py"
       - "docs/engineering/ps2-armsx2-native-host.md"
+      - "scripts/ci/stage_ps2_next_lab.py"
+      - "scripts/ci/test_stage_ps2_next_lab.py"
+      - "scripts/ci/verify_ps2_next_lab_apk.py"
+      - "lemuroid-app/src/debug/**"
+      - "lemuroid-app/build.gradle.kts"
   workflow_dispatch:
     inputs:
       page_models:
@@ -48,8 +58,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run all independent native contract tests
-        run: python3 -m unittest discover -s scripts/ci -p 'test_ps2_next_armsx2.py' -v
+      - name: Run independent native and APK payload contract tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/ci -p 'test_ps2_next_armsx2.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_stage_ps2_next_lab.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ps2_next_jni_contract.py' -v
       - name: Explicit no-default-engine guard
         shell: bash
         run: |
@@ -60,8 +74,8 @@ jobs:
 
   native-arm64:
     name: Source-build pinned ARMSX2 Android JNI and verify ELF (not an APK)
-    # Deliberate: no expensive native source build on unrelated pull requests.
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Run real builds only in the dedicated PS2 lane. No false green from contract-only PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     needs: contract-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -118,7 +132,99 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
-          name: ps2-armsx2-native-source-evidence
-          path: ${{ runner.temp }}/ps2-armsx2-feasibility/native-evidence.json
+          name: ps2-armsx2-native-verified-private
+          path: |
+            ${{ runner.temp }}/ps2-armsx2-feasibility/native-evidence.json
+            ${{ runner.temp }}/ps2-armsx2-feasibility/verified/
           if-no-files-found: error
+          retention-days: 7
+
+  ps2-private-apk:
+    name: Build and byte-verify isolated CARTDECK PS2 test APK (NOT gameplay)
+    needs: [contract-tests, native-arm64]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ps2-armsx2-native-verified-private
+          path: ${{ runner.temp }}/ps2-armsx2-feasibility
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Android SDK, native host and pinned Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'build-tools;34.0.0' 'cmake;3.22.1'
+          bash scripts/ci/bootstrap_gradle.sh
+          export HOST_BUILD_DIR="$RUNNER_TEMP/ps2-next-host"
+          export HOST_MAVEN_REPO="$RUNNER_TEMP/ps2-next-host-maven"
+          export LIBRETRODROID_SOURCE_DIR="$HOST_BUILD_DIR/source"
+          export BUILD_JOBS=2
+          bash scripts/ci/build_libretrodroid_host.sh
+          echo "PS2_HOST_MAVEN=$HOST_MAVEN_REPO" >> "$GITHUB_ENV"
+      - name: Stage verified engine and compile full debug app/JVM tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/ps2-armsx2-feasibility"
+          BUNDLE="$RUNNER_TEMP/cartdeck-ps2-next-bundle"
+          python3 scripts/ci/stage_ps2_next_lab.py --work "$WORK" --page 4096 --bundle "$BUNDLE"
+          "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+            -Pcartdeck.ps2next.labId=true \
+            -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p0.testVersionCode=90570000 \
+            -PcartdeckNativeBundleDir="$BUNDLE" \
+            -PcartdeckHostMavenRepo="$PS2_HOST_MAVEN" \
+            -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            --no-daemon --no-configuration-cache --max-workers=2
+      - name: Prove signed private APK identity and exact native core bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find lemuroid-app/build/outputs/apk/freeBundle/debug -type f -name '*.apk')
+          test "${#apks[@]}" -eq 1
+          APK="${apks[0]}"
+          mkdir -p dist/ps2-next-private
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" > dist/ps2-next-private/package.txt
+          grep -F "package: name='dev.prestwich.cartdeck.ps2lab.debug'" dist/ps2-next-private/package.txt
+          grep -F "versionCode='90570000'" dist/ps2-next-private/package.txt
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK" > dist/ps2-next-private/signature.txt
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c 4 "$APK"
+          python3 scripts/ci/verify_ps2_next_lab_apk.py \
+            --apk "$APK" --bundle "$RUNNER_TEMP/cartdeck-ps2-next-bundle" \
+            --aapt-badging dist/ps2-next-private/package.txt \
+            --report dist/ps2-next-private/verification.json
+          cp "$APK" dist/ps2-next-private/CARTDECK_PS2_NEXT_ARM64_4K_DEBUG.apk
+          echo "PS2-NEXT private APK verified; no Samsung device game proof has occurred." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_PS2_NEXT_ARM64_4K_PRIVATE_TEST_APK
+          path: dist/ps2-next-private/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ps2-next-private-apk-failure-reports
+          path: |
+            lemuroid-app/build/reports/ktlint/
+            lemuroid-app/build/test-results/
+          if-no-files-found: warn
           retention-days: 7
