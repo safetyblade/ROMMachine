@@ -2,8 +2,8 @@ package com.swordfish.lemuroid.app.debug
 
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.InputDevice
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
@@ -34,9 +34,16 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     private external fun nativeStop()
 
-    private external fun nativeAxis(axis: Int, value: Int)
+    private external fun nativeAxis(
+        axis: Int,
+        value: Int,
+    )
 
-    private external fun nativePointer(x: Int, y: Int, down: Boolean)
+    private external fun nativePointer(
+        x: Int,
+        y: Int,
+        down: Boolean,
+    )
 
     private external fun nativeButton(
         retroId: Int,
@@ -148,7 +155,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         if (!loaded || !running ||
             (event.source and InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK
-        ) return super.onGenericMotionEvent(event)
+        ) {
+            return super.onGenericMotionEvent(event)
+        }
         listOf(MotionEvent.AXIS_X, MotionEvent.AXIS_Y, MotionEvent.AXIS_Z, MotionEvent.AXIS_RZ)
             .forEachIndexed { index, axis ->
                 nativeAxis(index, (event.getAxisValue(axis).coerceIn(-1f, 1f) * 32767).toInt())
