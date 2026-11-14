@@ -404,7 +404,15 @@ class GameViewModelInput(
                                 action == KeyEvent.ACTION_DOWN,
                             )
                     if (!captured) {
-                        retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, targetPort)
+                        retroGameView.retroGameView?.let { gameView ->
+                            gameView.sendKeyEvent(action, bindKeyCode, targetPort)
+                            // Post-forward observation: never intercept or retry input.
+                            retroGameView.onAcceptedMappedButton(
+                                source = "physical:${device.id}:$targetPort",
+                                mappedKey = bindKeyCode,
+                                action = action,
+                            )
+                        }
                     }
                 }
             }
@@ -447,7 +455,16 @@ class GameViewModelInput(
             }
             .scan(emptySet<SingleAxisEvent>()) { prev, next ->
                 next.minus(prev).forEach {
-                    retroGameView.retroGameView?.sendKeyEvent(it.action, it.keyCode, it.port)
+                    retroGameView.retroGameView?.let { gameView ->
+                        gameView.sendKeyEvent(it.action, it.keyCode, it.port)
+                        // Only existing mapped digital axis transitions. Continuous
+                        // sticks and native analog triggers are never sampled.
+                        retroGameView.onAcceptedMappedButton(
+                            source = "axis:${it.port}:${it.axis}",
+                            mappedKey = it.keyCode,
+                            action = it.action,
+                        )
+                    }
                 }
                 next
             }
