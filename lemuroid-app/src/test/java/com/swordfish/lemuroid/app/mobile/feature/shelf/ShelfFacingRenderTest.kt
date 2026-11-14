@@ -10,7 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -83,12 +85,12 @@ class ShelfFacingRenderTest {
         }
         compose.waitForIdle()
         if (arrange) compose.onNodeWithContentDescription("Atlas 2, GB, front facing").performClick()
+        // Compose AlertDialog is not an android.app.Dialog under Robolectric.
+        // Assert the arrangement action is available, then capture the host view.
+        if (arrange) compose.onNodeWithText("Show spine").assertIsDisplayed()
         val view =
-            if (arrange) {
-                org.robolectric.shadows.ShadowDialog.getLatestDialog().window!!.decorView
-            } else {
-                compose.activity.window.decorView
-            }
+            org.robolectric.shadows.ShadowDialog.getLatestDialog()?.window?.decorView
+                ?: compose.activity.window.decorView
 
         fun hasColor(color: Int): Boolean {
             var found = false
@@ -169,7 +171,7 @@ class ShelfFacingRenderTest {
     fun compact() = capture("05-compact")
 
     @Test
-    @Config(qualifiers = "w850dp-h393dp-mdpi-land")
+    @Config(qualifiers = "w850dp-h393dp-land-mdpi")
     fun landscape() = capture("06-landscape")
 
     @Test
