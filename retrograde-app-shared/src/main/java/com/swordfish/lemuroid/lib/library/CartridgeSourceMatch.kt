@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.lib.library
 
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -37,6 +38,36 @@ object CartridgeSourceMatch {
             }.getOrNull() ?: return null
         if (documentId.isBlank()) return null
         return authority to documentId
+    }
+
+    /**
+     * Reimport is automatic only when the provider exposes the same stable,
+     * unambiguous document ID and console. Never match from title, basename,
+     * path similarity, size, cover or a short checksum.
+     */
+    fun uniqueRetiredMatches(
+        retired: List<RetiredCartridge>,
+        before: List<Game>,
+        after: List<Game>,
+        scanMarker: Long,
+    ): List<Pair<RetiredCartridge, Game>> {
+        val previouslyActive = before.map { it.id }.toSet()
+        val arrivals = after.filter { it.lastIndexedAt == scanMarker && it.id !in previouslyActive }
+        val possible =
+            retired.flatMap { missing ->
+                val document = documentIdentity(missing.fileUri) ?: return@flatMap emptyList()
+                if (before.any { it.systemId == missing.systemId && documentIdentity(it.fileUri) == document }) {
+                    return@flatMap emptyList()
+                }
+                arrivals.filter {
+                    it.systemId == missing.systemId && documentIdentity(it.fileUri) == document
+                }.map { missing to it }
+            }
+        val retiredCount = possible.groupingBy { it.first.cartridgeId }.eachCount()
+        val arrivalCount = possible.groupingBy { it.second.id }.eachCount()
+        return possible.filter { (old, new) ->
+            retiredCount[old.cartridgeId] == 1 && arrivalCount[new.id] == 1
+        }
     }
 
     /** Return only unique old-to-new matches after a fully enumerated provider scan. */
