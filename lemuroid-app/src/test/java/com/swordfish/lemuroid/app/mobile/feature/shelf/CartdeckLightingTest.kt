@@ -85,7 +85,7 @@ class CartdeckLightingTest {
                     thickness = 3f,
                     gap = 9f,
                     settings = lighting,
-                    protected = listOf(brand),
+                    protectedRects = listOf(brand),
                 )
             assertTrue("Expected a manufactured lighting track", strips.isNotEmpty())
             assertTrue(
