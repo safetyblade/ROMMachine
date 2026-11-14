@@ -168,6 +168,84 @@ class NativeDiscFolderIdentityTest {
     }
 
     @Test
+    fun wiiuAndXbox360RemainFindableBeforeTheirEnginesAreAvailable() {
+        val byId = NativeGameSystems.configurations().associateBy { it.id }
+        assertEquals("wiiu", SystemID.WII_U.dbname)
+        assertEquals("xbox360", SystemID.XBOX360.dbname)
+        assertTrue(GameSystem.all().any { it.id == SystemID.WII_U })
+        assertTrue(GameSystem.all().any { it.id == SystemID.XBOX360 })
+        assertEquals(
+            listOf("wua", "wud", "wux", "rpx", "elf", "tmd"),
+            byId.getValue(SystemID.WII_U).supportedExtensions,
+        )
+        assertEquals(
+            SystemID.WII_U,
+            GameSystem.findByUniqueFileExtension("WUA")?.id,
+        )
+        assertEquals(
+            SystemID.WII_U,
+            GameSystem.findByUniqueFileExtension("wux")?.id,
+        )
+        assertNull(GameSystem.findByUniqueFileExtension("elf"))
+    }
+
+    @Test
+    fun wiiuWuaRpxAndSafFolderCanBeDiscoveredWithoutConfusingWii() {
+        val consoles = GameSystem.all().map { it.id }.toSet()
+        assertEquals(SystemID.WII_U, NativeDiscFolderIdentity.infer("game.wua", "/ROMs/Wii U/game.wua", consoles))
+        assertEquals(
+            SystemID.WII_U,
+            NativeDiscFolderIdentity.infer("game.rpx", "/ROMs/Nintendo Wii U/Game/code/game.rpx", consoles),
+        )
+        assertEquals(
+            SystemID.WII_U,
+            NativeDiscFolderIdentity.infer(
+                "game.wud",
+                "/tree/primary%3AROMs/document/primary%3AROMs%2FWii%20U%2Fgame.wud",
+                consoles,
+            ),
+        )
+        assertEquals(
+            SystemID.WII_U,
+            NativeDiscFolderIdentity.infer("title.tmd", "/ROMS/WiiU/Game/meta/title.tmd", consoles),
+        )
+        assertNull(NativeDiscFolderIdentity.infer("game.rpx", "/ROMs/game.rpx", consoles))
+        assertNull(NativeDiscFolderIdentity.infer("game.wua", "/ROMs/Wii/game.wua", consoles))
+        assertNull(NativeDiscFolderIdentity.infer("game.iso", "/ROMs/Wii U/game.iso", consoles))
+        assertNull(NativeDiscFolderIdentity.infer("game.elf", "/ROMs/Wii U/Wii/game.elf", consoles))
+        assertEquals(
+            SystemID.WII,
+            NativeDiscFolderIdentity.resolve(
+                "game.iso",
+                "/ROMs/Wii U/game.iso",
+                consoles,
+                verified = SystemID.WII,
+            ),
+        )
+    }
+
+    @Test
+    fun xbox360FormatsRemainDiscoverableWithNoNativeXenia() {
+        val consoles = GameSystem.all().map { it.id }.toSet()
+        for (ext in listOf("xex", "xcp", "zar", "m3u", "iso")) {
+            assertEquals(
+                SystemID.XBOX360,
+                NativeDiscFolderIdentity.infer("game.$ext", "/ROMs/Xbox 360/game.$ext", consoles),
+            )
+        }
+        assertNull(NativeDiscFolderIdentity.infer("game.iso", "/ROMs/Xbox/game.iso", consoles))
+        assertEquals(
+            SystemID.XBOX,
+            NativeDiscFolderIdentity.resolve(
+                "game.iso",
+                "/ROMs/Xbox360/game.iso",
+                consoles,
+                verified = SystemID.XBOX,
+            ),
+        )
+    }
+
+    @Test
     fun doesNotEnableSystemsInBaselineBuild() {
         assertNull(NativeDiscFolderIdentity.infer("game.iso", "/ROMs/PS2/game.iso", emptySet()))
         assertNull(
