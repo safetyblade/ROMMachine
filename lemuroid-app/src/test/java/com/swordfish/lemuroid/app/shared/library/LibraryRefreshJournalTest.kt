@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.library
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
+import com.swordfish.lemuroid.app.mobile.feature.shelf.retiredShelfKey
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
@@ -46,7 +47,10 @@ class LibraryRefreshJournalTest {
             LibraryRefreshJournal(context).prepare(listOf(original))
             LibraryRefreshJournal(context).reconcile(emptyList(), shelf, listOf(retired))
             val missing = shelf.read()
-            assertEquals(originalCell, missing.sections.flatMap { it.cells }.single())
+            val unavailable = missing.sections.flatMap { it.cells }.single()
+            assertEquals(originalCell.id, unavailable.id)
+            assertEquals(originalCell.titleHint, unavailable.titleHint)
+            assertEquals(retiredShelfKey(original.cartridgeId), unavailable.gameKey)
             assertFalse(LibraryRefreshJournal(context).pending())
 
             LibraryRefreshJournal(context).prepare(emptyList(), listOf(retired))
@@ -60,6 +64,28 @@ class LibraryRefreshJournalTest {
             assertEquals(shelfGameKey(reimported.systemId, reimported.fileUri), restored.gameKey)
             assertEquals(baseline.appearance, shelf.read().appearance)
             assertFalse(LibraryRefreshJournal(context).pending())
+        }
+
+    @Test fun reusedHistoricalSourceCannotTakeAnUnavailableCartridgesOriginalCell() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            File(context.filesDir, "cartdeck").deleteRecursively()
+            val original = game("content://test/shared-uri")
+            val retired = RetiredCartridge.fromGame(original, 10L)
+            val shelf = ShelfStore(context)
+            shelf.update {
+                it.reconcile(mapOf(shelfGameKey(original.systemId, original.fileUri) to original.title))
+            }
+            val previousCell = shelf.read().sections.flatMap { it.cells }.single()
+            LibraryRefreshJournal(context).prepare(listOf(original))
+            LibraryRefreshJournal(context).reconcile(emptyList(), shelf, listOf(retired))
+            val other = original.copy(id = 75, cartridgeId = java.util.UUID.randomUUID().toString())
+            LibraryRefreshJournal(context).prepare(emptyList(), listOf(retired))
+            LibraryRefreshJournal(context).reconcile(listOf(other), shelf, listOf(retired))
+            val cells = shelf.read().sections.flatMap { it.cells }
+            assertEquals(2, cells.size)
+            assertEquals(previousCell.id, cells.single { it.gameKey == retiredShelfKey(original.cartridgeId) }.id)
+            assertEquals(1, cells.count { it.gameKey == shelfGameKey(other.systemId, other.fileUri) })
         }
 
     @Test fun processRestartReplaysCommittedMoveAndPreservesCellAndAppearance() =
