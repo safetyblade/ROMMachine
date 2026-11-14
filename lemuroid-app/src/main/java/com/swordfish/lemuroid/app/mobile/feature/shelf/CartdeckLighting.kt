@@ -18,6 +18,7 @@ data class CartdeckLighting(
     companion object {
         const val MODE_OFF = "off"
         const val MODE_STATIC = "static"
+        const val MODE_FEEDBACK = "feedback"
 
         const val SCREEN = "screen"
         const val SIDE_RAILS = "side-rails"
@@ -35,7 +36,7 @@ data class CartdeckLighting(
     }
 
     fun validate(): CartdeckLighting {
-        require(mode == MODE_OFF || mode == MODE_STATIC) { "Unsupported lighting mode" }
+        require(mode in setOf(MODE_OFF, MODE_STATIC, MODE_FEEDBACK)) { "Unsupported lighting mode" }
         require(intensity in 0..100) { "Invalid lighting intensity" }
         require(colour == null || colour in 0L..0xFFFFFFFFL) { "Invalid lighting colour" }
         require(zones.all { it in availableZones }) { "Unsupported lighting zone" }
@@ -45,10 +46,27 @@ data class CartdeckLighting(
     fun active(
         zone: String,
         highContrast: Boolean = false,
-    ): Boolean = !highContrast && mode == MODE_STATIC && intensity > 0 && zone in zones
+    ): Boolean = !highContrast && mode != MODE_OFF && intensity > 0 && zone in zones
 
-    fun tint(accent: Color): Color =
-        (colour?.let { Color(it.toInt()) } ?: accent).copy(alpha = (intensity / 100f) * 0.78f)
+    /**
+     * Game Feedback adds no more than 35% of the baseline intensity, capped
+     * at 100. Static and shelf-preview appearances never receive an event.
+     */
+    fun tint(
+        accent: Color,
+        feedbackStrength: Float = 0f,
+    ): Color {
+        val strength =
+            if (mode == MODE_FEEDBACK && feedbackStrength.isFinite()) {
+                feedbackStrength.coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        val baseline = intensity.toFloat()
+        val boost = min(baseline * 0.35f, 100f - baseline) * strength
+        return (colour?.let { Color(it.toInt()) } ?: accent)
+            .copy(alpha = ((baseline + boost) / 100f) * 0.78f)
+    }
 }
 
 /** Static manufacturing-style LED tracks; bounds are validated before drawing. */
@@ -62,7 +80,7 @@ internal object CartdeckLightingGeometry {
         settings: CartdeckLighting,
         protectedRects: List<Rect> = emptyList(),
     ): List<Rect> {
-        if (settings.mode != CartdeckLighting.MODE_STATIC || settings.intensity == 0) return emptyList()
+        if (settings.mode == CartdeckLighting.MODE_OFF || settings.intensity == 0) return emptyList()
         if (frame.width <= thickness * 4 || frame.height <= thickness * 4) return emptyList()
         val strips = mutableListOf<Rect>()
         val t = thickness.coerceAtLeast(1f)
@@ -120,8 +138,9 @@ internal fun DrawScope.drawCartdeckLighting(
     highContrast: Boolean,
     thickness: Float,
     clearance: Float,
+    feedbackStrength: Float = 0f,
 ) {
-    if (video == null || highContrast || lighting.mode != CartdeckLighting.MODE_STATIC) return
+    if (video == null || highContrast || lighting.mode == CartdeckLighting.MODE_OFF) return
     val frame = Rect(0f, 0f, size.width, size.height)
     val strips =
         CartdeckLightingGeometry.candidates(
@@ -133,7 +152,7 @@ internal fun DrawScope.drawCartdeckLighting(
             settings = lighting,
             protectedRects = brand,
         )
-    val colour = lighting.tint(accent)
+    val colour = lighting.tint(accent, feedbackStrength)
     strips.forEach { strip ->
         // Light never bleeds into protected video/control areas: don't paint
         // unbounded bloom outside the already validated physical strip.
