@@ -31,6 +31,12 @@ class CartdeckConsoleLayoutCoverageTest {
             systems.map { it.id }.toSet(),
         )
         for (system in systems) {
+            if (system.id == SystemID.WII_U) {
+                // Discoverable without claiming an unbuilt Vulkan-only Cemu runtime has a playable PadKit core.
+                assertEquals("cemu", system.nativeBackend)
+                assertTrue(system.systemCoreConfigs.isEmpty())
+                continue
+            }
             if (system.id == SystemID.XBOX360) {
                 assertEquals("xenia", system.nativeBackend)
                 assertTrue(system.systemCoreConfigs.isEmpty())
