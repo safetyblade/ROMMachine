@@ -169,7 +169,7 @@ class EngineSelectionPreferences(private val context: Context) {
     fun recordSuccess(game: Game) {
         // hakuX's existing callback only proves a VkQueuePresent result, even
         // when every sampled guest pixel is white. It cannot promote fallback proof.
-        if (game.systemId == SystemID.XBOX.dbname) {
+        if (game.systemId in setOf(SystemID.XBOX.dbname, SystemID.XBOX360.dbname)) {
             recordPresentation(game)
             return
         }

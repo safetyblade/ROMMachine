@@ -219,6 +219,8 @@ private fun CartridgeDiagnostics(
                     )
                         .mapNotNull { key -> journal.getProperty(key)?.let { "$key=$it" } }
                         .joinToString("\n").ifBlank { "No PS2 launch recorded yet." }
+                } else if (system.id == SystemID.XBOX360) {
+                    com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Reports.read(context.filesDir)
                 } else if (system.id == SystemID.XBOX) {
                     runCatching {
                         File(context.filesDir, "native/xbox/last-launch-report.txt").inputStream().use {

@@ -11,6 +11,7 @@ import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import com.swordfish.lemuroid.lib.storage.scanner.WiiDiscIdentity
+import com.swordfish.lemuroid.lib.storage.scanner.Xbox360ContentIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.XboxDiscIdentity
 import timber.log.Timber
 import java.io.FileInputStream
@@ -26,7 +27,10 @@ object DocumentFileParser {
     // containers. A 0.95 GB CISO or ambiguous ISO could otherwise consume
     // hundreds of megabytes of SAF reads and make refresh appear to hang.
     private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
-        setOf("iso", "xiso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs")
+        setOf(
+            "iso", "xiso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs",
+            "zar", "xcp", "xex",
+        )
 
     fun parseDocumentFile(
         context: Context,
@@ -83,6 +87,18 @@ object DocumentFileParser {
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
         val xbox = identifyXboxDisc(context, baseStorageFile)
+        val xbox360 =
+            if (xbox == null && baseStorageFile.extension.lowercase() in Xbox360ContentIdentity.formats) {
+                runCatching {
+                    context.contentResolver.openFileDescriptor(baseStorageFile.uri, "r")?.use { fd ->
+                        FileInputStream(fd.fileDescriptor).channel.use {
+                            Xbox360ContentIdentity.probe(baseStorageFile.name, it).valid
+                        }
+                    } == true
+                }.getOrDefault(false)
+            } else {
+                false
+            }
         val discIdentity = identifyNativeDisc(context, baseStorageFile)
         val nativeSystem =
             when (discIdentity?.platform) {
@@ -122,7 +138,17 @@ object DocumentFileParser {
                 baseStorageFile.name,
                 baseStorageFile.path,
                 GameSystem.all().map { it.id }.toSet(),
-                verified = (if (xbox != null) SystemID.XBOX else null) ?: nativeSystem ?: uniqueNativeSystem,
+                verified =
+                    (
+                        if (xbox != null) {
+                            SystemID.XBOX
+                        } else if (xbox360) {
+                            SystemID.XBOX360
+                        } else {
+                            null
+                        }
+                    )
+                        ?: nativeSystem ?: uniqueNativeSystem,
                 legacy = diskInfo?.systemID,
                 foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII && nativeSystem == null,
             )

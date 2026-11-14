@@ -24,13 +24,18 @@ import kotlinx.collections.immutable.persistentMapOf
 fun PadKitScope.XboxLeft(
     modifier: Modifier = Modifier,
     settings: TouchControllerSettingsManager.Settings,
+    bumpers: Boolean = false,
 ) {
     BaseLayoutLeft(
         settings = settings,
         modifier = modifier,
         primaryDial = { LemuroidControlCross(id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_DPAD)) },
         secondaryDials = {
-            LemuroidControlButton(Modifier.radialPosition(90f), Id.Key(KeyEvent.KEYCODE_BUTTON_L1), label = "White")
+            LemuroidControlButton(
+                Modifier.radialPosition(90f),
+                Id.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                label = if (bumpers) "LB" else "White",
+            )
             LemuroidControlButton(Modifier.radialPosition(120f), Id.Key(KeyEvent.KEYCODE_BUTTON_L2), label = "LT")
             LemuroidControlButton(Modifier.radialPosition(60f), Id.Key(KeyEvent.KEYCODE_BUTTON_SELECT), label = "Back")
             SecondaryButtonMenuPlaceholder(settings)
@@ -43,6 +48,7 @@ fun PadKitScope.XboxLeft(
 fun PadKitScope.XboxRight(
     modifier: Modifier = Modifier,
     settings: TouchControllerSettingsManager.Settings,
+    bumpers: Boolean = false,
 ) {
     BaseLayoutRight(
         settings = settings,
@@ -86,7 +92,11 @@ fun PadKitScope.XboxRight(
             )
         },
         secondaryDials = {
-            LemuroidControlButton(Modifier.radialPosition(90f), Id.Key(KeyEvent.KEYCODE_BUTTON_R1), label = "Black")
+            LemuroidControlButton(
+                Modifier.radialPosition(90f),
+                Id.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                label = if (bumpers) "RB" else "Black",
+            )
             LemuroidControlButton(Modifier.radialPosition(60f), Id.Key(KeyEvent.KEYCODE_BUTTON_R2), label = "RT")
             SecondaryButtonStart(position = 2)
             SecondaryAnalogRight()
