@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.math.min
 
 /**
  * UI-only core-feedback signal, owned by ONE game viewmodel. A conflated channel
@@ -94,14 +93,4 @@ internal object CartdeckFeedbackStrength {
         return (s * 0.66f + w * 0.34f).coerceIn(0f, 1f)
     }
 
-    /** Cap the light increase at 35% of baseline, or the remaining headroom. */
-    fun intensity(
-        baseline: Int,
-        strength: Float,
-    ): Float {
-        val base = baseline.coerceIn(0, 100).toFloat()
-        val safeStrength = if (strength.isFinite()) strength.coerceIn(0f, 1f) else 0f
-        val additional = min(base * 0.35f, 100f - base) * safeStrength
-        return (base + additional).coerceIn(0f, 100f)
-    }
 }
