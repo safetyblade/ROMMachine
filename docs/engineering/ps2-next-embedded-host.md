@@ -35,7 +35,7 @@ Only use a lawful test disc and the owner's own PS2 BIOS. The probe's app-privat
 
 A tester can use ADB with their installed debug package's own `run-as` access to stage a lawful test fixture; the native core must come from the source-built, SHA-verified, licence-reviewed ARM64 artifact staged into an explicitly configured private engineering build. Do not use a standalone ARMSX2 APK, no BIOS/ROM in the repository, no unsupported APK sideload advice. In the debug package, the test-only Activity name is `com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity`.
 
-The debug-only bridge does not yet package ARMSX2's complete native transitive dependencies. A missing `libSDL3.so`, `liblibrashader_capi.so`, `libc++_shared.so`, or any native ABI/16KiB mismatch must block rather than be hidden by a fallback. The native build and exact dynamic-dependency closure are the immediate prerequisite.
+The native source-build lane now stages an independently verified per-host-page ELF dependency closure (also still unproven in actual CI). A missing `libSDL3.so`, `liblibrashader_capi.so`, `libc++_shared.so`, or any native ABI/16KiB mismatch must block rather than be hidden by a fallback. The native build and exact dynamic-dependency closure are the immediate prerequisite.
 
 ## Release gates
 

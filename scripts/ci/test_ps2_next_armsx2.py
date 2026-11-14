@@ -96,6 +96,27 @@ class NativeGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "revision drift"):
                 candidate.stage_shaderc_dependencies(tmp)
 
+    def test_native_dependency_sonames_reject_path_traversal(self):
+        expected = "Shared library: [libSDL3.so]\nShared library: [libc.so]"
+        self.assertEqual({"libSDL3.so", "libc.so"}, candidate.needed_libraries(expected))
+        for bad in ("../../libevil.so", "libc.so.6", "libstdc++.so.6"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    candidate.needed_libraries("Shared library: [" + bad + "]")
+
+    def test_native_dependency_closure_fails_closed_without_output_libraries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            core = root / "libemucore_4k.so"
+            core.write_bytes(fake_elf() + b"\0" * 65536)
+            with patch.object(candidate, "inspect_dependency", return_value={
+                "needed": ["libSDL3.so"], "sha256": "a" * 64,
+            }):
+                with self.assertRaisesRegex(ValueError, "Missing source-built Android ELF"):
+                    candidate.stage_dependency_closure(
+                        root, root, core, root / "output", "llvm-readelf",
+                    )
+
     def test_no_licence_inventory_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(ValueError, "GPLv3"):

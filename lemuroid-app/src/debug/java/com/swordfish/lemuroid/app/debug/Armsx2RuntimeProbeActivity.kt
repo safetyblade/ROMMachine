@@ -69,7 +69,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runCatching {
                     Armsx2Storage.createPrivateDirectories(sandbox)
                     NativeApp.allowPrivateRoot(sandbox.globalRoot)
-                    NativeApp.initialize(sandbox.gameRoot.absolutePath, sandbox.bios.absolutePath, Build.VERSION.SDK_INT)
+                    NativeApp.initialize(
+                        sandbox.gameRoot.absolutePath,
+                        sandbox.bios.absolutePath,
+                        Build.VERSION.SDK_INT,
+                    )
                 }.onFailure {
                     report("PS2_NEXT_INIT_FAILED: ${it.javaClass.simpleName}")
                 }.onSuccess {

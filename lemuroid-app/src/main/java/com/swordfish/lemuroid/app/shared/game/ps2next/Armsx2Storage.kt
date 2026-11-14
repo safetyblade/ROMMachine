@@ -20,7 +20,11 @@ object Armsx2Storage {
         filesDir: File,
         cartridgeId: String,
     ): Paths {
-        require(cartridgeId.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))) {
+        val validId =
+            cartridgeId.matches(
+                Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
+            )
+        require(validId) {
             "Expected immutable UUID cartridge identity"
         }
         val id = UUID.fromString(cartridgeId).toString()

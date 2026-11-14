@@ -120,7 +120,7 @@ def needed_libraries(dynamic):
     """Reject non-bare SONAMEs. Android resolves packaged dependencies by filename."""
     names = set(re.findall(r"Shared library:\s*\[([^\]]+)\]", dynamic))
     for name in names:
-        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\\.so", name):
+        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\.so", name):
             raise ValueError("Unresolvable native DT_NEEDED SONAME: " + name)
         if any(bad in name for bad in DENIED_DEPENDENCIES):
             raise ValueError("Forbidden desktop/proprietary native dependency: " + name)
@@ -167,7 +167,7 @@ def stage_dependency_closure(source, ndk, main_binary, destination, readelf):
         name = queue.pop()
         if name in ANDROID_SYSTEM_LIBRARIES or name in result:
             continue
-        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\\.so", name):
+        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\.so", name):
             raise ValueError("Invalid private dependency name: " + name)
         possible = [target] if name == "libc++_shared.so" else candidates.get(name, [])
         possible = [p for p in possible if p.is_file()]
