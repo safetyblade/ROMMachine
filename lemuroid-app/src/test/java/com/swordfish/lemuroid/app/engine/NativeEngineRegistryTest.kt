@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.engine
 
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.NativeGameSystems
@@ -17,7 +18,7 @@ class NativeEngineRegistryTest {
         val systems = (GameSystem.all() + NativeGameSystems.configurations()).distinctBy { it.id }
         systems.forEach { system ->
             val engines = NativeEngineRegistry.engines(system)
-            if (system.id == SystemID.WII_U) {
+            if (system.id == SystemID.WII_U && !WiiuEngine.engineeringBuild) {
                 // Catalogue-visible Wii U must not fabricate a GLES/Libretro engine before Cemu's Vulkan host ships.
                 assertTrue("Wii U has no integrated runtime yet", engines.isEmpty())
                 return@forEach
@@ -27,7 +28,11 @@ class NativeEngineRegistryTest {
             engines.forEach { engine ->
                 assertEquals(system.id, engine.system)
                 assertEquals(system.supportedExtensions.toSet(), engine.formats)
-                if (system.id == SystemID.XBOX) {
+                if (system.id == SystemID.WII_U) {
+                    assertEquals(NativeEngineRegistry.Host.CEMU_VULKAN, engine.host)
+                    assertEquals(null, engine.core)
+                    assertEquals("native/wiiu", engine.stateNamespace)
+                } else if (system.id == SystemID.XBOX) {
                     assertEquals(NativeEngineRegistry.Host.HAKUX_SDL3, engine.host)
                     assertEquals(null, engine.core)
                 } else if (system.id == SystemID.XBOX360) {

@@ -34,6 +34,8 @@ android {
 
         if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck.ps2lab"
+        if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck.wiiulab"
         }
 
         // P0 test-only overrides. No override means the original production configuration.
@@ -119,6 +121,9 @@ android {
                     "*/*/*_libretro_android.so", "**/liblibretrodroid.so",
                     "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
                 )
+            if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+                keepDebugSymbols += setOf("**/libcemu_libretro_android.so", "**/libcartdeckwiiuvulkanhost.so")
+            }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
                 // Private ARMSX2 APK verification binds every packaged ELF byte

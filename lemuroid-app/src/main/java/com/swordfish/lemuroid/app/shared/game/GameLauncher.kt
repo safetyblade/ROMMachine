@@ -1,10 +1,13 @@
 package com.swordfish.lemuroid.app.shared.game
 
 import android.app.Activity
+import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.core.CoresSelection
@@ -42,6 +45,26 @@ class GameLauncher(
                 // The Wii U catalogue is independently searchable before Cemu's
                 // Vulkan host passes physical gameplay QA. Never try to launch
                 // a catalogue-only cartridge via the existing GLES frontend.
+                if (system.id == SystemID.WII_U &&
+                    WiiuEngine.engineeringBuild
+                ) {
+                    val engine = NativeEngineRegistry.engines(system).single()
+                    val eligibility = NativeEngineRegistry.eligibility(activity, engine)
+                    check(eligibility.eligible) { eligibility.reason ?: "Cemu is unavailable" }
+                    EngineSelectionPreferences(activity.applicationContext).beginLaunch(game, engine)
+                    activity.startActivityForResult(
+                        Intent().setClassName(
+                            activity,
+                            "com.swordfish.lemuroid.app.debug.WiiuVulkanRuntimeProbeActivity",
+                        )
+                            .putExtra("cartdeck.game", game)
+                            .putExtra("cartdeck.leanback", leanback)
+                            .putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
+                        BaseGameActivity.REQUEST_PLAY_GAME,
+                    )
+                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    return@launch
+                }
                 if (system.id == SystemID.WII_U) {
                     Toast.makeText(
                         activity,
