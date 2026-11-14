@@ -52,10 +52,12 @@ class CartridgeRecoveryManager(
             val before = inventory()
             journal.reconcile(before.available, shelf, before.retired)
             val ready = inventory()
-            val original = ready.retired.singleOrNull { it.cartridgeId == retiredCartridgeId }
-                ?: error("The unavailable cartridge no longer requires recovery")
-            val candidate = ready.available.singleOrNull { it.id == selectedGameId }
-                ?: error("The selected ROM is no longer indexed")
+            val original =
+                ready.retired.singleOrNull { it.cartridgeId == retiredCartridgeId }
+                    ?: error("The unavailable cartridge no longer requires recovery")
+            val candidate =
+                ready.available.singleOrNull { it.id == selectedGameId }
+                    ?: error("The selected ROM is no longer indexed")
             check(candidate.systemId == original.systemId) { "The consoles do not match" }
             check(candidate.cartridgeId != original.cartridgeId) { "The identity has already been recovered" }
             check(ready.available.none { it.cartridgeId == original.cartridgeId }) {
@@ -81,8 +83,9 @@ class CartridgeRecoveryManager(
                     db.retiredCartridgeDao().selectAll()
                         .singleOrNull { it.cartridgeId == retiredCartridgeId }
                         ?: error("The retired cartridge changed during recovery")
-                val current = db.gameDao().selectById(selectedGameId)
-                    ?: error("The source changed during recovery")
+                val current =
+                    db.gameDao().selectById(selectedGameId)
+                        ?: error("The source changed during recovery")
                 check(current.fileUri == candidate.fileUri && current.cartridgeId == candidate.cartridgeId) {
                     "The selected source changed during recovery"
                 }
@@ -120,8 +123,9 @@ class CartridgeRecoveryManager(
     }
 
     private fun requireUnusedCandidate(game: Game) {
-        check(game.lastPlayedAt == null && !game.isFavorite &&
-            game.customName == null && game.customCoverUri == null
+        check(
+            game.lastPlayedAt == null && !game.isFavorite &&
+                game.customName == null && game.customCoverUri == null,
         ) { "Selected ROM already has player activity or customisation" }
         val uuid = game.cartridgeId
         val roots =
@@ -147,9 +151,10 @@ class CartridgeRecoveryManager(
         check(entries.size <= 1) { "Duplicate source placement requires review" }
         if (layout.sections.flatMap { it.cells }.none { it.gameKey == missing } || entries.isEmpty()) return
         val (section, cell) = entries.single()
-        check(section.id == ShelfLayout.UNSORTED &&
-            cell.id == "game:$candidateKey" &&
-            cell.facing == CartridgeFacing.SPINE
+        check(
+            section.id == ShelfLayout.UNSORTED &&
+                cell.id == "game:$candidateKey" &&
+                cell.facing == CartridgeFacing.SPINE,
         ) { "Selected source shelf layout was customised; recovery requires review" }
     }
 }
