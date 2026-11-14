@@ -126,8 +126,9 @@ class CartridgeSaveBinding(
 
     private fun legacySharedSram(game: Game): File {
         val base = game.saveFileName().substringBeforeLast('.')
-        require(base.isNotBlank() && base != "." && base != ".." &&
-            '/' !in base && '\\' !in base && '\u0000' !in base
+        require(
+            base.isNotBlank() && base != "." && base != ".." &&
+                '/' !in base && '\\' !in base && '\u0000' !in base,
         ) { "Unsafe historical filename" }
         return File(directories.getSavesDirectory(), "$base.srm")
     }
