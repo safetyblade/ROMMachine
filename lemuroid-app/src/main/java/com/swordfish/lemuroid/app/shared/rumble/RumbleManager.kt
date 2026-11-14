@@ -34,6 +34,7 @@ class RumbleManager(
     suspend fun collectAndProcessRumbleEvents(
         systemCoreConfig: SystemCoreConfig,
         rumbleEventsObservable: Flow<RumbleEvent>,
+        onCoreFeedback: ((RumbleEvent) -> Unit)? = null,
     ) {
         val enableRumble = settingsManager.enableRumble()
         val rumbleSupported = systemCoreConfig.rumbleSupported
@@ -46,7 +47,12 @@ class RumbleManager(
             .map { getVibrators(it) }
             .flatMapLatest { vibrators ->
                 rumbleEventsObservable
-                    .onEach { kotlin.runCatching { vibrate(vibrators[it.port], it) } }
+                    .onEach { event ->
+                        // The existing single rumble subscription is the only
+                        // source for lighting. A cosmetic failure cannot affect haptics.
+                        kotlin.runCatching { onCoreFeedback?.invoke(event) }
+                        kotlin.runCatching { vibrate(vibrators[event.port], event) }
+                    }
                     .onStart { stopAllVibrators(vibrators) }
                     .onCompletion { stopAllVibrators(vibrators) }
                     .flowOn(rumbleContext)
