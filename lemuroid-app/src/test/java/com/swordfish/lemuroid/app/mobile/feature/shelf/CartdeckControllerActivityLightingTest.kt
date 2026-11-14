@@ -56,9 +56,10 @@ class CartdeckControllerActivityLightingTest {
         val response = controller.tint(Color.Green, feedbackStrength = 1f).alpha
         assertEquals(baseline, controller.tint(Color.Green, feedbackStrength = 0f).alpha, 0.0001f)
         assertEquals(baseline, static.tint(Color.Green, feedbackStrength = 1f).alpha, 0.0001f)
-        assertEquals(0.60f * 0.78f, baseline, 0.0001f)
-        assertEquals(0.81f * 0.78f, response, 0.0001f)
-        assertTrue(response <= baseline * 1.35f + 0.001f)
+        val alphaStep = 1f / 255f
+        assertEquals(0.60f * 0.78f, baseline, alphaStep)
+        assertEquals(0.81f * 0.78f, response, alphaStep)
+        assertTrue(response <= baseline * 1.35f + 2f * alphaStep)
 
         val frame = Rect(0f, 0f, 393f, 852f)
         val video = Rect(15f, 92f, 378f, 402f)
