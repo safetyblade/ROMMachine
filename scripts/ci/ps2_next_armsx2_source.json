@@ -14,5 +14,10 @@
   "default_engine_unchanged": "Play!",
   "production_integration": false,
   "gameplay_verified": false,
-  "note": "This is a source provenance lock, not proof of a built or playable core."
+  "note": "This is a source provenance lock, not proof of a built or playable core.",
+  "shaderc_deps": {
+    "spirv_headers": "465055f6c9128772e20082e893d974146acf7a02",
+    "spirv_tools": "e4bceacf59fdfe742047e94e41ef65a48999a0dd",
+    "glslang": "09c541ee5b22bbac307987b50d86ec2b4f683d75"
+  }
 }

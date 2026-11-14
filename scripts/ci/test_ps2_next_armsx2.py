@@ -76,6 +76,26 @@ class NativeGuardTests(unittest.TestCase):
             self.assertEqual("abc123", found["build_id"])
             self.assertEqual(64, len(found["sha256"]))
 
+    def test_shaderc_dependency_pins_match_source_review(self):
+        expected = {
+            "spirv-headers": "465055f6c9128772e20082e893d974146acf7a02",
+            "spirv-tools": "e4bceacf59fdfe742047e94e41ef65a48999a0dd",
+            "glslang": "09c541ee5b22bbac307987b50d86ec2b4f683d75",
+        }
+        self.assertEqual(
+            expected,
+            {name: details[1] for name, details in candidate.SHADERC_DEPS.items()},
+        )
+
+    def test_shaderc_revision_drift_fails_before_any_download(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deps = (pathlib.Path(tmp) / "platforms/android/app/src/main/cpp"
+                    / "3rdparty/shaderc/DEPS")
+            deps.parent.mkdir(parents=True)
+            deps.write_text("vars = {}\n")
+            with self.assertRaisesRegex(ValueError, "revision drift"):
+                candidate.stage_shaderc_dependencies(tmp)
+
     def test_no_licence_inventory_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(ValueError, "GPLv3"):

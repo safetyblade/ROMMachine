@@ -14,6 +14,17 @@ Owner authorization: 14 November 2026. Tracking: [#218](https://github.com/safet
 
 There is no hard dependency on the public upstream ARMSX2 standalone Android APK. Its package ID, visual shell, settings UI and game library are NOT reused. Its separately advertised Linux ARM64 Libretro library is NOT Android-compatible evidence.
 
+## First real CMake blocker and source-pinned repair
+
+The initial GitHub Actions native compile reached upstream CMake, then failed at shaderc/third_party/CMakeLists.txt:80 because that upstream checkout contains the shaderc build scripts but **not** the checked-out SPIRV-Tools source tree. Installing a host spirv-tools executable does **not** create the required CMake targets.
+
+The source builder now restores exactly the dependency revisions recorded in the pinned shaderc/DEPS file and rejects drift before cloning:
+- SPIRV-Headers 465055f6c9128772e20082e893d974146acf7a02
+- SPIRV-Tools e4bceacf59fdfe742047e94e41ef65a48999a0dd
+- glslang 09c541ee5b22bbac307987b50d86ec2b4f683d75
+
+All three upstream GitHub commit SHAs were checked against their actual repositories. This is an isolated, reproducible build-input repair, not a relaxation of the compilation gate. The complete SHA is recorded in the generated native evidence JSON. Any further missing dependency must be resolved from pinned upstream source, with the exact failed CMake path retained; do not mark native build green by disabling shaderc or removing Vulkan/GLES features.
+
 ## Executable quality gate
 
 The Python builder checks the exact Git revision and submodules, an unchanged checked-out source tree, GPLv3 and third-party notice inventory, and that a native output actually exists. It verifies an ELF64 little-endian AArch64 ET_DYN library with **at least 16 KiB PT_LOAD alignment** and Android dynamic dependencies. It rejects desktop glibc, libstdc++ and proprietary Discord linkage. It checks six required real Android JNI exports: initialize, runVMThread, onNativeSurfaceChanged, onNativeSurfaceDestroyed, setPadButton and shutdown. Each native variant gets a file SHA-256, GNU build ID, ABI record and dependency inventory. No reported build may substitute a placeholder or prebuilt Linux library.
