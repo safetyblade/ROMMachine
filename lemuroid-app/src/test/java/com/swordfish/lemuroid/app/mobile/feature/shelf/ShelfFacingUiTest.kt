@@ -17,7 +17,6 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
@@ -116,8 +115,12 @@ class ShelfFacingUiTest {
         val spine = compose.onNodeWithContentDescription("Orbit, GB, spine facing").getUnclippedBoundsInRoot()
         assertTrue(front.right <= spine.left)
         assertEquals(spine.bottom.value, front.bottom.value, 1f)
-        assertEquals(spine.height.value, front.height.value, 1f)
-        assertEquals(320f / 390f, front.width.value / front.height.value, 0.01f)
+        assertEquals((spine.bottom - spine.top).value, (front.bottom - front.top).value, 1f)
+        assertEquals(
+            320f / 390f,
+            (front.right - front.left).value / (front.bottom - front.top).value,
+            0.01f,
+        )
     }
 
     @Test fun frontRetainsLongPressOutsideArrange() {
@@ -150,16 +153,14 @@ class ShelfFacingUiTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription(
-            "Atlas, GB, spine facing",
-        ).performSemanticsAction(SemanticsActions.CustomActions) {
-            assertTrue(it.first { action -> action.label == "Show front" }.action())
-        }
-        compose.onNodeWithContentDescription(
-            "Atlas, GB, front facing",
-        ).performSemanticsAction(SemanticsActions.CustomActions) {
-            assertTrue(it.first { action -> action.label == "Move later" }.action())
-        }
+        val flipActions =
+            compose.onNodeWithContentDescription("Atlas, GB, spine facing")
+                .fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        compose.runOnIdle { assertTrue(flipActions.first { it.label == "Show front" }.action()) }
+        val moveActions =
+            compose.onNodeWithContentDescription("Atlas, GB, front facing")
+                .fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        compose.runOnIdle { assertTrue(moveActions.first { it.label == "Move later" }.action()) }
         compose.runOnIdle {
             assertEquals(
                 listOf(orbit, atlas).map { "game:${shelfGameKey(it.systemId, it.fileUri)}" },
@@ -306,6 +307,9 @@ class ShelfFacingUiTest {
                 })
             }
         }
+        val initial = compose.onNodeWithContentDescription("Atlas, GB, spine facing").getUnclippedBoundsInRoot()
+        val neighbor = compose.onNodeWithContentDescription("Earlier 6, GB, spine facing").getUnclippedBoundsInRoot()
+        assertEquals(neighbor.bottom.value, initial.bottom.value, 1f)
         compose.onNodeWithContentDescription("Atlas, GB, spine facing").performClick()
         compose.mainClock.autoAdvance = false
         compose.onNodeWithText("Show front").performClick()
