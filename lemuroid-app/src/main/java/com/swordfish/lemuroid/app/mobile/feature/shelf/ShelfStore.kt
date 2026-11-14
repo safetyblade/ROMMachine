@@ -220,3 +220,29 @@ internal fun decalFromJson(json: JSONObject): CartdeckPersonalDecal =
         rotation = json.optDouble("rotation", 0.0).toFloat(),
         opacity = json.optDouble("opacity", 0.85).toFloat(),
     ).validate()
+
+/** Optional Phase 3A V2 field, independent of ROM identity or save data. */
+internal fun lightingToJson(lighting: CartdeckLighting): JSONObject =
+    JSONObject().apply {
+        put("mode", lighting.mode)
+        put("intensity", lighting.intensity)
+        put("colour", lighting.colour ?: JSONObject.NULL)
+        put("zones", JSONArray(lighting.zones.sorted()))
+    }
+
+internal fun lightingFromJson(json: JSONObject): CartdeckLighting {
+    val defaults = CartdeckLighting()
+    val chosen = json.optJSONArray("zones")
+    val zones =
+        if (chosen == null) {
+            defaults.zones
+        } else {
+            (0 until chosen.length()).map { chosen.getString(it) }.toSet()
+        }
+    return CartdeckLighting(
+        mode = json.optString("mode", CartdeckLighting.MODE_OFF),
+        intensity = json.optInt("intensity", defaults.intensity),
+        colour = if (json.isNull("colour")) null else json.getLong("colour"),
+        zones = zones,
+    ).validate()
+}
