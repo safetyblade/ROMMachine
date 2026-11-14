@@ -356,7 +356,8 @@ class NativeCoreActivity : SDLActivity() {
                                     },
                                     physicalMapping = {
                                         val activePad = controllerDevices.firstOrNull()
-                                        val cartridge = if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
+                                        val cartridge =
+                                            if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
                                         val mappings = remember(activePad, cartridge, mappingRevision) {
                                             activePad?.let { pad ->
                                                 XboxButtonBindingStore.editableKeys.associateWith { target ->
