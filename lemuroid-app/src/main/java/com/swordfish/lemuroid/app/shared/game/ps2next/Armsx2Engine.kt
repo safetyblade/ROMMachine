@@ -36,10 +36,8 @@ object Armsx2Engine {
         check(Build.VERSION.SDK_INT >= 29 && "arm64-v8a" in Build.SUPPORTED_ABIS) {
             "ARMSX2 requires Android ARM64 API 29 or newer"
         }
-        val props = Properties().apply { context.assets.open(MANIFEST).use { load(it) } }
-        check(props.getProperty("host.page_size") == pageSize().toString()) {
-            "Install the PS2 APK for this device's page model"
-        }
+        val bundled = Properties().apply { context.assets.open(MANIFEST).use { load(it) } }
+        val props = selectPage(bundled, pageSize())
         val notices = context.cacheDir.resolve("armsx2-notices.zip")
         context.assets.open("cartdeck/armsx2/armsx2-licenses.zip").use {
                 input ->
@@ -65,6 +63,29 @@ object Armsx2Engine {
         return store(
             context.filesDir,
         ).install(File(context.applicationInfo.nativeLibraryDir), props, notices.readBytes())
+    }
+
+    /** Select the real library for this Android page model without changing the APK manifest. */
+    fun selectPage(
+        bundled: Properties,
+        page: Int,
+    ): Properties {
+        require(page in setOf(4096, 16384)) { "Unsupported Android page size" }
+        val model = bundled.getProperty("host.page_size")
+        check(model == "universal" || model == page.toString()) { "This PS2 package has the wrong page model" }
+        val core = if (page == 16384) "libemucore_16k.so" else "libemucore_4k.so"
+        val digest = bundled.getProperty("library.$core.sha256")
+        check(digest != null && digest.matches(Regex("[0-9a-f]{64}"))) { "Selected PS2 engine is missing" }
+        return Properties().apply {
+            putAll(bundled)
+            setProperty("host.page_size", page.toString())
+            setProperty("core.sha256", digest)
+            setProperty(
+                "library.names",
+                bundled.getProperty("library.names").split(",")
+                    .filter { !it.startsWith("libemucore_") || it == core }.joinToString(","),
+            )
+        }
     }
 
     fun resources(

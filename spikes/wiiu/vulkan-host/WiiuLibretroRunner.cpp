@@ -3,6 +3,7 @@
 // Gameplay, audio output and release readiness still require physical QA.
 #include "CartdeckVulkanPresenter.h"
 #include "WiiuAudio.h"
+#include "VulkanNegotiation.h"
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <dlfcn.h>
@@ -14,6 +15,8 @@
 #include <mutex>
 #include <thread>
 #include <cstdarg>
+#include <cstdio>
+#include <unistd.h>
 #include <cstring>
 #include <filesystem>
 #include <string>
@@ -48,12 +51,43 @@ std::array<std::atomic<int16_t>, 4> axes{};
 std::atomic<int16_t> pointer_x{0}, pointer_y{0};
 std::atomic<bool> pointer_down{false};
 
+std::mutex trace_mutex;
+std::string trace_root;
+void stage(const char* value) {
+    std::lock_guard<std::mutex> lock(trace_mutex);
+    if (trace_root.empty()) return;
+    if (auto* file = fopen((trace_root + "/native-stage.txt").c_str(), "w")) {
+        fprintf(file, "%s\n", value);
+        fflush(file);
+        fsync(fileno(file));
+        fclose(file);
+    }
+}
 void coreLog(enum retro_log_level level, const char* fmt, ...) {
     va_list values;
     va_start(values, fmt);
     int priority = level == RETRO_LOG_ERROR ? ANDROID_LOG_ERROR :
                    level == RETRO_LOG_WARN ? ANDROID_LOG_WARN : ANDROID_LOG_INFO;
+    va_list copy;
+    va_copy(copy, values);
     __android_log_vprint(priority, "CARTDECK_WIIU_CORE", fmt, values);
+    {
+        std::lock_guard<std::mutex> lock(trace_mutex);
+        if (!trace_root.empty()) {
+            const auto path = trace_root + "/native-core.log";
+            if (auto* file = fopen(path.c_str(), "a")) {
+                fseek(file, 0, SEEK_END);
+                if (ftell(file) < 1024 * 1024) {
+                    char line[4096];
+                    vsnprintf(line, sizeof(line), fmt, copy);
+                    fputs(line, file);
+                    fflush(file);
+                }
+                fclose(file);
+            }
+        }
+    }
+    va_end(copy);
     va_end(values);
 }
 
@@ -171,7 +205,7 @@ bool environment(unsigned command, void* data) {
                 static_cast<const retro_hw_render_context_negotiation_interface_vulkan*>(data);
             if (negotiation->interface_type !=
                     RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN ||
-                negotiation->interface_version < 2 || !negotiation->create_device2)
+                !supportsVulkanNegotiation(negotiation))
                 return false;
             s->negotiation = negotiation;
             return true;
@@ -276,6 +310,12 @@ std::string jstringValue(JNIEnv* env, jstring str) {
 std::string run(ANativeWindow* window, const std::string& root,
                 const std::string& disc, unsigned frames,
                 const std::string& coreLibrary, const std::string& mediaDirectory) {
+    {
+        std::lock_guard<std::mutex> lock(trace_mutex);
+        trace_root = root;
+        if (auto* file = fopen((root + "/native-core.log").c_str(), "w")) fclose(file);
+    }
+    stage("nativeRun entered");
     WiiuSession session;
     session.system = root + "/system";
     session.save = root + "/saves";
@@ -298,6 +338,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     } catch (const std::exception&) {
         return "WIIU_BLOCKED_PRIVATE_FIXTURE";
     }
+    stage("dlopen Cemu");
     if (!session.core.open(coreLibrary)) return "WIIU_BLOCKED_NATIVE_CORE_OR_DEPENDENCIES";
     active = &session;
     session.core.set_environment(environment);
@@ -306,6 +347,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.core.set_audio_batch(audioBatch);
     session.core.set_input_poll(inputPoll);
     session.core.set_input_state(input);
+    stage("retro_init");
     session.core.init();
     session.initialized = true;
     host_stage.store(1);
@@ -314,6 +356,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     applied_controller.store(initial_controller);
     retro_game_info game{};
     game.path = session.disc.c_str();
+    stage("retro_load_game");
     session.loaded = !stop_requested.load() && session.core.load_game(&game);
     if (session.loaded) host_stage.store(2);
     if (!session.loaded) session.error = "WIIU_CORE_LOAD_FAILED";
@@ -321,11 +364,14 @@ std::string run(ANativeWindow* window, const std::string& root,
         session.error = "WIIU_VULKAN_RENDER_REQUEST_MISSING";
     if (session.error.empty() && stop_requested.load()) session.error = "WIIU_CANCELLED";
     unsigned handled_surface_generation = 0;
+    stage("Vulkan negotiation and surface");
     if (session.error.empty() &&
         !session.presenter.initialize(window, session.negotiation, &session.error))
         session.error = "WIIU_VULKAN_INIT_" + session.error;
-    if (session.error.empty() && session.hw.context_reset)
+    if (session.error.empty() && session.hw.context_reset) {
+        stage("Cemu context_reset");
         session.hw.context_reset();
+    }
     if (session.error.empty()) {
         host_stage.store(3);
         std::lock_guard<std::mutex> lock(diagnostics_mutex);
@@ -342,6 +388,7 @@ std::string run(ANativeWindow* window, const std::string& root,
                 static_cast<int32_t>(av.timing.sample_rate), &session.error);
     }
     if (session.error.empty()) {
+        stage("guest retro_run loop");
         for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
             {
                 std::lock_guard<std::mutex> lock(surface_mutex);

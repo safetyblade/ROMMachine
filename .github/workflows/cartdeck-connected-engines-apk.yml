@@ -99,7 +99,7 @@ jobs:
           set -euo pipefail
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           manager="$sdk/cmdline-tools/latest/bin/sdkmanager"
-          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'build-tools;34.0.0'
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'build-tools;34.0.0' 'cmake;3.30.3'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
           bash scripts/ci/bootstrap_gradle.sh
       - uses: actions/setup-java@v4
@@ -118,6 +118,8 @@ jobs:
         run: >-
           python3 scripts/ci/package_ps2_runtime_support.py
           --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
+      - name: Build the updated Wii U Vulkan frontend against pinned core headers
+        run: python3 scripts/ci/rebuild_wiiu_host.py
       - name: Connect the real engines to one CARTDECK payload
         shell: bash
         run: |

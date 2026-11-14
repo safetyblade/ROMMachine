@@ -20,6 +20,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,14 +28,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
-import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
@@ -172,11 +174,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (!menu && message.isNotEmpty()) GameMenuTheme { Text(message) }
+                        if (!menu && message.isNotEmpty() && !failed) CartdeckLoadingScreen(message)
                         if (menu) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "PlayStation 2",
-                                engineInfo = engine?.id ?: "ARMSX2 unavailable",
+                                engineInfo = engine?.let { "ARMSX2 ${it.id}" } ?: "ARMSX2 startup needs attention",
                                 capabilities =
                                     XboxMenuCapabilities(
                                         false,
@@ -194,6 +196,14 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
                                 onPreviousEngine = { if (Armsx2Engine.store(filesDir).rollback()) leave() },
+                                recovery = {
+                                    if (failed) {
+                                        Text(message, Modifier.padding(16.dp))
+                                        GameMenuLink("Import PS2 BIOS") { importBios.launch(arrayOf("*/*")) }
+                                        GameMenuLink("Retry cartridge") { retryArmsx2() }
+                                    }
+                                    GameMenuLink("Use Play! fallback and reopen") { usePlay() }
+                                },
                                 console = "PlayStation 2",
                                 storageHelp = message.ifEmpty { "Independent ARMSX2 memory cards and in-game saves." },
                             ) {
@@ -274,6 +284,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         ) {
                             job.ensureActive()
                         }
+                    com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.begin(
+                        this@Armsx2RuntimeProbeActivity,
+                        "PS2",
+                        data.gameRoot,
+                    )
                     check(
                         NativeApp.loadSelected(selected.directory, Armsx2Engine.coreName()),
                     ) { NativeApp.loadStatus() }
@@ -308,13 +323,51 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 throw cancelled
             } catch (error: Throwable) {
                 failed = true
-                message = "ARMSX2 could not start (${error.javaClass.simpleName}). Check BIOS, media and storage."
+                message =
+                    if (error.message?.contains("BIOS") == true) {
+                        "Import your PS2 BIOS from Advanced, then retry this cartridge."
+                    } else {
+                        "ARMSX2 could not start: ${error.message ?: error.javaClass.simpleName}"
+                    }
                 val bootError = if (loaded) runCatching { NativeApp.getLastBootError() }.getOrDefault("") else ""
                 report = "$message\n$bootError"
                 openMenu()
             }
         }
     }
+
+    private fun retryArmsx2() {
+        game?.let { current ->
+            if (EngineSelectionPreferences(this).setPreferred(
+                    GameSystem.findById(current.systemId),
+                    "armsx2-android",
+                    current,
+                )
+            ) {
+                restart()
+            }
+        }
+    }
+
+    private fun usePlay() {
+        game?.let { current ->
+            if (EngineSelectionPreferences(this).setPreferred(
+                    GameSystem.findById(current.systemId),
+                    CoreID.PLAY_MODERN.coreName,
+                    current,
+                )
+            ) {
+                restart()
+            }
+        }
+    }
+
+    private fun restart() {
+        reopen = true
+        leave()
+    }
+
+    private var reopen = false
 
     private fun startIfReady() {
         val disc = image ?: return
@@ -483,9 +536,16 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         lifecycleScope.launch {
             withContext(Dispatchers.IO) { shutdown.join(8000) }
             paths?.let { File(it.gameRoot, "last-report.txt").writeText(report.take(16384)) }
+            if (!shutdown.isAlive) {
+                com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.finish(
+                    this@Armsx2RuntimeProbeActivity,
+                )
+            }
             setResult(
                 if (failed || shutdown.isAlive) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
-                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
+                Intent().putExtra("cartdeck.reopen", reopen)
+                    .putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, report)
+                    .putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
                     .putExtra(
                         BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
                         intent.getBooleanExtra("cartdeck.leanback", false),
