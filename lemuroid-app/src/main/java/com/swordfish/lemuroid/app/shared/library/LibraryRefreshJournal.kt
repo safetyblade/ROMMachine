@@ -17,7 +17,10 @@ internal class LibraryRefreshJournal(context: Context) {
 
     fun pending(): Boolean = file.exists() || File(file.path + ".bak").exists()
 
-    fun prepare(games: List<Game>, retired: List<RetiredCartridge> = emptyList()) {
+    fun prepare(
+        games: List<Game>,
+        retired: List<RetiredCartridge> = emptyList(),
+    ) {
         check(!pending()) { "Previous refresh requires recovery" }
         file.parentFile!!.mkdirs()
         val identities = JSONObject()
