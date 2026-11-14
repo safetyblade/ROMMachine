@@ -32,4 +32,5 @@ enum class SystemID(val dbname: String) {
     XBOX("xbox"),
     WII("wii"),
     XBOX360("xbox360"),
+    WII_U("wiiu"),
 }
