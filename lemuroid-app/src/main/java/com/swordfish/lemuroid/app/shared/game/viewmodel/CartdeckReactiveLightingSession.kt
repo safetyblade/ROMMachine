@@ -23,7 +23,8 @@ internal class CartdeckReactiveLightingSession(
     private val output = MutableStateFlow(0f)
     val strength: StateFlow<Float> = output
 
-    @Volatile private var listening = false
+    @Volatile
+    private var listening = false
     private var previousUpdateAt = Long.MIN_VALUE
 
     init {
