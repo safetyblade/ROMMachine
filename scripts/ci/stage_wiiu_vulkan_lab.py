@@ -77,7 +77,9 @@ def stage(work, output, readelf):
         missing = needed - SYSTEM - set(INPUTS.values())
         if missing:
             raise ValueError("Unbundled Wii U native dependencies: " + str(sorted(missing)))
-        info = {"sha256": sha(f), "size_bytes": f.stat().st_size}
+        info = {"sha256": sha(f), "size_bytes": f.stat().st_size,
+                "build_id": re.search(r"Build ID: ([a-fA-F0-9]+)", notes).group(1),
+                "needed": sorted(needed)}
         key = "core_sha256" if source.startswith("cemu_") else "host_sha256"
         if info["sha256"] != proof.get(key):
             raise ValueError("Native binary SHA differs from evidence: " + source)

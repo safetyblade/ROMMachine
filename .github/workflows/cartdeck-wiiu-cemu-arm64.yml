@@ -50,6 +50,9 @@ jobs:
       - name: Native audio behavior tests
         run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_audio.py" -v
 
+      - name: Preserve baseline payload bytes and reject collisions
+        run: python3 -m unittest discover -s scripts/ci -p 'test_merge_verified_native_payloads.py' -v
+
   android-arm64-core:
     name: Source-build real Android Cemu core and prove ABI (not game proof)
     # Dedicated Wii U branch only; require actual native build even for its PR.
@@ -106,9 +109,73 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  legacy-engines:
+    name: Android ARM64 engine — ${{ matrix.engine }}
+    needs: [contract-tests]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 105
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [ps1, psp, dc, gc, ps2]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned native toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/native-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/native-tools"
+          "$RUNNER_TEMP/native-tools/bin/pip" install 'cmake==3.31.6' 'ninja==1.11.1.4'
+          echo "$RUNNER_TEMP/native-tools/bin" >> "$GITHUB_PATH"
+      - name: Build pinned engine, assets and provenance
+        env:
+          ENGINE: ${{ matrix.engine }}
+          NATIVE_BUILD_JOBS: '2'
+          NATIVE_JOBS: '2'
+        run: |
+          set -euo pipefail
+          case "$ENGINE" in
+            ps1) builder=build_ps1_upstream_core.sh ;;
+            psp) builder=build_psp_upstream_core.sh ;;
+            dc) builder=build_dreamcast_upstream_core.sh ;;
+            gc) builder=build_gamecube_upstream_core.sh ;;
+            ps2) builder=build_ps2_upstream_core.sh ;;
+            *) exit 1 ;;
+          esac
+          bash "scripts/ci/$builder" "work/native-packages/$ENGINE"
+      - name: Retain verified build input for the APK job
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-engine-${{ matrix.engine }}
+          path: work/native-packages/${{ matrix.engine }}/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Retain exact Play native symbols for handset traces
+        if: matrix.engine == 'ps2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps2-native-symbols
+          path: work/native-packages/ps2/symbols/
+          if-no-files-found: error
+          retention-days: 14
+
   wiiu-private-test-apk:
     name: Source-verified Cemu + Vulkan host private APK (NOT gameplay)
-    needs: [contract-tests, android-arm64-core]
+    needs: [contract-tests, android-arm64-core, legacy-engines]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -121,6 +188,11 @@ jobs:
         with:
           name: wiiu-cemu-verified-arm64-core-private-not-an-apk
           path: ${{ runner.temp }}/wiiu-native
+      - name: Download the independently source-built baseline engines
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-engine-*
+          path: ${{ runner.temp }}/legacy-engines
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -153,6 +225,19 @@ jobs:
             --work "$RUNNER_TEMP/wiiu-native" \
             --output "$RUNNER_TEMP/wiiu-private-payload" \
             --readelf "$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+      - name: Retain verified baseline engines in the private cartridge APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          FALLBACK="$RUNNER_TEMP/cartdeck-legacy-bundle"
+          python3 scripts/ci/stage_native_bundle.py --output "$FALLBACK" \
+            --readelf "$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            --ps1 "$RUNNER_TEMP/legacy-engines/native-engine-ps1" \
+            --psp "$RUNNER_TEMP/legacy-engines/native-engine-psp" \
+            --dc "$RUNNER_TEMP/legacy-engines/native-engine-dc" \
+            --gc "$RUNNER_TEMP/legacy-engines/native-engine-gc" \
+            --ps2 "$RUNNER_TEMP/legacy-engines/native-engine-ps2" --wii
+          python3 scripts/ci/merge_verified_native_payloads.py --source "$FALLBACK" --destination "$RUNNER_TEMP/wiiu-private-payload"
       - name: Full Kotlin lint, JVM tests and isolated Wii U debug APK
         shell: bash
         run: |
@@ -161,6 +246,7 @@ jobs:
             -Pcartdeck.wiiu.labId=true \
             -Pcartdeck.p0.phoneArm64Only=true \
             -Pcartdeck.p0.testVersionCode=90611402 \
+            -PcartdeckNativeSystems="$(cat "$RUNNER_TEMP/cartdeck-legacy-bundle/native-systems.txt")" \
             -PcartdeckNativeBundleDir="$RUNNER_TEMP/wiiu-private-payload" \
             -PcartdeckHostMavenRepo="$WIIU_HOST_MAVEN" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
@@ -195,6 +281,9 @@ jobs:
                   assert hashlib.sha256(z.read(member)).hexdigest() == meta['sha256']
           print('Private Wii U lab APK contains exact source-verified core and host; gameplay UNVERIFIED')
           PY
+          python3 scripts/ci/verify_native_bundle_apk.py "$APK" "$RUNNER_TEMP/cartdeck-legacy-bundle" \
+            --require-five-engines --require-wii \
+            --host-aar "$WIIU_HOST_MAVEN/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar"
           cp "$APK" dist/wiiu-private/CARTDECK_WIIU_VULKAN_ARM64_PRIVATE_TEST.apk
           sha256sum dist/wiiu-private/*.apk | tee dist/wiiu-private/apk-sha256.txt
       - uses: actions/upload-artifact@v4
