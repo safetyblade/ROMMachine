@@ -6,8 +6,8 @@ package com.rfandango.haku_x
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.ClipboardManager
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
@@ -40,9 +41,9 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
-import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
@@ -52,16 +53,15 @@ import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
-import com.swordfish.lemuroid.BuildConfig
-import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
-import java.io.File
 import kotlinx.coroutines.launch
 import org.libsdl.app.SDLActivity
+import java.io.File
 
 /** SDL owns the Vulkan surface and audio. A dedicated same-package process contains native crashes. */
 class NativeCoreActivity : SDLActivity() {
@@ -304,24 +304,24 @@ class NativeCoreActivity : SDLActivity() {
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
-                            onViewport = {
-                                viewport ->
-                            val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
-                            if (
-                                viewport.width() > 0 && viewport.height() > 0 &&
-                                (
-                                    current == null || current.width != viewport.width() ||
-                                        current.height != viewport.height() ||
-                                        current.leftMargin != viewport.left || current.topMargin != viewport.top
-                                )
-                            ) {
-                                mSurface?.layoutParams =
-                                    RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
-                                        leftMargin = viewport.left
-                                        topMargin = viewport.top
-                                    }
-                            }
-                        })
+                            onViewport = { viewport ->
+                                val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
+                                if (
+                                    viewport.width() > 0 && viewport.height() > 0 &&
+                                    (
+                                        current == null || current.width != viewport.width() ||
+                                            current.height != viewport.height() ||
+                                            current.leftMargin != viewport.left || current.topMargin != viewport.top
+                                    )
+                                ) {
+                                    mSurface?.layoutParams =
+                                        RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
+                                            leftMargin = viewport.left
+                                            topMargin = viewport.top
+                                        }
+                                }
+                            },
+                        )
                         if (menuOpen) {
                             XboxGameMenu(
                                 title =
@@ -358,7 +358,8 @@ class NativeCoreActivity : SDLActivity() {
                                         val activePad = controllerDevices.firstOrNull()
                                         val cartridge =
                                             if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
-                                        val mappings = remember(activePad, cartridge, mappingRevision) {
+                                        val mappings =
+                                            remember(activePad, cartridge, mappingRevision) {
                                             activePad?.let { pad ->
                                                 XboxButtonBindingStore.editableKeys.associateWith { target ->
                                                     xboxBindings.mappedSources(pad, target, cartridge)
@@ -375,7 +376,10 @@ class NativeCoreActivity : SDLActivity() {
                                             lastInput = lastPhysicalInput,
                                             perCartridge = mappingPerCartridge,
                                             mappings = mappings,
-                                            onScopeChange = { mappingPerCartridge = it; captureMappingTarget = null },
+                                            onScopeChange = {
+                                                mappingPerCartridge = it
+                                                captureMappingTarget = null
+                                            },
                                             onStartCapture = { captureMappingTarget = it },
                                             onCancelCapture = { captureMappingTarget = null },
                                             onReset = {
@@ -668,9 +672,13 @@ class NativeCoreActivity : SDLActivity() {
             event.keyCode in XboxButtonBindingStore.editableKeys
         ) {
             val mapped = xboxBindings.output(event.device, event.keyCode, registryGame()?.fileUri?.toString())
-            val emitted = hardwareOwners.route(
-                event.deviceId, event.keyCode, event.action == KeyEvent.ACTION_DOWN, mapped,
-            )
+            val emitted =
+                hardwareOwners.route(
+                    event.deviceId,
+                    event.keyCode,
+                    event.action == KeyEvent.ACTION_DOWN,
+                    mapped,
+                )
             if (emitted != null && hardware.key(emitted.first, emitted.second)) sendHardware()
             return true
         }
