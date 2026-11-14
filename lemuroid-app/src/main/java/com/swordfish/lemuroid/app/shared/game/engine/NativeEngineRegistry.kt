@@ -14,7 +14,7 @@ import java.util.Properties
 
 /** Describes actual integrated implementations. Unbuilt upstream projects are never selectable engines. */
 object NativeEngineRegistry {
-    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID }
+    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID, CEMU_VULKAN }
 
     data class Engine(
         val id: String,
@@ -51,6 +51,19 @@ object NativeEngineRegistry {
     data class Eligibility(val eligible: Boolean, val reason: String? = null)
 
     fun engines(system: GameSystem): List<Engine> {
+        if (system.id == SystemID.WII_U && com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine.engineeringBuild) {
+            return listOf(
+                Engine(
+                    "cemu-vulkan", "Cemu (engineering)", system.id, Host.CEMU_VULKAN, null,
+                    system.supportedExtensions.toSet(), 28, setOf("arm64-v8a"), 0, 0x00401000,
+                    listOf("User-owned keys.txt where required"), "User-owned Wii U resources",
+                    "native/wiiu", "Per-cartridge persistent NAND and in-game saves; no save states",
+                    "GamePad / Pro Controller, analog sticks, touchscreen, TV/GamePad selection",
+                    "Stock Vulkan; physical Samsung acceptance pending. Resume uses in-game saves.",
+                    "cartdeck/cemu.properties",
+                ),
+            )
+        }
         if (system.nativeBackend == "xenia") {
             return listOf(
                 Engine(
@@ -204,6 +217,7 @@ object NativeEngineRegistry {
             when (engine.host) {
                 Host.HAKUX_SDL3 -> "libhakuxcore.so"
                 Host.XENIA_ANDROID -> "libcartdeck_xenia.so"
+                Host.CEMU_VULKAN -> "libcemu_libretro_android.so"
                 else -> engine.core?.libretroFileName
             }
         // Legacy cores retain their existing verified install/provisioning path.
@@ -236,7 +250,12 @@ object NativeEngineRegistry {
                 val revision = manifest.getProperty("revision") ?: manifest.getProperty("upstream.revision")
                 val digest = manifest.getProperty("core.sha256")
                 val active =
-                    if (engine.host == Host.XENIA_ANDROID) {
+                    if (engine.host == Host.CEMU_VULKAN) {
+                        File(
+                            context.filesDir,
+                            "native-engines/wiiu/active.version",
+                        ).takeIf { it.isFile }?.readText()?.trim()
+                    } else if (engine.host == Host.XENIA_ANDROID) {
                         File(
                             context.filesDir,
                             "native-engines/xbox360/active.version",

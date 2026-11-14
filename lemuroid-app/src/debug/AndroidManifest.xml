@@ -6,5 +6,6 @@
         <activity android:name="com.swordfish.lemuroid.app.debug.GameCubeRuntimeProbeActivity" android:exported="true" />
         <activity android:name="com.swordfish.lemuroid.app.debug.PlayStation2RuntimeProbeActivity" android:exported="true" />
         <activity android:name="com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity" android:exported="true" android:process=":ps2next" android:theme="@style/LemuroidMaterialTheme.Game" />
+        <activity android:name="com.swordfish.lemuroid.app.debug.WiiuVulkanRuntimeProbeActivity" android:exported="true" android:process=":wiiulab" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|navigation" android:theme="@style/LemuroidMaterialTheme.Game" />
     </application>
 </manifest>
