@@ -6,6 +6,7 @@ import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NativeDiscFolderIdentityTest {
@@ -127,7 +128,10 @@ class NativeDiscFolderIdentityTest {
     @Test
     fun xbox360DiscoveryIsAvailableWithoutBundledEngineAndDoesNotConfuseOriginalXbox() {
         val all = GameSystem.all().map { it.id }.toSet()
-        org.junit.Assert.assertTrue("Xbox 360 shelf indexing is independent of APK engine packaging", SystemID.XBOX360 in all)
+        assertTrue(
+            "Xbox 360 shelf indexing is independent of APK engine packaging",
+            SystemID.XBOX360 in all,
+        )
         assertEquals(
             SystemID.XBOX360,
             NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Xbox360/Example.iso", all),
@@ -145,7 +149,7 @@ class NativeDiscFolderIdentityTest {
             ),
         )
         assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Example.iso", all))
-        assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Xbox360/PS2/Example.iso", all))
+        assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Xbox360/PS2/Example.iso", all + SystemID.PLAYSTATION_2))
         assertEquals(
             SystemID.XBOX,
             NativeDiscFolderIdentity.resolve(
