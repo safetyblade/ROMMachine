@@ -34,7 +34,8 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
 
     fun connected(): List<InputDevice> =
         InputDevice.getDeviceIds()
-            .mapNotNull { InputDevice.getDevice(it) }
+            .map { InputDevice.getDevice(it) }
+            .filterNotNull()
             .filter(::isEnabledGamepad)
             .sortedWith(compareBy({ it.controllerNumber }, { it.id }))
 
