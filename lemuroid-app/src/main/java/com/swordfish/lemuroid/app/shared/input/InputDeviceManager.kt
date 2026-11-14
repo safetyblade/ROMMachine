@@ -164,6 +164,14 @@ class InputDeviceManager(
         }
     }
 
+    /** Reset only one physical device; do not delete other pads' mappings or shortcuts. */
+    suspend fun resetDeviceBindings(inputDevice: InputDevice) =
+        withContext(Dispatchers.IO) {
+            sharedPreferences.edit(commit = true) {
+                remove(computeKeyBindingGamePadPreference(inputDevice))
+            }
+        }
+
     suspend fun resetAllBindings() =
         withContext(Dispatchers.IO) {
             sharedPreferences.edit(commit = true) {

@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.shared.game.xbox
 
+import android.view.InputDevice
 import android.view.KeyEvent
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import android.view.MotionEvent
 import kotlin.math.abs
 
@@ -39,11 +41,17 @@ class XboxPadState {
         return true
     }
 
-    fun motion(axis: (Int) -> Float) {
+    fun motion(axis: (Int) -> Float) = motion(axis, null)
+
+    fun motion(
+        axis: (Int) -> Float,
+        device: InputDevice?,
+    ) {
+        val (rightX, rightY) = ControllerHardwareProfile.rightStickAxes(device)
         lx = stick(axis(MotionEvent.AXIS_X))
         ly = -stick(axis(MotionEvent.AXIS_Y))
-        rx = stick(axis(MotionEvent.AXIS_Z))
-        ry = -stick(axis(MotionEvent.AXIS_RZ))
+        rx = stick(axis(rightX))
+        ry = -stick(axis(rightY))
         leftTrigger = trigger(axis(MotionEvent.AXIS_LTRIGGER), axis(MotionEvent.AXIS_BRAKE))
         rightTrigger = trigger(axis(MotionEvent.AXIS_RTRIGGER), axis(MotionEvent.AXIS_GAS))
         val hx = axis(MotionEvent.AXIS_HAT_X)
