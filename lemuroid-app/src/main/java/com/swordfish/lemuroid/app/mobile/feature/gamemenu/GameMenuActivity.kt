@@ -4,6 +4,8 @@ package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import android.content.Intent
 import android.graphics.Color
+import android.view.InputDevice
+import android.view.KeyEvent
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -13,9 +15,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -26,6 +32,9 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesV
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.input.InputKey
+import com.swordfish.lemuroid.app.shared.input.RetroKey
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -34,11 +43,52 @@ import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import java.security.InvalidParameterException
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class GameMenuActivity : RetrogradeComponentActivity() {
     @Inject
     lateinit var inputDeviceManager: InputDeviceManager
+
+    /** Capture only while the user explicitly chooses Map; never steal normal gamepad menus. */
+    private var pendingBinding by mutableStateOf<Pair<Int, Int>?>(null)
+    private var lastPhysicalKey by mutableStateOf<Int?>(null)
+    private var mappingRevision by mutableStateOf(0)
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
+        ) {
+            lastPhysicalKey = event.keyCode
+        }
+        val capture = pendingBinding
+        if (capture != null) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK ||
+                event.keyCode == KeyEvent.KEYCODE_MENU ||
+                event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE
+            ) {
+                if (event.action == KeyEvent.ACTION_UP) pendingBinding = null
+                return true
+            }
+            if (event.action == KeyEvent.ACTION_UP && event.deviceId == capture.first &&
+                InputDeviceManager.OUTPUT_KEYS.any { it.keyCode == event.keyCode } &&
+                event.keyCode != KeyEvent.KEYCODE_UNKNOWN
+            ) {
+                val device = InputDevice.getDevice(event.deviceId)
+                pendingBinding = null
+                if (device != null) {
+                    lifecycleScope.launch {
+                        inputDeviceManager.updateBinding(
+                            device, RetroKey(capture.second), InputKey(event.keyCode),
+                        )
+                        mappingRevision++
+                    }
+                }
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
 
     @Inject
     lateinit var statesManager: StatesManager
@@ -191,12 +241,34 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                         )
                     }
                     composable(GameMenuRoute.CONTROLS) {
-                        GameMenuControlsScreen(navController, gameMenuRequest, ::onResult) {
-                            com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions(
-                                viewModel(factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager)),
-                                gameMenuRequest,
-                            )
-                        }
+                        GameMenuControlsScreen(
+                            navController = navController,
+                            gameMenuRequest = gameMenuRequest,
+                            onResult = ::onResult,
+                            controllerOptions = {
+                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions(
+                                    viewModel(factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager)),
+                                    gameMenuRequest,
+                                )
+                            },
+                            physicalControllerOptions = {
+                                PhysicalControllerMappingPanel(
+                                    inputDeviceManager = inputDeviceManager,
+                                    captureTarget = pendingBinding?.second,
+                                    lastPhysicalKey = lastPhysicalKey,
+                                    mappingRevision = mappingRevision,
+                                    onCapture = { id, native -> pendingBinding = id to native },
+                                    onCancel = { pendingBinding = null },
+                                    onReset = { device ->
+                                        pendingBinding = null
+                                        lifecycleScope.launch {
+                                            inputDeviceManager.resetDeviceBindings(device)
+                                            mappingRevision++
+                                        }
+                                    },
+                                )
+                            },
+                        )
                     }
                     composable(GameMenuRoute.GRIPARC) {
                         GripArcEditorScreen(gameMenuRequest.game)
