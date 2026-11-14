@@ -24,7 +24,7 @@ REQUIRED_LIBRETRO = frozenset({
     "retro_get_system_av_info", "retro_set_controller_port_device",
 })
 FORBIDDEN_LIBRARIES = ("libc.so.6", "libstdc++.so.6", "ld-linux", "libGL.so")
-SONAME = re.compile(r"lib[A-Za-z0-9_+.-]+\\.so\\Z")
+SONAME = re.compile(r"lib[A-Za-z0-9_+.-]+\.so\Z")
 
 
 def command(*args, cwd=None):
@@ -61,13 +61,13 @@ def check_binary(data, dynamic, symbols, notes):
     missing = sorted(REQUIRED_LIBRETRO - exported)
     if missing:
         raise ValueError("Missing Libretro ABI exports: " + ", ".join(missing))
-    dependencies = sorted(set(re.findall(r"Shared library:\\s*\\[([^\\]]+)\\]", dynamic)))
+    dependencies = sorted(set(re.findall(r"Shared library:\s*\[([^\]]+)\]", dynamic)))
     if "libc.so" not in dependencies:
         raise ValueError("Android libc dependency missing")
     for dep in dependencies:
         if not SONAME.fullmatch(dep) or any(bad in dep for bad in FORBIDDEN_LIBRARIES):
             raise ValueError("Non-Android or unsupported desktop dependency: " + dep)
-    match = re.search(r"Build ID:\\s*([a-fA-F0-9]+)", notes)
+    match = re.search(r"Build ID:\s*([a-fA-F0-9]+)", notes)
     if not match:
         raise ValueError("GNU BuildID absent; cannot match crash symbols")
     return {
