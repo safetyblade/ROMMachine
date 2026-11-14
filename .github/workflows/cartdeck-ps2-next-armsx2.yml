@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/ps2-armsx2-native-feasibility
+      - feat/ps2-next-b-embedded-host
     paths:
       - ".github/workflows/cartdeck-ps2-next-armsx2.yml"
       - "scripts/ci/ps2_next_armsx2.py"
@@ -89,6 +90,16 @@ jobs:
           "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'cmake;3.30.3'
           test -f "$sdk/ndk/29.0.14206865/build/cmake/android.toolchain.cmake"
           df -h .
+      - name: Install exact Android ARM64 Rust target required by pinned librashader
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v rustup
+          command -v cargo
+          rustup target add aarch64-linux-android
+          rustup target list --installed | grep -Fx aarch64-linux-android
+          cargo --version
+          rustc --version
       - name: Build exact source and verify AArch64 JNI binary
         shell: bash
         run: |
