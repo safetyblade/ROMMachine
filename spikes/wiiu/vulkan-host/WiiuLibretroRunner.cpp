@@ -220,7 +220,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     try {
         const auto base = std::filesystem::canonical(root);
         const auto source = std::filesystem::canonical(disc);
-        if (!source.is_regular_file() || source.string().find(base.string() + "/") != 0)
+        if (!std::filesystem::is_regular_file(source) || source.string().find(base.string() + "/") != 0)
             return "WIIU_BLOCKED_PRIVATE_FIXTURE";
         std::filesystem::create_directories(session.system);
         std::filesystem::create_directories(session.save);
