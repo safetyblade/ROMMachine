@@ -763,8 +763,14 @@ fun ShelfAppearanceEditor(
                                 lighting = lighting.copy(mode = CartdeckLighting.MODE_STATIC)
                                 modified = true
                             }) { Text(if (lighting.mode == CartdeckLighting.MODE_STATIC) "✓ Static" else "Static") }
+                            TextButton(onClick = {
+                                lighting = lighting.copy(mode = CartdeckLighting.MODE_FEEDBACK)
+                                modified = true
+                            }) {
+                                Text(if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) "✓ Game feedback" else "Game feedback")
+                            }
                         }
-                        if (lighting.mode == CartdeckLighting.MODE_STATIC) {
+                        if (lighting.mode != CartdeckLighting.MODE_OFF) {
                             Text("Intensity: ${lighting.intensity}%")
                             Slider(
                                 value = lighting.intensity.toFloat(),
@@ -809,8 +815,13 @@ fun ShelfAppearanceEditor(
                                 }
                             }
                             Text(
-                                "Static lighting has no animation or game interaction. " +
-                                    "Reactive lighting follows separately.",
+                                if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) {
+                                    "Game feedback responds to actual core rumble when the game supports it " +
+                                        "and your existing rumble setting is enabled. No rumble means static light. " +
+                                        "Reduced motion keeps the static level. In controller-fullscreen, the shell is hidden."
+                                } else {
+                                    "Static lighting has no animation or game interaction."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }

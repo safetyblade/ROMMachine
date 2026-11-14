@@ -41,6 +41,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
@@ -80,6 +81,13 @@ class GameViewModelRetroGameView(
     private var launchedGame: Game? = null
 
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)
+
+    private val reactiveLightingSession = CartdeckReactiveLightingSession(scope)
+    val reactiveLightingStrength: StateFlow<Float> = reactiveLightingSession.strength
+
+    fun setReactiveLightingEnabled(enabled: Boolean) {
+        reactiveLightingSession.configure(enabled)
+    }
 
     private val retroGameViewFlow = MutableStateFlow<GLRetroView?>(null)
     var retroGameView: GLRetroView? by MutableStateProperty(retroGameViewFlow)
@@ -372,7 +380,21 @@ class GameViewModelRetroGameView(
     private suspend fun initializeRumbleFlow() {
         val retroGameView = retroGameViewFlow()
         val rumbleEvents = retroGameView.getRumbleEvents()
-        rumbleManager.collectAndProcessRumbleEvents(systemCoreConfig, rumbleEvents)
+        // Reuse the existing RESUMED-only rumble collector. Do not enable
+        // host rumble when the player has disabled vibration in Settings.
+        rumbleManager.collectAndProcessRumbleEvents(systemCoreConfig, rumbleEvents) { event ->
+            reactiveLightingSession.onCoreRumble(event.strengthStrong, event.strengthWeak)
+        }
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        reactiveLightingSession.configure(false)
+        super.onPause(owner)
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        reactiveLightingSession.configure(false)
+        super.onDestroy(owner)
     }
 
     private suspend fun initializeRetroGameViewErrorsFlow() {

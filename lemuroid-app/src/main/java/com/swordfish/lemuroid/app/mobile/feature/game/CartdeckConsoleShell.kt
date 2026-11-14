@@ -53,6 +53,7 @@ internal fun CartdeckConsoleShell(
     decal: CartdeckPersonalDecal? = null,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -347,7 +348,7 @@ internal fun CartdeckConsoleShell(
             }
         }
 
-        if (lighting.mode == CartdeckLighting.MODE_STATIC && hole != null) {
+        if (lighting.mode != CartdeckLighting.MODE_OFF && hole != null) {
             Canvas(Modifier.fillMaxSize()) {
                 val brandSeat =
                     when {
@@ -376,6 +377,7 @@ internal fun CartdeckConsoleShell(
                     highContrast = highContrast,
                     thickness = 2.5.dp.toPx(),
                     clearance = 8.dp.toPx(),
+                    feedbackStrength = feedbackStrength,
                 )
             }
         }
