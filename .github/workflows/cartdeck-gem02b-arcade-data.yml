@@ -1,0 +1,27 @@
+name: GEM-02B Arcade Metadata Research Tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/gem_arcade_catalogue.py"
+      - "scripts/test_gem_arcade_catalogue.py"
+      - "docs/architecture/gem-02b-arcade-importer.md"
+      - ".github/workflows/cartdeck-gem02b-arcade-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-dat-parser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify offline XML parsing and research gates
+        run: python -m unittest discover -s scripts -p "test_gem_arcade_catalogue.py" -v
