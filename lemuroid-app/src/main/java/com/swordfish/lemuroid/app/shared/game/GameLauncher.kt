@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
@@ -27,6 +28,51 @@ class GameLauncher(
     private val coresSelection: CoresSelection,
     private val gameLaunchTaskHandler: GameLaunchTaskHandler,
 ) {
+    /** Reopen only after the isolated runtime has released the shared game lock. */
+    suspend fun reopenNativeGame(
+        activity: Activity,
+        data: Intent?,
+    ): Boolean {
+        if (data?.getBooleanExtra("cartdeck.reopen", false) != true) return false
+        val game = data.getSerializableExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME) as? Game ?: return false
+        // Android caches SharedPreferences per process. Apply the recovery choice
+        // in the shelf process before asking it to select the next engine.
+        if (!applyRecoveryChoice(activity.applicationContext, data, game)) {
+            gameLaunchTaskHandler.handleGameFinish(
+                false,
+                activity,
+                BaseGameActivity.RESULT_ERROR,
+                Intent().putExtra(
+                    BaseGameActivity.PLAY_GAME_RESULT_ERROR,
+                    "Could not select the recovery engine. Saves were retained.",
+                ),
+            )
+            return true
+        }
+        var attempts = 0
+        while (GameProcessLock.isHeldByAnotherProcess(activity) && attempts++ < 100) {
+            kotlinx.coroutines.delay(100)
+        }
+        if (!launchGameAsync(
+                activity,
+                game,
+                false,
+                data.getBooleanExtra(BaseGameActivity.PLAY_GAME_RESULT_LEANBACK, false),
+            )
+        ) {
+            gameLaunchTaskHandler.handleGameFinish(
+                false,
+                activity,
+                BaseGameActivity.RESULT_ERROR,
+                Intent().putExtra(
+                    BaseGameActivity.PLAY_GAME_RESULT_ERROR,
+                    "The previous game process has not stopped. Return to Shelf and retry.",
+                ),
+            )
+        }
+        return true
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
     fun launchGameAsync(
         activity: Activity,
@@ -184,5 +230,16 @@ class GameLauncher(
         }
 
         return true
+    }
+
+    companion object {
+        internal fun applyRecoveryChoice(
+            context: Context,
+            data: Intent,
+            game: Game,
+        ): Boolean {
+            val engine = data.getStringExtra("cartdeck.reopen.engine") ?: return true
+            return EngineSelectionPreferences(context).setPreferred(GameSystem.findById(game.systemId), engine, game)
+        }
     }
 }

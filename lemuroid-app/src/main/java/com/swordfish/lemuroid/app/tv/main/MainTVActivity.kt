@@ -43,6 +43,9 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
     @Inject
     lateinit var gameLaunchTaskHandler: GameLaunchTaskHandler
 
+    @Inject
+    lateinit var gameLauncher: GameLauncher
+
     var mainViewModel: MainTVViewModel? = null
 
     override fun activity(): Activity = this
@@ -75,6 +78,7 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
         when (requestCode) {
             BaseGameActivity.REQUEST_PLAY_GAME -> {
                 GlobalScope.safeLaunch {
+                    if (gameLauncher.reopenNativeGame(this@MainTVActivity, data)) return@safeLaunch
                     gameLaunchTaskHandler.handleGameFinish(false, this@MainTVActivity, resultCode, data)
                     ChannelUpdateWork.enqueue(applicationContext)
                 }
