@@ -4,6 +4,40 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object Migrations {
+    val VERSION_12_13: Migration =
+        object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Additive ledger: existing game rows and user saves remain untouched.
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS \`retired_cartridges\` (
+                        \`cartridgeId\` TEXT NOT NULL PRIMARY KEY,
+                        \`formerGameId\` INTEGER NOT NULL,
+                        \`fileName\` TEXT NOT NULL,
+                        \`fileUri\` TEXT NOT NULL,
+                        \`title\` TEXT NOT NULL,
+                        \`systemId\` TEXT NOT NULL,
+                        \`developer\` TEXT,
+                        \`coverFrontUrl\` TEXT,
+                        \`lastPlayedAt\` INTEGER,
+                        \`isFavorite\` INTEGER NOT NULL,
+                        \`customName\` TEXT,
+                        \`customCoverUri\` TEXT,
+                        \`legacyFileName\` TEXT,
+                        \`legacySourceUri\` TEXT,
+                        \`retiredAt\` INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS \`index_retired_cartridges_systemId\` ON \`retired_cartridges\` (\`systemId\`)",
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS \`index_retired_cartridges_fileUri\` ON \`retired_cartridges\` (\`fileUri\`)",
+                )
+            }
+        }
+
     val VERSION_11_12: Migration =
         object : Migration(11, 12) {
             override fun migrate(database: SupportSQLiteDatabase) {
