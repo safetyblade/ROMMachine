@@ -1,0 +1,93 @@
+name: CARTDECK WIIU-01 pinned Cemu Android ARM64 native feasibility
+
+on:
+  push:
+    branches:
+      - feat/wiiu-cemu-arm64-vulkan-feasibility
+    paths:
+      - "scripts/ci/wiiu_cemu_contract.py"
+      - "scripts/ci/test_wiiu_cemu_contract.py"
+      - "scripts/ci/build_wiiu_cemu_arm64.sh"
+      - ".github/workflows/cartdeck-wiiu-cemu-arm64.yml"
+  pull_request:
+    paths:
+      - "scripts/ci/wiiu_cemu_contract.py"
+      - "scripts/ci/test_wiiu_cemu_contract.py"
+      - "scripts/ci/build_wiiu_cemu_arm64.sh"
+      - ".github/workflows/cartdeck-wiiu-cemu-arm64.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiiu-cemu-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-tests:
+    name: Immutable pin and native ABI fail-closed unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run WIIU-01 contract tests
+        run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_cemu_contract.py" -v
+      - name: No premature release-system registration
+        run: |
+          set -euo pipefail
+          ! grep -q "WII_U" retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/NativeGameSystems.kt
+          echo "No unverified Wii U engine exposed in standard CARTDECK APK."
+
+  android-arm64-core:
+    name: Source-build real Android Cemu core and prove ABI (not game proof)
+    # Deliberate: never run a heavy cross-build as a normal PR required gate.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: contract-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare Android native cross-compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build nasm autoconf automake libtool pkg-config python3
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'cmake;3.30.3'
+          test -x "$sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          df -h .
+      - name: Build pinned upstream Android arm64-v8a (fail red on errors)
+        shell: bash
+        run: bash scripts/ci/build_wiiu_cemu_arm64.sh "$RUNNER_TEMP/wiiu-cemu-arm64"
+      - name: Assert no APK/gameplay false claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json"
+          python3 - "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json" <<'PY'
+          import json, sys
+          a = json.load(open(sys.argv[1], encoding="utf-8"))
+          assert a["native_abi_pass"]
+          assert not a["vulkan_frontend_verified"]
+          assert not a["apk_packaged"]
+          assert not a["device_gameplay_verified"]
+          print("Cemu compiled ABI only; host integration and owner QA remain mandatory")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wiiu-cemu-native-evidence-not-an-apk
+          path: ${{ runner.temp }}/wiiu-cemu-arm64/native-evidence.json
+          if-no-files-found: error
+          retention-days: 7
