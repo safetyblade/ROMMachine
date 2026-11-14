@@ -131,8 +131,8 @@ def stage_xbox360(source, readelf):
             raise ValueError('Xbox 360: missing ELF build ID: ' + name)
         if name == core:
             symbols = subprocess.check_output([readelf, '--dyn-syms', '-W', str(path)], text=True)
-            if 'JNI_OnLoad' not in symbols:
-                raise ValueError('Xbox 360: missing JNI_OnLoad')
+            from xbox360_native_abi import require_jni_entry
+            require_jni_entry(symbols)
             expected_id = props.get('native.build_id', '')
             if not re.fullmatch('[0-9a-f]+', expected_id) or ('Build ID: ' + expected_id) not in note:
                 raise ValueError('Xbox 360: wrong core build ID')
@@ -214,7 +214,7 @@ if __name__ == '__main__':
         parser.add_argument('--' + engine, type=pathlib.Path)
     args = parser.parse_args()
     sources = {name: getattr(args, name) for name in ENGINES if getattr(args, name)}
-    if not sources:
+    if not sources and not args.xbox and not args.xbox360:
         parser.error('Select at least one locally built engine')
     stage(sources, args.output, args.readelf, args.wii, args.xbox, args.xbox360)
     print('Verified private bundle:', args.output)

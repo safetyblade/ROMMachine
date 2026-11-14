@@ -1,9 +1,13 @@
 name: CARTDECK Xbox 360 engineering
 on:
+  push:
+    branches: [p1-emu/x360]
   workflow_dispatch:
   pull_request:
     paths:
       - 'scripts/ci/*xbox360*'
+      - 'scripts/ci/xbox360_native_abi.py'
+      - 'scripts/ci/stage_native_bundle.py'
       - 'scripts/ci/xbox360/**'
       - 'scripts/ci/xbox360-tests/**'
       - '**/Xbox360ContentIdentity.kt'

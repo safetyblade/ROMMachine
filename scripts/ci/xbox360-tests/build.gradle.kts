@@ -24,6 +24,7 @@ sourceSets {
         kotlin.srcDirs("../../../lemuroid-app/src/main/java", "../../../retrograde-app-shared/src/main/java")
         kotlin.include(
             "**/gamemenu/GameMenuCapabilities.kt",
+            "**/input/ControllerHardwareProfile.kt",
             "**/xbox/XboxPadState.kt", "**/xbox/XboxStorage.kt", "**/xbox/XboxEngineStore.kt",
             "**/xbox360/Xbox360Engine.kt", "**/xbox360/Xbox360Pad.kt", "**/xbox360/Xbox360Reports.kt", "**/xbox360/Xbox360Content.kt",
             "**/scanner/Xbox360ContentIdentity.kt", "**/scanner/NativeDiscFolderIdentity.kt",

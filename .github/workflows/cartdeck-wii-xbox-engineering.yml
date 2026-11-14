@@ -850,7 +850,7 @@ jobs:
       CARTDECK_REQUIRE_WII: 'true'
       CARTDECK_REQUIRE_XBOX: 'true'
       CARTDECK_REQUIRE_XBOX360: 'true'
-      CARTDECK_APK_MAX_MIB: '512'
+      CARTDECK_APK_MAX_MIB: '256'
     defaults:
       run:
         shell: bash
