@@ -129,6 +129,17 @@ def main():
     (output / 'sha256.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in output.iterdir() if p.is_file()))
     with tarfile.open(output / 'corresponding-source.tar.xz', 'w:xz', preset=1) as archive:
         archive.add(source, arcname='XenDroid', filter=source_archive_filter)
+    provenance['source_archive_sha256'] = sha(output / 'corresponding-source.tar.xz')
+    provenance['build_recipe_sha256'] = sha(pathlib.Path(__file__))
+    (output / 'source-manifest.json').write_text(json.dumps(provenance, indent=2) + '\n')
+    (output / 'sha256.txt').write_text(''.join(
+        sha(p) + '  ' + p.name + '\n' for p in sorted(output.iterdir())
+        if p.is_file() and p.name != 'sha256.txt'))
+    print(json.dumps({'result': 'XENIA_NATIVE_SOURCE_AND_ABI_VERIFIED',
+                      'revision': REVISION, 'libraries': inventory,
+                      'source_archive_sha256': provenance['source_archive_sha256'],
+                      'build_recipe_sha256': provenance['build_recipe_sha256'],
+                      'gameplay_verified': False}, indent=2), flush=True)
 
 
 if __name__ == '__main__':
