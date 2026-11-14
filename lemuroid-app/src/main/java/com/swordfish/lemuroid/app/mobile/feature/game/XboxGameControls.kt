@@ -43,6 +43,7 @@ fun XboxGameControls(
     onInput: (List<InputEvent>) -> Unit,
     settingsManager: TouchControllerSettingsManager? = null,
     controllerId: TouchControllerID = TouchControllerID.XBOX,
+    physicalControllerConnected: Boolean = false,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
     onViewport: (AndroidRect) -> Unit,
@@ -94,6 +95,12 @@ fun XboxGameControls(
         }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
+        // SDL owns the guest surface beneath this transparent Compose overlay.
+        // The maximised path must not instantiate PadKit's virtual controller.
+        if (landscape && physicalControllerConnected) {
+            CartdeckMaximisedFrame(tokens, onViewport)
+            return@BoxWithConstraints
+        }
         val orientation =
             if (landscape) {
                 TouchControllerSettingsManager.Orientation.LANDSCAPE
