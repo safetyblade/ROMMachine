@@ -66,7 +66,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var sandbox: File? = null
     private var loaded = false
     private var started = false
-    private var foreground = false
+    private var hostForeground = false
     private var leaving = false
     private var failed = false
     private var vmThread: Thread? = null
@@ -222,7 +222,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             physicalControllerConnected = physicalConnected,
                             game = game,
                             onGripPressed = { slot, pressed, codes ->
-                                if (pressed && !menuOpen && foreground) {
+                                if (pressed && !menuOpen && hostForeground) {
                                     gripSlots[slot] = codes
                                 } else {
                                     gripSlots.remove(
@@ -380,7 +380,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         val engine = selection ?: return
         val image = media ?: return
         val root = sandbox ?: return
-        if (!loaded || started || leaving || !foreground || menuOpen || !renderSurface.holder.surface.isValid) return
+        if (!loaded || started || leaving || !hostForeground || menuOpen || !renderSurface.holder.surface.isValid) return
         started = true
         nativePrepare()
         nativeController(proController)
@@ -405,7 +405,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun touchInput(events: List<InputEvent>) {
-        if (leaving || menuOpen || !foreground) return
+        if (leaving || menuOpen || !hostForeground) return
         events.forEach { event ->
             when (event) {
                 is InputEvent.Button ->
@@ -445,7 +445,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun syncPause() {
-        if (loaded) nativePause(!foreground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid)
+        if (loaded) nativePause(!hostForeground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid)
     }
 
     private fun openMenu() {
@@ -459,7 +459,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             if (event.action == KeyEvent.ACTION_UP) openMenu()
             return true
         }
-        if (!menuOpen && foreground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
+        if (!menuOpen && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
             hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
         ) {
             sendInput()
@@ -469,7 +469,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        if (!menuOpen && foreground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
+        if (!menuOpen && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             hardware.motion({ event.getAxisValue(it) }, event.device)
             sendInput()
             return true
@@ -501,14 +501,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onResume() {
         super.onResume()
-        foreground = true
+        hostForeground = true
         presence.start { physicalConnected = it.isNotEmpty() }
         syncPause()
         startIfReady()
     }
 
     override fun onPause() {
-        foreground = false
+        hostForeground = false
         presence.stop()
         releaseInput()
         syncPause()
