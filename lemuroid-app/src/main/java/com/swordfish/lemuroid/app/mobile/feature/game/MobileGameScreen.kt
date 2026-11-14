@@ -197,11 +197,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             onDispose { viewModel.setReactiveLightingEnabled(false) }
         }
         val coreFeedback = viewModel.reactiveLightingStrength().collectAsState().value
-        val reactiveLightStrength by animateFloatAsState(
+        val reactiveLightStrength = animateFloatAsState(
             targetValue = if (useCoreFeedback) coreFeedback else 0f,
             animationSpec = tween(durationMillis = 180),
             label = "CARTDECK core feedback",
-        )
+        ).value
         val touchControllerSettingsState =
             viewModel
                 .getTouchControlsSettings(LocalDensity.current, WindowInsets.displayCutout)
