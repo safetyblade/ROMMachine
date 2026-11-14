@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.main.CartridgeDetail
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
@@ -163,6 +164,64 @@ class ShelfFacingUiTest {
                 layout.sections.single().cells.map { it.id },
             )
             assertEquals(CartridgeFacing.FRONT, layout.sections.single().cells.last().facing)
+        }
+    }
+
+    @Test fun dragUnderstandsBothFacesAndPreservesSelectionAndInventory() {
+        var layout by mutableStateOf(library())
+        var selections = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                ShelfBoard(
+                    layout,
+                    games,
+                    { selections++ },
+                    {},
+                    Modifier.requiredSize(393.dp, 800.dp),
+                    arrange = true,
+                    onEdit = { layout = it(layout) },
+                )
+            }
+        }
+        for (source in CartridgeFacing.entries) {
+            for (destination in CartridgeFacing.entries) {
+                compose.runOnIdle {
+                    layout =
+                        library().setFacing(atlasId, source)
+                            .setFacing("game:${shelfGameKey(orbit.systemId, orbit.fileUri)}", destination)
+                }
+                val from = compose.onNodeWithContentDescription("Atlas, GB, ${source.name.lowercase()} facing")
+                val to = compose.onNodeWithContentDescription("Orbit, GB, ${destination.name.lowercase()} facing")
+                val destinationBounds = to.fetchSemanticsNode().boundsInRoot
+                val sourceBounds = from.fetchSemanticsNode().boundsInRoot
+                val delta = destinationBounds.center.copy(x = destinationBounds.right - 4f) - sourceBounds.center
+                from.performTouchInput { swipe(center, center + delta, 500) }
+                compose.runOnIdle {
+                    assertEquals(
+                        listOf(orbit.fileUri, atlas.fileUri).map { shelfGameKey("gb", it) },
+                        layout.sections.single().cells.map { it.gameKey },
+                    )
+                    assertEquals(source, layout.sections.single().cells.last().facing)
+                    assertEquals(0, selections)
+                }
+            }
+        }
+    }
+
+    @Test fun frontPickupStartsWithFrontAndKeepsItsAspectRatio() {
+        val source = androidx.compose.ui.geometry.Rect(0f, 0f, 160f, 195f)
+        val target = androidx.compose.ui.geometry.Rect(10f, 10f, 330f, 400f)
+        for (step in 0..20) {
+            val flight =
+                com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeFlight(
+                    source,
+                    target,
+                    step / 20f,
+                    sourceFront = true,
+                )
+            assertTrue(flight.showFront)
+            assertEquals(0f, flight.rotationY)
+            assertEquals(320f / 390f, flight.bounds.width / flight.bounds.height, 0.001f)
         }
     }
 }

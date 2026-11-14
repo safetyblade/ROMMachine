@@ -195,6 +195,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: Retain mixed cartridge shelf render evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shelf-face-01-render-evidence
+          path: lemuroid-app/build/reports/shelf-face-01/
+          if-no-files-found: warn
+          retention-days: 14
+
   native-engines:
     name: Android ARM64 engine — ${{ matrix.engine }}
     needs: [kotlin-verify]
