@@ -360,16 +360,16 @@ class NativeCoreActivity : SDLActivity() {
                                             if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
                                         val mappings =
                                             remember(activePad, cartridge, mappingRevision) {
-                                            activePad?.let { pad ->
-                                                XboxButtonBindingStore.editableKeys.associateWith { target ->
-                                                    xboxBindings.mappedSources(pad, target, cartridge)
-                                                        .joinToString(" / ") {
-                                                            KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_BUTTON_")
-                                                                .removePrefix("KEYCODE_DPAD_")
-                                                        }
-                                                }
-                                            }.orEmpty()
-                                        }
+                                                activePad?.let { pad ->
+                                                    XboxButtonBindingStore.editableKeys.associateWith { target ->
+                                                        xboxBindings.mappedSources(pad, target, cartridge)
+                                                            .joinToString(" / ") {
+                                                                KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_BUTTON_")
+                                                                    .removePrefix("KEYCODE_DPAD_")
+                                                            }
+                                                    }
+                                                }.orEmpty()
+                                            }
                                         XboxPhysicalMappingPanel(
                                             controllerName = activePad?.name,
                                             pendingTarget = captureMappingTarget,
