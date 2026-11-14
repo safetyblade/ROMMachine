@@ -29,6 +29,107 @@ class CartridgeSaveBinding(
 ) {
     private val locks = ConcurrentHashMap<String, Mutex>()
 
+    private companion object {
+        const val MAX_MANUAL_SRAM_BYTES = 32L * 1024L * 1024L
+    }
+
+    /** Only an explicit user choice can assign an ambiguous historical SRAM. */
+    data class LegacySramCandidate(
+        val fileName: String,
+        val bytes: Long,
+        val sha256: String,
+    )
+
+    suspend fun pendingSharedSram(game: Game): LegacySramCandidate? =
+        withContext(Dispatchers.IO) {
+            val source = legacySharedSram(game)
+            if (!source.isFile || source.length() !in 1..MAX_MANUAL_SRAM_BYTES) return@withContext null
+            if (installedGames().none { it.cartridgeId == game.cartridgeId && it.fileUri == game.fileUri }) {
+                return@withContext null
+            }
+            LegacySramCandidate(source.name, source.length(), digest(source))
+        }
+
+    /**
+     * The user must select a live cartridge and approve the exact SHA-256
+     * observed in the preview. Copying is write-once, checks source stability,
+     * and never overwrites newer UUID-bound progress. Legacy remains untouched.
+     *
+     * Existing savebinding-v1 ambiguous markers continue to work; the
+     * user-confirmed marker uses the same backward-readable v1 prefix.
+     */
+    suspend fun confirmSharedSramRecovery(
+        game: Game,
+        approvedSha256: String,
+    ): File =
+        withContext(Dispatchers.IO) {
+            require(approvedSha256.length == 64 && approvedSha256.all { it in '0'..'9' || it in 'a'..'f' })
+            val cartridge = id(game)
+            val scope = key("shared")
+            locks.getOrPut("$cartridge:sram:$scope") { Mutex() }.withLock {
+                check(
+                    installedGames().any {
+                        it.cartridgeId == game.cartridgeId && it.fileUri == game.fileUri &&
+                            it.systemId == game.systemId
+                    },
+                ) { "The selected cartridge changed during save recovery" }
+                val source = legacySharedSram(game)
+                check(source.isFile && source.length() in 1..MAX_MANUAL_SRAM_BYTES) {
+                    "The historical save is unavailable or exceeds the recovery limit"
+                }
+                check(digest(source) == approvedSha256) { "Historical save changed since preview" }
+                val target =
+                    File(directories.getSavesDirectory(), "cartridges/$cartridge/sram/$scope/${source.name}")
+                val marker = File(directories.getSaveBindingsDirectory(), "$cartridge/sram/$scope.active")
+                val atomic = AtomicFile(marker)
+                if (marker.exists() || File(marker.path + ".bak").exists()) {
+                    val value = atomic.openRead().bufferedReader().use { it.readText() }
+                    check(value.startsWith("savebinding-v1:$cartridge:")) { "Unknown save-binding version" }
+                    check(
+                        value.contains(":ambiguous-unassigned") ||
+                            value.contains(":fresh") ||
+                            value.contains(":user-confirmed-shared-sram:"),
+                    ) { "Existing progress is already authoritative; recovery will not overwrite it" }
+                }
+                if (!target.parentFile!!.isDirectory && !target.parentFile!!.mkdirs()) {
+                    throw IOException("Cannot prepare isolated cartridge storage")
+                }
+                if (target.exists()) {
+                    check(target.isFile && digest(target) == approvedSha256) {
+                        "Cartridge already has different progress; recovery was refused"
+                    }
+                } else {
+                    copyVerifyOnce(source, target)
+                }
+                check(digest(source) == approvedSha256 && digest(target) == approvedSha256) {
+                    "Save verification failed; original progress retained"
+                }
+                if (!marker.parentFile!!.isDirectory && !marker.parentFile!!.mkdirs()) {
+                    throw IOException("Cannot prepare save-binding confirmation")
+                }
+                val stream = atomic.startWrite()
+                try {
+                    stream.write(
+                        "savebinding-v1:$cartridge:user-confirmed-shared-sram:sha256:$approvedSha256"
+                            .toByteArray(Charsets.UTF_8),
+                    )
+                    atomic.finishWrite(stream)
+                } catch (error: Exception) {
+                    atomic.failWrite(stream)
+                    throw error
+                }
+                target
+            }
+        }
+
+    private fun legacySharedSram(game: Game): File {
+        val base = game.saveFileName().substringBeforeLast('.')
+        require(base.isNotBlank() && base != "." && base != ".." &&
+            '/' !in base && '\\' !in base && '\u0000' !in base
+        ) { "Unsafe historical filename" }
+        return File(directories.getSavesDirectory(), "$base.srm")
+    }
+
     suspend fun mayImportLegacy(
         game: Game,
         byBasename: Boolean,
