@@ -166,7 +166,10 @@ class LibraryRefreshRoundTripTest {
                 val returned =
                     originalSource.copy(
                         name = "Moved.gba",
-                        uri = Uri.parse("content://com.android.externalstorage.documents/tree/new/document/primary%3AC2A"),
+                        uri =
+                            Uri.parse(
+                                "content://com.android.externalstorage.documents/tree/new/document/primary%3AC2A",
+                            ),
                     )
                 provider.files = listOf(returned)
                 library.indexLibrary()
