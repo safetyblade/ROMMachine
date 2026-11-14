@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class CartridgeSaveBinding(
     private val directories: DirectoriesManager,
-    private val installedGames: suspend () -> List<Game>,
     private val retiredCartridges: suspend () -> List<RetiredCartridge> = { emptyList() },
+    private val installedGames: suspend () -> List<Game>,
 ) {
     private val locks = ConcurrentHashMap<String, Mutex>()
 
