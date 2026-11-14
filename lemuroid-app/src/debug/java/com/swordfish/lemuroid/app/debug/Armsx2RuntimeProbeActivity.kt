@@ -39,10 +39,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         surface = SurfaceView(this)
-        status = TextView(this).apply {
-            text = "PS2-NEXT JNI probe: checking private test prerequisites"
-            setPadding(20, 20, 20, 20)
-        }
+        status =
+            TextView(this).apply {
+                text = "PS2-NEXT JNI probe: checking private test prerequisites"
+                setPadding(20, 20, 20, 20)
+            }
         setContentView(
             FrameLayout(this).apply {
                 addView(surface)
@@ -150,8 +151,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (nativeReady && !stopping) runCatching { NativeApp.onNativeSurfaceDestroyed() }
     }
 
-    private fun gameImageForProbe(): File? =
-        File(filesDir, "ps2-next-lab/fixture.iso").takeIf { it.isFile }
+    private fun gameImageForProbe(): File? = File(filesDir, "ps2-next-lab/fixture.iso").takeIf { it.isFile }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
