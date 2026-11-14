@@ -118,8 +118,8 @@ enum class MetaSystemID(val titleResId: Int, val imageResId: Int, val systemIDs:
     PLAYSTATION_2(R.string.game_system_title_ps2, R.drawable.game_system_ps2, listOf(SystemID.PLAYSTATION_2)),
     XBOX(R.string.game_system_title_xbox, R.drawable.game_system_xbox, listOf(SystemID.XBOX)),
     WII(R.string.game_system_title_wii, R.drawable.game_system_wii, listOf(SystemID.WII)),
-    WII_U(R.string.game_system_title_wiiu, R.drawable.game_system_wiiu, listOf(SystemID.WII_U)),
     XBOX360(R.string.game_system_title_xbox360, R.drawable.game_system_xbox360, listOf(SystemID.XBOX360)),
+    WII_U(R.string.game_system_title_wiiu, R.drawable.game_system_wiiu, listOf(SystemID.WII_U)),
     ;
 
     fun color(): Int {
