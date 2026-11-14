@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Distinct original CARTDECK Wii U library fallback, not a native-playability claim. -->
+    <path android:fillColor="#426475" android:pathData="M4,12h40v25h-40z"/>
+    <path android:fillColor="#112632" android:pathData="M11,16h26v17h-26z"/>
+    <path android:fillColor="#719EAF" android:pathData="M14,19h20v11h-20z"/>
+    <path android:fillColor="#D5EAF0" android:pathData="M6,23h4v3h-4zM40,23h3v3h-3z"/>
+</vector>
