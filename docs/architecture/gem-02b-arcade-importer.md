@@ -21,30 +21,30 @@ Rights, provenance and commercial redistribution permissions must be evaluated b
 
 Use a machine with Python 3.10 or later. Obtain the **source DAT files themselves** separately from the projects above; do not supply a ROM set or binary images.
 
-\`\`\`sh
+```sh
 python scripts/gem_arcade_catalogue.py \
   --mame /path/to/mame2003-plus.xml \
   --fbneo "/path/to/FinalBurn Neo (ClrMame Pro XML, Arcade only).dat" \
   --output /tmp/cartdeck-gem02b-review \
   --existing-ids /path/to/master_catalogue_ids.csv
-\`\`\`
+```
 
-The optional \`--existing-ids\` CSV contains existing source IDs in its first column, e.g., \`M3P:sf2\` or \`FBN:sf2\`. It is used strictly for **read-only reconciliation**, never to modify the supplied master or any app database. Omit it to stage all parents as new research candidates.
+The optional `--existing-ids` CSV contains existing source IDs in its first column, e.g., `M3P:sf2` or `FBN:sf2`. It is used strictly for **read-only reconciliation**, never to modify the supplied master or any app database. Omit it to stage all parents as new research candidates.
 
 The output directory contains:
 
 | File | Use |
 |---|---|
-| \`manifest.json\` | Input checksums, provenance, source counts and explicit distribution/QA gates |
-| \`parent_candidates.csv\` | All source-defined parents, including editorial holds |
-| \`new_parent_candidates.csv\` | Non-held parent IDs not present in existing catalogue IDs |
-| \`already_catalogued.csv\` | Parent IDs already found in the catalogue |
-| \`hold_parent_candidates.csv\` | Prototype, homebrew, hack or other non-standard game candidates for manual review |
-| \`clone_variants.csv\` | Explicit \`cloneof\` entries, **not** separate parent games |
-| \`excluded_bios_devices.csv\` | BIOS, device and non-runnable registry records |
-| \`cross_core_review.csv\` | MAME–FBNeo shortname matches for manual identity confirmation |
+| `manifest.json` | Input checksums, provenance, source counts and explicit distribution/QA gates |
+| `parent_candidates.csv` | All source-defined parents, including editorial holds |
+| `new_parent_candidates.csv` | Non-held parent IDs not present in existing catalogue IDs |
+| `already_catalogued.csv` | Parent IDs already found in the catalogue |
+| `hold_parent_candidates.csv` | Prototype, homebrew, hack or other non-standard game candidates for manual review |
+| `clone_variants.csv` | Explicit `cloneof` entries, **not** separate parent games |
+| `excluded_bios_devices.csv` | BIOS, device and non-runnable registry records |
+| `cross_core_review.csv` | MAME–FBNeo shortname matches for manual identity confirmation |
 
-**Important distinction:** \`romof\` can indicate a system BIOS dependency. It does **not** necessarily indicate that the game is a clone. Only \`cloneof\` drives the clone classification. Shortname matches across MAME and FBNeo do not prove ROM-set compatibility or the same release revision.
+**Important distinction:** `romof` can indicate a system BIOS dependency. It does **not** necessarily indicate that the game is a clone. Only `cloneof` drives the clone classification. Shortname matches across MAME and FBNeo do not prove ROM-set compatibility or the same release revision.
 
 No ROM file names, individual ROM hashes, BIOS payloads, artwork, game download links, personal ratings or per-game device compatibility scores are exported.
 
@@ -63,8 +63,8 @@ The connected [GEM Master Game Catalogue](https://docs.google.com/spreadsheets/d
 
 ## Tests
 
-\`\`\`sh
+```sh
 python -m unittest discover -s scripts -p "test_gem_arcade_catalogue.py" -v
-\`\`\`
+```
 
 The small embedded XML fixtures confirm BIOS dependence vs. clone relations, exclusion of BIOS registries, ID reconciliation, cross-core collision queues, and metadata-only output. Full upstream DAT execution remains a separate live data gate and must be explicitly evidenced before calling the complete-registry pass finished.
