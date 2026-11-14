@@ -120,6 +120,11 @@ android {
                     "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
                 )
             useLegacyPackaging = true
+            if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
+                // Private ARMSX2 APK verification binds every packaged ELF byte
+                // to its source-build receipt, including crash symbols.
+                keepDebugSymbols += "**/*.so"
+            }
         }
         resources {
             excludes += setOf("META-INF/DEPENDENCIES", "META-INF/library_release.kotlin_module")
