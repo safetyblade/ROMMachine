@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,6 +30,35 @@ class LibraryRefreshJournalTest {
             coverFrontUrl = null,
             lastIndexedAt = 1,
         )
+
+    @Test fun missingCartridgeStaysInOriginalSlotThenReimportRekeysTheSameCell() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            File(context.filesDir, "cartdeck").deleteRecursively()
+            val original = game("content://com.android.externalstorage.documents/document/primary%3Aold")
+            val originalKey = shelfGameKey(original.systemId, original.fileUri)
+            val shelf = ShelfStore(context)
+            shelf.update { it.reconcile(mapOf(originalKey to "Original cartridge")) }
+            val baseline = shelf.read()
+            val originalCell = baseline.sections.flatMap { it.cells }.single()
+            val retired = RetiredCartridge.fromGame(original, 10L)
+
+            LibraryRefreshJournal(context).prepare(listOf(original))
+            LibraryRefreshJournal(context).reconcile(emptyList(), shelf, listOf(retired))
+            val missing = shelf.read()
+            assertEquals(originalCell, missing.sections.flatMap { it.cells }.single())
+            assertFalse(LibraryRefreshJournal(context).pending())
+
+            LibraryRefreshJournal(context).prepare(emptyList(), listOf(retired))
+            val reimported =
+                original.copy(fileUri = "content://com.android.externalstorage.documents/tree/new/document/primary%3Aold")
+            LibraryRefreshJournal(context).reconcile(listOf(reimported), shelf)
+            val restored = shelf.read().sections.flatMap { it.cells }.single()
+            assertEquals(originalCell.id, restored.id)
+            assertEquals(shelfGameKey(reimported.systemId, reimported.fileUri), restored.gameKey)
+            assertEquals(baseline.appearance, shelf.read().appearance)
+            assertFalse(LibraryRefreshJournal(context).pending())
+        }
 
     @Test fun processRestartReplaysCommittedMoveAndPreservesCellAndAppearance() =
         runBlocking {
