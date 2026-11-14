@@ -8,11 +8,13 @@ branches. The baseline already contains the isolated Activity, native adapter,
 24-entry controller ABI, persistent virtual storage, diagnostics, verified
 versioned engine store and rollback. No old UI/database tree was merged.
 
-The independent X360 workflow previously stopped at a native engine artifact.
-It now stages that actual source-built package into an opt-in signed ARM64 APK,
-builds the pinned graphics host, runs full app lint/JVM checks and verifies
-package identity, signing certificate, version, engine bytes and dependency
-closure. Packaging failures remain failures. Standard distribution remains gated.
+The new lane now selects the existing canonical opt-in combined ARM64 APK
+job. That proven pipeline includes the five existing engines, Wii, original
+Xbox and the real source-built Xenia package, preserving current gaming paths.
+It runs full app lint/JVM checks and verifies package identity, signing,
+version, engine bytes and dependency closure. The independent native workflow
+retains engine evidence only. Standard distribution remains gated; no X360-only
+APK is installed over the player's working Wii/Xbox application.
 The stager now permits a genuine X360-only package instead of requiring an
 unrelated legacy engine argument. No native binary is substituted.
 
