@@ -34,7 +34,7 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
 
     fun connected(): List<InputDevice> =
         InputDevice.getDeviceIds()
-            .mapNotNull(InputDevice::getDevice)
+            .mapNotNull { InputDevice.getDevice(it) }
             .filter(::isEnabledGamepad)
             .sortedWith(compareBy({ it.controllerNumber }, { it.id }))
 
@@ -92,8 +92,7 @@ object ControllerHardwareProfile {
     /** Right sticks vary across Android gamepad drivers: Z/RZ or RX/RY. */
     fun rightStickAxes(device: InputDevice?): Pair<Int, Int> {
         val supported = device?.motionRanges?.map { it.axis }?.toSet().orEmpty()
-        return if (InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK &&
-            android.view.MotionEvent.AXIS_RX in supported && android.view.MotionEvent.AXIS_RY in supported &&
+        return if (android.view.MotionEvent.AXIS_RX in supported && android.view.MotionEvent.AXIS_RY in supported &&
             !(android.view.MotionEvent.AXIS_Z in supported && android.view.MotionEvent.AXIS_RZ in supported)
         ) {
             android.view.MotionEvent.AXIS_RX to android.view.MotionEvent.AXIS_RY
