@@ -4,7 +4,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.min
 
 /**
@@ -134,19 +133,8 @@ internal fun DrawScope.drawCartdeckLighting(
         )
     val colour = lighting.tint(accent)
     strips.forEach { strip ->
-        drawRect(
-            color = colour.copy(alpha = colour.alpha * 0.16f),
-            topLeft = Offset(strip.left - thickness, strip.top - thickness),
-            size =
-                androidx.compose.ui.geometry.Size(
-                    strip.width + thickness * 2,
-                    strip.height + thickness * 2,
-                ),
-        )
-        drawRect(
-            color = colour,
-            topLeft = strip.topLeft,
-            size = strip.size,
-        )
+        // Light never bleeds into protected video/control areas: don't paint
+        // unbounded bloom outside the already validated physical strip.
+        drawRect(color = colour, topLeft = strip.topLeft, size = strip.size)
     }
 }
