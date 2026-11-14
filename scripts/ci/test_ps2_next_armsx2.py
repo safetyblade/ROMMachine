@@ -59,7 +59,7 @@ class NativeGuardTests(unittest.TestCase):
                     "Shared library: [libc.so]\nShared library: [" + dep + "]",
                     dyn_symbols(), "Build ID: abc123",
                 ]):
-                    with self.assertRaisesRegex(ValueError, "dependency"):
+                    with self.assertRaisesRegex(ValueError, "dependenc"):
                         candidate.validate_native(path, "llvm-readelf")
 
     def test_native_verification_reports_no_playability(self):
