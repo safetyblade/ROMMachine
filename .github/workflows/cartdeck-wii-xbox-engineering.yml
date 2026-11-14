@@ -30,17 +30,20 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-          fetch-depth: 0
       - name: Reject stale pull-request branches before costly builds
         if: github.event_name == 'pull_request'
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          git fetch --no-tags origin "refs/heads/${PR_BASE_REF}:refs/remotes/origin/cartdeck-ci-base"
-          if ! git merge-base --is-ancestor refs/remotes/origin/cartdeck-ci-base "$PR_HEAD_SHA"; then
-            echo "::error::This PR branch is missing commits from its current base. Rebase/merge the latest master into the branch and rerun CI."
+          # Avoid fetching full Git/submodule history just to check ancestry.
+          base_sha=$(gh api "repos/$GH_REPO/branches/$PR_BASE_REF" --jq '.commit.sha')
+          comparison=$(gh api "repos/$GH_REPO/compare/$base_sha...$PR_HEAD_SHA" --jq '.status')
+          if [[ "$comparison" != ahead && "$comparison" != identical ]]; then
+            echo "::error::This PR head is $comparison relative to the current $PR_BASE_REF. Rebase/merge the latest base before native CI or merge."
             echo "### Stale pull-request branch" >> "$GITHUB_STEP_SUMMARY"
             echo "Integrate the latest base branch (${PR_BASE_REF}) into the PR branch before validation or merge." >> "$GITHUB_STEP_SUMMARY"
             exit 1
