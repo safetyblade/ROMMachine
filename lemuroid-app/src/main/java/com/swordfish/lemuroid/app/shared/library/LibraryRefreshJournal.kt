@@ -57,9 +57,8 @@ internal class LibraryRefreshJournal(context: Context) {
                 val old = identities.optString(cartridgeId).takeIf { it.isNotEmpty() } ?: return@mapNotNull null
                 if (old == current) null else old to current
             }.toMap()
-        val names =
-            retired.associate { retiredShelfKey(it.cartridgeId) to it.displayName() } +
-                games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
+        val names = games.associate { shelfGameKey(it.systemId, it.fileUri) to it.displayName() }
+        val unavailable = retired.map { retiredShelfKey(it.cartridgeId) }.toSet()
         shelf.update { layout ->
             val known = layout.sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
             check(moves.none { (old, new) -> old in known && new in known }) { "Ambiguous shelf identity move" }
@@ -74,7 +73,7 @@ internal class LibraryRefreshJournal(context: Context) {
                                 },
                         )
                     },
-            ).reconcile(names, removeMissing = true)
+            ).reconcile(names, removeMissing = true, retainedUnavailableKeys = unavailable)
         }
         // Replay after a crash between shelf write and delete is idempotent.
         atomic.delete()
