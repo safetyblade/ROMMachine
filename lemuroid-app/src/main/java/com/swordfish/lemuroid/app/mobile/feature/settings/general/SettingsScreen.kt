@@ -30,6 +30,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel,
     navController: NavController,
+    onOpenRecovery: () -> Unit = {},
 ) {
     val state =
         viewModel.uiState
@@ -58,6 +59,7 @@ fun SettingsScreen(
         InputSettings(navController = navController)
         MiscSettings(
             indexingInProgress = indexingInProgress,
+            onOpenRecovery = onOpenRecovery,
             isSaveSyncSupported = state.isSaveSyncSupported,
             navController = navController,
         )
@@ -67,6 +69,7 @@ fun SettingsScreen(
 @Composable
 private fun MiscSettings(
     indexingInProgress: Boolean,
+    onOpenRecovery: () -> Unit,
     isSaveSyncSupported: Boolean,
     navController: NavController,
 ) {
@@ -82,6 +85,12 @@ private fun MiscSettings(
                 onClick = { navController.navigateToRoute(MainRoute.SETTINGS_SAVE_SYNC) },
             )
         }
+        LemuroidSettingsMenuLink(
+            title = { Text("Cartridge and save recovery") },
+            subtitle = { Text("Explicitly reconnect unavailable cartridges or historical progress") },
+            enabled = !indexingInProgress,
+            onClick = onOpenRecovery,
+        )
         LemuroidSettingsMenuLink(
             title = { Text("Emulation · Compatibility") },
             subtitle = { Text("Engine selection and recovery for PS1 and PSP") },
