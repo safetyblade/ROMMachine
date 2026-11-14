@@ -46,6 +46,7 @@ import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -74,6 +75,8 @@ class NativeCoreActivity : SDLActivity() {
     private val menuShowing get() = menuOpen || recoveryDialog?.isShowing == true
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
+    private val gameplayControllers by lazy { GameplayControllerPresence(this) }
+    private var physicalPadConnected by mutableStateOf(false)
     private val touch = XboxPadState()
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
@@ -251,6 +254,18 @@ class NativeCoreActivity : SDLActivity() {
         }
         mLayout?.setBackgroundColor(Color.BLACK)
         ready = true
+        // Observe already-paired and hot-plugged gameplay pads; a TV remote does not qualify.
+        gameplayControllers.start { devices ->
+            val connected = devices.isNotEmpty()
+            if (physicalPadConnected != connected) {
+                physicalPadConnected = connected
+                releaseTouch()
+                if (!connected) {
+                    hardware.clear()
+                    sendHardware()
+                }
+            }
+        }
         onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
@@ -265,7 +280,11 @@ class NativeCoreActivity : SDLActivity() {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setContent {
                     Box(Modifier.fillMaxSize()) {
-                        XboxGameControls(onInput = ::onTouchInput, settingsManager = settingsManager, onViewport = {
+                        XboxGameControls(
+                            onInput = ::onTouchInput,
+                            settingsManager = settingsManager,
+                            physicalControllerConnected = physicalPadConnected,
+                            onViewport = {
                                 viewport ->
                             val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
                             if (
@@ -675,6 +694,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun onDestroy() {
+        gameplayControllers.stop()
         main.removeCallbacksAndMessages(null)
         releaseTouch()
         // SDL sends QUIT; upstream currently terminates its dedicated process rather than draining the core thread.
