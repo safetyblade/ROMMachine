@@ -31,6 +31,10 @@ android {
         if (providers.gradleProperty("cartdeck.dev.standaloneId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck"
         }
+        // Private PS2-NEXT laboratory ID; never overwrites the regular CARTDECK install.
+        if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck.ps2lab"
+        }
 
         // P0 test-only overrides. No override means the original production configuration.
         // Keep the existing package ID and test-signing certificate between updates.
@@ -114,6 +118,8 @@ android {
                 setOf(
                     "*/*/*_libretro_android.so", "**/liblibretrodroid.so",
                     "**/libhakuxcore.so", "**/libSDL3.so", "**/*hook*.so",
+                    "**/libemucore_4k.so", "**/libemucore_16k.so",
+                    "**/liblibrashader_capi.so", "**/libflurry.so", "**/libsavers.so",
                 )
             useLegacyPackaging = true
         }
