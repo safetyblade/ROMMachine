@@ -31,6 +31,10 @@ android {
         if (providers.gradleProperty("cartdeck.dev.standaloneId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck"
         }
+        // Completely isolated Wii U/Vulkan test package; never replaces the player's library.
+        if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
+            applicationId = "dev.prestwich.cartdeck.wiiulab"
+        }
 
         // P0 test-only overrides. No override means the original production configuration.
         // Keep the existing package ID and test-signing certificate between updates.
