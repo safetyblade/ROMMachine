@@ -30,6 +30,39 @@ class WiiCartridgeControllerTest {
             lastIndexedAt = 0,
         )
 
+    @Test fun verifiedReimportRetainsSavedControllerAndReadsLegacySourcePreference() =
+        runBlocking {
+            val original = game(12)
+            val oldKey =
+                ControllerConfigsManager.legacyCartridgeKey(
+                    SystemID.WII,
+                    CoreID.DOLPHIN_MODERN,
+                    0,
+                    original,
+                    original.fileUri,
+                )!!
+            val data = mutableMapOf(oldKey to "wii_gamecube")
+            val manager = ControllerConfigsManager(Lazy { preferences(data) })
+            val returned =
+                original.copy(
+                    id = 33,
+                    fileUri = "content://fixture/new-tree/disc/12",
+                    legacySourceUri = original.fileUri,
+                )
+            assertEquals("wii_gamecube", manager.getControllerConfigs(SystemID.WII, wii, returned).getValue(0).name)
+            assertTrue(manager.selectController(SystemID.WII, wii, 0, "wii_classic", returned))
+            assertEquals(
+                "wii_classic",
+                manager.getControllerConfigs(
+                    SystemID.WII,
+                    wii,
+                    returned.copy(fileUri = "content://fixture/third-tree/disc/12"),
+                ).getValue(0).name,
+            )
+            assertEquals("wii_gamecube", data.getValue(oldKey))
+            assertEquals(2, data.size)
+        }
+
     @Test fun twoCartridgesKeepDifferentChoicesAcrossManagerReopenAndAllFourDevices() =
         runBlocking {
             val data = mutableMapOf<String, String>()
