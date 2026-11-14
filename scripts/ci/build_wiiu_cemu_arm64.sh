@@ -51,4 +51,28 @@ python3 "$ROOT/scripts/ci/wiiu_cemu_contract.py" \
   --readelf "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
   --report "$WORK/native-evidence.json"
 echo "Native ELF proof available at $WORK/native-evidence.json"
-echo "STOP: Vulkan CARTDECK frontend, APK, and Wii U gameplay remain unverified."
+if [[ "${CARTDECK_WIIU_BUILD_VULKAN_HOST:-false}" == "true" ]]; then
+  cmake -S "$ROOT/spikes/wiiu/vulkan-host" -B "$WORK/host-build" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+    -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 \
+    -DCEMU_LIBRETRO_HEADERS="$WORK/source/src/libretro"
+  cmake --build "$WORK/host-build" --target cartdeckwiiuvulkanhost -- -j 4
+  HOST="$WORK/host-build/libcartdeckwiiuvulkanhost.so"
+  test -s "$HOST"
+  "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h -lW "$HOST" > "$WORK/vulkan-host-elf.txt"
+  python3 - "$HOST" "$WORK/vulkan-host-elf.txt" <<'PY'
+import pathlib
+import re
+import sys
+sys.path.insert(0, 'scripts/ci')
+from verify_gamecube_core import verify_android_elf
+so = pathlib.Path(sys.argv[1])
+readelf_output = pathlib.Path(sys.argv[2]).read_text()
+verify_android_elf(so.read_bytes(), '')
+assert "AArch64" in readelf_output
+print("Android ARM64 Wii U Vulkan presenter ELF compiled; real frame QA still missing")
+PY
+  cp "$HOST" "$WORK/cartdeck_wiiu_vulkan_host_arm64.so"
+fi
+echo "STOP: Vulkan CARTDECK frontend APK and Wii U gameplay remain unverified."

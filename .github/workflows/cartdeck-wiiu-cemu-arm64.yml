@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/wiiu-cemu-arm64-vulkan-feasibility
+      - feat/wiiu-vulkan-host-frame-presenter
     paths:
       - "scripts/ci/wiiu_cemu_contract.py"
       - "scripts/ci/test_wiiu_cemu_contract.py"
@@ -52,6 +53,8 @@ jobs:
     needs: contract-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 350
+    env:
+      CARTDECK_WIIU_BUILD_VULKAN_HOST: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,6 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json"
+          test -s "$RUNNER_TEMP/wiiu-cemu-arm64/cartdeck_wiiu_vulkan_host_arm64.so"
           python3 - "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json" <<'PY'
           import json, sys
           a = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -92,5 +96,7 @@ jobs:
           path: |
             ${{ runner.temp }}/wiiu-cemu-arm64/native-evidence.json
             ${{ runner.temp }}/wiiu-cemu-arm64/cemu_libretro_android_arm64.so
+            ${{ runner.temp }}/wiiu-cemu-arm64/cartdeck_wiiu_vulkan_host_arm64.so
+            ${{ runner.temp }}/wiiu-cemu-arm64/vulkan-host-elf.txt
           if-no-files-found: error
           retention-days: 7
