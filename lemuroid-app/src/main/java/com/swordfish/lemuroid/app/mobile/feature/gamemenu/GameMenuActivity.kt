@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsViewModel
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesViewModel
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
@@ -246,7 +247,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                             gameMenuRequest = gameMenuRequest,
                             onResult = ::onResult,
                             controllerOptions = {
-                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions(
+                                GameMenuControllerOptions(
                                     viewModel(factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager)),
                                     gameMenuRequest,
                                 )
