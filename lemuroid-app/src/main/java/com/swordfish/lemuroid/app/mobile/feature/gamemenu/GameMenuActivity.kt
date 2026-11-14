@@ -4,9 +4,9 @@ package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import android.content.Intent
 import android.graphics.Color
+import android.os.Bundle
 import android.view.InputDevice
 import android.view.KeyEvent
-import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,21 +20,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuCoreOptionsViewModel
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesScreen
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesViewModel
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.RetroKey
-import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -42,8 +43,8 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
-import java.security.InvalidParameterException
 import kotlinx.coroutines.launch
+import java.security.InvalidParameterException
 import javax.inject.Inject
 
 class GameMenuActivity : RetrogradeComponentActivity() {
@@ -79,7 +80,9 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 if (device != null) {
                     lifecycleScope.launch {
                         inputDeviceManager.updateBinding(
-                            device, RetroKey(capture.second), InputKey(event.keyCode),
+                            device,
+                            RetroKey(capture.second),
+                            InputKey(event.keyCode),
                         )
                         mappingRevision++
                     }
@@ -246,7 +249,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                             gameMenuRequest = gameMenuRequest,
                             onResult = ::onResult,
                             controllerOptions = {
-                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.GameMenuControllerOptions(
+                                GameMenuControllerOptions(
                                     viewModel(factory = GameMenuCoreOptionsViewModel.Factory(inputDeviceManager)),
                                     gameMenuRequest,
                                 )

@@ -2,8 +2,8 @@ package com.swordfish.lemuroid.app.shared.game.xbox
 
 import android.view.InputDevice
 import android.view.KeyEvent
-import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import android.view.MotionEvent
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import kotlin.math.abs
 
 /** Native NcPadState: digital D-pad/utilities, six analog face buttons, two triggers. */

@@ -92,5 +92,4 @@ internal object CartdeckFeedbackStrength {
         val w = if (weak.isFinite()) weak.coerceIn(0f, 1f) else 0f
         return (s * 0.66f + w * 0.34f).coerceIn(0f, 1f)
     }
-
 }

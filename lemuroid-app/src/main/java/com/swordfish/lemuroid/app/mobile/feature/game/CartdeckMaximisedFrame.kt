@@ -1,6 +1,5 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
-import android.graphics.Rect as AndroidRect
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +14,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
+import android.graphics.Rect as AndroidRect
 
 /**
  * Native-host game-first presentation: a real, measured maximised video aperture

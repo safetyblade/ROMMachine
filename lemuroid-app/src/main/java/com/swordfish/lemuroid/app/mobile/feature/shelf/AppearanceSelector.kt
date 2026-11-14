@@ -767,7 +767,13 @@ fun ShelfAppearanceEditor(
                                 lighting = lighting.copy(mode = CartdeckLighting.MODE_FEEDBACK)
                                 modified = true
                             }) {
-                                Text(if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) "✓ Game feedback" else "Game feedback")
+                                Text(
+                                    if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) {
+                                        "✓ Game feedback"
+                                    } else {
+                                        "Game feedback"
+                                    },
+                                )
                             }
                         }
                         if (lighting.mode != CartdeckLighting.MODE_OFF) {
@@ -818,7 +824,8 @@ fun ShelfAppearanceEditor(
                                 if (lighting.mode == CartdeckLighting.MODE_FEEDBACK) {
                                     "Game feedback responds to actual core rumble when the game supports it " +
                                         "and your existing rumble setting is enabled. No rumble means static light. " +
-                                        "Reduced motion keeps the static level. In controller-fullscreen, the shell is hidden."
+                                        "Reduced motion keeps the static level. " +
+                                        "In controller-fullscreen, the shell is hidden."
                                 } else {
                                     "Static lighting has no animation or game interaction."
                                 },

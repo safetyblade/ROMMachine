@@ -249,7 +249,8 @@ private fun WiiControllerPicker(
     if (controllers.size < 2) return
     val chosen =
         WiiControllerCompatibility.selectVerifiedOrFallback(
-            controllers.map { it.name }, gameMenuRequest.currentControllerName,
+            controllers.map { it.name },
+            gameMenuRequest.currentControllerName,
         )
     val selected = controllers.indexOfFirst { it.name == chosen }.coerceAtLeast(0)
     val variant = WiiControllerCompatibility.variant(controllers[selected].name)

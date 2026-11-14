@@ -15,7 +15,10 @@ object Armsx2PadMapping {
         val pressed: Boolean,
     )
 
-    fun button(keyCode: Int, pressed: Boolean): PadState? =
+    fun button(
+        keyCode: Int,
+        pressed: Boolean,
+    ): PadState? =
         if (keyCode in DIRECT_KEYS) {
             // Upstream interprets range=0 and pressed=true as full pressure.
             PadState(keyCode, 0, pressed)
@@ -32,6 +35,7 @@ object Armsx2PadMapping {
         val horizontal = if (x.isFinite()) x.coerceIn(-1f, 1f) else 0f
         val vertical = if (y.isFinite()) y.coerceIn(-1f, 1f) else 0f
         val first = if (right) 120 else 110
+
         fun magnitude(value: Float): Int = (abs(value) * 32767f).roundToInt().coerceIn(0, 32767)
         val up = magnitude(vertical.coerceAtMost(0f))
         val down = magnitude(vertical.coerceAtLeast(0f))

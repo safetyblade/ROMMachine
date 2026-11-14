@@ -7,7 +7,10 @@ package com.swordfish.lemuroid.app.shared.input
  */
 object WiiControllerCompatibility {
     enum class Variant {
-        CLASSIC, SIDEWAYS_REMOTE, REMOTE_WITH_NUNCHUK, OTHER
+        CLASSIC,
+        SIDEWAYS_REMOTE,
+        REMOTE_WITH_NUNCHUK,
+        OTHER,
     }
 
     fun variant(coreControllerName: String): Variant {
@@ -30,12 +33,14 @@ object WiiControllerCompatibility {
             ?: supportedNames.first()
     }
 
-    fun help(variant: Variant): String = when (variant) {
-        Variant.CLASSIC -> "Use this where the Wii game itself supports Classic Controller input."
-        Variant.SIDEWAYS_REMOTE -> "Sideways Remote maps directional and face inputs; not all games support it."
-        Variant.REMOTE_WITH_NUNCHUK ->
-            "Nunchuk buttons and sticks require explicit original-input mapping. IR/motion are separate capabilities."
-        Variant.OTHER ->
-            "This core profile may need original Wii Remote buttons, pointer or motion. Check game controls."
-    }
+    fun help(variant: Variant): String =
+        when (variant) {
+            Variant.CLASSIC -> "Use this where the Wii game itself supports Classic Controller input."
+            Variant.SIDEWAYS_REMOTE -> "Sideways Remote maps directional and face inputs; not all games support it."
+            Variant.REMOTE_WITH_NUNCHUK ->
+                "Nunchuk buttons and sticks require original-input mapping. " +
+                    "IR and motion are separate capabilities."
+            Variant.OTHER ->
+                "This core profile may need original Wii Remote buttons, pointer or motion. Check game controls."
+        }
 }

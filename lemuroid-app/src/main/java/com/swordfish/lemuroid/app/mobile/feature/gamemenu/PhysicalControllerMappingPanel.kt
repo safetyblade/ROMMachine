@@ -68,8 +68,8 @@ internal fun PhysicalControllerMappingPanel(
             Text("Press and release the physical button to assign to ${shortName(captureTarget)}.")
             GameMenuLink("Cancel mapping", onClick = onCancel)
         }
-        val targets = InputDeviceManager.OUTPUT_KEYS
-            .filter {
+        val targets =
+            InputDeviceManager.OUTPUT_KEYS.filter {
                 it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE
             }
         targets.forEach { original ->

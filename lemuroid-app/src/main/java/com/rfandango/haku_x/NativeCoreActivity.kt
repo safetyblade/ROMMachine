@@ -26,8 +26,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -45,14 +45,14 @@ import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
-import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
-import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
-import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
-import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -304,24 +304,24 @@ class NativeCoreActivity : SDLActivity() {
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
-                            onViewport = {
-                                viewport ->
-                            val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
-                            if (
-                                viewport.width() > 0 && viewport.height() > 0 &&
-                                (
-                                    current == null || current.width != viewport.width() ||
-                                        current.height != viewport.height() ||
-                                        current.leftMargin != viewport.left || current.topMargin != viewport.top
-                                )
-                            ) {
-                                mSurface?.layoutParams =
-                                    RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
-                                        leftMargin = viewport.left
-                                        topMargin = viewport.top
-                                    }
-                            }
-                        })
+                            onViewport = { viewport ->
+                                val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
+                                if (
+                                    viewport.width() > 0 && viewport.height() > 0 &&
+                                    (
+                                        current == null || current.width != viewport.width() ||
+                                            current.height != viewport.height() ||
+                                            current.leftMargin != viewport.left || current.topMargin != viewport.top
+                                    )
+                                ) {
+                                    mSurface?.layoutParams =
+                                        RelativeLayout.LayoutParams(viewport.width(), viewport.height()).apply {
+                                            leftMargin = viewport.left
+                                            topMargin = viewport.top
+                                        }
+                                }
+                            },
+                        )
                         if (menuOpen) {
                             XboxGameMenu(
                                 title =
@@ -356,25 +356,31 @@ class NativeCoreActivity : SDLActivity() {
                                     },
                                     physicalMapping = {
                                         val activePad = controllerDevices.firstOrNull()
-                                        val cartridge = if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
-                                        val mappings = remember(activePad, cartridge, mappingRevision) {
-                                            activePad?.let { pad ->
-                                                XboxButtonBindingStore.editableKeys.associateWith { target ->
-                                                    xboxBindings.mappedSources(pad, target, cartridge)
-                                                        .joinToString(" / ") {
-                                                            KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_BUTTON_")
-                                                                .removePrefix("KEYCODE_DPAD_")
-                                                        }
-                                                }
-                                            }.orEmpty()
-                                        }
+                                        val cartridge =
+                                            if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
+                                        val mappings =
+                                            remember(activePad, cartridge, mappingRevision) {
+                                                activePad?.let { pad ->
+                                                    XboxButtonBindingStore.editableKeys.associateWith { target ->
+                                                        xboxBindings.mappedSources(pad, target, cartridge)
+                                                            .joinToString(" / ") { source ->
+                                                                KeyEvent.keyCodeToString(source)
+                                                                    .removePrefix("KEYCODE_BUTTON_")
+                                                                    .removePrefix("KEYCODE_DPAD_")
+                                                            }
+                                                    }
+                                                }.orEmpty()
+                                            }
                                         XboxPhysicalMappingPanel(
                                             controllerName = activePad?.name,
                                             pendingTarget = captureMappingTarget,
                                             lastInput = lastPhysicalInput,
                                             perCartridge = mappingPerCartridge,
                                             mappings = mappings,
-                                            onScopeChange = { mappingPerCartridge = it; captureMappingTarget = null },
+                                            onScopeChange = {
+                                                mappingPerCartridge = it
+                                                captureMappingTarget = null
+                                            },
                                             onStartCapture = { captureMappingTarget = it },
                                             onCancelCapture = { captureMappingTarget = null },
                                             onReset = {
@@ -573,14 +579,17 @@ class NativeCoreActivity : SDLActivity() {
     private fun showMenu() {
         if (!ready || leaving || menuShowing) return
         releaseTouch()
+        hardwareOwners.clear()
         hardware.clear()
         sendHardware()
+        captureMappingTarget = null
         menuOpen = true
         syncPause()
     }
 
     private fun closeMenu() {
         if (!menuOpen) return
+        captureMappingTarget = null
         menuOpen = false
         syncPause()
     }
@@ -664,9 +673,13 @@ class NativeCoreActivity : SDLActivity() {
             event.keyCode in XboxButtonBindingStore.editableKeys
         ) {
             val mapped = xboxBindings.output(event.device, event.keyCode, registryGame()?.fileUri?.toString())
-            val emitted = hardwareOwners.route(
-                event.deviceId, event.keyCode, event.action == KeyEvent.ACTION_DOWN, mapped,
-            )
+            val emitted =
+                hardwareOwners.route(
+                    event.deviceId,
+                    event.keyCode,
+                    event.action == KeyEvent.ACTION_DOWN,
+                    mapped,
+                )
             if (emitted != null && hardware.key(emitted.first, emitted.second)) sendHardware()
             return true
         }
