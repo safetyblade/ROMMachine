@@ -50,7 +50,7 @@ DENIED_DEPENDENCIES = ("libc.so.6", "libstdc++.so.6", "ld-linux", "discord_partn
 # Libraries supplied by Android itself, not app-private ELF payloads.
 ANDROID_SYSTEM_LIBRARIES = frozenset({
     "libc.so", "libm.so", "libdl.so", "liblog.so", "libandroid.so",
-    "libEGL.so", "libGLESv2.so", "libGLESv3.so", "libvulkan.so",
+    "libEGL.so", "libGLESv1_CM.so", "libGLESv2.so", "libGLESv3.so", "libvulkan.so",
     "libz.so", "libjnigraphics.so", "libmediandk.so", "libOpenSLES.so",
     "libaaudio.so", "libnativewindow.so", "libbinder_ndk.so",
     "libsync.so",
