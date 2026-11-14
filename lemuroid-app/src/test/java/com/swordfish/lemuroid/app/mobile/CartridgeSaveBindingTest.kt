@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.SaveState
@@ -99,6 +100,17 @@ class CartridgeSaveBindingTest {
             )
             assertArrayEquals(byteArrayOf(99, 100), current.readBytes())
             assertArrayEquals(byteArrayOf(5, 6, 7), source.readBytes())
+        }
+
+    @Test fun absentRetiredCartridgeWithSameSaveAliasBlocksAutomaticLegacyImport() =
+        runBlocking {
+            val dirs = DirectoriesManager(ApplicationProvider.getApplicationContext<Application>())
+            val name = uniqueName()
+            val live = game(name, "content://fixture/live")
+            val retired = RetiredCartridge.fromGame(game(name, "content://fixture/missing"), 10L)
+            val binding = CartridgeSaveBinding(dirs, { listOf(live) }, { listOf(retired) })
+            assertFalse(binding.mayImportLegacy(live, true))
+            assertFalse(binding.mayImportLegacy(live, false))
         }
 
     @Test fun distinctCartridgesCannotReadOrOverwriteSameFilenameSram() =
