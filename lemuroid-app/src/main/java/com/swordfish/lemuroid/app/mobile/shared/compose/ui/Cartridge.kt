@@ -57,8 +57,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckDecalLayer
-import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
@@ -213,12 +213,12 @@ fun CartdeckAppearancePreview(
             Box(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(5.dp * scale)
                     .background(
-                    if (appearance.lighting.active(CartdeckLighting.SHELF_RAIL, appearance.highContrast)) {
-                        appearance.lighting.tint(materials.interactionAccent)
-                    } else {
-                        materials.shelfLip
-                    },
-                ),
+                        if (appearance.lighting.active(CartdeckLighting.SHELF_RAIL, appearance.highContrast)) {
+                            appearance.lighting.tint(materials.interactionAccent)
+                        } else {
+                            materials.shelfLip
+                        },
+                    ),
             )
         }
     }
