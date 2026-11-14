@@ -97,9 +97,10 @@ fun XboxGameControls(
         val landscape = constraints.maxWidth > constraints.maxHeight
         // SDL owns the guest surface beneath this transparent Compose overlay.
         // The maximised path must not instantiate PadKit's virtual controller.
-        val isTv = remember(context) {
-            context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
-        }
+        val isTv =
+            remember(context) {
+                context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+            }
         if (landscape && (physicalControllerConnected || isTv)) {
             CartdeckMaximisedFrame(tokens, onViewport)
             return@BoxWithConstraints
