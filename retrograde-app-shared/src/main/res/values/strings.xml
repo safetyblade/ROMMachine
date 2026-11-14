@@ -145,6 +145,8 @@
     <string name="game_system_abbr_xbox">Xbox</string>
     <string name="game_system_title_wii">Nintendo Wii</string>
     <string name="game_system_abbr_wii">Wii</string>
+    <string name="game_system_title_wiiu">Nintendo Wii U</string>
+    <string name="game_system_abbr_wiiu">Wii U</string>
     <string name="controller_wii_classic">Wii Classic Controller</string>
     <string name="controller_wii_sideways">Wii Remote sideways</string>
     <string name="controller_wii_nunchuk">Wii Remote + Nunchuk</string>
