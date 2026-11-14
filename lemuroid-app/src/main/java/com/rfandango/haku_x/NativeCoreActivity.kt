@@ -363,8 +363,9 @@ class NativeCoreActivity : SDLActivity() {
                                                 activePad?.let { pad ->
                                                     XboxButtonBindingStore.editableKeys.associateWith { target ->
                                                         xboxBindings.mappedSources(pad, target, cartridge)
-                                                            .joinToString(" / ") {
-                                                                KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_BUTTON_")
+                                                            .joinToString(" / ") { source ->
+                                                                KeyEvent.keyCodeToString(source)
+                                                                    .removePrefix("KEYCODE_BUTTON_")
                                                                     .removePrefix("KEYCODE_DPAD_")
                                                             }
                                                     }
