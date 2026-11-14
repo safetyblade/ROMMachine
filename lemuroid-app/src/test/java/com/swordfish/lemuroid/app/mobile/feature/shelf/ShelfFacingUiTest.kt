@@ -310,9 +310,14 @@ class ShelfFacingUiTest {
         val initial = compose.onNodeWithContentDescription("Atlas, GB, spine facing").getUnclippedBoundsInRoot()
         val neighbor = compose.onNodeWithContentDescription("Earlier 6, GB, spine facing").getUnclippedBoundsInRoot()
         assertEquals(neighbor.bottom.value, initial.bottom.value, 1f)
-        compose.onNodeWithContentDescription("Atlas, GB, spine facing").performClick()
+        // Use the same accessible action as the arrangement menu. Wrapped
+        // cartridges need not expose a stable popup during frame-clock testing.
+        val flip =
+            compose.onNodeWithContentDescription("Atlas, GB, spine facing")
+                .fetchSemanticsNode().config[SemanticsActions.CustomActions]
+                .first { it.label == "Show front" }
         compose.mainClock.autoAdvance = false
-        compose.onNodeWithText("Show front").performClick()
+        compose.runOnIdle { assertTrue(flip.action()) }
         compose.mainClock.advanceTimeBy(60)
         compose.runOnIdle {
             assertEquals(CartridgeFacing.SPINE, layout.sections.single().cells.last().facing)
