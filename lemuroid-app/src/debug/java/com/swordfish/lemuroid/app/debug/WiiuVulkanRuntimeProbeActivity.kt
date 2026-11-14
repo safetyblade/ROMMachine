@@ -22,8 +22,10 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private lateinit var renderSurface: SurfaceView
     private lateinit var status: TextView
     private var loaded = false
+
     @Volatile
     private var running = false
+
     @Volatile
     private var stopping = false
 
