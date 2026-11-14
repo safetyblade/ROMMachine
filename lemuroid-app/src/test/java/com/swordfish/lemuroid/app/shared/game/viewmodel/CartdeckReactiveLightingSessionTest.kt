@@ -28,38 +28,40 @@ class CartdeckReactiveLightingSessionTest {
     }
 
     @Test
-    fun sessionIgnoresDisabledInputAndRestoresStaticAfterSilence() = runBlocking {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val clock = AtomicLong(1000L)
-        try {
-            val session = CartdeckReactiveLightingSession(scope, clock::get)
-            session.onCoreRumble(1f, 1f)
-            assertEquals(0f, session.strength.value, 0f)
+    fun sessionIgnoresDisabledInputAndRestoresStaticAfterSilence() {
+        runBlocking {
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            val clock = AtomicLong(1000L)
+            try {
+                val session = CartdeckReactiveLightingSession(scope, clock::get)
+                session.onCoreRumble(1f, 1f)
+                assertEquals(0f, session.strength.value, 0f)
 
-            session.configure(true)
-            session.onCoreRumble(1f, 0f)
-            withTimeout(2000L) { session.strength.first { it > 0.5f } }
-            assertEquals(0.66f, session.strength.value, 0.0001f)
+                session.configure(true)
+                session.onCoreRumble(1f, 0f)
+                withTimeout(2000L) { session.strength.first { it > 0.5f } }
+                assertEquals(0.66f, session.strength.value, 0.0001f)
 
-            // Next event is below the 125ms state-update interval.
-            clock.set(1040L)
-            session.onCoreRumble(1f, 1f)
-            delay(40L)
-            assertEquals(0.66f, session.strength.value, 0.0001f)
+                // An event below the 125ms interval must not update the display.
+                clock.set(1040L)
+                session.onCoreRumble(1f, 1f)
+                delay(40L)
+                assertEquals(0.66f, session.strength.value, 0.0001f)
 
-            clock.set(1170L)
-            session.onCoreRumble(1f, 1f)
-            withTimeout(2000L) { session.strength.first { it > 0.99f } }
+                clock.set(1170L)
+                session.onCoreRumble(1f, 1f)
+                withTimeout(2000L) { session.strength.first { it > 0.99f } }
 
-            // No polling or repeating pulse is permitted when rumble ends.
-            withTimeout(2000L) { session.strength.first { it == 0f } }
-            assertEquals(0f, session.strength.value, 0f)
-            session.configure(false)
-            session.onCoreRumble(1f, 1f)
-            delay(40L)
-            assertEquals(0f, session.strength.value, 0f)
-        } finally {
-            scope.cancel()
+                // Without core events, wait once then restore the static baseline.
+                withTimeout(2000L) { session.strength.first { it == 0f } }
+                assertEquals(0f, session.strength.value, 0f)
+                session.configure(false)
+                session.onCoreRumble(1f, 1f)
+                delay(40L)
+                assertEquals(0f, session.strength.value, 0f)
+            } finally {
+                scope.cancel()
+            }
         }
     }
 
