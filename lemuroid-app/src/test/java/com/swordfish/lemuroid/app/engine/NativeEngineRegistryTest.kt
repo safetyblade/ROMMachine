@@ -27,6 +27,12 @@ class NativeEngineRegistryTest {
             assertEquals(engines.size, engines.map { it.id }.distinct().size)
             engines.forEach { engine ->
                 assertEquals(system.id, engine.system)
+                if (engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID) {
+                    assertEquals(setOf("iso", "chd"), engine.formats)
+                    assertEquals(null, engine.core)
+                    assertEquals("native/ps2/armsx2", engine.stateNamespace)
+                    return@forEach
+                }
                 assertEquals(system.supportedExtensions.toSet(), engine.formats)
                 if (system.id == SystemID.WII_U) {
                     assertEquals(NativeEngineRegistry.Host.CEMU_VULKAN, engine.host)
@@ -54,7 +60,7 @@ class NativeEngineRegistryTest {
                 NativeGameSystems.configurations().first {
                     it.id == SystemID.PLAYSTATION_2
                 },
-            ).single()
+            ).single { it.core == CoreID.PLAY_MODERN }
         val capable = NativeEngineRegistry.Hardware(28, setOf("arm64-v8a"), 0x00030002, 0)
         assertTrue(NativeEngineRegistry.hardwareEligibility(engine, capable).eligible)
         assertFalse(NativeEngineRegistry.hardwareEligibility(engine, capable.copy(gles = 0x00030001)).eligible)

@@ -56,7 +56,7 @@ jobs:
   android-arm64-core:
     name: Source-build real Android Cemu core and prove ABI (not game proof)
     # Dedicated Wii U branch only; require actual native build even for its PR.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'p1-emu/wiiu'))
     needs: contract-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 350
@@ -112,7 +112,7 @@ jobs:
   legacy-engines:
     name: Android ARM64 engine — ${{ matrix.engine }}
     needs: [contract-tests]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'p1-emu/wiiu'))
     runs-on: ubuntu-24.04
     timeout-minutes: 105
     strategy:
@@ -176,7 +176,7 @@ jobs:
   wiiu-private-test-apk:
     name: Source-verified Cemu + Vulkan host private APK (NOT gameplay)
     needs: [contract-tests, android-arm64-core, legacy-engines]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'p1-emu/wiiu'))
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:

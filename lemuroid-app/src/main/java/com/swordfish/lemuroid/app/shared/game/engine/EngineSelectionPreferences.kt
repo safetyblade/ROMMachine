@@ -97,8 +97,11 @@ class EngineSelectionPreferences(private val context: Context) {
             savedPreference?.takeUnless { it == AUTOMATIC } ?: migratedChoice.takeIf { savedPreference == null }
         val stable = event.getProperty("successful")
         val proven = listOfNotNull(stable, event.getProperty("previous"))
-        val default = legacy?.coreID?.coreName ?: engines.firstOrNull()?.id
-        val requested = explicit ?: stable ?: default
+        val upgradedPs2 =
+            system.id == SystemID.PLAYSTATION_2 &&
+                engines.firstOrNull()?.host == NativeEngineRegistry.Host.ARMSX2_ANDROID
+        val default = if (upgradedPs2) engines.first().id else legacy?.coreID?.coreName ?: engines.firstOrNull()?.id
+        val requested = explicit ?: (if (upgradedPs2) default else stable ?: default)
         val engine =
             engines.firstOrNull { it.id == requested }
                 ?: throw SelectionException("Engine unavailable. Choose an installed engine in cartridge settings.")
