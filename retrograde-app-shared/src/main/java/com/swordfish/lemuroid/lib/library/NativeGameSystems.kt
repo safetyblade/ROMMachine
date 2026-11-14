@@ -11,11 +11,31 @@ object NativeGameSystems {
         // The shelf is a game collection, even when Xenia is not in this APK.
         // Launch remains blocked by NativeEngineRegistry's real binary/manifest gate.
         // Other experimental native systems stay gated by the packaged build.
-        return configurations().filter { it.id == SystemID.XBOX360 || it.id.dbname in requested }
+        return configurations().filter {
+            it.id in setOf(SystemID.XBOX360, SystemID.WII_U) || it.id.dbname in requested
+        }
     }
 
     fun configurations(): List<GameSystem> =
         listOf(
+            // Index Wii U cartridges even while the Vulkan engine remains an
+            // unreleased private test. Discovery is NOT an emulator support claim.
+            // Only WUA/WUD/WUX have console-exclusive extensions; ELF/RPX/TMD
+            // must carry an explicit Wii U folder to prevent false matches.
+            GameSystem(
+                SystemID.WII_U, "Nintendo - Wii U",
+                R.string.game_system_title_wiiu, R.string.game_system_abbr_wiiu,
+                systemCoreConfigs = emptyList(),
+                uniqueExtensions = listOf("wua", "wud", "wux"),
+                supportedExtensions = listOf("wua", "wud", "wux", "rpx", "elf", "tmd"),
+                hasTouchScreen = true, fastForwardSupport = false, nativeBackend = "cemu",
+                scanOptions =
+                    GameSystem.Companion.ScanOptions(
+                        scanByPathAndSupportedExtensions = false,
+                        scanByFilename = false,
+                        scanByPathAndFilename = false,
+                    ),
+            ),
             GameSystem(
                 SystemID.XBOX360, "Microsoft - Xbox 360",
                 R.string.game_system_title_xbox360, R.string.game_system_abbr_xbox360,

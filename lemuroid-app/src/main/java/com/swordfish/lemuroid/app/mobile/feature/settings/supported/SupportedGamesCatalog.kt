@@ -25,6 +25,7 @@ internal data class GameGuideRuntime(
     val installedCoreFiles: Set<String>,
     val installedFirmwareFiles: Set<String>,
     val deviceAbis: Set<String>,
+    val nativeManifests: Set<String> = emptySet(),
 )
 
 internal enum class GameGuideSetup {
@@ -66,6 +67,27 @@ internal object SupportedGamesCatalog {
         runtime: GameGuideRuntime?,
     ): GameGuideSetup {
         if (runtime == null) return GameGuideSetup.CHECKING
+        if (entry.system.nativeBackend == "cemu") {
+            // Catalogue and shelf discovery intentionally precede a verified
+            // production Vulkan frontend. An isolated Cemu test SO is not a
+            // selectable gameplay engine.
+            return if ("arm64-v8a" in runtime.deviceAbis) {
+                GameGuideSetup.ENGINE_MISSING
+            } else {
+                GameGuideSetup.DEVICE_UNSUPPORTED
+            }
+        }
+        if (entry.system.nativeBackend == "xenia") {
+            if ("arm64-v8a" !in runtime.deviceAbis) return GameGuideSetup.DEVICE_UNSUPPORTED
+            return if (
+                "libcartdeck_xenia.so" in runtime.installedCoreFiles &&
+                "cartdeck/xenia.properties" in runtime.nativeManifests
+            ) {
+                GameGuideSetup.ENGINE_PRESENT
+            } else {
+                GameGuideSetup.ENGINE_MISSING
+            }
+        }
         if (entry.system.nativeBackend == "hakux") {
             if ("arm64-v8a" !in runtime.deviceAbis) return GameGuideSetup.DEVICE_UNSUPPORTED
             return if (setOf("libhakuxcore.so", "libSDL3.so").all { it in runtime.installedCoreFiles }) {
@@ -118,7 +140,12 @@ internal object SupportedGamesCatalog {
                 ?.map { it.name }
                 ?.toSet()
                 .orEmpty()
-        return GameGuideRuntime(installed, firmware, Build.SUPPORTED_ABIS.toSet())
+        val manifests =
+            listOf("cartdeck/xenia.properties")
+                .filter { path ->
+                    runCatching { context.assets.open(path).use { it.read() } }.isSuccess
+                }.toSet()
+        return GameGuideRuntime(installed, firmware, Build.SUPPORTED_ABIS.toSet(), manifests)
     }
 
     private fun aliases(id: SystemID): String =
@@ -131,6 +158,8 @@ internal object SupportedGamesCatalog {
             SystemID.N64 -> "n64 nintendo 64"
             SystemID.NDS -> "nds ds nintendo ds"
             SystemID.NINTENDO_3DS -> "3ds nintendo 3ds"
+            SystemID.WII_U -> "wiiu wii u nintendo wii u cemu wua wud wux rpx"
+            SystemID.XBOX360 -> "x360 xbox360 xbox 360 microsoft xenia xex xcp zar"
             SystemID.SNES -> "snes super nintendo"
             SystemID.NES -> "nes nintendo"
             SystemID.GENESIS -> "genesis mega drive"

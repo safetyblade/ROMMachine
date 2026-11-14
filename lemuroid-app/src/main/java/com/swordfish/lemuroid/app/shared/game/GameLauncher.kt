@@ -39,6 +39,17 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                // The Wii U catalogue is independently searchable before Cemu's
+                // Vulkan host passes physical gameplay QA. Never try to launch
+                // a catalogue-only cartridge via the existing GLES frontend.
+                if (system.id == SystemID.WII_U) {
+                    Toast.makeText(
+                        activity,
+                        "Wii U cartridges are indexed. The in-app Vulkan engine is not yet approved for gameplay.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    return@launch
+                }
                 val screenClass =
                     CartdeckScreenPolicy.screenClass(
                         isTvHardware =

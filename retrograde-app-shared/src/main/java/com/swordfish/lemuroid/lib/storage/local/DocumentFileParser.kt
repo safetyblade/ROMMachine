@@ -29,7 +29,7 @@ object DocumentFileParser {
     private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
         setOf(
             "iso", "xiso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs",
-            "zar", "xcp", "xex",
+            "zar", "xcp", "xex", "wua", "wud", "wux", "rpx", "elf", "tmd",
         )
 
     fun parseDocumentFile(
@@ -128,7 +128,8 @@ object DocumentFileParser {
                     ?.id?.takeIf {
                         it == SystemID.DREAMCAST ||
                             it == SystemID.GAMECUBE ||
-                            it == SystemID.PLAYSTATION_2
+                            it == SystemID.PLAYSTATION_2 ||
+                            it == SystemID.WII_U
                     }
             } else {
                 null

@@ -16,6 +16,14 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
     GameMetadataProvider {
     companion object {
         private val THUMB_REPLACE = Regex("[&*/:`<>?\\\\|]")
+        private val NATIVE_DISC_SYSTEMS =
+            setOf(
+                SystemID.DREAMCAST,
+                SystemID.GAMECUBE,
+                SystemID.PLAYSTATION_2,
+                SystemID.WII_U,
+                SystemID.XBOX360,
+            )
     }
 
     private val sortedSystemIds: List<String> by lazy {
@@ -29,7 +37,8 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         if (storageFile.extension.equals("gdi", ignoreCase = true) && storageFile.systemID != SystemID.DREAMCAST) {
             return null
         }
-        if (storageFile.systemID in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2) &&
+        if (
+            storageFile.systemID in NATIVE_DISC_SYSTEMS &&
             GameSystem.all().none { it.id == storageFile.systemID }
         ) {
             return null
@@ -60,7 +69,10 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
 
     private fun findVerifiedNativeSystem(file: StorageFile): GameMetadata? {
         val id = file.systemID ?: return null
-        if (id !in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2)) return null
+        // A positive native content signature or exact user-selected folder
+        // takes precedence over inherited Libretro filename/CRC matches.
+        // Otherwise X360/Wii U images can be silently relabelled PS1/PSP/Wii.
+        if (id !in NATIVE_DISC_SYSTEMS) return null
         if (GameSystem.all().none { it.id == id }) return null
         return findByKnownSystem(file)
     }

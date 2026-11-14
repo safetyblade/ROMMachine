@@ -14,6 +14,7 @@ object NativeDiscFolderIdentity {
         mapOf(
             // Retain an explicitly filed playlist as a cartridge with an import explanation.
             // This does not advertise M3U as an executable engine format.
+            SystemID.WII_U to setOf("wua", "wud", "wux", "rpx", "elf", "tmd"),
             SystemID.XBOX360 to setOf("iso", "xex", "xcp", "zar", "m3u"),
             SystemID.DREAMCAST to setOf("gdi", "cue", "chd", "m3u", "cdi"),
             SystemID.GAMECUBE to setOf("gcm", "iso", "rvz", "gcz", "ciso", "tgc"),
@@ -22,6 +23,9 @@ object NativeDiscFolderIdentity {
 
     private val folders =
         mapOf(
+            "wiiu" to SystemID.WII_U,
+            "wii u" to SystemID.WII_U,
+            "nintendo wii u" to SystemID.WII_U,
             "xbox360" to SystemID.XBOX360,
             "xbox 360" to SystemID.XBOX360,
             "microsoft xbox 360" to SystemID.XBOX360,

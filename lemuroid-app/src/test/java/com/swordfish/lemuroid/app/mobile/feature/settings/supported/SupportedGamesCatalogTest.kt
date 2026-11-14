@@ -80,6 +80,48 @@ class SupportedGamesCatalogTest {
     }
 
     @Test
+    fun wiiuAndXbox360AreAlwaysSearchableButNotPrematurelyPlayable() {
+        val wiiu = all.first { it.system.id == SystemID.WII_U }
+        val xbox360 = all.first { it.system.id == SystemID.XBOX360 }
+        assertTrue(SupportedGamesCatalog.search(all, "wiiu").contains(wiiu))
+        assertTrue(SupportedGamesCatalog.search(all, "Wii U").contains(wiiu))
+        assertTrue(SupportedGamesCatalog.search(all, ".wua").contains(wiiu))
+        assertTrue(SupportedGamesCatalog.search(all, ".rpx").contains(wiiu))
+        assertTrue(SupportedGamesCatalog.search(all, "x360").contains(xbox360))
+        assertTrue(SupportedGamesCatalog.search(all, "Xenia").contains(xbox360))
+        assertTrue(SupportedGamesCatalog.search(all, ".xex").contains(xbox360))
+        assertEquals(listOf("elf", "rpx", "tmd", "wua", "wud", "wux"), wiiu.extensions)
+        val emptyArm64 = GameGuideRuntime(emptySet(), emptySet(), setOf("arm64-v8a"))
+        assertEquals(GameGuideSetup.ENGINE_MISSING, SupportedGamesCatalog.status(wiiu, emptyArm64))
+        assertEquals(GameGuideSetup.ENGINE_MISSING, SupportedGamesCatalog.status(xbox360, emptyArm64))
+        assertEquals(
+            GameGuideSetup.DEVICE_UNSUPPORTED,
+            SupportedGamesCatalog.status(wiiu, emptyArm64.copy(deviceAbis = setOf("x86_64"))),
+        )
+        assertEquals(
+            GameGuideSetup.DEVICE_UNSUPPORTED,
+            SupportedGamesCatalog.status(xbox360, emptyArm64.copy(deviceAbis = setOf("x86_64"))),
+        )
+        assertEquals(
+            GameGuideSetup.ENGINE_MISSING,
+            SupportedGamesCatalog.status(
+                xbox360,
+                emptyArm64.copy(installedCoreFiles = setOf("libcartdeck_xenia.so")),
+            ),
+        )
+        assertEquals(
+            GameGuideSetup.ENGINE_PRESENT,
+            SupportedGamesCatalog.status(
+                xbox360,
+                emptyArm64.copy(
+                    installedCoreFiles = setOf("libcartdeck_xenia.so"),
+                    nativeManifests = setOf("cartdeck/xenia.properties"),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun settingsGuideIsNestedBelowSettings() {
         assertEquals(MainRoute.SETTINGS, MainRoute.SETTINGS_SUPPORTED_GAMES.parent)
         assertEquals("settings/supported-games", MainRoute.SETTINGS_SUPPORTED_GAMES.route)
