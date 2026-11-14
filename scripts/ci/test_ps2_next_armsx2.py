@@ -104,6 +104,31 @@ class NativeGuardTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     candidate.needed_libraries("Shared library: [" + bad + "]")
 
+    def test_pinned_rust_librashader_without_buildid_keeps_sha_proof(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "liblibrashader_capi.so"
+            path.write_bytes(fake_elf() + b"r" * 65536)
+            with patch.object(candidate, "output", side_effect=[
+                "Shared library: [libc.so]", "No build ID in this Rust ELF",
+            ]):
+                result = candidate.inspect_dependency(path, "llvm-readelf")
+            self.assertIsNone(result["build_id"])
+            self.assertFalse(result["symbolication_build_id_available"])
+            self.assertEqual(
+                "PINNED_RUST_SOURCE_AND_SHA256_NO_GNU_BUILD_ID", result["provenance"],
+            )
+            self.assertEqual(64, len(result["sha256"]))
+
+    def test_other_missing_native_buildid_stays_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "libSDL3.so"
+            path.write_bytes(fake_elf() + b"s" * 65536)
+            with patch.object(candidate, "output", side_effect=[
+                "Shared library: [libc.so]", "No GNU build ID",
+            ]):
+                with self.assertRaisesRegex(ValueError, "Missing ELF build ID"):
+                    candidate.inspect_dependency(path, "llvm-readelf")
+
     def test_native_dependency_closure_fails_closed_without_output_libraries(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
