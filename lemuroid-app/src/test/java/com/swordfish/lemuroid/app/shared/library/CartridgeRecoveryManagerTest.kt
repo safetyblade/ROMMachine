@@ -9,6 +9,8 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
+import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
+import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -87,6 +89,20 @@ class CartridgeRecoveryManagerTest {
                 assertEquals(original.lastPlayedAt, result.lastPlayedAt)
                 assertEquals(original.legacyFileName, result.legacyFileName)
                 assertEquals(0, db.retiredCartridgeDao().selectAll().size)
+                val directories = DirectoriesManager(context)
+                val guard =
+                    File(
+                        directories.getSaveBindingsDirectory(),
+                        "${retired.cartridgeId}/manual-source-binding.block",
+                    )
+                assertTrue(guard.isFile)
+                val binding =
+                    CartridgeSaveBinding(
+                        directories,
+                        { db.gameDao().selectShelfGames().first() },
+                        { db.retiredCartridgeDao().selectAll() },
+                    )
+                assertFalse(binding.mayImportLegacy(result, true))
                 val cells = shelf.read().sections.flatMap { it.cells }
                 assertEquals(1, cells.size)
                 assertEquals(originalCell.id, cells.single().id)
