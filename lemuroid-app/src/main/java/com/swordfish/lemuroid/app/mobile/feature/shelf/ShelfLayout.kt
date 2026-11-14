@@ -206,9 +206,19 @@ data class ShelfLayout(
         removeMissing: Boolean = false,
     ): ShelfLayout {
         val existing = sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
+        val usedCellIds = sections.flatMap { it.cells }.map { it.id }.toMutableSet()
         val additions =
             games.filterKeys { it !in existing }.map { (key, title) ->
-                ShelfCell(id = "game:$key", gameKey = key, titleHint = title)
+                // A retired slot keeps its original cell ID. When another ROM
+                // uses the old URI, allocate a different ID for the new cell.
+                val base = "game:$key"
+                var candidate = base
+                var suffix = 1
+                while (!usedCellIds.add(candidate)) {
+                    candidate = "$base:$suffix"
+                    suffix++
+                }
+                ShelfCell(id = candidate, gameKey = key, titleHint = title)
             }
         return copy(
             sections =
