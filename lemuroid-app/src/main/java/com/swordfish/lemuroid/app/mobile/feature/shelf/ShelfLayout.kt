@@ -33,6 +33,7 @@ data class NamedAppearance(
     val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
     val decal: CartdeckPersonalDecal? = null,
+    val lighting: CartdeckLighting = CartdeckLighting(),
 )
 
 /**
@@ -52,6 +53,7 @@ data class ShelfAppearance(
     val patternId: String = CartdeckSurfaceDesign.PATTERN_NONE,
     val stampId: String = CartdeckSurfaceDesign.STAMP_NONE,
     val decal: CartdeckPersonalDecal? = null,
+    val lighting: CartdeckLighting = CartdeckLighting(),
 ) {
     fun choosePreset(id: String): ShelfAppearance {
         require(id in listOf("original", "pink", "green"))
@@ -63,6 +65,7 @@ data class ShelfAppearance(
             patternId = CartdeckSurfaceDesign.PATTERN_NONE,
             stampId = CartdeckSurfaceDesign.STAMP_NONE,
             decal = null,
+            lighting = CartdeckLighting(),
         )
     }
 
@@ -76,6 +79,7 @@ data class ShelfAppearance(
             patternId = profile.patternId,
             stampId = profile.stampId,
             decal = profile.decal,
+            lighting = profile.lighting,
         )
     }
 
@@ -99,6 +103,7 @@ data class ShelfAppearance(
                 patternId = patternId,
                 stampId = stampId,
                 decal = decal,
+                lighting = lighting,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -135,6 +140,7 @@ data class ShelfAppearance(
             patternId = duplicate.patternId,
             stampId = duplicate.stampId,
             decal = duplicate.decal,
+            lighting = duplicate.lighting,
         )
     }
 }
@@ -158,11 +164,13 @@ data class ShelfLayout(
         require(CartdeckSurfaceDesign.validPattern(appearance.patternId))
         require(CartdeckSurfaceDesign.validStamp(appearance.stampId))
         appearance.decal?.validate()
+        appearance.lighting.validate()
         require(
             appearance.profiles.all {
                 CartdeckSurfaceDesign.validPattern(it.patternId) &&
                     CartdeckSurfaceDesign.validStamp(it.stampId) &&
-                    (it.decal == null || runCatching { it.decal.validate() }.isSuccess)
+                    (it.decal == null || runCatching { it.decal.validate() }.isSuccess) &&
+                    runCatching { it.lighting.validate() }.isSuccess
             },
         )
         require(

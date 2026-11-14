@@ -70,6 +70,7 @@ internal fun encode(layout: ShelfLayout): String =
                 put("patternId", layout.appearance.patternId)
                 put("stampId", layout.appearance.stampId)
                 put("decal", layout.appearance.decal?.let(::decalToJson) ?: JSONObject.NULL)
+                put("lighting", lightingToJson(layout.appearance.lighting))
                 put(
                     "profiles",
                     JSONArray().apply {
@@ -83,6 +84,7 @@ internal fun encode(layout: ShelfLayout): String =
                                     put("patternId", profile.patternId)
                                     put("stampId", profile.stampId)
                                     put("decal", profile.decal?.let(::decalToJson) ?: JSONObject.NULL)
+                                    put("lighting", lightingToJson(profile.lighting))
                                     put("createdAt", profile.createdAt)
                                     put("updatedAt", profile.updatedAt)
                                 },
@@ -152,6 +154,7 @@ internal fun decode(json: String): ShelfLayout {
                             patternId = record.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
                             stampId = record.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
                             decal = record.optJSONObject("decal")?.let(::decalFromJson),
+                            lighting = record.optJSONObject("lighting")?.let(::lightingFromJson) ?: CartdeckLighting(),
                             createdAt = record.optLong("createdAt"),
                             updatedAt = record.optLong("updatedAt"),
                         )
@@ -174,6 +177,7 @@ internal fun decode(json: String): ShelfLayout {
                 patternId = appearance.optString("patternId", CartdeckSurfaceDesign.PATTERN_NONE),
                 stampId = appearance.optString("stampId", CartdeckSurfaceDesign.STAMP_NONE),
                 decal = appearance.optJSONObject("decal")?.let(::decalFromJson),
+                lighting = appearance.optJSONObject("lighting")?.let(::lightingFromJson) ?: CartdeckLighting(),
             ),
         sections =
             (0 until sections.length()).map { index ->
@@ -216,3 +220,29 @@ internal fun decalFromJson(json: JSONObject): CartdeckPersonalDecal =
         rotation = json.optDouble("rotation", 0.0).toFloat(),
         opacity = json.optDouble("opacity", 0.85).toFloat(),
     ).validate()
+
+/** Optional Phase 3A V2 field, independent of ROM identity or save data. */
+internal fun lightingToJson(lighting: CartdeckLighting): JSONObject =
+    JSONObject().apply {
+        put("mode", lighting.mode)
+        put("intensity", lighting.intensity)
+        put("colour", lighting.colour ?: JSONObject.NULL)
+        put("zones", JSONArray(lighting.zones.sorted()))
+    }
+
+internal fun lightingFromJson(json: JSONObject): CartdeckLighting {
+    val defaults = CartdeckLighting()
+    val chosen = json.optJSONArray("zones")
+    val zones =
+        if (chosen == null) {
+            defaults.zones
+        } else {
+            (0 until chosen.length()).map { chosen.getString(it) }.toSet()
+        }
+    return CartdeckLighting(
+        mode = json.optString("mode", CartdeckLighting.MODE_OFF),
+        intensity = json.optInt("intensity", defaults.intensity),
+        colour = if (json.isNull("colour")) null else json.getLong("colour"),
+        zones = zones,
+    ).validate()
+}
