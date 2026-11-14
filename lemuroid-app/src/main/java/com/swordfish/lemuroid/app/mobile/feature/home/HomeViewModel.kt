@@ -52,6 +52,7 @@ class HomeViewModel(
 
     data class UIState(
         val libraryGames: List<Game> = emptyList(),
+        val artworkRevision: Int = 0,
         val favoritesGames: List<Game> = emptyList(),
         val recentGames: List<Game> = emptyList(),
         val discoveryGames: List<Game> = emptyList(),
@@ -104,16 +105,18 @@ class HomeViewModel(
     }
 
     private fun buildViewState(
-        games: List<Game>,
+        records: Pair<Int, List<Game>>,
         indexInProgress: Boolean,
         notificationsPermissionEnabled: Boolean,
         showMicrophoneCard: Boolean,
         showDesmumeWarning: Boolean,
     ): UIState {
+        val games = records.second
         val noGames = games.isEmpty()
 
         return UIState(
             libraryGames = games,
+            artworkRevision = records.first,
             recentGames = games.filter { it.lastPlayedAt != null }.sortedByDescending { it.lastPlayedAt }.take(1),
             indexInProgress = indexInProgress,
             showNoNotificationPermissionCard = !notificationsPermissionEnabled,
@@ -125,9 +128,12 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
+            var artworkRevision = 0
             val uiStatesFlow =
                 combine(
-                    retrogradeDb.gameDao().selectShelfGames(),
+                    // Room invalidates even when a custom cover is replaced at the
+                    // same managed URI. Carry that revision through StateFlow equality.
+                    retrogradeDb.gameDao().selectShelfGames().map { games -> ++artworkRevision to games },
                     indexingInProgress(appContext),
                     notificationsPermissionEnabledState,
                     microphoneNotification(retrogradeDb),

@@ -110,6 +110,7 @@ internal fun encode(layout: ShelfLayout): String =
                                                 put("gameKey", cell.gameKey ?: JSONObject.NULL)
                                                 put("titleHint", cell.titleHint)
                                                 put("emptyRow", cell.emptyRow)
+                                                put("facing", cell.facing.name)
                                             },
                                         )
                                     }
@@ -188,6 +189,8 @@ internal fun decode(json: String): ShelfLayout {
                             if (cell.isNull("gameKey")) null else cell.getString("gameKey"),
                             cell.optString("titleHint"),
                             cell.optBoolean("emptyRow"),
+                            CartridgeFacing.entries.firstOrNull { it.name == cell.optString("facing") }
+                                ?: CartridgeFacing.SPINE,
                         )
                     },
                 )

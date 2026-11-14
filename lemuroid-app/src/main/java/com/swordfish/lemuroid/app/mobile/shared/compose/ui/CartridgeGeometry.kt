@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Rect
 /** Root coordinates are shared by shelf cells and the in-place pickup overlay. */
 class CartridgeGeometry {
     val cells = mutableStateMapOf<Int, Rect>()
+    val frontFacing = mutableSetOf<Int>()
     var selectedId: Int? by mutableStateOf(null)
     private val owners = mutableMapOf<Int, Any>()
 
@@ -17,9 +18,11 @@ class CartridgeGeometry {
         id: Int,
         owner: Any,
         bounds: Rect,
+        front: Boolean = false,
     ) {
         owners[id] = owner
         cells[id] = bounds
+        if (front) frontFacing.add(id) else frontFacing.remove(id)
     }
 
     fun remove(
@@ -29,6 +32,7 @@ class CartridgeGeometry {
         if (owners[id] === owner) {
             owners.remove(id)
             cells.remove(id)
+            frontFacing.remove(id)
         }
     }
 }
@@ -42,6 +46,7 @@ fun cartridgeFlight(
     source: Rect,
     target: Rect,
     progress: Float,
+    sourceFront: Boolean = false,
 ): CartridgeFlight {
     val p = progress.coerceIn(0f, 1f)
     val travel = ((p - 0.22f) / 0.68f).coerceIn(0f, 1f)
@@ -54,5 +59,5 @@ fun cartridgeFlight(
             source.bottom + (target.bottom - source.bottom) * travel - lift * source.height * 0.12f,
         )
     val rotation = if (travel < 0.5f) travel * 180f else (travel - 1f) * 180f
-    return CartridgeFlight(bounds, rotation, travel >= 0.5f)
+    return CartridgeFlight(bounds, if (sourceFront) 0f else rotation, sourceFront || travel >= 0.5f)
 }

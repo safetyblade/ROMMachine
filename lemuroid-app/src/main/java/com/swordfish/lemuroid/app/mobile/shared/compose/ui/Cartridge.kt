@@ -256,7 +256,7 @@ fun CartridgeSpine(
                     RoundedCornerShape(12.dp),
                 )
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "${game.displayName()}, ${cartridgeSystemLabel(game.systemId)}"
+                    contentDescription = "${game.displayName()}, ${cartridgeSystemLabel(game.systemId)}, spine facing"
                 }
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
     ) {
@@ -386,6 +386,14 @@ fun CartridgeFront(
                     else -> Color(0xFFEDF6F2)
                 },
             style = MaterialTheme.typography.labelLarge,
+        )
+        Text(
+            shelfPresentationTitle(game.displayName()),
+            modifier = Modifier.offset(unit * 40, unit * 316).width(unit * 240),
+            color = cartridgeInk,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             cartridgeSystemLabel(game.systemId),
