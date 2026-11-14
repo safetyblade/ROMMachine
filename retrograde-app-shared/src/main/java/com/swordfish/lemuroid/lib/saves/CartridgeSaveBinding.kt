@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.lib.saves
 
 import android.util.AtomicFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 class CartridgeSaveBinding(
     private val directories: DirectoriesManager,
     private val installedGames: suspend () -> List<Game>,
+    private val retiredCartridges: suspend () -> List<RetiredCartridge> = { emptyList() },
 ) {
     private val locks = ConcurrentHashMap<String, Mutex>()
 
@@ -134,6 +136,11 @@ class CartridgeSaveBinding(
         game: Game,
         byBasename: Boolean,
     ): Boolean {
+        // A manually reattached source does not automatically inherit a
+        // historical basename save; its owner must confirm it separately.
+        if (File(directories.getSaveBindingsDirectory(), "${id(game)}/manual-source-binding.block").isFile) {
+            return false
+        }
         val matches =
             installedGames().filter {
                 if (byBasename) {
@@ -142,7 +149,16 @@ class CartridgeSaveBinding(
                     it.saveFileName() == game.saveFileName()
                 }
             }
-        return matches.size == 1 && matches.single().cartridgeId == game.cartridgeId
+        val unresolvedRetired =
+            retiredCartridges().any { old ->
+                if (byBasename) {
+                    (old.legacyFileName ?: old.fileName).substringBeforeLast('.') ==
+                        game.saveFileName().substringBeforeLast('.')
+                } else {
+                    (old.legacyFileName ?: old.fileName) == game.saveFileName()
+                }
+            }
+        return !unresolvedRetired && matches.size == 1 && matches.single().cartridgeId == game.cartridgeId
     }
 
     suspend fun sramFile(
