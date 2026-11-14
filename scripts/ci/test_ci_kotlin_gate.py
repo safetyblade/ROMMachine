@@ -25,8 +25,8 @@ class KotlinGateContractTest(unittest.TestCase):
 
     def test_stale_pr_check_precedes_builds(self):
         source = self.jobs["source-preflight"]
-        self.assertIn("fetch-depth: 0", source)
-        self.assertIn("git merge-base --is-ancestor", source)
+        self.assertIn('gh api "repos/$GH_REPO/branches/$PR_BASE_REF"', source)
+        self.assertIn('gh api "repos/$GH_REPO/compare/$base_sha...$PR_HEAD_SHA"', source)
         self.assertIn("Reject stale pull-request branches", source)
 
     def test_compile_gate_uses_exact_host_and_full_app_test_sources(self):
