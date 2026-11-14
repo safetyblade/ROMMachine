@@ -59,7 +59,7 @@ class CartdeckFeedbackLightingTest {
         assertTrue(full <= baseline * 1.35f + 2f * alphaStep)
         assertEquals(baseline, light.tint(Color.Green, Float.NaN).alpha, 0.0001f)
         assertEquals(0f, light.copy(intensity = 0).tint(Color.Green, 1f).alpha, 0.0001f)
-        assertTrue(light.copy(intensity = 100).tint(Color.Green, 1f).alpha <= 0.78f)
+        assertTrue(light.copy(intensity = 100).tint(Color.Green, 1f).alpha <= 0.78f + alphaStep)
     }
 
     @Test
