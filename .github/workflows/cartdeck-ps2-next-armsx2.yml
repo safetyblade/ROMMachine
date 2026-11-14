@@ -1,0 +1,112 @@
+name: CARTDECK PS2-NEXT-A ARMSX2 isolated ARM64 feasibility
+
+on:
+  push:
+    branches:
+      - feat/ps2-armsx2-native-feasibility
+    paths:
+      - ".github/workflows/cartdeck-ps2-next-armsx2.yml"
+      - "scripts/ci/ps2_next_armsx2.py"
+      - "scripts/ci/test_ps2_next_armsx2.py"
+      - "docs/engineering/ps2-armsx2-native-host.md"
+  pull_request:
+    paths:
+      - ".github/workflows/cartdeck-ps2-next-armsx2.yml"
+      - "scripts/ci/ps2_next_armsx2.py"
+      - "scripts/ci/test_ps2_next_armsx2.py"
+      - "docs/engineering/ps2-armsx2-native-host.md"
+  workflow_dispatch:
+    inputs:
+      page_models:
+        description: Which upstream ARM64 host-page variant to compile and verify
+        required: true
+        default: 4k
+        type: choice
+        options:
+          - 4k
+          - 16k
+          - both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ps2-next-armsx2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-tests:
+    name: Pin, ABI and fail-closed native verifier tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run all independent native contract tests
+        run: python3 -m unittest discover -s scripts/ci -p 'test_ps2_next_armsx2.py' -v
+      - name: Explicit no-default-engine guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -q ARMSX2 retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/NativeGameSystems.kt
+          ! grep -q ARMSX2 lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/GameLauncher.kt
+          echo "Existing PS2 Play! and regular APK gates unchanged."
+
+  native-arm64:
+    name: Source-build pinned ARMSX2 Android JNI and verify ELF (not an APK)
+    # Deliberate: no expensive native source build on unrelated pull requests.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: contract-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      PS2_PAGE_MODE: ${{ inputs.page_models || '4k' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare upstream Android native toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -n "$manager" && test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build cmake pkg-config
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'cmake;3.30.3'
+          test -f "$sdk/ndk/29.0.14206865/build/cmake/android.toolchain.cmake"
+          df -h .
+      - name: Build exact source and verify AArch64 JNI binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/ps2_next_armsx2.py "$RUNNER_TEMP/ps2-armsx2-feasibility" --pages "$PS2_PAGE_MODE"
+      - name: Report native-only evidence, never a gameplay pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/ps2-armsx2-feasibility/native-evidence.json"
+          {
+            echo '### ARMSX2 source-built Android ARM64 feasibility'
+            echo 'Native ABI, JNI exports, revision and checksums: see private evidence artifact.'
+            echo '**No CARTDECK APK or real PS2 gameplay has been verified by this workflow.**'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ps2-armsx2-native-source-evidence
+          path: ${{ runner.temp }}/ps2-armsx2-feasibility/native-evidence.json
+          if-no-files-found: error
+          retention-days: 7

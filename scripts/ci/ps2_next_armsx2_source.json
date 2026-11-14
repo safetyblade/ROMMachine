@@ -1,0 +1,18 @@
+{
+  "system": "ps2",
+  "target": "ARMSX2 JNI Android ARM64",
+  "upstream": "https://github.com/ARMSX2/ARMSX2",
+  "pinned_sha": "7a999782377e61fb96eca65e476b5ec0d182058e",
+  "ndk": "29.0.14206865",
+  "android_host_page_models": [
+    4096,
+    16384
+  ],
+  "upstream_java_abi": "kr.co.iefriends.pcsx2.NativeApp",
+  "upstream_native_build_file": "platforms/android/app/src/main/cpp/CMakeLists.txt",
+  "licence": "GPL-3.0-or-later / verify complete notice inventory before distribution",
+  "default_engine_unchanged": "Play!",
+  "production_integration": false,
+  "gameplay_verified": false,
+  "note": "This is a source provenance lock, not proof of a built or playable core."
+}
