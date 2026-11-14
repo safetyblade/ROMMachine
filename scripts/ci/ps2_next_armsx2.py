@@ -47,6 +47,17 @@ REQUIRED_JNI = (
     "Java_kr_co_iefriends_pcsx2_NativeApp_shutdown",
 )
 DENIED_DEPENDENCIES = ("libc.so.6", "libstdc++.so.6", "ld-linux", "discord_partner")
+# Libraries supplied by Android itself, not app-private ELF payloads.
+ANDROID_SYSTEM_LIBRARIES = frozenset({
+    "libc.so", "libm.so", "libdl.so", "liblog.so", "libandroid.so",
+    "libEGL.so", "libGLESv2.so", "libGLESv3.so", "libvulkan.so",
+    "libz.so", "libjnigraphics.so", "libmediandk.so", "libOpenSLES.so",
+    "libaaudio.so", "libnativewindow.so", "libbinder_ndk.so",
+    "libsync.so",
+})
+# Upstream Android Java loads these optional UI runtimes by name, not DT_NEEDED.
+# They still require actual Android ELF validation before a private APK is built.
+UPSTREAM_LOAD_LIBRARY_EXTRAS = ("libflurry.so", "libsavers.so")
 
 
 def run(*args, cwd=None):
@@ -102,6 +113,78 @@ def validate_native(path, readelf):
         "device_tested": False,
         "gameplay_tested": False,
     }
+
+
+
+def needed_libraries(dynamic):
+    """Reject non-bare SONAMEs. Android resolves packaged dependencies by filename."""
+    names = set(re.findall(r"Shared library:\s*\[([^\]]+)\]", dynamic))
+    for name in names:
+        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\\.so", name):
+            raise ValueError("Unresolvable native DT_NEEDED SONAME: " + name)
+        if any(bad in name for bad in DENIED_DEPENDENCIES):
+            raise ValueError("Forbidden desktop/proprietary native dependency: " + name)
+    return names
+
+
+def inspect_dependency(path, readelf):
+    """Validate every packaged JNI dependency, not only the main PS2 core."""
+    library = pathlib.Path(path)
+    if not library.is_file() or library.stat().st_size < 65536:
+        raise ValueError("Missing complete native dependency: " + library.name)
+    dynamic = output(readelf, "-dW", library)
+    verify_android_elf(library.read_bytes(), dynamic)
+    notes = output(readelf, "-nW", library)
+    build = re.search(r"Build ID:\s*([0-9a-fA-F]+)", notes)
+    if not build:
+        raise ValueError("Missing ELF build ID: " + library.name)
+    return {
+        "sha256": sha256(library),
+        "build_id": build.group(1).lower(),
+        "needed": sorted(needed_libraries(dynamic)),
+        "size_bytes": library.stat().st_size,
+    }
+
+
+def stage_dependency_closure(source, ndk, main_binary, destination, readelf):
+    """Copy the full source-built Android ELF closure; fail instead of omitting libs."""
+    app = pathlib.Path(source) / "platforms/android/app"
+    ndk_root = pathlib.Path(ndk)
+    target = ndk_root / (
+        "toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib"
+        "/aarch64-linux-android/libc++_shared.so"
+    )
+    candidates = {}
+    for root in (app / ".cxx", app / "build/intermediates"):
+        if root.is_dir():
+            for candidate in root.rglob("*.so"):
+                if candidate.is_file():
+                    candidates.setdefault(candidate.name, []).append(candidate)
+    result = {}
+    initial = inspect_dependency(main_binary, readelf)["needed"]
+    queue = list(set(initial) | set(UPSTREAM_LOAD_LIBRARY_EXTRAS))
+    while queue:
+        name = queue.pop()
+        if name in ANDROID_SYSTEM_LIBRARIES or name in result:
+            continue
+        if not re.fullmatch(r"lib[A-Za-z0-9_+.-]+\\.so", name):
+            raise ValueError("Invalid private dependency name: " + name)
+        possible = [target] if name == "libc++_shared.so" else candidates.get(name, [])
+        possible = [p for p in possible if p.is_file()]
+        if not possible:
+            raise ValueError("Missing source-built Android ELF dependency: " + name)
+        # Different Gradle intermediate paths are possible; use only real AArch64 ELF.
+        source_lib = max(possible, key=lambda p: p.stat().st_mtime_ns)
+        proof = inspect_dependency(source_lib, readelf)
+        installed = destination / name
+        if installed.exists():
+            raise ValueError("Duplicate private dependency destination: " + name)
+        shutil.copyfile(source_lib, installed)
+        if sha256(installed) != proof["sha256"]:
+            raise ValueError("Native dependency changed in staging: " + name)
+        result[name] = proof
+        queue.extend(proof["needed"])
+    return result
 
 
 def pinned_checkout(source):
@@ -205,13 +288,17 @@ def build_one(source, output_dir, page, readelf):
     )
     built = locate_build(source, name)
     details = validate_native(built, readelf)
-    destination = output_dir / ("lib" + name + ".so")
-    if destination.exists():
-        raise ValueError("Refusing to overwrite an existing native build")
+    page_dir = output_dir / ("page-" + str(page))
+    page_dir.mkdir(parents=True, exist_ok=False)
+    destination = page_dir / ("lib" + name + ".so")
     shutil.copyfile(built, destination)
     if sha256(destination) != details["sha256"]:
         raise ValueError("Native output checksum changed while copying")
-    details["library"] = destination.name
+    ndk = pathlib.Path(os.environ["ANDROID_HOME"]) / "ndk" / NDK_REV
+    details["dependency_closure"] = stage_dependency_closure(
+        source, ndk, built, page_dir, readelf,
+    )
+    details["library"] = destination.relative_to(output_dir).as_posix()
     details["host_page_size"] = page
     return details
 
