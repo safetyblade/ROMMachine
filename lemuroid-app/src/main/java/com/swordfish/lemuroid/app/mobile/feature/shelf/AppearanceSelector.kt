@@ -389,6 +389,20 @@ private fun CartdeckConsoleHardwarePreview(
                     style = Stroke(width = 1.dp.toPx()),
                 )
             }
+            drawCartdeckLighting(
+                lighting = appearance.lighting,
+                accent = accent,
+                video = Rect(w * 0.12f, h * 0.07f, w * 0.88f, h * 0.49f),
+                controls =
+                    listOf(
+                        Rect(w * 0.17f, h * 0.58f, w * 0.48f, h * 0.96f),
+                        Rect(w * 0.54f, h * 0.51f, w * 0.92f, h * 0.99f),
+                    ),
+                brand = emptyList(),
+                highContrast = appearance.highContrast,
+                thickness = 1.5.dp.toPx(),
+                clearance = 2.5.dp.toPx(),
+            )
         }
         if (appearance.decal != null && !appearance.highContrast) {
             val density = LocalDensity.current
@@ -424,6 +438,9 @@ fun ShelfAppearanceEditor(
     var patternId by remember { mutableStateOf(appearance.patternId) }
     var stampId by remember { mutableStateOf(appearance.stampId) }
     var decal by remember { mutableStateOf(appearance.decal) }
+    var lighting by remember { mutableStateOf(appearance.lighting) }
+    var expandedLighting by remember { mutableStateOf(false) }
+    var lightingPicker by remember { mutableStateOf(false) }
     var expandedDecal by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val decalStore = remember(context) { CartdeckDecalStore(context) }
@@ -476,6 +493,7 @@ fun ShelfAppearanceEditor(
             patternId,
             stampId,
             decal,
+            lighting,
         )
 
     fun choosePreset(id: String) {
@@ -486,6 +504,7 @@ fun ShelfAppearanceEditor(
         patternId = CartdeckSurfaceDesign.PATTERN_NONE
         stampId = CartdeckSurfaceDesign.STAMP_NONE
         decal = null
+        lighting = CartdeckLighting()
         modified = false
         warning = null
     }
@@ -499,6 +518,7 @@ fun ShelfAppearanceEditor(
         patternId = item.patternId
         stampId = item.stampId
         decal = item.decal
+        lighting = item.lighting
         modified = false
         warning = null
     }
@@ -512,6 +532,7 @@ fun ShelfAppearanceEditor(
         patternId = design.patternId
         stampId = design.stampId
         decal = null
+        lighting = CartdeckLighting()
         modified = false
         warning = null
     }
@@ -686,6 +707,7 @@ fun ShelfAppearanceEditor(
                                             patternId = patternId,
                                             stampId = stampId,
                                             decal = decal,
+                                            lighting = lighting,
                                             updatedAt = System.currentTimeMillis(),
                                         )
                                     modified = false
@@ -723,6 +745,75 @@ fun ShelfAppearanceEditor(
                             "Static decoration never covers gameplay. Personal image import follows separately.",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                    }
+                    TextButton(onClick = { expandedLighting = !expandedLighting }) {
+                        Text(if (expandedLighting) "Hide Lighting Studio" else "Lighting Studio")
+                    }
+                    if (expandedLighting) {
+                        Text(
+                            "Hardware-style shell and shelf lighting; no changes to game pixels.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = {
+                                lighting = lighting.copy(mode = CartdeckLighting.MODE_OFF)
+                                modified = true
+                            }) { Text(if (lighting.mode == CartdeckLighting.MODE_OFF) "✓ Off" else "Off") }
+                            TextButton(onClick = {
+                                lighting = lighting.copy(mode = CartdeckLighting.MODE_STATIC)
+                                modified = true
+                            }) { Text(if (lighting.mode == CartdeckLighting.MODE_STATIC) "✓ Static" else "Static") }
+                        }
+                        if (lighting.mode == CartdeckLighting.MODE_STATIC) {
+                            Text("Intensity: ${lighting.intensity}%")
+                            Slider(
+                                value = lighting.intensity.toFloat(),
+                                onValueChange = {
+                                    lighting = lighting.copy(intensity = it.toInt().coerceIn(0, 100))
+                                    modified = true
+                                },
+                                valueRange = 0f..100f,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = {
+                                    lighting = lighting.copy(colour = null)
+                                    modified = true
+                                }) {
+                                    Text(if (lighting.colour == null) "✓ Follow accent" else "Follow accent")
+                                }
+                                TextButton(onClick = { lightingPicker = true }) { Text("Light colour") }
+                            }
+                            Text("Lighting zones", style = MaterialTheme.typography.titleSmall)
+                            CartdeckLighting.availableZones.forEach { (id, title) ->
+                                Row(
+                                    Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Checkbox(
+                                        checked = id in lighting.zones,
+                                        onCheckedChange = { checked ->
+                                            lighting =
+                                                lighting.copy(
+                                                    zones =
+                                                        if (checked) {
+                                                            lighting.zones + id
+                                                        } else {
+                                                            lighting.zones - id
+                                                        },
+                                                )
+                                            modified = true
+                                        },
+                                        modifier = Modifier.semantics { contentDescription = title },
+                                    )
+                                    Text(title)
+                                }
+                            }
+                            Text(
+                                "Static lighting has no animation or game interaction. " +
+                                    "Reactive lighting follows separately.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                     TextButton(onClick = { expandedDecal = !expandedDecal }) {
                         Text(if (expandedDecal) "Hide personal decal editor" else "Personal decals")
@@ -899,6 +990,7 @@ fun ShelfAppearanceEditor(
                                                 patternId = patternId,
                                                 stampId = stampId,
                                                 decal = decal,
+                                                lighting = lighting,
                                                 updatedAt = System.currentTimeMillis(),
                                             )
                                         } else {
@@ -935,6 +1027,26 @@ fun ShelfAppearanceEditor(
             listOf(original.getValue(role), pink.getValue(role), green.getValue(role)),
             onChoose = { changeColour(role, it) },
             onDismiss = { picker = null },
+        )
+    }
+    if (lightingPicker) {
+        ColourPicker(
+            role = "light colour",
+            current = lighting.colour?.let { Color(it.toInt()) } ?: base.getValue("accent"),
+            defaults =
+                listOf(
+                    base.getValue("accent"),
+                    Color(0xFF9BC74A),
+                    Color(0xFF4ED8C4),
+                    Color(0xFFFFC06A),
+                    Color(0xFFF2A9C9),
+                ),
+            onChoose = { chosen ->
+                lighting = lighting.copy(colour = longColour(chosen))
+                modified = true
+                lightingPicker = false
+            },
+            onDismiss = { lightingPicker = false },
         )
     }
     if (nameAction != null) {
