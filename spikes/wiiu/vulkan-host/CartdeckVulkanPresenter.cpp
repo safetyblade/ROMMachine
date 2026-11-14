@@ -410,6 +410,72 @@ bool CartdeckVulkanPresenter::present(
     return true;
 }
 
+
+bool CartdeckVulkanPresenter::presentBlank(std::string* error) {
+    if (!acquired_ || !ready()) return fail(error, "VULKAN_NO_ACQUIRED_BLANK_FRAME");
+    VkCommandBuffer cmd = commands_[image_index_];
+    if (vkResetCommandBuffer(cmd, 0) != VK_SUCCESS)
+        return fail(error, "VULKAN_BLANK_RESET_FAILED");
+    VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if (vkBeginCommandBuffer(cmd, &begin) != VK_SUCCESS)
+        return fail(error, "VULKAN_BLANK_BEGIN_FAILED");
+
+    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    barrier.image = images_[image_index_];
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+                         0, nullptr, 1, &barrier);
+    const VkClearColorValue black = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    vkCmdClearColorImage(cmd, barrier.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                         &black, 1, &barrier.subresourceRange);
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = 0;
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr,
+                         0, nullptr, 1, &barrier);
+    if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
+        return fail(error, "VULKAN_BLANK_END_FAILED");
+    const VkPipelineStageFlags stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submit.waitSemaphoreCount = 1;
+    submit.pWaitSemaphores = &acquired_sem_;
+    submit.pWaitDstStageMask = &stage;
+    submit.commandBufferCount = 1;
+    submit.pCommandBuffers = &cmd;
+    submit.signalSemaphoreCount = 1;
+    submit.pSignalSemaphores = &rendered_sem_;
+    VkPresentInfoKHR present_req{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    present_req.waitSemaphoreCount = 1;
+    present_req.pWaitSemaphores = &rendered_sem_;
+    present_req.swapchainCount = 1;
+    present_req.pSwapchains = &swapchain_;
+    present_req.pImageIndices = &image_index_;
+    VkResult result;
+    {
+        std::lock_guard<std::mutex> guard(queue_mutex_);
+        if (vkQueueSubmit(queue_, 1, &submit, VK_NULL_HANDLE) != VK_SUCCESS)
+            return fail(error, "VULKAN_BLANK_SUBMIT_FAILED");
+        result = vkQueuePresentKHR(queue_, &present_req);
+        vkQueueWaitIdle(queue_);
+    }
+    acquired_ = false;
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+        return fail(error, "VULKAN_BLANK_PRESENT_FAILED");
+    // A black loading frame MUST NOT increment confirmed game-image callbacks.
+    return true;
+}
+
 void CartdeckVulkanPresenter::stop() {
     if (device_) vkDeviceWaitIdle(device_);
     if (acquired_sem_) vkDestroySemaphore(device_, acquired_sem_, nullptr);
