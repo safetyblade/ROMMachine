@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   room-schema:
-    name: Generate and verify Room v12 schema
+    name: Generate and verify Room v13 schema
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -40,22 +40,22 @@ jobs:
         run: |
           set -euo pipefail
           "$GRADLE_BIN" :retrograde-app-shared:kaptDebugKotlin --no-daemon --no-configuration-cache --max-workers=2
-      - name: Emit generated v12 schema for exact commit
+      - name: Emit generated v13 schema for exact commit
         if: always()
         shell: bash
         run: |
-          schema=retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/12.json
+          schema=retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/13.json
           if [ -s "$schema" ]; then
-            echo ROOM_SCHEMA_V12_BEGIN
+            echo ROOM_SCHEMA_V13_BEGIN
             cat "$schema"
-            echo ROOM_SCHEMA_V12_END
+            echo ROOM_SCHEMA_V13_END
           else
-            echo "Room 12.json not generated; gate remains blocked"
+            echo "Room 13.json not generated; gate remains blocked"
           fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: room-v12-generated-schema
+          name: room-v13-generated-schema
           path: retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/12.json
           if-no-files-found: warn
           retention-days: 14

@@ -136,6 +136,84 @@ class LibraryRefreshRoundTripTest {
             }
         }
 
+    @Test fun fullRemovalRetiresIdentityAndVerifiedSafReimportRestoresPlayerData() =
+        runBlocking {
+            withLibrary { library, db, provider ->
+                val originalSource =
+                    BaseStorageFile(
+                        "Original.gba",
+                        100,
+                        Uri.parse("content://com.android.externalstorage.documents/tree/old/document/primary%3AC2A"),
+                    )
+                provider.files = listOf(originalSource)
+                library.indexLibrary()
+                val original = db.gameDao().selectShelfGames().first().single()
+                val edited =
+                    original.copy(
+                        customName = "My original cart",
+                        customCoverUri = "file:///private/cover.png",
+                        isFavorite = true,
+                        lastPlayedAt = 123L,
+                    )
+                db.gameDao().update(edited)
+                provider.files = emptyList()
+                assertEquals(1, library.indexLibrary().removed)
+                assertEquals(0, db.gameDao().selectShelfGames().first().size)
+                val retired = db.retiredCartridgeDao().selectAll().single()
+                assertEquals(edited.cartridgeId, retired.cartridgeId)
+                assertEquals(edited.fileUri, retired.fileUri)
+                assertEquals("My original cart", retired.displayName())
+                val returned =
+                    originalSource.copy(
+                        name = "Moved.gba",
+                        uri =
+                            Uri.parse(
+                                "content://com.android.externalstorage.documents/tree/new/document/primary%3AC2A",
+                            ),
+                    )
+                provider.files = listOf(returned)
+                library.indexLibrary()
+                val restored = db.gameDao().selectShelfGames().first().single()
+                assertEquals(original.cartridgeId, restored.cartridgeId)
+                assertEquals(returned.uri.toString(), restored.fileUri)
+                assertEquals("My original cart", restored.customName)
+                assertEquals("file:///private/cover.png", restored.customCoverUri)
+                assertEquals(true, restored.isFavorite)
+                assertEquals(123L, restored.lastPlayedAt)
+                assertEquals(original.saveFileName(), restored.saveFileName())
+                assertEquals(0, db.retiredCartridgeDao().selectAll().size)
+                library.indexLibrary()
+                assertEquals(1, db.gameDao().selectShelfGames().first().size)
+            }
+        }
+
+    @Test fun sameNameDifferentDocumentCannotStealRetiredIdentity() =
+        runBlocking {
+            withLibrary { library, db, provider ->
+                val original =
+                    BaseStorageFile(
+                        "Same.gba",
+                        100,
+                        Uri.parse("content://com.android.externalstorage.documents/document/primary%3Aoriginal"),
+                    )
+                provider.files = listOf(original)
+                library.indexLibrary()
+                val preservedId = db.gameDao().selectShelfGames().first().single().cartridgeId
+                provider.files = emptyList()
+                library.indexLibrary()
+                provider.files =
+                    listOf(
+                        original.copy(
+                            uri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3Aother"),
+                        ),
+                    )
+                library.indexLibrary()
+                val fresh = db.gameDao().selectShelfGames().first().single()
+                org.junit.Assert.assertNotEquals(preservedId, fresh.cartridgeId)
+                assertEquals(preservedId, db.retiredCartridgeDao().selectAll().single().cartridgeId)
+            }
+        }
+
     private suspend fun withLibrary(block: suspend (LemuroidLibrary, RetrogradeDatabase, FakeProvider) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val db = Room.inMemoryDatabaseBuilder(context, RetrogradeDatabase::class.java).allowMainThreadQueries().build()

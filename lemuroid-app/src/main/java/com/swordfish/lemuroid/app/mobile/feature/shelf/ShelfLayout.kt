@@ -204,11 +204,22 @@ data class ShelfLayout(
     fun reconcile(
         games: Map<String, String>,
         removeMissing: Boolean = false,
+        retainedUnavailableKeys: Set<String> = emptySet(),
     ): ShelfLayout {
         val existing = sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
+        val usedCellIds = sections.flatMap { it.cells }.map { it.id }.toMutableSet()
         val additions =
             games.filterKeys { it !in existing }.map { (key, title) ->
-                ShelfCell(id = "game:$key", gameKey = key, titleHint = title)
+                // A retired slot keeps its original cell ID. When another ROM
+                // uses the old URI, allocate a different ID for the new cell.
+                val base = "game:$key"
+                var candidate = base
+                var suffix = 1
+                while (!usedCellIds.add(candidate)) {
+                    candidate = "$base:$suffix"
+                    suffix++
+                }
+                ShelfCell(id = candidate, gameKey = key, titleHint = title)
             }
         return copy(
             sections =
@@ -216,7 +227,10 @@ data class ShelfLayout(
                     section.copy(
                         cells =
                             section.cells
-                                .filter { cell -> !removeMissing || cell.gameKey == null || cell.gameKey in games }
+                                .filter { cell ->
+                                    !removeMissing || cell.gameKey == null ||
+                                        cell.gameKey in games || cell.gameKey in retainedUnavailableKeys
+                                }
                                 .map { cell ->
                                     cell.copy(titleHint = games[cell.gameKey] ?: cell.titleHint)
                                 } + if (section.id == UNSORTED) additions else emptyList(),
@@ -388,6 +402,9 @@ data class ShelfLayout(
 
     private fun checkedTitle(title: String): String = title.trim().also { require(it.isNotEmpty() && it.length <= 80) }
 }
+
+/** Reserved presentation key for an unavailable cartridge, never a launchable URI. */
+fun retiredShelfKey(cartridgeId: String): String = "retired:$cartridgeId"
 
 /** Stable through Room ID churn. This hashes identity; it never rewrites the source URI. */
 fun shelfGameKey(
