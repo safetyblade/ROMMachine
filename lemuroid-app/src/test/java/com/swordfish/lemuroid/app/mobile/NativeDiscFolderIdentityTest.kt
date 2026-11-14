@@ -149,7 +149,13 @@ class NativeDiscFolderIdentityTest {
             ),
         )
         assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Example.iso", all))
-        assertNull(NativeDiscFolderIdentity.infer("Example.iso", "/ROMS/Xbox360/PS2/Example.iso", all + SystemID.PLAYSTATION_2))
+        assertNull(
+            NativeDiscFolderIdentity.infer(
+                "Example.iso",
+                "/ROMS/Xbox360/PS2/Example.iso",
+                all + SystemID.PLAYSTATION_2,
+            ),
+        )
         assertEquals(
             SystemID.XBOX,
             NativeDiscFolderIdentity.resolve(
