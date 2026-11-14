@@ -8,7 +8,10 @@ import com.swordfish.lemuroid.lib.core.CoreVariable
 object NativeGameSystems {
     fun enabled(): List<GameSystem> {
         val requested = BuildConfig.NATIVE_SYSTEMS.split(",").toSet()
-        return configurations().filter { it.id.dbname in requested }
+        // The shelf is a game collection, even when Xenia is not in this APK.
+        // Launch remains blocked by NativeEngineRegistry's real binary/manifest gate.
+        // Other experimental native systems stay gated by the packaged build.
+        return configurations().filter { it.id == SystemID.XBOX360 || it.id.dbname in requested }
     }
 
     fun configurations(): List<GameSystem> =
