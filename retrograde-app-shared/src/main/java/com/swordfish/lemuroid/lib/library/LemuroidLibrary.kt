@@ -201,8 +201,9 @@ class LemuroidLibrary(
             if (old.cartridgeId in activeIds) continue
             retrogradedb.gameDao().update(old.restore(candidate))
             retrogradedb.retiredCartridgeDao().delete(listOf(old))
-            accepted += CartridgeSourceMatch.Relocation(
-                old.formerGameId,
+            accepted +=
+                CartridgeSourceMatch.Relocation(
+                    old.formerGameId,
                 old.cartridgeId,
                 old.systemId,
                 old.fileUri,
