@@ -6,8 +6,8 @@ package com.rfandango.haku_x
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -26,14 +26,13 @@ import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
-import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
@@ -41,27 +40,28 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
-import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
+import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
-import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
-import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
-import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
-import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
-import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
+import java.io.File
 import kotlinx.coroutines.launch
 import org.libsdl.app.SDLActivity
-import java.io.File
 
 /** SDL owns the Vulkan surface and audio. A dedicated same-package process contains native crashes. */
 class NativeCoreActivity : SDLActivity() {
