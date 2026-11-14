@@ -108,7 +108,7 @@ class CartridgeSaveBindingTest {
             val name = uniqueName()
             val live = game(name, "content://fixture/live")
             val retired = RetiredCartridge.fromGame(game(name, "content://fixture/missing"), 10L)
-            val binding = CartridgeSaveBinding(dirs, { listOf(live) }, { listOf(retired) })
+            val binding = CartridgeSaveBinding(dirs, { listOf(retired) }, { listOf(live) })
             assertFalse(binding.mayImportLegacy(live, true))
             assertFalse(binding.mayImportLegacy(live, false))
         }
