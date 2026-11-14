@@ -60,7 +60,9 @@ internal class CartdeckDecalStore(private val context: Context) {
                     bounds.outHeight <= MAX_DECODE_DIMENSION &&
                     bounds.outWidth.toLong() * bounds.outHeight <= MAX_DECODE_PIXELS,
             ) { "Image dimensions are unsupported" }
-            val options = BitmapFactory.Options()
+            // Android's default inSampleSize is zero, which is invalid as a
+            // divisor on Robolectric and some decoding implementations.
+            val options = BitmapFactory.Options().apply { inSampleSize = 1 }
             while (
                 bounds.outWidth / options.inSampleSize > MAX_OUTPUT_DIMENSION ||
                 bounds.outHeight / options.inSampleSize > MAX_OUTPUT_DIMENSION
