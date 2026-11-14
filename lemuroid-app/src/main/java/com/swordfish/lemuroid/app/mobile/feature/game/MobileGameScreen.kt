@@ -188,20 +188,34 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
-        val useCoreFeedback =
-            appearance.lighting.mode == CartdeckLighting.MODE_FEEDBACK &&
-                !appearance.highContrast && !appearance.reducedMotion &&
+        val lightSessionAllowed =
+            !appearance.highContrast && !appearance.reducedMotion &&
                 !isLoading && !fullscreenWithGamepad && isResumed.value
-        DisposableEffect(viewModel, useCoreFeedback) {
-            viewModel.setReactiveLightingEnabled(useCoreFeedback)
-            onDispose { viewModel.setReactiveLightingEnabled(false) }
+        val useCoreFeedback =
+            lightSessionAllowed && appearance.lighting.mode == CartdeckLighting.MODE_FEEDBACK
+        val useControllerActivity =
+            lightSessionAllowed && appearance.lighting.mode == CartdeckLighting.MODE_CONTROLLER
+        DisposableEffect(viewModel, useCoreFeedback, useControllerActivity) {
+            viewModel.setReactiveLightingSources(
+                coreFeedback = useCoreFeedback,
+                controllerActivity = useControllerActivity,
+            )
+            onDispose {
+                viewModel.setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
+            }
         }
         val coreFeedback = viewModel.reactiveLightingStrength().collectAsState().value
+        val controllerActivity = viewModel.controllerActivityStrength().collectAsState().value
         val reactiveLightStrength =
             animateFloatAsState(
-                targetValue = if (useCoreFeedback) coreFeedback else 0f,
+                targetValue =
+                    when {
+                        useCoreFeedback -> coreFeedback
+                        useControllerActivity -> controllerActivity
+                        else -> 0f
+                    },
                 animationSpec = tween(durationMillis = 180),
-                label = "CARTDECK core feedback",
+                label = "CARTDECK input and core feedback",
             ).value
         val touchControllerSettingsState =
             viewModel

@@ -185,7 +185,15 @@ class GameViewModelTouchControls(
     private fun handleVirtualInputButton(event: InputEvent.Button) {
         if (pivotArcHoldGate.setSource(event.id, "touch", event.pressed)) return
         val action = if (event.pressed) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
-        retroGameView.retroGameView?.sendKeyEvent(action, event.id)
+        retroGameView.retroGameView?.let { gameView ->
+            gameView.sendKeyEvent(action, event.id)
+            // No new input route. The gate excludes the menu and repeated holds.
+            retroGameView.onAcceptedMappedButton(
+                source = "touch",
+                mappedKey = event.id,
+                action = action,
+            )
+        }
     }
 
     private fun handleVirtualInputDirection(

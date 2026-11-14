@@ -196,8 +196,13 @@ class BaseGameScreenViewModel(
     /** Read-only, game-session-only strength. Zero means ordinary static lighting. */
     fun reactiveLightingStrength(): StateFlow<Float> = retroGameView.reactiveLightingStrength
 
-    fun setReactiveLightingEnabled(enabled: Boolean) {
-        retroGameView.setReactiveLightingEnabled(enabled)
+    fun controllerActivityStrength(): StateFlow<Float> = retroGameView.controllerActivityStrength
+
+    fun setReactiveLightingSources(
+        coreFeedback: Boolean,
+        controllerActivity: Boolean,
+    ) {
+        retroGameView.setReactiveLightingSources(coreFeedback, controllerActivity)
     }
 
     fun getGameState(): Flow<GameViewModelRetroGameView.GameState> {
@@ -430,7 +435,7 @@ class BaseGameScreenViewModel(
     }
 
     override fun onCleared() {
-        retroGameView.setReactiveLightingEnabled(false)
+        retroGameView.setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
         pivotArcHeldInputGate.setEnabled(false)
         pivotArcHeldInputGate.setGripEnabled(false)
         super.onCleared()

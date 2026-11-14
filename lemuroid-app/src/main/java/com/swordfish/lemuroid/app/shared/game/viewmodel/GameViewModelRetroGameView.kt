@@ -85,8 +85,30 @@ class GameViewModelRetroGameView(
     private val reactiveLightingSession = CartdeckReactiveLightingSession(scope)
     val reactiveLightingStrength: StateFlow<Float> = reactiveLightingSession.strength
 
-    fun setReactiveLightingEnabled(enabled: Boolean) {
-        reactiveLightingSession.configure(enabled)
+    private val controllerLightingSession = CartdeckReactiveLightingSession(scope)
+    val controllerActivityStrength: StateFlow<Float> = controllerLightingSession.strength
+    private val mappedButtonActivity =
+        CartdeckMappedInputActivityGate { controllerLightingSession.onControllerActivity() }
+
+    fun setReactiveLightingSources(
+        coreFeedback: Boolean,
+        controllerActivity: Boolean,
+    ) {
+        reactiveLightingSession.configure(coreFeedback)
+        controllerLightingSession.configure(controllerActivity)
+        mappedButtonActivity.configure(controllerActivity)
+    }
+
+    /**
+     * Cosmetic observation ONLY after a mapped game button has been
+     * forwarded. Never alters the existing key-action result or port.
+     */
+    fun onAcceptedMappedButton(
+        source: String,
+        mappedKey: Int,
+        action: Int,
+    ) {
+        mappedButtonActivity.observe(source, mappedKey, action)
     }
 
     private val retroGameViewFlow = MutableStateFlow<GLRetroView?>(null)
@@ -388,12 +410,12 @@ class GameViewModelRetroGameView(
     }
 
     override fun onPause(owner: LifecycleOwner) {
-        reactiveLightingSession.configure(false)
+        setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
         super.onPause(owner)
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
-        reactiveLightingSession.configure(false)
+        setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
         super.onDestroy(owner)
     }
 
