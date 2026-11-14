@@ -68,6 +68,8 @@ object CartdeckCuratedDesigns {
             curatedDesignId = design.id,
             patternId = design.patternId,
             stampId = design.stampId,
+            decal = null,
+            lighting = CartdeckLighting(),
         )
     }
 }
