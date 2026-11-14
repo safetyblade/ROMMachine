@@ -150,6 +150,7 @@ abstract class LemuroidApplicationModule {
                     Migrations.VERSION_9_10,
                     Migrations.VERSION_10_11,
                     Migrations.VERSION_11_12,
+                    Migrations.VERSION_12_13,
                 )
                 .build()
 
