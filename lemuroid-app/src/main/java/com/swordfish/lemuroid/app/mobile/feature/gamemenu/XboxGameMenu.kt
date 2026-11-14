@@ -106,8 +106,8 @@ internal fun XboxGameMenu(
 internal fun XboxMenuControls(
     manager: TouchControllerSettingsManager,
     controllerId: TouchControllerID = TouchControllerID.XBOX,
-    onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
     physicalMapping: @Composable () -> Unit = {},
+    onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
 ) {
     var orientation by remember { mutableStateOf(TouchControllerSettingsManager.Orientation.PORTRAIT) }
     val density = LocalDensity.current
