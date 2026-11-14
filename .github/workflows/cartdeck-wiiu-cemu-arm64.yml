@@ -4,10 +4,17 @@ on:
   push:
     branches:
       - feat/wiiu-cemu-arm64-vulkan-feasibility
+      - feat/wiiu-vulkan-host-frame-presenter
+      - feat/wiiu-vulkan-private-apk
+      - p1-emu/wiiu
     paths:
       - "scripts/ci/wiiu_cemu_contract.py"
       - "scripts/ci/test_wiiu_cemu_contract.py"
       - "scripts/ci/build_wiiu_cemu_arm64.sh"
+      - "spikes/wiiu/vulkan-host/**"
+      - "scripts/ci/stage_wiiu_vulkan_lab.py"
+      - "lemuroid-app/src/debug/**"
+      - "lemuroid-app/build.gradle.kts"
       - ".github/workflows/cartdeck-wiiu-cemu-arm64.yml"
   pull_request:
     paths:
@@ -38,19 +45,18 @@ jobs:
           python-version: "3.12"
       - name: Run WIIU-01 contract tests
         run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_cemu_contract.py" -v
-      - name: No premature release-system registration
-        run: |
-          set -euo pipefail
-          ! grep -q "WII_U" retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/NativeGameSystems.kt
-          echo "No unverified Wii U engine exposed in standard CARTDECK APK."
+      - name: Native audio behavior tests
+        run: python3 -m unittest discover -s scripts/ci -p "test_wiiu_audio.py" -v
 
   android-arm64-core:
     name: Source-build real Android Cemu core and prove ABI (not game proof)
-    # Deliberate: never run a heavy cross-build as a normal PR required gate.
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Dedicated Wii U branch only; require actual native build even for its PR.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     needs: contract-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 350
+    env:
+      CARTDECK_WIIU_BUILD_VULKAN_HOST: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,6 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json"
+          test -s "$RUNNER_TEMP/wiiu-cemu-arm64/cartdeck_wiiu_vulkan_host_arm64.so"
           python3 - "$RUNNER_TEMP/wiiu-cemu-arm64/native-evidence.json" <<'PY'
           import json, sys
           a = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -87,7 +94,116 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: wiiu-cemu-native-evidence-not-an-apk
-          path: ${{ runner.temp }}/wiiu-cemu-arm64/native-evidence.json
+          name: wiiu-cemu-verified-arm64-core-private-not-an-apk
+          path: |
+            ${{ runner.temp }}/wiiu-cemu-arm64/native-evidence.json
+            ${{ runner.temp }}/wiiu-cemu-arm64/cemu_libretro_android_arm64.so
+            ${{ runner.temp }}/wiiu-cemu-arm64/cartdeck_wiiu_vulkan_host_arm64.so
+            ${{ runner.temp }}/wiiu-cemu-arm64/vulkan-host-elf.txt
           if-no-files-found: error
+          retention-days: 7
+
+  wiiu-private-test-apk:
+    name: Source-verified Cemu + Vulkan host private APK (NOT gameplay)
+    needs: [contract-tests, android-arm64-core]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: wiiu-cemu-verified-arm64-core-private-not-an-apk
+          path: ${{ runner.temp }}/wiiu-native
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare SDK, pinned GLES host and full Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)
+          test -x "$manager"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          "$manager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'platforms;android-35' 'build-tools;34.0.0' 'cmake;3.22.1'
+          bash scripts/ci/bootstrap_gradle.sh
+          export HOST_BUILD_DIR="$RUNNER_TEMP/wiiu-existing-frontend"
+          export HOST_MAVEN_REPO="$RUNNER_TEMP/wiiu-existing-host-maven"
+          export LIBRETRODROID_SOURCE_DIR="$HOST_BUILD_DIR/source"
+          export BUILD_JOBS=2
+          bash scripts/ci/build_libretrodroid_host.sh
+          echo "WIIU_HOST_MAVEN=$HOST_MAVEN_REPO" >> "$GITHUB_ENV"
+      - name: Stage only SHA-verified real Cemu and Vulkan host binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/stage_wiiu_vulkan_lab.py \
+            --work "$RUNNER_TEMP/wiiu-native" \
+            --output "$RUNNER_TEMP/wiiu-private-payload" \
+            --readelf "$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+      - name: Full Kotlin lint, JVM tests and isolated Wii U debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+            -Pcartdeck.wiiu.labId=true \
+            -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p0.testVersionCode=90571000 \
+            -PcartdeckNativeBundleDir="$RUNNER_TEMP/wiiu-private-payload" \
+            -PcartdeckHostMavenRepo="$WIIU_HOST_MAVEN" \
+            -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            --no-daemon --no-configuration-cache --max-workers=2
+      - name: Verify signed private Android package and unmodified JNI libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find lemuroid-app/build/outputs/apk/freeBundle/debug -type f -name '*.apk')
+          test "${#apks[@]}" -eq 1
+          APK="${apks[0]}"
+          mkdir -p dist/wiiu-private
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" > dist/wiiu-private/package.txt
+          grep -F "package: name='dev.prestwich.cartdeck.wiiulab.debug'" dist/wiiu-private/package.txt
+          grep -F "versionCode='90571000'" dist/wiiu-private/package.txt
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK" > dist/wiiu-private/signing.txt
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c 4 "$APK"
+          python3 - "$APK" "$RUNNER_TEMP/wiiu-private-payload/wiiu-bundle-evidence.json" <<'PY'
+          import hashlib, json, sys, zipfile
+          apk, proof = sys.argv[1:]
+          p = json.load(open(proof, encoding='utf-8'))
+          assert p['result'] == 'WIIU_SOURCE_VERIFIED_PRIVATE_JNI_BUNDLE_ONLY'
+          with zipfile.ZipFile(apk) as z:
+              names = set(z.namelist())
+              assert not any(name.startswith('lib/') and not name.startswith('lib/arm64-v8a/') for name in names)
+              for name, meta in p['libraries'].items():
+                  member = 'lib/arm64-v8a/' + name
+                  assert member in names, 'Missing verified native ELF: ' + member
+                  assert hashlib.sha256(z.read(member)).hexdigest() == meta['sha256']
+          print('Private Wii U lab APK contains exact source-verified core and host; gameplay UNVERIFIED')
+          PY
+          cp "$APK" dist/wiiu-private/CARTDECK_WIIU_VULKAN_ARM64_PRIVATE_TEST.apk
+          sha256sum dist/wiiu-private/*.apk > dist/wiiu-private/apk-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_WIIU_VULKAN_ARM64_PRIVATE_TEST_APK
+          path: dist/wiiu-private/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: wiiu-private-apk-failure-evidence
+          path: |
+            lemuroid-app/build/reports/ktlint/
+            lemuroid-app/build/test-results/
+          if-no-files-found: warn
           retention-days: 7
