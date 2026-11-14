@@ -65,13 +65,14 @@ class CartridgeMigrationTest {
 
         fun open() =
             Room.databaseBuilder(context, RetrogradeDatabase::class.java, name)
-                .addMigrations(Migrations.VERSION_11_12).allowMainThreadQueries().build()
+                .addMigrations(Migrations.VERSION_11_12, Migrations.VERSION_12_13).allowMainThreadQueries().build()
 
         val first = open()
         val identities =
             try {
                 val sql = first.openHelper.writableDatabase
-                assertEquals(12, sql.version)
+                assertEquals(13, sql.version)
+                assertTrue(first.retiredCartridgeDao().selectAll().isEmpty())
                 sql.query(
                     "SELECT id,cartridgeId,legacyFileName,legacySourceUri,customName,isFavorite FROM games ORDER BY id",
                 ).use {
