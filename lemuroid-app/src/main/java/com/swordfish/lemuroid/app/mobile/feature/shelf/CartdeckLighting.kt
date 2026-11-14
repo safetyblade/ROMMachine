@@ -1,6 +1,5 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -43,8 +42,10 @@ data class CartdeckLighting(
         return this
     }
 
-    fun active(zone: String, highContrast: Boolean = false): Boolean =
-        !highContrast && mode == MODE_STATIC && intensity > 0 && zone in zones
+    fun active(
+        zone: String,
+        highContrast: Boolean = false,
+    ): Boolean = !highContrast && mode == MODE_STATIC && intensity > 0 && zone in zones
 
     fun tint(accent: Color): Color =
         (colour?.let { Color(it.toInt()) } ?: accent).copy(alpha = (intensity / 100f) * 0.78f)
@@ -87,12 +88,13 @@ internal object CartdeckLightingGeometry {
             controls.take(12).forEach { control ->
                 val half = min(control.width * 0.22f, 15f)
                 val cx = control.center.x
-                strips += Rect(
-                    cx - half,
-                    control.bottom + margin,
-                    cx + half,
-                    control.bottom + margin + t,
-                )
+                strips +=
+                    Rect(
+                        cx - half,
+                        control.bottom + margin,
+                        cx + half,
+                        control.bottom + margin + t,
+                    )
             }
         }
         val blocked = listOf(video) + controls + protected
