@@ -311,7 +311,10 @@ class CartridgeExperienceTest {
 
     @Test fun originalFallbackNeedsNoArtworkAndDoesNotOfferFalseResume() {
         detail()
-        assertTrue("Cartridge title must remain accessible", compose.onAllNodesWithText("Atlas").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(
+            "Cartridge title must remain accessible",
+            compose.onAllNodesWithText("Atlas").fetchSemanticsNodes().isNotEmpty(),
+        )
         openArtworkSetup()
         compose.onNodeWithText("Reset Cover").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithText("Resume").assertDoesNotExist()
@@ -384,7 +387,10 @@ class CartridgeExperienceTest {
                 CartridgeLibraryTheme { CartridgeDetail(game, {}, {}, { _, _ -> }, {}) }
             }
         }
-        assertTrue("Cartridge title must remain accessible", compose.onAllNodesWithText("Atlas").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(
+            "Cartridge title must remain accessible",
+            compose.onAllNodesWithText("Atlas").fetchSemanticsNodes().isNotEmpty(),
+        )
         compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
     }
 
