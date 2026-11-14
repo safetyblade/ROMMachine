@@ -4,11 +4,24 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from xbox360_native_abi import require_jni_entry
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class Xbox360NativeTest(unittest.TestCase):
+    def test_jni_loader_must_be_a_defined_exported_function(self):
+        require_jni_entry('12: 00001000 128 FUNC GLOBAL DEFAULT 14 JNI_OnLoad')
+        for row in (
+            '12: 00000000 0 FUNC GLOBAL DEFAULT UND JNI_OnLoad',
+            '12: 00001000 128 FUNC LOCAL DEFAULT 14 JNI_OnLoad',
+            '12: 00001000 128 FUNC GLOBAL HIDDEN 14 JNI_OnLoad',
+            '12: 00001000 128 OBJECT GLOBAL DEFAULT 14 JNI_OnLoad',
+            '12: 00001000 128 FUNC GLOBAL DEFAULT 14 JNI_OnLoad_fake',
+        ):
+            with self.subTest(row=row), self.assertRaisesRegex(ValueError, 'defined, exported'):
+                require_jni_entry(row)
+
     def test_progress_does_not_promote_jit_or_present_to_gameplay(self):
         if not shutil.which('g++'):
             self.skipTest('C++ compiler required')

@@ -12,6 +12,7 @@ import zipfile
 
 from verify_hakux_native import SYSTEM
 from verify_gamecube_core import verify_android_elf
+from xbox360_native_abi import require_jni_entry
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 REVISION = '779680ade075d2d2a4c589c6a8d57a8e26c116c0'
@@ -45,8 +46,7 @@ def verify(directory, readelf):
             raise ValueError('Native build ID missing: ' + name)
         if name == CORE:
             symbols = subprocess.check_output([readelf, '--dyn-syms', '-W', str(path)], text=True)
-            if 'JNI_OnLoad' not in symbols:
-                raise ValueError('JNI entry missing')
+            require_jni_entry(symbols)
         result[name] = {'sha256': sha(path), 'build_id': build[1], 'needed': sorted(needed)}
     return result
 
