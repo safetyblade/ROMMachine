@@ -60,7 +60,7 @@ internal object CartdeckLightingGeometry {
         thickness: Float,
         gap: Float,
         settings: CartdeckLighting,
-        protected: List<Rect> = emptyList(),
+        protectedRects: List<Rect> = emptyList(),
     ): List<Rect> {
         if (settings.mode != CartdeckLighting.MODE_STATIC || settings.intensity == 0) return emptyList()
         if (frame.width <= thickness * 4 || frame.height <= thickness * 4) return emptyList()
@@ -97,7 +97,7 @@ internal object CartdeckLightingGeometry {
                     )
             }
         }
-        val blocked = listOf(video) + controls + protected
+        val blocked = listOf(video) + controls + protectedRects
         return strips.filter { strip ->
             strip.width > 0f && strip.height > 0f &&
                 strip.left >= frame.left && strip.right <= frame.right &&
@@ -131,7 +131,7 @@ internal fun DrawScope.drawCartdeckLighting(
             thickness = thickness,
             gap = clearance,
             settings = lighting,
-            protected = brand,
+            protectedRects = brand,
         )
     val colour = lighting.tint(accent)
     strips.forEach { strip ->
