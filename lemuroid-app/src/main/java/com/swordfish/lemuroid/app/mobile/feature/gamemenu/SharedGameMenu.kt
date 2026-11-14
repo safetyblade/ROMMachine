@@ -60,8 +60,11 @@ internal fun GameMenuTheme(
     val context = LocalContext.current
     // ShelfStore.read is suspend; load the saved palette without blocking composition.
     // Never overwrite a corrupt or newer shelf file while displaying the menu.
-    val saved =
-        produceState(initialValue = appearance ?: ShelfAppearance(), key1 = context, key2 = appearance) {
+    // A supplied live appearance takes precedence immediately. The saved
+    // palette is only loaded when the caller has no explicit appearance;
+    // produceState's initialValue is not reapplied on key changes.
+    val persisted =
+        produceState(initialValue = ShelfAppearance(), key1 = context, key2 = appearance == null) {
             if (appearance == null) {
                 try {
                     value = ShelfStore(context).read().appearance
@@ -72,7 +75,7 @@ internal fun GameMenuTheme(
                 }
             }
         }.value
-    AppTheme { CartridgeLibraryTheme(saved, content) }
+    AppTheme { CartridgeLibraryTheme(appearance ?: persisted, content) }
 }
 
 /** The established right-side panel, shared by the Activity menu and native overlay. */
