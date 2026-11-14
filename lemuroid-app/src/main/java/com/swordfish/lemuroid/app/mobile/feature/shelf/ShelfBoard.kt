@@ -493,7 +493,16 @@ fun ShelfBoard(
                                                     },
                                                     contentAlignment = Alignment.Center,
                                                 ) {
-                                                    if (arrange || cell?.gameKey != null) {
+                                                    if (cell?.gameKey != null && !arrange) {
+                                                        // Unavailable cartridges reserve their original shelf cell.
+                                                        // No launcher or misleading edit action is exposed until
+                                                        // an independently verified source is restored.
+                                                        Text(
+                                                            "Unavailable",
+                                                            color = colors.sectionText,
+                                                            fontSize = 10.sp,
+                                                        )
+                                                    } else if (arrange) {
                                                         TextButton(onClick = {
                                                             if (cell != null) {
                                                                 menu = item.section to cell
