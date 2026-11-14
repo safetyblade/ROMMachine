@@ -333,6 +333,13 @@ def execute(args):
     readelf = ndk / "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
     if not (ndk / "build/cmake/android.toolchain.cmake").is_file() or not readelf.is_file():
         raise ValueError("Pinned Android NDK " + NDK_REV + " not found in ANDROID_HOME")
+    if not (sdk / "cmake/3.31.6/bin/cmake").is_file():
+        raise ValueError("Pinned upstream requires Android SDK CMake 3.31.6")
+    # Upstream silently omits librashader when cargo is absent. A complete
+    # engineering engine must fail before building that reduced runtime.
+    rust = {"cargo": output("cargo", "--version"), "rustc": output("rustc", "--version")}
+    if "aarch64-linux-android" not in output("rustup", "target", "list", "--installed").splitlines():
+        raise ValueError("Rust Android ARM64 target missing; refusing reduced shader runtime")
     source = pinned_checkout(root / "source")
     submodules = output("git", "-C", source, "submodule", "status", "--recursive")
     shaderc = stage_shaderc_dependencies(source)
@@ -345,6 +352,7 @@ def execute(args):
         "upstream": UPSTREAM,
         "source_sha": SOURCE_SHA,
         "ndk": NDK_REV,
+        "rust_toolchain": rust,
         "submodules": submodules.splitlines(),
         "shaderc_dependencies": shaderc,
         "source_patches": [rust_linker_patch],
