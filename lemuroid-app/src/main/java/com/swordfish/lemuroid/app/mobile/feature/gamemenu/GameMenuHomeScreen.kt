@@ -19,6 +19,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
+import com.swordfish.lemuroid.app.shared.input.WiiControllerCompatibility
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
@@ -196,10 +197,12 @@ fun GameMenuControlsScreen(
     navController: NavController,
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
+    physicalControllerOptions: @Composable () -> Unit = {},
     controllerOptions: @Composable () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         WiiControllerPicker(gameMenuRequest, onResult)
+        physicalControllerOptions()
         controllerOptions()
         TiltControls(gameMenuRequest, onResult)
         val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
@@ -244,10 +247,17 @@ private fun WiiControllerPicker(
     if (gameMenuRequest.game.systemId != SystemID.WII.dbname) return
     val controllers = gameMenuRequest.coreConfig.controllerConfigs[0].orEmpty()
     if (controllers.size < 2) return
-    val selected =
-        controllers.indexOfFirst {
-            it.name == (gameMenuRequest.currentControllerName ?: controllers.first().name)
-        }.coerceAtLeast(0)
+    val chosen =
+        WiiControllerCompatibility.selectVerifiedOrFallback(
+            controllers.map { it.name }, gameMenuRequest.currentControllerName,
+        )
+    val selected = controllers.indexOfFirst { it.name == chosen }.coerceAtLeast(0)
+    val variant = WiiControllerCompatibility.variant(controllers[selected].name)
+    Text(
+        "Wii controller: ${WiiControllerCompatibility.help(variant)} " +
+            "CARTDECK restores your previously selected cartridge profile when supported. " +
+            "A generic Bluetooth pad does not provide Wii IR or motion automatically.",
+    )
     LemuroidSettingsList(
         title = { Text("Wii controller") },
         items = controllers.map { stringResource(id = it.displayName) },
