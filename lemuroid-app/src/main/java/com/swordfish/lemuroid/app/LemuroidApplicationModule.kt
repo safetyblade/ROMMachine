@@ -245,8 +245,8 @@ abstract class LemuroidApplicationModule {
             db: RetrogradeDatabase,
         ) = CartridgeSaveBinding(
             directoriesManager,
-            { db.gameDao().selectShelfGames().first() },
             { db.retiredCartridgeDao().selectAll() },
+            { db.gameDao().selectShelfGames().first() },
         )
 
         @Provides
