@@ -248,7 +248,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.system = root + "/system";
     session.save = root + "/saves";
     session.disc = disc;
-    stop_requested.store(false);
+    if (stop_requested.load()) return "WIIU_CANCELLED_BEFORE_START";
     frame_count.store(0);
     pressed_buttons.store(0);
     for (auto& axis : axes) axis.store(0);
@@ -278,10 +278,11 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.initialized = true;
     retro_game_info game{};
     game.path = session.disc.c_str();
-    session.loaded = session.core.load_game(&game);
+    session.loaded = !stop_requested.load() && session.core.load_game(&game);
     if (!session.loaded) session.error = "WIIU_CORE_LOAD_FAILED";
     if (session.loaded && (!session.got_hw || !session.negotiation))
         session.error = "WIIU_VULKAN_RENDER_REQUEST_MISSING";
+    if (session.error.empty() && stop_requested.load()) session.error = "WIIU_CANCELLED";
     if (session.error.empty() &&
         !session.presenter.initialize(window, session.negotiation, &session.error))
         session.error = "WIIU_VULKAN_INIT_" + session.error;
@@ -367,4 +368,12 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePoint
     pointer_x.store(static_cast<int16_t>(x));
     pointer_y.store(static_cast<int16_t>(y));
     pointer_down.store(down);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepare(
+    JNIEnv*, jobject) {
+    // UI prepares before starting the VM thread. A subsequent stop must never
+    // be erased by a late-starting nativeRun after Surface destruction/pause.
+    stop_requested.store(false);
 }

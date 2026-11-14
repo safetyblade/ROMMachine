@@ -22,7 +22,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private lateinit var renderSurface: SurfaceView
     private lateinit var status: TextView
     private var loaded = false
+    @Volatile
     private var running = false
+    @Volatile
     private var stopping = false
 
     private external fun nativeRun(
@@ -33,6 +35,8 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     ): String
 
     private external fun nativeStop()
+
+    private external fun nativePrepare()
 
     private external fun nativeAxis(
         axis: Int,
@@ -99,6 +103,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             return
         }
         running = true
+        nativePrepare()
         report("WIIU_VULKAN_START_REQUESTED: real game frames not yet established")
         Thread(
             {
@@ -144,6 +149,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onPause() {
+        stopping = true
+        if (loaded) runCatching { nativeStop() }
+        super.onPause()
     }
 
     override fun onDestroy() {
