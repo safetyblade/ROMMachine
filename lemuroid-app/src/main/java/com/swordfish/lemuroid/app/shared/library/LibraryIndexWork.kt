@@ -68,7 +68,11 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
                         )
                         val report = lemuroidLibrary.indexLibrary { phase = it }
                         phase = "shelf_reconciliation"
-                        journal.reconcile(retrogradeDb.gameDao().selectShelfGames().first(), shelf)
+                        journal.reconcile(
+                            retrogradeDb.gameDao().selectShelfGames().first(),
+                            shelf,
+                            retrogradeDb.retiredCartridgeDao().selectAll(),
+                        )
                         report
                     }
                 }
@@ -100,7 +104,7 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
     }
 
     companion object {
-        private val refreshLock = Mutex()
+        internal val refreshLock = Mutex()
     }
 
     @dagger.Module(subcomponents = [Subcomponent::class])
