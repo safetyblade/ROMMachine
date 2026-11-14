@@ -2,6 +2,8 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.graphics.RectF
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -59,7 +61,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
@@ -167,6 +172,36 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         // decorative physical-shell artwork while keeping game input alive.
         // Any enabled-controller disconnect automatically restores touch.
         val fullscreenWithGamepad = isLandscape && !touchControlsVisibleState.value
+
+        // The core-feedback session is RESUMED-only and is disabled while
+        // loading or when the fullscreen controller layout hides the shell.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val isResumed =
+            remember(lifecycleOwner) {
+                mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+            }
+        DisposableEffect(lifecycleOwner) {
+            val observer =
+                LifecycleEventObserver { _, _ ->
+                    isResumed.value = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+                }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+        val useCoreFeedback =
+            appearance.lighting.mode == CartdeckLighting.MODE_FEEDBACK &&
+                !appearance.highContrast && !appearance.reducedMotion &&
+                !isLoading && !fullscreenWithGamepad && isResumed.value
+        DisposableEffect(viewModel, useCoreFeedback) {
+            viewModel.setReactiveLightingEnabled(useCoreFeedback)
+            onDispose { viewModel.setReactiveLightingEnabled(false) }
+        }
+        val coreFeedback = viewModel.reactiveLightingStrength().collectAsState().value
+        val reactiveLightStrength by animateFloatAsState(
+            targetValue = if (useCoreFeedback) coreFeedback else 0f,
+            animationSpec = tween(durationMillis = 180),
+            label = "CARTDECK core feedback",
+        )
         val touchControllerSettingsState =
             viewModel
                 .getTouchControlsSettings(LocalDensity.current, WindowInsets.displayCutout)
@@ -548,6 +583,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     decal = if (appearance.highContrast) null else appearance.decal,
                     lighting = appearance.lighting,
                     highContrast = appearance.highContrast,
+                    feedbackStrength = reactiveLightStrength,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
