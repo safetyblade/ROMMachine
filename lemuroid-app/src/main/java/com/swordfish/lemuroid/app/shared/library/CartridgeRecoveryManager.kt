@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.library
 
 import android.content.Context
+import android.util.AtomicFile
 import androidx.room.withTransaction
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartridgeFacing
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
 /**
  * C2B: user-confirmed reassociation of an already indexed ROM source.
@@ -62,6 +64,9 @@ class CartridgeRecoveryManager(
             requireUnusedCandidate(candidate)
             val candidateKey = shelfGameKey(candidate.systemId, candidate.fileUri)
             verifyDefaultShelfCandidate(shelf.read(), original, candidateKey)
+            // Block implicit legacy basename import *before* changing Room:
+            // source ownership and historical progress are distinct decisions.
+            blockAutomaticLegacyForManualSource(original.cartridgeId)
             // The transaction cannot begin until a durable recovery intent is
             // written. If interrupted, ordinary startup journal replay repairs
             // the shelf according to the actual committed Room state.
@@ -89,6 +94,28 @@ class CartridgeRecoveryManager(
             // A failure here retains the journal; startup/retry will replay.
             val after = inventory()
             journal.reconcile(after.available, shelf, after.retired)
+        }
+    }
+
+    private fun blockAutomaticLegacyForManualSource(cartridgeId: String) {
+        val file = File(directories.getSaveBindingsDirectory(), "$cartridgeId/manual-source-binding.block")
+        val atomic = AtomicFile(file)
+        if (file.isFile || File(file.path + ".bak").isFile) {
+            check(atomic.openRead().bufferedReader().use { it.readText() } == "manual-source-recovery-v1") {
+                "Unknown manual source recovery guard"
+            }
+            return
+        }
+        if (!file.parentFile!!.isDirectory && !file.parentFile!!.mkdirs()) {
+            throw IOException("Cannot protect manual source save ownership")
+        }
+        val stream = atomic.startWrite()
+        try {
+            stream.write("manual-source-recovery-v1".toByteArray(Charsets.UTF_8))
+            atomic.finishWrite(stream)
+        } catch (error: Exception) {
+            atomic.failWrite(stream)
+            throw error
         }
     }
 
