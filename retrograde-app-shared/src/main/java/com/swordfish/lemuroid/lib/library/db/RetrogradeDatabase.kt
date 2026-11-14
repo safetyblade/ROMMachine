@@ -24,12 +24,14 @@ import androidx.room.RoomDatabase
 import com.swordfish.lemuroid.lib.library.db.dao.DataFileDao
 import com.swordfish.lemuroid.lib.library.db.dao.GameDao
 import com.swordfish.lemuroid.lib.library.db.dao.GameSearchDao
+import com.swordfish.lemuroid.lib.library.db.dao.RetiredCartridgeDao
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
 
 @Database(
-    entities = [Game::class, DataFile::class],
-    version = 12,
+    entities = [Game::class, DataFile::class, RetiredCartridge::class],
+    version = 13,
     exportSchema = true,
 )
 abstract class RetrogradeDatabase : RoomDatabase() {
@@ -40,6 +42,8 @@ abstract class RetrogradeDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     abstract fun dataFileDao(): DataFileDao
+
+    abstract fun retiredCartridgeDao(): RetiredCartridgeDao
 
     fun gameSearchDao() = GameSearchDao(gameSearchDaoInternal())
 
