@@ -4,12 +4,25 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import tarfile
+from build_xbox360_native import source_archive_filter
 from xbox360_native_abi import require_jni_entry
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class Xbox360NativeTest(unittest.TestCase):
+    def test_corresponding_source_keeps_required_shader_build_scripts(self):
+        for name in ('XenDroid/emulator-core/src/main/cpp/xenia/tools/build/compile_shader_spirv.py',
+                     'XenDroid/emulator-core/src/main/cpp/xenia/tools/build/gen_android_spirv.py',
+                     'XenDroid/build.gradle'):
+            entry = tarfile.TarInfo(name)
+            self.assertIs(entry, source_archive_filter(entry))
+        for name in ('XenDroid/emulator-core/build/intermediates/native.so',
+                     'XenDroid/app/build/output.apk', 'XenDroid/.git/config',
+                     'XenDroid/emulator-core/.cxx/cache'):
+            self.assertIsNone(source_archive_filter(tarfile.TarInfo(name)))
+
     def test_jni_loader_must_be_a_defined_exported_function(self):
         require_jni_entry('12: 00001000 128 FUNC GLOBAL DEFAULT 14 JNI_OnLoad')
         for row in (

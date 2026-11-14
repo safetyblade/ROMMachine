@@ -51,6 +51,17 @@ def verify(directory, readelf):
     return result
 
 
+def source_archive_filter(member):
+    # Keep source directories named build, notably xenia/tools/build: those
+    # scripts are required to regenerate the guest SPIR-V shader headers.
+    parts = pathlib.PurePosixPath(member.name).parts[1:]
+    if any(part in {'.git', '.gradle', '.cxx'} for part in parts):
+        return None
+    if parts[:1] == ('build',) or parts[:2] in {('app', 'build'), ('emulator-core', 'build')}:
+        return None
+    return member
+
+
 def main():
     output = pathlib.Path(sys.argv[1]).resolve()
     work = pathlib.Path(os.environ.get('X360_BUILD_ROOT', ROOT / 'work/xbox360-native')).resolve()
@@ -117,7 +128,7 @@ def main():
     (output / 'xenia.properties').write_text(''.join(k+'='+v+'\n' for k,v in manifest.items()))
     (output / 'sha256.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in output.iterdir() if p.is_file()))
     with tarfile.open(output / 'corresponding-source.tar.xz', 'w:xz', preset=1) as archive:
-        archive.add(source, arcname='XenDroid', filter=lambda t: None if '.git' in pathlib.PurePosixPath(t.name).parts or 'build' in pathlib.PurePosixPath(t.name).parts or '.cxx' in pathlib.PurePosixPath(t.name).parts else t)
+        archive.add(source, arcname='XenDroid', filter=source_archive_filter)
 
 
 if __name__ == '__main__':
