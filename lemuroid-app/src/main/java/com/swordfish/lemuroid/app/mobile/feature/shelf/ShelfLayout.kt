@@ -204,6 +204,7 @@ data class ShelfLayout(
     fun reconcile(
         games: Map<String, String>,
         removeMissing: Boolean = false,
+        retainedUnavailableKeys: Set<String> = emptySet(),
     ): ShelfLayout {
         val existing = sections.flatMap { it.cells }.mapNotNull { it.gameKey }.toSet()
         val usedCellIds = sections.flatMap { it.cells }.map { it.id }.toMutableSet()
@@ -226,7 +227,10 @@ data class ShelfLayout(
                     section.copy(
                         cells =
                             section.cells
-                                .filter { cell -> !removeMissing || cell.gameKey == null || cell.gameKey in games }
+                                .filter { cell ->
+                                    !removeMissing || cell.gameKey == null ||
+                                        cell.gameKey in games || cell.gameKey in retainedUnavailableKeys
+                                }
                                 .map { cell ->
                                     cell.copy(titleHint = games[cell.gameKey] ?: cell.titleHint)
                                 } + if (section.id == UNSORTED) additions else emptyList(),
