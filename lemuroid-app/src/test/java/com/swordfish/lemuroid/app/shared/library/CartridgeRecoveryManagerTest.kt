@@ -29,8 +29,7 @@ class CartridgeRecoveryManagerTest {
     private fun cartridge(
         uri: String,
         name: String,
-    ) =
-        Game(
+    ) = Game(
             fileName = "$name.gba",
             fileUri = uri,
             title = name,
@@ -99,8 +98,8 @@ class CartridgeRecoveryManagerTest {
                 val binding =
                     CartridgeSaveBinding(
                         directories,
-                        { db.gameDao().selectShelfGames().first() },
                         { db.retiredCartridgeDao().selectAll() },
+                        { db.gameDao().selectShelfGames().first() },
                     )
                 assertFalse(binding.mayImportLegacy(result, true))
                 val cells = shelf.read().sections.flatMap { it.cells }
