@@ -1,0 +1,445 @@
+{
+  "provenance": {
+    "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-csv.zip",
+    "sha256": "9797a394d465fe79e7d96a9cd08698ae9ce18bd842b304ffe65d27d1c7fcca47",
+    "size_bytes": 54589919,
+    "licence": "CC BY 4.0",
+    "attribution": "Data: Title Screen (https://titlescreen.org), CC BY 4.0"
+  },
+  "tables": [
+    {
+      "filename": "works.csv",
+      "columns": [
+        "id",
+        "title",
+        "first_year",
+        "first_month",
+        "first_day",
+        "first_platform_id",
+        "first_platform_status",
+        "first_platforms",
+        "developer",
+        "genre",
+        "max_players",
+        "franchise",
+        "kind",
+        "releases",
+        "platforms"
+      ],
+      "rows": 85564,
+      "sample": [
+        {
+          "id": "w1bns9jk",
+          "title": "!Clik!",
+          "first_year": "2008",
+          "first_month": "1",
+          "first_day": "",
+          "first_platform_id": "nes",
+          "first_platform_status": "single",
+          "first_platforms": "nes",
+          "developer": "Sly Dog Studios",
+          "genre": "Action",
+          "max_players": "1",
+          "franchise": "",
+          "kind": "game",
+          "releases": "1",
+          "platforms": "nes"
+        },
+        {
+          "id": "wt8787wf",
+          "title": "#1 Anagrams",
+          "first_year": "2021",
+          "first_month": "5",
+          "first_day": "",
+          "first_platform_id": "switch",
+          "first_platform_status": "single",
+          "first_platforms": "switch",
+          "developer": "Eclipse Games",
+          "genre": "Board, card and tabletop",
+          "max_players": "1",
+          "franchise": "",
+          "kind": "game",
+          "releases": "1",
+          "platforms": "switch"
+        },
+        {
+          "id": "w0sv928q",
+          "title": "#1 Crosswords",
+          "first_year": "2021",
+          "first_month": "2",
+          "first_day": "",
+          "first_platform_id": "switch",
+          "first_platform_status": "single",
+          "first_platforms": "switch",
+          "developer": "Eclipse Games",
+          "genre": "Puzzle",
+          "max_players": "1",
+          "franchise": "",
+          "kind": "game",
+          "releases": "1",
+          "platforms": "switch"
+        }
+      ]
+    },
+    {
+      "filename": "releases.csv",
+      "columns": [
+        "id",
+        "work_id",
+        "platform_id",
+        "platform",
+        "region",
+        "title",
+        "title_latin",
+        "year",
+        "month",
+        "day",
+        "date_basis",
+        "publisher",
+        "developer",
+        "genre",
+        "players_max",
+        "serial",
+        "licensed",
+        "media",
+        "dumps"
+      ],
+      "rows": 151493,
+      "sample": [
+        {
+          "id": "reyhn7dc",
+          "work_id": "weyhn7dc",
+          "platform_id": "32x",
+          "platform": "Sega 32X",
+          "region": "EU",
+          "title": "After Burner Complete",
+          "title_latin": "After Burner Complete",
+          "year": "1995",
+          "month": "1",
+          "day": "",
+          "date_basis": "release",
+          "publisher": "Sega of America",
+          "developer": "Rutubo Games",
+          "genre": "Shooter",
+          "players_max": "1",
+          "serial": "MK-84507-00",
+          "licensed": "commercial",
+          "media": "cartridge",
+          "dumps": "1"
+        },
+        {
+          "id": "reye6kz3",
+          "work_id": "weyhn7dc",
+          "platform_id": "32x",
+          "platform": "Sega 32X",
+          "region": "JP",
+          "title": "After Burner Complete",
+          "title_latin": "After Burner Complete",
+          "year": "1995",
+          "month": "1",
+          "day": "13",
+          "date_basis": "release",
+          "publisher": "Sega of America",
+          "developer": "Rutubo Games",
+          "genre": "Shooter",
+          "players_max": "1",
+          "serial": "MK-84507-00",
+          "licensed": "commercial",
+          "media": "cartridge",
+          "dumps": "1"
+        },
+        {
+          "id": "r56cfkjd",
+          "work_id": "weyhn7dc",
+          "platform_id": "32x",
+          "platform": "Sega 32X",
+          "region": "US",
+          "title": "After Burner Complete",
+          "title_latin": "After Burner Complete",
+          "year": "1995",
+          "month": "1",
+          "day": "",
+          "date_basis": "release",
+          "publisher": "Sega of America",
+          "developer": "Rutubo Games",
+          "genre": "Shooter",
+          "players_max": "1",
+          "serial": "MK-84507-00",
+          "licensed": "commercial",
+          "media": "cartridge",
+          "dumps": "1"
+        }
+      ]
+    },
+    {
+      "filename": "dumps.csv",
+      "columns": [
+        "id",
+        "release_id",
+        "platform_id",
+        "name",
+        "source",
+        "dat",
+        "region",
+        "serial",
+        "set_name",
+        "parent",
+        "identity",
+        "identity_kind",
+        "size",
+        "fp1",
+        "round_trip"
+      ],
+      "rows": 159056,
+      "sample": [
+        {
+          "id": "1",
+          "release_id": "reyhn7dc",
+          "platform_id": "32x",
+          "name": "After Burner Complete (Europe)",
+          "source": "no-intro",
+          "dat": "Sega - 32X",
+          "region": "Europe",
+          "serial": "MK-84507-00",
+          "set_name": "",
+          "parent": "",
+          "identity": "c7d56cc75dc9a5206fda6a080cbedae9f48c82bc",
+          "identity_kind": "file",
+          "size": "2097152",
+          "fp1": "",
+          "round_trip": ""
+        },
+        {
+          "id": "2",
+          "release_id": "reye6kz3",
+          "platform_id": "32x",
+          "name": "After Burner Complete (Japan, USA) (En)",
+          "source": "no-intro",
+          "dat": "Sega - 32X",
+          "region": "Japan",
+          "serial": "MK-84507-00",
+          "set_name": "",
+          "parent": "",
+          "identity": "9cf575feb036e2f26e78350154d5eb2fd3825325",
+          "identity_kind": "file",
+          "size": "2097152",
+          "fp1": "",
+          "round_trip": ""
+        },
+        {
+          "id": "3",
+          "release_id": "r07xp093",
+          "platform_id": "32x",
+          "name": "Amazing Spider-Man, The - Web of Fire (USA)",
+          "source": "no-intro",
+          "dat": "Sega - 32X",
+          "region": "USA",
+          "serial": "MK-84517-00",
+          "set_name": "",
+          "parent": "",
+          "identity": "7cc2ea1e10f110338ad880bd3e7ff3bce72e7e9e",
+          "identity_kind": "file",
+          "size": "3145728",
+          "fp1": "",
+          "round_trip": ""
+        }
+      ]
+    },
+    {
+      "filename": "file_hashes.csv",
+      "columns": [
+        "dump_id",
+        "seq",
+        "role",
+        "form",
+        "size",
+        "crc32",
+        "sha1",
+        "md5",
+        "fp1",
+        "source",
+        "status",
+        "confirmations",
+        "first_seen",
+        "last_seen"
+      ],
+      "rows": 477822,
+      "sample": [
+        {
+          "dump_id": "1",
+          "seq": "1",
+          "role": "file",
+          "form": "canon1",
+          "size": "2097152",
+          "crc32": "029106f5",
+          "sha1": "c7d56cc75dc9a5206fda6a080cbedae9f48c82bc",
+          "md5": "a8e05bd3cdf97e1811ebd6d52c4371a7",
+          "fp1": "",
+          "source": "dat",
+          "status": "dat",
+          "confirmations": "0",
+          "first_seen": "2026-10-09",
+          "last_seen": "2026-10-09"
+        },
+        {
+          "dump_id": "2",
+          "seq": "1",
+          "role": "file",
+          "form": "canon1",
+          "size": "2097152",
+          "crc32": "204044c4",
+          "sha1": "9cf575feb036e2f26e78350154d5eb2fd3825325",
+          "md5": "ec9529858cc7961b39f5382b2f657b8f",
+          "fp1": "",
+          "source": "dat",
+          "status": "dat",
+          "confirmations": "0",
+          "first_seen": "2026-10-09",
+          "last_seen": "2026-10-09"
+        },
+        {
+          "dump_id": "3",
+          "seq": "1",
+          "role": "file",
+          "form": "canon1",
+          "size": "3145728",
+          "crc32": "29dce257",
+          "sha1": "7cc2ea1e10f110338ad880bd3e7ff3bce72e7e9e",
+          "md5": "a60b0838a776966e17a8f10b94baddef",
+          "fp1": "",
+          "source": "dat",
+          "status": "dat",
+          "confirmations": "0",
+          "first_seen": "2026-10-09",
+          "last_seen": "2026-10-09"
+        }
+      ]
+    },
+    {
+      "filename": "dump_files.csv",
+      "columns": [
+        "dump_id",
+        "name",
+        "size",
+        "crc32",
+        "sha1",
+        "md5"
+      ],
+      "rows": 467604,
+      "sample": [
+        {
+          "dump_id": "1",
+          "name": "After Burner Complete (Europe).32x",
+          "size": "2097152",
+          "crc32": "029106F5",
+          "sha1": "C7D56CC75DC9A5206FDA6A080CBEDAE9F48C82BC",
+          "md5": "A8E05BD3CDF97E1811EBD6D52C4371A7"
+        },
+        {
+          "dump_id": "2",
+          "name": "After Burner Complete (Japan, USA) (En).32x",
+          "size": "2097152",
+          "crc32": "204044C4",
+          "sha1": "9CF575FEB036E2F26E78350154D5EB2FD3825325",
+          "md5": "EC9529858CC7961B39F5382B2F657B8F"
+        },
+        {
+          "dump_id": "3",
+          "name": "Amazing Spider-Man, The - Web of Fire (USA).32x",
+          "size": "3145728",
+          "crc32": "29DCE257",
+          "sha1": "7CC2EA1E10F110338AD880BD3E7FF3BCE72E7E9E",
+          "md5": "A60B0838A776966E17A8F10B94BADDEF"
+        }
+      ]
+    },
+    {
+      "filename": "companies.csv",
+      "columns": [
+        "id",
+        "name",
+        "published",
+        "developed",
+        "wikidata"
+      ],
+      "rows": 15231,
+      "sample": [
+        {
+          "id": "c0kr51cm",
+          "name": "++Good Games",
+          "published": "3",
+          "developed": "0",
+          "wikidata": ""
+        },
+        {
+          "id": "crmc7gv7",
+          "name": "007325",
+          "published": "0",
+          "developed": "0",
+          "wikidata": ""
+        },
+        {
+          "id": "cqhmkfm8",
+          "name": "07th Expansion",
+          "published": "0",
+          "developed": "11",
+          "wikidata": ""
+        }
+      ]
+    },
+    {
+      "filename": "platforms.csv",
+      "columns": [
+        "id",
+        "name",
+        "manufacturer",
+        "generation",
+        "kind",
+        "addon_of",
+        "launch_year",
+        "end_year",
+        "media",
+        "title_only"
+      ],
+      "rows": 62,
+      "sample": [
+        {
+          "id": "channelf",
+          "name": "Fairchild Channel F",
+          "manufacturer": "Fairchild",
+          "generation": "2",
+          "kind": "home",
+          "addon_of": "",
+          "launch_year": "1976",
+          "end_year": "",
+          "media": "cartridge",
+          "title_only": "0"
+        },
+        {
+          "id": "a2600",
+          "name": "Atari 2600",
+          "manufacturer": "Atari",
+          "generation": "2",
+          "kind": "home",
+          "addon_of": "",
+          "launch_year": "1977",
+          "end_year": "",
+          "media": "cartridge",
+          "title_only": "0"
+        },
+        {
+          "id": "studio2",
+          "name": "RCA Studio II",
+          "manufacturer": "RCA",
+          "generation": "2",
+          "kind": "home",
+          "addon_of": "",
+          "launch_year": "1977",
+          "end_year": "",
+          "media": "cartridge",
+          "title_only": "0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "archive": {
+    "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-csv.zip",
+    "sha256": "9797a394d465fe79e7d96a9cd08698ae9ce18bd842b304ffe65d27d1c7fcca47",
+    "size_bytes": 54589919,
+    "licence": "CC BY 4.0",
+    "attribution": "Data: Title Screen (https://titlescreen.org), CC BY 4.0"
+  },
+  "master_input_records": 787,
+  "source_tables_with_direct_title_platform_genre": [
+    "releases.csv"
+  ],
+  "outcome_counts": {
+    "SOURCE_MATCH_PENDING": 115,
+    "MATCHED_PROVISIONAL_REVIEW": 672
+  },
+  "source_model_requires_relational_join": false,
+  "decision": "Research evidence only. NO master mutations or game/DeckFit QA implied.",
+  "next": "If relational tables: inspect archive_schema_inventory.json and implement exact game/release/platform/genre joins."
+}
