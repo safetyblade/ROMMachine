@@ -170,12 +170,15 @@ internal fun SharedGameMenuHome(
     onAction: (GameMenuAction) -> Unit,
     canResume: Boolean = true,
 ) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    val resumeFocus = remember { FocusRequester() }
+    val recoveryFocus = remember { FocusRequester() }
+    LaunchedEffect(canResume) {
+        if (canResume) resumeFocus.requestFocus() else recoveryFocus.requestFocus()
+    }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Button(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(focus),
+                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(resumeFocus),
                 onClick = { onAction(GameMenuAction.RESUME) },
                 enabled = canResume,
             ) {
@@ -183,7 +186,9 @@ internal fun SharedGameMenuHome(
                 Text(GameMenuAction.RESUME.label)
             }
             if (!canResume && capabilities.advanced) {
-                GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
+                Box(Modifier.focusRequester(recoveryFocus)) {
+                    GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
+                }
             }
             capabilities.homeActions().filterNot {
                 it == GameMenuAction.RESUME || it == GameMenuAction.RETURN_TO_SHELF
