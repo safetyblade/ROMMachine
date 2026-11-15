@@ -70,6 +70,12 @@ class GameplayMenuHostContractTest {
         session.open()
         assertEquals(GameplayMenuSessionStatus.ERROR, session.resume().status)
         assertTrue(session.snapshot.message.orEmpty().contains("thread unavailable"))
+        host.resumeResult = GameplayMenuCommandResult.Completed
+        assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
+        assertEquals(
+            listOf(GameplayMenuCommand.PAUSE, GameplayMenuCommand.RESUME, GameplayMenuCommand.RESUME),
+            host.commands,
+        )
     }
 
     @Test
