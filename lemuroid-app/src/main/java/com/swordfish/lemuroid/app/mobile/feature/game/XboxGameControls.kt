@@ -35,8 +35,6 @@ import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.PadKit
 import gg.padkit.inputevents.InputEvent
-import kotlin.math.ceil
-import kotlin.math.floor
 import android.graphics.Rect as AndroidRect
 
 /** The standard CARTDECK shell and PadKit own input; SDL only supplies the game surface beneath it. */
@@ -239,12 +237,15 @@ fun XboxGameControls(
                                         measured.top + fit.bottom,
                                     )
                                 if (video.value != fitted) video.value = fitted
-                                val left = ceil(fitted.left).toInt()
-                                val top = ceil(fitted.top).toInt()
-                                val right = floor(fitted.right).toInt()
-                                val bottom = floor(fitted.bottom).toInt()
-                                if (right > left && bottom > top) {
-                                    onViewport(AndroidRect(left, top, right, bottom))
+                                NativeViewportPolicy.inwardPixels(
+                                    fitted.left,
+                                    fitted.top,
+                                    fitted.right,
+                                    fitted.bottom,
+                                )?.let { pixels ->
+                                    onViewport(
+                                        AndroidRect(pixels.left, pixels.top, pixels.right, pixels.bottom),
+                                    )
                                 }
                             }
                         },
