@@ -354,9 +354,13 @@ class GameViewModelInput(
                 val bindKeyCode = bindings(device)[InputKey(keyCode)]?.keyCode ?: keyCode
 
                 if (port == 0) {
-                    if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE && action == KeyEvent.ACTION_DOWN) {
-                        pivotArcHoldGate.clear()
-                        sideEffects.showMenu(tilt, this)
+                    // MODE belongs to CARTDECK, never to the guest. Consume BOTH
+                    // transitions so a released Guide/Home key cannot stick in-game.
+                    if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
+                        if (action == KeyEvent.ACTION_DOWN) {
+                            pivotArcHoldGate.clear()
+                            sideEffects.showMenu(tilt, this)
+                        }
                         return@safeCollect
                     }
 
@@ -366,7 +370,9 @@ class GameViewModelInput(
                         pressedKeys.remove(keyCode)
                     }
 
-                    shortcuts[device]?.forEach { shortcut ->
+                    // Trigger a chord on its DOWN edge only. A released key must
+                    // not reopen the menu or replay a quick-save/quick-load.
+                    if (action == KeyEvent.ACTION_DOWN) shortcuts[device]?.forEach { shortcut ->
                         if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
                             when (shortcut.type) {
                                 GameShortcutType.MENU -> {
