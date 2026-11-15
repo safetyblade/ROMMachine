@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'native/ps3/**'
+      - 'lemuroid-app/src/**/ps3/**'
+      - 'retrograde-app-shared/src/**/ps3/**'
       - 'scripts/ps3/**'
       - '.github/workflows/cartdeck-ps3-source.yml'
   workflow_dispatch:

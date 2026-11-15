@@ -168,7 +168,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             connected,
                             game,
                             onGripPressed = { slot, down, codes ->
-                                if (down && !menu && this@Ps3RuntimeActivity.foreground) gripSlots[slot] = codes else gripSlots.remove(slot)
+                                if (down && !menu && this@Ps3RuntimeActivity.foreground) {
+                                    gripSlots[slot] = codes
+                                } else {
+                                    gripSlots.remove(
+                                        slot,
+                                    )
+                                }
                                 send(0)
                             },
                         ) { viewport ->
@@ -359,12 +365,26 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     val current = game ?: error("Open a PS3 cartridge from Shelf")
                     var media = Ps3Content.stage(this@Ps3RuntimeActivity, current, storage.root)
                     var packageTitle: String? = null
+                    var packageReceipt: File? = null
                     if (media.extension.equals("pkg", true)) {
                         packageTitle = com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.pkg(
                             media.inputStream().use { it.readNBytesCompat(128) }, media.length(),
                         ) ?: error("Invalid PS3 package")
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        media.inputStream().use { input ->
+                            val buffer = ByteArray(65536)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                digest.update(buffer, 0, count)
+                            }
+                        }
+                        val hash = digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+                        packageReceipt = File(storage.root, "installed-packages/$hash")
                         val installed = File(storage.guest, "dev_hdd0/game/$packageTitle/PARAM.SFO")
-                        if (installed.isFile && File(installed.parentFile, "USRDIR/EBOOT.BIN").isFile) {
+                        if (packageReceipt.isFile && installed.isFile &&
+                            File(installed.parentFile, "USRDIR/EBOOT.BIN").isFile
+                        ) {
                             media = if (retro) installed else File(installed.parentFile, "USRDIR/EBOOT.BIN")
                         }
                     }
@@ -400,6 +420,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             check(installed.isFile && File(installed.parentFile, "USRDIR/EBOOT.BIN").isFile) {
                                 "Package installed additional content; open its base game cartridge."
                             }
+                            packageReceipt?.let {
+                                check(it.parentFile!!.mkdirs() || it.parentFile!!.isDirectory)
+                                it.writeText("native_package_install=SUCCESS")
+                            }
                             withContext(Dispatchers.Main) { leave(reopen = true) }
                             return@withContext
                         }
@@ -410,6 +434,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         check(
                             Ps3Native.install(media.inputStream().fdCompat(), false),
                         ) { "PS3 package installation failed" }
+                        packageReceipt?.let {
+                            check(it.parentFile!!.mkdirs() || it.parentFile!!.isDirectory)
+                            it.writeText("native_package_install=SUCCESS")
+                        }
                         val id =
                             com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.pkg(
                                 media.inputStream().use {
