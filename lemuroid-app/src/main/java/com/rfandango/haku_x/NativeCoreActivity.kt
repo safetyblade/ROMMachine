@@ -321,7 +321,8 @@ class NativeCoreActivity : SDLActivity() {
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
-                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX),
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX),
                             onViewport = { viewport ->
                                 viewportAudit.request(viewport.width(), viewport.height())
                                 val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
