@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.min
 
 /**
@@ -27,6 +29,37 @@ internal object NativeViewportPolicy {
             Host.XBOX, Host.ARMSX2 -> CartdeckViewportPolicy.STANDARD_RATIO
             Host.XBOX360, Host.CEMU -> "16:9"
         }
+
+    data class SurfacePixels(
+        val left: Int,
+        val top: Int,
+        val right: Int,
+        val bottom: Int,
+    ) {
+        val width: Int get() = right - left
+        val height: Int get() = bottom - top
+    }
+
+    /**
+     * Fractional Compose coordinates must round inward, never outward over
+     * the measured glass/safe area. Both native surface pathways share this
+     * conversion so a top fractional raster line cannot escape the bezel.
+     */
+    fun inwardPixels(
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+    ): SurfacePixels? {
+        val values = listOf(left, top, right, bottom)
+        if (values.any { !it.isFinite() } || right <= left || bottom <= top) return null
+        val x1 = ceil(left).toInt()
+        val y1 = ceil(top).toInt()
+        val x2 = floor(right).toInt()
+        val y2 = floor(bottom).toInt()
+        if (x2 <= x1 || y2 <= y1) return null
+        return SurfacePixels(x1, y1, x2, y2)
+    }
 
     data class FittedRect(
         val left: Float,
