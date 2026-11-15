@@ -49,6 +49,7 @@ class GameLaunchTaskHandler(
                     activity,
                     "The engine could not start or stopped unexpectedly. Your saves were retained.",
                     data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR) ?: nativeCrash,
+                    com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery.fromResult(activity, data),
                 )
             BaseGameActivity.RESULT_UNEXPECTED_ERROR ->
                 handleUnsuccessfulGameFinish(
@@ -75,8 +76,9 @@ class GameLaunchTaskHandler(
         activity: Activity,
         message: String,
         messageDetail: String?,
+        biosRecovery: Intent? = null,
     ) {
-        GameCrashActivity.launch(activity, message, messageDetail)
+        GameCrashActivity.launch(activity, message, messageDetail, biosRecovery)
     }
 
     private suspend fun handleSuccessfulGameFinish(

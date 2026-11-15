@@ -30,6 +30,24 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def append_android_patches(source, destination, revision=SOURCE_SHA):
+    source = Path(source)
+    relative = 'platforms/android/app/src/main/assets/resources/patches.zip'
+    patches_path = source / relative
+    content = patches_path.read_bytes()
+    committed = subprocess.check_output(['git', '-C', str(source), 'show', revision + ':' + relative])
+    if content != committed:
+        raise ValueError('Android patches differ from pinned source')
+    with zipfile.ZipFile(patches_path) as patches:
+        if not any(name.lower().endswith('.pnach') for name in patches.namelist()):
+            raise ValueError('Pinned Android game patch archive is missing genuine patches')
+    with zipfile.ZipFile(destination, 'a', zipfile.ZIP_DEFLATED) as archive:
+        if 'patches.zip' in archive.namelist():
+            raise ValueError('Conflicting patches archive in canonical resources')
+        archive.writestr('patches.zip', content)
+    return {'source_path': relative, 'sha256': hashlib.sha256(content).hexdigest(), 'source_revision': revision}
+
+
 def main(work, ndk):
     work = Path(work)
     receipt_path = work / 'native-evidence.json'
@@ -48,6 +66,7 @@ def main(work, ndk):
         for path in sorted((source / 'bin/resources').rglob('*')):
             if path.is_file():
                 archive.writestr(path.relative_to(source / 'bin/resources').as_posix(), path.read_bytes())
+    proof['android_patches'] = append_android_patches(source, work / 'armsx2-resources.zip')
     rust = work / 'shader-source'
     checkout('https://github.com/SnowflakePowered/librashader.git', RUST_PIN, rust)
     with zipfile.ZipFile(work / 'armsx2-licenses.zip', 'w', zipfile.ZIP_DEFLATED) as archive:

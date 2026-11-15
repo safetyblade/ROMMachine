@@ -34,6 +34,8 @@ def verify(apk, bundle):
             if not any(('L' + name + ';').encode() in data for data in dex):
                 raise ValueError('Connected gameplay host missing: ' + name)
         with zipfile.ZipFile(Path(bundle) / 'assets/cartdeck/armsx2/armsx2-resources.zip') as resources:
+            if 'patches.zip' not in resources.namelist() or not resources.read('patches.zip'):
+                raise ValueError('Pinned Android PS2 patches archive missing')
             if 'GameIndex.yaml' not in resources.namelist():
                 raise ValueError('Real ARMSX2 resources missing')
     return {'apk_sha256': hashlib.sha256(Path(apk).read_bytes()).hexdigest(),

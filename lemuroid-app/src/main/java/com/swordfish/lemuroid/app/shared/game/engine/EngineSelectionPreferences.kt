@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.game.engine
 import android.content.Context
 import android.util.AtomicFile
 import com.swordfish.lemuroid.app.shared.game.EmulatorCompatibilityPreferences
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.lib.BuildConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -73,6 +74,19 @@ class EngineSelectionPreferences(private val context: Context) {
         policy: FallbackPolicy,
     ): Boolean = preferences.edit().putString("fallback_${system.dbname}", policy.name).commit()
 
+    internal fun requestedEngine(
+        system: SystemID,
+        explicit: String?,
+        stable: String?,
+        default: String?,
+    ): String? = explicit ?: if (system == SystemID.PLAYSTATION_2) default else stable ?: default
+
+    internal fun ps2AutomaticEngine(
+        play: String?,
+        armsx2: String?,
+        biosReady: Boolean,
+    ): String? = if (biosReady) armsx2 ?: play else play
+
     /** This never launches an alternative: a deliberate Open is required for every attempt. */
     fun select(
         game: Game,
@@ -97,11 +111,16 @@ class EngineSelectionPreferences(private val context: Context) {
             savedPreference?.takeUnless { it == AUTOMATIC } ?: migratedChoice.takeIf { savedPreference == null }
         val stable = event.getProperty("successful")
         val proven = listOfNotNull(stable, event.getProperty("previous"))
-        val upgradedPs2 =
-            system.id == SystemID.PLAYSTATION_2 &&
-                engines.firstOrNull()?.host == NativeEngineRegistry.Host.ARMSX2_ANDROID
-        val default = if (upgradedPs2) engines.first().id else legacy?.coreID?.coreName ?: engines.firstOrNull()?.id
-        val requested = explicit ?: (if (upgradedPs2) default else stable ?: default)
+        val ps2 = system.id == SystemID.PLAYSTATION_2
+        val biosReady = ps2 && Armsx2Storage.hasUserBios(context.filesDir)
+        val playDefault = legacy?.coreID?.coreName ?: engines.firstOrNull()?.id
+        val configuredArmsx2 =
+            engines.firstOrNull {
+                it.host == NativeEngineRegistry.Host.ARMSX2_ANDROID && biosReady &&
+                    NativeEngineRegistry.eligibility(context, it).eligible
+            }?.id
+        val default = if (ps2) ps2AutomaticEngine(playDefault, configuredArmsx2, biosReady) else playDefault
+        val requested = requestedEngine(system.id, explicit, stable, default)
         val engine =
             engines.firstOrNull { it.id == requested }
                 ?: throw SelectionException("Engine unavailable. Choose an installed engine in cartridge settings.")
@@ -123,6 +142,10 @@ class EngineSelectionPreferences(private val context: Context) {
                     // Only an established, previously successful engine is eligible for unattended fallback.
                     engines.firstOrNull {
                         it.id in proven && it.id != engine.id &&
+                            (
+                                system.id != SystemID.PLAYSTATION_2 ||
+                                    it.host != NativeEngineRegistry.Host.ARMSX2_ANDROID
+                            ) &&
                             NativeEngineRegistry.eligibility(context, it).eligible &&
                             event.getProperty("failed.${it.id}") != identity(it)
                     }

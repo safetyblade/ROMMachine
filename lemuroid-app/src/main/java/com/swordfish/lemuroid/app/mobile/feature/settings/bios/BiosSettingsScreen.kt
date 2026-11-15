@@ -23,6 +23,7 @@ fun BiosScreen(
             .value
 
     LemuroidSettingsPage(modifier = modifier.fillMaxSize()) {
+        Armsx2SetupSection()
         if (uiState.detected.isNotEmpty()) {
             DetectedEntries(uiState.detected)
         }

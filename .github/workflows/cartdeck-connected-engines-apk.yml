@@ -115,9 +115,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Package source-licensed PS2 resources for the existing engines
-        run: >-
-          python3 scripts/ci/package_ps2_runtime_support.py
-          --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
+          python3 scripts/ci/package_ps2_runtime_support.py --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Build the updated Wii U Vulkan frontend against pinned core headers
         run: python3 scripts/ci/rebuild_wiiu_host.py
       - name: Connect the real engines to one CARTDECK payload

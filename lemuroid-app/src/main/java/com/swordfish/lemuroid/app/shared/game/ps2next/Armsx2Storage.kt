@@ -39,6 +39,17 @@ object Armsx2Storage {
         )
     }
 
+    fun hasUserBios(filesDir: File): Boolean =
+        setupPaths(filesDir).bios.listFiles().orEmpty()
+            .any { it.isFile && !it.name.startsWith(".") && it.length() > 0L }
+
+    /** Global BIOS setup has no game, cartridge identity or save binding. */
+    fun setupPaths(filesDir: File): Paths {
+        val root = File(filesDir, "native/ps2/armsx2")
+        val setup = File(root, "setup")
+        return Paths(root, File(root, "bios"), setup, File(setup, "resources"), File(setup, "memcards"))
+    }
+
     /**
      * Does not create placeholders or "repair" missing BIOS/resources.
      * The ARMSX2 Android core needs real source-licensed resources and a user's own PS2 BIOS.

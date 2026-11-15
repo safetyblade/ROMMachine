@@ -39,6 +39,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2PadMapping
@@ -75,6 +76,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var hostForeground = false
     private var leaving = false
     private var failed = false
+    private var missingBios = false
+    private val biosSetupMode: Boolean get() = intent.getBooleanExtra(Armsx2BiosRecovery.SETUP, false)
     private var vm: Thread? = null
     private var menu by mutableStateOf(false)
     private var connected by mutableStateOf(false)
@@ -91,7 +94,17 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     private val importBios =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
+            if (uri == null && biosSetupMode) {
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.finish(
+                            this@Armsx2RuntimeProbeActivity,
+                        )
+                    }
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
+                }
+            } else if (uri != null) {
                 lifecycleScope.launch {
                     if (started && !failed) return@launch
                     runCatching {
@@ -125,8 +138,28 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             ) { "The selected file is not a supported PS2 BIOS" }
                             check(pending.renameTo(File(root, "bios.bin")))
                         }
-                    }.onSuccess { message = "User BIOS imported. Return to Shelf and reopen this cartridge." }
-                        .onFailure { message = "BIOS import failed. Memory cards were retained." }
+                    }.onSuccess {
+                        message = "User BIOS imported. Return to Shelf and reopen this cartridge."
+                        missingBios = false
+                        if (biosSetupMode) {
+                            failed = false
+                            if (callingActivity == null) {
+                                android.widget.Toast.makeText(
+                                    this@Armsx2RuntimeProbeActivity,
+                                    "PS2 BIOS imported. Automatic selection can now use ARMSX2.",
+                                    android.widget.Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                            report = "PS2_BIOS_IMPORTED; native_validation=PASS; memory_cards=RETAINED"
+                            leave()
+                        }
+                    }.onFailure {
+                        message = "BIOS import failed: ${it.message ?: it.javaClass.simpleName}. " +
+                            "Memory cards were retained."
+                        report = message
+                        failed = true
+                        openMenu()
+                    }
                 }
             }
         }
@@ -268,22 +301,45 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         )
         lifecycleScope.launch {
             try {
+                if (biosSetupMode) {
+                    var attempts = 0
+                    while (withContext(Dispatchers.IO) {
+                            GameProcessLock.isHeldByAnotherProcess(this@Armsx2RuntimeProbeActivity)
+                        } && attempts++ < 100
+                        ) delay(100)
+                }
                 GameProcessLock.acquireExclusive(this@Armsx2RuntimeProbeActivity)
-                val current = requireNotNull(game) { "Open a PS2 cartridge from Shelf" }
+                val current = game
+                check(biosSetupMode || current != null) { "Open a PS2 cartridge from Shelf" }
                 val job = coroutineContext
                 withContext(Dispatchers.IO) {
-                    val data = Armsx2Storage.paths(filesDir, current.cartridgeId)
+                    val data =
+                        if (biosSetupMode) {
+                            Armsx2Storage.setupPaths(filesDir)
+                        } else {
+                            Armsx2Storage.paths(filesDir, requireNotNull(current).cartridgeId)
+                        }
                     paths = data
                     Armsx2Storage.createPrivateDirectories(data)
                     val selected = Armsx2Engine.install(this@Armsx2RuntimeProbeActivity)
                     engine = selected
-                    Armsx2Engine.resources(this@Armsx2RuntimeProbeActivity, data, selected.properties)
-                    image =
-                        Armsx2Content.stage(
-                            this@Armsx2RuntimeProbeActivity, Uri.parse(current.fileUri), current.cartridgeId,
-                        ) {
-                            job.ensureActive()
-                        }
+                    if (!biosSetupMode) {
+                        Armsx2Engine.resources(
+                            this@Armsx2RuntimeProbeActivity,
+                            data,
+                            selected.properties,
+                        )
+                    }
+                    if (!biosSetupMode) {
+                        image =
+                            Armsx2Content.stage(
+                                this@Armsx2RuntimeProbeActivity,
+                                Uri.parse(requireNotNull(current).fileUri),
+                                current.cartridgeId,
+                            ) {
+                                job.ensureActive()
+                            }
+                    }
                     com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.begin(
                         this@Armsx2RuntimeProbeActivity,
                         "PS2",
@@ -293,16 +349,29 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         NativeApp.loadSelected(selected.directory, Armsx2Engine.coreName()),
                     ) { NativeApp.loadStatus() }
                     loaded = true
+                    if (biosSetupMode) return@withContext
                     val missing = Armsx2Storage.missingRequirements(data, requireNotNull(image))
+                    missingBios = "BIOS" in missing
                     check(missing.isEmpty()) { "PS2 prerequisites missing: ${missing.joinToString()}" }
                     NativeApp.setupSdlHost(this@Armsx2RuntimeProbeActivity)
                     NativeApp.allowPrivateRoot(data.globalRoot)
+                    NativeApp.setFreeSoftwareNotice(
+                        getSharedPreferences(
+                            "armsx2-runtime",
+                            MODE_PRIVATE,
+                        ).getBoolean("show_free_software_notice", false),
+                    )
                     NativeApp.initialize(data.gameRoot.absolutePath, data.bios.absolutePath, Build.VERSION.SDK_INT)
                     NativeApp.setCustomVulkanDriver("", "", "", "")
                     NativeApp.setAffinityMode(0) // Let the Samsung scheduler place threads; no Adreno assumptions.
                     val renderer = getSharedPreferences("armsx2-runtime", MODE_PRIVATE).getString("renderer", "Vulkan")
                     if (renderer == "OpenGL") NativeApp.renderOpenGL() else NativeApp.renderVulkan()
                     ready = true
+                }
+                if (biosSetupMode) {
+                    message = "Select your user-owned PS2 BIOS. No game will be started."
+                    importBios.launch(arrayOf("*/*"))
+                    return@launch
                 }
                 startIfReady()
                 while (!leaving) {
@@ -315,7 +384,9 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         ) { File(requireNotNull(paths).gameRoot, "last-report.txt").writeText(report.take(16384)) }
                         if (NativeApp.getPresentedFrameCount() > 0 && !failed) {
                             message = ""
-                            EngineSelectionPreferences(this@Armsx2RuntimeProbeActivity).recordPresentation(current)
+                            EngineSelectionPreferences(
+                                this@Armsx2RuntimeProbeActivity,
+                            ).recordPresentation(requireNotNull(current))
                         }
                     }
                     delay(1000)
@@ -325,8 +396,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             } catch (error: Throwable) {
                 failed = true
                 message =
-                    if (error.message?.contains("BIOS") == true) {
-                        "Import your PS2 BIOS from Advanced, then retry this cartridge."
+                    if (missingBios) {
+                        "PS2 BIOS is missing. Use Import PS2 BIOS to select your own BIOS file."
                     } else {
                         "ARMSX2 could not start: ${error.message ?: error.javaClass.simpleName}"
                     }
@@ -534,7 +605,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         releaseInput()
         val shutdown =
             Thread(
-                { if (loaded) runCatching { NativeApp.shutdown() } },
+                { if (loaded && !biosSetupMode) runCatching { NativeApp.shutdown() } },
                 "cartdeck-armsx2-stop",
             ).also { it.start() }
         lifecycleScope.launch {
@@ -547,7 +618,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             }
             setResult(
                 if (failed || shutdown.isAlive) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
-                Intent().putExtra("cartdeck.reopen", reopen)
+                Intent().putExtra(Armsx2BiosRecovery.REQUIRED, missingBios)
+                    .putExtra("cartdeck.reopen", reopen)
                     .putExtra("cartdeck.reopen.engine", reopenEngine)
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, report)
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, game)
@@ -570,7 +642,10 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         super.onDestroy()
         Thread(
             {
-                val stop = Thread({ if (!leaving && loaded) runCatching { NativeApp.shutdown() } }).also { it.start() }
+                val stop =
+                    Thread({
+                        if (!leaving && loaded && !biosSetupMode) runCatching { NativeApp.shutdown() }
+                    }).also { it.start() }
                 stop.join(8000)
                 Process.killProcess(Process.myPid())
             },
