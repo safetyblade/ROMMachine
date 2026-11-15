@@ -269,3 +269,10 @@ State handling:
 **Sienna UX-design disposition: APPROVED WITH IMPLEMENTATION CONDITIONS.** UXR-01..05 define canonical interaction/behaviour, responsive layouts, fallback and appearance rules; visual pixel-perfect signed screenshots, accessibility instrumentation and physical device acceptance remain future gates.
 
 **Issue #265 deliverable criterion:** source-backed architecture and UX decisions documented, self-contained to hand to Elliot+Marcus #266. This sign-off is a **role-based design determination authored in this ChatGPT session**, not an independently authenticated review by external human specialists. Engineering/Marcus test QA and release gates remain OPEN. Close #265 only as design-scope handoff, no claim of actual game pass.
+
+
+## Sienna full-scope design superseding preliminary textual wireframes (15 Nov 2026)
+The full design deliverables are now committed and mandatory implementation references:
+- [04_SIENNA_COMPLETE_UX_DESIGN.md](04_SIENNA_COMPLETE_UX_DESIGN.md): 25-screen/state inventory M00–M24, component catalogue C01–C14, eight complete functional flows, source-linked visual design, input control inventories, adaptive geometry, exact user messages and acceptance per GC-01 A–H.
+- [05_SIENNA_SCREEN_PROTOTYPE.html](05_SIENNA_SCREEN_PROTOTYPE.html): navigable design-only HTML screen studio with 25 states and responsive phone/landscape/tablet/TV selector, controller mode/GripArc selection and Save capability toggle. This is an interactive design reference and is NOT wired to native emulator controls, Android renderer, storage or actual game sessions.
+The specification supersedes shorter UXR-01–05 sketches where more precise. It preserves approved CARTDECK appearance tokens and existing Compose menu classes. The full UX deliverable is complete for engineering handoff; rendered Android implementation, screenshot matching, specialist device validation and Marcus hardware QA remain unfinished. Never treat HTML mock interactions as proof of feature implementation.
