@@ -125,6 +125,10 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
                     }
                 }
                 GameplayMenuSessionStatus.PAUSED -> Unit
+                GameplayMenuSessionStatus.ERROR -> {
+                    // A failed resume may be retried without repeating pause.
+                    if (snapshot.lastCommand != GameplayMenuCommand.RESUME) return@locked snapshot
+                }
                 else -> return@locked snapshot
             }
             snapshot = snapshot.copy(status = GameplayMenuSessionStatus.RESUMING)
