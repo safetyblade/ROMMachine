@@ -324,7 +324,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    openMenu()
+                    // Compose handles Back within a submenu. This is the Activity
+                    // fallback for opening or dismissing the top-level menu.
+                    if (menuOpen) closeMenu() else openMenu()
                 }
             },
         )
