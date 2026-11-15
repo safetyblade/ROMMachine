@@ -106,6 +106,43 @@ class ShelfLayoutTest {
         assertEquals("b", readded.sections.first().cells.last().gameKey)
     }
 
+    @Test fun visibleShelfOmitsRemovedAndRetiredGamesWithoutWritingLayout() {
+        val games = mapOf("a" to "Alpha", "b" to "Bravo", "c" to "Charlie", "d" to "Delta")
+        var persisted = ShelfLayout().reconcile(games)
+        persisted = persisted.insertSpace(ShelfLayout.UNSORTED, "game:b")
+            .insertSpace(ShelfLayout.UNSORTED, row = true)
+        persisted = persisted.createSection("Favorites")
+        persisted = persisted.moveCell("game:d", persisted.sections.last().id)
+        val original = decode(encode(persisted))
+
+        // Room no longer contains B or D. The layout still preserves their
+        // identities until a verified indexing transaction resolves them.
+        val visible = persisted.visibleSections(setOf("a", "c"))
+        assertEquals(listOf("a", null, "c", null), visible.first().cells.map { it.gameKey })
+        assertEquals(emptyList<String?>(), visible.last().cells.map { it.gameKey })
+        assertEquals(
+            persisted.sections.first().cells.filter { it.gameKey == null }.map { it.id },
+            visible.first().cells.filter { it.gameKey == null }.map { it.id },
+        )
+        for (columns in listOf(1, 3, 5, 12)) {
+            assertEquals(1, visible.first().rows(columns).count { it.intentionalEmpty })
+            assertTrue(visible.first().rows(columns).flatMap { it.cells }.none { it.gameKey == "b" })
+        }
+        assertEquals(original, persisted)
+        assertEquals(original, decode(encode(persisted)))
+        // If the ROM is reindexed before permanent cleanup, it returns in
+        // its original position with no save-identity or layout migration.
+        assertEquals(persisted.sections, persisted.visibleSections(games.keys))
+    }
+
+    @Test fun retiredIdentityCannotLeaveAVisibleUnavailableTile() {
+        val retired = retiredShelfKey("uuid-123")
+        val layout = ShelfLayout().reconcile(mapOf("live" to "Live", retired to "Removed"))
+        val visible = layout.visibleSections(setOf("live"))
+        assertEquals(listOf("live"), visible.single().cells.map { it.gameKey })
+        assertEquals(listOf("live", retired), layout.sections.single().cells.map { it.gameKey })
+    }
+
     @Test fun incompleteOrFailedRefreshDoesNotDeleteMissingCartridgeCells() {
         val previous = ShelfLayout().reconcile(mapOf("a" to "A", "b" to "B"))
         val incompleteIndex = previous.reconcile(mapOf("a" to "A"))
