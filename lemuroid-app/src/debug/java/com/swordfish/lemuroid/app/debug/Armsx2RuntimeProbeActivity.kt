@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
@@ -39,6 +40,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfil
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
@@ -85,6 +87,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val biosSetupMode: Boolean get() = intent.getBooleanExtra(Armsx2BiosRecovery.SETUP, false)
     private var vm: Thread? = null
     private var menu by mutableStateOf(false)
+    private val pauseGate = GameMenuPauseGate()
     private val menuHost by lazy {
         GameplayMenuHostAdapter(
             GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.ARMSX2),
@@ -532,13 +535,23 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun syncPause() {
-        if (ready && started) {
-            val shouldPause = !hostForeground || menu || leaving
+        if (!ready || !started) return
+        pauseGate.transition(hostForeground, menu, failed, leaving)?.let { shouldPause ->
             val outcome =
                 menuHost.dispatch(
                     if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
                 )
-            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
+            } else {
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menu = true
+                    pauseGate.retryResumeAfterFailure()
+                }
+            }
         }
     }
 
