@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
@@ -68,6 +69,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         )
     }
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.XBOX360)
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
@@ -153,6 +155,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 sendInputs()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = surface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -320,10 +323,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (booted) emulator?.change_surface(width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         surfaceReady = false
         syncPause()
         if (booted) emulator?.setup_surface(null)
@@ -483,7 +488,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             "CARTDECK ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}); Xbox 360\n" +
                 "device=${android.os.Build.MODEL}; api=${android.os.Build.VERSION.SDK_INT}; " +
                 "abi=${android.os.Build.SUPPORTED_ABIS.joinToString()}; available_memory=${memory.availMem}\n" +
-                "$info\n$native\nfailure=${if (failed) message else "NONE_RECORDED"}\n" +
+                "$info\n$native\n${viewportAudit.summary()}\n" +
+                "failure=${if (failed) message else "NONE_RECORDED"}\n" +
                 "content_and_saves=RETAINED; automatic_restart=false; " +
                 "exit=${if (leaving) "USER_REQUESTED" else "NOT_OBSERVED"}\n" +
                 "Startup, JIT compilation and Vulkan presentation do not establish meaningful graphics or gameplay."
