@@ -251,9 +251,10 @@ data class ShelfLayout(
     fun visibleSections(activeGameKeys: Set<String>): List<ShelfSection> =
         sections.map { section ->
             section.copy(
-                cells = section.cells.filter { cell ->
-                    cell.gameKey == null || cell.gameKey in activeGameKeys
-                },
+                cells =
+                    section.cells.filter { cell ->
+                        cell.gameKey == null || cell.gameKey in activeGameKeys
+                    },
             )
         }
 
