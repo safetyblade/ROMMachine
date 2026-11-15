@@ -43,6 +43,7 @@ internal fun XboxGameMenu(
     console: String = "Xbox",
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
     pauseFeedback: String = "Menu open. This engine may continue running.",
+    canResume: Boolean = true,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -70,7 +71,7 @@ internal fun XboxGameMenu(
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
-                    SharedGameMenuHome(capabilities.home) { action ->
+                    SharedGameMenuHome(capabilities.home, onAction = { action ->
                         when (action) {
                             GameMenuAction.RESUME -> onResume()
                             GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
@@ -79,7 +80,7 @@ internal fun XboxGameMenu(
                             GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                             else -> Unit // Not advertised by this backend.
                         }
-                    }
+                    }, canResume = canResume)
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
                 composable(GameMenuRoute.STATES) {
