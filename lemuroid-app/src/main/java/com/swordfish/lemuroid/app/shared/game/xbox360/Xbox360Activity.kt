@@ -37,6 +37,7 @@ import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -68,6 +69,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private var menuOpen by mutableStateOf(false)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
     private var failed = false
+    private var physicalConnected by mutableStateOf(false)
+    private val presence by lazy { GameplayControllerPresence(this) }
+    private lateinit var profile: Xbox360Profiles.Selection
     private val settings by lazy { TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(this)) }
     private val poll =
         object : Runnable {
@@ -115,6 +119,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             ::onTouchInput,
                             settings,
                             TouchControllerID.XBOX360,
+                            physicalControllerConnected = physicalConnected,
                             game =
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
@@ -232,6 +237,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                         engine = Xbox360Engine.store(filesDir).selected()
                             ?: error("Verified Xbox 360 engine is unavailable")
                         saveReport("stage=ENGINE_SELECTED; native_engine_loaded=false")
+                        profile = Xbox360Profiles.prepare(this@Xbox360Activity, Xbox360Engine.data(filesDir))
                         val jobContext = coroutineContext
                         Xbox360Content.stage(
                             this@Xbox360Activity,
@@ -255,6 +261,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 "--config=${File(data, "config/xenia.config.toml").absolutePath}",
                                 "--log_file=${File(data, "logs/xenia.log").absolutePath}",
                                 "--hid=android", "--vulkan_lib_path=",
+                                "--logged_profile_slot_0_xuid=${profile.xuid}",
                             ),
                         )
                         setup_game_path(staged.absolutePath)
@@ -310,11 +317,21 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onResume() {
         super.onResume()
         foreground = true
+        presence.start { devices ->
+            physicalConnected = devices.isNotEmpty()
+            if (physicalConnected) {
+                touch.clear()
+                grip.clear()
+                gripSlots.clear()
+                sendInputs()
+            }
+        }
         syncPause()
     }
 
     override fun onPause() {
         foreground = false
+        presence.stop()
         syncPause()
         super.onPause()
     }
@@ -480,6 +497,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onDestroy() {
+        presence.stop()
         main.removeCallbacksAndMessages(null)
         if (booted) {
             releaseInputs()

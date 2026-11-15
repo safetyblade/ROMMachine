@@ -20,6 +20,12 @@ def verify(apk, bundle):
                        'libcartdeckwiiuvulkanhost.so', 'libcartdeck_xenia.so', 'libplay_modern_libretro_android.so'):
             if not archive.read('lib/arm64-v8a/' + native):
                 raise ValueError('Required real engine missing: ' + native)
+        account = archive.read('assets/cartdeck/xenia-profile/Account')
+        profile = json.loads(archive.read('assets/cartdeck/xenia-profile/profile-source.json'))
+        if (len(account) != 0x194 or hashlib.sha256(account).hexdigest() != profile['sha256'] or
+                profile['revision'] != '779680ade075d2d2a4c589c6a8d57a8e26c116c0' or
+                not profile['offline_only'] or not profile['native_encrypt_decrypt_verified'] or profile['xuid_bound']):
+            raise ValueError('Source-verified local Xbox 360 profile missing')
         dex = [archive.read(name) for name in archive.namelist() if name.endswith('.dex')]
         for name in ('kr/co/iefriends/pcsx2/Armsx2JniContract',
                      'com/swordfish/lemuroid/app/debug/Armsx2RuntimeProbeActivity',
