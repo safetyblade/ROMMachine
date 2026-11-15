@@ -485,11 +485,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     private fun syncPause() {
         if (loaded) {
-            val shouldPause = !hostForeground || menuOpen || leaving || failed ||
-                !renderSurface.holder.surface.isValid
-            val outcome = menuHost.dispatch(
-                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
-            )
+            val shouldPause =
+                !hostForeground || menuOpen || leaving || failed ||
+                    !renderSurface.holder.surface.isValid
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
             if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
