@@ -1,13 +1,13 @@
 package com.swordfish.lemuroid.app.tv.gamemenu
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.fragment.app.Fragment
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.tv.shared.TVBaseSettingsActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game

@@ -15,6 +15,10 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
     private val preferences = SharedPreferencesHelper.getSharedPreferences(context)
     private var listener: ((List<InputDevice>) -> Unit)? = null
     private var registered = false
+    private val slots = ControllerPortRegistry(7)
+    private var ports = emptyMap<Int, Int>()
+
+    fun port(deviceId: Int): Int? = ports[deviceId]
 
     fun start(onChanged: (List<InputDevice>) -> Unit) {
         listener = onChanged
@@ -46,7 +50,9 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
     }
 
     private fun notifyCurrent() {
-        listener?.invoke(connected())
+        val devices = connected()
+        ports = slots.update(devices.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
+        listener?.invoke(devices)
     }
 
     override fun onInputDeviceAdded(deviceId: Int) = notifyCurrent()

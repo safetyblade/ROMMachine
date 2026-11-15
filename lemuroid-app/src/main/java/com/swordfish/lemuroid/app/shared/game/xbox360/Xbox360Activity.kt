@@ -1,7 +1,5 @@
 package com.swordfish.lemuroid.app.shared.game.xbox360
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -47,7 +45,9 @@ import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -341,6 +341,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         super.onResume()
         foreground = true
         presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            releaseInputs()
             physicalConnected = devices.isNotEmpty()
             if (physicalConnected) {
                 touch.clear()

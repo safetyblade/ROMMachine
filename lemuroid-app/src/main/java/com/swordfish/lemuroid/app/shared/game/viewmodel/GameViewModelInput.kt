@@ -10,9 +10,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.inputclass.getInputClass
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
@@ -333,6 +333,7 @@ class GameViewModelInput(
         val activeChords = mutableMapOf<Int, Set<Set<Int>>>()
         val menuEdge = ControllerMenuEdge()
         val forwarded = mutableMapOf<Pair<Int, Int>, Pair<Int, Int>>()
+
         fun releaseHeld() {
             forwarded.values.forEach { (port, code) ->
                 retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_UP, code, port)
@@ -388,15 +389,17 @@ class GameViewModelInput(
                     }
                     return@safeCollect
                 }
-                val changed = when (action) {
-                    KeyEvent.ACTION_DOWN -> pressedKeys.add(keyCode)
-                    KeyEvent.ACTION_UP -> pressedKeys.remove(keyCode)
-                    else -> false
-                }
+                val changed =
+                    when (action) {
+                        KeyEvent.ACTION_DOWN -> pressedKeys.add(keyCode)
+                        KeyEvent.ACTION_UP -> pressedKeys.remove(keyCode)
+                        else -> false
+                    }
                 if (!changed) return@safeCollect
-                val complete = shortcuts[device].orEmpty().filter {
-                    it.keys.isNotEmpty() && pressedKeys.containsAll(it.keys)
-                }
+                val complete =
+                    shortcuts[device].orEmpty().filter {
+                        it.keys.isNotEmpty() && pressedKeys.containsAll(it.keys)
+                    }
                 val previous = activeChords[device.id].orEmpty()
                 activeChords[device.id] = complete.map { it.keys.toSet() }.toSet()
                 if (port == 0 && action == KeyEvent.ACTION_DOWN) {

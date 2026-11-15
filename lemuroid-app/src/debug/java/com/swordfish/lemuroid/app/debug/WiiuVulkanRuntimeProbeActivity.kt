@@ -1,7 +1,5 @@
 package com.swordfish.lemuroid.app.debug
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -55,7 +53,9 @@ import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuViewport
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -592,7 +592,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     override fun onResume() {
         super.onResume()
         hostForeground = true
-        presence.start { physicalConnected = it.isNotEmpty() }
+        presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            releaseInput()
+            physicalConnected = devices.isNotEmpty()
+        }
         syncPause()
         startIfReady()
     }

@@ -1,7 +1,5 @@
 package com.swordfish.lemuroid.app.debug.ps3
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -36,7 +34,9 @@ import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -600,7 +600,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             return true
         }
         if (!menu && event.isFromSource(InputDevice.SOURCE_GAMEPAD)) {
-            val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
+            val port = presence.port(event.deviceId) ?: return super.dispatchKeyEvent(event)
             val raw = rawPressed.getOrPut(event.deviceId) { mutableSetOf() }
             val down = event.action == KeyEvent.ACTION_DOWN
             if (down) raw.add(event.keyCode) else raw.remove(event.keyCode)
@@ -617,7 +617,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         if (!menu && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
+            val port = presence.port(event.deviceId) ?: return super.onGenericMotionEvent(event)
             axis(port, 0, event.getAxisValue(MotionEvent.AXIS_X), -event.getAxisValue(MotionEvent.AXIS_Y))
             val right = com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile.rightStickAxes(event.device)
             axis(port, 1, event.getAxisValue(right.first), -event.getAxisValue(right.second))
@@ -636,6 +636,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         super.onResume()
         foreground = true
         presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
             connected = devices.isNotEmpty()
             release()
             lifecycleScope.launch {

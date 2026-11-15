@@ -1,7 +1,5 @@
 package com.swordfish.lemuroid.app.debug
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -58,7 +56,9 @@ import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -629,7 +629,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onResume() {
         super.onResume()
         hostForeground = true
-        presence.start { connected = it.isNotEmpty() }
+        presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            releaseInput()
+            connected = devices.isNotEmpty()
+        }
         syncPause()
         startIfReady()
     }

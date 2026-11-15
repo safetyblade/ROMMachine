@@ -55,15 +55,13 @@ class InputDeviceManager(
             }
     }
 
-    fun getGamePadsPortMapperObservable(): Flow<(InputDevice?) -> Int?> {
-        return getEnabledInputsObservable().map { gamePads ->
-            val portMappings =
-                gamePads
-                    .mapIndexed { index, inputDevice -> inputDevice.id to index }
-                    .toMap()
-            return@map { inputDevice -> portMappings[inputDevice?.id] }
+    private val playerSlots = ControllerPortRegistry(16)
+
+    fun getGamePadsPortMapperObservable(): Flow<(InputDevice?) -> Int?> =
+        getEnabledInputsObservable().map { gamePads ->
+            val portMappings = playerSlots.update(gamePads.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
+            return@map { inputDevice: InputDevice? -> portMappings[inputDevice?.id] }
         }
-    }
 
     private fun getBindingsFlow(inputDevice: InputDevice): Flow<Map<InputKey, RetroKey>> {
         return flowSharedPreferences.getString(computeKeyBindingGamePadPreference(inputDevice))

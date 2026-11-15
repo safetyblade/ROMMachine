@@ -4,8 +4,6 @@
 
 package com.rfandango.haku_x
 
-import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
-import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
@@ -62,7 +60,9 @@ import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -289,6 +289,7 @@ class NativeCoreActivity : SDLActivity() {
         gameplayControllers.start { devices ->
             controllerDevices = devices
             val activeIds = devices.map { it.id }.toSet()
+            menuEdge.retainDevices(activeIds)
             val orphaned = hardwareOwners.removeDisconnected(activeIds)
             if (orphaned.isNotEmpty()) {
                 orphaned.forEach { (code, down) -> hardware.key(code, down) }

@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.input
 /** Host-local press ownership. No engine dispatch and no process-global state. */
 class ControllerMenuEdge {
     private data class Press(val device: Int, val key: Int)
+
     private val armed = mutableMapOf<Press, Long>()
     private val completed = mutableMapOf<Press, Long>()
 
