@@ -108,10 +108,14 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Recovery options").performScrollTo().performClick()
         compose.onNodeWithText("Repair engine resources").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, resumes) }
-        compose.onNodeWithText("Back").assertDoesNotExist() // Back is an icon control, not a text row.
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithText("Return to Shelf").performClick()
-        compose.runOnIdle { assertEquals(1, exits) }
+        compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
+        // Back at recovery Home must exit, never send Resume to a failed host.
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.runOnIdle {
+            assertEquals(0, resumes)
+            assertEquals(1, exits)
+        }
     }
 
     @Test fun releaseEngineHidesProbeAndRollbackRequiresCapability() {
