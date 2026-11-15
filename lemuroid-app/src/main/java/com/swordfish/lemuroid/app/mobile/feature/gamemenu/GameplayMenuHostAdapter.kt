@@ -91,3 +91,13 @@ internal fun GameplayMenuCommandResult.menuFeedback(): String =
         is GameplayMenuCommandResult.Failed ->
             "Menu open. Engine pause failed; gameplay may continue: $reason"
     }
+
+/** Failed native resume never silently dismisses the menu. */
+internal fun GameplayMenuCommandResult.resumeFailureFeedback(): String? =
+    when (this) {
+        is GameplayMenuCommandResult.Failed ->
+            "Resume failed. Retry or return to the shelf; the current game was not restarted."
+        is GameplayMenuCommandResult.Unsupported ->
+            "This engine cannot resume the session. Return to the shelf or choose recovery."
+        else -> null
+    }
