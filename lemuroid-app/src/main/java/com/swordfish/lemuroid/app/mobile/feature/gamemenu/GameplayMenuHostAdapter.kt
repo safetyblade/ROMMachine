@@ -77,8 +77,7 @@ internal class GameplayMenuHostAdapter(
         }
     }
 
-    override suspend fun execute(command: GameplayMenuCommand): GameplayMenuCommandResult =
-        dispatch(command)
+    override suspend fun execute(command: GameplayMenuCommand): GameplayMenuCommandResult = dispatch(command)
 }
 
 internal fun GameplayMenuCommandResult.menuFeedback(): String =
