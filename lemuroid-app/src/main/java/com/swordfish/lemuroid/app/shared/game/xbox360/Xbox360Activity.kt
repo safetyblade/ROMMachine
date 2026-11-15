@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
@@ -134,6 +135,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.XBOX360,
                             physicalControllerConnected = physicalConnected,
+                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360),
                             game =
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
