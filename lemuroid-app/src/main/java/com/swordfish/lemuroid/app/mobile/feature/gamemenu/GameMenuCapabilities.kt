@@ -46,5 +46,5 @@ internal class GameMenuPauseGate {
 
 internal data class XboxMenuCapabilities(val debug: Boolean, val compatibleProbe: Boolean, val rollback: Boolean) {
     val showProbe get() = debug && compatibleProbe
-    val home get() = GameMenuCapabilities(controls = true, advanced = true)
+    val home get() = GameMenuCapabilities(controls = true, states = true, advanced = true)
 }
