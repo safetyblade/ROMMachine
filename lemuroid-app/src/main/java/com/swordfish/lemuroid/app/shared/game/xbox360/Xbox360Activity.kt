@@ -29,6 +29,11 @@ import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -53,6 +58,14 @@ import xendroid.compose.Emulator as XeniaEmulator
 class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val main = Handler(Looper.getMainLooper())
     private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XENIA),
+            pause = { requireNotNull(emulator).pause() },
+            resume = { requireNotNull(emulator).resume() },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
@@ -186,6 +199,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                                 Xbox360Engine.store(filesDir).canRollback()
                                             }.getOrDefault(false),
                                     ),
+                                pauseFeedback = menuPauseFeedback,
                                 onResume = {
                                     if (!failed) {
                                         menuOpen = false
@@ -346,13 +360,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun syncPause() {
         if (!subsystemsReady) return
-        pauseGate.transition(foreground && surfaceReady, menuOpen, failed, leaving)?.let { paused ->
-            if (paused) {
-                releaseInputs()
-                emulator?.pause()
-            } else {
-                emulator?.resume()
-            }
+        pauseGate.transition(foreground && surfaceReady, menuOpen, failed, leaving)?.let { shouldPause ->
+            if (shouldPause) releaseInputs()
+            val outcome = menuHost.dispatch(
+                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+            )
+            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
 
