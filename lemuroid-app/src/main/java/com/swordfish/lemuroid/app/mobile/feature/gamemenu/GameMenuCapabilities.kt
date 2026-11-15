@@ -42,6 +42,11 @@ internal class GameMenuPauseGate {
         sent = paused
         return paused
     }
+
+    /** A failed resume leaves the engine potentially paused. Permit retry. */
+    fun retryResumeAfterFailure() {
+        if (sent == false) sent = true
+    }
 }
 
 internal data class XboxMenuCapabilities(val debug: Boolean, val compatibleProbe: Boolean, val rollback: Boolean) {
