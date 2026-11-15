@@ -59,7 +59,7 @@ class SharedGameMenuTest {
             }
         }
         compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-        compose.onNodeWithText("Save / Load").assertDoesNotExist()
+        compose.onNodeWithText("Save & Load").assertIsDisplayed()
         compose.onNodeWithText("Game Settings").assertDoesNotExist()
         compose.onNodeWithText("Copy engine/GPU report").assertDoesNotExist()
         compose.onNodeWithText("Controls").performClick()
@@ -139,7 +139,7 @@ class SharedGameMenuTest {
                 }
                 compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
                 compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
-                compose.onNodeWithText("Save / Load").performScrollTo().assertIsDisplayed()
+                compose.onNodeWithText("Save & Load").performScrollTo().assertIsDisplayed()
                 compose.runOnIdle { assertEquals(shelfMaterials(selected).interactionAccent, primary) }
             }
         }
