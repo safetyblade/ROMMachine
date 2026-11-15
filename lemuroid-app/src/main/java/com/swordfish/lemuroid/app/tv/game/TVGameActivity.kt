@@ -33,10 +33,23 @@ class TVGameActivity : BaseGameActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_MENU && event.repeatCount == 0) {
-            if (requestGameMenuFromHardware()) return true
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            // Keep both edges out of gameplay. Open on release so the newly
+            // launched menu Activity cannot inherit this key's trailing UP.
+            return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(
+        keyCode: Int,
+        event: KeyEvent,
+    ): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            if (event.repeatCount == 0) requestGameMenuFromHardware()
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     private fun initializeFlows() {

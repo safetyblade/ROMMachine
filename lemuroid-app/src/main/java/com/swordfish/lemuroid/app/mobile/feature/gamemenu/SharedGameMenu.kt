@@ -87,8 +87,15 @@ internal fun GameMenuPanel(
     canGoBack: Boolean,
     onBack: () -> Unit,
     onResume: () -> Unit,
+    statusMessage: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val backFocus = remember { FocusRequester() }
+    // Nested routes start with a reachable Back control. Home keeps its
+    // separate first-action focus, so opening a menu selects Resume.
+    LaunchedEffect(page, canGoBack) {
+        if (canGoBack) backFocus.requestFocus()
+    }
     BackHandler(onBack = onBack)
     BoxWithConstraints(
         Modifier.fillMaxSize().testTag("game-menu").onPreviewKeyEvent { event ->
@@ -118,7 +125,10 @@ internal fun GameMenuPanel(
         ) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 Box(Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.CenterStart).focusRequester(backFocus),
+                    ) {
                         Icon(
                             if (canGoBack) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Close,
                             if (canGoBack) "Back" else "Resume",
@@ -127,6 +137,9 @@ internal fun GameMenuPanel(
                     Column(Modifier.padding(start = 56.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)) {
                         Text(page, style = MaterialTheme.typography.titleLarge)
                         Text("$console · $title", style = MaterialTheme.typography.bodyMedium)
+                        if (!statusMessage.isNullOrBlank()) {
+                            Text(statusMessage, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
                 HorizontalDivider()
@@ -155,17 +168,27 @@ internal fun GameMenuLink(
 internal fun SharedGameMenuHome(
     capabilities: GameMenuCapabilities,
     onAction: (GameMenuAction) -> Unit,
+    canResume: Boolean = true,
 ) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    val resumeFocus = remember { FocusRequester() }
+    val recoveryFocus = remember { FocusRequester() }
+    LaunchedEffect(canResume) {
+        if (canResume) resumeFocus.requestFocus() else recoveryFocus.requestFocus()
+    }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Button(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(focus),
+                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(resumeFocus),
                 onClick = { onAction(GameMenuAction.RESUME) },
+                enabled = canResume,
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Text(GameMenuAction.RESUME.label)
+            }
+            if (!canResume && capabilities.advanced) {
+                Box(Modifier.focusRequester(recoveryFocus)) {
+                    GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
+                }
             }
             capabilities.homeActions().filterNot {
                 it == GameMenuAction.RESUME || it == GameMenuAction.RETURN_TO_SHELF

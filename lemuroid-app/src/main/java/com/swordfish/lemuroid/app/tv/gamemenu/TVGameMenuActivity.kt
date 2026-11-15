@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.tv.gamemenu
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.fragment.app.Fragment
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
@@ -86,6 +87,21 @@ class TVGameMenuActivity : TVBaseSettingsActivity() {
             supportFragmentManager.beginTransaction().replace(android.R.id.content, fragment)
                 .commit()
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Match the native CARTDECK menus: Guide/MENU closes the current
+        // overlay on UP; consume both edges and repeats so the core never
+        // receives a partial key press. Back remains fragment-navigation owned.
+        if (event.keyCode == KeyEvent.KEYCODE_MENU ||
+            event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                finish()
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun finish() {

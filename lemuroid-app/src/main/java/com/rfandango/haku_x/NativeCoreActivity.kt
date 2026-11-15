@@ -34,12 +34,20 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -74,6 +82,15 @@ class NativeCoreActivity : SDLActivity() {
     private var recoveryDialog: AlertDialog? = null
     private var menuOpen by mutableStateOf(false)
     private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XBOX_SDL),
+            pause = { nativeSetPaused(true) },
+            resume = { nativeSetPaused(false) },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.XBOX)
     private val settingsManager by lazy {
         TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(this))
     }
@@ -304,7 +321,10 @@ class NativeCoreActivity : SDLActivity() {
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX),
                             onViewport = { viewport ->
+                                viewportAudit.request(viewport.width(), viewport.height())
                                 val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
                                 if (
                                     viewport.width() > 0 && viewport.height() > 0 &&
@@ -337,6 +357,7 @@ class NativeCoreActivity : SDLActivity() {
                                             XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
                                         }.getOrDefault(false),
                                     ),
+                                pauseFeedback = menuPauseFeedback,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = { leave() },
                                 onCopyReport = { copyDiagnosticSnapshot() },
@@ -447,6 +468,7 @@ class NativeCoreActivity : SDLActivity() {
         var safeReason = reason.take(2000).replace(filesDir.absolutePath, "[app storage]")
         listOf(disc, intent.getStringExtra("cartdeck.gameUri"), intent.getStringExtra("cartdeck.gameTitle"))
             .filterNotNull().filter { it.isNotBlank() }.forEach { safeReason = safeReason.replace(it, "[content]") }
+        viewportAudit.observe(mSurface?.width ?: 0, mSurface?.height ?: 0)
         return "Xbox launch: $safeReason\n" +
             "Engine: ${engine.id}\n" +
             "Device: ${android.os.Build.MODEL}; Android ${android.os.Build.VERSION.SDK_INT}\n" +
@@ -454,6 +476,7 @@ class NativeCoreActivity : SDLActivity() {
             "Native failure category: ${nativeGetFatalKind()}\n" +
             "${capturedGpuReport ?: gpuReport()}\n" +
             "Presentation probe: ${presentationContract()}\n" +
+            "${viewportAudit.summary()}\n" +
             "$surfacePixelReport\n" +
             "HDD and saves retained. No automatic relaunch was attempted."
     }
@@ -571,8 +594,22 @@ class NativeCoreActivity : SDLActivity() {
 
     private fun syncPause() {
         if (!ready) return
-        pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let {
-            nativeSetPaused(it)
+        pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let { shouldPause ->
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
+            } else {
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menuOpen = true
+                    pauseGate.retryResumeAfterFailure()
+                }
+            }
         }
     }
 

@@ -170,14 +170,20 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     @Composable
     private fun GameMenuScreen(gameMenuRequest: GameMenuRequest) {
         GameMenuTheme {
+            val hostCapabilities =
+                GameplayMenuHostProfiles.capabilities(
+                    GameplayMenuHostKind.LIBRETRO,
+                    gameMenuRequest.coreConfig.statesSupported,
+                )
             val navController = rememberNavController()
             val entry = navController.currentBackStackEntryAsState().value
             val route = entry?.destination?.route?.let { GameMenuRoute.findByRoute(it) } ?: GameMenuRoute.HOME
             val page =
                 when (route) {
-                    GameMenuRoute.HOME -> "Paused"
+                    // The active engine has not acknowledged a pause here. Do not claim one.
+                    GameMenuRoute.HOME -> "Game menu"
                     GameMenuRoute.CONTROLS -> "Controls"
-                    GameMenuRoute.STATES -> "Save / Load"
+                    GameMenuRoute.STATES -> "Save & Load"
                     GameMenuRoute.OPTIONS -> "Game Settings"
                     GameMenuRoute.ADVANCED -> "Advanced"
                     GameMenuRoute.GRIPARC -> "GripArc"
@@ -191,6 +197,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 route.canGoBack(),
                 onBack = { if (!navController.popBackStack()) onResult { } },
                 onResume = { onResult { } },
+                statusMessage = if (hostCapabilities.canPause) null else "Menu open. Engine pause is not confirmed.",
             ) {
                 NavHost(
                     modifier =

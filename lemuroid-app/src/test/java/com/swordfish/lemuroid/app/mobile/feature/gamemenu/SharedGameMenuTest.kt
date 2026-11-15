@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,7 +60,7 @@ class SharedGameMenuTest {
             }
         }
         compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-        compose.onNodeWithText("Save / Load").assertDoesNotExist()
+        compose.onNodeWithText("Save & Load").assertIsDisplayed()
         compose.onNodeWithText("Game Settings").assertDoesNotExist()
         compose.onNodeWithText("Copy engine/GPU report").assertDoesNotExist()
         compose.onNodeWithText("Controls").performClick()
@@ -82,6 +83,39 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Resume").performClick()
         compose.onNodeWithTag("game-menu").assertDoesNotExist()
         compose.runOnIdle { assertEquals(1, resumes) }
+    }
+
+    @Test fun recoveryDisablesResumeButKeepsNavigationAndShelfExit() {
+        var resumes = 0
+        var exits = 0
+        compose.setContent {
+            XboxGameMenu(
+                title = "Recovery fixture",
+                engineInfo = "ARMSX2",
+                capabilities = XboxMenuCapabilities(false, false, false),
+                onResume = { resumes++ },
+                onReturnToShelf = { exits++ },
+                onCopyReport = {},
+                onProbe = {},
+                onPreviousEngine = {},
+                canResume = false,
+                recovery = { Text("Repair engine resources") },
+            ) {
+                Text("Controls preserved")
+            }
+        }
+        compose.onNodeWithText("Resume").assertIsNotEnabled()
+        compose.onNodeWithText("Recovery options").performScrollTo().performClick()
+        compose.onNodeWithText("Repair engine resources").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, resumes) }
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
+        // Back at recovery Home must exit, never send Resume to a failed host.
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.runOnIdle {
+            assertEquals(0, resumes)
+            assertEquals(1, exits)
+        }
     }
 
     @Test fun releaseEngineHidesProbeAndRollbackRequiresCapability() {
@@ -139,7 +173,7 @@ class SharedGameMenuTest {
                 }
                 compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
                 compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
-                compose.onNodeWithText("Save / Load").performScrollTo().assertIsDisplayed()
+                compose.onNodeWithText("Save & Load").performScrollTo().assertIsDisplayed()
                 compose.runOnIdle { assertEquals(shelfMaterials(selected).interactionAccent, primary) }
             }
         }

@@ -22,7 +22,7 @@ data class GameMenuCapabilities(
 enum class GameMenuAction(val label: String) {
     RESUME("Resume"),
     CONTROLS("Controls"),
-    STATES("Save / Load"),
+    STATES("Save & Load"),
     SETTINGS("Game Settings"),
     ADVANCED("Advanced"),
     RETURN_TO_SHELF("Return to Shelf"),
@@ -43,6 +43,11 @@ internal class GameMenuPauseGate {
         sent = paused
         return paused
     }
+
+    /** A failed resume leaves the engine potentially paused. Permit retry. */
+    fun retryResumeAfterFailure() {
+        if (sent == false) sent = true
+    }
 }
 
 internal data class XboxMenuCapabilities(
@@ -52,5 +57,5 @@ internal data class XboxMenuCapabilities(
     val resume: Boolean = true,
 ) {
     val showProbe get() = debug && compatibleProbe
-    val home get() = GameMenuCapabilities(controls = true, advanced = true, resume = resume)
+    val home get() = GameMenuCapabilities(controls = true, states = true, advanced = true, resume = resume)
 }
