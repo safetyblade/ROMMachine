@@ -4,6 +4,7 @@
 #include "VulkanNegotiation.h"
 #include "WiiuRuntimeMetrics.h"
 #include "FrameFence.h"
+#include "SurfacePresentation.h"
 #include <utility>
 #include <algorithm>
 #include <cstring>
@@ -36,7 +37,11 @@ std::string CartdeckVulkanPresenter::deviceDescription() const {
         "\nvendor_id=" + std::to_string(properties.vendorID) +
         "\ndevice_id=" + std::to_string(properties.deviceID) +
         "\ndriver_version=" + std::to_string(properties.driverVersion) +
-        "\nvulkan_api=" + std::to_string(properties.apiVersion);
+        "\nvulkan_api=" + std::to_string(properties.apiVersion) +
+        "\nsurface_current_transform=" + std::to_string(surface_current_transform_) +
+        "\nswapchain_pre_transform=" + std::to_string(surface_pre_transform_) +
+        "\nswapchain_width=" + std::to_string(extent_.width) +
+        "\nswapchain_height=" + std::to_string(extent_.height);
 }
 
 bool CartdeckVulkanPresenter::fail(std::string* err, const char* message) {
@@ -274,7 +279,10 @@ bool CartdeckVulkanPresenter::createSwapchain(std::string* error) {
     req.imageArrayLayers = 1;
     req.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     req.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    req.preTransform = caps.currentTransform;
+    if (!uprightSurfaceTransform(caps, &req.preTransform))
+        return fail(error, "VULKAN_SURFACE_IDENTITY_TRANSFORM_UNSUPPORTED");
+    surface_current_transform_ = caps.currentTransform;
+    surface_pre_transform_ = req.preTransform;
     req.compositeAlpha = (caps.supportedCompositeAlpha &
                           VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) ?
                          VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR :

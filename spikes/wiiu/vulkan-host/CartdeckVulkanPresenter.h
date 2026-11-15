@@ -77,6 +77,8 @@ private:
     VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
     VkFormat surface_format_ = VK_FORMAT_UNDEFINED;
     VkExtent2D extent_{};
+    VkSurfaceTransformFlagBitsKHR surface_current_transform_ = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    VkSurfaceTransformFlagBitsKHR surface_pre_transform_ = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     std::vector<VkImage> images_;
     VkCommandPool pool_ = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commands_;
