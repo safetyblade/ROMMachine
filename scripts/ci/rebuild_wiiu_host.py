@@ -29,6 +29,18 @@ subprocess.run(["c++", "-std=c++17", "-I", str(headers), "-I", str(portable),
     "-I", "spikes/wiiu/vulkan-host", "spikes/wiiu/vulkan-host/tests/VulkanNegotiationTest.cpp",
     "-o", str(test)], check=True)
 subprocess.run([str(test.resolve())], check=True)
+for name, sources, includes in (
+    ("timing", ["tests/TimingTest.cpp"], [str(portable)]),
+    ("audio", ["tests/AudioTest.cpp", "WiiuAudio.cpp"], ["spikes/wiiu/vulkan-host/tests/fake"]),
+):
+    executable = work / (name + "-test")
+    command = ["c++", "-std=c++17", "-pthread", "-I", "spikes/wiiu/vulkan-host"]
+    for directory in includes:
+        command.extend(["-I", directory])
+    command.extend("spikes/wiiu/vulkan-host/" + source for source in sources)
+    subprocess.run(command + ["-o", str(executable)], check=True)
+    subprocess.run([str(executable.resolve())], check=True)
+
 build = work / "host-rebuild"
 subprocess.run([
     str(cmake), "-S", "spikes/wiiu/vulkan-host", "-B", str(build),

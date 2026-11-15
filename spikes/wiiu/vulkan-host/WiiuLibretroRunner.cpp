@@ -4,6 +4,8 @@
 #include "CartdeckVulkanPresenter.h"
 #include "WiiuAudio.h"
 #include "VulkanNegotiation.h"
+#include "WiiuRuntimeMetrics.h"
+#include "FramePacer.h"
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <dlfcn.h>
@@ -240,7 +242,10 @@ bool environment(unsigned command, void* data) {
             if (!data) return false;
             const auto rate = static_cast<const retro_system_av_info*>(data)->timing.sample_rate;
             if (!std::isfinite(rate) || rate < 8000 || rate > 192000) return false;
-            if (!s->audio_started) return true; // Initial rate is read after load_game.
+            const auto fps = static_cast<const retro_system_av_info*>(data)->timing.fps;
+            if (!std::isfinite(fps) || fps < 10 || fps > 240) return false;
+            WiiuMetrics::target_fps.store(fps);
+            if (!s->audio_started || WiiuMetrics::audio_rate.load() == static_cast<int32_t>(rate)) return true;
             return s->audio.start(static_cast<int32_t>(rate), &s->error);
         }
         case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
@@ -380,7 +385,10 @@ std::string run(ANativeWindow* window, const std::string& root,
     if (session.error.empty()) {
         retro_system_av_info av{};
         session.core.get_av_info(&av);
-        if (!std::isfinite(av.timing.sample_rate) || av.timing.sample_rate < 8000 ||
+        WiiuMetrics::target_fps.store(av.timing.fps);
+        if (!std::isfinite(av.timing.fps) || av.timing.fps < 10 || av.timing.fps > 240)
+            session.error = "WIIU_INVALID_FRAME_RATE";
+        else if (!std::isfinite(av.timing.sample_rate) || av.timing.sample_rate < 8000 ||
             av.timing.sample_rate > 192000)
             session.error = "WIIU_AUDIO_INVALID_SAMPLE_RATE";
         else
@@ -389,6 +397,8 @@ std::string run(ANativeWindow* window, const std::string& root,
     }
     if (session.error.empty()) {
         stage("guest retro_run loop");
+        FramePacer pacer;
+        pacer.reset(WiiuMetrics::nowUs());
         for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
             {
                 std::lock_guard<std::mutex> lock(surface_mutex);
@@ -398,6 +408,7 @@ std::string run(ANativeWindow* window, const std::string& root,
                 }
             }
             if (frontend_paused.load()) {
+                pacer.reset(WiiuMetrics::nowUs());
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 continue;
             }
@@ -419,12 +430,21 @@ std::string run(ANativeWindow* window, const std::string& root,
                 }
                 break;
             }
+            WiiuMetrics::run_calls.fetch_add(1);
+            const auto runStart = WiiuMetrics::nowUs();
+            WiiuMetrics::run_started_us.store(runStart);
             session.core.run();
+            WiiuMetrics::last_run_us.store(WiiuMetrics::nowUs() - runStart);
+            WiiuMetrics::run_returns.fetch_add(1);
+            WiiuMetrics::run_started_us.store(0);
             // Cemu may still be booting without any video callback. Consume the
             // acquired swapchain image safely; don't deadlock on the next frame.
             if (session.presenter.hasAcquiredFrame() &&
                 !session.presenter.presentBlank(&session.error)) break;
             if (!session.error.empty()) break;
+            const auto deadline = pacer.next(WiiuMetrics::nowUs(),
+                static_cast<uint64_t>(1000000.0 / WiiuMetrics::target_fps.load()));
+            std::this_thread::sleep_until(std::chrono::steady_clock::time_point(std::chrono::microseconds(deadline)));
         }
     }
     if (session.loaded) session.core.unload_game();
@@ -499,8 +519,14 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     // be erased by a late-starting nativeRun after Surface destruction/pause.
     stop_requested.store(false);
     frontend_paused.store(false);
+    WiiuMetrics::audio_paused.store(false);
     clearPendingSurface();
     submitted_audio.store(0);
+    WiiuMetrics::run_calls.store(0);
+    WiiuMetrics::run_returns.store(0);
+    WiiuMetrics::run_started_us.store(0);
+    WiiuMetrics::last_run_us.store(0);
+    WiiuMetrics::gpu(0);
     host_stage.store(0);
     tab_down.store(false);
     screen_requests.store(0);
@@ -508,7 +534,10 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePause(
-    JNIEnv*, jobject, jboolean paused) { frontend_paused.store(paused); }
+    JNIEnv*, jobject, jboolean paused) {
+        frontend_paused.store(paused);
+        WiiuMetrics::audio_paused.store(paused);
+    }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeController(
@@ -531,7 +560,8 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeRepor
         "\npresented_image_callbacks=" + std::to_string(frame_count.load()) +
         "\naudio_submitted_frames=" + std::to_string(submitted_audio.load()) +
         "\ncontroller_device_requested=" + std::to_string(applied_controller.load()) +
-        "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
+        "\nhost_paused=" + std::to_string(frontend_paused.load()) +
+        WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
     return env->NewStringUTF(out.c_str());
 }
 
@@ -543,5 +573,8 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeSurfa
     if (pending_window) ANativeWindow_release(pending_window);
     pending_window = next;
     ++surface_generation;
-    if (!next) frontend_paused.store(true);
+    if (!next) {
+        frontend_paused.store(true);
+        WiiuMetrics::audio_paused.store(true);
+    }
 }
