@@ -1,20 +1,29 @@
 {
+  "run": "GEM-W03R4 pinned Title Screen archive v2",
   "archive": {
     "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-csv.zip",
     "sha256": "9797a394d465fe79e7d96a9cd08698ae9ce18bd842b304ffe65d27d1c7fcca47",
-    "size_bytes": 54589919,
-    "licence": "CC BY 4.0",
+    "bytes": 54589919,
+    "license": "CC BY 4.0",
     "attribution": "Data: Title Screen (https://titlescreen.org), CC BY 4.0"
   },
-  "master_input_records": 787,
-  "source_tables_with_direct_title_platform_genre": [
-    "releases.csv"
-  ],
-  "outcome_counts": {
-    "SOURCE_MATCH_PENDING": 115,
-    "MATCHED_PROVISIONAL_REVIEW": 672
+  "platform_releases_all_classes": 3242,
+  "source_row_counts": {
+    "releases.csv": 151493,
+    "works.csv": 85564
   },
-  "source_model_requires_relational_join": false,
-  "decision": "Research evidence only. NO master mutations or game/DeckFit QA implied.",
-  "next": "If relational tables: inspect archive_schema_inventory.json and implement exact game/release/platform/genre joins."
+  "master_candidates": 787,
+  "summary_counts": {
+    "REVIEW_REQUIRED": 110,
+    "SOURCE_MATCH_TITLE": 677,
+    "genre_candidates": 666,
+    "genre_disagreements": 344,
+    "publisher_candidates": 669,
+    "us_year_candidates": 656,
+    "genre_agreements": 80,
+    "fills_unknown_genre": 242
+  },
+  "assurance": "Source-matched candidates require editorial review. Original source genre and manual ratings untouched.",
+  "license_notice": "Data: Title Screen (https://titlescreen.org), CC BY 4.0",
+  "output_file": "wiiu_reconciliation.csv"
 }
