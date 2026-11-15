@@ -21,7 +21,7 @@ data class GameMenuCapabilities(
 enum class GameMenuAction(val label: String) {
     RESUME("Resume"),
     CONTROLS("Controls"),
-    STATES("Save / Load"),
+    STATES("Save & Load"),
     SETTINGS("Game Settings"),
     ADVANCED("Advanced"),
     RETURN_TO_SHELF("Return to Shelf"),
