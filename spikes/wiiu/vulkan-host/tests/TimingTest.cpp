@@ -3,6 +3,7 @@
 #include "FrameFence.h"
 #include "SurfaceMailbox.h"
 #include "SurfacePresentation.h"
+#include "SwapchainContinuity.h"
 #include <future>
 #include <cassert>
 #include <thread>
@@ -52,6 +53,23 @@ int main() {
     }
     caps.supportedTransforms = VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR;
     assert(!uprightSurfaceTransform(caps, &transform));
+
+    // VK_KHR_swapchain: same-native-window replacement must identify the old
+    // swapchain. A different surface must never inherit that association.
+    SwapchainContinuity continuity;
+    VkSwapchainCreateInfoKHR replacement{};
+    continuity.configure(replacement);
+    assert(replacement.oldSwapchain == VK_NULL_HANDLE);
+    auto previous = reinterpret_cast<VkSwapchainKHR>(static_cast<uintptr_t>(123));
+    continuity.retire(previous, true);
+    continuity.configure(replacement);
+    assert(replacement.oldSwapchain == previous);
+    continuity.created();
+    continuity.configure(replacement);
+    assert(replacement.oldSwapchain == VK_NULL_HANDLE);
+    continuity.retire(previous, false);
+    continuity.configure(replacement);
+    assert(replacement.oldSwapchain == VK_NULL_HANDLE);
 
     FramePacer pacer;
     pacer.reset(1000000);

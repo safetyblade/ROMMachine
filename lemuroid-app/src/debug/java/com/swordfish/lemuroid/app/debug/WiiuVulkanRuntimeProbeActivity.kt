@@ -37,6 +37,7 @@ import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuContent
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
+import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuLaunchStatus
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuPad
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuStorage
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuViewport
@@ -74,6 +75,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
     private var message by mutableStateOf("Preparing Wii U content. Open the game menu to cancel.")
+    private var showLoadingScreen by mutableStateOf(true)
     private var presentationRecorded = false
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val touch = XboxPadState()
@@ -188,7 +190,6 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -248,7 +249,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 }
                             }
                         }
-                        if (!menuOpen && message.isNotEmpty() && !failed) CartdeckLoadingScreen(message)
+                        if (!menuOpen && showLoadingScreen && !failed) CartdeckLoadingScreen(message)
                         if (menuOpen) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "Wii U",
@@ -360,6 +361,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         val frames =
                             Regex("presented_image_callbacks=(\\d+)").find(report)
                                 ?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+                        val status = WiiuLaunchStatus.parse(report)
+                        showLoadingScreen = status.showLoadingScreen
+                        if (status.error.isNotEmpty() && !failed) {
+                            failed = true
+                            message = "Wii U graphics/startup failed: ${status.error}. Saves were retained."
+                            openMenu()
+                        }
                         if (frames > 0 && !failed) {
                             message = ""
                             if (!presentationRecorded) {

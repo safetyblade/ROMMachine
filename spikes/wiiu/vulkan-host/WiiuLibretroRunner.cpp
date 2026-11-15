@@ -44,6 +44,7 @@ std::atomic<unsigned> host_stage{0};
 std::mutex diagnostics_mutex;
 std::string gpu_diagnostics;
 std::string native_error;
+std::atomic<bool> renderer_ready{false};
 std::array<std::atomic<int16_t>, 4> axes{};
 std::atomic<int16_t> pointer_x{0}, pointer_y{0};
 std::atomic<bool> pointer_down{false};
@@ -375,6 +376,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     if (session.error.empty() &&
         !session.presenter.initialize(window, session.negotiation, &session.error))
         session.error = "WIIU_VULKAN_INIT_" + session.error;
+    if (session.error.empty()) renderer_ready.store(true);
     if (session.error.empty() && session.hw.context_reset) {
         stage("Cemu context_reset");
         session.hw.context_reset();
@@ -545,6 +547,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     WiiuMetrics::gpu(0);
     { std::lock_guard<std::mutex> lock(diagnostics_mutex); native_error.clear(); }
     host_stage.store(0);
+    renderer_ready.store(false);
     tab_down.store(false);
     screen_requests.store(0);
 }
@@ -572,6 +575,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeRepor
     JNIEnv* env, jobject) {
     std::lock_guard<std::mutex> lock(diagnostics_mutex);
     const auto out = "host_stage=" + std::to_string(host_stage.load()) +
+        "\nrenderer_ready=" + std::to_string(renderer_ready.load()) +
         "\nimage_width=" + std::to_string(image_width.load()) +
         "\nimage_height=" + std::to_string(image_height.load()) +
         "\npresented_image_callbacks=" + std::to_string(frame_count.load()) +
