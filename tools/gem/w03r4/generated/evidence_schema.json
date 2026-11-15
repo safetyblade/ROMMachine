@@ -1,9 +1,11 @@
 {
-  "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-evidence.jsonl.gz",
-  "sha256": "88c33da6b766c804b40d825a2f79bb7b7e39b948cf7455db33425c69614e7859",
-  "total": 1946112,
-  "target_ids": 1357,
-  "kinds_by_fact": {
+  "evidence_sha256": "88c33da6b766c804b40d825a2f79bb7b7e39b948cf7455db33425c69614e7859",
+  "genre_statements_all_platforms": 257444,
+  "wiiu_dump_ids_linked": 680,
+  "wiiu_release_ids_with_evidence": 669,
+  "wiiu_master_rows_with_evidence": 673,
+  "wiiu_master_rows_with_2plus_sources": 640,
+  "source_kind_field_counts": {
     "dump/date": 466317,
     "dump/publisher": 339131,
     "dump/developer": 288350,
@@ -29,125 +31,36 @@
     "listing/title_cjk": 9,
     "listing/title_zh": 71
   },
-  "sample_genre_evidence": [
+  "case_examples": [
     {
-      "subject_kind": "dump",
-      "subject_id": 1,
-      "field": "genre",
-      "value": "shooter",
-      "value_raw": "Shooter",
-      "source": "libretro",
-      "tier": 2,
-      "how": "crc",
-      "scope": "release",
-      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
-      "observed": "2026-10-09",
-      "confidence": 1.0
+      "catalogue_id": "WIIU:WUB:000500001010FA00",
+      "source_work_id": "wq2edqee",
+      "source_release_ids": "r8zn23q6",
+      "compiled_genre": "Action-adventure",
+      "distinct_sources": 3,
+      "source_names": "gametdb | launchbox | wikidata",
+      "genre_source_votes": "{\"action-adventure\": 2, \"platformer\": 1}",
+      "sources_detail": "[{\"source\": \"wikidata\", \"raw\": \"Action-adventure, 2.5D platform\", \"normalized\": \"action-adventure\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"wikidata:Q3701904\"}, {\"source\": \"gametdb\", \"raw\": \"Action, Adventure, Puzzle\", \"normalized\": \"action-adventure\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"gametdb:wiiutdb#WCVE\"}, {\"source\": \"launchbox\", \"raw\": \"Adventure, Platform\", \"normalized\": \"platformer\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"launchbox:14828\"}]"
     },
     {
-      "subject_kind": "dump",
-      "subject_id": 1,
-      "field": "genre",
-      "value": "shooter/shmup",
-      "value_raw": "Shoot 'em up, Rail shooter",
-      "source": "wikidata",
-      "tier": 4,
-      "how": "name",
-      "scope": "title",
-      "locator": "wikidata:Q388929",
-      "observed": "2026-10-09",
-      "confidence": 0.9
+      "catalogue_id": "WIIU:WUB:0005000010128700",
+      "source_work_id": "w01wbbr7",
+      "source_release_ids": "r3bnbfdy",
+      "compiled_genre": "3D platformer",
+      "distinct_sources": 3,
+      "source_names": "gametdb | launchbox | wikidata",
+      "genre_source_votes": "{\"action-adventure/metroidvania\": 1, \"platformer/3d\": 1, \"platformer\": 1}",
+      "sources_detail": "[{\"source\": \"wikidata\", \"raw\": \"Puzzle, Platformer, Metroidvania, Metroidbrainia\", \"normalized\": \"action-adventure/metroidvania\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"wikidata:Q13220119\"}, {\"source\": \"gametdb\", \"raw\": \"Action, Adventure, 3d platformer, Puzzle\", \"normalized\": \"platformer/3d\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"gametdb:wiiutdb#WAAE\"}, {\"source\": \"launchbox\", \"raw\": \"Platform\", \"normalized\": \"platformer\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"launchbox:16093\"}]"
     },
     {
-      "subject_kind": "dump",
-      "subject_id": 1,
-      "field": "genre",
-      "value": "shooter",
-      "value_raw": "Shooter",
-      "source": "launchbox",
-      "tier": 4,
-      "how": "name",
-      "scope": "title",
-      "locator": "launchbox:4912",
-      "observed": "2026-10-09",
-      "confidence": 0.9
-    },
-    {
-      "subject_kind": "dump",
-      "subject_id": 2,
-      "field": "genre",
-      "value": "shooter",
-      "value_raw": "Shooter",
-      "source": "libretro",
-      "tier": 2,
-      "how": "crc",
-      "scope": "release",
-      "locator": "no-intro:Sega - 32X#After Burner Complete (Japan, USA) (En)",
-      "observed": "2026-10-09",
-      "confidence": 1.0
-    },
-    {
-      "subject_kind": "dump",
-      "subject_id": 2,
-      "field": "genre",
-      "value": "shooter/shmup",
-      "value_raw": "Shoot 'em up, Rail shooter",
-      "source": "wikidata",
-      "tier": 4,
-      "how": "name",
-      "scope": "title",
-      "locator": "wikidata:Q388929",
-      "observed": "2026-10-09",
-      "confidence": 0.9
-    },
-    {
-      "subject_kind": "dump",
-      "subject_id": 2,
-      "field": "genre",
-      "value": "shooter",
-      "value_raw": "Shooter",
-      "source": "launchbox",
-      "tier": 4,
-      "how": "name",
-      "scope": "title",
-      "locator": "launchbox:4912",
-      "observed": "2026-10-09",
-      "confidence": 0.9
-    },
-    {
-      "subject_kind": "dump",
-      "subject_id": 3,
-      "field": "genre",
-      "value": "platformer",
-      "value_raw": "Platform",
-      "source": "libretro",
-      "tier": 2,
-      "how": "crc",
-      "scope": "release",
-      "locator": "no-intro:Sega - 32X#Amazing Spider-Man, The - Web of Fire (USA)",
-      "observed": "2026-10-09",
-      "confidence": 1.0
-    },
-    {
-      "subject_kind": "dump",
-      "subject_id": 3,
-      "field": "genre",
-      "value": "action-adventure",
-      "value_raw": "Action-adventure",
-      "source": "wikidata",
-      "tier": 4,
-      "how": "name",
-      "scope": "title",
-      "locator": "wikidata:Q3493438",
-      "observed": "2026-10-09",
-      "confidence": 0.9
+      "catalogue_id": "WIIU:WUB:0005000010162500",
+      "source_work_id": "w85855xd",
+      "source_release_ids": "rh6c5mrt",
+      "compiled_genre": "Action-adventure",
+      "distinct_sources": 2,
+      "source_names": "gametdb | launchbox",
+      "genre_source_votes": "{\"action-adventure\": 1, \"puzzle\": 1}",
+      "sources_detail": "[{\"source\": \"gametdb\", \"raw\": \"Action, Adventure\", \"normalized\": \"action-adventure\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"gametdb:wiiutdb#WF2E\"}, {\"source\": \"launchbox\", \"raw\": \"Action, Platform, Puzzle, Racing, Sports\", \"normalized\": \"puzzle\", \"tier\": 4, \"how\": \"name\", \"confidence\": 0.9, \"locator\": \"launchbox:20528\"}]"
     }
-  ],
-  "genre_evidence_matched_ids": 0,
-  "case_examples": {
-    "w01wbbr7": [],
-    "w85855xd": [],
-    "wda0debr": [],
-    "wq2edqee": []
-  }
+  ]
 }
