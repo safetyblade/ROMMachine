@@ -104,6 +104,13 @@ private fun MiscSettings(
             enabled = !indexingInProgress,
             onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
         )
+        if (com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine.engineeringBuild) {
+            LemuroidSettingsMenuLink(
+                title = { Text("PlayStation 2 setup") },
+                subtitle = { Text("ARMSX2 BIOS, automatic engine choice and startup-message settings") },
+                onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
+            )
+        }
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.settings_title_advanced_settings)) },
             subtitle = {

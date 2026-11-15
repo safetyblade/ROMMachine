@@ -74,6 +74,7 @@ public final class NativeApp {
     public static native void renderVulkan();
     public static native void renderOpenGL();
     public static native void setAffinityMode(int mode);
+    public static native void setFreeSoftwareNotice(boolean show);
     public static native void setCustomVulkanDriver(String directory, String name, String redirect, String hook);
     public static native boolean writeSystemReport(String path);
     public static native String getPerfSnapshot();

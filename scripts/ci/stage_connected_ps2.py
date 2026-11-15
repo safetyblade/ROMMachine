@@ -32,6 +32,9 @@ def stage(work, bundle, llvm):
         core = 'libemucore_' + ('4k' if page == 4096 else '16k') + '.so'
         if sha(source / core) != info['sha256']:
             raise ValueError('Native engine bytes differ from the passed source build')
+        exports = subprocess.check_output([str(llvm / 'llvm-readelf'), '--dyn-syms', '-W', str(source / core)], text=True)
+        if 'Java_kr_co_iefriends_pcsx2_NativeApp_setFreeSoftwareNotice' not in exports:
+            raise ValueError('Pinned engine lacks the upstream optional startup-notice setting')
         # These are the runtime DT_NEEDED dependencies. Upstream's unrelated
         # Flurry/Savers home-screen effects are not dependencies of CARTDECK gameplay.
         pending, needed = list(info['needed']), {}

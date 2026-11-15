@@ -103,17 +103,18 @@ object NativeEngineRegistry {
         }
         val engines = configs.map { config -> describe(system, config) }
         if (system.id == SystemID.PLAYSTATION_2 && Armsx2Engine.engineeringBuild) {
-            return listOf(
-                Engine(
-                    "armsx2-android", "ARMSX2", system.id, Host.ARMSX2_ANDROID, null,
-                    setOf("iso", "chd"), 29, setOf("arm64-v8a"), 0, 0x00401000,
-                    listOf("User-owned PS2 BIOS"), "Pinned ARMSX2 resources",
-                    "native/ps2/armsx2", "Independent memory cards; Play! data retained separately",
-                    "DualShock, analog sticks, L2/R2 and game menu",
-                    "Stock Vulkan / OpenGL. Device gameplay and performance require physical acceptance.",
-                    Armsx2Engine.MANIFEST,
-                ),
-            ) + engines
+            return engines +
+                listOf(
+                    Engine(
+                        "armsx2-android", "ARMSX2", system.id, Host.ARMSX2_ANDROID, null,
+                        setOf("iso", "chd"), 29, setOf("arm64-v8a"), 0, 0x00401000,
+                        listOf("User-owned PS2 BIOS"), "Pinned ARMSX2 resources",
+                        "native/ps2/armsx2", "Independent memory cards; Play! data retained separately",
+                        "DualShock, analog sticks, L2/R2 and game menu",
+                        "Stock Vulkan / OpenGL. Device gameplay and performance require physical acceptance.",
+                        Armsx2Engine.MANIFEST,
+                    ),
+                )
         }
         return engines
     }
