@@ -383,7 +383,8 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         val dataRoot = requireNotNull(sandbox)
                         withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
                     }
-                    delay(1000)
+                    // Release the opaque loader before the first bounded WSI acquire wait.
+                    delay(if (showLoadingScreen) 50 else 1000)
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
