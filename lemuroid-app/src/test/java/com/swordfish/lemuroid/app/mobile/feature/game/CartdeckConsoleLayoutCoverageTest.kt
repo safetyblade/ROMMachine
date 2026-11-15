@@ -37,6 +37,15 @@ class CartdeckConsoleLayoutCoverageTest {
                 assertTrue(system.systemCoreConfigs.isEmpty())
                 continue
             }
+            if (system.id == SystemID.PLAYSTATION_3) {
+                assertEquals("ps3", system.nativeBackend)
+                assertTrue(system.systemCoreConfigs.isEmpty())
+                val pad = com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.CONTROLLER
+                assertEquals(TouchControllerID.PSX_DUALSHOCK, pad)
+                assertNotNull(TouchControllerID.getConfig(pad))
+                assertTrue(GripArcInputCatalog.forSystem(system.id).isNotEmpty())
+                continue
+            }
             if (system.id == SystemID.XBOX360) {
                 assertEquals("xenia", system.nativeBackend)
                 assertTrue(system.systemCoreConfigs.isEmpty())

@@ -29,6 +29,8 @@ def main():
     p.add_argument('--rpcs3-core', type=pathlib.Path, required=True)
     p.add_argument('--armsx3-receipt', type=pathlib.Path, required=True)
     p.add_argument('--rpcs3-receipt', type=pathlib.Path, required=True)
+    p.add_argument('--armsx3-notices', type=pathlib.Path)
+    p.add_argument('--rpcs3-notices', type=pathlib.Path)
     p.add_argument('--native-bridge', type=pathlib.Path, required=True)
     p.add_argument('--libretro-host', type=pathlib.Path, required=True)
     p.add_argument('--ndk', type=pathlib.Path, required=True)
@@ -61,6 +63,7 @@ def main():
         if 'AArch64' not in header:
             raise ValueError('Wrong emulator ABI: ' + id)
         notices = assets / f'{id}-licenses.zip'
+        provided_notices = args.armsx3_notices if id == 'armsx3' else args.rpcs3_notices
         with zipfile.ZipFile(notices, 'w', zipfile.ZIP_DEFLATED) as z:
             z.write(source / 'LICENSE', 'LICENSE')
             z.writestr('SOURCE.txt', f'https://github.com/{"ARMSX2/ARMSX3" if id == "armsx3" else "WizzardSK/rpcs3-libretro"}\n{sha}\n')
@@ -68,6 +71,8 @@ def main():
             for file in source.glob('3rdparty/**/LICENSE*'):
                 if file.is_file() and file.stat().st_size < 1048576:
                     z.write(file, str(file.relative_to(source)))
+        if provided_notices is not None:
+            shutil.copyfile(provided_notices, notices)
         h = digest(target)
         properties = {'revision': sha, 'core.sha256': h, 'library.names': name, f'library.{name}.sha256': h, 'notices.sha256': digest(notices), 'architecture': 'arm64-v8a', 'renderer': 'Vulkan', 'gameplay': 'UNVERIFIED'}
         (assets / f'{id}.properties').write_text(''.join(f'{k}={v}\n' for k, v in properties.items()))
@@ -76,7 +81,7 @@ def main():
         shutil.copyfile(source, native / name)
         evidence[name] = digest(native / name)
     # DT_NEEDED must resolve to Android system libraries or an explicitly packaged dependency.
-    allowed = {'libc.so', 'libm.so', 'libdl.so', 'liblog.so', 'libandroid.so', 'libvulkan.so', 'libaaudio.so', 'libz.so', 'libEGL.so', 'libGLESv2.so', 'libOpenSLES.so'}
+    allowed = {'libc.so', 'libm.so', 'libdl.so', 'liblog.so', 'libandroid.so', 'libvulkan.so', 'libaaudio.so', 'libz.so', 'libEGL.so', 'libGLESv2.so', 'libOpenSLES.so', 'libamidi.so'}
     import re
     for name in ['libarmsx3-core.so', 'librpcs3_libretro.so', 'libcartdeck_ps3.so', 'libcartdeckps3vulkanhost.so']:
         dynamic = subprocess.check_output([str(tools / 'llvm-readelf'), '-d', str(native / name)], text=True)

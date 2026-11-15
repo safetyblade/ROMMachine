@@ -30,7 +30,7 @@
 
 namespace {
 std::atomic<bool> stop_requested{false};
-std::atomic<uint32_t> pressed_buttons{0};
+std::array<std::atomic<uint32_t>, 7> pressed_buttons{};
 std::atomic<unsigned> frame_count{0};
 std::atomic<unsigned> image_width{0}, image_height{0};
 std::atomic<uint64_t> submitted_audio{0};
@@ -42,11 +42,13 @@ std::atomic<unsigned> applied_controller{1};
 std::atomic<unsigned> screen_requests{0};
 std::atomic<bool> tab_down{false};
 std::atomic<unsigned> host_stage{0};
+std::atomic<int> firmware_install_status{0};
+std::atomic<bool> package_installed{false};
 std::mutex diagnostics_mutex;
 std::string gpu_diagnostics;
 std::string native_error;
 std::atomic<bool> renderer_ready{false};
-std::array<std::atomic<int16_t>, 4> axes{};
+std::array<std::array<std::atomic<int16_t>, 4>, 7> axes{};
 std::atomic<int16_t> pointer_x{0}, pointer_y{0};
 std::atomic<bool> pointer_down{false};
 
@@ -159,6 +161,15 @@ bool environment(unsigned command, void* data) {
     auto* s = active;
     if (!s) return false;
     switch (command) {
+        case 0x4344504bU:
+            if (!data) return false;
+            package_installed.store(*static_cast<bool*>(data));
+            return true;
+        case 0x43444657U:
+            if (!data) return false;
+            firmware_install_status.store(*static_cast<bool*>(data) ? 1 : -1);
+            if (!*static_cast<bool*>(data)) stop_requested.store(true);
+            return true;
         case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
             if (!data) return false;
             *static_cast<const char**>(data) = s->system.c_str();
@@ -302,17 +313,17 @@ void audio(int16_t left, int16_t right) {
 }
 void inputPoll() {}
 int16_t input(unsigned port, unsigned device, unsigned index, unsigned id) {
-    if (port) return 0;
+    if (port >= 7) return 0;
     if (device == RETRO_DEVICE_KEYBOARD && !index && id == RETROK_TAB) return tab_down.load();
     if (device == RETRO_DEVICE_ANALOG && index < 2 && id < 2)
-        return axes[index * 2 + id].load();
+        return axes[port][index * 2 + id].load();
     if (device == RETRO_DEVICE_POINTER && !index) {
         if (id == RETRO_DEVICE_ID_POINTER_X) return pointer_x.load();
         if (id == RETRO_DEVICE_ID_POINTER_Y) return pointer_y.load();
         if (id == RETRO_DEVICE_ID_POINTER_PRESSED) return pointer_down.load();
     }
     if (index || device != RETRO_DEVICE_JOYPAD || id >= 32) return 0;
-    return (pressed_buttons.load() & (1u << id)) ? 1 : 0;
+    return (pressed_buttons[port].load() & (1u << id)) ? 1 : 0;
 }
 std::string jstringValue(JNIEnv* env, jstring str) {
     if (!str) return {};
@@ -344,8 +355,8 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.disc = disc;
     if (stop_requested.load()) return "PS3_CANCELLED_BEFORE_START";
     frame_count.store(0);
-    pressed_buttons.store(0);
-    for (auto& axis : axes) axis.store(0);
+    for (auto& buttons : pressed_buttons) buttons.store(0);
+    for (auto& player : axes) for (auto& axis : player) axis.store(0);
     pointer_down.store(false);
     if (!window) return "PS3_BLOCKED_NO_SURFACE";
     // The user must independently supply a lawful test image, keys and any
@@ -374,7 +385,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     session.initialized = true;
     host_stage.store(1);
     const auto initial_controller = requested_controller.load();
-    session.core.set_controller(0, initial_controller);
+    for (unsigned port = 0; port < 7; ++port) session.core.set_controller(port, initial_controller);
     applied_controller.store(initial_controller);
     retro_game_info game{};
     game.path = session.disc.c_str();
@@ -528,18 +539,20 @@ Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeStop(
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeButton(
-    JNIEnv*, jobject, jint id, jboolean pressed) {
+    JNIEnv*, jobject, jint port, jint id, jboolean pressed) {
+    if (port < 0 || port >= 7) return;
     if (id < 0 || id >= 32) return;
     const uint32_t bit = 1u << static_cast<unsigned>(id);
-    if (pressed) pressed_buttons.fetch_or(bit);
-    else pressed_buttons.fetch_and(~bit);
+    if (pressed) pressed_buttons[port].fetch_or(bit);
+    else pressed_buttons[port].fetch_and(~bit);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeAxis(
-    JNIEnv*, jobject, jint axis, jint value) {
+    JNIEnv*, jobject, jint port, jint axis, jint value) {
+    if (port < 0 || port >= 7) return;
     if (axis >= 0 && axis < 4 && value >= -32767 && value <= 32767)
-        axes[axis].store(static_cast<int16_t>(value));
+        axes[port][axis].store(static_cast<int16_t>(value));
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativePointer(
@@ -569,6 +582,8 @@ Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativePrepare(
     WiiuMetrics::gpu(0);
     { std::lock_guard<std::mutex> lock(diagnostics_mutex); native_error.clear(); }
     host_stage.store(0);
+    firmware_install_status.store(0);
+    package_installed.store(false);
     renderer_ready.store(false);
     tab_down.store(false);
     screen_requests.store(0);
@@ -598,6 +613,8 @@ Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeReport(
     std::lock_guard<std::mutex> lock(diagnostics_mutex);
     const auto out = "host_stage=" + std::to_string(host_stage.load()) +
         "\nrenderer_ready=" + std::to_string(renderer_ready.load()) +
+        "\npackage_installed=" + std::to_string(package_installed.load()) +
+        "\nfirmware_install_status=" + std::to_string(firmware_install_status.load()) +
         "\nimage_width=" + std::to_string(image_width.load()) +
         "\nimage_height=" + std::to_string(image_height.load()) +
         "\npresented_image_callbacks=" + std::to_string(frame_count.load()) +

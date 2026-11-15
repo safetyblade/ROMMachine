@@ -38,6 +38,19 @@ class NativeEngineRegistryTest {
                     assertEquals(NativeEngineRegistry.Host.CEMU_VULKAN, engine.host)
                     assertEquals(null, engine.core)
                     assertEquals("native/wiiu", engine.stateNamespace)
+                } else if (system.id == SystemID.PLAYSTATION_3) {
+                    assertTrue(
+                        engine.host in
+                            setOf(
+                                NativeEngineRegistry.Host.ARMSX3_ANDROID,
+                                NativeEngineRegistry.Host.RPCS3_LIBRETRO,
+                            ),
+                    )
+                    assertEquals(null, engine.core)
+                    assertEquals("native/ps3/${engine.id}", engine.stateNamespace)
+                    assertEquals(setOf("arm64-v8a"), engine.architectures)
+                    assertEquals(0x00401000, engine.minimumVulkan)
+                    assertEquals(setOf("armsx3", "rpcs3-libretro"), engines.map { it.id }.toSet())
                 } else if (system.id == SystemID.XBOX) {
                     assertEquals(NativeEngineRegistry.Host.HAKUX_SDL3, engine.host)
                     assertEquals(null, engine.core)

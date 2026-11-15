@@ -158,6 +158,7 @@ internal object SupportedGamesCatalog {
             SystemID.N64 -> "n64 nintendo 64"
             SystemID.NDS -> "nds ds nintendo ds"
             SystemID.NINTENDO_3DS -> "3ds nintendo 3ds"
+            SystemID.PLAYSTATION_3 -> "ps3 playstation 3 playstation3 sony rpcs3 armsx3"
             SystemID.WII_U -> "wiiu wii u nintendo wii u cemu wua wud wux rpx"
             SystemID.XBOX360 -> "x360 xbox360 xbox 360 microsoft xenia xex xcp zar"
             SystemID.SNES -> "snes super nintendo"

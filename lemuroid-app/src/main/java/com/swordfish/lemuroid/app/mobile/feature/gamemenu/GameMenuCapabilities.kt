@@ -6,10 +6,11 @@ data class GameMenuCapabilities(
     val states: Boolean = false,
     val settings: Boolean = false,
     val advanced: Boolean = false,
+    val resume: Boolean = true,
 ) {
     fun homeActions(): List<GameMenuAction> =
         buildList {
-            add(GameMenuAction.RESUME)
+            if (resume) add(GameMenuAction.RESUME)
             if (controls) add(GameMenuAction.CONTROLS)
             if (states) add(GameMenuAction.STATES)
             if (settings) add(GameMenuAction.SETTINGS)
@@ -44,7 +45,12 @@ internal class GameMenuPauseGate {
     }
 }
 
-internal data class XboxMenuCapabilities(val debug: Boolean, val compatibleProbe: Boolean, val rollback: Boolean) {
+internal data class XboxMenuCapabilities(
+    val debug: Boolean,
+    val compatibleProbe: Boolean,
+    val rollback: Boolean,
+    val resume: Boolean = true,
+) {
     val showProbe get() = debug && compatibleProbe
-    val home get() = GameMenuCapabilities(controls = true, advanced = true)
+    val home get() = GameMenuCapabilities(controls = true, advanced = true, resume = resume)
 }

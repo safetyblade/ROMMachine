@@ -37,7 +37,6 @@ import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
-import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +50,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private lateinit var surface: SurfaceView
     private lateinit var storage: Ps3Storage
     private var game: Game? = null
+
+    @Volatile private var runActive = false
     private var loaded = false
     private var ready = false
     private var booting = false
@@ -64,6 +65,18 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var coreLibrary: File? = null
     private var activeRevision = ""
     private var report = "PS3_PREPARING; gameplay=UNVERIFIED"
+    private val touchKeys = mutableSetOf<Int>()
+    private val touchSticks = intArrayOf(128, 128, 128, 128)
+    private val gripSlots = mutableMapOf<Int, Set<Int>>()
+    private val rawPressed = mutableMapOf<Int, MutableSet<Int>>()
+    private val remaps = mutableMapOf<Int, Map<Int, Int>>()
+    private val menuShortcuts = mutableMapOf<Int, Set<Int>>()
+    private val inputManager by lazy {
+        com.swordfish.lemuroid.app.shared.input.InputDeviceManager(
+            this,
+            dagger.Lazy { com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.getSharedPreferences(this) },
+        )
+    }
     private val pressed = mutableMapOf<Int, MutableSet<Int>>()
     private val sticks = mutableMapOf<Int, IntArray>()
     private val presence by lazy { GameplayControllerPresence(this) }
@@ -103,13 +116,20 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 ) {
                                     "Not a PS3 PUP firmware file"
                                 }
+                                if (!storage.hasPendingFirmwareReplacement()) storage.beginFirmwareReplacement()
                                 check(pending.renameTo(File(storage.guest, "PS3UPDAT.PUP")))
                             } else {
                                 val fd =
                                     contentResolver.openFileDescriptor(uri, "r")
                                         ?: error("Firmware cannot be opened")
-                                check(Ps3Native.install(fd.detachFd(), true)) {
-                                    "PS3 firmware validation or installation failed"
+                                storage.beginFirmwareReplacement()
+                                storage.markFirmwareInstallStarted()
+                                var installed = false
+                                try {
+                                    installed = Ps3Native.install(fd.detachFd(), true)
+                                    check(installed) { "PS3 firmware validation or installation failed" }
+                                } finally {
+                                    storage.finishFirmwareReplacement(installed)
                                 }
                             }
                         }
@@ -125,6 +145,12 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         game = intent.getSerializableExtra("cartdeck.game") as? Game
         engine = intent.getStringExtra("cartdeck.engine") ?: "armsx3"
         storage = Ps3Storage(filesDir, engine)
@@ -138,9 +164,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         XboxGameControls(
                             ::touch,
                             settings,
-                            TouchControllerID.PSX_DUALSHOCK,
+                            Ps3Engine.CONTROLLER,
                             connected,
                             game,
+                            onGripPressed = { slot, down, codes ->
+                                if (down && !menu && this@Ps3RuntimeActivity.foreground) gripSlots[slot] = codes else gripSlots.remove(slot)
+                                send(0)
+                            },
                         ) { viewport ->
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 surface.layoutParams =
@@ -150,8 +180,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                             }
                         }
-                        if (loading && !menu) {
-                            CartdeckLoadingScreen(message)
+                        if (loading && !menu) CartdeckLoadingScreen(message)
+                        if (!menu && (loading || connected)) {
                             androidx.compose.material3.TextButton(
                                 onClick = ::openMenu,
                                 modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd),
@@ -165,9 +195,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         false,
                                         false,
                                         Ps3Engine.store(filesDir, engine).canRollback(),
+                                        resume = game != null && !failure,
                                     ),
                                 onResume = {
-                                    if (!failure) {
+                                    if (!failure && game != null) {
                                         menu = false
                                         pause(false)
                                         boot()
@@ -205,10 +236,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                                 },
                             ) {
-                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK) { orientation, edit ->
+                                XboxMenuControls(settings, Ps3Engine.CONTROLLER) { orientation, edit ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
-                                            TouchControllerID.PSX_DUALSHOCK,
+                                            Ps3Engine.CONTROLLER,
                                             orientation,
                                             edit,
                                         )
@@ -239,6 +270,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     if (storage.profiles().isEmpty()) storage.create("Player 1")
                     val profile = storage.profiles().first { it.selected }
                     check(storage.guest.mkdirs() || storage.guest.isDirectory)
+                    if (storage.firmwareInstallInterrupted()) {
+                        storage.finishFirmwareReplacement(false)
+                        val pup = File(storage.guest, "PS3UPDAT.PUP")
+                        if (pup.exists()) check(pup.renameTo(File(storage.root, "interrupted-PS3UPDAT.PUP")))
+                    }
                     val config = File(storage.guest, "config").apply { mkdirs() }
                     val path = storage.guest.canonicalPath.replace("'", "''") + "/"
                     File(config, "vfs.yml").writeText("\"$(EmulatorDir)\": '$path'\n")
@@ -267,7 +303,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     loading = false
                     menu = true
                 }
-                while (!leaving && loaded) {
+                while (!leaving && loaded && !failure) {
                     delay(500)
                     val state = withContext(Dispatchers.IO) { if (retro) -1 else Ps3Native.state() }
                     val framePeriod = withContext(Dispatchers.IO) { if (retro) 0L else Ps3Native.framePeriod() }
@@ -281,7 +317,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             appendLine("profile=${storage.profiles().firstOrNull { it.selected }?.id}")
                             appendLine("gameplay=UNVERIFIED")
                         }
-                    if (retro) report += withContext(Dispatchers.IO) { Ps3Libretro.nativeReport() }
+                    if (retro) {
+                        report += withContext(Dispatchers.IO) { Ps3Libretro.nativeReport() }
+                        withContext(Dispatchers.IO) { completeFirmwareInstall(report) }
+                    }
                     withContext(Dispatchers.IO) { File(storage.root, "last-report.txt").writeText(report) }
                     message = com.armsx3.core.ProgressRepository.message.ifBlank { "Compiling PS3 modules" }
                     val presented = retro && Regex("presented_image_callbacks=[1-9][0-9]*").containsMatchIn(report)
@@ -289,6 +328,20 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     if (booting && state == 5) error("PS3 guest entered a frozen state")
                 }
             }.onFailure(::fail)
+        }
+    }
+
+    private fun completeFirmwareInstall(nativeReport: String) {
+        if (!storage.hasPendingFirmwareReplacement()) return
+        val status =
+            Regex("(?m)^firmware_install_status=(-?[0-9]+)$")
+                .find(nativeReport)?.groupValues?.get(1)?.toIntOrNull() ?: return
+        if (status == 0) return
+        storage.finishFirmwareReplacement(status == 1)
+        if (status < 0) {
+            val pup = File(storage.guest, "PS3UPDAT.PUP")
+            if (pup.exists()) check(pup.renameTo(File(storage.root, "rejected-PS3UPDAT.PUP")))
+            error("Native PS3 firmware installation failed; previous firmware was restored")
         }
     }
 
@@ -305,21 +358,51 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     if (!retro) check(Ps3Native.surface(surface.holder.surface, 0, surface.width, surface.height))
                     val current = game ?: error("Open a PS3 cartridge from Shelf")
                     var media = Ps3Content.stage(this@Ps3RuntimeActivity, current, storage.root)
+                    var packageTitle: String? = null
+                    if (media.extension.equals("pkg", true)) {
+                        packageTitle = com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.pkg(
+                            media.inputStream().use { it.readNBytesCompat(128) }, media.length(),
+                        ) ?: error("Invalid PS3 package")
+                        val installed = File(storage.guest, "dev_hdd0/game/$packageTitle/PARAM.SFO")
+                        if (installed.isFile && File(installed.parentFile, "USRDIR/EBOOT.BIN").isFile) {
+                            media = if (retro) installed else File(installed.parentFile, "USRDIR/EBOOT.BIN")
+                        }
+                    }
                     if (retro) {
                         if (media.isDirectory) {
                             val direct = File(media, "PARAM.SFO")
                             media = if (direct.isFile) direct else File(media, "PS3_GAME/PARAM.SFO")
                         }
                         check(media.isFile) { "PS3 executable metadata is missing" }
+                        if (storage.hasPendingFirmwareReplacement()) storage.markFirmwareInstallStarted()
+                        runActive = true
                         val result =
-                            Ps3Libretro.nativeRun(
-                                surface.holder.surface,
-                                storage.root.path,
-                                media.path,
-                                0,
-                                requireNotNull(coreLibrary).path,
-                                media.parentFile!!.path,
-                            )
+                            try {
+                                Ps3Libretro.nativeRun(
+                                    surface.holder.surface,
+                                    storage.root.path,
+                                    media.path,
+                                    0,
+                                    requireNotNull(coreLibrary).path,
+                                    media.parentFile!!.path,
+                                )
+                            } finally {
+                                try {
+                                    completeFirmwareInstall(Ps3Libretro.nativeReport())
+                                } finally {
+                                    runActive = false
+                                }
+                            }
+                        if (!leaving && packageTitle != null &&
+                            Regex("(?m)^package_installed=1$").containsMatchIn(Ps3Libretro.nativeReport())
+                        ) {
+                            val installed = File(storage.guest, "dev_hdd0/game/$packageTitle/PARAM.SFO")
+                            check(installed.isFile && File(installed.parentFile, "USRDIR/EBOOT.BIN").isFile) {
+                                "Package installed additional content; open its base game cartridge."
+                            }
+                            withContext(Dispatchers.Main) { leave(reopen = true) }
+                            return@withContext
+                        }
                         if (!leaving) error(result)
                         return@withContext
                     }
@@ -361,7 +444,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun pause(value: Boolean) {
-        if (loaded && booting) {
+        if (loaded && booting && !leaving) {
             lifecycleScope.launch(Dispatchers.IO) {
                 runCatching { if (retro) Ps3Libretro.nativePause(value) else Ps3Native.pause(value) }
             }
@@ -371,10 +454,14 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun release() {
         pressed.clear()
         sticks.clear()
+        touchKeys.clear()
+        touchSticks.fill(128)
+        gripSlots.clear()
+        rawPressed.clear()
         if (loaded) {
             if (retro) {
-                for (id in 0..15) Ps3Libretro.nativeButton(id, false)
-                for (axis in 0..3) Ps3Libretro.nativeAxis(axis, 0)
+                for (port in 0..6) for (id in 0..15) Ps3Libretro.nativeButton(port, id, false)
+                for (port in 0..6) for (axis in 0..3) Ps3Libretro.nativeAxis(port, axis, 0)
             } else {
                 for (port in 0..6) Ps3Native.pad(port, 0, 0, 128, 128, 128, 128)
             }
@@ -388,7 +475,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                     if (!event.pressed) openMenu()
                 } else {
-                    key(0, event.id, event.pressed)
+                    if (event.pressed) touchKeys.add(event.id) else touchKeys.remove(event.id)
+                    send(0)
                 }
             is InputEvent.ContinuousDirection -> touchDirection(event.id, event.direction.x, event.direction.y)
             is InputEvent.DiscreteDirection -> touchDirection(event.id, event.direction.x, event.direction.y)
@@ -401,13 +489,19 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         y: Float,
     ) {
         if (source == 0) {
-            key(0, KeyEvent.KEYCODE_DPAD_LEFT, x < -.5f)
-            key(0, KeyEvent.KEYCODE_DPAD_RIGHT, x > .5f)
-            key(0, KeyEvent.KEYCODE_DPAD_UP, y > .5f)
-            key(0, KeyEvent.KEYCODE_DPAD_DOWN, y < -.5f)
-        } else {
-            axis(0, source - 1, x, y)
+            val directions =
+                mapOf(
+                    KeyEvent.KEYCODE_DPAD_LEFT to (x < -.5f),
+                    KeyEvent.KEYCODE_DPAD_RIGHT to (x > .5f),
+                    KeyEvent.KEYCODE_DPAD_UP to (y > .5f),
+                    KeyEvent.KEYCODE_DPAD_DOWN to (y < -.5f),
+                )
+            directions.forEach { (code, down) -> if (down) touchKeys.add(code) else touchKeys.remove(code) }
+        } else if (source in 1..2) {
+            touchSticks[(source - 1) * 2] = (128 + x * 127).toInt().coerceIn(0, 255)
+            touchSticks[(source - 1) * 2 + 1] = (128 - y * 127).toInt().coerceIn(0, 255)
         }
+        send(0)
     }
 
     private fun key(
@@ -435,16 +529,23 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun send(port: Int) {
         if (!loaded || !booting || menu) return
-        val keys = pressed[port].orEmpty()
+        val keys = pressed[port].orEmpty() + if (port == 0) touchKeys + gripSlots.values.flatten() else emptySet()
         val first = mapOf(109 to 1, 106 to 2, 107 to 4, 108 to 8, 19 to 16, 22 to 32, 20 to 64, 21 to 128)
         val second = mapOf(104 to 1, 105 to 2, 102 to 4, 103 to 8, 100 to 16, 97 to 32, 96 to 64, 99 to 128)
-        val a = sticks[port] ?: intArrayOf(128, 128, 128, 128)
+        val hardware = sticks[port] ?: intArrayOf(128, 128, 128, 128)
+        val a =
+            IntArray(4) { index ->
+                if (port == 0 && kotlin.math.abs(touchSticks[index] - 128) > kotlin.math.abs(hardware[index] - 128)) {
+                    touchSticks[index]
+                } else {
+                    hardware[index]
+                }
+            }
         if (retro) {
-            if (port != 0) return
             val codes = intArrayOf(97, 99, 109, 108, 19, 20, 21, 22, 96, 100, 102, 103, 104, 105, 106, 107)
-            codes.forEachIndexed { id, code -> Ps3Libretro.nativeButton(id, code in keys) }
+            codes.forEachIndexed { id, code -> Ps3Libretro.nativeButton(port, id, code in keys) }
             a.forEachIndexed { id, value ->
-                Ps3Libretro.nativeAxis(id, ((value - 128) * 258).coerceIn(-32767, 32767))
+                Ps3Libretro.nativeAxis(port, id, ((value - 128) * 258).coerceIn(-32767, 32767))
             }
             return
         }
@@ -466,7 +567,15 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
         if (!menu && event.isFromSource(InputDevice.SOURCE_GAMEPAD)) {
             val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
-            key(port, event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+            val raw = rawPressed.getOrPut(event.deviceId) { mutableSetOf() }
+            val down = event.action == KeyEvent.ACTION_DOWN
+            if (down) raw.add(event.keyCode) else raw.remove(event.keyCode)
+            val combo = menuShortcuts[event.deviceId].orEmpty()
+            if (combo.isNotEmpty() && raw.containsAll(combo)) {
+                openMenu()
+                return true
+            }
+            key(port, remaps[event.deviceId]?.get(event.keyCode) ?: event.keyCode, down)
             return true
         }
         return super.dispatchKeyEvent(event)
@@ -492,9 +601,29 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onResume() {
         super.onResume()
         foreground = true
-        presence.start {
-            connected = it.isNotEmpty()
+        presence.start { devices ->
+            connected = devices.isNotEmpty()
             release()
+            lifecycleScope.launch {
+                remaps.clear()
+                menuShortcuts.clear()
+                for (device in devices) {
+                    remaps[device.id] =
+                        inputManager.getCurrentBindings(device).mapKeys { it.key.keyCode }.mapValues {
+                            when (it.value.keyCode) {
+                                KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
+                                KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_A
+                                KeyEvent.KEYCODE_BUTTON_X -> KeyEvent.KEYCODE_BUTTON_Y
+                                KeyEvent.KEYCODE_BUTTON_Y -> KeyEvent.KEYCODE_BUTTON_X
+                                else -> it.value.keyCode
+                            }
+                        }
+                    menuShortcuts[device.id] =
+                        inputManager.getCurrentShortcuts(device).firstOrNull {
+                            it.type == com.swordfish.lemuroid.app.shared.settings.GameShortcutType.MENU
+                        }?.keys.orEmpty()
+                }
+            }
         }
         pause(menu)
         boot()
@@ -546,23 +675,43 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
     }
 
-    private fun leave() {
+    private fun leave(reopen: Boolean = false) {
         if (leaving) return
         leaving = true
         release()
         lifecycleScope.launch {
+            val stopped = java.util.concurrent.atomic.AtomicBoolean(!loaded)
             if (loaded) {
-                withContext(
-                    Dispatchers.IO,
-                ) { runCatching { if (retro) Ps3Libretro.nativeStop() else Ps3Native.stop() } }
+                Thread({
+                    runCatching {
+                        if (retro) {
+                            Ps3Libretro.nativeStop()
+                            while (runActive) Thread.sleep(50)
+                        } else {
+                            Ps3Native.stop()
+                        }
+                    }.onSuccess { stopped.set(true) }
+                }, "cartdeck-ps3-shutdown").apply { isDaemon = true }.start()
             }
-            NativeSessionJournal.finish(this@Ps3RuntimeActivity)
+            val deadline = android.os.SystemClock.elapsedRealtime() + 15000
+            while (!stopped.get() && android.os.SystemClock.elapsedRealtime() < deadline) delay(50)
+            if (stopped.get()) {
+                NativeSessionJournal.finish(this@Ps3RuntimeActivity)
+            } else {
+                failure = true
+                message =
+                    "PS3 native shutdown timed out. Existing in-game saves were retained; check the engine report."
+                report = "PS3_SHUTDOWN_TIMEOUT; native_save_flush=UNVERIFIED"
+                withContext(Dispatchers.IO) { File(storage.root, "last-report.txt").writeText(report) }
+            }
             setResult(
                 if (failure) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
                 Intent().putExtra(
                     BaseGameActivity.PLAY_GAME_RESULT_GAME,
                     game,
-                ).putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, if (failure) message else null),
+                ).putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, if (failure) message else null)
+                    .putExtra("cartdeck.reopen", reopen && !failure)
+                    .putExtra("cartdeck.reopen.engine", engine),
             )
             finish()
         }

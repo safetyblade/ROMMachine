@@ -1,6 +1,6 @@
 package com.armsx3.core
 
-/** Native installer callback ABI. CARTDECK indexes the actual installed PARAM.SFO files afterwards. */
+/** Native installer callback ABI. Records actual installer metadata without substituting it for a successful guest boot. */
 class GameInfo(val path: String, val name: String, val iconPath: String, val flags: Int)
 
 object GameRepository {

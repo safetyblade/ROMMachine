@@ -2,6 +2,13 @@ name: CARTDECK connected PS2 Wii U Xbox 360 APK
 
 on:
   workflow_call:
+    inputs:
+      include_ps3:
+        type: boolean
+        default: false
+      publish_apk:
+        type: boolean
+        default: true
   workflow_dispatch:
 
 permissions:
@@ -141,6 +148,44 @@ jobs:
           python3 scripts/ci/package_x360_profile.py --source work/connected/profile-source \
             --work work/connected/profile-tool --output work/connected/bundle/assets/cartdeck/xenia-profile \
             --ndk "$ANDROID_HOME/ndk/29.0.14206865"
+      - name: Download the source-verified PS3 inputs for internal integration
+        if: inputs.include_ps3
+        uses: actions/download-artifact@v4
+        with:
+          pattern: PS3_ENGINE_*
+          path: work/connected/ps3-inputs
+      - name: Connect both real PS3 engines and build their native frontends
+        if: inputs.include_ps3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout https://github.com/ARMSX2/ARMSX3.git work/connected/armsx3-source
+          git -C work/connected/armsx3-source checkout d396f0b6b8372789e6423a4f4d242cab4c5135eb
+          git clone --no-checkout https://github.com/WizzardSK/rpcs3-libretro.git work/connected/rpcs3-source
+          git -C work/connected/rpcs3-source checkout 993a9914a05361e6b3afe0487c463d9cb5f5b12b
+          cmake="$ANDROID_HOME/cmake/3.30.3/bin/cmake"
+          ndk="$ANDROID_HOME/ndk/29.0.14206865"
+          "$cmake" -S native/ps3 -B work/connected/ps3-bridge -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release
+          "$cmake" --build work/connected/ps3-bridge -j2
+          "$cmake" -S native/ps3/libretro -B work/connected/ps3-vulkan -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 -DANDROID_STL=c++_static \
+            -DRPCS3_LIBRETRO_HEADERS="$GITHUB_WORKSPACE/work/connected/rpcs3-source/rpcs3/libretro" \
+            -DCMAKE_BUILD_TYPE=Release
+          "$cmake" --build work/connected/ps3-vulkan -j2
+          python3 scripts/ps3/stage_package.py --bundle work/connected/bundle \
+            --armsx3-source work/connected/armsx3-source --rpcs3-source work/connected/rpcs3-source \
+            --armsx3-core work/connected/ps3-inputs/PS3_ENGINE_armsx3/libarmsx3-core.so \
+            --rpcs3-core work/connected/ps3-inputs/PS3_ENGINE_rpcs3-libretro/rpcs3_libretro.so \
+            --armsx3-receipt work/connected/ps3-inputs/PS3_ENGINE_armsx3/receipt.json \
+            --rpcs3-receipt work/connected/ps3-inputs/PS3_ENGINE_rpcs3-libretro/receipt.json \
+            --armsx3-notices work/connected/ps3-inputs/PS3_ENGINE_armsx3/licenses.zip \
+            --rpcs3-notices work/connected/ps3-inputs/PS3_ENGINE_rpcs3-libretro/licenses.zip \
+            --native-bridge work/connected/ps3-bridge/libcartdeck_ps3.so \
+            --libretro-host work/connected/ps3-vulkan/libcartdeckps3vulkanhost.so --ndk "$ndk"
+          echo 'CARTDECK_APK_MAX_MIB=512' >> "$GITHUB_ENV"
       - name: Compile the connected application, mandatory checks and upgrade APK
         shell: bash
         run: |
@@ -173,7 +218,14 @@ jobs:
           cp work/connected/xenia/source-manifest.json "$CARTDECK_OUTPUT/evidence/xenia-native-source.json"
           cp work/connected/bundle/assets/cartdeck/xenia-profile/profile-source.json "$CARTDECK_OUTPUT/evidence/xenia-profile-source.json"
           cp work/connected/armsx2/native-evidence.json "$CARTDECK_OUTPUT/evidence/armsx2-native-source.json"
+      - name: Verify both complete PS3 engines in the connected APK
+        if: inputs.include_ps3
+        run: |
+          python3 scripts/ps3/verify_apk.py dist/connected/CARTDECK_STANDALONE_ARM64_DEBUG.apk \
+            | tee dist/connected/evidence/ps3-native-apk.json
+          cp work/connected/bundle/ps3-engineering-evidence.json dist/connected/evidence/
       - name: Publish the actual combined upgrade APK
+        if: ${{ !inputs.include_ps3 || inputs.publish_apk }}
         uses: actions/upload-artifact@v4
         with:
           name: CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG
