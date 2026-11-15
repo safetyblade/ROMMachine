@@ -32,6 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -80,6 +85,14 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val biosSetupMode: Boolean get() = intent.getBooleanExtra(Armsx2BiosRecovery.SETUP, false)
     private var vm: Thread? = null
     private var menu by mutableStateOf(false)
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.ARMSX2),
+            pause = { NativeApp.pause() },
+            resume = { NativeApp.resume() },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private var connected by mutableStateOf(false)
     private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
@@ -218,6 +231,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         false,
                                         engine != null && Armsx2Engine.store(filesDir).canRollback(),
                                     ),
+                                pauseFeedback = menuPauseFeedback,
                                 onResume = {
                                     if (!failed) {
                                         menu = false
@@ -522,7 +536,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun syncPause() {
         if (ready && started) {
-            if (!hostForeground || menu || leaving) NativeApp.pause() else NativeApp.resume()
+            val shouldPause = !hostForeground || menu || leaving
+            val outcome = menuHost.dispatch(
+                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+            )
+            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
 
