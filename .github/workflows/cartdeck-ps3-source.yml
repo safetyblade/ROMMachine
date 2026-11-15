@@ -3,11 +3,19 @@ on:
   pull_request:
     paths:
       - 'native/ps3/**'
+      - 'lemuroid-app/src/**/ps3/**'
+      - 'retrograde-app-shared/src/**/ps3/**'
       - 'scripts/ps3/**'
       - '.github/workflows/cartdeck-ps3-source.yml'
   workflow_dispatch:
+    inputs:
+      distribution_licensing_cleared:
+        description: 'Publish the combined engineering APK only after distribution licensing clearance'
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
 jobs:
   engines:
     runs-on: ubuntu-24.04
@@ -54,6 +62,10 @@ jobs:
           JOBS: 2
         run: |
           cd work/ps3/source
+          pin="$(sed -n 's/^PIN=//p' ios/scripts/build-librashader-ios.sh)"
+          git init -q 3rdparty/librashader
+          git -C 3rdparty/librashader fetch -q --depth 1 https://github.com/SnowflakePowered/librashader.git "$pin"
+          git -C 3rdparty/librashader checkout -q FETCH_HEAD
           BUILD_DIR="$GITHUB_WORKSPACE/work/ps3/build" bash android/configure.sh \
             -DANDROID_STL=c++_static -DLLVM_PARALLEL_LINK_JOBS=1
       - name: Configure actual RPCS3 Libretro with Android dependencies
@@ -89,7 +101,19 @@ jobs:
       - name: Verify actual ELF and pinned engine ABI
         run: |
           python3 scripts/ps3/verify_engine.py '${{ matrix.engine }}' work/ps3/build
-      # Deliberately no engine/APK upload until the requested GPLv2/GPLv3 distribution clearance.
+      - name: Collect source-bound internal build inputs with licences and patches
+        run: |
+          python3 scripts/ps3/collect_build_input.py --engine '${{ matrix.engine }}' \
+            --source work/ps3/source --build work/ps3/build --output work/ps3/engine-input
+      - name: Retain internal native build inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS3_ENGINE_${{ matrix.engine }}
+          path: work/ps3/engine-input/
+          retention-days: 7
+          if-no-files-found: error
+      # These are internal build inputs. The combined APK is compiled/verified below;
+      # its publication stays gated by the Product Owner's deferred distribution clearance.
       - name: Preserve build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -98,3 +122,11 @@ jobs:
           path: |
             work/ps3/build/CMakeFiles/CMakeConfigureLog.yaml
             work/ps3/build/CMakeCache.txt
+
+  integrated-apk:
+    needs: engines
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: true
+      publish_apk: ${{ github.event_name == 'workflow_dispatch' && inputs.distribution_licensing_cleared }}
+    secrets: inherit

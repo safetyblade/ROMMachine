@@ -32,3 +32,19 @@ cmake = root / '3rdparty/llvm/CMakeLists.txt'
 text = cmake.read_text()
 assert text.count('if (LLVM_VERSION VERSION_LESS 18)') == 1
 cmake.write_text(text.replace('if (LLVM_VERSION VERSION_LESS 18)', 'if (LLVM_VERSION_MAJOR LESS 18)'))
+
+# Native installer outcome for CARTDECK's firmware replacement transaction.
+core = root / 'rpcs3/libretro/libretro_core.cpp'
+text = core.read_text()
+old = "                ok = false;\n            }\n\n\n        }\n    }\n    else"
+assert text.count(old) == 1
+core.write_text(text.replace(old, "                ok = false;\n            }\n            if (environ_cb) environ_cb(0x43444657U, &ok);\n\n        }\n    }\n    else"))
+
+# Preserve upstream install-only shutdown, expose completion to the integrated shelf.
+text = core.read_text()
+old = '        s_pkg_install_only = true;'
+assert text.count(old) == 1
+core.write_text(text.replace(old, '        bool cartdeck_package_installed = true;\n        if (environ_cb) environ_cb(0x4344504bU, &cartdeck_package_installed);\n' + old))
+changelog = root / 'CHANGELOG.md'
+text = changelog.read_text()
+changelog.write_text(text.replace('## November 2026\n', '## November 2026\n\n- CARTDECK adapter: preserve selected virtual users and their licences, report native firmware installation outcome for recovery, and report package installation before the frontend reopens the installed title in a fresh process. Device gameplay remains unverified.\n', 1))

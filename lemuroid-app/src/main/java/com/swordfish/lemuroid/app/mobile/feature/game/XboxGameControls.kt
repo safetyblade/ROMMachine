@@ -46,6 +46,7 @@ fun XboxGameControls(
     physicalControllerConnected: Boolean = false,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
+    presentationAspect: Float = 4f / 3f,
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
@@ -102,7 +103,7 @@ fun XboxGameControls(
                 context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
             }
         if (landscape && (physicalControllerConnected || isTv)) {
-            CartdeckMaximisedFrame(tokens, onViewport)
+            CartdeckMaximisedFrame(tokens, onViewport, presentationAspect, isTv)
             return@BoxWithConstraints
         }
         val orientation =
@@ -213,20 +214,40 @@ fun XboxGameControls(
                             landscape,
                             true,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
+                            portraitApertureRatio =
+                                if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),
                 ) {
                     Box(
                         Modifier.layoutId(GameScreenLayout.CONSTRAINTS_GAME_VIEW).onGloballyPositioned {
-                            val rect = it.boundsInRoot()
-                            video.value = rect
-                            onViewport(
-                                AndroidRect(
-                                    rect.left.toInt(),
-                                    rect.top.toInt(),
-                                    rect.right.toInt(),
-                                    rect.bottom.toInt(),
-                                ),
-                            )
+                            val measured = it.boundsInRoot()
+                            val fit =
+                                NativeViewportPolicy.fit(
+                                    measured.width,
+                                    measured.height,
+                                    presentationAspect,
+                                    edgeGuardPx = 1f,
+                                )
+                            if (fit.width > 0f && fit.height > 0f) {
+                                val fitted =
+                                    Rect(
+                                        measured.left + fit.left,
+                                        measured.top + fit.top,
+                                        measured.left + fit.right,
+                                        measured.top + fit.bottom,
+                                    )
+                                if (video.value != fitted) video.value = fitted
+                                NativeViewportPolicy.inwardPixels(
+                                    fitted.left,
+                                    fitted.top,
+                                    fitted.right,
+                                    fitted.bottom,
+                                )?.let { pixels ->
+                                    onViewport(
+                                        AndroidRect(pixels.left, pixels.top, pixels.right, pixels.bottom),
+                                    )
+                                }
+                            }
                         },
                     )
                     if (placement == null) {

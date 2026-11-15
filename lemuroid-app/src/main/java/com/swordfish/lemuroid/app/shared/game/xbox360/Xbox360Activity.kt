@@ -27,11 +27,19 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
@@ -53,6 +61,15 @@ import xendroid.compose.Emulator as XeniaEmulator
 class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val main = Handler(Looper.getMainLooper())
     private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XENIA),
+            pause = { requireNotNull(emulator).pause() },
+            resume = { requireNotNull(emulator).resume() },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.XBOX360)
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
@@ -120,6 +137,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.XBOX360,
                             physicalControllerConnected = physicalConnected,
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360),
                             game =
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
@@ -137,6 +156,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 sendInputs()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = surface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -186,12 +206,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                                 Xbox360Engine.store(filesDir).canRollback()
                                             }.getOrDefault(false),
                                     ),
-                                onResume = {
-                                    if (!failed) {
-                                        menuOpen = false
-                                        syncPause()
-                                    }
-                                },
+                                pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
@@ -225,7 +242,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    openMenu()
+                    // Compose handles Back within a submenu. This is the Activity
+                    // fallback for opening or dismissing the top-level menu.
+                    if (menuOpen) closeMenu() else openMenu()
                 }
             },
         )
@@ -305,10 +324,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (booted) emulator?.change_surface(width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         surfaceReady = false
         syncPause()
         if (booted) emulator?.setup_surface(null)
@@ -346,19 +367,36 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun syncPause() {
         if (!subsystemsReady) return
-        pauseGate.transition(foreground && surfaceReady, menuOpen, failed, leaving)?.let { paused ->
-            if (paused) {
-                releaseInputs()
-                emulator?.pause()
+        pauseGate.transition(foreground && surfaceReady, menuOpen, failed, leaving)?.let { shouldPause ->
+            if (shouldPause) releaseInputs()
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
             } else {
-                emulator?.resume()
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menuOpen = true
+                    pauseGate.retryResumeAfterFailure()
+                }
             }
         }
     }
 
     private fun openMenu() {
+        if (menuOpen || leaving) return
         menuOpen = true
         releaseInputs()
+        syncPause()
+    }
+
+    private fun closeMenu() {
+        if (!menuOpen || failed || leaving) return
+        menuOpen = false
         syncPause()
     }
 
@@ -412,8 +450,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (menuOpen) return super.dispatchKeyEvent(event)
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menuOpen) closeMenu() else openMenu()
+            }
             return true
         }
         if (menuOpen || !foreground) return super.dispatchKeyEvent(event)
@@ -450,7 +489,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             "CARTDECK ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}); Xbox 360\n" +
                 "device=${android.os.Build.MODEL}; api=${android.os.Build.VERSION.SDK_INT}; " +
                 "abi=${android.os.Build.SUPPORTED_ABIS.joinToString()}; available_memory=${memory.availMem}\n" +
-                "$info\n$native\nfailure=${if (failed) message else "NONE_RECORDED"}\n" +
+                "$info\n$native\n${viewportAudit.summary()}\n" +
+                "failure=${if (failed) message else "NONE_RECORDED"}\n" +
                 "content_and_saves=RETAINED; automatic_restart=false; " +
                 "exit=${if (leaving) "USER_REQUESTED" else "NOT_OBSERVED"}\n" +
                 "Startup, JIT compilation and Vulkan presentation do not establish meaningful graphics or gameplay."

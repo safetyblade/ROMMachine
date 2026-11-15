@@ -239,6 +239,25 @@ data class ShelfLayout(
         ).validate()
     }
 
+    /**
+     * Display-only projection of the indexed library.
+     *
+     * A retired cartridge can remain in the persisted layout while Room
+     * verifies a scan or holds recovery metadata. Do not display its old cell
+     * as "Unavailable" or count it towards shelf-row width. Explicit user
+     * vacancies and empty rows remain exactly where the user placed them.
+     * This never writes the layout, deletes a ROM, or changes save identity.
+     */
+    fun visibleSections(activeGameKeys: Set<String>): List<ShelfSection> =
+        sections.map { section ->
+            section.copy(
+                cells =
+                    section.cells.filter { cell ->
+                        cell.gameKey == null || cell.gameKey in activeGameKeys
+                    },
+            )
+        }
+
     fun setFacing(
         cellId: String,
         facing: CartridgeFacing,

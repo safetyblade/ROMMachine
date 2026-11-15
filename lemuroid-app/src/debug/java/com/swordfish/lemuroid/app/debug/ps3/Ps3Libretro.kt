@@ -25,11 +25,13 @@ internal object Ps3Libretro {
     external fun nativeReport(): String
 
     external fun nativeButton(
+        port: Int,
         id: Int,
         down: Boolean,
     )
 
     external fun nativeAxis(
+        port: Int,
         axis: Int,
         value: Int,
     )

@@ -269,5 +269,77 @@ class Ps3Storage(files: File, engine: String) {
         check(save(id, name).renameTo(File(backups, "$id-$name-${UUID.randomUUID()}")))
     }
 
+    /** Firmware replacement never touches the HDD, profiles or caches. A failed install restores its predecessor. */
+    @Synchronized fun beginFirmwareReplacement() {
+        val record = File(root, "firmware-recovery.properties")
+        check(!record.exists()) { "Finish or recover the previous firmware installation first" }
+        val current = File(guest, "dev_flash")
+        val previous = File(backups, "firmware-${UUID.randomUUID()}")
+        check(root.mkdirs() || root.isDirectory)
+        check(backups.mkdirs() || backups.isDirectory)
+        val p = Properties()
+        p.setProperty("previous", previous.name)
+        p.setProperty("had_previous", current.exists().toString())
+        p.setProperty("started", "false")
+        record.outputStream().use { p.store(it, "Pending PS3 firmware replacement") }
+        if (current.exists()) check(current.renameTo(previous)) { "Could not preserve current PS3 firmware" }
+    }
+
+    @Synchronized fun finishFirmwareReplacement(success: Boolean) {
+        val record = File(root, "firmware-recovery.properties")
+        if (!record.isFile) return
+        val p = Properties().also { record.inputStream().use(it::load) }
+        val name = p.getProperty("previous")
+        require(Regex("firmware-[0-9a-f-]{36}").matches(name))
+        val previous = File(backups, name)
+        if (!success && (previous.exists() || p.getProperty("had_previous") != "true")) {
+            val failed = File(guest, "dev_flash")
+            if (failed.exists()) {
+                val rejected = File(backups, "rejected-firmware-${UUID.randomUUID()}")
+                check(failed.renameTo(rejected))
+            }
+            if (previous.exists()) {
+                check(previous.renameTo(failed)) {
+                    "Previous firmware remains in backups; retry recovery"
+                }
+            }
+        }
+        check(record.delete())
+    }
+
+    @Synchronized fun markFirmwareInstallStarted() {
+        val record = File(root, "firmware-recovery.properties")
+        val p = Properties().also { record.inputStream().use(it::load) }
+        p.setProperty("started", "true")
+        record.outputStream().use { p.store(it, "Native PS3 firmware installation started") }
+    }
+
+    fun firmwareInstallInterrupted(): Boolean {
+        val record = File(root, "firmware-recovery.properties")
+        return record.isFile && Properties().also { record.inputStream().use(it::load) }
+            .getProperty("started") == "true"
+    }
+
+    @Synchronized fun importRap(
+        id: String,
+        name: String,
+        bytes: ByteArray,
+    ) {
+        require(bytes.size == 16 && Regex("[A-Za-z0-9_-]{1,128}\\.rap", RegexOption.IGNORE_CASE).matches(name)) {
+            "Select an original 16-byte RAP licence with its original filename"
+        }
+        val directory = File(user(id), "exdata").apply { check(mkdirs() || isDirectory) }
+        val target = File(directory, name)
+        val pending = File(directory, ".licence.pending")
+        pending.outputStream().use { it.write(bytes) }
+        if (target.exists()) {
+            check(backups.mkdirs() || backups.isDirectory)
+            target.copyTo(File(backups, "licence-${UUID.randomUUID()}-$name"))
+        }
+        check(pending.renameTo(target))
+    }
+
+    fun hasPendingFirmwareReplacement(): Boolean = File(root, "firmware-recovery.properties").isFile
+
     fun firmwareInstalled(): Boolean = File(guest, "dev_flash/sys/external/liblv2.sprx").isFile
 }

@@ -42,6 +42,8 @@ internal fun XboxGameMenu(
     appearance: ShelfAppearance? = null,
     console: String = "Xbox",
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
+    pauseFeedback: String = "Menu open. This engine may continue running.",
+    canResume: Boolean = true,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -52,8 +54,9 @@ internal fun XboxGameMenu(
                 ?.let { GameMenuRoute.findByRoute(it) } ?: GameMenuRoute.HOME
         val page =
             when (route) {
-                GameMenuRoute.HOME -> "Paused"
+                GameMenuRoute.HOME -> "Game menu"
                 GameMenuRoute.CONTROLS -> "Controls"
+                GameMenuRoute.STATES -> "Save & Load"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
             }
@@ -62,22 +65,41 @@ internal fun XboxGameMenu(
             console,
             page,
             route.canGoBack(),
-            onBack = { if (!nav.popBackStack()) onResume() },
-            onResume = onResume,
+            onBack = {
+                if (!nav.popBackStack()) {
+                    if (canResume) onResume() else onReturnToShelf()
+                }
+            },
+            onResume = { if (canResume) onResume() },
+            statusMessage = pauseFeedback,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
-                    SharedGameMenuHome(capabilities.home) { action ->
-                        when (action) {
-                            GameMenuAction.RESUME -> onResume()
-                            GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
-                            GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
-                            GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
-                            else -> Unit // Not advertised by this backend.
-                        }
-                    }
+                    SharedGameMenuHome(
+                        capabilities = capabilities.home,
+                        onAction = { action ->
+                            when (action) {
+                                GameMenuAction.RESUME -> if (canResume) onResume()
+                                GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
+                                GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
+                                GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
+                                GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
+                                else -> Unit // Not advertised by this backend.
+                            }
+                        },
+                        canResume = canResume,
+                    )
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
+                composable(GameMenuRoute.STATES) {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text(storageHelp, Modifier.padding(16.dp))
+                        Text(
+                            "Emulator save states are not available for this engine. Use the game's own save system.",
+                            Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                }
                 composable(GameMenuRoute.ADVANCED) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text("Current engine", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)

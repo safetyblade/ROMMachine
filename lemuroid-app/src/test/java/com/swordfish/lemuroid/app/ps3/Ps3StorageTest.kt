@@ -85,6 +85,37 @@ class Ps3StorageTest {
         assertNull(Ps3Metadata.sfo(malformed))
     }
 
+    @Test fun failedFirmwareReplacementRestoresFlashWithoutChangingUserData() {
+        val storage = Ps3Storage(temporary.root, "armsx3")
+        val user = storage.create("Player").id
+        val flash = File(storage.guest, "dev_flash/sys/external/liblv2.sprx")
+        flash.parentFile!!.mkdirs()
+        flash.writeText("working firmware")
+        val save = File(storage.guest, "dev_hdd0/home/$user/progress").apply { writeText("retained") }
+        storage.beginFirmwareReplacement()
+        assertFalse(storage.firmwareInstalled())
+        storage.markFirmwareInstallStarted()
+        assertTrue(storage.firmwareInstallInterrupted())
+        flash.parentFile!!.mkdirs()
+        flash.writeText("partial replacement")
+        storage.finishFirmwareReplacement(false)
+        assertEquals("working firmware", flash.readText())
+        assertEquals("retained", save.readText())
+        assertFalse(storage.hasPendingFirmwareReplacement())
+    }
+
+    @Test fun licencesRequireOriginalSizeAndStayWithTheirUserAndEngine() {
+        val storage = Ps3Storage(temporary.root, "armsx3")
+        val first = storage.create("One").id
+        val second = storage.create("Two").id
+        val name = "UP0001-BLUS12345_00-CONTENT000000001.rap"
+        storage.importRap(first, name, ByteArray(16) { it.toByte() })
+        assertTrue(File(storage.guest, "dev_hdd0/home/$first/exdata/$name").isFile)
+        assertFalse(File(storage.guest, "dev_hdd0/home/$second/exdata/$name").exists())
+        assertThrows(IllegalArgumentException::class.java) { storage.importRap(first, name, ByteArray(17)) }
+        assertThrows(IllegalArgumentException::class.java) { storage.importRap(first, "../$name", ByteArray(16)) }
+    }
+
     private fun sfo(category: String): ByteArray {
         val entries = listOf("TITLE_ID" to "BLUS12345", "TITLE" to "Homebrew Test", "CATEGORY" to category)
         val keys = entries.joinToString("") { it.first + "\u0000" }.toByteArray()

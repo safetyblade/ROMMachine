@@ -8,6 +8,7 @@ import java.util.Properties
 object Ps3Engine {
     const val ARMSX3_REVISION = "d396f0b6b8372789e6423a4f4d242cab4c5135eb"
     const val RPCS3_REVISION = "993a9914a05361e6b3afe0487c463d9cb5f5b12b"
+    val CONTROLLER = com.swordfish.touchinput.radial.settings.TouchControllerID.PSX_DUALSHOCK
     const val ACTIVITY = "com.swordfish.lemuroid.app.debug.ps3.Ps3RuntimeActivity"
 
     fun binary(id: String): String =
@@ -40,6 +41,9 @@ object Ps3Engine {
         context: Context,
         id: String,
     ): String? {
+        if (android.os.Build.VERSION.SDK_INT < 33 || "arm64-v8a" !in android.os.Build.SUPPORTED_ABIS) {
+            return "PS3 requires ARM64 Android 13 or newer."
+        }
         val manifest =
             runCatching {
                 Properties().apply { context.assets.open("cartdeck/ps3/$id.properties").use(::load) }

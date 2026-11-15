@@ -75,7 +75,7 @@ class LibretroGameMenuTest {
                 }
             }
         }
-        compose.onNodeWithText("Save / Load").performClick()
+        compose.onNodeWithText("Save & Load").performClick()
         compose.onNodeWithText(
             compose.activity.getString(com.swordfish.lemuroid.R.string.game_menu_save),
         ).performClick()

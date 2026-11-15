@@ -30,11 +30,20 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
@@ -80,6 +89,16 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val biosSetupMode: Boolean get() = intent.getBooleanExtra(Armsx2BiosRecovery.SETUP, false)
     private var vm: Thread? = null
     private var menu by mutableStateOf(false)
+    private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.ARMSX2),
+            pause = { NativeApp.pause() },
+            resume = { NativeApp.resume() },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.ARMSX2)
     private var connected by mutableStateOf(false)
     private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
@@ -186,6 +205,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.PSX_DUALSHOCK,
                             physicalControllerConnected = connected,
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
                             game = game,
                             onGripPressed = { slot, down, codes ->
                                 if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
@@ -194,6 +215,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 sendInput()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = surface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -218,13 +240,9 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         false,
                                         engine != null && Armsx2Engine.store(filesDir).canRollback(),
                                     ),
-                                onResume = {
-                                    if (!failed) {
-                                        menu = false
-                                        syncPause()
-                                        startIfReady()
-                                    }
-                                },
+                                pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
@@ -295,7 +313,9 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    openMenu()
+                    // Compose handles Back within a submenu. This is the Activity
+                    // fallback for opening or dismissing the top-level menu.
+                    if (menu) closeMenu() else openMenu()
                 }
             },
         )
@@ -521,20 +541,45 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun syncPause() {
-        if (ready && started) {
-            if (!hostForeground || menu || leaving) NativeApp.pause() else NativeApp.resume()
+        if (!ready || !started) return
+        pauseGate.transition(hostForeground, menu, failed, leaving)?.let { shouldPause ->
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
+            } else {
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menu = true
+                    pauseGate.retryResumeAfterFailure()
+                }
+            }
         }
     }
 
     private fun openMenu() {
+        if (menu || leaving) return
         menu = true
         releaseInput()
         syncPause()
     }
 
+    private fun closeMenu() {
+        if (!menu || failed || leaving) return
+        menu = false
+        syncPause()
+        startIfReady()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menu) closeMenu() else openMenu()
+            }
             return true
         }
         if (!menu && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
@@ -566,11 +611,13 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (ready && started && holder.surface.isValid) NativeApp.onNativeSurfaceChanged(holder.surface, width, height)
         startIfReady()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         releaseInput()
         if (ready) NativeApp.onNativeSurfaceDestroyed()
     }
@@ -596,7 +643,12 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             getSystemService(
                 CLIPBOARD_SERVICE,
             ) as ClipboardManager
-        ).setPrimaryClip(ClipData.newPlainText("CARTDECK ARMSX2", report.take(16384)))
+        ).setPrimaryClip(
+            ClipData.newPlainText(
+                "CARTDECK ARMSX2",
+                (report + "\n" + viewportAudit.summary()).take(16384),
+            ),
+        )
     }
 
     private fun leave() {

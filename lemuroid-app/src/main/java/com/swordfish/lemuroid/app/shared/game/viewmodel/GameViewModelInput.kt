@@ -355,9 +355,10 @@ class GameViewModelInput(
 
                 if (port == 0) {
                     // MODE belongs to CARTDECK, never to the guest. Consume BOTH
-                    // transitions so a released Guide/Home key cannot stick in-game.
+                    // transitions and open only after release; the new menu must
+                    // never inherit the trailing UP and immediately close itself.
                     if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
-                        if (action == KeyEvent.ACTION_DOWN) {
+                        if (action == KeyEvent.ACTION_UP) {
                             pivotArcHoldGate.clear()
                             sideEffects.showMenu(tilt, this)
                         }
@@ -372,18 +373,20 @@ class GameViewModelInput(
 
                     // Trigger a chord on its DOWN edge only. A released key must
                     // not reopen the menu or replay a quick-save/quick-load.
-                    if (action == KeyEvent.ACTION_DOWN) shortcuts[device]?.forEach { shortcut ->
-                        if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
-                            when (shortcut.type) {
-                                GameShortcutType.MENU -> {
-                                    pivotArcHoldGate.clear()
-                                    sideEffects.showMenu(tilt, this)
+                    if (action == KeyEvent.ACTION_DOWN) {
+                        shortcuts[device]?.forEach { shortcut ->
+                            if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
+                                when (shortcut.type) {
+                                    GameShortcutType.MENU -> {
+                                        pivotArcHoldGate.clear()
+                                        sideEffects.showMenu(tilt, this)
+                                    }
+                                    GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
+                                    GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
+                                    GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
                                 }
-                                GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
-                                GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
-                                GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
+                                return@safeCollect
                             }
-                            return@safeCollect
                         }
                     }
                 }

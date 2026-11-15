@@ -62,6 +62,43 @@ class CartdeckViewportPolicyTest {
         )
     }
 
+    @Test fun handheldAperturesUseActualConsolePixelsOnlyWhenTheyCanFit() {
+        assertEquals("10:9", CartdeckViewportPolicy.portraitApertureRatio(SystemID.GB, 800f))
+        assertEquals("10:9", CartdeckViewportPolicy.portraitApertureRatio(SystemID.GBC, 720f))
+        assertEquals("4:3", CartdeckViewportPolicy.portraitApertureRatio(SystemID.GB, 640f))
+        assertEquals("3:2", CartdeckViewportPolicy.portraitApertureRatio(SystemID.GBA, 640f))
+        assertEquals("30:17", CartdeckViewportPolicy.portraitApertureRatio(SystemID.PSP, 640f))
+        assertEquals("4:3", CartdeckViewportPolicy.portraitApertureRatio(SystemID.PSX, 800f))
+        assertEquals("4:3", CartdeckViewportPolicy.portraitApertureRatio(SystemID.NDS, 800f))
+        assertEquals("4:3", CartdeckViewportPolicy.portraitApertureRatio(SystemID.GB, Float.NaN))
+    }
+
+    @Test fun topPixelGuardShrinksViewportButNeverCropsSourcePixels() {
+        val unguarded =
+            CartdeckViewportPolicy.normalizedAperture(400f, 800f, 25f, 85f, 375f, 410f)
+        val guarded =
+            CartdeckViewportPolicy.normalizedAperture(400f, 800f, 25f, 85f, 375f, 410f, 1f)
+        assertEquals(85f / 800f, unguarded.top, 0.000001f)
+        assertEquals(86f / 800f, guarded.top, 0.000001f)
+        assertEquals(26f / 400f, guarded.left, 0.000001f)
+        assertEquals(374f / 400f, guarded.right, 0.000001f)
+        assertEquals(409f / 800f, guarded.bottom, 0.000001f)
+        assertTrue(guarded.left < guarded.right)
+        assertTrue(guarded.top < guarded.bottom)
+    }
+
+    @Test fun normalizedViewportClampsToSafeRootWithoutInvalidDimensions() {
+        val clipped = CartdeckViewportPolicy.normalizedAperture(300f, 400f, -30f, -20f, 350f, 450f, 1f)
+        assertTrue(clipped.left >= 0f)
+        assertTrue(clipped.top >= 0f)
+        assertTrue(clipped.right <= 1f)
+        assertTrue(clipped.bottom <= 1f)
+        assertEquals(
+            CartdeckViewportPolicy.NormalizedRect(0f, 0f, 1f, 1f),
+            CartdeckViewportPolicy.normalizedAperture(0f, 400f, 1f, 1f, 2f, 2f),
+        )
+    }
+
     @Test fun everyConfiguredSystemHasASafeMode() {
         for (system in SystemID.entries) {
             assertTrue(

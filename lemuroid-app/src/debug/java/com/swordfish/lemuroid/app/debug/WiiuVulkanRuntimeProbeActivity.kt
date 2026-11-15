@@ -27,11 +27,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
@@ -71,6 +80,16 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var failed = false
     private var vmThread: Thread? = null
     private var menuOpen by mutableStateOf(false)
+    private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.CEMU),
+            pause = { nativePause(true) },
+            resume = { nativePause(false) },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.CEMU)
     private var physicalConnected by mutableStateOf(false)
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
@@ -222,6 +241,8 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             settings,
                             TouchControllerID.WII_CLASSIC,
                             physicalControllerConnected = physicalConnected,
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
                             game = game,
                             onGripPressed = { slot, pressed, codes ->
                                 if (pressed && !menuOpen && hostForeground) {
@@ -236,6 +257,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 sendInput()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = renderSurface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -260,13 +282,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                         false,
                                         selection != null && WiiuEngine.store(filesDir).canRollback(),
                                     ),
-                                onResume = {
-                                    if (!failed) {
-                                        menuOpen = false
-                                        syncPause()
-                                        startIfReady()
-                                    }
-                                },
+                                pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
@@ -316,7 +334,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    openMenu()
+                    // Compose handles Back within a submenu. This is the Activity
+                    // fallback for opening or dismissing the top-level menu.
+                    if (menuOpen) closeMenu() else openMenu()
                 }
             },
         )
@@ -357,7 +377,10 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         report = engineReport(nativeReport())
                         val width = Regex("image_width=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         val height = Regex("image_height=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                        if (width > 0 && height > 0) frameAspect = width.toFloat() / height
+                        if (width > 0 && height > 0) {
+                            frameAspect = width.toFloat() / height
+                            viewportAudit.nativeImage(width, height)
+                        }
                         val frames =
                             Regex("presented_image_callbacks=(\\d+)").find(report)
                                 ?.groupValues?.get(1)?.toLongOrNull() ?: 0L
@@ -379,7 +402,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 presentationRecorded = true
                             }
                         }
-                        val snapshot = report.take(16384)
+                        val snapshot = (report + "\n" + viewportAudit.summary()).take(16384)
                         val dataRoot = requireNotNull(sandbox)
                         withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
                     }
@@ -474,22 +497,50 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun syncPause() {
-        if (loaded) {
-            nativePause(
-                !hostForeground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid,
-            )
+        if (!loaded) return
+        pauseGate.transition(
+            hostForeground && renderSurface.holder.surface.isValid,
+            menuOpen,
+            failed,
+            leaving,
+        )?.let { shouldPause ->
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
+            } else {
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menuOpen = true
+                    pauseGate.retryResumeAfterFailure()
+                }
+            }
         }
     }
 
     private fun openMenu() {
+        if (menuOpen || leaving) return
         menuOpen = true
         releaseInput()
         syncPause()
     }
 
+    private fun closeMenu() {
+        if (!menuOpen || failed || leaving) return
+        menuOpen = false
+        syncPause()
+        startIfReady()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menuOpen) closeMenu() else openMenu()
+            }
             return true
         }
         if (!menuOpen && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
@@ -522,12 +573,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (loaded && started) nativeSurface(holder.surface)
         syncPause()
         startIfReady()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         releaseInput()
         if (loaded && started) nativeSurface(null)
     }
@@ -553,7 +606,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             getSystemService(
                 CLIPBOARD_SERVICE,
             ) as ClipboardManager
-        ).setPrimaryClip(ClipData.newPlainText("CARTDECK Wii U", report.take(16384)))
+        ).setPrimaryClip(
+            ClipData.newPlainText(
+                "CARTDECK Wii U",
+                (report + "\n" + viewportAudit.summary()).take(16384),
+            ),
+        )
     }
 
     private fun leave() {

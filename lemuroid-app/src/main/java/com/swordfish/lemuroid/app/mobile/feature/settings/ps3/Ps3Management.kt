@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.ps3
 
 import android.content.Intent
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +21,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
@@ -92,6 +97,40 @@ fun Ps3Management(initialEngine: String = "armsx3") {
                 }
             }
         }
+    val licence =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            val user = active
+            if (uri != null && user != null) {
+                mutate {
+                    val name =
+                        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                            ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                            ?: error("Licence filename is unavailable")
+                    val bytes =
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            val data = ByteArray(17)
+                            var size = 0
+                            while (size < data.size) {
+                                val count = input.read(data, size, data.size - size)
+                                if (count < 0) break
+                                size += count
+                            }
+                            data.copyOf(size)
+                        } ?: error("Licence cannot be opened")
+                    storage.importRap(user, name, bytes)
+                    message = "Licence imported for the selected PS3 user."
+                }
+            }
+        }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) revision++
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(engine, revision) {
         withContext(Dispatchers.IO) {
             profiles = storage.profiles()
@@ -125,6 +164,12 @@ fun Ps3Management(initialEngine: String = "armsx3") {
                 ).putExtra("cartdeck.engine", engine).putExtra("cartdeck.setup", true),
             )
         })
+        LemuroidSettingsMenuLink(
+            title = { Text("Import user-supplied RAP licence") },
+            subtitle = { Text("Original 16-byte file; stored only for the selected user and engine.") },
+            enabled = active != null && !busy,
+            onClick = { licence.launch(arrayOf("*/*")) },
+        )
         Text("PS3 virtual users", Modifier.padding(16.dp))
         profiles.forEach { profile ->
             LemuroidSettingsMenuLink(title = {
