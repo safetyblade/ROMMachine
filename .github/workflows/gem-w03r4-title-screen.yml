@@ -8,6 +8,7 @@ on:
       - .github/workflows/gem-w03r4-title-screen.yml
       - tools/gem/w03r4/reconcile_title_screen.py
       - tools/gem/w03r4/inspect_evidence.py
+      - tools/gem/w03r4/reconcile_product_codes.py
       - tools/gem/w03r4/wiiu_master_snapshot.json
   workflow_dispatch:
 
@@ -29,6 +30,8 @@ jobs:
         run: python3 tools/gem/w03r4/reconcile_title_screen.py
       - name: Inspect independently sourced genre evidence
         run: python3 tools/gem/w03r4/inspect_evidence.py
+      - name: Reconcile exact Wii U GameTDB product-code identities
+        run: python3 tools/gem/w03r4/reconcile_product_codes.py
       - name: Upload lightweight research outputs
         if: always()
         uses: actions/upload-artifact@v4
