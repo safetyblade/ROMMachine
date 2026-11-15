@@ -47,6 +47,7 @@ internal fun XboxGameMenu(
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
+    val safeResume = canResume && capabilities.resume
     GameMenuTheme(appearance) {
         val nav = rememberNavController()
         val route =
@@ -67,10 +68,10 @@ internal fun XboxGameMenu(
             route.canGoBack(),
             onBack = {
                 if (!nav.popBackStack()) {
-                    if (canResume) onResume() else onReturnToShelf()
+                    if (safeResume) onResume() else onReturnToShelf()
                 }
             },
-            onResume = { if (canResume) onResume() },
+            onResume = { if (safeResume) onResume() },
             statusMessage = pauseFeedback,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
@@ -79,7 +80,7 @@ internal fun XboxGameMenu(
                         capabilities = capabilities.home,
                         onAction = { action ->
                             when (action) {
-                                GameMenuAction.RESUME -> if (canResume) onResume()
+                                GameMenuAction.RESUME -> if (safeResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
@@ -87,7 +88,7 @@ internal fun XboxGameMenu(
                                 else -> Unit // Not advertised by this backend.
                             }
                         },
-                        canResume = canResume,
+                        canResume = safeResume,
                     )
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }

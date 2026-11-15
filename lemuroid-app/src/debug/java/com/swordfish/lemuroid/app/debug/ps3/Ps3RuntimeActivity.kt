@@ -37,6 +37,7 @@ import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -147,6 +148,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -595,7 +597,9 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val menuEdge = ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE) ||
+            remaps[event.deviceId]?.get(event.keyCode) == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
             if (menuEdge.handle(event)) {
                 if (menu) closeMenu() else openMenu()
             }

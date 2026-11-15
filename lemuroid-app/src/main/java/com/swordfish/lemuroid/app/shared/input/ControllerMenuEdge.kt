@@ -26,9 +26,11 @@ class ControllerMenuEdge {
             if (completed[press] != downTime) armed.putIfAbsent(press, downTime)
             return false
         }
-        val started = armed.remove(press) ?: return false
+        val started = armed[press] ?: return false
+        if (started != downTime) return false
+        armed.remove(press)
         completed[press] = started
-        return started == downTime
+        return true
     }
 
     fun retainDevices(ids: Set<Int>) {

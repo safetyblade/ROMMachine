@@ -23,11 +23,21 @@ object ControllerHardwareProfile {
                 ).count { it }
             }.getOrDefault(0)
         // A TV remote with just D-pad/OK/Back never qualifies as a gameplay controller.
-        return faces >= 2 && (hasGamepadSource || device.motionRanges.isNotEmpty())
+        return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, faces, device.motionRanges.isNotEmpty())
     }
 
-    fun family(device: InputDevice): Family {
-        val lower = device.name.lowercase()
+    fun qualifies(
+        virtual: Boolean,
+        gamepadSource: Boolean,
+        joystickSource: Boolean,
+        faceButtons: Int,
+        hasAxes: Boolean,
+    ): Boolean = !virtual && (gamepadSource || joystickSource) && faceButtons >= 2 && (gamepadSource || hasAxes)
+
+    fun family(device: InputDevice): Family = family(device.name)
+
+    fun family(name: String): Family {
+        val lower = name.lowercase()
         return when {
             "xbox" in lower || "xinput" in lower -> Family.XBOX
             "dualshock" in lower || "dualsense" in lower || "playstation" in lower -> Family.PLAYSTATION

@@ -47,6 +47,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -97,6 +98,7 @@ internal fun GameMenuPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val backFocus = remember { FocusRequester() }
+    val menuView = LocalView.current
     val menuEdge = remember { ControllerMenuEdge() }
     val backEdge = remember { ControllerMenuEdge() }
     // Nested routes start with a reachable Back control. Home keeps its
@@ -108,6 +110,19 @@ internal fun GameMenuPanel(
     BoxWithConstraints(
         Modifier.fillMaxSize().testTag("game-menu").onPreviewKeyEvent { event ->
             when (event.nativeKeyEvent.keyCode) {
+                KeyEvent.KEYCODE_BUTTON_A -> {
+                    val raw = event.nativeKeyEvent
+                    menuView.dispatchKeyEvent(
+                        KeyEvent(
+                            raw.downTime,
+                            raw.eventTime,
+                            raw.action,
+                            KeyEvent.KEYCODE_DPAD_CENTER,
+                            raw.repeatCount,
+                        ),
+                    )
+                    true
+                }
                 KeyEvent.KEYCODE_BUTTON_B -> {
                     if (backEdge.handle(event.nativeKeyEvent)) onBack()
                     true

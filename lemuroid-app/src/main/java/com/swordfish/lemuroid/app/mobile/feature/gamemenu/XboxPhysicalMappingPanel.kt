@@ -80,4 +80,8 @@ internal fun XboxPhysicalMappingPanel(
 }
 
 private fun name(key: Int): String =
-    KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_BUTTON_").removePrefix("KEYCODE_DPAD_")
+    when (key) {
+        KeyEvent.KEYCODE_BUTTON_L1 -> "White"
+        KeyEvent.KEYCODE_BUTTON_R1 -> "Black"
+        else -> KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_BUTTON_").removePrefix("KEYCODE_DPAD_")
+    }

@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -274,9 +275,34 @@ class GameViewModelInput(
             }?.id
     }
 
+    private fun releasePhysicalInputs() {
+        pivotArcHoldGate.clear()
+        val view = retroGameView.retroGameView ?: return
+        controllerConfigsState.value.keys.forEach { port ->
+            InputDeviceManager.OUTPUT_KEYS.forEach { key ->
+                view.sendKeyEvent(KeyEvent.ACTION_UP, key.keyCode, port)
+            }
+            listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT).forEach { source ->
+                view.sendMotionEvent(source, 0f, 0f, port)
+            }
+            if (hasNativeTriggers) view.sendMotionEvent(4, 0f, 0f, port)
+        }
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        releasePhysicalInputs()
+        super.onPause(owner)
+    }
+
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
         inputDeviceManager.beginGameplaySession()
+
+        owner.launchOnState(Lifecycle.State.RESUMED) {
+            inputDeviceManager.getEnabledInputsObservable().drop(1).safeCollect {
+                releasePhysicalInputs()
+            }
+        }
 
         owner.launchOnState(Lifecycle.State.CREATED) {
             initializeControllerConfigsFlow()
@@ -465,14 +491,14 @@ class GameViewModelInput(
             combine(
                 inputDeviceManager.getGamePadsPortMapperObservable(),
                 motionEventsFlow,
-                ::NTuple2,
-            )
+                inputDeviceManager.getInputBindingsObservable(),
+            ) { ports, event, bindings -> Triple(ports, event, bindings) }
 
         events
-            .mapNotNull { (ports, event) ->
-                ports(event.device)?.let { it to event }
+            .mapNotNull { (ports, event, bindings) ->
+                ports(event.device)?.let { Triple(it, event, bindings(event.device)) }
             }
-            .map { (port, event) ->
+            .map { (port, event, bindings) ->
                 val axes =
                     event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
                         hasNativeTriggers &&
@@ -492,7 +518,12 @@ class GameViewModelInput(
                         } else {
                             KeyEvent.ACTION_UP
                         }
-                    SingleAxisEvent(axis, action, button, port)
+                    SingleAxisEvent(
+                        axis,
+                        action,
+                        bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button,
+                        port,
+                    )
                 }.toSet()
             }
             .scan(emptySet<SingleAxisEvent>()) { prev, next ->

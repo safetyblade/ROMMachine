@@ -34,6 +34,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesV
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.ControllerHatEdges
 import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
 import com.swordfish.lemuroid.app.shared.input.ControllerMappingDraft
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
@@ -41,6 +42,7 @@ import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.RetroKey
 import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -48,6 +50,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
 import kotlinx.coroutines.launch
 import java.security.InvalidParameterException
 import javax.inject.Inject
@@ -64,6 +67,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     private var mappingDevice: InputDevice? = null
     private val captureEdge = ControllerMenuEdge()
     private val probe = ControllerInputProbe()
+    private val hatEdges = ControllerHatEdges()
     private var probeRevision by mutableStateOf(0)
     private var mappingMessage by mutableStateOf<String?>(null)
     private var mappingGeneration by mutableStateOf(0)
@@ -85,6 +89,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
         mappingDraft?.cancel()
         mappingDraft = null
         mappingDevice = device
+        hatEdges.clear()
         mappingMessage = null
         if (device != null) {
             lifecycleScope.launch {
@@ -102,6 +107,16 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.deviceId == mappingDevice?.id) {
             event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
+            hatEdges.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+                .forEach { (code, down) ->
+                    probe.key(code, down)
+                    val capture = pendingBinding
+                    if (capture?.first == event.deviceId && captureEdge.handle(event.deviceId, code, down)) {
+                        mappingDraft?.assign(code, capture.second)
+                        pendingBinding = null
+                        mappingRevision++
+                    }
+                }
             probeRevision++
         }
         return pendingBinding != null || super.dispatchGenericMotionEvent(event)
@@ -181,6 +196,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge, captureEdge)
 
         enableEdgeToEdge(
             SystemBarStyle.dark(Color.TRANSPARENT),
@@ -329,6 +345,19 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                             physicalControllerOptions = {
                                 PhysicalControllerMappingPanel(
                                     inputDeviceManager = inputDeviceManager,
+                                    inventory =
+                                        gameMenuRequest.coreConfig.controllerConfigs[0]?.let { controllers ->
+                                            val selected =
+                                                controllers.firstOrNull { controller ->
+                                                    controller.name == gameMenuRequest.currentControllerName
+                                                }
+                                                    ?: controllers.firstOrNull()
+                                            selected?.touchControllerID?.let {
+                                                NativeControlInventory.forController(
+                                                    it,
+                                                )
+                                            }
+                                        },
                                     captureTarget = pendingBinding?.second,
                                     mappingRevision = mappingRevision,
                                     generation = mappingGeneration,
@@ -371,7 +400,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                             val reviewed = draft.bindings.toMap()
                                             lifecycleScope.launch {
                                                 val live = InputDevice.getDevice(device.id)
-                                                if (live?.descriptor == device.descriptor &&
+                                                if (live != null && live.descriptor == device.descriptor &&
                                                     mappingDevice?.id == device.id
                                                 ) {
                                                     try {

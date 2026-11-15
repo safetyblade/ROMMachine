@@ -17,9 +17,11 @@ class GameMenuIntegrationTest(unittest.TestCase):
         self.assertIn('sendHardware()', actions)
         for forbidden in ('startActivity(', 'AlertDialog', 'loadLibraries(', 'nativeSetPads(', 'finish('):
             self.assertNotIn(forbidden, actions)
-        self.assertEqual(1, source.count('nativeSetPaused(it)'))
-        self.assertNotIn('nativeSetPaused(true)', source)
-        self.assertNotIn('nativeSetPaused(false)', source)
+        self.assertEqual(1, source.count('pause = { nativeSetPaused(true) }'))
+        self.assertEqual(1, source.count('resume = { nativeSetPaused(false) }'))
+        self.assertIn('if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME', source)
+        self.assertIn('outcome.resumeFailureFeedback()', source)
+        self.assertIn('pauseGate.retryResumeAfterFailure()', source)
         self.assertIn('pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)', source)
         self.assertIn('closeMenu() // Resume the same guest', source)
         self.assertIn('if (menuShowing) return@forEach', source)
@@ -34,7 +36,10 @@ class GameMenuIntegrationTest(unittest.TestCase):
             self.assertIn(action, home)
         for action in ('RESULT_SAVE', 'RESULT_LOAD'):
             self.assertIn(action, activity)
-        self.assertIn('states = gameMenuRequest.coreConfig.statesSupported', home)
+        self.assertIn('states = true', home)  # Save guidance stays reachable for native-only saves.
+        self.assertIn('GameplayMenuHostKind.LIBRETRO,\n            gameMenuRequest.coreConfig.statesSupported', home)
+        self.assertIn('if (!hostCapabilities.canSaveState)', home)
+        self.assertIn('Emulator save states are not available for this engine.', home)
         self.assertIn('if (gameMenuRequest.fastForwardSupported)', home)
         self.assertIn('if (gameMenuRequest.numDisks > 1)', home)
         self.assertEqual(1, home.count('WiiControllerPicker(gameMenuRequest, onResult)'))

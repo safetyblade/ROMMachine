@@ -21,11 +21,15 @@ import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
 import com.swordfish.lemuroid.app.shared.input.ControllerMappingDraft
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.touchinput.radial.settings.NativeControlIcon
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
+import com.swordfish.touchinput.radial.settings.NativeControlKind
 
 /** Capture and probe use the menu Activity; the paused gameplay dispatcher stays authoritative. */
 @Composable
 internal fun PhysicalControllerMappingPanel(
     inputDeviceManager: InputDeviceManager,
+    inventory: NativeControlInventory?,
     captureTarget: Int?,
     mappingRevision: Int,
     generation: Int,
@@ -55,6 +59,36 @@ internal fun PhysicalControllerMappingPanel(
     DisposableEffect(Unit) { onDispose { onSelect(null) } }
     // Revision reads expose the Activity-owned, non-Compose transaction and probe updates.
     val bindings = remember(draft, mappingRevision) { draft?.bindings.orEmpty() }
+    val defaults =
+        remember(selected?.id) {
+            selected?.let { device ->
+                inputDeviceManager.defaultBindings(device).mapKeys { it.key.keyCode }.mapValues { it.value.keyCode }
+            }.orEmpty()
+        }
+    val targets = inventory?.controls?.flatMap { listOfNotNull(it.keyCode, it.pressCode) }?.toMutableSet()
+    if (inventory?.controls?.any { it.kind == NativeControlKind.DPAD } == true) {
+        targets?.addAll(
+            listOf(
+                KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_DPAD_RIGHT,
+            ),
+        )
+    }
+
+    fun targetName(code: Int): String {
+        val spec = inventory?.controls?.firstOrNull { it.keyCode == code }
+        return when (spec?.icon) {
+            NativeControlIcon.CROSS -> "Cross"
+            NativeControlIcon.CIRCLE -> "Circle"
+            NativeControlIcon.SQUARE -> "Square"
+            NativeControlIcon.TRIANGLE -> "Triangle"
+            else ->
+                spec?.label ?: KeyEvent.keyCodeToString(code)
+                    .removePrefix("KEYCODE_BUTTON_").removePrefix("KEYCODE_DPAD_")
+        }
+    }
     val held = remember(probeRevision) { probe.held }
     val axes = remember(probeRevision) { probe.axes.toMap() }
 
@@ -77,9 +111,11 @@ internal fun PhysicalControllerMappingPanel(
             "${ControllerHardwareProfile.family(selected)} · ${selected.descriptor}",
             style = MaterialTheme.typography.bodySmall,
         )
-        Text("Mode: ${if (draft?.dirty == true) "Custom (unsaved)" else "Console Authentic / saved Custom"}")
+        val modeName = if (bindings == defaults) "Console Authentic" else "Custom"
+        val modeStatus = if (draft?.dirty == true) " (unsaved)" else ""
+        Text("Mode: $modeName$modeStatus")
         GameMenuLink("Console Authentic — reset draft") { onReset(selected) }
-        Text("No verified Modern Function controls for this edition. Console Authentic remains selected.")
+        Text("Modern Function unavailable: no verified controls for this edition.")
         Text("Input test: ${probe.lastEvent}")
         Text("Held / simultaneous chord: ${held.joinToString(" + ") { physicalName(it) }.ifEmpty { "None" }}")
         axes.forEach { (axis, range) ->
@@ -90,25 +126,31 @@ internal fun PhysicalControllerMappingPanel(
         }
         Text(
             "Axes show neutral, range and DPAD diagonals. Analog triggers and digital L2/R2 " +
-                "are shown independently; axis remapping is not available here.",
+                "are shown independently. DPAD hats can be captured; " +
+                "stick and trigger axis remapping is unavailable.",
             style = MaterialTheme.typography.bodySmall,
         )
         if (captureTarget != null) {
-            Text("Press and release one physical button for ${physicalName(captureTarget)}. Menu exits; Back cancels.")
+            Text(
+                "Press and release one physical button for ${targetName(captureTarget)}. " +
+                    "Menu exits; Back cancels.",
+            )
             GameMenuLink("Cancel capture", onClick = onCancel)
         }
         if (draft?.conflict != null) {
             Text(
-                "This physical button already has a different binding. Review and swap the two bindings, or Undo / Cancel.",
+                "This physical button already has a different binding. " +
+                    "Review and swap the two bindings, or Undo / Cancel.",
             )
             GameMenuLink("Swap conflicting bindings", onClick = onResolveConflict)
         }
         message?.let { Text(it) }
         InputDeviceManager.OUTPUT_KEYS.filter {
-            it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE
+            it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
+                (targets == null || it.keyCode in targets)
         }.forEach { original ->
             val source = bindings.entries.firstOrNull { it.value == original.keyCode }?.key
-            GameMenuLink("${physicalName(original.keyCode)} ← ${source?.let(::physicalName) ?: "Unassigned"}") {
+            GameMenuLink("${targetName(original.keyCode)} ← ${source?.let(::physicalName) ?: "Unassigned"}") {
                 onCapture(selected.id, original.keyCode)
             }
         }

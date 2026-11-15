@@ -39,5 +39,6 @@ class ControllerMenuEdgeTest {
         (7 downTo 1).forEach { assertTrue(edge.handle(it, 110, false, downTime = it.toLong())) }
         edge.handle(1, 110, true, downTime = 9)
         assertFalse(edge.handle(1, 110, false, downTime = 10))
+        assertTrue(edge.handle(1, 110, false, downTime = 9))
     }
 }

@@ -66,6 +66,7 @@ import com.swordfish.lemuroid.app.shared.input.ControllerMappingDraft
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -280,6 +281,7 @@ class NativeCoreActivity : SDLActivity() {
             }
         startupFailure = preparation.exceptionOrNull()
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge, mappingCaptureEdge)
         if (SDLActivity.mBrokenLibraries) {
             if (startupFailure == null) {
                 startupFailure = IllegalStateException("Xbox native runtime could not load on this device")
