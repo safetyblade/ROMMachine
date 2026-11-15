@@ -239,7 +239,8 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             settings,
                             TouchControllerID.WII_CLASSIC,
                             physicalControllerConnected = physicalConnected,
-                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
                             game = game,
                             onGripPressed = { slot, pressed, codes ->
                                 if (pressed && !menuOpen && hostForeground) {
