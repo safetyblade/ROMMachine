@@ -45,7 +45,7 @@ class GameplayMenuHostAdapterTest {
             )
         val session = GameplayMenuSession(host)
         val opened = session.open()
-        assertEquals(GameplayMenuSessionStatus.OPEN_RUNNING, opened.status)
+        assertEquals(GameplayMenuSessionStatus.OPEN_UNCONFIRMED, opened.status)
         assertTrue(opened.pauseWasDispatched)
         assertEquals(listOf("pause"), calls)
         assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
