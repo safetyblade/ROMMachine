@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
@@ -88,6 +89,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         )
     }
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.CEMU)
     private var physicalConnected by mutableStateOf(false)
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
@@ -255,6 +257,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 sendInput()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = renderSurface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -374,7 +377,10 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         report = engineReport(nativeReport())
                         val width = Regex("image_width=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         val height = Regex("image_height=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                        if (width > 0 && height > 0) frameAspect = width.toFloat() / height
+                        if (width > 0 && height > 0) {
+                            frameAspect = width.toFloat() / height
+                            viewportAudit.nativeImage(width, height)
+                        }
                         val frames =
                             Regex("presented_image_callbacks=(\\d+)").find(report)
                                 ?.groupValues?.get(1)?.toLongOrNull() ?: 0L
@@ -396,7 +402,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 presentationRecorded = true
                             }
                         }
-                        val snapshot = report.take(16384)
+                        val snapshot = (report + "\n" + viewportAudit.summary()).take(16384)
                         val dataRoot = requireNotNull(sandbox)
                         withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
                     }
@@ -567,12 +573,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (loaded && started) nativeSurface(holder.surface)
         syncPause()
         startIfReady()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         releaseInput()
         if (loaded && started) nativeSurface(null)
     }
@@ -598,7 +606,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             getSystemService(
                 CLIPBOARD_SERVICE,
             ) as ClipboardManager
-        ).setPrimaryClip(ClipData.newPlainText("CARTDECK Wii U", report.take(16384)))
+        ).setPrimaryClip(
+            ClipData.newPlainText(
+                "CARTDECK Wii U",
+                (report + "\n" + viewportAudit.summary()).take(16384),
+            ),
+        )
     }
 
     private fun leave() {
