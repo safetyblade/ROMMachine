@@ -44,6 +44,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
@@ -586,10 +587,21 @@ class NativeCoreActivity : SDLActivity() {
     private fun syncPause() {
         if (!ready) return
         pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let { shouldPause ->
-            val outcome = menuHost.dispatch(
-                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
-            )
-            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
+            if (shouldPause) {
+                menuPauseFeedback = outcome.menuFeedback()
+            } else {
+                val failure = outcome.resumeFailureFeedback()
+                if (failure != null && !leaving) {
+                    // Keep the same guest session visible for retry or recovery.
+                    menuPauseFeedback = failure
+                    menuOpen = true
+                    pauseGate.retryResumeAfterFailure()
+                }
+            }
         }
     }
 
