@@ -57,6 +57,8 @@ class InputDeviceManager(
 
     private val playerSlots = ControllerPortRegistry(16)
 
+    fun beginGameplaySession() = playerSlots.clear()
+
     fun getGamePadsPortMapperObservable(): Flow<(InputDevice?) -> Int?> =
         getEnabledInputsObservable().map { gamePads ->
             val portMappings = playerSlots.update(gamePads.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
@@ -148,6 +150,24 @@ class InputDeviceManager(
         sharedPreferences.edit(commit = true) {
             putString(computeKeyBindingGamePadPreference(inputDevice), sharedPreferencesContent)
         }
+    }
+
+    fun defaultBindings(inputDevice: InputDevice): Map<InputKey, RetroKey> = getDefaultBinding(inputDevice)
+
+    /** Commit a reviewed map atomically under the existing stable descriptor preference. */
+    suspend fun saveDeviceBindings(
+        inputDevice: InputDevice,
+        bindings: Map<InputKey, RetroKey>,
+    ) = withContext(Dispatchers.IO) {
+        require(bindings.values.all { it in OUTPUT_KEYS })
+        check(
+            sharedPreferences.edit()
+                .putString(
+                    computeKeyBindingGamePadPreference(inputDevice),
+                    Json.encodeToString(bindingsMapSerializer, bindings),
+                )
+                .commit(),
+        ) { "Controller preferences could not be saved" }
     }
 
     suspend fun updateShortcutBinding(

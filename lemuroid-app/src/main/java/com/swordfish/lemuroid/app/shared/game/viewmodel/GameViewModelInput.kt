@@ -276,6 +276,7 @@ class GameViewModelInput(
 
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
+        inputDeviceManager.beginGameplaySession()
 
         owner.launchOnState(Lifecycle.State.CREATED) {
             initializeControllerConfigsFlow()

@@ -12,7 +12,7 @@ import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 
 /**
  * The Xbox emulator's in-process Compose menu owns this capture interface.
- * Every assignment is written only after the next physical key is released.
+ * Matched release stages an assignment; only explicit Save writes preferences.
  * MODE/MENU/Android Back remain hard-wired escape controls.
  */
 @Composable
@@ -21,6 +21,15 @@ internal fun XboxPhysicalMappingPanel(
     pendingTarget: Int?,
     lastInput: String,
     perCartridge: Boolean,
+    dirty: Boolean,
+    canUndo: Boolean,
+    conflict: Boolean,
+    notice: String?,
+    onNextDevice: () -> Unit,
+    onUndo: () -> Unit,
+    onDiscard: () -> Unit,
+    onResolve: () -> Unit,
+    onSave: () -> Unit,
     mappings: Map<Int, String>,
     onScopeChange: (Boolean) -> Unit,
     onStartCapture: (Int) -> Unit,
@@ -38,6 +47,13 @@ internal fun XboxPhysicalMappingPanel(
             style = MaterialTheme.typography.bodyMedium,
         )
         Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
+        GameMenuLink("Select next connected controller", onClick = onNextDevice)
+        Text("Console Authentic / Custom. No verified Modern Function controls for this edition.")
+        notice?.let { Text(it) }
+        if (conflict) {
+            Text("This button has another binding. Review and swap, or cancel the draft.")
+            GameMenuLink("Swap conflicting bindings", onClick = onResolve)
+        }
         GameMenuLink(
             if (perCartridge) "Scope: this cartridge" else "Scope: this physical controller",
         ) { onScopeChange(!perCartridge) }
@@ -54,7 +70,12 @@ internal fun XboxPhysicalMappingPanel(
                 "Xbox ${name(target)}  ←  ${mappings[target] ?: name(target)}",
             ) { if (controllerName != null) onStartCapture(target) }
         }
-        if (controllerName != null) GameMenuLink("Reset mappings for selected scope", onClick = onReset)
+        if (controllerName != null) {
+            if (dirty && !conflict) GameMenuLink("Save mappings", onClick = onSave)
+            if (canUndo) GameMenuLink("Undo", onClick = onUndo)
+            GameMenuLink("Cancel unsaved mappings", onClick = onDiscard)
+            GameMenuLink("Reset draft for selected scope", onClick = onReset)
+        }
     }
 }
 

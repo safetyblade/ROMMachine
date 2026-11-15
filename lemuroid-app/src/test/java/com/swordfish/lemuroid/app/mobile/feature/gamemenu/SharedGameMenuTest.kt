@@ -14,9 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -179,6 +179,7 @@ class SharedGameMenuTest {
             }
         }
     }
+
     @Test fun unavailableResumeWithoutAdvancedFocusesShelf() {
         var action: GameMenuAction? = null
         compose.setContent {
@@ -198,10 +199,9 @@ class SharedGameMenuTest {
     @Test fun recoveryInitiallyFocusesRecoveryAction() {
         compose.setContent {
             MaterialTheme {
-                SharedGameMenuHome(GameMenuCapabilities(advanced = true), {}, canResume = false)
+                SharedGameMenuHome(GameMenuCapabilities(advanced = true), canResume = false) {}
             }
         }
         compose.onNodeWithText("Recovery options").assertIsFocused()
     }
-
 }

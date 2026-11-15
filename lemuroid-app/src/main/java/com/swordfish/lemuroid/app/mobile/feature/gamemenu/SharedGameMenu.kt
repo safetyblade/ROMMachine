@@ -186,8 +186,8 @@ internal fun GameMenuLink(
 @Composable
 internal fun SharedGameMenuHome(
     capabilities: GameMenuCapabilities,
-    onAction: (GameMenuAction) -> Unit,
     canResume: Boolean = true,
+    onAction: (GameMenuAction) -> Unit,
 ) {
     val safeResume = canResume && capabilities.resume
     val resumeFocus = remember { FocusRequester() }

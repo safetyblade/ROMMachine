@@ -5,7 +5,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class ControllerPortRegistryTest {
-    private fun device(id: Int, descriptor: String) = ControllerPortRegistry.Device(id, descriptor)
+    private fun device(
+        id: Int,
+        descriptor: String,
+    ) = ControllerPortRegistry.Device(id, descriptor)
 
     @Test fun reconnectWithNewIdRetainsPortWithoutMovingOtherPlayers() {
         val ports = ControllerPortRegistry(7)
@@ -22,7 +25,9 @@ class ControllerPortRegistryTest {
         assertEquals(1, retained[2])
         val next = ports.update(devices.drop(1) + device(21, "identical descriptor"))
         assertEquals(0, next[21])
-        assertFalse(ports.update(devices.drop(1) + device(21, "identical descriptor") + device(22, "extra")).containsKey(22))
+        assertFalse(
+            ports.update(devices.drop(1) + device(21, "identical descriptor") + device(22, "extra")).containsKey(22),
+        )
     }
 
     @Test fun reusedIdAndSessionTeardownDoNotRetainForeignIdentity() {

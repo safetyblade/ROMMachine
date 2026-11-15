@@ -210,7 +210,7 @@
     <string name="shortcut_binding_update_description">Press the first, then second button to bind a combo on your \"%1$s\"</string>
 
     <string name="tv_search_results">Games</string>
-    <string name="tv_game_message_missing_gamepad">Gamepads are required to play. Please connect one.</string>
+    <string name="tv_game_message_missing_gamepad">Connect a game controller to play. Your remote can still open CARTDECK.</string>
 
     <string name="game_edit_touch_controls_error_not_visible">Disconnect your pad to edit your touch controls</string>
 

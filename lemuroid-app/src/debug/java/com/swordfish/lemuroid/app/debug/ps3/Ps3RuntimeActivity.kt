@@ -205,13 +205,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         Ps3Engine.store(filesDir, engine).canRollback(),
                                         resume = game != null && !failure,
                                     ),
-                                onResume = {
-                                    if (!failure && game != null) {
-                                        menu = false
-                                        pause(false)
-                                        boot()
-                                    }
-                                },
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = {
                                     (
@@ -471,6 +465,14 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         menu = true
         release()
         pause(true)
+    }
+
+    private fun closeMenu() {
+        if (!menu || failure || game == null || leaving) return
+        release()
+        menu = false
+        pause(false)
+        boot()
     }
 
     private fun pause(value: Boolean) {
