@@ -65,8 +65,12 @@ internal fun XboxGameMenu(
             console,
             page,
             route.canGoBack(),
-            onBack = { if (!nav.popBackStack()) onResume() },
-            onResume = onResume,
+            onBack = {
+                if (!nav.popBackStack()) {
+                    if (canResume) onResume() else onReturnToShelf()
+                }
+            },
+            onResume = { if (canResume) onResume() },
             statusMessage = pauseFeedback,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
@@ -75,7 +79,7 @@ internal fun XboxGameMenu(
                         capabilities = capabilities.home,
                         onAction = { action ->
                             when (action) {
-                                GameMenuAction.RESUME -> onResume()
+                                GameMenuAction.RESUME -> if (canResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
