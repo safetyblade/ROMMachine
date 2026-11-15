@@ -87,6 +87,7 @@ internal fun GameMenuPanel(
     canGoBack: Boolean,
     onBack: () -> Unit,
     onResume: () -> Unit,
+    statusMessage: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -127,6 +128,9 @@ internal fun GameMenuPanel(
                     Column(Modifier.padding(start = 56.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)) {
                         Text(page, style = MaterialTheme.typography.titleLarge)
                         Text("$console · $title", style = MaterialTheme.typography.bodyMedium)
+                        if (!statusMessage.isNullOrBlank()) {
+                            Text(statusMessage, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
                 HorizontalDivider()
