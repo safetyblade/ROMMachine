@@ -232,6 +232,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         engine != null && Armsx2Engine.store(filesDir).canRollback(),
                                     ),
                                 pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
