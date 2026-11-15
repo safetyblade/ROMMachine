@@ -37,9 +37,11 @@ object GameScreenLayout {
         allowTouchOverlay: Boolean,
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         portraitBottomInset: Dp = 0.dp,
+        portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
     ): ConstraintSet {
         return when {
-            !isLandscape -> buildConstraintSetPortrait(portraitMode, portraitBottomInset)
+            !isLandscape ->
+                buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
             allowTouchOverlay -> buildConstraintSetLandscape()
             else -> buildConstraintSetLandscapeNoOverlay()
         }
@@ -48,6 +50,7 @@ object GameScreenLayout {
     private fun buildConstraintSetPortrait(
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         bottomInset: Dp,
+        apertureRatio: String,
     ): ConstraintSet {
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
@@ -61,14 +64,16 @@ object GameScreenLayout {
             constrain(gameView) {
                 width = Dimension.fillToConstraints
                 if (portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD) {
-                    // One 4:3 physical screen opening. LibretroDroid preserves
-                    // GB, GBA, PSP and dynamic source aspect ratios within it.
-                    height = Dimension.ratio(CartdeckViewportPolicy.STANDARD_RATIO)
-                    top.linkTo(parent.top, margin = 84.dp)
+                    // Portrait glass follows a known system's native frame
+                    // when measured vertical space allows. The core retains
+                    // its own true pixel aspect and letterboxing.
+                    val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
+                    height = Dimension.ratio(apertureRatio)
+                    top.linkTo(parent.top, margin = if (expanded) 76.dp else 84.dp)
                     bottom.linkTo(leftPad.top, margin = 16.dp)
                     verticalBias = 0f
-                    absoluteLeft.linkTo(parent.absoluteLeft, margin = 22.dp)
-                    absoluteRight.linkTo(parent.absoluteRight, margin = 22.dp)
+                    absoluteLeft.linkTo(parent.absoluteLeft, margin = if (expanded) 14.dp else 22.dp)
+                    absoluteRight.linkTo(parent.absoluteRight, margin = if (expanded) 14.dp else 22.dp)
                 } else {
                     // The tested v2101 DS layout stays flexible, including
                     // its original stylus/touch coordinate mapping.
