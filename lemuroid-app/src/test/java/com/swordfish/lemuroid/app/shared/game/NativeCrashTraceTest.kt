@@ -79,4 +79,20 @@ class NativeCrashTraceTest {
     @Test fun absentTraceHasActionableFallback() {
         assertTrue(NativeCrashTrace.read(null).contains("documented ADB capture"))
     }
+
+    @Test fun nativeAbortIsReadableEvenWithoutAThreadBacktrace() {
+        val message = "JNI DETECTED ERROR: NoSuchMethodError onNativePadDown(II)Z"
+        val report = NativeCrashTrace.read(ByteArrayInputStream(s(14, message)))
+        assertTrue(report.contains(message))
+        assertFalse(report.any { it.code < 32 && it != '\n' && it != '\r' && it != '\t' })
+    }
+
+    @Test fun abortKeepsTheCauseAndRedactsPrivatePaths() {
+        val report =
+            NativeCrashTrace.read(
+                ByteArrayInputStream(s(14, "Load failed /data/user/0/private.iso JNI contract")),
+            )
+        assertTrue(report.contains("JNI contract"))
+        assertFalse(report.contains("/data/"))
+    }
 }

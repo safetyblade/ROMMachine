@@ -1500,11 +1500,11 @@ public class SDLActivity extends androidx.activity.ComponentActivity implements 
         if (SDLControllerManager.isDeviceSDLJoystick(deviceId)) {
             // Note that we process events with specific key codes here
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (SDLControllerManager.onNativePadDown(deviceId, keyCode, event.getScanCode())) {
+                if (SDLControllerManager.dispatchPadDown(deviceId, keyCode, event.getScanCode())) {
                     return true;
                 }
             } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (SDLControllerManager.onNativePadUp(deviceId, keyCode, event.getScanCode())) {
+                if (SDLControllerManager.dispatchPadUp(deviceId, keyCode, event.getScanCode())) {
                     return true;
                 }
             }

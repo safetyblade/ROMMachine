@@ -69,7 +69,12 @@ object NativeSessionJournal {
                                         "process=${exit.processName}",
                                 )
                                 appendLine(exit.description)
-                                exit.traceInputStream?.use { appendLine(String(it.readBytesLimited(65536))) }
+                                val trace = exit.traceInputStream
+                                if (exit.reason == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE) {
+                                    appendLine(NativeCrashTrace.read(trace))
+                                } else {
+                                    trace?.use { appendLine(it.readBytesLimited(65536).toString(Charsets.UTF_8)) }
+                                }
                             }
                     }.onFailure { appendLine("Exit trace unavailable: ${it.javaClass.simpleName}") }
                 }

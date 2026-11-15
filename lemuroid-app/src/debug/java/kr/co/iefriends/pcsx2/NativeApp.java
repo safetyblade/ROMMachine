@@ -32,6 +32,7 @@ public final class NativeApp {
         }
         final String name = pageSize() >= 16384 ? "emucore_16k" : "emucore_4k";
         try {
+            prepareSdlContract();
             System.loadLibrary(name);
             loaded = true;
             loadStatus = "NATIVE_LIBRARY_LOADED_ONLY";
@@ -44,6 +45,7 @@ public final class NativeApp {
     public static synchronized boolean loadSelected(File directory, String coreName) {
         if (loaded) return true;
         try {
+            prepareSdlContract();
             // Preload the verified selected closure by SONAME before the engine.
             for (String name : new String[]{"libc++_shared.so", "liblibrashader_capi.so", coreName}) {
                 System.load(new File(directory, name).getAbsolutePath());
@@ -54,6 +56,18 @@ public final class NativeApp {
             loadStatus = "SELECTED_NATIVE_LIBRARY_OR_DEPENDENCY_FAILED";
         }
         return loaded;
+    }
+
+    private static void prepareSdlContract() {
+        Armsx2JniContract.verify();
+        org.libsdl.app.SDLControllerManager.useLegacyControllerAbi();
+    }
+
+    public static void setupSdlHost(android.app.Activity activity) {
+        if (!loaded) throw new IllegalStateException("ARMSX2 is not loaded");
+        org.libsdl.app.SDL.setupJNI();
+        org.libsdl.app.SDL.initialize();
+        org.libsdl.app.SDL.setContext(activity);
     }
 
     public static native com.armsx2.BiosInfo getBiosInfoFromFd(int fd);

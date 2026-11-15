@@ -29,7 +29,35 @@ import android.view.View;
 public class SDLControllerManager
 {
 
+    private static volatile boolean legacyControllerAbi;
+
+    // ARMSX2 uses older controller/HID signatures; other isolated engines retain their existing ABI.
+    public static void useLegacyControllerAbi() { legacyControllerAbi = true; }
+    public static boolean usesLegacyControllerAbi() { return legacyControllerAbi; }
+
     static native void nativeSetupJNI();
+    static native void nativeAddJoystick(int device_id, String name, String desc,
+            int vendor_id, int product_id, int button_mask, int naxes, int axis_mask,
+            int nhats, boolean can_rumble, boolean has_rgb_led);
+    public static native boolean onNativePadDown(int device_id, int keycode);
+    public static native boolean onNativePadUp(int device_id, int keycode);
+
+    static boolean dispatchPadDown(int device, int key, int scan) {
+        return legacyControllerAbi ? onNativePadDown(device, key) : onNativePadDown(device, key, scan);
+    }
+    static boolean dispatchPadUp(int device, int key, int scan) {
+        return legacyControllerAbi ? onNativePadUp(device, key) : onNativePadUp(device, key, scan);
+    }
+    static void dispatchAddJoystick(int device, String name, String desc, int vendor, int product,
+            int buttons, int axes, int axisMask, int hats, boolean rumble, boolean led,
+            boolean accelerometer, boolean gyroscope) {
+        if (legacyControllerAbi) {
+            nativeAddJoystick(device, name, desc, vendor, product, buttons, axes, axisMask, hats, rumble, led);
+        } else {
+            nativeAddJoystick(device, name, desc, vendor, product, buttons, axes, axisMask, hats,
+                    rumble, led, accelerometer, gyroscope);
+        }
+    }
 
     static native void nativeAddJoystick(int device_id, String name, String desc,
                                                 int vendor_id, int product_id,
@@ -294,7 +322,7 @@ class SDLJoystickHandler {
                     }
 
                     mJoysticks.add(joystick);
-                    SDLControllerManager.nativeAddJoystick(joystick.device_id, joystick.name, joystick.desc,
+                    SDLControllerManager.dispatchAddJoystick(joystick.device_id, joystick.name, joystick.desc,
                             getVendorId(joystickDevice), getProductId(joystickDevice),
                             getButtonMask(joystickDevice), joystick.axes.size(), getAxisMask(joystick.axes), joystick.hats.size()/2, can_rumble, has_rgb_led,
                             has_accelerometer, has_gyroscope);
@@ -1005,6 +1033,8 @@ class SDLJoySensorListener implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        SDLControllerManager.onNativeJoySensor(device_id, event.sensor.getType(), event.timestamp, event.values[0], event.values[1], event.values[2]);
+        if (!SDLControllerManager.usesLegacyControllerAbi()) {
+            SDLControllerManager.onNativeJoySensor(device_id, event.sensor.getType(), event.timestamp, event.values[0], event.values[1], event.values[2]);
+        }
     }
 }
