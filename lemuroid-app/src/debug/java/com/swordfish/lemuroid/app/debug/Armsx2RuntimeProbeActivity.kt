@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
@@ -202,6 +203,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.PSX_DUALSHOCK,
                             physicalControllerConnected = connected,
+                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
                             game = game,
                             onGripPressed = { slot, down, codes ->
                                 if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
