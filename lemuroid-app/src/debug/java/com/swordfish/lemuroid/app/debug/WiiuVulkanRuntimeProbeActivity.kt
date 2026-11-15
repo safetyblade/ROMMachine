@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
@@ -238,6 +239,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             settings,
                             TouchControllerID.WII_CLASSIC,
                             physicalControllerConnected = physicalConnected,
+                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
                             game = game,
                             onGripPressed = { slot, pressed, codes ->
                                 if (pressed && !menuOpen && hostForeground) {
