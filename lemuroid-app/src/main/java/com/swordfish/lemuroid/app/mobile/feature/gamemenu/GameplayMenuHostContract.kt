@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * CARTDECK owns presentation; the active emulator host owns lifecycle commands.
@@ -65,8 +64,8 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
         private set
 
     suspend fun open(): GameplayMenuSessionSnapshot =
-        mutex.withLock {
-            if (snapshot.status != GameplayMenuSessionStatus.CLOSED) return@withLock snapshot
+        locked {
+            if (snapshot.status != GameplayMenuSessionStatus.CLOSED) return@locked snapshot
             snapshot = GameplayMenuSessionSnapshot(GameplayMenuSessionStatus.OPENING)
             if (!host.capabilities.canPause) {
                 snapshot =
@@ -101,15 +100,15 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
         }
 
     suspend fun resume(): GameplayMenuSessionSnapshot =
-        mutex.withLock {
+        locked {
             when (snapshot.status) {
-                GameplayMenuSessionStatus.CLOSED -> return@withLock snapshot
+                GameplayMenuSessionStatus.CLOSED -> return@locked snapshot
                 GameplayMenuSessionStatus.OPEN_RUNNING -> {
                     snapshot = GameplayMenuSessionSnapshot()
-                    return@withLock snapshot
+                    return@locked snapshot
                 }
                 GameplayMenuSessionStatus.PAUSED -> Unit
-                else -> return@withLock snapshot
+                else -> return@locked snapshot
             }
             snapshot = snapshot.copy(status = GameplayMenuSessionStatus.RESUMING)
             snapshot =
@@ -132,14 +131,14 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
         }
 
     suspend fun request(command: GameplayMenuCommand): GameplayMenuCommandResult =
-        mutex.withLock {
+        locked {
             if (command == GameplayMenuCommand.PAUSE || command == GameplayMenuCommand.RESUME) {
-                return@withLock GameplayMenuCommandResult.Unsupported("Use menu open/resume lifecycle.")
+                return@locked GameplayMenuCommandResult.Unsupported("Use menu open/resume lifecycle.")
             }
             if (snapshot.status != GameplayMenuSessionStatus.PAUSED &&
                 snapshot.status != GameplayMenuSessionStatus.OPEN_RUNNING
             ) {
-                return@withLock GameplayMenuCommandResult.Unsupported("No active menu session.")
+                return@locked GameplayMenuCommandResult.Unsupported("No active menu session.")
             }
             val supported =
                 when (command) {
@@ -149,7 +148,7 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
                     else -> false
                 }
             if (!supported) {
-                return@withLock GameplayMenuCommandResult.Unsupported(
+                return@locked GameplayMenuCommandResult.Unsupported(
                     if (command == GameplayMenuCommand.SAVE_STATE ||
                         command == GameplayMenuCommand.LOAD_STATE
                     ) {
@@ -165,6 +164,15 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
             }
             result
         }
+
+    private suspend fun <T> locked(action: suspend () -> T): T {
+        mutex.lock()
+        try {
+            return action()
+        } finally {
+            mutex.unlock()
+        }
+    }
 
     private suspend fun executeSafely(command: GameplayMenuCommand): GameplayMenuCommandResult =
         try {
