@@ -7,5 +7,10 @@
         <activity android:name="com.swordfish.lemuroid.app.debug.PlayStation2RuntimeProbeActivity" android:exported="true" />
         <activity android:name="com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity" android:exported="true" android:process=":ps2next" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|navigation" android:theme="@style/LemuroidMaterialTheme.Game" />
         <activity android:name="com.swordfish.lemuroid.app.debug.WiiuVulkanRuntimeProbeActivity" android:exported="true" android:process=":wiiulab" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|navigation" android:theme="@style/LemuroidMaterialTheme.Game" />
+        <activity android:name="com.swordfish.lemuroid.app.debug.ps3.Ps3RuntimeActivity"
+            android:exported="false" android:process=":ps3"
+            android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+    <activity android:name="com.swordfish.lemuroid.app.debug.ps3.Ps3ManagementActivity" android:exported="false" android:theme="@style/LemuroidMaterialTheme.Game" />
     </application>
 </manifest>

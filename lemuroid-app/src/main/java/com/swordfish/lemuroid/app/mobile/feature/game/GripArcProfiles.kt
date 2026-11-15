@@ -56,7 +56,7 @@ object GripArcInputCatalog {
                     start,
                     select,
                 )
-            SystemID.PSX, SystemID.PLAYSTATION_2 ->
+            SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3 ->
                 listOf(
                     a.copy(label = "Circle"),
                     b.copy(label = "Cross"),

@@ -15,7 +15,7 @@ import java.util.Properties
 
 /** Describes actual integrated implementations. Unbuilt upstream projects are never selectable engines. */
 object NativeEngineRegistry {
-    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID, CEMU_VULKAN, ARMSX2_ANDROID }
+    enum class Host { LIBRETRO, HAKUX_SDL3, XENIA_ANDROID, CEMU_VULKAN, ARMSX2_ANDROID, ARMSX3_ANDROID, RPCS3_LIBRETRO }
 
     data class Engine(
         val id: String,
@@ -52,6 +52,19 @@ object NativeEngineRegistry {
     data class Eligibility(val eligible: Boolean, val reason: String? = null)
 
     fun engines(system: GameSystem): List<Engine> {
+        if (system.id == SystemID.PLAYSTATION_3) {
+            return listOf("armsx3" to Host.ARMSX3_ANDROID, "rpcs3-libretro" to Host.RPCS3_LIBRETRO).map { (id, host) ->
+                Engine(
+                    id, if (id == "armsx3") "ARMSX3" else "RPCS3 Libretro", system.id, host, null,
+                    setOf("iso", "sfo", "pkg"), 33, setOf("arm64-v8a"), 0, 0x00401000,
+                    listOf("User-supplied PS3 firmware"), "PS3 firmware and engine-specific virtual storage",
+                    "native/ps3/$id", "Independent PS3 virtual HDD and user saves; no automatic cross-engine migration",
+                    "DualShock digital buttons and analog sticks; motion/pressure peripherals unavailable",
+                    "Experimental ARM64 PS3 emulation. Game compatibility and device performance vary. No save states.",
+                    "cartdeck/ps3/$id.properties",
+                )
+            }
+        }
         if (system.id == SystemID.WII_U && com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine.engineeringBuild) {
             return listOf(
                 Engine(
@@ -211,6 +224,11 @@ object NativeEngineRegistry {
         engine: Engine,
         extension: String? = null,
     ): Eligibility {
+        if (engine.system == SystemID.PLAYSTATION_3) {
+            com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.readiness(context, engine.id)?.let {
+                return Eligibility(false, it)
+            }
+        }
         val hardware = hardwareEligibility(engine, hardware(context))
         if (!hardware.eligible) return hardware
         if (extension != null && extension.lowercase() !in engine.formats) {
@@ -235,6 +253,10 @@ object NativeEngineRegistry {
                 Host.XENIA_ANDROID -> "libcartdeck_xenia.so"
                 Host.CEMU_VULKAN -> "libcemu_libretro_android.so"
                 Host.ARMSX2_ANDROID -> Armsx2Engine.coreName()
+                Host.ARMSX3_ANDROID, Host.RPCS3_LIBRETRO ->
+                    com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.binary(
+                        engine.id,
+                    )
                 else -> engine.core?.libretroFileName
             }
         // Legacy cores retain their existing verified install/provisioning path.
@@ -267,7 +289,10 @@ object NativeEngineRegistry {
                 val revision = manifest.getProperty("revision") ?: manifest.getProperty("upstream.revision")
                 val digest = manifest.getProperty("core.sha256")
                 val active =
-                    if (engine.host == Host.ARMSX2_ANDROID) {
+                    if (engine.system == SystemID.PLAYSTATION_3) {
+                        com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.store(context.filesDir, engine.id)
+                            .selected()?.id
+                    } else if (engine.host == Host.ARMSX2_ANDROID) {
                         File(
                             context.filesDir,
                             "native-engines/armsx2/active.version",

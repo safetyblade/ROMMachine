@@ -29,7 +29,7 @@ object DocumentFileParser {
     private val NO_FULL_FILE_CRC_DISC_EXTENSIONS =
         setOf(
             "iso", "xiso", "ciso", "chd", "cdi", "gdi", "gcm", "rvz", "gcz", "cso", "isz", "tgc", "wbfs",
-            "zar", "xcp", "xex", "wua", "wud", "wux", "rpx", "elf", "tmd",
+            "sfo", "pkg", "zar", "xcp", "xex", "wua", "wud", "wux", "rpx", "elf", "tmd",
         )
 
     fun parseDocumentFile(
@@ -86,6 +86,7 @@ object DocumentFileParser {
         context: Context,
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
+        val ps3 = identifyPs3(context, baseStorageFile)
         val xbox = identifyXboxDisc(context, baseStorageFile)
         val xbox360 =
             if (xbox == null && baseStorageFile.extension.lowercase() in Xbox360ContentIdentity.formats) {
@@ -149,7 +150,7 @@ object DocumentFileParser {
                             null
                         }
                     )
-                        ?: nativeSystem ?: uniqueNativeSystem,
+                        ?: ps3?.let { SystemID.PLAYSTATION_3 } ?: nativeSystem ?: uniqueNativeSystem,
                 legacy = diskInfo?.systemID,
                 foreignDisc = discIdentity?.platform == NextGenDiscIdentity.Platform.WII && nativeSystem == null,
             )
@@ -173,11 +174,49 @@ object DocumentFileParser {
             baseStorageFile.name,
             baseStorageFile.size,
             crc32,
-            xbox?.titleId ?: diskInfo?.serial,
+            ps3?.id ?: xbox?.titleId ?: diskInfo?.serial,
             baseStorageFile.uri,
             baseStorageFile.path,
             system,
+            ps3?.name,
         )
+    }
+
+    private fun identifyPs3(
+        context: Context,
+        file: BaseStorageFile,
+    ): com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title? {
+        val parser = com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata
+        return runCatching {
+            when (file.extension.lowercase(java.util.Locale.US)) {
+                "iso" ->
+                    context.contentResolver.openFileDescriptor(file.uri, "r")?.use { fd ->
+                        FileInputStream(fd.fileDescriptor).channel.use { parser.iso(it) }
+                    }
+                "sfo" ->
+                    if (file.name.equals("PARAM.SFO", true) && file.size in 20..1048576) {
+                        context.contentResolver.openInputStream(file.uri)?.use { parser.sfo(it.readBytes()) }
+                            ?.takeIf { it.category in setOf("DG", "HG", "HM", "CB") }
+                    } else {
+                        null
+                    }
+                "pkg" ->
+                    context.contentResolver.openInputStream(file.uri)?.use {
+                        val header = ByteArray(128)
+                        var count = 0
+                        while (count < header.size) {
+                            val n = it.read(header, count, header.size - count)
+                            if (n <= 0) break
+                            count += n
+                        }
+                        parser.pkg(header.copyOf(count), file.size)?.let {
+                                id ->
+                            com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title(id, id, "PKG", null)
+                        }
+                    }
+                else -> null
+            }
+        }.getOrNull()
     }
 
     private fun identifyXboxDisc(
