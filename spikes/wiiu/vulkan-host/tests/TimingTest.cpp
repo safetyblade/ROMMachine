@@ -1,6 +1,8 @@
 #include "StereoFifo.h"
 #include "FramePacer.h"
 #include "FrameFence.h"
+#include "SurfaceMailbox.h"
+#include <future>
 #include <cassert>
 #include <thread>
 #include <vector>
@@ -10,7 +12,32 @@ static VkResult VKAPI_CALL wait(VkDevice, uint32_t count, const VkFence* fence, 
     assert(count == 1 && fence && all && timeout == 5000000000ULL);
     return wait_result;
 }
+struct Window { std::atomic<int> refs{1}; };
+static void retain(Window* w) { ++w->refs; }
+static void release(Window* w) { --w->refs; }
 int main() {
+    // UI remains able to publish a new surface while the VM is stalled with
+    // a snapshot. Both retained references have exactly one eventual release.
+    Window oldWindow, newWindow;
+    SurfaceMailbox<Window> mailbox(retain, release);
+    mailbox.update(&oldWindow);
+    std::promise<void> snapshotTaken, finishGpuWait;
+    auto resume = finishGpuWait.get_future();
+    std::thread vm([&] {
+        auto snapshot = mailbox.snapshot(0);
+        assert(snapshot.window.get() == &oldWindow && snapshot.generation == 1);
+        snapshotTaken.set_value();
+        resume.wait();
+    });
+    snapshotTaken.get_future().wait();
+    auto ui = std::async(std::launch::async, [&] { mailbox.update(&newWindow); });
+    assert(ui.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+    assert(oldWindow.refs == 1 && newWindow.refs == 1);
+    mailbox.clear();
+    finishGpuWait.set_value();
+    vm.join();
+    assert(oldWindow.refs == 0 && newWindow.refs == 0);
+
     FramePacer pacer;
     pacer.reset(1000000);
     assert(pacer.next(1000000, 20000) == 1020000); // PAL / 50fps

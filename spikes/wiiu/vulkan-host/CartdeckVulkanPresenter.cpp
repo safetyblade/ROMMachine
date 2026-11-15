@@ -328,7 +328,9 @@ bool CartdeckVulkanPresenter::waitFrame(std::string* error) {
     // Never hold the shared queue lock while waiting: Cemu may need that
     // lock to submit work that allows an earlier guest dependency to finish.
     const auto completed = waitFrameFence(device_, frame_fence_, vkWaitForFences, error);
-    WiiuMetrics::fence_wait_us.store(WiiuMetrics::nowUs() - started);
+    const auto elapsed = WiiuMetrics::nowUs() - started;
+    WiiuMetrics::fence_wait_us.store(elapsed);
+    WiiuMetrics::maximum(WiiuMetrics::max_fence_us, elapsed);
     if (!completed) return false;
     frame_inflight_ = false;
     WiiuMetrics::gpu(0);

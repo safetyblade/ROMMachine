@@ -10,6 +10,11 @@ inline uint64_t nowUs() {
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 inline std::atomic<uint64_t> run_calls{0}, run_returns{0}, run_started_us{0}, last_run_us{0};
+inline std::atomic<uint64_t> max_run_us{0}, max_fence_us{0};
+inline void maximum(std::atomic<uint64_t>& metric, uint64_t value) {
+    auto old = metric.load();
+    while (old < value && !metric.compare_exchange_weak(old, value)) {}
+}
 inline std::atomic<unsigned> gpu_operation{0};
 inline std::atomic<uint64_t> gpu_started_us{0}, fence_wait_us{0};
 inline std::atomic<uint64_t> audio_accepted{0}, audio_played{0}, audio_underflow{0}, audio_overflow{0};
@@ -26,6 +31,8 @@ inline std::string report() {
         "\nrun_returns=" + std::to_string(run_returns.load()) +
         "\nrun_age_ms=" + std::to_string(guestStart ? (nowUs() - guestStart) / 1000 : 0) +
         "\nlast_run_us=" + std::to_string(last_run_us.load()) +
+        "\nmax_run_us=" + std::to_string(max_run_us.load()) +
+        "\nmax_frame_fence_wait_us=" + std::to_string(max_fence_us.load()) +
         "\ngpu_operation=" + (op < 7 ? std::string(names[op]) : "unknown") +
         "\ngpu_operation_age_ms=" + std::to_string(start ? (nowUs() - start) / 1000 : 0) +
         "\nlast_frame_fence_wait_us=" + std::to_string(fence_wait_us.load()) +

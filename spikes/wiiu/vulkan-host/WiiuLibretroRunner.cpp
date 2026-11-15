@@ -6,6 +6,7 @@
 #include "VulkanNegotiation.h"
 #include "WiiuRuntimeMetrics.h"
 #include "FramePacer.h"
+#include "SurfaceMailbox.h"
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <dlfcn.h>
@@ -32,16 +33,8 @@ std::atomic<unsigned> frame_count{0};
 std::atomic<unsigned> image_width{0}, image_height{0};
 std::atomic<uint64_t> submitted_audio{0};
 std::atomic<bool> frontend_paused{false};
-std::mutex surface_mutex;
-ANativeWindow* pending_window = nullptr;
-unsigned surface_generation = 0;
-
-void clearPendingSurface() {
-    std::lock_guard<std::mutex> lock(surface_mutex);
-    if (pending_window) ANativeWindow_release(pending_window);
-    pending_window = nullptr;
-    surface_generation = 0;
-}
+SurfaceMailbox<ANativeWindow> surfaces(ANativeWindow_acquire, ANativeWindow_release);
+void clearPendingSurface() { surfaces.clear(); }
 std::atomic<unsigned> requested_controller{1};
 std::atomic<unsigned> applied_controller{1};
 std::atomic<unsigned> screen_requests{0};
@@ -400,12 +393,10 @@ std::string run(ANativeWindow* window, const std::string& root,
         FramePacer pacer;
         pacer.reset(WiiuMetrics::nowUs());
         for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
-            {
-                std::lock_guard<std::mutex> lock(surface_mutex);
-                if (surface_generation != handled_surface_generation && pending_window) {
-                    if (!session.presenter.replaceSurface(pending_window, &session.error)) break;
-                    handled_surface_generation = surface_generation;
-                }
+            auto nextSurface = surfaces.snapshot(handled_surface_generation);
+            if (nextSurface.window) {
+                if (!session.presenter.replaceSurface(nextSurface.window.get(), &session.error)) break;
+                handled_surface_generation = nextSurface.generation;
             }
             if (frontend_paused.load()) {
                 pacer.reset(WiiuMetrics::nowUs());
@@ -434,7 +425,9 @@ std::string run(ANativeWindow* window, const std::string& root,
             const auto runStart = WiiuMetrics::nowUs();
             WiiuMetrics::run_started_us.store(runStart);
             session.core.run();
-            WiiuMetrics::last_run_us.store(WiiuMetrics::nowUs() - runStart);
+            const auto elapsed = WiiuMetrics::nowUs() - runStart;
+            WiiuMetrics::last_run_us.store(elapsed);
+            WiiuMetrics::maximum(WiiuMetrics::max_run_us, elapsed);
             WiiuMetrics::run_returns.fetch_add(1);
             WiiuMetrics::run_started_us.store(0);
             // Cemu may still be booting without any video callback. Consume the
@@ -526,6 +519,8 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     WiiuMetrics::run_returns.store(0);
     WiiuMetrics::run_started_us.store(0);
     WiiuMetrics::last_run_us.store(0);
+    WiiuMetrics::max_run_us.store(0);
+    WiiuMetrics::max_fence_us.store(0);
     WiiuMetrics::gpu(0);
     host_stage.store(0);
     tab_down.store(false);
@@ -569,10 +564,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeSurface(
     JNIEnv* env, jobject, jobject surface) {
     ANativeWindow* next = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
-    std::lock_guard<std::mutex> lock(surface_mutex);
-    if (pending_window) ANativeWindow_release(pending_window);
-    pending_window = next;
-    ++surface_generation;
+    surfaces.update(next);
     if (!next) {
         frontend_paused.store(true);
         WiiuMetrics::audio_paused.store(true);
