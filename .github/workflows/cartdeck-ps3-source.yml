@@ -37,6 +37,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v3
       - name: Install real native toolchain
         run: |
           sudo apt-get update -qq
@@ -59,6 +60,7 @@ jobs:
           python3 scripts/ps3/prepare_rpcs3.py work/ps3/source
           git clone https://github.com/FFmpeg/FFmpeg.git --branch n7.1.1 --depth 1 work/ps3/ffmpeg-src
           cd work/ps3/ffmpeg-src
+          git checkout --detach db69d06eeeab4f46da15030a80d539efb4503ca8
           NDK="$ANDROID_HOME/ndk/29.0.14206865"
           TC="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           ./configure --prefix="$GITHUB_WORKSPACE/work/ps3/ffmpeg" --target-os=android --arch=aarch64 \
