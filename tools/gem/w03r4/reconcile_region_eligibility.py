@@ -88,8 +88,8 @@ def main():
         origin_kind=sorted({works.get(w,{}).get("kind","unknown") for w in chosen})
         # An individual source can be commercial but still a utility or demo.
         name=item["title"].lower()
-        suspect=bool(re.search(r"\b(?:demo|testfire|pre.launch|challenge[s]? app|notice|info|media|trailer|training|software|beta)\b",name))
-        if "collection" in name or "pack" in name or "bundle" in name or "compilation" in name:
+        suspect=bool(re.search(r"\b(?:demo|testfire|pre.launch|challenge[s]? app|notice|info|media|trailer|training|beta)\b",name))
+        if "collection" in name or "pack" in name or "bundle" in name or "compilation" in name or "compilation" in origin_kind:
             category="COMPILATION_OR_BUNDLE_REVIEW"
         elif suspect or any(k not in {"game"} for k in origin_kind):
             category="POSSIBLE_NON_STANDALONE_REVIEW"
