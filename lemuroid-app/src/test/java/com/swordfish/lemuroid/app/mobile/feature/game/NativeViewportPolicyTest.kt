@@ -4,6 +4,7 @@ import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuViewport
 import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -61,6 +62,22 @@ class NativeViewportPolicyTest {
         assertEquals(zero, NativeViewportPolicy.fit(1920f, Float.POSITIVE_INFINITY, 16f / 9f))
         assertEquals(zero, NativeViewportPolicy.fit(1920f, 1080f, -1f))
         assertEquals(zero, NativeViewportPolicy.fit(1920f, 1080f, 16f / 9f, Float.NaN))
+    }
+
+    @Test
+    fun bothNativeDisplayPathsRoundFractionalBoundsInward() {
+        assertEquals(
+            NativeViewportPolicy.SurfacePixels(11, 31, 289, 209),
+            NativeViewportPolicy.inwardPixels(10.2f, 30.8f, 289.9f, 209.7f),
+        )
+        assertEquals(
+            NativeViewportPolicy.SurfacePixels(10, 30, 290, 210),
+            NativeViewportPolicy.inwardPixels(10f, 30f, 290f, 210f),
+        )
+        // Measured content narrower than a raster pixel cannot escape glass.
+        assertNull(NativeViewportPolicy.inwardPixels(10.2f, 20f, 10.8f, 50f))
+        assertNull(NativeViewportPolicy.inwardPixels(Float.NaN, 0f, 20f, 30f))
+        assertNull(NativeViewportPolicy.inwardPixels(20f, 20f, 10f, 30f))
     }
 
     @Test
