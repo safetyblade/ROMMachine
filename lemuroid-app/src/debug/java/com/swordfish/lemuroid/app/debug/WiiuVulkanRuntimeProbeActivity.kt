@@ -29,6 +29,11 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -71,6 +76,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var failed = false
     private var vmThread: Thread? = null
     private var menuOpen by mutableStateOf(false)
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.CEMU),
+            pause = { nativePause(true) },
+            resume = { nativePause(false) },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private var physicalConnected by mutableStateOf(false)
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
@@ -260,6 +273,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                         false,
                                         selection != null && WiiuEngine.store(filesDir).canRollback(),
                                     ),
+                                pauseFeedback = menuPauseFeedback,
                                 onResume = {
                                     if (!failed) {
                                         menuOpen = false
@@ -475,9 +489,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     private fun syncPause() {
         if (loaded) {
-            nativePause(
-                !hostForeground || menuOpen || leaving || failed || !renderSurface.holder.surface.isValid,
+            val shouldPause = !hostForeground || menuOpen || leaving || failed ||
+                !renderSurface.holder.surface.isValid
+            val outcome = menuHost.dispatch(
+                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
             )
+            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
 
