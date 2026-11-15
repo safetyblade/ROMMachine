@@ -195,8 +195,8 @@ fun ShelfBoard(
         val columns = maxOf(1, floor((maxWidth.value - 24f) / 72f).toInt())
         val width = ((maxWidth.value - 24f - 4f * (columns - 1)) / columns).dp.coerceAtLeast(48.dp)
         val items =
-            remember(layout, columns) {
-                layout.sections.flatMap { section ->
+            remember(layout, columns, byKey) {
+                layout.visibleSections(byKey.keys).flatMap { section ->
                     val rows = section.rows(columns).map { ShelfItem(it.key, section, it) }
                     listOf(ShelfItem("header:${section.id}", section)) + rows
                 }
@@ -483,9 +483,7 @@ fun ShelfBoard(
                                                         colors.sectionDivider,
                                                     ).semantics {
                                                         contentDescription =
-                                                            if (cell?.gameKey != null) {
-                                                                "Missing cartridge: ${cell.titleHint}"
-                                                            } else if (reserved) {
+                                                            if (reserved) {
                                                                 "Reserved empty shelf space"
                                                             } else {
                                                                 "Available shelf space"
@@ -493,16 +491,7 @@ fun ShelfBoard(
                                                     },
                                                     contentAlignment = Alignment.Center,
                                                 ) {
-                                                    if (cell?.gameKey != null && !arrange) {
-                                                        // Unavailable cartridges reserve their original shelf cell.
-                                                        // No launcher or misleading edit action is exposed until
-                                                        // an independently verified source is restored.
-                                                        Text(
-                                                            "Unavailable",
-                                                            color = colors.sectionText,
-                                                            fontSize = 10.sp,
-                                                        )
-                                                    } else if (arrange) {
+                                                    if (arrange) {
                                                         TextButton(onClick = {
                                                             if (cell != null) {
                                                                 menu = item.section to cell
@@ -516,9 +505,7 @@ fun ShelfBoard(
                                                             }
                                                         }) {
                                                             Text(
-                                                                if (cell?.gameKey != null) {
-                                                                    cell.titleHint
-                                                                } else if (reserved) {
+                                                                if (reserved) {
                                                                     "Empty"
                                                                 } else {
                                                                     "+ Space"
