@@ -109,8 +109,9 @@ class ShelfLayoutTest {
     @Test fun visibleShelfOmitsRemovedAndRetiredGamesWithoutWritingLayout() {
         val games = mapOf("a" to "Alpha", "b" to "Bravo", "c" to "Charlie", "d" to "Delta")
         var persisted = ShelfLayout().reconcile(games)
-        persisted = persisted.insertSpace(ShelfLayout.UNSORTED, "game:b")
-            .insertSpace(ShelfLayout.UNSORTED, row = true)
+        persisted =
+            persisted.insertSpace(ShelfLayout.UNSORTED, "game:b")
+                .insertSpace(ShelfLayout.UNSORTED, row = true)
         persisted = persisted.createSection("Favorites")
         persisted = persisted.moveCell("game:d", persisted.sections.last().id)
         val original = decode(encode(persisted))
