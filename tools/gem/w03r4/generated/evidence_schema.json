@@ -1,82 +1,41 @@
 {
   "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-evidence.jsonl.gz",
   "sha256": "88c33da6b766c804b40d825a2f79bb7b7e39b948cf7455db33425c69614e7859",
-  "count": 1946112,
-  "keys": {
-    "subject_kind": 1946112,
-    "subject_id": 1946112,
-    "field": 1946112,
-    "value": 1941389,
-    "value_raw": 1946112,
-    "source": 1946112,
-    "tier": 1946112,
-    "how": 1946112,
-    "scope": 1946112,
-    "locator": 1946112,
-    "observed": 1946112,
-    "confidence": 1946112
+  "total": 1946112,
+  "target_ids": 1357,
+  "kinds_by_fact": {
+    "dump/date": 466317,
+    "dump/publisher": 339131,
+    "dump/developer": 288350,
+    "dump/genre": 257444,
+    "dump/franchise": 11387,
+    "dump/players_max": 170726,
+    "dump/title_ja": 54240,
+    "dump/wikidata": 63909,
+    "dump/launchbox": 114492,
+    "dump/title_zh": 16860,
+    "dump/title_cjk": 1855,
+    "dump/title_ko": 9963,
+    "dump/gametdb": 29272,
+    "listing/date": 39392,
+    "listing/publisher": 22515,
+    "listing/developer": 21770,
+    "listing/genre": 18918,
+    "listing/wikidata": 6686,
+    "listing/players_max": 4290,
+    "listing/launchbox": 5948,
+    "listing/title_ja": 2477,
+    "listing/title_ko": 90,
+    "listing/title_cjk": 9,
+    "listing/title_zh": 71
   },
-  "facts": [
-    [
-      "date",
-      505709
-    ],
-    [
-      "publisher",
-      361646
-    ],
-    [
-      "developer",
-      310120
-    ],
-    [
-      "genre",
-      276362
-    ],
-    [
-      "players_max",
-      175016
-    ],
-    [
-      "launchbox",
-      120440
-    ],
-    [
-      "wikidata",
-      70595
-    ],
-    [
-      "title_ja",
-      56717
-    ],
-    [
-      "gametdb",
-      29272
-    ],
-    [
-      "title_zh",
-      16931
-    ],
-    [
-      "franchise",
-      11387
-    ],
-    [
-      "title_ko",
-      10053
-    ],
-    [
-      "title_cjk",
-      1864
-    ]
-  ],
-  "sample": [
+  "sample_genre_evidence": [
     {
       "subject_kind": "dump",
       "subject_id": 1,
-      "field": "date",
-      "value": "1995",
-      "value_raw": "1995",
+      "field": "genre",
+      "value": "shooter",
+      "value_raw": "Shooter",
       "source": "libretro",
       "tier": 2,
       "how": "crc",
@@ -88,31 +47,107 @@
     {
       "subject_kind": "dump",
       "subject_id": 1,
-      "field": "publisher",
-      "value": "cf2zc5wn",
-      "value_raw": "SEGA",
+      "field": "genre",
+      "value": "shooter/shmup",
+      "value_raw": "Shoot 'em up, Rail shooter",
+      "source": "wikidata",
+      "tier": 4,
+      "how": "name",
+      "scope": "title",
+      "locator": "wikidata:Q388929",
+      "observed": "2026-10-09",
+      "confidence": 0.9
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 1,
+      "field": "genre",
+      "value": "shooter",
+      "value_raw": "Shooter",
+      "source": "launchbox",
+      "tier": 4,
+      "how": "name",
+      "scope": "title",
+      "locator": "launchbox:4912",
+      "observed": "2026-10-09",
+      "confidence": 0.9
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 2,
+      "field": "genre",
+      "value": "shooter",
+      "value_raw": "Shooter",
       "source": "libretro",
       "tier": 2,
       "how": "crc",
       "scope": "release",
-      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
+      "locator": "no-intro:Sega - 32X#After Burner Complete (Japan, USA) (En)",
       "observed": "2026-10-09",
       "confidence": 1.0
     },
     {
       "subject_kind": "dump",
-      "subject_id": 1,
-      "field": "developer",
-      "value": "cx52e6fn",
-      "value_raw": "Rutubo Games",
+      "subject_id": 2,
+      "field": "genre",
+      "value": "shooter/shmup",
+      "value_raw": "Shoot 'em up, Rail shooter",
+      "source": "wikidata",
+      "tier": 4,
+      "how": "name",
+      "scope": "title",
+      "locator": "wikidata:Q388929",
+      "observed": "2026-10-09",
+      "confidence": 0.9
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 2,
+      "field": "genre",
+      "value": "shooter",
+      "value_raw": "Shooter",
+      "source": "launchbox",
+      "tier": 4,
+      "how": "name",
+      "scope": "title",
+      "locator": "launchbox:4912",
+      "observed": "2026-10-09",
+      "confidence": 0.9
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 3,
+      "field": "genre",
+      "value": "platformer",
+      "value_raw": "Platform",
       "source": "libretro",
       "tier": 2,
       "how": "crc",
       "scope": "release",
-      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
+      "locator": "no-intro:Sega - 32X#Amazing Spider-Man, The - Web of Fire (USA)",
       "observed": "2026-10-09",
       "confidence": 1.0
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 3,
+      "field": "genre",
+      "value": "action-adventure",
+      "value_raw": "Action-adventure",
+      "source": "wikidata",
+      "tier": 4,
+      "how": "name",
+      "scope": "title",
+      "locator": "wikidata:Q3493438",
+      "observed": "2026-10-09",
+      "confidence": 0.9
     }
   ],
-  "selected_release_evidence": []
+  "genre_evidence_matched_ids": 0,
+  "case_examples": {
+    "w01wbbr7": [],
+    "w85855xd": [],
+    "wda0debr": [],
+    "wq2edqee": []
+  }
 }
