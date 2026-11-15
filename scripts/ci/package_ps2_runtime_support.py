@@ -10,6 +10,7 @@ import zipfile
 
 from ps2_next_armsx2 import SOURCE_SHA, UPSTREAM, collect_notices
 from ps2_rust_notices import PIN as RUST_PIN, retain
+from ps2_sdl_contract import verify as verify_sdl_contract
 
 
 def run(*args):
@@ -42,6 +43,7 @@ def main(work, ndk):
         run('git', '-C', source, 'submodule', 'update', '--init', '--recursive', '--depth', '1')
     elif subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip() != SOURCE_SHA:
         raise ValueError('Existing source checkout differs from the runtime source pin')
+    proof['sdl_jni_contract'] = verify_sdl_contract(source)
     with zipfile.ZipFile(work / 'armsx2-resources.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in sorted((source / 'bin/resources').rglob('*')):
             if path.is_file():

@@ -21,7 +21,8 @@ def verify(apk, bundle):
             if not archive.read('lib/arm64-v8a/' + native):
                 raise ValueError('Required real engine missing: ' + native)
         dex = [archive.read(name) for name in archive.namelist() if name.endswith('.dex')]
-        for name in ('com/swordfish/lemuroid/app/debug/Armsx2RuntimeProbeActivity',
+        for name in ('kr/co/iefriends/pcsx2/Armsx2JniContract',
+                     'com/swordfish/lemuroid/app/debug/Armsx2RuntimeProbeActivity',
                      'com/swordfish/lemuroid/app/debug/WiiuVulkanRuntimeProbeActivity',
                      'com/swordfish/lemuroid/app/shared/game/xbox360/Xbox360Activity'):
             if not any(('L' + name + ';').encode() in data for data in dex):

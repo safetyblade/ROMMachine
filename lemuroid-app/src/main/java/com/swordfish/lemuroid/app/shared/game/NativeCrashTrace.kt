@@ -33,22 +33,34 @@ object NativeCrashTrace {
     internal fun decode(data: ByteArray): String =
         runCatching {
             require(data.size <= MAX_BYTES)
-            val tombstone = fields(data, setOf(1, 6, 10, 16))
+            val tombstone = fields(data, setOf(1, 6, 10, 14, 16))
             val tid = tombstone.firstOrNull { it.id == 6 }?.number ?: 0
-            require(tid > 0)
+            val abort =
+                tombstone.firstOrNull { it.id == 14 }?.bytes?.toString(Charsets.UTF_8)
+                    ?.replace(
+                        Regex("(?:content|file)://[^\\s]+|/(?:data|storage|sdcard|mnt|private)/[^\\s]+"),
+                        "[private path]",
+                    )
+                    ?.filter { it.code in 32..126 || it == '\n' || it == '\r' || it == '\t' }?.take(4096).orEmpty()
             val thread =
                 tombstone.filter { it.id == 16 }.take(256).firstNotNullOfOrNull { entry ->
                     val map = fields(requireNotNull(entry.bytes), setOf(1, 2))
                     if (map.firstOrNull { it.id == 1 }?.number == tid) map.firstOrNull { it.id == 2 }?.bytes else null
-                } ?: error("Faulting thread absent")
-            val frames = fields(thread, setOf(4)).filter { it.id == 4 }.take(MAX_FRAMES)
-            require(frames.isNotEmpty())
+                }
+            val frames =
+                thread?.let {
+                    fields(it, setOf(4)).filter {
+                            field ->
+                        field.id == 4
+                    }.take(MAX_FRAMES)
+                }.orEmpty()
+            require(frames.isNotEmpty() || abort.isNotBlank())
             val signal =
                 tombstone.firstOrNull { it.id == 10 }?.bytes?.let { bytes ->
                     fields(bytes, setOf(1)).firstOrNull()?.number
                 }
             val header = "Android native trace: signal=${signal ?: "unknown"}; module-relative PCs only"
-            header + "\n" +
+            header + (if (abort.isNotBlank()) "\nNative abort: $abort" else "") + "\n" +
                 frames.mapIndexed { index, field ->
                     val frame = fields(requireNotNull(field.bytes), setOf(1, 4, 5, 6, 8))
 

@@ -11,7 +11,9 @@ import com.swordfish.lemuroid.app.shared.storage.cache.CacheCleanerWork
 import com.swordfish.lemuroid.ext.feature.review.ReviewManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 class GameLaunchTaskHandler(
     private val reviewManager: ReviewManager,
@@ -28,7 +30,10 @@ class GameLaunchTaskHandler(
         data: Intent?,
     ) {
         rescheduleBackgroundWork(activity.applicationContext)
-        val nativeCrash = com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.consumeCrash(activity)
+        val nativeCrash =
+            withContext(Dispatchers.IO) {
+                com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.consumeCrash(activity)
+            }
         if (resultCode == Activity.RESULT_CANCELED && nativeCrash != null) {
             handleUnsuccessfulGameFinish(
                 activity,

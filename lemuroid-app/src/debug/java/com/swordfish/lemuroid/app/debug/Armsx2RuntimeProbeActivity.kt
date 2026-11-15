@@ -295,6 +295,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     loaded = true
                     val missing = Armsx2Storage.missingRequirements(data, requireNotNull(image))
                     check(missing.isEmpty()) { "PS2 prerequisites missing: ${missing.joinToString()}" }
+                    NativeApp.setupSdlHost(this@Armsx2RuntimeProbeActivity)
                     NativeApp.allowPrivateRoot(data.globalRoot)
                     NativeApp.initialize(data.gameRoot.absolutePath, data.bios.absolutePath, Build.VERSION.SDK_INT)
                     NativeApp.setCustomVulkanDriver("", "", "", "")
