@@ -37,6 +37,15 @@ class GameMenuCapabilitiesTest {
         }
     }
 
+    @Test fun failedResumeIsRetryableWithoutASecondPause() {
+        val gate = GameMenuPauseGate()
+        assertEquals(true, gate.transition(true, true, false, false))
+        assertEquals(false, gate.transition(true, false, false, false))
+        gate.retryResumeAfterFailure()
+        assertEquals(false, gate.transition(true, false, false, false))
+        assertNull(gate.transition(true, false, false, false))
+    }
+
     @Test fun menuAndBackgroundCannotDoublePauseOrResumeTheGuest() {
         val gate = GameMenuPauseGate()
         assertEquals(false, gate.transition(true, false, false, false))
