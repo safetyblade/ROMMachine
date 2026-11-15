@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Lightweight, on-demand evidence for the four native render hosts.
@@ -92,7 +93,7 @@ internal object NativeRendererAudit {
                         geometry.observedHeight.toFloat(),
                         aspect,
                     )
-                "${fit.width.toInt()}x${fit.height.toInt()}"
+                "${fit.width.roundToInt()}x${fit.height.roundToInt()}"
             } else {
                 "UNKNOWN"
             }
