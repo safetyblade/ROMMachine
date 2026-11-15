@@ -43,3 +43,7 @@ Gate 0 baseline/reconciliation and Daniel+Sienna shared contract decisions. Incr
 
 ## Prompt construction rule for whole programme
 Future prompts must be full execution briefs: objective; all affected engines/OS/UX; existing evidence; source inspection; prerequisites/research; architecture approvals; complete implementation incl edge cases; integration/regression tests; full APK and installer; physical QA; rollback and artifact provenance; defect register; acceptance matrix. Always run feasible prework first and report precise blockers rather than sending a speculative roadmap or leaving known gaps for the owner to discover.
+
+
+## REQUIRED WHOLE-ROADMAP CROSSWALK (15 Nov audit)
+Before describing the programme as pre-scoped, read and resolve [ROADMAP_SCOPE_AUDIT_2026-11-15.md](ROADMAP_SCOPE_AUDIT_2026-11-15.md) against Cassia's controlled Drive roadmap, the 13 Nov mirror, owner 14 Nov #247 closeout and latest decisions. The 8-area GC-01 package is Priority 1 and must be fully scoped and executed; other approved programme areas are dependency-scanned and tracked as separate owner-ranked scopes rather than accidentally omitted or silently absorbed. The presence of links/requirements is NOT proof of completed architectural prework. Each owner/lead must provide source/function evidence, contract decisions, CI/hardware/rollback proof and explicit PASS/FAIL/NOT COMPLETED gate. Display instruction correction: 15 Nov no crop and NO stretch supersedes earlier #167/v2.6 Fill-stretch default; preserve pixel aspect.
