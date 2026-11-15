@@ -200,12 +200,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                             }.getOrDefault(false),
                                     ),
                                 pauseFeedback = menuPauseFeedback,
-                                onResume = {
-                                    if (!failed) {
-                                        menuOpen = false
-                                        syncPause()
-                                    }
-                                },
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
@@ -370,8 +365,15 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (menuOpen || leaving) return
         menuOpen = true
         releaseInputs()
+        syncPause()
+    }
+
+    private fun closeMenu() {
+        if (!menuOpen || failed || leaving) return
+        menuOpen = false
         syncPause()
     }
 
@@ -425,8 +427,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (menuOpen) return super.dispatchKeyEvent(event)
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menuOpen) closeMenu() else openMenu()
+            }
             return true
         }
         if (menuOpen || !foreground) return super.dispatchKeyEvent(event)
