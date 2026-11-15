@@ -55,6 +55,7 @@ internal fun XboxGameMenu(
             when (route) {
                 GameMenuRoute.HOME -> "Game menu"
                 GameMenuRoute.CONTROLS -> "Controls"
+                GameMenuRoute.STATES -> "Save & Load"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
             }
@@ -73,6 +74,7 @@ internal fun XboxGameMenu(
                         when (action) {
                             GameMenuAction.RESUME -> onResume()
                             GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
+                            GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                             GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                             GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                             else -> Unit // Not advertised by this backend.
@@ -80,6 +82,15 @@ internal fun XboxGameMenu(
                     }
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
+                composable(GameMenuRoute.STATES) {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text(storageHelp, Modifier.padding(16.dp))
+                        Text(
+                            "Emulator save states are not available for this engine. Use the game's own save system.",
+                            Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                }
                 composable(GameMenuRoute.ADVANCED) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text("Current engine", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
