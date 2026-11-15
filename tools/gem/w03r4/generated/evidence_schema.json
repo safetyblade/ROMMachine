@@ -1,0 +1,118 @@
+{
+  "source": "https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09-evidence.jsonl.gz",
+  "sha256": "88c33da6b766c804b40d825a2f79bb7b7e39b948cf7455db33425c69614e7859",
+  "count": 1946112,
+  "keys": {
+    "subject_kind": 1946112,
+    "subject_id": 1946112,
+    "field": 1946112,
+    "value": 1941389,
+    "value_raw": 1946112,
+    "source": 1946112,
+    "tier": 1946112,
+    "how": 1946112,
+    "scope": 1946112,
+    "locator": 1946112,
+    "observed": 1946112,
+    "confidence": 1946112
+  },
+  "facts": [
+    [
+      "date",
+      505709
+    ],
+    [
+      "publisher",
+      361646
+    ],
+    [
+      "developer",
+      310120
+    ],
+    [
+      "genre",
+      276362
+    ],
+    [
+      "players_max",
+      175016
+    ],
+    [
+      "launchbox",
+      120440
+    ],
+    [
+      "wikidata",
+      70595
+    ],
+    [
+      "title_ja",
+      56717
+    ],
+    [
+      "gametdb",
+      29272
+    ],
+    [
+      "title_zh",
+      16931
+    ],
+    [
+      "franchise",
+      11387
+    ],
+    [
+      "title_ko",
+      10053
+    ],
+    [
+      "title_cjk",
+      1864
+    ]
+  ],
+  "sample": [
+    {
+      "subject_kind": "dump",
+      "subject_id": 1,
+      "field": "date",
+      "value": "1995",
+      "value_raw": "1995",
+      "source": "libretro",
+      "tier": 2,
+      "how": "crc",
+      "scope": "release",
+      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
+      "observed": "2026-10-09",
+      "confidence": 1.0
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 1,
+      "field": "publisher",
+      "value": "cf2zc5wn",
+      "value_raw": "SEGA",
+      "source": "libretro",
+      "tier": 2,
+      "how": "crc",
+      "scope": "release",
+      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
+      "observed": "2026-10-09",
+      "confidence": 1.0
+    },
+    {
+      "subject_kind": "dump",
+      "subject_id": 1,
+      "field": "developer",
+      "value": "cx52e6fn",
+      "value_raw": "Rutubo Games",
+      "source": "libretro",
+      "tier": 2,
+      "how": "crc",
+      "scope": "release",
+      "locator": "no-intro:Sega - 32X#After Burner Complete (Europe)",
+      "observed": "2026-10-09",
+      "confidence": 1.0
+    }
+  ],
+  "selected_release_evidence": []
+}
