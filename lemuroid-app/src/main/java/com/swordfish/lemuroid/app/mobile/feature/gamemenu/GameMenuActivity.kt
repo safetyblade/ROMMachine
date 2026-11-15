@@ -170,6 +170,11 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     @Composable
     private fun GameMenuScreen(gameMenuRequest: GameMenuRequest) {
         GameMenuTheme {
+            val hostCapabilities =
+                GameplayMenuHostProfiles.capabilities(
+                    GameplayMenuHostKind.LIBRETRO,
+                    gameMenuRequest.coreConfig.statesSupported,
+                )
             val navController = rememberNavController()
             val entry = navController.currentBackStackEntryAsState().value
             val route = entry?.destination?.route?.let { GameMenuRoute.findByRoute(it) } ?: GameMenuRoute.HOME
@@ -192,6 +197,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 route.canGoBack(),
                 onBack = { if (!navController.popBackStack()) onResult { } },
                 onResume = { onResult { } },
+                statusMessage = if (hostCapabilities.canPause) null else "Menu open. Engine pause is not confirmed.",
             ) {
                 NavHost(
                     modifier =
