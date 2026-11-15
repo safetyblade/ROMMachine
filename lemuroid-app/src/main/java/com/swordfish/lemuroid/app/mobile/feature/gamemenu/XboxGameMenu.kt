@@ -74,14 +74,14 @@ internal fun XboxGameMenu(
                     SharedGameMenuHome(
                         capabilities = capabilities.home,
                         onAction = { action ->
-                        when (action) {
-                            GameMenuAction.RESUME -> onResume()
-                            GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
-                            GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
-                            GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
-                            GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
-                            else -> Unit // Not advertised by this backend.
-                        }
+                            when (action) {
+                                GameMenuAction.RESUME -> onResume()
+                                GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
+                                GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
+                                GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
+                                GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
+                                else -> Unit // Not advertised by this backend.
+                            }
                         },
                         canResume = canResume,
                     )
