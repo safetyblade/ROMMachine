@@ -4,7 +4,7 @@ import kotlinx.coroutines.sync.Mutex
 
 /**
  * CARTDECK owns presentation; the active emulator host owns lifecycle commands.
- * Host implementations must acknowledge a real engine result, not merely dispatch.
+ * Results distinguish an actual host acknowledgement from a command merely submitted.
  * This contract never assumes that opening a menu pauses a native engine.
  */
 internal enum class GameplayMenuCommand {
@@ -46,6 +46,7 @@ internal enum class GameplayMenuSessionStatus {
     OPENING,
     PAUSED,
     OPEN_RUNNING,
+    OPEN_UNCONFIRMED,
     RESUMING,
     ERROR,
 }
@@ -88,7 +89,7 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
                             )
                         is GameplayMenuCommandResult.Submitted ->
                             GameplayMenuSessionSnapshot(
-                                GameplayMenuSessionStatus.OPEN_RUNNING,
+                                GameplayMenuSessionStatus.OPEN_UNCONFIRMED,
                                 "Menu open. Pause was requested but not confirmed.",
                                 GameplayMenuCommand.PAUSE,
                                 pauseWasDispatched = true,
@@ -114,7 +115,8 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
         locked {
             when (snapshot.status) {
                 GameplayMenuSessionStatus.CLOSED -> return@locked snapshot
-                GameplayMenuSessionStatus.OPEN_RUNNING -> {
+                GameplayMenuSessionStatus.OPEN_RUNNING,
+                GameplayMenuSessionStatus.OPEN_UNCONFIRMED -> {
                     // A submitted (but unacknowledged) native pause still needs
                     // a matching resume; unsupported/failed pauses do not.
                     if (!snapshot.pauseWasDispatched) {
@@ -152,7 +154,8 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
                 return@locked GameplayMenuCommandResult.Unsupported("Use menu open/resume lifecycle.")
             }
             if (snapshot.status != GameplayMenuSessionStatus.PAUSED &&
-                snapshot.status != GameplayMenuSessionStatus.OPEN_RUNNING
+                snapshot.status != GameplayMenuSessionStatus.OPEN_RUNNING &&
+                snapshot.status != GameplayMenuSessionStatus.OPEN_UNCONFIRMED
             ) {
                 return@locked GameplayMenuCommandResult.Unsupported("No active menu session.")
             }
