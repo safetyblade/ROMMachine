@@ -4,6 +4,8 @@
 
 package com.rfandango.haku_x
 
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
@@ -438,6 +440,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun onPause() {
+        menuEdge.clear()
         cancelPixelCapture()
         paused = true
         lastPoll = 0L
@@ -648,13 +651,15 @@ class NativeCoreActivity : SDLActivity() {
         onBackPressedDispatcher.onBackPressed()
     }
 
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(event)
         val systemBack =
             event.keyCode == KeyEvent.KEYCODE_BACK &&
                 !event.isFromSource(android.view.InputDevice.SOURCE_GAMEPAD)
         if (systemBack || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE || event.keyCode == KeyEvent.KEYCODE_MENU) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+            if (menuEdge.handle(event)) {
                 if (menuOpen) {
                     if (systemBack) onBackPressedDispatcher.onBackPressed() else closeMenu()
                 } else {

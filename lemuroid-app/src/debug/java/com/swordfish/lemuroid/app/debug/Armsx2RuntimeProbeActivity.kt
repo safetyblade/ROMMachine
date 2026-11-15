@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.debug
 
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -575,9 +577,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         startIfReady()
     }
 
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+            if (menuEdge.handle(event)) {
                 if (menu) closeMenu() else openMenu()
             }
             return true
@@ -631,6 +635,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        menuEdge.clear()
         hostForeground = false
         presence.stop()
         releaseInput()

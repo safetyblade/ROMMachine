@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.debug.ps3
 
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -588,9 +590,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         )
     }
 
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (menuEdge.handle(event)) {
+                if (menu) closeMenu() else openMenu()
+            }
             return true
         }
         if (!menu && event.isFromSource(InputDevice.SOURCE_GAMEPAD)) {
@@ -658,6 +664,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        menuEdge.clear()
         foreground = false
         release()
         pause(true)
