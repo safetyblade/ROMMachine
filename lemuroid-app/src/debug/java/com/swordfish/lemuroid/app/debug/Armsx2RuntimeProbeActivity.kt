@@ -203,7 +203,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.PSX_DUALSHOCK,
                             physicalControllerConnected = connected,
-                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
                             game = game,
                             onGripPressed = { slot, down, codes ->
                                 if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
