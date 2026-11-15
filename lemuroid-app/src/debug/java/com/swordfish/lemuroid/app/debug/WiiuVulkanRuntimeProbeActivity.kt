@@ -274,6 +274,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                         selection != null && WiiuEngine.store(filesDir).canRollback(),
                                     ),
                                 pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
