@@ -24,13 +24,14 @@ class GameMenuCapabilitiesTest {
                 listOf(
                     GameMenuAction.RESUME,
                     GameMenuAction.CONTROLS,
+                    GameMenuAction.STATES,
                     GameMenuAction.ADVANCED,
                     GameMenuAction.RETURN_TO_SHELF,
                 ),
                 native.home.homeActions(),
             )
             assertEquals(debug && probe, native.showProbe)
-            assertFalse(native.home.states)
+            assertTrue(native.home.states)
             assertFalse(native.home.settings)
             assertEquals(rollback, native.rollback)
         }
