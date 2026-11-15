@@ -2,6 +2,7 @@
 #include "FramePacer.h"
 #include "FrameFence.h"
 #include "SurfaceMailbox.h"
+#include "SurfacePresentation.h"
 #include <future>
 #include <cassert>
 #include <thread>
@@ -37,6 +38,20 @@ int main() {
     finishGpuWait.set_value();
     vm.join();
     assert(oldWindow.refs == 0 && newWindow.refs == 0);
+
+    VkSurfaceCapabilitiesKHR caps{};
+    caps.supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR |
+        VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR | VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR;
+    VkSurfaceTransformFlagBitsKHR transform{};
+    for (auto rotation : {VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+                         VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR,
+                         VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR}) {
+        caps.currentTransform = rotation;
+        assert(uprightSurfaceTransform(caps, &transform));
+        assert(transform == VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR);
+    }
+    caps.supportedTransforms = VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR;
+    assert(!uprightSurfaceTransform(caps, &transform));
 
     FramePacer pacer;
     pacer.reset(1000000);

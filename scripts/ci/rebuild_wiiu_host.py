@@ -41,6 +41,16 @@ for name, sources, includes in (
     subprocess.run(command + ["-o", str(executable)], check=True)
     subprocess.run([str(executable.resolve())], check=True)
 
+# Real dynamic loader regression: static mutex survives release of the core
+# reference, as required by Cemu's process-owned asynchronous work.
+fixture = work / "core-lifetime-fixture.so"
+subprocess.run(["c++", "-std=c++17", "-shared", "-fPIC", "-pthread",
+    "spikes/wiiu/vulkan-host/tests/CoreLifetimeFixture.cpp", "-o", str(fixture)], check=True)
+lifetime_test = work / "core-lifetime-test"
+subprocess.run(["c++", "-std=c++17", "-I", "spikes/wiiu/vulkan-host",
+    "spikes/wiiu/vulkan-host/tests/CoreLifetimeTest.cpp", "-ldl", "-o", str(lifetime_test)], check=True)
+subprocess.run([str(lifetime_test.resolve()), str(fixture.resolve())], check=True)
+
 build = work / "host-rebuild"
 subprocess.run([
     str(cmake), "-S", "spikes/wiiu/vulkan-host", "-B", str(build),

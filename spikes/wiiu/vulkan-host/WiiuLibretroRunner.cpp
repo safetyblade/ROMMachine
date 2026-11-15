@@ -7,6 +7,7 @@
 #include "WiiuRuntimeMetrics.h"
 #include "FramePacer.h"
 #include "SurfaceMailbox.h"
+#include "ProcessCoreLibrary.h"
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <dlfcn.h>
@@ -109,7 +110,7 @@ struct CoreApi {
     }
     bool open(const std::string& path) {
         // Android only loads the SHA-checked core packaged beside this library.
-        library = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+        library = openProcessCore(path.c_str());
         if (!library) return false;
         return loadSymbol(set_environment, "retro_set_environment") &&
                loadSymbol(set_video, "retro_set_video_refresh") &&
@@ -309,13 +310,20 @@ std::string jstringValue(JNIEnv* env, jstring str) {
 std::string run(ANativeWindow* window, const std::string& root,
                 const std::string& disc, unsigned frames,
                 const std::string& coreLibrary, const std::string& mediaDirectory) {
+    // CARTDECK exits this isolated process after one title. Never reuse Cemu
+    // process globals or destroy callback-owned mutexes under late native work.
+    static std::atomic<bool> entered{false};
+    if (entered.exchange(true)) return "WIIU_RESTART_REQUIRES_NEW_PROCESS";
     {
         std::lock_guard<std::mutex> lock(trace_mutex);
         trace_root = root;
         if (auto* file = fopen((root + "/native-core.log").c_str(), "w")) fclose(file);
     }
     stage("nativeRun entered");
-    WiiuSession session;
+    // Bounded to one allocation per process; Process.killProcess on Activity
+    // destruction reclaims it. Keep queue/audio callback state alive even after
+    // normal cleanup: a late core callback must not lock a destroyed mutex.
+    auto& session = *new WiiuSession;
     session.system = root + "/system";
     session.save = root + "/saves";
     session.disc = disc;
@@ -446,13 +454,20 @@ std::string run(ANativeWindow* window, const std::string& root,
         std::lock_guard<std::mutex> lock(diagnostics_mutex);
         native_error = session.error;
     }
+    stage("shutdown: stop title and flush persistent saves");
     if (session.loaded) session.core.unload_game();
+    stage("shutdown: stop frontend audio");
     session.audio.stop();
+    stage("shutdown: destroy guest graphics context");
     if (session.got_hw && session.hw.context_destroy) session.hw.context_destroy();
+    stage("shutdown: release frontend Vulkan resources");
     session.presenter.stop();
+    stage("shutdown: stop Cemu system services");
     if (session.initialized) session.core.deinit();
-    // Never treat a completed run loop as gameplay proof.
+    stage("shutdown: release loader reference; core statics retained until process exit");
+    // NODELETE prevents unsafe static destruction at dlclose, not title cleanup.
     session.core.close();
+    stage("shutdown complete; awaiting isolated process exit");
     active = nullptr;
     host_stage.store(4);
     clearPendingSurface();
