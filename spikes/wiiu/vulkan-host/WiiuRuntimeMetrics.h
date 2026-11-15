@@ -23,7 +23,7 @@ inline std::atomic<bool> audio_paused{false};
 inline std::atomic<double> target_fps{60.0};
 inline void gpu(unsigned operation) { gpu_started_us.store(nowUs()); gpu_operation.store(operation); }
 inline std::string report() {
-    const char* names[] = {"idle", "acquire", "frame_fence", "submit", "present", "resize_device_idle", "shutdown_device_idle"};
+    const char* names[] = {"idle", "acquire", "frame_fence", "submit", "present", "surface_rebuild", "shutdown_device_idle"};
     const auto op = gpu_operation.load();
     const auto start = gpu_started_us.load();
     const auto guestStart = run_started_us.load();

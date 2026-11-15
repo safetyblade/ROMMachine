@@ -42,6 +42,7 @@ std::atomic<bool> tab_down{false};
 std::atomic<unsigned> host_stage{0};
 std::mutex diagnostics_mutex;
 std::string gpu_diagnostics;
+std::string native_error;
 std::array<std::atomic<int16_t>, 4> axes{};
 std::atomic<int16_t> pointer_x{0}, pointer_y{0};
 std::atomic<bool> pointer_down{false};
@@ -372,8 +373,9 @@ std::string run(ANativeWindow* window, const std::string& root,
     }
     if (session.error.empty()) {
         host_stage.store(3);
+        const auto description = session.presenter.deviceDescription();
         std::lock_guard<std::mutex> lock(diagnostics_mutex);
-        gpu_diagnostics = session.presenter.deviceDescription();
+        gpu_diagnostics = description;
     }
     if (session.error.empty()) {
         retro_system_av_info av{};
@@ -439,6 +441,10 @@ std::string run(ANativeWindow* window, const std::string& root,
                 static_cast<uint64_t>(1000000.0 / WiiuMetrics::target_fps.load()));
             std::this_thread::sleep_until(std::chrono::steady_clock::time_point(std::chrono::microseconds(deadline)));
         }
+    }
+    {
+        std::lock_guard<std::mutex> lock(diagnostics_mutex);
+        native_error = session.error;
     }
     if (session.loaded) session.core.unload_game();
     session.audio.stop();
@@ -522,6 +528,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     WiiuMetrics::max_run_us.store(0);
     WiiuMetrics::max_fence_us.store(0);
     WiiuMetrics::gpu(0);
+    { std::lock_guard<std::mutex> lock(diagnostics_mutex); native_error.clear(); }
     host_stage.store(0);
     tab_down.store(false);
     screen_requests.store(0);
@@ -556,7 +563,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeRepor
         "\naudio_submitted_frames=" + std::to_string(submitted_audio.load()) +
         "\ncontroller_device_requested=" + std::to_string(applied_controller.load()) +
         "\nhost_paused=" + std::to_string(frontend_paused.load()) +
-        WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
+        "\nnative_error=" + native_error + WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
     return env->NewStringUTF(out.c_str());
 }
 
