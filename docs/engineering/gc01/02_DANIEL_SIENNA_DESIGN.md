@@ -34,3 +34,56 @@ Native controller UI: real-world SOUTH/EAST/WEST/NORTH capture labels and action
 - Data ownership and versioned install-over/rollback contract.
 - Explicit Daniel architecture sign-off + Sienna inspected UI/wireframe state sign-off (neither performed by this artifact).
 **Gate: SOURCE-BASED DESIGN CANDIDATE PREPARED; REVIEWS AND APPROVALS PENDING.**
+
+---
+
+# CONTROLLED HANDOFF TO DANIEL MERCER + SIENNA VALE — 15 NOV 2026
+
+**Handoff type:** Actual code-path preflight and executable specialist review specification. **Not a claim of completed Daniel or Sienna sign-off.** Cassia scope #264 complete. Issue #265 stays OPEN until reviewers record their architecture/UX decisions and evidence. Emulation/Wii U remains live Codex lane; design only here.
+
+## Verified master source snapshot
+Master tree fetched at `7362f442f88dc2de2260030ab11fc08e24fb8271`, after merge PR #263. The repository tree was searched directly (GitHub indexed text search returned no results, so use verified paths rather than assuming unindexed code absent).
+
+### Already-present native CARTDECK UI: reuse, do not rebuild
+| Component | Exact code path | Verified behaviour/source implications | Required decision |
+|---|---|---|---|
+| Libretro game menu host | `lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/gamemenu/GameMenuActivity.kt` | Compose Activity with NavHost, game and core-options extras, controls/save routes and result contract | Retain/adapt vs embed within session; handle pause continuity and TV separately |
+| Shared menu composition | `.../mobile/feature/gamemenu/SharedGameMenu.kt` | `GameMenuTheme`, `GameMenuPanel`, `SharedGameMenuHome` with DPAD/menu navigation | Make canonical CARTDECK UI surface; no second Compose menu library |
+| Action capabilities + pause | `.../mobile/feature/gamemenu/GameMenuCapabilities.kt` | Action set currently Resume/Controls/SaveLoad/Settings/Advanced/Shelf; `GameMenuPauseGate` deduplicates pause requests | Expand safely into per-runtime *verified* capability/command outcomes; preserve existing gate |
+| Native original Xbox menu | `.../mobile/feature/gamemenu/XboxGameMenu.kt` | Already Compose-hosted inside SDL Activity and reuses `SharedGameMenuHome`; states not exposed as supported | Reuse directly; do not describe existing native Xbox pause UI as universally stock `AlertDialog` |
+| Native Xbox SDL host | `lemuroid-app/src/main/java/com/rfandango/haku_x/NativeCoreActivity.kt` | `SDLActivity`, shared `XboxGameMenu`, `GameMenuPauseGate`, recovery `AlertDialog` at repeated-restart guard | Preserve recovery function; if replacing its visual surface, retain noncancelable return-to-shelf failure path |
+| Xbox360 game host | `.../shared/game/xbox360/Xbox360Activity.kt` | Compose menu and pause gate, separate `SurfaceView`, `GameplayControllerPresence`; persists offline selected profile | Reuse existing host menu; design must not recreate Xenia profile storage |
+| Libretro input owner | `.../shared/game/viewmodel/GameViewModelInput.kt` | `initializeGamePadKeysFlow` at about line 329, `sendKeyEvent`, direct `GLRetroView` dispatch; axis motion path and shortcuts | Map/observe via current dispatcher; never install competing Android event loop |
+| Handheld screen | `.../mobile/feature/game/MobileGameScreen.kt` and `GameScreenLayout.kt` | Existing shell + GripArc joint geometry, full-screen controller handling, viewport measurements, explicit fallback messages | Fix measured fit without replacing renderer or removing native controls |
+| Controller detection | `.../shared/input/GameplayControllerPresence.kt` and `ControllerHardwareProfile.kt` | InputManager device listener; excludes remote-only devices from true gameplay pad | Reuse current presence semantics with reliable hotplug fallback |
+| TV menu | `.../tv/gamemenu/TVGameMenuActivity.kt` and `TVGameMenuFragment.kt` | Independent TV Activity/Fragment exists, not necessarily same Compose presentation | Sienna determines canonical TV design and Daniel determines reuse/migration without losing remote navigation |
+| Shared result protocol | `.../shared/GameMenuContract.kt` | Existing intent/result keys incl Wii controller/save; separate Activity menu contract | Preserve compatibility or provide tested versioned adapter |
+| Wii U Vulkan host | `spikes/wiiu/vulkan-host/CartdeckVulkanPresenter.cpp`, `.../SurfaceMailbox.h`, `.../SwapchainContinuity.h`; `.../shared/game/wiiu/WiiuViewport.kt` | PR #263 merged controller-resize swapchain/loader lifecycle | Do not recreate/destroy Vulkan surfaces on harmless menu/input transitions |
+| PS2/SDL engine route | `.../shared/game/ps2next/Armsx2Engine.kt`; `org/libsdl/app/SDLActivity.java`; `.../shared/game/engine/NativeEngineRegistry.kt` | Native ABI and isolated engine lifecycle, updated through merged #258 | Verify actual Activity and JNI input/menu state before choosing adapter |
+| Save identity | `retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/saves/CartridgeSaveBinding.kt` and Room/alias tests | Stable cartridge binding protection | No menu-triggered save path re-derivation |
+| Tests already available | `.../src/test/.../gamemenu/GameMenuCapabilitiesTest.kt`, `SharedGameMenuTest.kt`, `LibretroGameMenuTest.kt`; `.../src/test/.../xbox360/Xbox360PadTest.kt` | Test foundations, NOT proof of all engine on-device menu parity | Expand rather than replace |
+
+**Important correction to earlier scope language:** Native Xbox's existing `AlertDialog` encountered in `NativeCoreActivity.kt` lines around 175–185 handles repeated crash/relaunch recovery. It is not evidence that the entire Xbox pause menu is a stock `AlertDialog`. Preserve this safety behaviour while unifying recovery presentation.
+
+## Daniel — concrete architecture review decisions to record
+- **A1 host reuse:** Authorise one existing shared Compose menu as the canonical CARTDECK UI. Compare separate Libretro Activity, Compose-in-SDL original Xbox, Compose Xbox360 Activity, Android TV fragment, PS2 and Wii U session hosts. Deliver a host matrix specifying precise launch path, menu overlay ownership, pause outcome, save operations, controller-back, native lifecycle and exact code adapter hook.
+- **A2 command contract:** Choose explicit supported/unsupported capability structure for pause, native save, save state, load state, per-runtime settings, controller remap, viewport, exit; track native completion acknowledgement and error status; do not infer all engines support save states.
+- **A3 lifecycle:** State diagram on Android Back, Menu, focus loss/return, rotation, foreground/background, crash-recovery, action request and engine teardown. Ensure `GameMenuPauseGate` remains sole dedupe owner where used, no engine frame mutex locks from UI.
+- **A4 input ownership:** Establish each Android event dispatch path for Libretro, Xbox SDL, Xbox360, PS2, Wii U and TV. Reuse existing `GameplayControllerPresence`, `GameViewModelInput`, `ControllerHardwareProfile`; demonstrate down/up/held/chord/axis and menu interception without stuck inputs or duplicate event collectors. Wii controllers and GripArc must work through existing routes.
+- **A5 viewport:** Define measured safe viewport, content effective/pixel ratio vs game source, shader/GL/Vulkan quad mapping, fit without crop/stretch, optional integer/native pixels, cutouts and DS 2-screen touchscreen transformation. Demonstrate that shell hiding changes usable bounds without invalidating Cemu Vulkan swapchain or creating a second renderer. Fullscreen default cannot silently stretch.
+- **A6 persistence/security:** Existing ROM UUID, frozen save aliases, X360 profile, Wii NAND, PS2 cards, Libretro states and SAF permission retention unchanged. Identify controller overrides by stable device identity and cartridge/console identity; no filename-based collision.
+- **A7 migration and rollback:** Existing menu routes and settings remain functional during incremental transition; no schema or engine change solely for the menu. State precise feature flag/adapter fallbacks and test cases.
+- Each answer must cite **exact existing file/function and source SHA** or mark UNKNOWN; this handoff's file discovery is not substitute for a code-reviewed call graph. Mark decision `APPROVED`, `APPROVED WITH CONDITIONS`, or `BLOCKED` with reasoning.
+
+## Sienna — concrete design deliverables to record
+- **U1 canonical menu information architecture**: Resume; Save & Load with engine support/error; Controls (physical device/player, identify, map, test, save/reset, Console Authentic/Modern Function/Custom); Display (Fit, native pixels if available; shell, overlays); engine Advanced behind CARTDECK UI; exit shelf. Confirm handling of actual source's `SharedGameMenuHome`, `GameMenuPanel`, TV distinct menu.
+- **U2 detailed interaction states**: playing/paused/saving/loading/unavailable/action-failed/recovery/crashed/controller disconnected/rotated, phone portrait+landscape, tablet medium/expanded and TV remote; define focus order, DPAD navigation, touch, accessibility, screen reader and Back/Exit confirmation.
+- **U3 controller experience**: first connection; distinguish basic TV remote; unknown controller guided calibration; visual pressed/held/axis preview; simultaneous chords and physical position labels; GripArc/PivotArc no missing native buttons and overlay fallback; Wii attachment modes without fictitious pointer support.
+- **U4 viewport/wireframe measurement pack**: 393dp phone portrait and landscape, tall/narrow phone, 600/840dp tablets, 1080p TV and 4K scaling; effective game pixels; DS 2-screen; safe Android gestures and min 48dp real hit targets; no stretched game image or top-line bleed. Provide screenshot/wireframe comparisons against actual current UI, not generic aesthetic guidance.
+- **U5 brand and settings**: match approved Original/Pink/Green, StealthAcid, custom appearances; no separate visual skin per core, no animation that blocks resumed gameplay; preserve player settings.
+- Record independent UX disposition and deliverable links; no implied approval based only on this handoff.
+
+## Exit gate for Issue #265
+Require both individually recorded decisions: Daniel checked source-backed per-runtime architecture/adapters/lifecycle/render/input/storage and approved with evidence; Sienna provided reviewed menu flow, responsive/TV/controller interaction wireframes and acceptance criteria. Record actual gaps or engineering blockers in linked issues. Only THEN close #265. Do not claim emulation device pass, run tests, launch Codex or merge source under this issue. Handoff to Elliot+Marcus #266 after design gate.
+
+**STATE NOW: HANDOFF PREPARED, SOURCE PATHS VERIFIED, SPECIALIST APPROVALS PENDING.**
