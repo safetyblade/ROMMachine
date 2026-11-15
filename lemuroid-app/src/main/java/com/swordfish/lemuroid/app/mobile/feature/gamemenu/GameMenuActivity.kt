@@ -183,7 +183,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     // The active engine has not acknowledged a pause here. Do not claim one.
                     GameMenuRoute.HOME -> "Game menu"
                     GameMenuRoute.CONTROLS -> "Controls"
-                    GameMenuRoute.STATES -> "Save / Load"
+                    GameMenuRoute.STATES -> "Save & Load"
                     GameMenuRoute.OPTIONS -> "Game Settings"
                     GameMenuRoute.ADVANCED -> "Advanced"
                     GameMenuRoute.GRIPARC -> "GripArc"
