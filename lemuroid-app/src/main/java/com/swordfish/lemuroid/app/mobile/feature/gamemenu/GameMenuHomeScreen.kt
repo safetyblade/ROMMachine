@@ -57,8 +57,13 @@ fun GameMenuStatesHome(
     navController: NavController,
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
 ) {
+    val hostCapabilities =
+        GameplayMenuHostProfiles.capabilities(
+            GameplayMenuHostKind.LIBRETRO,
+            gameMenuRequest.coreConfig.statesSupported,
+        )
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        if (!gameMenuRequest.coreConfig.statesSupported) {
+        if (!hostCapabilities.canSaveState) {
             Text(
                 "Save progress through the game's own save system. " +
                     "Emulator save states are not available for this engine.",
