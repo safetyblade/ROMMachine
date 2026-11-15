@@ -90,6 +90,12 @@ internal fun GameMenuPanel(
     statusMessage: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val backFocus = remember { FocusRequester() }
+    // Nested routes start with a reachable Back control. Home keeps its
+    // separate first-action focus, so opening a menu selects Resume.
+    LaunchedEffect(page, canGoBack) {
+        if (canGoBack) backFocus.requestFocus()
+    }
     BackHandler(onBack = onBack)
     BoxWithConstraints(
         Modifier.fillMaxSize().testTag("game-menu").onPreviewKeyEvent { event ->
@@ -119,7 +125,10 @@ internal fun GameMenuPanel(
         ) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 Box(Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.CenterStart).focusRequester(backFocus),
+                    ) {
                         Icon(
                             if (canGoBack) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Close,
                             if (canGoBack) "Back" else "Resume",
@@ -159,6 +168,7 @@ internal fun GameMenuLink(
 internal fun SharedGameMenuHome(
     capabilities: GameMenuCapabilities,
     onAction: (GameMenuAction) -> Unit,
+    canResume: Boolean = true,
 ) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
@@ -167,9 +177,13 @@ internal fun SharedGameMenuHome(
             Button(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(focus),
                 onClick = { onAction(GameMenuAction.RESUME) },
+                enabled = canResume,
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Text(GameMenuAction.RESUME.label)
+            }
+            if (!canResume && capabilities.advanced) {
+                GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
             }
             capabilities.homeActions().filterNot {
                 it == GameMenuAction.RESUME || it == GameMenuAction.RETURN_TO_SHELF
