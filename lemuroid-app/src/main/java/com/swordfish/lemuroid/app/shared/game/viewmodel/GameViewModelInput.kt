@@ -375,16 +375,16 @@ class GameViewModelInput(
                     // not reopen the menu or replay a quick-save/quick-load.
                     if (action == KeyEvent.ACTION_DOWN) {
                         shortcuts[device]?.forEach { shortcut ->
-                        if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
-                            when (shortcut.type) {
-                                GameShortcutType.MENU -> {
-                                    pivotArcHoldGate.clear()
-                                    sideEffects.showMenu(tilt, this)
+                            if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
+                                when (shortcut.type) {
+                                    GameShortcutType.MENU -> {
+                                        pivotArcHoldGate.clear()
+                                        sideEffects.showMenu(tilt, this)
+                                    }
+                                    GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
+                                    GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
+                                    GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
                                 }
-                                GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
-                                GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
-                                GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
-                            }
                                 return@safeCollect
                             }
                         }
