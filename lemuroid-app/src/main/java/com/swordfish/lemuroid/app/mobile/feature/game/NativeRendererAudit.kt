@@ -22,6 +22,48 @@ internal object NativeRendererAudit {
         val hasNativeImage: Boolean get() = nativeImageWidth > 0 && nativeImageHeight > 0
     }
 
+    /** Main-thread host measurements; no rendering or persistent writes. */
+    class Tracker(private val host: NativeViewportPolicy.Host) {
+        private var requestedWidth = 0
+        private var requestedHeight = 0
+        private var observedWidth = 0
+        private var observedHeight = 0
+        private var nativeImageWidth = 0
+        private var nativeImageHeight = 0
+
+        fun request(width: Int, height: Int) {
+            if (width > 0 && height > 0) {
+                requestedWidth = width
+                requestedHeight = height
+            }
+        }
+
+        fun observe(width: Int, height: Int) {
+            observedWidth = width.coerceAtLeast(0)
+            observedHeight = height.coerceAtLeast(0)
+        }
+
+        fun nativeImage(width: Int, height: Int) {
+            if (width > 0 && height > 0) {
+                nativeImageWidth = width
+                nativeImageHeight = height
+            }
+        }
+
+        fun summary(): String =
+            describe(
+                host,
+                Geometry(
+                    requestedWidth,
+                    requestedHeight,
+                    observedWidth,
+                    observedHeight,
+                    nativeImageWidth,
+                    nativeImageHeight,
+                ),
+            )
+    }
+
     fun surfaceStatus(g: Geometry): String =
         when {
             !g.hasRequested -> "NO_REQUESTED_APERTURE"
