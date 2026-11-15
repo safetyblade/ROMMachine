@@ -35,6 +35,8 @@ import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.PadKit
 import gg.padkit.inputevents.InputEvent
+import kotlin.math.ceil
+import kotlin.math.floor
 import android.graphics.Rect as AndroidRect
 
 /** The standard CARTDECK shell and PadKit own input; SDL only supplies the game surface beneath it. */
@@ -47,6 +49,7 @@ fun XboxGameControls(
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
     onViewport: (AndroidRect) -> Unit,
+    presentationAspect: Float = 4f / 3f,
 ) {
     val context = LocalContext.current
     val appearance =
@@ -102,7 +105,7 @@ fun XboxGameControls(
                 context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
             }
         if (landscape && (physicalControllerConnected || isTv)) {
-            CartdeckMaximisedFrame(tokens, onViewport)
+            CartdeckMaximisedFrame(tokens, onViewport, presentationAspect, isTv)
             return@BoxWithConstraints
         }
         val orientation =
@@ -213,20 +216,37 @@ fun XboxGameControls(
                             landscape,
                             true,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
+                            portraitApertureRatio =
+                                if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),
                 ) {
                     Box(
                         Modifier.layoutId(GameScreenLayout.CONSTRAINTS_GAME_VIEW).onGloballyPositioned {
-                            val rect = it.boundsInRoot()
-                            video.value = rect
-                            onViewport(
-                                AndroidRect(
-                                    rect.left.toInt(),
-                                    rect.top.toInt(),
-                                    rect.right.toInt(),
-                                    rect.bottom.toInt(),
-                                ),
-                            )
+                            val measured = it.boundsInRoot()
+                            val fit =
+                                NativeViewportPolicy.fit(
+                                    measured.width,
+                                    measured.height,
+                                    presentationAspect,
+                                    edgeGuardPx = 1f,
+                                )
+                            if (fit.width > 0f && fit.height > 0f) {
+                                val fitted =
+                                    Rect(
+                                        measured.left + fit.left,
+                                        measured.top + fit.top,
+                                        measured.left + fit.right,
+                                        measured.top + fit.bottom,
+                                    )
+                                if (video.value != fitted) video.value = fitted
+                                val left = ceil(fitted.left).toInt()
+                                val top = ceil(fitted.top).toInt()
+                                val right = floor(fitted.right).toInt()
+                                val bottom = floor(fitted.bottom).toInt()
+                                if (right > left && bottom > top) {
+                                    onViewport(AndroidRect(left, top, right, bottom))
+                                }
+                            }
                         },
                     )
                     if (placement == null) {
