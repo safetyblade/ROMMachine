@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/gem-w03r4-title-screen.yml
       - tools/gem/w03r4/reconcile_title_screen.py
+      - tools/gem/w03r4/inspect_evidence.py
       - tools/gem/w03r4/wiiu_master_snapshot.json
   workflow_dispatch:
 
@@ -26,6 +27,8 @@ jobs:
           persist-credentials: true
       - name: Extract Title Screen pinned archive
         run: python3 tools/gem/w03r4/reconcile_title_screen.py
+      - name: Inspect independently sourced genre evidence
+        run: python3 tools/gem/w03r4/inspect_evidence.py
       - name: Upload lightweight research outputs
         if: always()
         uses: actions/upload-artifact@v4
