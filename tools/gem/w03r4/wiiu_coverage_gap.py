@@ -45,9 +45,9 @@ def main():
   if kind!="game":
    bucket="NON_GAME_ADDON_OR_COMPILATION"
   elif (w.get("first_platform_id") or "") in legacy:
-   bucket="LEGACY_VC_OR_PORT_REVIEW"
+   bucket="OTHER_PLATFORM_OR_LEGACY_POSSIBLE_REVIEW"
   else:
-   bucket="WIIU_OR_MODERN_CROSS_PLATFORM_GAME_REVIEW"
+   bucket="NATIVE_OR_VC_OR_PORT_UNVERIFIED"
   regions_us=sorted({r["region"] for r in rs if r["region"] in {"US","USA"}})
   regs=sorted({r["region"] for r in rs})
   region_group="US_PRESENT" if regions_us else ("JP_ONLY" if regs==["JP"] else "EU_ONLY" if regs==["EU"] else "OTHER_NON_US_ONLY")
@@ -67,7 +67,7 @@ def main():
    "first_platform_id":w.get("first_platform_id",""),"first_platforms":w.get("first_platforms",""),
    "title_collides_existing_gem":name_collision,
    "wiiu_commercial_release_count":len(rs),
-   "action":"Research and reconcile native Wii U vs Virtual Console/legacy; no automatic import"
+   "action":"Research release origin; first_platform_id does NOT establish historical native origin; distinguish Wii U native from Virtual Console/legacy before import"
   })
  with (OUT/"wiiu_unrepresented_works.csv").open("w",newline="",encoding="utf-8") as f:
   writer=csv.DictWriter(f,fieldnames=list(rows[0]));writer.writeheader();writer.writerows(rows)
@@ -76,7 +76,7 @@ def main():
           "work_candidates_not_represented":len(rows),"bucket_counts":dict(counts),
           "sample_us_original":[r for r in rows if r["bucket"]=="WIIU_OR_MODERN_CROSS_PLATFORM_GAME_REVIEW" and r["regional_group"]=="US_PRESENT"][:18],
           "sample_japan_only":[r for r in rows if r["regional_group"]=="JP_ONLY"][:12],
-          "decision":"Staging only. Wii U native eligibility, title identity and licensing must be validated before GEM master promotion."}
+          "decision":"Staging only. The first_platform field is not evidence that an original game first launched on Wii U. Cross-check other-platform titles, Virtual Console status and rights before GEM master promotion."}
  (OUT/"wiiu_coverage_gap_summary.json").write_text(json.dumps(summary,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
  print(json.dumps({k:v for k,v in summary.items() if not k.startswith("sample")},indent=2))
 if __name__=="__main__":main()
