@@ -20,8 +20,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
-import kotlin.math.ceil
-import kotlin.math.floor
 import android.graphics.Rect as AndroidRect
 
 /**
@@ -80,12 +78,15 @@ internal fun CartdeckMaximisedFrame(
                     .size(fit.width.dp, fit.height.dp)
                     .onGloballyPositioned { coordinates ->
                         val bounds = coordinates.boundsInRoot()
-                        val left = ceil(bounds.left).toInt()
-                        val top = ceil(bounds.top).toInt()
-                        val right = floor(bounds.right).toInt()
-                        val bottom = floor(bounds.bottom).toInt()
-                        if (right > left && bottom > top) {
-                            onViewport(AndroidRect(left, top, right, bottom))
+                        NativeViewportPolicy.inwardPixels(
+                            bounds.left,
+                            bounds.top,
+                            bounds.right,
+                            bounds.bottom,
+                        )?.let { pixels ->
+                            onViewport(
+                                AndroidRect(pixels.left, pixels.top, pixels.right, pixels.bottom),
+                            )
                         }
                     },
             )
