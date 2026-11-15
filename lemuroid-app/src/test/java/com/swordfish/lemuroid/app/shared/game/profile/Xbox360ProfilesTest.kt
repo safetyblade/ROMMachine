@@ -1,6 +1,7 @@
-package com.swordfish.lemuroid.app.shared.game.xbox360
+package com.swordfish.lemuroid.app.shared.game.profile
 
 import android.app.Application
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Profiles
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
