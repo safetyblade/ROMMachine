@@ -74,6 +74,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
     private var message by mutableStateOf("Preparing Wii U content. Open the game menu to cancel.")
+    private var presentationRecorded = false
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
@@ -187,6 +188,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -351,20 +353,27 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 startIfReady()
                 while (!leaving) {
                     if (loaded && started) {
-                        report = nativeReport()
+                        report = engineReport(nativeReport())
                         val width = Regex("image_width=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         val height = Regex("image_height=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         if (width > 0 && height > 0) frameAspect = width.toFloat() / height
-                        File(requireNotNull(sandbox), "last-report.txt").writeText(report.take(16384))
                         val frames =
                             Regex("presented_image_callbacks=(\\d+)").find(report)
                                 ?.groupValues?.get(1)?.toLongOrNull() ?: 0L
                         if (frames > 0 && !failed) {
                             message = ""
-                            com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences(
-                                this@WiiuVulkanRuntimeProbeActivity,
-                            ).recordPresentation(current)
+                            if (!presentationRecorded) {
+                                withContext(Dispatchers.IO) {
+                                    com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences(
+                                        this@WiiuVulkanRuntimeProbeActivity,
+                                    ).recordPresentation(current)
+                                }
+                                presentationRecorded = true
+                            }
                         }
+                        val snapshot = report.take(16384)
+                        val dataRoot = requireNotNull(sandbox)
+                        withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
                     }
                     delay(1000)
                 }
@@ -379,6 +388,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             }
         }
     }
+
+    private fun engineReport(native: String) =
+        "apk_version_code=${com.swordfish.lemuroid.BuildConfig.VERSION_CODE}\nengine=${selection?.id}\n$native"
 
     private fun startIfReady() {
         val engine = selection ?: return
@@ -402,7 +414,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         )
                     }.getOrElse { "WIIU_NATIVE_FAILED:${it.javaClass.simpleName}" }
                 runOnUiThread {
-                    report = result
+                    report = engineReport(result)
                     if (!leaving) {
                         failed = true
                         message = "Wii U session ended. Copy the engine report or return to the shelf."
@@ -550,7 +562,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 failed = true
                 report += "\nWIIU_SHUTDOWN_TIMED_OUT"
             }
-            sandbox?.let { File(it, "last-report.txt").writeText(report.take(16384)) }
+            withContext(Dispatchers.IO) {
+                sandbox?.let { File(it, "last-report.txt").writeText(report.take(16384)) }
+            }
             if (stopped) {
                 com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.finish(
                     this@WiiuVulkanRuntimeProbeActivity,

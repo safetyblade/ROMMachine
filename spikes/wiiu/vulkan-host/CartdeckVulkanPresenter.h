@@ -48,7 +48,19 @@ private:
     static void setSignalSemaphore(void* handle, VkSemaphore semaphore);
 
     bool createSwapchain(std::string* error);
+    bool waitFrame(std::string* error);
     void destroySwapchain();
+    bool retireSwapchain(bool includeSurface, std::string* error);
+    struct RetiredSwapchain {
+        VkSwapchainKHR swapchain;
+        VkCommandPool pool;
+        VkFence fence;
+        VkSemaphore acquired;
+        std::vector<VkSemaphore> rendered;
+        VkSurfaceKHR surface;
+        ANativeWindow* window;
+    };
+    std::vector<RetiredSwapchain> retired_;
     bool resize_pending_ = false;
     static bool fail(std::string* error, const char* message);
 
@@ -69,7 +81,10 @@ private:
     VkCommandPool pool_ = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commands_;
     VkSemaphore acquired_sem_ = VK_NULL_HANDLE;
-    VkSemaphore rendered_sem_ = VK_NULL_HANDLE;
+    std::vector<VkSemaphore> rendered_sems_;
+    VkFence frame_fence_ = VK_NULL_HANDLE;
+    bool frame_inflight_ = false;
+    bool sync_failed_ = false;
     uint32_t image_index_ = 0;
     bool acquired_ = false;
     bool unsupported_command_buffers_ = false;

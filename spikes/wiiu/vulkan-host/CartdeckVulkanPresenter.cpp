@@ -2,6 +2,9 @@
 // No software test can replace physical GPU / presentation / save QA.
 #include "CartdeckVulkanPresenter.h"
 #include "VulkanNegotiation.h"
+#include "WiiuRuntimeMetrics.h"
+#include "FrameFence.h"
+#include <utility>
 #include <algorithm>
 #include <cstring>
 
@@ -116,10 +119,7 @@ void CartdeckVulkanPresenter::setCommandBuffers(
 }
 void CartdeckVulkanPresenter::waitSync(void* h) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(h);
-    if (self && self->queue_) {
-        std::lock_guard<std::mutex> lock(self->queue_mutex_);
-        vkQueueWaitIdle(self->queue_);
-    }
+    if (self && !self->waitFrame(nullptr)) self->sync_failed_ = true;
 }
 void CartdeckVulkanPresenter::lockQueue(void* h) {
     auto* self = static_cast<CartdeckVulkanPresenter*>(h);
@@ -306,19 +306,45 @@ bool CartdeckVulkanPresenter::createSwapchain(std::string* error) {
     if (vkAllocateCommandBuffers(device_, &alloc, commands_.data()) != VK_SUCCESS)
         return fail(error, "VULKAN_COMMAND_ALLOCATE_FAILED");
     VkSemaphoreCreateInfo sem{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    if (vkCreateSemaphore(device_, &sem, nullptr, &acquired_sem_) != VK_SUCCESS ||
-        vkCreateSemaphore(device_, &sem, nullptr, &rendered_sem_) != VK_SUCCESS)
+    if (vkCreateSemaphore(device_, &sem, nullptr, &acquired_sem_) != VK_SUCCESS)
         return fail(error, "VULKAN_SEMAPHORE_FAILED");
+    // Presentation can outlive a submit fence. Reuse a present semaphore only
+    // after WSI reacquires its image, not merely after the blit finished.
+    rendered_sems_.resize(image_count, VK_NULL_HANDLE);
+    for (auto& semaphore : rendered_sems_)
+        if (vkCreateSemaphore(device_, &sem, nullptr, &semaphore) != VK_SUCCESS)
+            return fail(error, "VULKAN_PRESENT_SEMAPHORE_FAILED");
+    VkFenceCreateInfo fence{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    if (vkCreateFence(device_, &fence, nullptr, &frame_fence_) != VK_SUCCESS)
+        return fail(error, "VULKAN_FRAME_FENCE_CREATE_FAILED");
+    frame_inflight_ = false;
+    return true;
+}
+
+bool CartdeckVulkanPresenter::waitFrame(std::string* error) {
+    if (!frame_inflight_) return true;
+    WiiuMetrics::gpu(2);
+    const auto started = WiiuMetrics::nowUs();
+    // Never hold the shared queue lock while waiting: Cemu may need that
+    // lock to submit work that allows an earlier guest dependency to finish.
+    const auto completed = waitFrameFence(device_, frame_fence_, vkWaitForFences, error);
+    const auto elapsed = WiiuMetrics::nowUs() - started;
+    WiiuMetrics::fence_wait_us.store(elapsed);
+    WiiuMetrics::maximum(WiiuMetrics::max_fence_us, elapsed);
+    if (!completed) return false;
+    frame_inflight_ = false;
+    WiiuMetrics::gpu(0);
     return true;
 }
 
 bool CartdeckVulkanPresenter::acquire(std::string* error) {
     if (!ready()) return fail(error, "VULKAN_RENDERER_NOT_READY");
     if (acquired_) return fail(error, "VULKAN_FRAME_ALREADY_ACQUIRED");
+    if (sync_failed_) return fail(error, "VULKAN_SYNC_FENCE_FAILED");
+    if (!waitFrame(error)) return false;
     if (resize_pending_) {
-        std::lock_guard<std::mutex> lock(queue_mutex_);
-        if (vkDeviceWaitIdle(device_) != VK_SUCCESS) return fail(error, "VULKAN_RESIZE_DEVICE_LOST");
-        destroySwapchain();
+        WiiuMetrics::gpu(5);
+        if (!retireSwapchain(false, error)) return false;
         if (!createSwapchain(error)) return false;
         resize_pending_ = false;
     }
@@ -326,13 +352,16 @@ bool CartdeckVulkanPresenter::acquire(std::string* error) {
     unsupported_command_buffers_ = false;
     source_semaphores_.clear();
     reuse_signal_ = VK_NULL_HANDLE;
+    WiiuMetrics::gpu(1);
     VkResult ret = vkAcquireNextImageKHR(
-        device_, swapchain_, UINT64_MAX, acquired_sem_, VK_NULL_HANDLE, &image_index_);
+        device_, swapchain_, 1000000000ULL, acquired_sem_, VK_NULL_HANDLE, &image_index_);
+    WiiuMetrics::gpu(0);
+    if (ret == VK_TIMEOUT || ret == VK_NOT_READY) return fail(error, "VULKAN_ACQUIRE_TIMEOUT_1S");
     if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
         resize_pending_ = true;
         return fail(error, "VULKAN_ACQUIRE_OUT_OF_DATE_RETRY");
     }
-    if (ret == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
+    // SUBOPTIMAL remains usable. Surface callbacks or OUT_OF_DATE drive recreation.
     if (ret != VK_SUCCESS && ret != VK_SUBOPTIMAL_KHR) return fail(error, "VULKAN_ACQUIRE_FAILED");
     acquired_ = true;
     return true;
@@ -434,8 +463,8 @@ bool CartdeckVulkanPresenter::present(
     std::vector<VkSemaphore> waiting{acquired_sem_};
     waiting.insert(waiting.end(), source_semaphores_.begin(), source_semaphores_.end());
     std::vector<VkPipelineStageFlags> stages(waiting.size(), VK_PIPELINE_STAGE_TRANSFER_BIT);
-    std::vector<VkSemaphore> signalling{rendered_sem_};
-    if (reuse_signal_ && reuse_signal_ != rendered_sem_) signalling.push_back(reuse_signal_);
+    std::vector<VkSemaphore> signalling{rendered_sems_[image_index_]};
+    if (reuse_signal_ && reuse_signal_ != rendered_sems_[image_index_]) signalling.push_back(reuse_signal_);
 
     VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submit.waitSemaphoreCount = static_cast<uint32_t>(waiting.size());
@@ -445,29 +474,34 @@ bool CartdeckVulkanPresenter::present(
     submit.pCommandBuffers = &cmd;
     submit.signalSemaphoreCount = static_cast<uint32_t>(signalling.size());
     submit.pSignalSemaphores = signalling.data();
+    if (vkResetFences(device_, 1, &frame_fence_) != VK_SUCCESS)
+        return fail(error, "VULKAN_FRAME_FENCE_RESET_FAILED");
+    WiiuMetrics::gpu(3);
     {
         std::lock_guard<std::mutex> guard(queue_mutex_);
-        if (vkQueueSubmit(queue_, 1, &submit, VK_NULL_HANDLE) != VK_SUCCESS)
+        if (vkQueueSubmit(queue_, 1, &submit, frame_fence_) != VK_SUCCESS)
             return fail(error, "VULKAN_GPU_SUBMIT_FAILED");
     }
+    frame_inflight_ = true;
     VkPresentInfoKHR present_req{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     present_req.waitSemaphoreCount = 1;
-    present_req.pWaitSemaphores = &rendered_sem_;
+    present_req.pWaitSemaphores = &rendered_sems_[image_index_];
     present_req.swapchainCount = 1;
     present_req.pSwapchains = &swapchain_;
     present_req.pImageIndices = &image_index_;
     VkResult result;
+    WiiuMetrics::gpu(4);
     {
         std::lock_guard<std::mutex> guard(queue_mutex_);
         result = vkQueuePresentKHR(queue_, &present_req);
-        vkQueueWaitIdle(queue_);  // Conservative single-frame pacing for initial QA.
     }
+    if (!waitFrame(error)) return false;
     acquired_ = false;
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         resize_pending_ = true;
         return true;  // No presentation counted; recreate at the next frame boundary.
     }
-    if (result == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
+    // Keep a usable SUBOPTIMAL swapchain until an actual surface change.
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) return fail(error, "VULKAN_PRESENT_FAILED");
     ++presented_frames_;
     return true;
@@ -517,34 +551,65 @@ bool CartdeckVulkanPresenter::presentBlank(std::string* error) {
     submit.commandBufferCount = 1;
     submit.pCommandBuffers = &cmd;
     submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &rendered_sem_;
+    submit.pSignalSemaphores = &rendered_sems_[image_index_];
     VkPresentInfoKHR present_req{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     present_req.waitSemaphoreCount = 1;
-    present_req.pWaitSemaphores = &rendered_sem_;
+    present_req.pWaitSemaphores = &rendered_sems_[image_index_];
     present_req.swapchainCount = 1;
     present_req.pSwapchains = &swapchain_;
     present_req.pImageIndices = &image_index_;
     VkResult result;
+    if (vkResetFences(device_, 1, &frame_fence_) != VK_SUCCESS)
+        return fail(error, "VULKAN_FRAME_FENCE_RESET_FAILED");
+    WiiuMetrics::gpu(3);
     {
         std::lock_guard<std::mutex> guard(queue_mutex_);
-        if (vkQueueSubmit(queue_, 1, &submit, VK_NULL_HANDLE) != VK_SUCCESS)
+        if (vkQueueSubmit(queue_, 1, &submit, frame_fence_) != VK_SUCCESS)
             return fail(error, "VULKAN_BLANK_SUBMIT_FAILED");
+        frame_inflight_ = true;
+        WiiuMetrics::gpu(4);
         result = vkQueuePresentKHR(queue_, &present_req);
-        vkQueueWaitIdle(queue_);
     }
+    if (!waitFrame(error)) return false;
     acquired_ = false;
     if (result == VK_ERROR_OUT_OF_DATE_KHR) { resize_pending_ = true; return true; }
-    if (result == VK_SUBOPTIMAL_KHR) resize_pending_ = true;
+    // Keep a usable SUBOPTIMAL swapchain until an actual surface change.
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         return fail(error, "VULKAN_BLANK_PRESENT_FAILED");
     // A black loading frame MUST NOT increment confirmed game-image callbacks.
     return true;
 }
 
+bool CartdeckVulkanPresenter::retireSwapchain(bool includeSurface, std::string* error) {
+    if (!waitFrame(error)) return false;
+    // A submit fence does not prove that WSI consumed a present semaphore.
+    // Keep the old WSI resources until guest shutdown, avoiding a device-wide
+    // idle wait while Cemu's GPU thread still needs the shared queue.
+    if (retired_.size() >= 16) return fail(error, "VULKAN_SURFACE_RESTART_REQUIRED_AFTER_16_RECREATIONS");
+    retired_.push_back({swapchain_, pool_, frame_fence_, acquired_sem_, std::move(rendered_sems_),
+        includeSurface ? surface_ : VK_NULL_HANDLE, includeSurface ? window_ : nullptr});
+    swapchain_ = VK_NULL_HANDLE;
+    pool_ = VK_NULL_HANDLE;
+    frame_fence_ = VK_NULL_HANDLE;
+    acquired_sem_ = VK_NULL_HANDLE;
+    if (includeSurface) { surface_ = VK_NULL_HANDLE; window_ = nullptr; }
+    commands_.clear();
+    images_.clear();
+    acquired_ = false;
+    frame_inflight_ = false;
+    saw_image_ = false;
+    return true;
+}
+
 void CartdeckVulkanPresenter::destroySwapchain() {
     if (acquired_sem_) vkDestroySemaphore(device_, acquired_sem_, nullptr);
-    if (rendered_sem_) vkDestroySemaphore(device_, rendered_sem_, nullptr);
-    acquired_sem_ = rendered_sem_ = VK_NULL_HANDLE;
+    for (auto semaphore : rendered_sems_)
+        if (semaphore) vkDestroySemaphore(device_, semaphore, nullptr);
+    rendered_sems_.clear();
+    if (frame_fence_) vkDestroyFence(device_, frame_fence_, nullptr);
+    frame_fence_ = VK_NULL_HANDLE;
+    frame_inflight_ = false;
+    acquired_sem_ = VK_NULL_HANDLE;
     if (pool_) vkDestroyCommandPool(device_, pool_, nullptr);
     pool_ = VK_NULL_HANDLE;
     if (swapchain_) vkDestroySwapchainKHR(device_, swapchain_, nullptr);
@@ -557,13 +622,14 @@ void CartdeckVulkanPresenter::destroySwapchain() {
 
 bool CartdeckVulkanPresenter::replaceSurface(ANativeWindow* window, std::string* error) {
     if (!window || !device_) return fail(error, "VULKAN_REPLACEMENT_SURFACE_INVALID");
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    if (vkDeviceWaitIdle(device_) != VK_SUCCESS) return fail(error, "VULKAN_SURFACE_DEVICE_LOST");
-    destroySwapchain();
-    if (surface_) vkDestroySurfaceKHR(instance_, surface_, nullptr);
-    surface_ = VK_NULL_HANDLE;
+    WiiuMetrics::gpu(5);
+    if (window == window_) {
+        if (!retireSwapchain(false, error)) return false;
+        resize_pending_ = false;
+        return createSwapchain(error);
+    }
+    if (!retireSwapchain(true, error)) return false;
     ANativeWindow_acquire(window);
-    if (window_) ANativeWindow_release(window_);
     window_ = window;
     VkAndroidSurfaceCreateInfoKHR info{VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR};
     info.window = window_;
@@ -577,8 +643,20 @@ bool CartdeckVulkanPresenter::replaceSurface(ANativeWindow* window, std::string*
 }
 
 void CartdeckVulkanPresenter::stop() {
+    WiiuMetrics::gpu(6);
     if (device_) vkDeviceWaitIdle(device_);
     destroySwapchain();
+    for (const auto& old : retired_) {
+        if (old.acquired) vkDestroySemaphore(device_, old.acquired, nullptr);
+        for (auto semaphore : old.rendered)
+            if (semaphore) vkDestroySemaphore(device_, semaphore, nullptr);
+        if (old.fence) vkDestroyFence(device_, old.fence, nullptr);
+        if (old.pool) vkDestroyCommandPool(device_, old.pool, nullptr);
+        if (old.swapchain) vkDestroySwapchainKHR(device_, old.swapchain, nullptr);
+        if (old.surface) vkDestroySurfaceKHR(instance_, old.surface, nullptr);
+        if (old.window) ANativeWindow_release(old.window);
+    }
+    retired_.clear();
     if (negotiation_ && negotiation_->destroy_device && device_)
         negotiation_->destroy_device();
     if (device_) vkDestroyDevice(device_, nullptr);
