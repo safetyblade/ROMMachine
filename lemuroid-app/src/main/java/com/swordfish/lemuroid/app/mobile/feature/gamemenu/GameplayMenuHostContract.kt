@@ -26,6 +26,9 @@ internal data class GameplayMenuHostCapabilities(
 internal sealed interface GameplayMenuCommandResult {
     data object Completed : GameplayMenuCommandResult
 
+    /** Native API returned after dispatch, but did not confirm guest state. */
+    data class Submitted(val reason: String) : GameplayMenuCommandResult
+
     data class Unsupported(val reason: String) : GameplayMenuCommandResult
 
     data class Failed(val reason: String) : GameplayMenuCommandResult
@@ -51,6 +54,7 @@ internal data class GameplayMenuSessionSnapshot(
     val status: GameplayMenuSessionStatus = GameplayMenuSessionStatus.CLOSED,
     val message: String? = null,
     val lastCommand: GameplayMenuCommand? = null,
+    val pauseWasDispatched: Boolean = false,
 )
 
 /**
@@ -82,6 +86,13 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
                                 GameplayMenuSessionStatus.PAUSED,
                                 lastCommand = GameplayMenuCommand.PAUSE,
                             )
+                        is GameplayMenuCommandResult.Submitted ->
+                            GameplayMenuSessionSnapshot(
+                                GameplayMenuSessionStatus.OPEN_RUNNING,
+                                "Menu open. Pause was requested but not confirmed.",
+                                GameplayMenuCommand.PAUSE,
+                                pauseWasDispatched = true,
+                            )
                         is GameplayMenuCommandResult.Unsupported ->
                             GameplayMenuSessionSnapshot(
                                 GameplayMenuSessionStatus.OPEN_RUNNING,
@@ -104,8 +115,12 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
             when (snapshot.status) {
                 GameplayMenuSessionStatus.CLOSED -> return@locked snapshot
                 GameplayMenuSessionStatus.OPEN_RUNNING -> {
-                    snapshot = GameplayMenuSessionSnapshot()
-                    return@locked snapshot
+                    // A submitted (but unacknowledged) native pause still needs
+                    // a matching resume; unsupported/failed pauses do not.
+                    if (!snapshot.pauseWasDispatched) {
+                        snapshot = GameplayMenuSessionSnapshot()
+                        return@locked snapshot
+                    }
                 }
                 GameplayMenuSessionStatus.PAUSED -> Unit
                 else -> return@locked snapshot
@@ -114,6 +129,7 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
             snapshot =
                 when (val result = executeSafely(GameplayMenuCommand.RESUME)) {
                     GameplayMenuCommandResult.Completed -> GameplayMenuSessionSnapshot()
+                    is GameplayMenuCommandResult.Submitted -> GameplayMenuSessionSnapshot()
                     is GameplayMenuCommandResult.Unsupported ->
                         GameplayMenuSessionSnapshot(
                             GameplayMenuSessionStatus.ERROR,
