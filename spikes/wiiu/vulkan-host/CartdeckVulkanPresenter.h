@@ -10,6 +10,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include "SwapchainContinuity.h"
 
 class CartdeckVulkanPresenter final {
 public:
@@ -75,6 +76,7 @@ private:
     VkQueue queue_ = VK_NULL_HANDLE;
     uint32_t family_ = UINT32_MAX;
     VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+    SwapchainContinuity continuity_;
     VkFormat surface_format_ = VK_FORMAT_UNDEFINED;
     VkExtent2D extent_{};
     VkSurfaceTransformFlagBitsKHR surface_current_transform_ = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;

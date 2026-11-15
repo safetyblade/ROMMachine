@@ -291,8 +291,13 @@ bool CartdeckVulkanPresenter::createSwapchain(std::string* error) {
         return fail(error, "VULKAN_COMPOSITE_ALPHA_UNSUPPORTED");
     req.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     req.clipped = VK_TRUE;
-    if (vkCreateSwapchainKHR(device_, &req, nullptr, &swapchain_) != VK_SUCCESS)
-        return fail(error, "VULKAN_SWAPCHAIN_CREATE_FAILED");
+    continuity_.configure(req);
+    const VkResult created = vkCreateSwapchainKHR(device_, &req, nullptr, &swapchain_);
+    if (created != VK_SUCCESS) {
+        if (error) *error = "VULKAN_SWAPCHAIN_CREATE_FAILED_RESULT_" + std::to_string(created);
+        return false;
+    }
+    continuity_.created();
     uint32_t image_count = 0;
     if (vkGetSwapchainImagesKHR(device_, swapchain_, &image_count, nullptr) != VK_SUCCESS ||
         image_count < 2)
@@ -594,6 +599,7 @@ bool CartdeckVulkanPresenter::retireSwapchain(bool includeSurface, std::string* 
     // Keep the old WSI resources until guest shutdown, avoiding a device-wide
     // idle wait while Cemu's GPU thread still needs the shared queue.
     if (retired_.size() >= 16) return fail(error, "VULKAN_SURFACE_RESTART_REQUIRED_AFTER_16_RECREATIONS");
+    continuity_.retire(swapchain_, !includeSurface);
     retired_.push_back({swapchain_, pool_, frame_fence_, acquired_sem_, std::move(rendered_sems_),
         includeSurface ? surface_ : VK_NULL_HANDLE, includeSurface ? window_ : nullptr});
     swapchain_ = VK_NULL_HANDLE;
