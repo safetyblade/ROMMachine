@@ -225,6 +225,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val touchControllerSettings = touchControllerSettingsState.value
         val currentControllerConfig = controllerConfigState.value
         val portraitMode = CartdeckViewportPolicy.portraitMode(viewModel.systemId)
+        val portraitApertureRatio =
+            CartdeckViewportPolicy.portraitApertureRatio(viewModel.systemId, maxHeight.value)
 
         val tiltConfiguration = viewModel.getTiltConfiguration().collectAsState(TiltConfiguration.Disabled)
         val tiltSimulatedStates = viewModel.getSimulatedTiltEvents().collectAsState(InputState())
@@ -675,17 +677,30 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 )
             }
 
-            LaunchedEffect(fullPos, viewPos) {
+            LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad) {
                 val gameView = viewModel.retroGameView.retroGameViewFlow()
                 if (fullPos == null || viewPos == null) return@LaunchedEffect
-                val viewport =
-                    RectF(
-                        (viewPos.left - fullPos.left) / fullPos.width,
-                        (viewPos.top - fullPos.top) / fullPos.height,
-                        (viewPos.right - fullPos.left) / fullPos.width,
-                        (viewPos.bottom - fullPos.top) / fullPos.height,
+                // Fit the COMPLETE rendered frame just inside its measured
+                // decorative glass. One physical pixel prevents top-edge
+                // shader bleed; never apply it to DS touch geometry or to
+                // full-screen controller play.
+                val guard =
+                    if (!fullscreenWithGamepad && portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD) {
+                        1f
+                    } else {
+                        0f
+                    }
+                val bounds =
+                    CartdeckViewportPolicy.normalizedAperture(
+                        fullPos.width,
+                        fullPos.height,
+                        viewPos.left - fullPos.left,
+                        viewPos.top - fullPos.top,
+                        viewPos.right - fullPos.left,
+                        viewPos.bottom - fullPos.top,
+                        guard,
                     )
-                gameView.viewport = viewport
+                gameView.viewport = RectF(bounds.left, bounds.top, bounds.right, bounds.bottom)
             }
 
             // With a physical pad, take all landscape space rather than
@@ -699,6 +714,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         isLandscape,
                         useFullLandscapeViewport,
                         portraitMode,
+                        portraitApertureRatio = portraitApertureRatio,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,
