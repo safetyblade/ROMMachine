@@ -71,7 +71,9 @@ internal fun XboxGameMenu(
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
-                    SharedGameMenuHome(capabilities.home, onAction = { action ->
+                    SharedGameMenuHome(
+                        capabilities = capabilities.home,
+                        onAction = { action ->
                         when (action) {
                             GameMenuAction.RESUME -> onResume()
                             GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
@@ -80,7 +82,9 @@ internal fun XboxGameMenu(
                             GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                             else -> Unit // Not advertised by this backend.
                         }
-                    }, canResume = canResume)
+                        },
+                        canResume = canResume,
+                    )
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
                 composable(GameMenuRoute.STATES) {
