@@ -200,6 +200,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                             }.getOrDefault(false),
                                     ),
                                 pauseFeedback = menuPauseFeedback,
+                                canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
