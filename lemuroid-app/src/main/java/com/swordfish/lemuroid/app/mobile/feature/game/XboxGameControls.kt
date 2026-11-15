@@ -48,8 +48,8 @@ fun XboxGameControls(
     physicalControllerConnected: Boolean = false,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
-    onViewport: (AndroidRect) -> Unit,
     presentationAspect: Float = 4f / 3f,
+    onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
     val appearance =
