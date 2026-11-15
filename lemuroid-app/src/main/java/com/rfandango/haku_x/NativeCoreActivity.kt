@@ -36,6 +36,11 @@ import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -74,6 +79,14 @@ class NativeCoreActivity : SDLActivity() {
     private var recoveryDialog: AlertDialog? = null
     private var menuOpen by mutableStateOf(false)
     private val pauseGate = GameMenuPauseGate()
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XBOX_SDL),
+            pause = { nativeSetPaused(true) },
+            resume = { nativeSetPaused(false) },
+        )
+    }
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private val settingsManager by lazy {
         TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(this))
     }
@@ -337,6 +350,7 @@ class NativeCoreActivity : SDLActivity() {
                                             XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
                                         }.getOrDefault(false),
                                     ),
+                                pauseFeedback = menuPauseFeedback,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = { leave() },
                                 onCopyReport = { copyDiagnosticSnapshot() },
@@ -571,8 +585,11 @@ class NativeCoreActivity : SDLActivity() {
 
     private fun syncPause() {
         if (!ready) return
-        pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let {
-            nativeSetPaused(it)
+        pauseGate.transition(!paused, menuOpen, recoveryDialog?.isShowing == true, leaving)?.let { shouldPause ->
+            val outcome = menuHost.dispatch(
+                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+            )
+            if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
 
