@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
@@ -318,6 +319,7 @@ class NativeCoreActivity : SDLActivity() {
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
+                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX),
                             onViewport = { viewport ->
                                 val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
                                 if (
