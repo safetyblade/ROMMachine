@@ -138,6 +138,9 @@ jobs:
             --source work/connected/cemu-payload --destination work/connected/bundle
           python3 scripts/ci/stage_connected_ps2.py --work work/connected/armsx2 \
             --bundle work/connected/bundle --llvm "$llvm"
+          python3 scripts/ci/package_x360_profile.py --source work/connected/profile-source \
+            --work work/connected/profile-tool --output work/connected/bundle/assets/cartdeck/xenia-profile \
+            --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Compile the connected application, mandatory checks and upgrade APK
         shell: bash
         run: |
@@ -168,6 +171,7 @@ jobs:
           cp work/connected/bundle/ps2-connected-evidence.json "$CARTDECK_OUTPUT/evidence/"
           cp work/connected/cemu/native-evidence.json "$CARTDECK_OUTPUT/evidence/cemu-native-source.json"
           cp work/connected/xenia/source-manifest.json "$CARTDECK_OUTPUT/evidence/xenia-native-source.json"
+          cp work/connected/bundle/assets/cartdeck/xenia-profile/profile-source.json "$CARTDECK_OUTPUT/evidence/xenia-profile-source.json"
           cp work/connected/armsx2/native-evidence.json "$CARTDECK_OUTPUT/evidence/armsx2-native-source.json"
       - name: Publish the actual combined upgrade APK
         uses: actions/upload-artifact@v4
