@@ -32,19 +32,28 @@ internal object NativeRendererAudit {
         private var nativeImageWidth = 0
         private var nativeImageHeight = 0
 
-        fun request(width: Int, height: Int) {
+        fun request(
+            width: Int,
+            height: Int,
+        ) {
             if (width > 0 && height > 0) {
                 requestedWidth = width
                 requestedHeight = height
             }
         }
 
-        fun observe(width: Int, height: Int) {
+        fun observe(
+            width: Int,
+            height: Int,
+        ) {
             observedWidth = width.coerceAtLeast(0)
             observedHeight = height.coerceAtLeast(0)
         }
 
-        fun nativeImage(width: Int, height: Int) {
+        fun nativeImage(
+            width: Int,
+            height: Int,
+        ) {
             if (width > 0 && height > 0) {
                 nativeImageWidth = width
                 nativeImageHeight = height
