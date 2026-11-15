@@ -116,7 +116,8 @@ internal class GameplayMenuSession(private val host: GameplayMenuCommandHost) {
             when (snapshot.status) {
                 GameplayMenuSessionStatus.CLOSED -> return@locked snapshot
                 GameplayMenuSessionStatus.OPEN_RUNNING,
-                GameplayMenuSessionStatus.OPEN_UNCONFIRMED -> {
+                GameplayMenuSessionStatus.OPEN_UNCONFIRMED,
+                -> {
                     // A submitted (but unacknowledged) native pause still needs
                     // a matching resume; unsupported/failed pauses do not.
                     if (!snapshot.pauseWasDispatched) {
