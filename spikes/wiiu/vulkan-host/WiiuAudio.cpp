@@ -16,8 +16,10 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     submitted_ = 0;
     fifo_.reset();
     primed_ = false;
+    played_once_ = false;
     error_.store(0);
     WiiuMetrics::audio_accepted.store(0);
+    WiiuMetrics::audio_callbacks.store(0);
     WiiuMetrics::audio_played.store(0);
     WiiuMetrics::audio_underflow.store(0);
     WiiuMetrics::audio_overflow.store(0);
@@ -78,6 +80,7 @@ size_t WiiuAudio::write(const int16_t* stereo, size_t frames, std::string* error
 
 aaudio_data_callback_result_t WiiuAudio::render(AAudioStream*, void* user, void* output, int32_t frames) {
     auto* self = static_cast<WiiuAudio*>(user);
+    WiiuMetrics::audio_callbacks.fetch_add(1);
     auto* stereo = static_cast<int16_t*>(output);
     std::fill_n(stereo, static_cast<size_t>(frames) * 2, int16_t{0});
     if (WiiuMetrics::audio_paused.load()) {
@@ -88,7 +91,11 @@ aaudio_data_callback_result_t WiiuAudio::render(AAudioStream*, void* user, void*
     }
     if (!self->primed_ && self->fifo_.available() >= static_cast<size_t>(self->prebuffer_))
         self->primed_ = true;
-    if (!self->primed_) return AAUDIO_CALLBACK_RESULT_CONTINUE;
+    if (!self->primed_) {
+        if (self->played_once_) WiiuMetrics::audio_underflow.fetch_add(frames);
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
+    }
+    self->played_once_ = true;
     const auto count = self->fifo_.pop(stereo, frames);
     WiiuMetrics::audio_played.fetch_add(count);
     WiiuMetrics::audio_underflow.fetch_add(static_cast<size_t>(frames) - count);

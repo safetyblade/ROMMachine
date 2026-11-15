@@ -22,6 +22,7 @@ private:
     static aaudio_data_callback_result_t render(AAudioStream*, void*, void*, int32_t);
     static void disconnected(AAudioStream*, void*, aaudio_result_t);
     StereoFifo<8192> fifo_;
+    bool played_once_ = false; // audio callback thread only
     bool primed_ = false; // audio callback thread only
     int32_t prebuffer_ = 0; // immutable while stream runs
     std::atomic<int> error_{0};

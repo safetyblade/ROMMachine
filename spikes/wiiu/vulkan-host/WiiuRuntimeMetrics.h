@@ -18,6 +18,7 @@ inline void maximum(std::atomic<uint64_t>& metric, uint64_t value) {
 inline std::atomic<unsigned> gpu_operation{0};
 inline std::atomic<uint64_t> gpu_started_us{0}, fence_wait_us{0};
 inline std::atomic<uint64_t> audio_accepted{0}, audio_played{0}, audio_underflow{0}, audio_overflow{0};
+inline std::atomic<uint64_t> audio_callbacks{0};
 inline std::atomic<int> audio_rate{0}, audio_buffered{0}, audio_xruns{0}, audio_error{0};
 inline std::atomic<bool> audio_paused{false};
 inline std::atomic<double> target_fps{60.0};
@@ -39,7 +40,8 @@ inline std::string report() {
         "\ntarget_fps=" + std::to_string(target_fps.load()) +
         "\naudio_sample_rate=" + std::to_string(audio_rate.load()) +
         "\naudio_accepted_frames=" + std::to_string(audio_accepted.load()) +
-        "\naudio_played_frames=" + std::to_string(audio_played.load()) +
+        "\naudio_callback_frames=" + std::to_string(audio_played.load()) +
+        "\naudio_callbacks=" + std::to_string(audio_callbacks.load()) +
         "\naudio_buffered_frames=" + std::to_string(audio_buffered.load()) +
         "\naudio_underrun_frames=" + std::to_string(audio_underflow.load()) +
         "\naudio_unaccepted_frames=" + std::to_string(audio_overflow.load()) +

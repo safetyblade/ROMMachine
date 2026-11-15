@@ -49,6 +49,7 @@ int main() {
     assert(audio.write(pcm.data(), 16, &error) == 16);
     render(out.data(), 16);
     assert(out[0] == 0 && WiiuMetrics::audio_played.load() == 64); // rebuffer, don't chirp
+    assert(WiiuMetrics::audio_underflow.load() == 48); // include the full active rebuffer gap
     assert(audio.write(pcm.data()+32, 16, &error) == 16);
     render(out.data(), 16);
     assert(out[0] == 1 && out[31] == -16);
