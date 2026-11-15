@@ -232,13 +232,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         engine != null && Armsx2Engine.store(filesDir).canRollback(),
                                     ),
                                 pauseFeedback = menuPauseFeedback,
-                                onResume = {
-                                    if (!failed) {
-                                        menu = false
-                                        syncPause()
-                                        startIfReady()
-                                    }
-                                },
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
@@ -545,14 +539,24 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (menu || leaving) return
         menu = true
         releaseInput()
         syncPause()
     }
 
+    private fun closeMenu() {
+        if (!menu || failed || leaving) return
+        menu = false
+        syncPause()
+        startIfReady()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                if (menu) closeMenu() else openMenu()
+            }
             return true
         }
         if (!menu && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
