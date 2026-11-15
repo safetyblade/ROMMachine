@@ -71,6 +71,23 @@ int main() {
     continuity.configure(replacement);
     assert(replacement.oldSwapchain == VK_NULL_HANDLE);
 
+    // A null-window generation is an explicit surface loss, not "unchanged".
+    // It must remain observable until a replacement is handled by the VM.
+    {
+        Window replacementWindow;
+        SurfaceMailbox<Window> rotations(retain, release);
+        rotations.update(nullptr);
+        auto lost = rotations.snapshot(0);
+        assert(lost.generation == 1 && !lost.window);
+        auto stillLost = rotations.snapshot(0);
+        assert(stillLost.generation == 1 && !stillLost.window);
+        rotations.update(&replacementWindow);
+        auto restored = rotations.snapshot(0);
+        assert(restored.generation == 2 && restored.window.get() == &replacementWindow);
+        assert(!rotations.snapshot(2).window); // unchanged, distinct from lost gen1
+        rotations.clear();
+    }
+
     FramePacer pacer;
     pacer.reset(1000000);
     assert(pacer.next(1000000, 20000) == 1020000); // PAL / 50fps

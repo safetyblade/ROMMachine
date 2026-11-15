@@ -406,6 +406,14 @@ std::string run(ANativeWindow* window, const std::string& root,
         pacer.reset(WiiuMetrics::nowUs());
         for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
             auto nextSurface = surfaces.snapshot(handled_surface_generation);
+            if (nextSurface.generation != handled_surface_generation && !nextSurface.window) {
+                // Android destroyed the window during rotation/layout change.
+                // Keep the live guest parked until a retained replacement arrives;
+                // never acquire from the now-invalid previous native window.
+                pacer.reset(WiiuMetrics::nowUs());
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
             if (nextSurface.window) {
                 if (!session.presenter.replaceSurface(nextSurface.window.get(), &session.error)) break;
                 handled_surface_generation = nextSurface.generation;
