@@ -42,6 +42,7 @@ internal fun XboxGameMenu(
     appearance: ShelfAppearance? = null,
     console: String = "Xbox",
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
+    pauseFeedback: String = "Menu open. This engine may continue running.",
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -52,7 +53,7 @@ internal fun XboxGameMenu(
                 ?.let { GameMenuRoute.findByRoute(it) } ?: GameMenuRoute.HOME
         val page =
             when (route) {
-                GameMenuRoute.HOME -> "Paused"
+                GameMenuRoute.HOME -> "Game menu"
                 GameMenuRoute.CONTROLS -> "Controls"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
@@ -64,6 +65,7 @@ internal fun XboxGameMenu(
             route.canGoBack(),
             onBack = { if (!nav.popBackStack()) onResume() },
             onResume = onResume,
+            statusMessage = pauseFeedback,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
