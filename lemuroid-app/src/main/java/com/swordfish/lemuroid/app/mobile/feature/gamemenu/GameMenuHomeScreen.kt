@@ -35,7 +35,8 @@ fun GameMenuHomeScreen(
     val capabilities =
         GameMenuCapabilities(
             controls = true,
-            states = gameMenuRequest.coreConfig.statesSupported,
+            // Always provide save guidance; actual save-state actions remain capability gated.
+            states = true,
             settings = gameMenuRequest.advancedCoreOptions.isNotEmpty() || gameMenuRequest.coreOptions.isNotEmpty(),
             advanced = true,
         )
@@ -57,7 +58,15 @@ fun GameMenuStatesHome(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        if (gameMenuRequest.coreConfig.statesSupported) {
+        if (!gameMenuRequest.coreConfig.statesSupported) {
+            Text(
+                "Save progress through the game's own save system. " +
+                    "Emulator save states are not available for this engine.",
+            )
+        } else {
+            Text(
+                "Save states are emulator snapshots, separate from the game's own save files.",
+            )
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.game_menu_save)) },
                 icon = {
