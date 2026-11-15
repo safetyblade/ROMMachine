@@ -23,6 +23,19 @@ template<class T> T symbol(const char* name) {
     if (!result) throw std::runtime_error(std::string("Missing pinned ARMSX3 ABI: ") + name);
     return result;
 }
+void callback(JNIEnv* env, const char* name, const char* method, const char* signature, bool isStatic) {
+    jclass cls = env->FindClass(name);
+    if (!cls || env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error(std::string("PS3 callback class missing: ") + name);
+    }
+    jmethodID id = isStatic ? env->GetStaticMethodID(cls, method, signature) : env->GetMethodID(cls, method, signature);
+    env->DeleteLocalRef(cls);
+    if (!id || env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error(std::string("PS3 callback ABI mismatch: ") + name + "." + method);
+    }
+}
 void failure(JNIEnv* env, const std::exception& error) {
     if (!env->ExceptionCheck()) env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), error.what());
 }
@@ -32,6 +45,11 @@ extern "C" JNIEXPORT jboolean JNICALL JNI_NAME(load)(JNIEnv* e, jobject, jstring
     try {
         std::lock_guard lock(loadMutex);
         if (library) return true;
+        callback(e, "com/armsx3/core/ProgressRepository", "onProgressEvent", "(JJJLjava/lang/String;)Z", true);
+        callback(e, "com/armsx3/core/FirmwareRepository", "onFirmwareInstalled", "(Ljava/lang/String;)V", true);
+        callback(e, "com/armsx3/core/FirmwareRepository", "onFirmwareCompiled", "(Ljava/lang/String;)V", true);
+        callback(e, "com/armsx3/core/GameRepository", "add", "([Lcom/armsx3/core/GameInfo;J)V", true);
+        callback(e, "com/armsx3/core/GameInfo", "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V", false);
         library = dlopen(text(e, path).c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
         if (!library) throw std::runtime_error("ARMSX3 core or one of its native dependencies could not load");
         for (const char* name : {"_armsx3_initialize", "_armsx3_boot", "_armsx3_getState", "_armsx3_surfaceEvent", "_armsx3_overlayPadData", "_armsx3_installFw", "_armsx3_shutdown", "_armsx3_startMainThreadProcessor", "_armsx3_processCompilationQueue"}) symbol<void*>(name);
@@ -67,4 +85,8 @@ extern "C" JNIEXPORT jboolean JNICALL JNI_NAME(install)(JNIEnv* e,jobject,jint f
 }
 extern "C" JNIEXPORT void JNICALL JNI_NAME(pad)(JNIEnv* e,jobject,jint port,jint d1,jint d2,jint lx,jint ly,jint rx,jint ry) {
     try { symbol<bool(*)(int,int,int,int,int,int,int)>("_armsx3_overlayPadData")(port,d1,d2,lx,ly,rx,ry); } catch(const std::exception& x) { failure(e,x); }
+}
+extern "C" JNIEXPORT jlong JNICALL JNI_NAME(framePeriod)(JNIEnv* e,jobject) {
+    try { return static_cast<jlong>(symbol<unsigned long long(*)()>("_armsx3_getFramePeriodNs")()); }
+    catch(const std::exception& x) { failure(e,x); return 0; }
 }

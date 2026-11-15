@@ -24,3 +24,11 @@ old = ' + "home/00000001/exdata/";'
 assert source.count(old) == 1
 source = source.replace(old, ' + "home/" + Emu.GetUsr() + "/exdata/";')
 path.write_text(source)
+
+# Imported cross-build LLVMConfig reports the correct LLVM_VERSION_MAJOR (22),
+# while its aggregate LLVM_PACKAGE_VERSION can inherit a nested dependency's 1.0.26.
+# Enforce the real major-version floor, rather than weakening the LLVM requirement.
+cmake = root / '3rdparty/llvm/CMakeLists.txt'
+text = cmake.read_text()
+assert text.count('if (LLVM_VERSION VERSION_LESS 18)') == 1
+cmake.write_text(text.replace('if (LLVM_VERSION VERSION_LESS 18)', 'if (LLVM_VERSION_MAJOR LESS 18)'))

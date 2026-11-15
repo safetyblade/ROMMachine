@@ -119,7 +119,15 @@ class EngineSelectionPreferences(private val context: Context) {
                 it.host == NativeEngineRegistry.Host.ARMSX2_ANDROID && biosReady &&
                     NativeEngineRegistry.eligibility(context, it).eligible
             }?.id
-        val default = if (ps2) ps2AutomaticEngine(playDefault, configuredArmsx2, biosReady) else playDefault
+        val default =
+            when {
+                ps2 -> ps2AutomaticEngine(playDefault, configuredArmsx2, biosReady)
+                system.id == SystemID.PLAYSTATION_3 ->
+                    engines.firstOrNull {
+                        NativeEngineRegistry.eligibility(context, it).eligible
+                    }?.id ?: playDefault
+                else -> playDefault
+            }
         val requested = requestedEngine(system.id, explicit, stable, default)
         val engine =
             engines.firstOrNull { it.id == requested }

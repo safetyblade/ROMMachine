@@ -16,6 +16,8 @@ internal object Ps3Native {
 
     external fun state(): Int
 
+    external fun framePeriod(): Long
+
     external fun process(compilation: Boolean)
 
     external fun surface(

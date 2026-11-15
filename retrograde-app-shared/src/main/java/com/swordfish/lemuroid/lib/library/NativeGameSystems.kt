@@ -24,9 +24,12 @@ object NativeGameSystems {
                 systemCoreConfigs = emptyList(), uniqueExtensions = emptyList(),
                 supportedExtensions = listOf("iso", "sfo", "pkg"),
                 fastForwardSupport = false, nativeBackend = "ps3",
-                scanOptions = GameSystem.Companion.ScanOptions(
-                    scanByPathAndSupportedExtensions = false, scanByFilename = false, scanByPathAndFilename = false,
-                ),
+                scanOptions =
+                    GameSystem.Companion.ScanOptions(
+                        scanByPathAndSupportedExtensions = false,
+                        scanByFilename = false,
+                        scanByPathAndFilename = false,
+                    ),
             ),
             // Index Wii U cartridges even while the Vulkan engine remains an
             // unreleased private test. Discovery is NOT an emulator support claim.

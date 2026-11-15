@@ -39,6 +39,7 @@ fun Ps3Management(initialEngine: String = "armsx3") {
     var revision by remember { mutableStateOf(0) }
     var profiles by remember { mutableStateOf(emptyList<Ps3Storage.Profile>()) }
     var saves by remember { mutableStateOf(emptyList<Ps3Storage.Save>()) }
+    var backups by remember { mutableStateOf(emptyList<Ps3Storage.Backup>()) }
     var firmware by remember { mutableStateOf(false) }
     var usage by remember { mutableStateOf(0L) }
     var readiness by remember { mutableStateOf<String?>(null) }
@@ -95,6 +96,7 @@ fun Ps3Management(initialEngine: String = "armsx3") {
         withContext(Dispatchers.IO) {
             profiles = storage.profiles()
             saves = profiles.firstOrNull { it.selected }?.let { storage.saves(it.id) }.orEmpty()
+            backups = profiles.firstOrNull { it.selected }?.let { storage.savedBackups(it.id) }.orEmpty()
             firmware = storage.firmwareInstalled()
             usage = storage.usage()
             readiness = Ps3Engine.readiness(context, engine)
@@ -162,8 +164,14 @@ fun Ps3Management(initialEngine: String = "armsx3") {
                 TextButton(onClick = { restoreName = save.name }, enabled = !busy) { Text("Restore / Import") }
             }
         }
+        backups.forEach { backup ->
+            TextButton(onClick = { deleting = backup.directory to false }, enabled = !busy) {
+                Text("Restore backup: ${backup.saveName}")
+            }
+        }
         Text(
-            "PS3 in-game saves are not emulator save states. Imports require complete PARAM.SFO / PARAM.PFD data; account-bound saves may need their original user. Engine switches never copy saves automatically.",
+            "PS3 in-game saves are not emulator save states. Imports require complete PARAM.SFO / PARAM.PFD data; " +
+                "account-bound saves may need their original user. Engine switches never copy saves automatically.",
             Modifier.padding(16.dp),
         )
         if (message.isNotBlank()) Text(message, Modifier.padding(16.dp))
@@ -190,7 +198,13 @@ fun Ps3Management(initialEngine: String = "armsx3") {
         AlertDialog(onDismissRequest = {
             deleting = null
         }, title = {
-            Text(if (profile) "Remove PS3 user?" else "Delete PS3 save?")
+            Text(
+                when {
+                    profile -> "Remove PS3 user?"
+                    backups.any { it.directory == name } -> "Restore backup?"
+                    else -> "Delete PS3 save?"
+                },
+            )
         }, text = {
             Text("The original data will be retained in an automatic backup. This affects only $engine.")
         }, confirmButton = {
@@ -202,6 +216,8 @@ fun Ps3Management(initialEngine: String = "armsx3") {
                             name,
                             true,
                         )
+                    } else if (backups.any { it.directory == name }) {
+                        storage.restoreBackup(requireNotNull(active), name, true)
                     } else {
                         storage.deleteSave(requireNotNull(active), name, true)
                     }
@@ -217,7 +233,8 @@ fun Ps3Management(initialEngine: String = "armsx3") {
             Text("Restore $name?")
         }, text = {
             Text(
-                "Your current save is backed up before replacement. Import only a complete save for the selected PS3 user.",
+                "Your current save is backed up before replacement. " +
+                    "Import only a complete save for the selected PS3 user.",
             )
         }, confirmButton = {
             TextButton(onClick = {

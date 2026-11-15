@@ -62,6 +62,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var connected by mutableStateOf(false)
     private var message by mutableStateOf("Preparing PlayStation 3")
     private var coreLibrary: File? = null
+    private var activeRevision = ""
     private var report = "PS3_PREPARING; gameplay=UNVERIFIED"
     private val pressed = mutableMapOf<Int, MutableSet<Int>>()
     private val sticks = mutableMapOf<Int, IntArray>()
@@ -73,19 +74,48 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val retro: Boolean get() = engine == "rpcs3-libretro"
     private val firmware =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null && loaded && !ready) {
+            if (uri != null && loaded && !booting) {
                 lifecycleScope.launch {
                     loading = true
                     menu = false
                     message = "Validating and installing PS3 firmware"
                     runCatching {
                         withContext(Dispatchers.IO) {
-                            val fd = contentResolver.openFileDescriptor(uri, "r") ?: error("Firmware cannot be opened")
-                            check(
-                                Ps3Native.install(fd.detachFd(), true),
-                            ) { "PS3 firmware validation or installation failed" }
+                            if (retro) {
+                                check(storage.guest.mkdirs() || storage.guest.isDirectory)
+                                val pending = File(storage.guest, ".firmware.pending")
+                                contentResolver.openInputStream(uri)?.use { input ->
+                                    pending.outputStream().use { output ->
+                                        val buffer = ByteArray(65536)
+                                        var total = 0L
+                                        while (true) {
+                                            val count = input.read(buffer)
+                                            if (count < 0) break
+                                            total += count
+                                            require(total <= 1073741824) { "Firmware exceeds 1 GiB" }
+                                            output.write(buffer, 0, count)
+                                        }
+                                    }
+                                } ?: error("Firmware cannot be opened")
+                                val header = pending.inputStream().use { it.readNBytesCompat(8) }
+                                require(
+                                    header.size == 8 && header.copyOfRange(0, 5).toString(Charsets.US_ASCII) == "SCEUF",
+                                ) {
+                                    "Not a PS3 PUP firmware file"
+                                }
+                                check(pending.renameTo(File(storage.guest, "PS3UPDAT.PUP")))
+                            } else {
+                                val fd =
+                                    contentResolver.openFileDescriptor(uri, "r")
+                                        ?: error("Firmware cannot be opened")
+                                check(Ps3Native.install(fd.detachFd(), true)) {
+                                    "PS3 firmware validation or installation failed"
+                                }
+                            }
                         }
-                    }.onSuccess { message = "Firmware accepted. Return to Shelf and reopen to complete native validation." }
+                    }.onSuccess {
+                        message = "Firmware accepted. Return to Shelf and reopen to complete native validation."
+                    }
                         .onFailure { fail(it) }
                     loading = false
                     menu = true
@@ -120,11 +150,22 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                             }
                         }
-                        if (loading && !menu) CartdeckLoadingScreen(message)
+                        if (loading && !menu) {
+                            CartdeckLoadingScreen(message)
+                            androidx.compose.material3.TextButton(
+                                onClick = ::openMenu,
+                                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd),
+                            ) { androidx.compose.material3.Text("Menu") }
+                        }
                         if (menu) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "PlayStation 3 setup", engineInfo = "$engine · $report",
-                                capabilities = XboxMenuCapabilities(false, false, Ps3Engine.store(filesDir, engine).canRollback()),
+                                capabilities =
+                                    XboxMenuCapabilities(
+                                        false,
+                                        false,
+                                        Ps3Engine.store(filesDir, engine).canRollback(),
+                                    ),
                                 onResume = {
                                     if (!failure) {
                                         menu = false
@@ -140,11 +181,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         ) as ClipboardManager
                                     ).setPrimaryClip(ClipData.newPlainText("PS3 engine report", report))
                                 }, onProbe = {}, onPreviousEngine = {
-                            if (Ps3Engine.store(filesDir, engine).rollback()) {
-                                message = "Previous engine selected. Return to Shelf and reopen; saves retained."
-                            }
-                        }, console = "PlayStation 3",
-                                storageHelp = "PS3 saves use the selected virtual user's HDD. Save states are unavailable. $message",
+                                    if (Ps3Engine.store(filesDir, engine).rollback()) {
+                                        message = "Previous engine selected. Reopen from Shelf; saves retained."
+                                    }
+                                }, console = "PlayStation 3",
+                                storageHelp =
+                                    "PS3 saves use the selected virtual user's HDD. " +
+                                        "Save states are unavailable. $message",
                                 recovery = {
                                     GameMenuLink("PS3 setup, profiles and save management") {
                                         // The same in-app setup screen used by main settings.
@@ -155,7 +198,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                             ).putExtra("engine", engine),
                                         )
                                     }
-                                    if (!ready) GameMenuLink("Import PS3 firmware") { firmware.launch(arrayOf("*/*")) }
+                                    if (!booting) {
+                                        GameMenuLink(
+                                            "Import PS3 firmware",
+                                        ) { firmware.launch(arrayOf("*/*")) }
+                                    }
                                 },
                             ) {
                                 XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK) { orientation, edit ->
@@ -186,10 +233,9 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 withContext(Dispatchers.IO) {
                     GameProcessLock.acquireExclusive(this@Ps3RuntimeActivity)
                     Ps3Engine.readiness(this@Ps3RuntimeActivity, engine)?.let { error(it) }
-                    check(
-                        engine == "armsx3",
-                    ) { "RPCS3 Libretro runtime is not connected yet; select ARMSX3 explicitly." }
-                    coreLibrary = Ps3Engine.install(this@Ps3RuntimeActivity, engine).core
+                    val selected = Ps3Engine.install(this@Ps3RuntimeActivity, engine)
+                    coreLibrary = selected.core
+                    activeRevision = selected.properties.getProperty("revision")
                     if (storage.profiles().isEmpty()) storage.create("Player 1")
                     val profile = storage.profiles().first { it.selected }
                     check(storage.guest.mkdirs() || storage.guest.isDirectory)
@@ -213,7 +259,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 ready = storage.firmwareInstalled() || (retro && File(storage.guest, "PS3UPDAT.PUP").isFile)
                 if (!ready) {
                     loading = false
-                    message = "PS3 firmware is missing. Import your firmware from the game menu or Settings → PlayStation 3 setup."
+                    message = "PS3 firmware is missing. Import firmware in the game menu or PlayStation 3 setup."
                     menu = true
                 } else if (game != null) {
                     boot()
@@ -224,11 +270,22 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 while (!leaving && loaded) {
                     delay(500)
                     val state = withContext(Dispatchers.IO) { if (retro) -1 else Ps3Native.state() }
-                    report = "engine=$engine\nsource=${Ps3Engine.ARMSX3_REVISION}\nnative_state=$state\nfirmware=${storage.firmwareInstalled()}\nprofile=${storage.profiles().firstOrNull { it.selected }?.id}\ngameplay=UNVERIFIED"
-                    if (retro) report = withContext(Dispatchers.IO) { Ps3Libretro.nativeReport() }
+                    val framePeriod = withContext(Dispatchers.IO) { if (retro) 0L else Ps3Native.framePeriod() }
+                    report =
+                        buildString {
+                            appendLine("engine=$engine")
+                            appendLine("source=$activeRevision")
+                            appendLine("frame_period_ns=$framePeriod")
+                            appendLine("native_state=$state")
+                            appendLine("firmware=${storage.firmwareInstalled()}")
+                            appendLine("profile=${storage.profiles().firstOrNull { it.selected }?.id}")
+                            appendLine("gameplay=UNVERIFIED")
+                        }
+                    if (retro) report += withContext(Dispatchers.IO) { Ps3Libretro.nativeReport() }
                     withContext(Dispatchers.IO) { File(storage.root, "last-report.txt").writeText(report) }
                     message = com.armsx3.core.ProgressRepository.message.ifBlank { "Compiling PS3 modules" }
-                    if (state == 3 || (retro && Regex("presented_image_callbacks=[1-9][0-9]*").containsMatchIn(report))) loading = false
+                    val presented = retro && Regex("presented_image_callbacks=[1-9][0-9]*").containsMatchIn(report)
+                    if (framePeriod > 0 || presented) loading = false
                     if (booting && state == 5) error("PS3 guest entered a frozen state")
                 }
             }.onFailure(::fail)
@@ -236,7 +293,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun boot() {
-        if (game == null || !loaded || !ready || booting || !foreground || !surface.holder.surface.isValid || menu) return
+        if (game == null || !loaded || !ready || booting || !foreground ||
+            !surface.holder.surface.isValid || menu
+        ) {
+            return
+        }
         booting = true
         lifecycleScope.launch {
             runCatching {
@@ -245,13 +306,20 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     val current = game ?: error("Open a PS3 cartridge from Shelf")
                     var media = Ps3Content.stage(this@Ps3RuntimeActivity, current, storage.root)
                     if (retro) {
-                        if (media.isDirectory) media = File(media, "PARAM.SFO")
+                        if (media.isDirectory) {
+                            val direct = File(media, "PARAM.SFO")
+                            media = if (direct.isFile) direct else File(media, "PS3_GAME/PARAM.SFO")
+                        }
                         check(media.isFile) { "PS3 executable metadata is missing" }
-                        val result = Ps3Libretro.nativeRun(
-                            surface.holder.surface, storage.root.path, media.path, 0,
-                            requireNotNull(coreLibrary).path,
-                            media.parentFile!!.path,
-                        )
+                        val result =
+                            Ps3Libretro.nativeRun(
+                                surface.holder.surface,
+                                storage.root.path,
+                                media.path,
+                                0,
+                                requireNotNull(coreLibrary).path,
+                                media.parentFile!!.path,
+                            )
                         if (!leaving) error(result)
                         return@withContext
                     }
@@ -270,7 +338,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     }
                     val result = Ps3Native.boot(media.path)
                     check(result == 0) {
-                        "PS3 boot failed (native result $result). Check firmware, media decryption and required user licences."
+                        "PS3 boot failed (native result $result). " +
+                            "Check firmware, media decryption and required user licences."
                     }
                 }
             }.onFailure(::fail)
@@ -292,15 +361,23 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun pause(value: Boolean) {
-        if (loaded && booting) lifecycleScope.launch(Dispatchers.IO) { runCatching { if (retro) Ps3Libretro.nativePause(value) else Ps3Native.pause(value) } }
+        if (loaded && booting) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                runCatching { if (retro) Ps3Libretro.nativePause(value) else Ps3Native.pause(value) }
+            }
+        }
     }
 
     private fun release() {
         pressed.clear()
         sticks.clear()
         if (loaded) {
-            if (retro) { for (id in 0..15) Ps3Libretro.nativeButton(id, false); for (axis in 0..3) Ps3Libretro.nativeAxis(axis, 0) }
-            else for (port in 0..6) Ps3Native.pad(port, 0, 0, 128, 128, 128, 128)
+            if (retro) {
+                for (id in 0..15) Ps3Libretro.nativeButton(id, false)
+                for (axis in 0..3) Ps3Libretro.nativeAxis(axis, 0)
+            } else {
+                for (port in 0..6) Ps3Native.pad(port, 0, 0, 128, 128, 128, 128)
+            }
         }
     }
 
@@ -315,6 +392,21 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
             is InputEvent.ContinuousDirection -> touchDirection(event.id, event.direction.x, event.direction.y)
             is InputEvent.DiscreteDirection -> touchDirection(event.id, event.direction.x, event.direction.y)
+        }
+    }
+
+    private fun touchDirection(
+        source: Int,
+        x: Float,
+        y: Float,
+    ) {
+        if (source == 0) {
+            key(0, KeyEvent.KEYCODE_DPAD_LEFT, x < -.5f)
+            key(0, KeyEvent.KEYCODE_DPAD_RIGHT, x > .5f)
+            key(0, KeyEvent.KEYCODE_DPAD_UP, y > .5f)
+            key(0, KeyEvent.KEYCODE_DPAD_DOWN, y < -.5f)
+        } else {
+            axis(0, source - 1, x, y)
         }
     }
 
@@ -347,6 +439,15 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         val first = mapOf(109 to 1, 106 to 2, 107 to 4, 108 to 8, 19 to 16, 22 to 32, 20 to 64, 21 to 128)
         val second = mapOf(104 to 1, 105 to 2, 102 to 4, 103 to 8, 100 to 16, 97 to 32, 96 to 64, 99 to 128)
         val a = sticks[port] ?: intArrayOf(128, 128, 128, 128)
+        if (retro) {
+            if (port != 0) return
+            val codes = intArrayOf(97, 99, 109, 108, 19, 20, 21, 22, 96, 100, 102, 103, 104, 105, 106, 107)
+            codes.forEachIndexed { id, code -> Ps3Libretro.nativeButton(id, code in keys) }
+            a.forEachIndexed { id, value ->
+                Ps3Libretro.nativeAxis(id, ((value - 128) * 258).coerceIn(-32767, 32767))
+            }
+            return
+        }
         Ps3Native.pad(
             port,
             keys.fold(0) { b, k -> b or (first[k] ?: 0) },
@@ -375,7 +476,14 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (!menu && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
             axis(port, 0, event.getAxisValue(MotionEvent.AXIS_X), -event.getAxisValue(MotionEvent.AXIS_Y))
-            axis(port, 1, event.getAxisValue(MotionEvent.AXIS_Z), -event.getAxisValue(MotionEvent.AXIS_RZ))
+            val right = com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile.rightStickAxes(event.device)
+            axis(port, 1, event.getAxisValue(right.first), -event.getAxisValue(right.second))
+            key(port, KeyEvent.KEYCODE_DPAD_LEFT, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
+            key(port, KeyEvent.KEYCODE_DPAD_RIGHT, event.getAxisValue(MotionEvent.AXIS_HAT_X) > .5f)
+            key(port, KeyEvent.KEYCODE_DPAD_UP, event.getAxisValue(MotionEvent.AXIS_HAT_Y) < -.5f)
+            key(port, KeyEvent.KEYCODE_DPAD_DOWN, event.getAxisValue(MotionEvent.AXIS_HAT_Y) > .5f)
+            key(port, KeyEvent.KEYCODE_BUTTON_L2, event.getAxisValue(MotionEvent.AXIS_LTRIGGER) > .5f)
+            key(port, KeyEvent.KEYCODE_BUTTON_R2, event.getAxisValue(MotionEvent.AXIS_RTRIGGER) > .5f)
             return true
         }
         return super.onGenericMotionEvent(event)
@@ -401,7 +509,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        if (loaded) Ps3Native.surface(holder.surface, 0, surface.width, surface.height)
+        if (loaded) {
+            if (retro) {
+                Ps3Libretro.nativeSurface(holder.surface)
+            } else {
+                Ps3Native.surface(holder.surface, 0, surface.width, surface.height)
+            }
+        }
         boot()
     }
 
@@ -411,13 +525,25 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
-        if (loaded) Ps3Native.surface(holder.surface, 1, width, height)
+        if (loaded) {
+            if (retro) {
+                Ps3Libretro.nativeSurface(holder.surface)
+            } else {
+                Ps3Native.surface(holder.surface, 1, width, height)
+            }
+        }
         boot()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         release()
-        if (loaded) Ps3Native.surface(null, 2, 0, 0)
+        if (loaded) {
+            if (retro) {
+                Ps3Libretro.nativeSurface(null)
+            } else {
+                Ps3Native.surface(null, 2, 0, 0)
+            }
+        }
     }
 
     private fun leave() {
@@ -425,7 +551,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         leaving = true
         release()
         lifecycleScope.launch {
-            if (loaded) withContext(Dispatchers.IO) { runCatching { if (retro) Ps3Libretro.nativeStop() else Ps3Native.stop() } }
+            if (loaded) {
+                withContext(
+                    Dispatchers.IO,
+                ) { runCatching { if (retro) Ps3Libretro.nativeStop() else Ps3Native.stop() } }
+            }
             NativeSessionJournal.finish(this@Ps3RuntimeActivity)
             setResult(
                 if (failure) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,

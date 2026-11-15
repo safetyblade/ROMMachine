@@ -289,7 +289,10 @@ object NativeEngineRegistry {
                 val revision = manifest.getProperty("revision") ?: manifest.getProperty("upstream.revision")
                 val digest = manifest.getProperty("core.sha256")
                 val active =
-                    if (engine.host == Host.ARMSX2_ANDROID) {
+                    if (engine.system == SystemID.PLAYSTATION_3) {
+                        com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.store(context.filesDir, engine.id)
+                            .selected()?.id
+                    } else if (engine.host == Host.ARMSX2_ANDROID) {
                         File(
                             context.filesDir,
                             "native-engines/armsx2/active.version",

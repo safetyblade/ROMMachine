@@ -17,6 +17,25 @@ object Ps3Engine {
             else -> error("Unknown PS3 engine")
         }
 
+    fun store(
+        files: File,
+        id: String,
+    ) = com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore(
+        File(files, "native-engines/ps3/$id"),
+        binary(id),
+        setOf(binary(id)),
+        "$id.properties",
+    )
+
+    fun install(
+        context: Context,
+        id: String,
+    ): com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore.Selection {
+        val properties = Properties().apply { context.assets.open("cartdeck/ps3/$id.properties").use(::load) }
+        val notices = context.assets.open("cartdeck/ps3/$id-licenses.zip").use { it.readBytes() }
+        return store(context.filesDir, id).install(File(context.applicationInfo.nativeLibraryDir), properties, notices)
+    }
+
     fun readiness(
         context: Context,
         id: String,
@@ -26,7 +45,9 @@ object Ps3Engine {
                 Properties().apply { context.assets.open("cartdeck/ps3/$id.properties").use(::load) }
             }.getOrNull() ?: return "PS3 engine is not packaged in this build. Your games and saves are retained."
         val revision = if (id == "armsx3") ARMSX3_REVISION else RPCS3_REVISION
-        if (manifest.getProperty("revision") != revision) return "PS3 engine provenance does not match the pinned source."
+        if (manifest.getProperty("revision") != revision) {
+            return "PS3 engine provenance does not match the pinned source."
+        }
         val file = File(context.applicationInfo.nativeLibraryDir, binary(id))
         if (!file.isFile) return "PS3 native engine is missing."
         val digest = MessageDigest.getInstance("SHA-256")

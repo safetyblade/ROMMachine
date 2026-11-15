@@ -182,27 +182,38 @@ object DocumentFileParser {
         )
     }
 
-    private fun identifyPs3(context: Context, file: BaseStorageFile): com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title? {
+    private fun identifyPs3(
+        context: Context,
+        file: BaseStorageFile,
+    ): com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title? {
         val parser = com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata
         return runCatching {
             when (file.extension.lowercase(java.util.Locale.US)) {
-                "iso" -> context.contentResolver.openFileDescriptor(file.uri, "r")?.use { fd ->
-                    FileInputStream(fd.fileDescriptor).channel.use { parser.iso(it) }
-                }
-                "sfo" -> if (file.name.equals("PARAM.SFO", true) && file.size in 20..1048576) {
-                    context.contentResolver.openInputStream(file.uri)?.use { parser.sfo(it.readBytes()) }
-                        ?.takeIf { it.category in setOf("DG", "HG", "HM", "CB") }
-                } else null
-                "pkg" -> context.contentResolver.openInputStream(file.uri)?.use {
-                    val header = ByteArray(128)
-                    var count = 0
-                    while (count < header.size) {
-                        val n = it.read(header, count, header.size - count)
-                        if (n <= 0) break
-                        count += n
+                "iso" ->
+                    context.contentResolver.openFileDescriptor(file.uri, "r")?.use { fd ->
+                        FileInputStream(fd.fileDescriptor).channel.use { parser.iso(it) }
                     }
-                    parser.pkg(header.copyOf(count), file.size)?.let { id -> com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title(id, id, "PKG", null) }
-                }
+                "sfo" ->
+                    if (file.name.equals("PARAM.SFO", true) && file.size in 20..1048576) {
+                        context.contentResolver.openInputStream(file.uri)?.use { parser.sfo(it.readBytes()) }
+                            ?.takeIf { it.category in setOf("DG", "HG", "HM", "CB") }
+                    } else {
+                        null
+                    }
+                "pkg" ->
+                    context.contentResolver.openInputStream(file.uri)?.use {
+                        val header = ByteArray(128)
+                        var count = 0
+                        while (count < header.size) {
+                            val n = it.read(header, count, header.size - count)
+                            if (n <= 0) break
+                            count += n
+                        }
+                        parser.pkg(header.copyOf(count), file.size)?.let {
+                                id ->
+                            com.swordfish.lemuroid.lib.storage.ps3.Ps3Metadata.Title(id, id, "PKG", null)
+                        }
+                    }
                 else -> null
             }
         }.getOrNull()

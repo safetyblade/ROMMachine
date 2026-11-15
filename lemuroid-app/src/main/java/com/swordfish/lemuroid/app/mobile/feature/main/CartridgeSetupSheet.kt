@@ -72,8 +72,11 @@ internal fun CartridgeSetupSheet(
                 Text(if (section == null) "Close Setup" else "Back to Setup")
             }
             if (section == null) {
-                (listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting") +
-                    if (system.id == SystemID.PLAYSTATION_3) listOf("Manage Saves / PS3 users") else emptyList()).forEach { name ->
+                (
+                    listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting") +
+                        if (system.id == SystemID.PLAYSTATION_3) listOf("Manage Saves / PS3 users") else emptyList()
+                ).forEach {
+                        name ->
                     TextButton(
                         onClick = { section = name },
                         modifier =
