@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
@@ -89,6 +90,7 @@ class NativeCoreActivity : SDLActivity() {
         )
     }
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.XBOX)
     private val settingsManager by lazy {
         TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(this))
     }
@@ -321,6 +323,7 @@ class NativeCoreActivity : SDLActivity() {
                             physicalControllerConnected = physicalPadConnected,
                             presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX),
                             onViewport = { viewport ->
+                                viewportAudit.request(viewport.width(), viewport.height())
                                 val current = mSurface?.layoutParams as? RelativeLayout.LayoutParams
                                 if (
                                     viewport.width() > 0 && viewport.height() > 0 &&
@@ -464,6 +467,7 @@ class NativeCoreActivity : SDLActivity() {
         var safeReason = reason.take(2000).replace(filesDir.absolutePath, "[app storage]")
         listOf(disc, intent.getStringExtra("cartdeck.gameUri"), intent.getStringExtra("cartdeck.gameTitle"))
             .filterNotNull().filter { it.isNotBlank() }.forEach { safeReason = safeReason.replace(it, "[content]") }
+        viewportAudit.observe(mSurface?.width ?: 0, mSurface?.height ?: 0)
         return "Xbox launch: $safeReason\n" +
             "Engine: ${engine.id}\n" +
             "Device: ${android.os.Build.MODEL}; Android ${android.os.Build.VERSION.SDK_INT}\n" +
@@ -471,6 +475,7 @@ class NativeCoreActivity : SDLActivity() {
             "Native failure category: ${nativeGetFatalKind()}\n" +
             "${capturedGpuReport ?: gpuReport()}\n" +
             "Presentation probe: ${presentationContract()}\n" +
+            "${viewportAudit.summary()}\n" +
             "$surfacePixelReport\n" +
             "HDD and saves retained. No automatic relaunch was attempted."
     }
