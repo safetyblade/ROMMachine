@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
@@ -97,6 +98,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         )
     }
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.ARMSX2)
     private var connected by mutableStateOf(false)
     private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
@@ -213,6 +215,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 sendInput()
                             },
                         ) { viewport ->
+                            viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 val old = surface.layoutParams as FrameLayout.LayoutParams
                                 if (old.width != viewport.width() || old.height != viewport.height() ||
@@ -608,11 +611,13 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int,
     ) {
+        viewportAudit.observe(width, height)
         if (ready && started && holder.surface.isValid) NativeApp.onNativeSurfaceChanged(holder.surface, width, height)
         startIfReady()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        viewportAudit.observe(0, 0)
         releaseInput()
         if (ready) NativeApp.onNativeSurfaceDestroyed()
     }
@@ -638,7 +643,12 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             getSystemService(
                 CLIPBOARD_SERVICE,
             ) as ClipboardManager
-        ).setPrimaryClip(ClipData.newPlainText("CARTDECK ARMSX2", report.take(16384)))
+        ).setPrimaryClip(
+            ClipData.newPlainText(
+                "CARTDECK ARMSX2",
+                (report + "\n" + viewportAudit.summary()).take(16384),
+            ),
+        )
     }
 
     private fun leave() {
