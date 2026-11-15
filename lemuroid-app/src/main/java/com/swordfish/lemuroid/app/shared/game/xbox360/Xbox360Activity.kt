@@ -137,7 +137,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             settings,
                             TouchControllerID.XBOX360,
                             physicalControllerConnected = physicalConnected,
-                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360),
+                            presentationAspect =
+                                NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360),
                             game =
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
