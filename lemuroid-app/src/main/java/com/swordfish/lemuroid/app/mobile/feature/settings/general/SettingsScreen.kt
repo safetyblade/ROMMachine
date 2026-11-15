@@ -76,6 +76,11 @@ private fun MiscSettings(
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_misc)) },
     ) {
+        LemuroidSettingsMenuLink(
+            title = { Text("PlayStation 3 setup") },
+            subtitle = { Text("Firmware, PS3 users and save management") },
+            onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
+        )
         if (isSaveSyncSupported) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.settings_title_save_sync)) },

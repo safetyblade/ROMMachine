@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.22)
+project(cartdeck_ps3 LANGUAGES CXX)
+add_library(cartdeck_ps3 SHARED Armsx3Bridge.cpp)
+target_compile_features(cartdeck_ps3 PRIVATE cxx_std_20)
+target_link_libraries(cartdeck_ps3 PRIVATE dl log android)
+target_link_options(cartdeck_ps3 PRIVATE -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384)

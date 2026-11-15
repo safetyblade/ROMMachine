@@ -33,4 +33,5 @@ enum class SystemID(val dbname: String) {
     WII("wii"),
     XBOX360("xbox360"),
     WII_U("wiiu"),
+    PLAYSTATION_3("ps3"),
 }

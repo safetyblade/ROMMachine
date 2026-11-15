@@ -24,6 +24,7 @@ fun BiosScreen(
 
     LemuroidSettingsPage(modifier = modifier.fillMaxSize()) {
         Armsx2SetupSection()
+        com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
         if (uiState.detected.isNotEmpty()) {
             DetectedEntries(uiState.detected)
         }

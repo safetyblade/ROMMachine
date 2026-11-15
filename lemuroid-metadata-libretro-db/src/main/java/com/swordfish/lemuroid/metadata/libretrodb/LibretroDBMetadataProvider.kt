@@ -117,7 +117,7 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
 
         return system?.let {
             GameMetadata(
-                name = file.extensionlessName,
+                name = file.metadataTitle ?: file.extensionlessName,
                 romName = file.name,
                 thumbnail = null,
                 system = it.id.dbname,
@@ -155,7 +155,7 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         if (file.systemID == null) return null
 
         return GameMetadata(
-            name = file.extensionlessName,
+            name = file.metadataTitle ?: file.extensionlessName,
             romName = file.name,
             thumbnail = null,
             system = file.systemID!!.dbname,
@@ -173,7 +173,7 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         val result =
             system?.let {
                 GameMetadata(
-                    name = file.extensionlessName,
+                    name = file.metadataTitle ?: file.extensionlessName,
                     romName = file.name,
                     thumbnail = null,
                     system = it.id.dbname,

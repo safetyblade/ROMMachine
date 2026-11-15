@@ -119,6 +119,7 @@ enum class MetaSystemID(val titleResId: Int, val imageResId: Int, val systemIDs:
     XBOX(R.string.game_system_title_xbox, R.drawable.game_system_xbox, listOf(SystemID.XBOX)),
     WII(R.string.game_system_title_wii, R.drawable.game_system_wii, listOf(SystemID.WII)),
     XBOX360(R.string.game_system_title_xbox360, R.drawable.game_system_xbox360, listOf(SystemID.XBOX360)),
+    PLAYSTATION_3(R.string.game_system_title_ps3, R.drawable.game_system_ps3, listOf(SystemID.PLAYSTATION_3)),
     WII_U(R.string.game_system_title_wiiu, R.drawable.game_system_wiiu, listOf(SystemID.WII_U)),
     ;
 
@@ -163,6 +164,7 @@ enum class MetaSystemID(val titleResId: Int, val imageResId: Int, val systemIDs:
                 SystemID.XBOX360 -> XBOX360
                 SystemID.WII -> WII
                 SystemID.WII_U -> WII_U
+                SystemID.PLAYSTATION_3 -> PLAYSTATION_3
             }
         }
     }

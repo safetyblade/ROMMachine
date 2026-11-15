@@ -1,0 +1,96 @@
+name: CARTDECK PS3 real ARM64 engines (distribution gated)
+on:
+  pull_request:
+    paths:
+      - 'native/ps3/**'
+      - 'scripts/ps3/**'
+      - '.github/workflows/cartdeck-ps3-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: armsx3
+            repository: ARMSX2/ARMSX3
+            revision: d396f0b6b8372789e6423a4f4d242cab4c5135eb
+            target: armsx3-core
+          - engine: rpcs3-libretro
+            repository: WizzardSK/rpcs3-libretro
+            revision: 993a9914a05361e6b3afe0487c463d9cb5f5b12b
+            target: rpcs3_libretro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.revision }}
+          path: work/ps3/source
+          submodules: recursive
+          fetch-depth: 1
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install real native toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build pkg-config nasm libssl-dev
+          sdkmanager 'ndk;29.0.14206865' 'cmake;3.30.3'
+      - name: Build pinned FFmpeg and configure ARMSX3
+        if: matrix.engine == 'armsx3'
+        env:
+          CMAKE_VERSION: 3.30.3
+          NDK_VERSION: 29.0.14206865
+          ANDROID_API: 33
+          JOBS: 2
+        run: |
+          cd work/ps3/source
+          BUILD_DIR="$GITHUB_WORKSPACE/work/ps3/build" bash android/configure.sh \
+            -DANDROID_STL=c++_static -DLLVM_PARALLEL_LINK_JOBS=1
+      - name: Configure actual RPCS3 Libretro with Android dependencies
+        if: matrix.engine == 'rpcs3-libretro'
+        run: |
+          python3 scripts/ps3/prepare_rpcs3.py work/ps3/source
+          git clone https://github.com/FFmpeg/FFmpeg.git --branch n7.1.1 --depth 1 work/ps3/ffmpeg-src
+          cd work/ps3/ffmpeg-src
+          NDK="$ANDROID_HOME/ndk/29.0.14206865"
+          TC="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          ./configure --prefix="$GITHUB_WORKSPACE/work/ps3/ffmpeg" --target-os=android --arch=aarch64 \
+            --enable-cross-compile --cc="$TC/aarch64-linux-android33-clang" \
+            --cxx="$TC/aarch64-linux-android33-clang++" --ar="$TC/llvm-ar" --ranlib="$TC/llvm-ranlib" \
+            --nm="$TC/llvm-nm" --strip="$TC/llvm-strip" --enable-static --disable-shared --enable-pic \
+            --disable-programs --disable-doc --disable-avdevice --disable-network
+          make -j2
+          make install
+          cd "$GITHUB_WORKSPACE"
+          PKG_CONFIG_LIBDIR="$GITHUB_WORKSPACE/work/ps3/ffmpeg/lib/pkgconfig" \
+          cmake -S work/ps3/source -B work/ps3/build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_LIBRETRO_CORE_ONLY=ON \
+            -DWITH_LLVM=ON -DBUILD_LLVM=ON -DUSE_NATIVE_INSTRUCTIONS=OFF -DUSE_PRECOMPILED_HEADERS=OFF \
+            -DUSE_SDL=OFF -DUSE_DISCORD_RPC=OFF -DUSE_LTO=OFF -DUSE_SYSTEM_CURL=OFF \
+            -DUSE_SYSTEM_OPENCV=OFF -DUSE_SYSTEM_SDL=OFF -DUSE_SYSTEM_ZLIB=OFF -DUSE_SYSTEM_OPENAL=OFF \
+            -DUSE_SYSTEM_FFMPEG=ON -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/work/ps3/ffmpeg" \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH \
+            -DLLVM_PARALLEL_LINK_JOBS=1
+      - name: Compile real ARM64 execution engine
+        run: cmake --build work/ps3/build --target '${{ matrix.target }}' -j2
+      - name: Verify actual ELF and pinned engine ABI
+        run: |
+          python3 scripts/ps3/verify_engine.py '${{ matrix.engine }}' work/ps3/build
+      # Deliberately no engine/APK upload until the requested GPLv2/GPLv3 distribution clearance.
+      - name: Preserve build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps3-${{ matrix.engine }}-configure-diagnostics
+          path: |
+            work/ps3/build/CMakeFiles/CMakeConfigureLog.yaml
+            work/ps3/build/CMakeCache.txt

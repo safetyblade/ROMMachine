@@ -72,7 +72,8 @@ internal fun CartridgeSetupSheet(
                 Text(if (section == null) "Close Setup" else "Back to Setup")
             }
             if (section == null) {
-                listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting").forEach { name ->
+                (listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting") +
+                    if (system.id == SystemID.PLAYSTATION_3) listOf("Manage Saves / PS3 users") else emptyList()).forEach { name ->
                     TextButton(
                         onClick = { section = name },
                         modifier =
@@ -90,6 +91,7 @@ internal fun CartridgeSetupSheet(
                         if (system.nativeBackend == "hakux") XboxVersionChoice(game)
                     }
                     "Controls" -> CartridgeControlChoices(game, system)
+                    "Manage Saves / PS3 users" -> com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
                     "Cartridge artwork" -> {
                         TextButton(onClick = onChangeCover, modifier = Modifier.heightIn(min = 48.dp)) {
                             Text(stringResource(R.string.cartdeck_change_cover))

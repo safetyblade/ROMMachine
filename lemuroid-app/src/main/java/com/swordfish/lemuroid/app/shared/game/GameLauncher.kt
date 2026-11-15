@@ -154,6 +154,17 @@ class GameLauncher(
                         null
                     }
                 val selection = withContext(Dispatchers.IO) { enginePreferences.select(game, legacyCoreConfig) }
+                if (system.id == SystemID.PLAYSTATION_3) {
+                    enginePreferences.beginLaunch(game, selection.engine)
+                    activity.startActivityForResult(
+                        Intent().setClassName(activity, com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.ACTIVITY)
+                            .putExtra("cartdeck.game", game).putExtra("cartdeck.engine", selection.engine.id)
+                            .putExtra("cartdeck.leanback", leanback),
+                        BaseGameActivity.REQUEST_PLAY_GAME,
+                    )
+                    gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                    return@launch
+                }
                 if (selection.engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID) {
                     enginePreferences.beginLaunch(game, selection.engine)
                     activity.startActivityForResult(

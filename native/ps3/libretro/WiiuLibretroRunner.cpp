@@ -1,0 +1,620 @@
+// WIIU-02: embedded, private test-only RPCS3 Libretro frontend.
+// This is a real Android native Libretro/Vulkan path, not an external APK.
+// Gameplay, audio output and release readiness still require physical QA.
+#include "CartdeckVulkanPresenter.h"
+#include "WiiuAudio.h"
+#include "VulkanNegotiation.h"
+#include "WiiuRuntimeMetrics.h"
+#include "FramePacer.h"
+#include "SurfaceMailbox.h"
+#include "ProcessCoreLibrary.h"
+#include <android/native_window_jni.h>
+#include <android/log.h>
+#include <dlfcn.h>
+#include <jni.h>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <chrono>
+#include <mutex>
+#include <thread>
+#include <cstdarg>
+#include <cstdio>
+#include <unistd.h>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace {
+std::atomic<bool> stop_requested{false};
+std::atomic<uint32_t> pressed_buttons{0};
+std::atomic<unsigned> frame_count{0};
+std::atomic<unsigned> image_width{0}, image_height{0};
+std::atomic<uint64_t> submitted_audio{0};
+std::atomic<bool> frontend_paused{false};
+SurfaceMailbox<ANativeWindow> surfaces(ANativeWindow_acquire, ANativeWindow_release);
+void clearPendingSurface() { surfaces.clear(); }
+std::atomic<unsigned> requested_controller{1};
+std::atomic<unsigned> applied_controller{1};
+std::atomic<unsigned> screen_requests{0};
+std::atomic<bool> tab_down{false};
+std::atomic<unsigned> host_stage{0};
+std::mutex diagnostics_mutex;
+std::string gpu_diagnostics;
+std::string native_error;
+std::atomic<bool> renderer_ready{false};
+std::array<std::atomic<int16_t>, 4> axes{};
+std::atomic<int16_t> pointer_x{0}, pointer_y{0};
+std::atomic<bool> pointer_down{false};
+
+std::mutex trace_mutex;
+std::string trace_root;
+void stage(const char* value) {
+    std::lock_guard<std::mutex> lock(trace_mutex);
+    if (trace_root.empty()) return;
+    if (auto* file = fopen((trace_root + "/native-stage.txt").c_str(), "w")) {
+        fprintf(file, "%s\n", value);
+        fflush(file);
+        fsync(fileno(file));
+        fclose(file);
+    }
+}
+void coreLog(enum retro_log_level level, const char* fmt, ...) {
+    va_list values;
+    va_start(values, fmt);
+    int priority = level == RETRO_LOG_ERROR ? ANDROID_LOG_ERROR :
+                   level == RETRO_LOG_WARN ? ANDROID_LOG_WARN : ANDROID_LOG_INFO;
+    va_list copy;
+    va_copy(copy, values);
+    __android_log_vprint(priority, "CARTDECK_PS3_CORE", fmt, values);
+    {
+        std::lock_guard<std::mutex> lock(trace_mutex);
+        if (!trace_root.empty()) {
+            const auto path = trace_root + "/native-core.log";
+            if (auto* file = fopen(path.c_str(), "a")) {
+                fseek(file, 0, SEEK_END);
+                if (ftell(file) < 1024 * 1024) {
+                    char line[4096];
+                    vsnprintf(line, sizeof(line), fmt, copy);
+                    fputs(line, file);
+                    fflush(file);
+                }
+                fclose(file);
+            }
+        }
+    }
+    va_end(copy);
+    va_end(values);
+}
+
+struct CoreApi {
+    void* library = nullptr;
+    decltype(&retro_set_environment) set_environment = nullptr;
+    decltype(&retro_set_video_refresh) set_video = nullptr;
+    decltype(&retro_set_audio_sample) set_audio = nullptr;
+    decltype(&retro_set_audio_sample_batch) set_audio_batch = nullptr;
+    decltype(&retro_set_input_poll) set_input_poll = nullptr;
+    decltype(&retro_set_input_state) set_input_state = nullptr;
+    decltype(&retro_init) init = nullptr;
+    decltype(&retro_deinit) deinit = nullptr;
+    decltype(&retro_load_game) load_game = nullptr;
+    decltype(&retro_unload_game) unload_game = nullptr;
+    decltype(&retro_run) run = nullptr;
+    decltype(&retro_get_system_av_info) get_av_info = nullptr;
+    decltype(&retro_set_controller_port_device) set_controller = nullptr;
+
+    template<typename F> bool loadSymbol(F& target, const char* name) {
+        target = reinterpret_cast<F>(dlsym(library, name));
+        return target != nullptr;
+    }
+    bool open(const std::string& path) {
+        // Android only loads the SHA-checked core packaged beside this library.
+        library = openProcessCore(path.c_str());
+        if (!library) return false;
+        return loadSymbol(set_environment, "retro_set_environment") &&
+               loadSymbol(set_video, "retro_set_video_refresh") &&
+               loadSymbol(set_audio, "retro_set_audio_sample") &&
+               loadSymbol(set_audio_batch, "retro_set_audio_sample_batch") &&
+               loadSymbol(set_input_poll, "retro_set_input_poll") &&
+               loadSymbol(set_input_state, "retro_set_input_state") &&
+               loadSymbol(init, "retro_init") &&
+               loadSymbol(deinit, "retro_deinit") &&
+               loadSymbol(load_game, "retro_load_game") &&
+               loadSymbol(unload_game, "retro_unload_game") &&
+               loadSymbol(run, "retro_run") &&
+               loadSymbol(get_av_info, "retro_get_system_av_info") &&
+               loadSymbol(set_controller, "retro_set_controller_port_device");
+    }
+    void close() {
+        if (library) dlclose(library);
+        library = nullptr;
+    }
+};
+
+struct WiiuSession {
+    std::string system;
+    std::string save;
+    std::string disc;
+    std::string error;
+    std::unordered_map<std::string, std::string> options;
+    retro_hw_render_callback hw{};
+    const retro_hw_render_context_negotiation_interface_vulkan* negotiation = nullptr;
+    CartdeckVulkanPresenter presenter;
+    CoreApi core;
+    WiiuAudio audio;
+    bool got_hw = false;
+    bool got_video = false;
+    bool loaded = false;
+    bool initialized = false;
+    bool audio_started = false;
+    std::atomic<bool> audio_failed{false};
+};
+
+WiiuSession* active = nullptr;
+
+bool environment(unsigned command, void* data) {
+    auto* s = active;
+    if (!s) return false;
+    switch (command) {
+        case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
+            if (!data) return false;
+            *static_cast<const char**>(data) = s->system.c_str();
+            return true;
+        case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
+            if (!data) return false;
+            *static_cast<const char**>(data) = s->save.c_str();
+            return true;
+        case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
+            if (!data) return false;
+            static_cast<retro_log_callback*>(data)->log = coreLog;
+            return true;
+        case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
+            if (!data) return false;
+            *static_cast<unsigned*>(data) = 2;
+            return true;
+        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2: {
+            if (!data) return false;
+            const auto* options = static_cast<const retro_core_options_v2*>(data);
+            if (!options->definitions) return false;
+            for (const auto* opt = options->definitions; opt && opt->key; ++opt) {
+                if (opt->default_value) s->options[opt->key] = opt->default_value;
+            }
+            s->options["rpcs3_renderer"] = "vulkan";
+            {
+                std::ifstream user(s->system + "/rpcs3/cartdeck-user.txt");
+                std::string id;
+                user >> id;
+                if (id.size() == 8 && id.find_first_not_of("0123456789") == std::string::npos)
+                    s->options["cartdeck_ps3_user"] = id;
+            }
+            return true;
+        }
+        case RETRO_ENVIRONMENT_GET_VARIABLE: {
+            if (!data) return false;
+            auto* query = static_cast<retro_variable*>(data);
+            if (!query->key) return false;
+            if (strcmp(query->key, "cartdeck_ps3_user") == 0) {
+                std::ifstream input(s->system + "/rpcs3/cartdeck-user.txt");
+                std::string user;
+                input >> user;
+                if (user.size() == 8 && user.find_first_not_of("0123456789") == std::string::npos)
+                    s->options["cartdeck_ps3_user"] = user;
+            }
+            auto it = s->options.find(query->key);
+            query->value = it == s->options.end() ? nullptr : it->second.c_str();
+            return it != s->options.end();
+        }
+        case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
+            if (!data) return false;
+            *static_cast<bool*>(data) = false;
+            return true;
+        case RETRO_ENVIRONMENT_SET_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE: {
+            if (!data) return false;
+            const auto* negotiation =
+                static_cast<const retro_hw_render_context_negotiation_interface_vulkan*>(data);
+            if (negotiation->interface_type !=
+                    RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN ||
+                !supportsVulkanNegotiation(negotiation))
+                return false;
+            s->negotiation = negotiation;
+            return true;
+        }
+        case RETRO_ENVIRONMENT_SET_HW_RENDER:
+            if (!data) return false;
+            if (static_cast<retro_hw_render_callback*>(data)->context_type !=
+                RETRO_HW_CONTEXT_VULKAN)
+                return false;  // No desktop GL / GLES fallback for RPCS3.
+            s->hw = *static_cast<const retro_hw_render_callback*>(data);
+            s->got_hw = true;
+            return true;
+        case RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE:
+            if (!data || !s->presenter.ready()) return false;
+            *static_cast<const retro_hw_render_interface**>(data) =
+                reinterpret_cast<const retro_hw_render_interface*>(s->presenter.interface());
+            return true;
+        case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
+            return data && *static_cast<const retro_pixel_format*>(data) ==
+                RETRO_PIXEL_FORMAT_XRGB8888;
+        case RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE:
+        case RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE:
+        case RETRO_ENVIRONMENT_GET_VFS_INTERFACE:
+            return false;  // Never fabricate capabilities.
+        case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME:
+        case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO:
+        case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS:
+        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY:
+        case RETRO_ENVIRONMENT_SET_GEOMETRY:
+            return true;
+        case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
+            if (!data) return false;
+            const auto rate = static_cast<const retro_system_av_info*>(data)->timing.sample_rate;
+            if (!std::isfinite(rate) || rate < 8000 || rate > 192000) return false;
+            const auto fps = static_cast<const retro_system_av_info*>(data)->timing.fps;
+            if (!std::isfinite(fps) || fps < 10 || fps > 240) return false;
+            WiiuMetrics::target_fps.store(fps);
+            if (!s->audio_started || WiiuMetrics::audio_rate.load() == static_cast<int32_t>(rate)) return true;
+            return s->audio.start(static_cast<int32_t>(rate), &s->error);
+        }
+        case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
+            return false;
+        case RETRO_ENVIRONMENT_SHUTDOWN:
+            stop_requested.store(true);
+            return true;
+        default:
+            return false;
+    }
+}
+void video(const void* data, unsigned width, unsigned height, size_t) {
+    auto* s = active;
+    if (!s || stop_requested.load()) return;
+    if (data != RETRO_HW_FRAME_BUFFER_VALID) {
+        // A blank/repeat frame is NOT proof of visible game output.
+        if (!s->presenter.presentBlank(&s->error)) stop_requested.store(true);
+        return;
+    }
+    s->got_video = true;
+    image_width.store(width);
+    image_height.store(height);
+    const auto previous = s->presenter.presentedFrames();
+    if (!s->presenter.present(width, height, &s->error))
+        stop_requested.store(true);
+    else
+        frame_count.fetch_add(s->presenter.presentedFrames() - previous);
+}
+size_t audioBatch(const int16_t* data, size_t frames) {
+    if (!active || stop_requested.load() || frontend_paused.load()) return 0;
+    std::string error;
+    auto consumed = active->audio.write(data, frames, &error);
+    submitted_audio.fetch_add(consumed);
+    if (!error.empty()) {
+        __android_log_print(ANDROID_LOG_ERROR, "CARTDECK_PS3_AUDIO", "%s", error.c_str());
+        active->audio_failed.store(true);
+        stop_requested.store(true);
+    }
+    return consumed;
+}
+void audio(int16_t left, int16_t right) {
+    const int16_t stereo[] = {left, right};
+    audioBatch(stereo, 1);
+}
+void inputPoll() {}
+int16_t input(unsigned port, unsigned device, unsigned index, unsigned id) {
+    if (port) return 0;
+    if (device == RETRO_DEVICE_KEYBOARD && !index && id == RETROK_TAB) return tab_down.load();
+    if (device == RETRO_DEVICE_ANALOG && index < 2 && id < 2)
+        return axes[index * 2 + id].load();
+    if (device == RETRO_DEVICE_POINTER && !index) {
+        if (id == RETRO_DEVICE_ID_POINTER_X) return pointer_x.load();
+        if (id == RETRO_DEVICE_ID_POINTER_Y) return pointer_y.load();
+        if (id == RETRO_DEVICE_ID_POINTER_PRESSED) return pointer_down.load();
+    }
+    if (index || device != RETRO_DEVICE_JOYPAD || id >= 32) return 0;
+    return (pressed_buttons.load() & (1u << id)) ? 1 : 0;
+}
+std::string jstringValue(JNIEnv* env, jstring str) {
+    if (!str) return {};
+    const char* value = env->GetStringUTFChars(str, nullptr);
+    if (!value) return {};
+    std::string output(value);
+    env->ReleaseStringUTFChars(str, value);
+    return output;
+}
+std::string run(ANativeWindow* window, const std::string& root,
+                const std::string& disc, unsigned frames,
+                const std::string& coreLibrary, const std::string& mediaDirectory) {
+    // CARTDECK exits this isolated process after one title. Never reuse RPCS3
+    // process globals or destroy callback-owned mutexes under late native work.
+    static std::atomic<bool> entered{false};
+    if (entered.exchange(true)) return "PS3_RESTART_REQUIRES_NEW_PROCESS";
+    {
+        std::lock_guard<std::mutex> lock(trace_mutex);
+        trace_root = root;
+        if (auto* file = fopen((root + "/native-core.log").c_str(), "w")) fclose(file);
+    }
+    stage("nativeRun entered");
+    // Bounded to one allocation per process; Process.killProcess on Activity
+    // destruction reclaims it. Keep queue/audio callback state alive even after
+    // normal cleanup: a late core callback must not lock a destroyed mutex.
+    auto& session = *new WiiuSession;
+    session.system = root + "/system";
+    session.save = root + "/saves";
+    session.disc = disc;
+    if (stop_requested.load()) return "PS3_CANCELLED_BEFORE_START";
+    frame_count.store(0);
+    pressed_buttons.store(0);
+    for (auto& axis : axes) axis.store(0);
+    pointer_down.store(false);
+    if (!window) return "PS3_BLOCKED_NO_SURFACE";
+    // The user must independently supply a lawful test image, keys and any
+    // missing resources. Strict app-private staging; never arbitrary SAF access.
+    try {
+        const auto base = std::filesystem::canonical(mediaDirectory);
+        const auto source = std::filesystem::canonical(disc);
+        if (!std::filesystem::is_regular_file(source) || source.string().find(base.string() + "/") != 0)
+            return "PS3_BLOCKED_PRIVATE_FIXTURE";
+        std::filesystem::create_directories(session.system);
+        std::filesystem::create_directories(session.save);
+    } catch (const std::exception&) {
+        return "PS3_BLOCKED_PRIVATE_FIXTURE";
+    }
+    stage("dlopen RPCS3");
+    if (!session.core.open(coreLibrary)) return "PS3_BLOCKED_NATIVE_CORE_OR_DEPENDENCIES";
+    active = &session;
+    session.core.set_environment(environment);
+    session.core.set_video(video);
+    session.core.set_audio(audio);
+    session.core.set_audio_batch(audioBatch);
+    session.core.set_input_poll(inputPoll);
+    session.core.set_input_state(input);
+    stage("retro_init");
+    session.core.init();
+    session.initialized = true;
+    host_stage.store(1);
+    const auto initial_controller = requested_controller.load();
+    session.core.set_controller(0, initial_controller);
+    applied_controller.store(initial_controller);
+    retro_game_info game{};
+    game.path = session.disc.c_str();
+    stage("retro_load_game");
+    session.loaded = !stop_requested.load() && session.core.load_game(&game);
+    if (session.loaded) host_stage.store(2);
+    if (!session.loaded) session.error = "PS3_CORE_LOAD_FAILED";
+    if (session.loaded && (!session.got_hw || !session.negotiation))
+        session.error = "PS3_VULKAN_RENDER_REQUEST_MISSING";
+    if (session.error.empty() && stop_requested.load()) session.error = "PS3_CANCELLED";
+    unsigned handled_surface_generation = 0;
+    stage("Vulkan negotiation and surface");
+    if (session.error.empty() &&
+        !session.presenter.initialize(window, session.negotiation, &session.error))
+        session.error = "PS3_VULKAN_INIT_" + session.error;
+    if (session.error.empty()) renderer_ready.store(true);
+    if (session.error.empty() && session.hw.context_reset) {
+        stage("RPCS3 context_reset");
+        session.hw.context_reset();
+    }
+    if (session.error.empty()) {
+        host_stage.store(3);
+        const auto description = session.presenter.deviceDescription();
+        std::lock_guard<std::mutex> lock(diagnostics_mutex);
+        gpu_diagnostics = description;
+    }
+    if (session.error.empty()) {
+        retro_system_av_info av{};
+        session.core.get_av_info(&av);
+        WiiuMetrics::target_fps.store(av.timing.fps);
+        if (!std::isfinite(av.timing.fps) || av.timing.fps < 10 || av.timing.fps > 240)
+            session.error = "PS3_INVALID_FRAME_RATE";
+        else if (!std::isfinite(av.timing.sample_rate) || av.timing.sample_rate < 8000 ||
+            av.timing.sample_rate > 192000)
+            session.error = "PS3_AUDIO_INVALID_SAMPLE_RATE";
+        else
+            session.audio_started = session.audio.start(
+                static_cast<int32_t>(av.timing.sample_rate), &session.error);
+    }
+    if (session.error.empty()) {
+        stage("guest retro_run loop");
+        FramePacer pacer;
+        pacer.reset(WiiuMetrics::nowUs());
+        for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
+            auto nextSurface = surfaces.snapshot(handled_surface_generation);
+            if (nextSurface.generation != handled_surface_generation && !nextSurface.window) {
+                // Android destroyed the window during rotation/layout change.
+                // Keep the live guest parked until a retained replacement arrives;
+                // never acquire from the now-invalid previous native window.
+                pacer.reset(WiiuMetrics::nowUs());
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+            if (nextSurface.window) {
+                if (!session.presenter.replaceSurface(nextSurface.window.get(), &session.error)) break;
+                handled_surface_generation = nextSurface.generation;
+            }
+            if (frontend_paused.load()) {
+                pacer.reset(WiiuMetrics::nowUs());
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+            const auto device = requested_controller.load();
+            if (device != applied_controller.load()) {
+                session.core.set_controller(0, device);
+                applied_controller.store(device);
+            }
+            if (tab_down.load()) tab_down.store(false);
+            else if (screen_requests.load()) {
+                screen_requests.fetch_sub(1);
+                tab_down.store(true);
+            }
+            if (!session.presenter.acquire(&session.error)) {
+                if (session.error == "VULKAN_ACQUIRE_OUT_OF_DATE_RETRY") {
+                    session.error.clear();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                break;
+            }
+            WiiuMetrics::run_calls.fetch_add(1);
+            const auto runStart = WiiuMetrics::nowUs();
+            WiiuMetrics::run_started_us.store(runStart);
+            session.core.run();
+            const auto elapsed = WiiuMetrics::nowUs() - runStart;
+            WiiuMetrics::last_run_us.store(elapsed);
+            WiiuMetrics::maximum(WiiuMetrics::max_run_us, elapsed);
+            WiiuMetrics::run_returns.fetch_add(1);
+            WiiuMetrics::run_started_us.store(0);
+            // RPCS3 may still be booting without any video callback. Consume the
+            // acquired swapchain image safely; don't deadlock on the next frame.
+            if (session.presenter.hasAcquiredFrame() &&
+                !session.presenter.presentBlank(&session.error)) break;
+            if (!session.error.empty()) break;
+            const auto deadline = pacer.next(WiiuMetrics::nowUs(),
+                static_cast<uint64_t>(1000000.0 / WiiuMetrics::target_fps.load()));
+            std::this_thread::sleep_until(std::chrono::steady_clock::time_point(std::chrono::microseconds(deadline)));
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(diagnostics_mutex);
+        native_error = session.error;
+    }
+    stage("shutdown: stop title and flush persistent saves");
+    if (session.loaded) session.core.unload_game();
+    stage("shutdown: stop frontend audio");
+    session.audio.stop();
+    stage("shutdown: destroy guest graphics context");
+    if (session.got_hw && session.hw.context_destroy) session.hw.context_destroy();
+    stage("shutdown: release frontend Vulkan resources");
+    session.presenter.stop();
+    stage("shutdown: stop RPCS3 system services");
+    if (session.initialized) session.core.deinit();
+    stage("shutdown: release loader reference; core statics retained until process exit");
+    // NODELETE prevents unsafe static destruction at dlclose, not title cleanup.
+    session.core.close();
+    stage("shutdown complete; awaiting isolated process exit");
+    active = nullptr;
+    host_stage.store(4);
+    clearPendingSurface();
+    if (session.error.empty() && session.audio_failed.load())
+        session.error = "PS3_AUDIO_WRITE_FAILED_SEE_NATIVE_LOG";
+    const unsigned presented = frame_count.load();
+    if (!session.error.empty()) return session.error +
+        " PRESENTED_GAME_IMAGE_CALLBACKS=" + std::to_string(presented);
+    if (!presented) return "PS3_NO_GAME_FRAMES";
+    return "PS3_VULKAN_FRAME_CALLBACKS=" + std::to_string(presented) +
+        " AUDIO_SUBMITTED_FRAMES=" + std::to_string(session.audio.submittedFrames()) +
+        " (unverified game content/audio/input/save)";
+}
+}  // namespace
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeRun(
+    JNIEnv* env, jobject, jobject surface, jstring root, jstring disc, jint maxFrames,
+    jstring coreLibrary, jstring mediaDirectory) {
+    if (maxFrames < 0 || maxFrames > 36000)
+        return env->NewStringUTF("PS3_BLOCKED_UNBOUNDED_FRAME_REQUEST");
+    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
+    std::string outcome = run(window, jstringValue(env, root),
+                              jstringValue(env, disc),
+                              static_cast<unsigned>(maxFrames),
+                              jstringValue(env, coreLibrary), jstringValue(env, mediaDirectory));
+    if (window) ANativeWindow_release(window);
+    return env->NewStringUTF(outcome.c_str());
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeStop(
+    JNIEnv*, jobject) {
+    stop_requested.store(true);
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeButton(
+    JNIEnv*, jobject, jint id, jboolean pressed) {
+    if (id < 0 || id >= 32) return;
+    const uint32_t bit = 1u << static_cast<unsigned>(id);
+    if (pressed) pressed_buttons.fetch_or(bit);
+    else pressed_buttons.fetch_and(~bit);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeAxis(
+    JNIEnv*, jobject, jint axis, jint value) {
+    if (axis >= 0 && axis < 4 && value >= -32767 && value <= 32767)
+        axes[axis].store(static_cast<int16_t>(value));
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativePointer(
+    JNIEnv*, jobject, jint x, jint y, jboolean down) {
+    if (x < -32767 || x > 32767 || y < -32767 || y > 32767) return;
+    pointer_x.store(static_cast<int16_t>(x));
+    pointer_y.store(static_cast<int16_t>(y));
+    pointer_down.store(down);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativePrepare(
+    JNIEnv*, jobject) {
+    // UI prepares before starting the VM thread. A subsequent stop must never
+    // be erased by a late-starting nativeRun after Surface destruction/pause.
+    stop_requested.store(false);
+    frontend_paused.store(false);
+    WiiuMetrics::audio_paused.store(false);
+    clearPendingSurface();
+    submitted_audio.store(0);
+    WiiuMetrics::run_calls.store(0);
+    WiiuMetrics::run_returns.store(0);
+    WiiuMetrics::run_started_us.store(0);
+    WiiuMetrics::last_run_us.store(0);
+    WiiuMetrics::max_run_us.store(0);
+    WiiuMetrics::max_fence_us.store(0);
+    WiiuMetrics::gpu(0);
+    { std::lock_guard<std::mutex> lock(diagnostics_mutex); native_error.clear(); }
+    host_stage.store(0);
+    renderer_ready.store(false);
+    tab_down.store(false);
+    screen_requests.store(0);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativePause(
+    JNIEnv*, jobject, jboolean paused) {
+        frontend_paused.store(paused);
+        WiiuMetrics::audio_paused.store(paused);
+    }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeController(
+    JNIEnv*, jobject, jboolean pro) {
+    // Pinned RPCS3 RETRO_DEVICE_PRO = RETRO_DEVICE_SUBCLASS(JOYPAD, 1).
+    requested_controller.store(pro ? 513u : RETRO_DEVICE_JOYPAD);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeToggleScreen(
+    JNIEnv*, jobject) { screen_requests.fetch_add(1); }
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeReport(
+    JNIEnv* env, jobject) {
+    std::lock_guard<std::mutex> lock(diagnostics_mutex);
+    const auto out = "host_stage=" + std::to_string(host_stage.load()) +
+        "\nrenderer_ready=" + std::to_string(renderer_ready.load()) +
+        "\nimage_width=" + std::to_string(image_width.load()) +
+        "\nimage_height=" + std::to_string(image_height.load()) +
+        "\npresented_image_callbacks=" + std::to_string(frame_count.load()) +
+        "\naudio_submitted_frames=" + std::to_string(submitted_audio.load()) +
+        "\ncontroller_device_requested=" + std::to_string(applied_controller.load()) +
+        "\nhost_paused=" + std::to_string(frontend_paused.load()) +
+        "\nnative_error=" + native_error + WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
+    return env->NewStringUTF(out.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeSurface(
+    JNIEnv* env, jobject, jobject surface) {
+    ANativeWindow* next = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
+    surfaces.update(next);
+    if (!next) {
+        frontend_paused.store(true);
+        WiiuMetrics::audio_paused.store(true);
+    }
+}

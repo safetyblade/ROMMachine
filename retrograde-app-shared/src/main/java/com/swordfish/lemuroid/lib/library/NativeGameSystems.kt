@@ -12,12 +12,22 @@ object NativeGameSystems {
         // Launch remains blocked by NativeEngineRegistry's real binary/manifest gate.
         // Other experimental native systems stay gated by the packaged build.
         return configurations().filter {
-            it.id in setOf(SystemID.XBOX360, SystemID.WII_U) || it.id.dbname in requested
+            it.id in setOf(SystemID.XBOX360, SystemID.WII_U, SystemID.PLAYSTATION_3) || it.id.dbname in requested
         }
     }
 
     fun configurations(): List<GameSystem> =
         listOf(
+            GameSystem(
+                SystemID.PLAYSTATION_3, "Sony - PlayStation 3",
+                R.string.game_system_title_ps3, R.string.game_system_abbr_ps3,
+                systemCoreConfigs = emptyList(), uniqueExtensions = emptyList(),
+                supportedExtensions = listOf("iso", "sfo", "pkg"),
+                fastForwardSupport = false, nativeBackend = "ps3",
+                scanOptions = GameSystem.Companion.ScanOptions(
+                    scanByPathAndSupportedExtensions = false, scanByFilename = false, scanByPathAndFilename = false,
+                ),
+            ),
             // Index Wii U cartridges even while the Vulkan engine remains an
             // unreleased private test. Discovery is NOT an emulator support claim.
             // Only WUA/WUD/WUX have console-exclusive extensions; ELF/RPX/TMD
