@@ -533,9 +533,10 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun syncPause() {
         if (ready && started) {
             val shouldPause = !hostForeground || menu || leaving
-            val outcome = menuHost.dispatch(
-                if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
-            )
+            val outcome =
+                menuHost.dispatch(
+                    if (shouldPause) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME,
+                )
             if (shouldPause) menuPauseFeedback = outcome.menuFeedback()
         }
     }
