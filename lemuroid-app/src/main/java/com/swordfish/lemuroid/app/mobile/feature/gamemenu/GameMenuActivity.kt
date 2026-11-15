@@ -33,9 +33,11 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesV
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.RetroKey
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -56,7 +58,22 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     private var lastPhysicalKey by mutableStateOf<Int?>(null)
     private var mappingRevision by mutableStateOf(0)
 
+    private val menuEdge = ControllerMenuEdge()
+
+    override fun onPause() {
+        menuEdge.clear()
+        pendingBinding = null
+        super.onPause()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
+            if (menuEdge.handle(event)) {
+                pendingBinding = null
+                finish()
+            }
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN &&
             event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
         ) {

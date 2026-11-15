@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -178,4 +179,29 @@ class SharedGameMenuTest {
             }
         }
     }
+    @Test fun unavailableResumeWithoutAdvancedFocusesShelf() {
+        var action: GameMenuAction? = null
+        compose.setContent {
+            MaterialTheme {
+                SharedGameMenuHome(
+                    capabilities = GameMenuCapabilities(advanced = false),
+                    onAction = { action = it },
+                    canResume = false,
+                )
+            }
+        }
+        compose.onNodeWithText("Resume").assertIsNotEnabled()
+        compose.onNodeWithText("Return to Shelf").assertIsFocused().performClick()
+        compose.runOnIdle { assertEquals(GameMenuAction.RETURN_TO_SHELF, action) }
+    }
+
+    @Test fun recoveryInitiallyFocusesRecoveryAction() {
+        compose.setContent {
+            MaterialTheme {
+                SharedGameMenuHome(GameMenuCapabilities(advanced = true), {}, canResume = false)
+            }
+        }
+        compose.onNodeWithText("Recovery options").assertIsFocused()
+    }
+
 }
