@@ -35,54 +35,57 @@ class GameplayMenuHostAdapterTest {
     }
 
     @Test
-    fun nativePauseIsSubmittedButNotReportedAsPaused() = runBlocking {
-        val calls = mutableListOf<String>()
-        val host =
-            GameplayMenuHostAdapter(
-                GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.CEMU),
-                pause = { calls.add("pause") },
-                resume = { calls.add("resume") },
-            )
-        val session = GameplayMenuSession(host)
-        val opened = session.open()
-        assertEquals(GameplayMenuSessionStatus.OPEN_UNCONFIRMED, opened.status)
-        assertTrue(opened.pauseWasDispatched)
-        assertEquals(listOf("pause"), calls)
-        assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
-        assertEquals(listOf("pause", "resume"), calls)
-    }
+    fun nativePauseIsSubmittedButNotReportedAsPaused() =
+        runBlocking {
+            val calls = mutableListOf<String>()
+            val host =
+                GameplayMenuHostAdapter(
+                    GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.CEMU),
+                    pause = { calls.add("pause") },
+                    resume = { calls.add("resume") },
+                )
+            val session = GameplayMenuSession(host)
+            val opened = session.open()
+            assertEquals(GameplayMenuSessionStatus.OPEN_UNCONFIRMED, opened.status)
+            assertTrue(opened.pauseWasDispatched)
+            assertEquals(listOf("pause"), calls)
+            assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
+            assertEquals(listOf("pause", "resume"), calls)
+        }
 
     @Test
-    fun nativePauseExceptionIsNotReportedAsSuccess() = runBlocking {
-        val host =
-            GameplayMenuHostAdapter(
-                GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.ARMSX2),
-                pause = { throw IllegalStateException("PS2 VM stopped") },
-                resume = {},
-            )
-        val session = GameplayMenuSession(host)
-        val opened = session.open()
-        assertEquals(GameplayMenuSessionStatus.OPEN_RUNNING, opened.status)
-        assertFalse(opened.pauseWasDispatched)
-        assertTrue(opened.message.orEmpty().contains("PS2 VM stopped"))
-        assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
-    }
+    fun nativePauseExceptionIsNotReportedAsSuccess() =
+        runBlocking {
+            val host =
+                GameplayMenuHostAdapter(
+                    GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.ARMSX2),
+                    pause = { throw IllegalStateException("PS2 VM stopped") },
+                    resume = {},
+                )
+            val session = GameplayMenuSession(host)
+            val opened = session.open()
+            assertEquals(GameplayMenuSessionStatus.OPEN_RUNNING, opened.status)
+            assertFalse(opened.pauseWasDispatched)
+            assertTrue(opened.message.orEmpty().contains("PS2 VM stopped"))
+            assertEquals(GameplayMenuSessionStatus.CLOSED, session.resume().status)
+        }
 
     @Test
-    fun nativeHostNeverCallsSaveStateWhenUnavailable() = runBlocking {
-        var nativeCalls = 0
-        val host =
-            GameplayMenuHostAdapter(
-                GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XENIA),
-                pause = { nativeCalls++ },
-                resume = { nativeCalls++ },
-            )
-        val session = GameplayMenuSession(host)
-        session.open()
-        val outcome = session.request(GameplayMenuCommand.SAVE_STATE)
-        assertTrue(outcome is GameplayMenuCommandResult.Unsupported)
-        assertEquals(1, nativeCalls)
-    }
+    fun nativeHostNeverCallsSaveStateWhenUnavailable() =
+        runBlocking {
+            var nativeCalls = 0
+            val host =
+                GameplayMenuHostAdapter(
+                    GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.XENIA),
+                    pause = { nativeCalls++ },
+                    resume = { nativeCalls++ },
+                )
+            val session = GameplayMenuSession(host)
+            session.open()
+            val outcome = session.request(GameplayMenuCommand.SAVE_STATE)
+            assertTrue(outcome is GameplayMenuCommandResult.Unsupported)
+            assertEquals(1, nativeCalls)
+        }
 
     @Test
     fun existingLifecycleCallsStillRunOnTheCallerThread() {
