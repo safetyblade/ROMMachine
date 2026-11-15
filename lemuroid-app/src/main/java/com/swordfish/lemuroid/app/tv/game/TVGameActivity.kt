@@ -34,8 +34,8 @@ class TVGameActivity : BaseGameActivity() {
         event: KeyEvent,
     ): Boolean {
         if (keyCode == KeyEvent.KEYCODE_MENU) {
-            if (event.repeatCount == 0) requestGameMenuFromHardware()
-            // MENU is a reserved host key; never forward down or repeats to the core.
+            // Keep both edges out of gameplay. Open on release so the newly
+            // launched menu Activity cannot inherit this key's trailing UP.
             return true
         }
         return super.onKeyDown(keyCode, event)
@@ -45,8 +45,10 @@ class TVGameActivity : BaseGameActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
-        // Consume the matching release to avoid an orphaned key-up in gameplay.
-        if (keyCode == KeyEvent.KEYCODE_MENU) return true
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            if (event.repeatCount == 0) requestGameMenuFromHardware()
+            return true
+        }
         return super.onKeyUp(keyCode, event)
     }
 
