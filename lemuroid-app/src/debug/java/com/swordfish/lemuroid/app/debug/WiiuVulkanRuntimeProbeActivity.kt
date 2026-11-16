@@ -435,11 +435,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         }
     }
 
-    private fun engineReport(native: String) =
-        "apk_version_code=${com.swordfish.lemuroid.BuildConfig.VERSION_CODE}\nengine=${selection?.id}\n" +
-            "core_sha256=$loadedCoreSha256\n" +
-            "core_build_id=${selection?.properties?.getProperty("library.libcemu_libretro_android.so.build_id", "UNKNOWN")}\n" +
-            "core_source=${selection?.properties?.getProperty("upstream.revision", "UNKNOWN")}\n$native"
+    private fun engineReport(native: String): String {
+        val properties = selection?.properties
+        val buildId = properties?.getProperty("library.libcemu_libretro_android.so.build_id", "UNKNOWN")
+        val source = properties?.getProperty("upstream.revision", "UNKNOWN")
+        return "apk_version_code=${com.swordfish.lemuroid.BuildConfig.VERSION_CODE}\nengine=${selection?.id}\n" +
+            "core_sha256=$loadedCoreSha256\ncore_build_id=$buildId\ncore_source=$source\n$native"
+    }
 
     private fun startIfReady() {
         val engine = selection ?: return

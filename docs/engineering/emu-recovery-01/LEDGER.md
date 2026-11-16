@@ -134,3 +134,24 @@ audio concealment, RSS and thermal status; compare menus, geometry/textures/dept
 save/reopen and Return to Shelf. Do not derive unique-image FPS from presents.
 No same-device before/after, visuals, thermals or sustained speed are yet measured.
 **Gameplay improvement/fidelity acceptance PENDING, not PASS.**
+
+### Verification follow-up
+
+The first recovery workflow stopped before native compilation on a telemetry
+format-security warning. Fixed the formatter and added the identical strict
+`-Wformat-security` test flag; no failed check was waived. Local native timings
+under concurrent compiler load vary (17–85 ns record-only); these are host-only
+microbenchmarks and not an Android overhead guarantee.
+
+Accepted master also had pre-existing GEMRating ktlint failures (including the
+failed master run 43836016615). Only formatter output/trailing commas were changed
+in its source/tests to restore the mandatory whole-app gate; no recommender logic,
+fixture data, GC, schema or save behavior was changed.
+
+CI-01 component producers now attempt immutable-recipe/output verification before
+compilation, including the current Cemu atomic-helper proof. A successful native
+component from a recovery run can be reused even when the later APK gate failed;
+its own producer job must have passed and its complete receipt must match. This
+prevents unrelated application/test edits from forcing Cemu/Xenia recompilation.
+Historical recovery outputs qualify for normal reuse only after their full
+workflow succeeds. No all-engine recovery is implicitly enabled.

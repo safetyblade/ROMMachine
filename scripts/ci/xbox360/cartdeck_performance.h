@@ -69,7 +69,7 @@ inline void append(char* out, size_t size) {
     const int n = std::snprintf(out + used, size - used, format, args...);
     if (n > 0) used += std::min(size - used - 1, static_cast<size_t>(n));
   };
-  write("\nperformance_schema=1 timing=CPU_MONOTONIC window_samples_max=512 "
+  write("%s", "\nperformance_schema=1 timing=CPU_MONOTONIC window_samples_max=512 "
         "unique_completed_frames=UNAVAILABLE guest_simulation_rate=UNAVAILABLE "
         "gpu_execution_time=UNAVAILABLE imagery=UNVERIFIED\n");
   for (unsigned i = 0; i < MetricCount; ++i) {

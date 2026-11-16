@@ -96,7 +96,58 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
+      - name: Find an existing source-matched recovery component
+        if: contains(fromJSON('["cemu","xenia"]'), inputs.engine)
+        id: cached
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefix = 'native-ci01-${{ inputs.engine }}-';
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            for (const a of artifacts.filter(a => !a.expired && a.name.startsWith(prefix)).sort((a,b) => new Date(b.created_at)-new Date(a.created_at))) {
+              const id = a.workflow_run?.id;
+              if (!id || String(id) === String(context.runId)) continue;
+              const run = (await github.rest.actions.getWorkflowRun({...context.repo,run_id:id})).data;
+              if (run.head_repository?.full_name !== context.repo.owner+'/'+context.repo.repo) continue;
+              if (!['.github/workflows/cartdeck-ci01-native-engine.yml','.github/workflows/cartdeck-emu-recovery.yml'].includes(run.path)) continue;
+              let passed = run.conclusion === 'success';
+              if (!passed && run.path.endsWith('cartdeck-emu-recovery.yml')) {
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,{...context.repo,run_id:id,per_page:100});
+                passed = jobs.some(j => j.name.includes('${{ inputs.engine }}') && j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
+              }
+              if (!passed) continue;
+              core.setOutput('id',String(a.id)); core.setOutput('run',String(id)); break;
+            }
+      - name: Download candidate for strict recipe verification
+        if: steps.cached.outputs.id != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          artifact-ids: ${{ steps.cached.outputs.id }}
+          run-id: ${{ steps.cached.outputs.run }}
+          path: work/verified-reuse
+          merge-multiple: true
+      - name: Reuse only after immutable input and output verification
+        id: reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          valid=false
+          if [[ -f work/verified-reuse/receipt.json ]]; then
+            if python3 scripts/ci/ci01_remaining_engines.py --engine '${{ inputs.engine }}' --directory work/verified-reuse; then
+              valid=true
+              if [[ '${{ inputs.engine }}' == cemu ]]; then
+                if ! python3 -c 'import sys,json;sys.path.insert(0,"scripts/ci");from wiiu_cemu_contract import require_guest_atomic64;require_guest_atomic64(json.load(open("work/verified-reuse/native-evidence.json")))'; then valid=false; fi
+              fi
+            fi
+          fi
+          if [[ "$valid" == true ]]; then
+            mkdir -p 'work/ci01-reusable/${{ inputs.engine }}'
+            cp -a work/verified-reuse/. 'work/ci01-reusable/${{ inputs.engine }}/'
+          fi
+          echo "valid=$valid" >> "$GITHUB_OUTPUT"
       - name: Prepare pinned Android NDK
+        if: steps.reuse.outputs.valid != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -104,6 +155,7 @@ jobs:
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
       - name: Compile selected pinned native source only
+        if: steps.reuse.outputs.valid != 'true'
         shell: bash
         run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
       - name: Verify five-core source identity, core and assets; issue immutable receipt
@@ -132,7 +184,7 @@ jobs:
           python3 scripts/ci/package_ps2_runtime_support.py \
             --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Stage and independently verify selected backend receipt
-        if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine)
+        if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine) && steps.reuse.outputs.valid != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -150,7 +202,7 @@ jobs:
           python3 scripts/ci/ci01_remaining_engines.py \
             --engine "$engine" --directory "work/ci01-reusable/$engine"
       - name: Retain receipt-covered corresponding source with native inputs
-        if: contains(fromJSON('["hakux","armsx2","xenia"]'), inputs.engine)
+        if: contains(fromJSON('["hakux","armsx2","xenia"]'), inputs.engine) && steps.reuse.outputs.valid != 'true'
         shell: bash
         run: |
           python3 scripts/ci/retain_ci01_sources.py --engine "${{ inputs.engine }}" \

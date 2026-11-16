@@ -485,15 +485,20 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             }
         val memory = android.app.ActivityManager.MemoryInfo()
         (getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager).getMemoryInfo(memory)
-        val rssBytes = runCatching {
-            val pages = java.io.File("/proc/self/statm").bufferedReader().use { reader ->
-                reader.readLine().split(' ').filter { it.isNotBlank() }[1].toLong()
+        val rssBytes =
+            runCatching {
+                val pages =
+                    java.io.File("/proc/self/statm").bufferedReader().use { reader ->
+                        reader.readLine().split(' ').filter { it.isNotBlank() }[1].toLong()
+                    }
+                pages * android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
+            }.getOrNull()
+        val thermal =
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                (getSystemService(POWER_SERVICE) as android.os.PowerManager).currentThermalStatus.toString()
+            } else {
+                "UNAVAILABLE"
             }
-            pages * android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
-        }.getOrNull()
-        val thermal = if (android.os.Build.VERSION.SDK_INT >= 29) {
-            (getSystemService(POWER_SERVICE) as android.os.PowerManager).currentThermalStatus.toString()
-        } else "UNAVAILABLE"
         val report =
             "CARTDECK ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}); Xbox 360\n" +
                 "device=${android.os.Build.MODEL}; api=${android.os.Build.VERSION.SDK_INT}; " +

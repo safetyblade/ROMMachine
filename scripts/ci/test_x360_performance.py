@@ -10,6 +10,6 @@ class X360Performance(unittest.TestCase):
         source = pathlib.Path(__file__).resolve().parent / 'xbox360'
         with tempfile.TemporaryDirectory() as directory:
             exe = pathlib.Path(directory) / 'test'
-            subprocess.run(['c++', '-std=c++17', '-O2', '-pthread', '-Wall', '-Wextra', '-Werror',
+            subprocess.run(['c++', '-std=c++17', '-O2', '-pthread', '-Wall', '-Wextra', '-Werror', '-Wformat-security',
                             '-I' + str(source), str(source.parent / 'tests/X360PerformanceTest.cpp'), '-o', str(exe)], check=True)
             subprocess.run([str(exe)], check=True, timeout=30)

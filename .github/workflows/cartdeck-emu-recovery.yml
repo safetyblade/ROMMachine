@@ -21,6 +21,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Reject source formatting failures before native work
+        run: |
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
       - run: |
           python3 -m unittest discover -s scripts/ci -p 'test_cemu_atomic_attestation.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v

@@ -308,10 +308,14 @@ jobs:
                   runs.set(runId, response.data);
                 }
                 const run = runs.get(runId);
-                if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
-                    run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
-                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
-                    artifact.name !== prefix + run.head_sha) continue;
+                const dispatched = run.event === 'workflow_dispatch' &&
+                  run.path === '.github/workflows/cartdeck-ci01-native-engine.yml' && artifact.name === prefix + run.head_sha;
+                const recovered = run.event === 'pull_request' &&
+                  run.path === '.github/workflows/cartdeck-emu-recovery.yml' &&
+                  run.head_branch?.startsWith('engineering/emu-recovery-') &&
+                  new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                if (run.conclusion !== 'success' || !(dispatched || recovered) ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
                 chosen = {run_id: run.id, name: artifact.name};
                 break;
               }
