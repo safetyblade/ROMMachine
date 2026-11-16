@@ -209,6 +209,7 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Recovery options").assertIsFocused()
     }
 
+    // Key injection is experimental in the pinned Compose test API.
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun remoteDpadOkAndGuideReleaseCannotResumeRecovery() {
