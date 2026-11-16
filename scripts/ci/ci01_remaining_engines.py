@@ -43,6 +43,13 @@ def build_recipe_files(engine):
         scripts.extend(p.as_posix() for p in sorted(Path("spikes/wiiu/vulkan-host").rglob("*")) if p.is_file())
     return sorted(set(scripts))
 
+BUILD_FLAGS = {
+    "hakux": "cmake;ANDROID_ABI=arm64-v8a;ANDROID_PLATFORM=android-28;ANDROID_STL=c++_static;CMAKE_BUILD_TYPE=Release;max-page-size=16384",
+    "xenia": "Android ARM64 Vulkan;api=29;NDK=29.0.14206865;strip=llvm-strip",
+    "armsx2": "Android ARM64;page-sizes=4096,16384;rust-linker=16KiB;source-pinned shaderc",
+    "cemu": "ENABLE_LIBRETRO=ON;ENABLE_VULKAN=ON;ANDROID_ABI=arm64-v8a;ANDROID_PLATFORM=android-28;CMAKE_BUILD_TYPE=Release;16KiB",
+    "libretrodroid": "arm64-v8a;compileSdk=35;ndkVersion=29.0.14206865;cFlags=-g;cppFlags=-g;publishRelease",
+}
 PATCHES = {
     "hakux": [
         "hakux-libslirp-4.7-ssize.patch", "hakux-vulkan-loader-version.patch",
@@ -158,7 +165,7 @@ def expected(engine):
                 ndk_version="29.0.14206865", abi="arm64-v8a", api_level=spec["api"],
                 build_configuration="script-defined",
                 compiler_flags_sha256=hashlib.sha256(
-                    ("CI01:" + engine + ":" + spec["version"]).encode()).hexdigest())
+                    BUILD_FLAGS[engine].encode()).hexdigest())
 
 
 def verify(engine, directory):
@@ -192,7 +199,7 @@ def produce(engine, source, dest):
     from resolve_native_artifacts import resolve_component
     issued = issue_receipt(dest, engine, SPECS[engine]["version"], SPECS[engine]["sha"],
                            scripts[0], patches, "29.0.14206865", SPECS[engine]["api"],
-                           "CI01:" + engine + ":" + SPECS[engine]["version"], notice)
+                           BUILD_FLAGS[engine], notice)
     # Replace single-script fingerprint with complete recipe fingerprint;
     # output digests stay immutable and are immediately re-verified.
     issued["identity"]["build_script_sha256"] = identity["build_script_sha256"]
