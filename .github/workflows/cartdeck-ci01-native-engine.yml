@@ -12,6 +12,8 @@ on:
       - 'scripts/ci/test_measure_apk_build.py'
       - 'scripts/ci/retain_ci01_sources.py'
       - 'scripts/ci/test_retain_ci01_sources.py'
+      - 'scripts/ci/retain_ci01_host_metadata.py'
+      - 'scripts/ci/test_retain_ci01_host_metadata.py'
       - 'scripts/ci/test_ci01_*.py'
       - '.github/workflows/cartdeck-ci01-native-engine.yml'
   workflow_dispatch:
@@ -69,6 +71,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_retain_ci01_sources.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_retain_ci01_host_metadata.py' -v
   native-component:
     if: github.event_name == 'workflow_dispatch'
     name: Verify and retain one genuine native component
@@ -148,6 +151,12 @@ jobs:
           python3 scripts/ci/retain_ci01_sources.py --engine "${{ inputs.engine }}" \
             --source "work/connected/${{ inputs.engine }}" \
             --directory "work/ci01-reusable/${{ inputs.engine }}"
+      - name: Retain host Maven metadata needed by APK consumers
+        if: inputs.engine == 'libretrodroid'
+        run: |
+          python3 scripts/ci/retain_ci01_host_metadata.py \
+            --source "$RUNNER_TEMP/connected-libretrodroid-source" \
+            --directory work/ci01-reusable/libretrodroid
       - name: Retain independent verified backend artifact
         if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine)
         uses: actions/upload-artifact@v4
