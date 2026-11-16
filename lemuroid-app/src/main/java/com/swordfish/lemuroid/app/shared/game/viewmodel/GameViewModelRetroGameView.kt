@@ -118,6 +118,8 @@ class GameViewModelRetroGameView(
         return gameState.debounce(200)
     }
 
+    fun isPreparing(): Boolean = gameState.value is GameState.Uninitialized || gameState.value is GameState.Loading
+
     suspend fun initialize(
         applicationContext: Context,
         game: Game,

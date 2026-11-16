@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -86,6 +87,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private var booted = false
     private var subsystemsReady = false
     private var foreground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var menuOpen by mutableStateOf(false)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
@@ -175,7 +177,11 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (message.isNotEmpty() && !menuOpen && !failed) CartdeckLoadingScreen(message)
+                        if (message.isNotEmpty() && !menuOpen && !failed) {
+                            CartdeckLoadingScreen(message, onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (menuOpen && failed) {
                             com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme {
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPanel(
@@ -251,11 +257,17 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menuOpen) closeMenu() else openMenu()
+                    if (!contentReady) {
+                        leave()
+                    } else if (menuOpen) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 val staged =
                     withContext(Dispatchers.IO) {
@@ -546,30 +558,34 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInputs()
         syncPause()
         main.removeCallbacksAndMessages(null)
-        saveReport(runCatching { emulator?.cartdeck_report() }.getOrNull() ?: "stage=HOST_UNAVAILABLE")
-        val result =
-            Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, intent.getSerializableExtra("cartdeck.game"))
-                .putExtra(
-                    BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
-                    intent.getBooleanExtra("cartdeck.leanback", false),
-                )
-                .putExtra(
-                    BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,
-                    android.os.SystemClock.elapsedRealtime() -
-                        intent.getLongExtra(
-                            "cartdeck.startTime", android.os.SystemClock.elapsedRealtime(),
-                        ),
-                )
-        setResult(
-            if (failed) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
-            result.apply {
-                if (failed) putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, message)
-            },
-        )
-        finish()
+        lifecycleScope.launch {
+            preparation.awaitCleanup()
+            saveReport(runCatching { emulator?.cartdeck_report() }.getOrNull() ?: "stage=HOST_UNAVAILABLE")
+            val result =
+                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, intent.getSerializableExtra("cartdeck.game"))
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
+                        intent.getBooleanExtra("cartdeck.leanback", false),
+                    )
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,
+                        android.os.SystemClock.elapsedRealtime() -
+                            intent.getLongExtra(
+                                "cartdeck.startTime", android.os.SystemClock.elapsedRealtime(),
+                            ),
+                    )
+            setResult(
+                if (failed) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
+                result.apply {
+                    if (failed) putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, message)
+                },
+            )
+            finish()
+        }
     }
 
     override fun onDestroy() {

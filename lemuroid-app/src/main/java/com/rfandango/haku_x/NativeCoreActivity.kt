@@ -83,7 +83,8 @@ class NativeCoreActivity : SDLActivity() {
     private lateinit var engine: XboxEngineStore.Selection
     private var startupFailure: Throwable? = null
     private var ready = false
-    private var leaving = false
+    private var leaving by mutableStateOf(false)
+    private var awaitingFirstFrame by mutableStateOf(true)
     private var paused = true
     private var recoveryDialog: AlertDialog? = null
     private var menuOpen by mutableStateOf(false)
@@ -172,6 +173,7 @@ class NativeCoreActivity : SDLActivity() {
                     }
                 lastPoll = now
                 val shown = nativeGetFrameShown()
+                awaitingFirstFrame = !shown
                 val bootState = runCatching { nativeGetBootState() }.getOrDefault(0)
                 val relaunch = nativeGetRelaunch()
                 val quit = nativeGetQuit()
@@ -363,6 +365,13 @@ class NativeCoreActivity : SDLActivity() {
                                 }
                             },
                         )
+                        if (awaitingFirstFrame && !menuOpen && startupFailure == null) {
+                            com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen(
+                                "Starting Xbox game",
+                                onCancel = { leave() },
+                                cancelling = leaving,
+                            )
+                        }
                         if (menuOpen) {
                             XboxGameMenu(
                                 title =

@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game
 
+import android.view.KeyEvent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,11 +12,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +34,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,7 +53,12 @@ import kotlinx.coroutines.withContext
  * Read appearance off the UI thread; never mutate the shelf or game files.
  */
 @Composable
-internal fun CartdeckLoadingScreen(message: String?) {
+internal fun CartdeckLoadingScreen(
+    message: String?,
+    onCancel: (() -> Unit)? = null,
+    cancelling: Boolean = false,
+) {
+    if (onCancel != null) BackHandler { if (!cancelling) onCancel() }
     val context = LocalContext.current.applicationContext
     val appearance by produceState(initialValue = ShelfAppearance(), key1 = context) {
         value =
@@ -70,7 +82,22 @@ internal fun CartdeckLoadingScreen(message: String?) {
     val slot = RoundedCornerShape(18.dp)
 
     Box(
-        modifier = Modifier.fillMaxSize().background(chassis),
+        modifier =
+            Modifier.fillMaxSize().background(chassis).safeDrawingPadding()
+                .onPreviewKeyEvent { event ->
+                    val key = event.nativeKeyEvent
+                    if (onCancel != null && key.keyCode in
+                        listOf(
+                            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B,
+                            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE,
+                        )
+                    ) {
+                        if (key.action == KeyEvent.ACTION_UP && !cancelling) onCancel()
+                        true
+                    } else {
+                        false
+                    }
+                }.verticalScroll(rememberScrollState()),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
@@ -195,6 +222,11 @@ internal fun CartdeckLoadingScreen(message: String?) {
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
             )
+            if (onCancel != null) {
+                OutlinedButton(onClick = onCancel, enabled = !cancelling) {
+                    Text(if (cancelling) "Cancelling — finishing safely" else "Cancel and return to Shelf")
+                }
+            }
         }
     }
 }

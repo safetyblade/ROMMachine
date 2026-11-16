@@ -25,6 +25,8 @@ fun BaseGameScreen(
         else ->
             CartdeckLoadingScreen(
                 message = (gameState as? GameViewModelRetroGameView.GameState.Loading)?.message,
+                onCancel = viewModel::cancelLoading,
+                cancelling = viewModel.launchCancelling().collectAsState().value,
             )
     }
 }

@@ -2,13 +2,14 @@
 
 package com.rfandango.haku_x
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxStorage
@@ -21,7 +22,19 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** An Xbox title may launch a second XBE. Wait for its old native process, never loop after a crash. */
-class XboxRelaunchActivity : Activity() {
+class XboxRelaunchActivity : androidx.activity.ComponentActivity() {
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
+
+    private fun cancelLaunch() {
+        if (preparation.cancelling.value) return
+        preparation.requestCancellation()
+        handler.removeCallbacksAndMessages(null)
+        scope.launch {
+            preparation.awaitCleanup()
+            finish()
+        }
+    }
+
     private val handler = Handler(Looper.getMainLooper())
     private var started = 0L
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -29,7 +42,7 @@ class XboxRelaunchActivity : Activity() {
         object : Runnable {
             override fun run() {
                 if (!GameProcessLock.isHeldByAnotherProcess(applicationContext)) {
-                    scope.launch {
+                    preparation.start(scope) {
                         val failure =
                             withContext(Dispatchers.IO) {
                                 runCatching {
@@ -48,6 +61,7 @@ class XboxRelaunchActivity : Activity() {
                                     }
                                 }.exceptionOrNull()
                             }
+                        if (preparation.cancelling.value || isFinishing) return@start
                         if (failure != null) {
                             AlertDialog.Builder(this@XboxRelaunchActivity).setTitle("CARTDECK · Xbox")
                                 .setMessage(
@@ -75,6 +89,15 @@ class XboxRelaunchActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContent {
+            com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme {
+                com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen(
+                    "Preparing Xbox cartridge",
+                    ::cancelLaunch,
+                    preparation.cancelling.collectAsState().value,
+                )
+            }
+        }
         started = SystemClock.uptimeMillis()
         handler.postDelayed(retry, 200)
     }

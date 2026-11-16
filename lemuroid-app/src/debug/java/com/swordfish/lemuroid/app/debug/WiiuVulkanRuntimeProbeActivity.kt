@@ -20,6 +20,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -80,6 +81,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var loaded = false
     private var started = false
     private var hostForeground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var failed = false
     private var vmThread: Thread? = null
@@ -276,7 +278,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 }
                             }
                         }
-                        if (!menuOpen && showLoadingScreen && !failed) CartdeckLoadingScreen(message)
+                        if (!menuOpen && showLoadingScreen && !failed) {
+                            CartdeckLoadingScreen(message, onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (menuOpen) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "Wii U",
@@ -343,11 +349,17 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menuOpen) closeMenu() else openMenu()
+                    if (showLoadingScreen) {
+                        leave()
+                    } else if (menuOpen) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 GameProcessLock.acquireExclusive(this@WiiuVulkanRuntimeProbeActivity)
                 val current = requireNotNull(game) { "Open a Wii U cartridge from the shelf" }
@@ -655,9 +667,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInput()
-        if (loaded) nativeStop()
         lifecycleScope.launch {
+            preparation.awaitCleanup()
+            if (loaded) nativeStop()
             val stopped =
                 withContext(Dispatchers.IO) {
                     vmThread?.join(8000)

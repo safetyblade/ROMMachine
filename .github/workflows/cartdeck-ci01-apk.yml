@@ -45,5 +45,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
+      include_ps3: false
       use_ci01_all_native: true
       measure_apk_reuse: ${{ inputs.build_mode == 'FULL_INTEGRATION_APK' }}

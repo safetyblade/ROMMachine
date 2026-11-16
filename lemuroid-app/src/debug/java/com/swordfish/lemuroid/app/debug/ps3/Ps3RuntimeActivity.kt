@@ -17,6 +17,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -66,6 +67,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var loaded = false
     private var ready = false
     private var booting = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var foreground = false
     private var failure = false
@@ -206,7 +208,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                             }
                         }
-                        if (loading && !menu) CartdeckLoadingScreen(message)
+                        if (loading && !menu) {
+                            CartdeckLoadingScreen(message, onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (!menu && (loading || connected)) {
                             androidx.compose.material3.TextButton(
                                 onClick = ::openMenu,
@@ -285,7 +291,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() = openMenu()
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             runCatching {
                 withContext(Dispatchers.IO) {
                     GameProcessLock.acquireExclusive(this@Ps3RuntimeActivity)
@@ -478,6 +484,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun fail(error: Throwable) {
+        if (error is kotlinx.coroutines.CancellationException) throw error
         failure = true
         loading = false
         message = error.message?.take(1024) ?: "PS3 engine failed; saves were retained."
@@ -777,8 +784,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave(reopen: Boolean = false) {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         release()
         lifecycleScope.launch {
+            preparation.awaitCleanup()
             val stopped = java.util.concurrent.atomic.AtomicBoolean(!loaded)
             if (loaded) {
                 Thread({

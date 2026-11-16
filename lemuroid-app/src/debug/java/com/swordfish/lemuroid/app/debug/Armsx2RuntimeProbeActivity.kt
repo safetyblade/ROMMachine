@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -87,6 +88,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var ready = false
     private var started = false
     private var hostForeground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var failed = false
     private var missingBios = false
@@ -234,7 +236,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (!menu && message.isNotEmpty() && !failed) CartdeckLoadingScreen(message)
+                        if (!menu && message.isNotEmpty() && !failed) {
+                            CartdeckLoadingScreen(message, onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (menu) {
                             XboxGameMenu(
                                 title = game?.displayName() ?: "PlayStation 2",
@@ -322,11 +328,17 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menu) closeMenu() else openMenu()
+                    if (!loaded) {
+                        leave()
+                    } else if (menu) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 if (biosSetupMode) {
                     var attempts = 0
@@ -367,6 +379,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 job.ensureActive()
                             }
                     }
+                    job.ensureActive()
                     com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.begin(
                         this@Armsx2RuntimeProbeActivity,
                         "PS2",
@@ -389,6 +402,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         ).getBoolean("show_free_software_notice", false),
                     )
                     NativeApp.initialize(data.gameRoot.absolutePath, data.bios.absolutePath, Build.VERSION.SDK_INT)
+                    job.ensureActive()
                     NativeApp.setCustomVulkanDriver("", "", "", "")
                     NativeApp.setAffinityMode(0) // Let the Samsung scheduler place threads; no Adreno assumptions.
                     val renderer = getSharedPreferences("armsx2-runtime", MODE_PRIVATE).getString("renderer", "Vulkan")
@@ -692,13 +706,15 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInput()
-        val shutdown =
-            Thread(
-                { if (loaded && !biosSetupMode) runCatching { NativeApp.shutdown() } },
-                "cartdeck-armsx2-stop",
-            ).also { it.start() }
         lifecycleScope.launch {
+            preparation.awaitCleanup()
+            val shutdown =
+                Thread(
+                    { if (loaded && !biosSetupMode) runCatching { NativeApp.shutdown() } },
+                    "cartdeck-armsx2-stop",
+                ).also { it.start() }
             withContext(Dispatchers.IO) { shutdown.join(8000) }
             paths?.let { File(it.gameRoot, "last-report.txt").writeText(report.take(16384)) }
             if (!shutdown.isAlive) {
