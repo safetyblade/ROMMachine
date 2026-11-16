@@ -1,77 +1,37 @@
-# CARTDECK PC-00 — Dedicated PC Gaming Research Lane
+# CARTDECK — PC-00 Integrated PC Emulation Lane
+**Controlling owner scope — 17 November 2026.** Owner Jonathan; director Cassia; architecture Daniel; engineering Elliot; UX Sienna; QA Marcus; research Roxy.
 
-## 17 November 2026 — owner-authorised Shandalar source bootstrap
+## Locked product decisions
+- **All approved, legally distributable emulators are integrated in the CARTDECK application.** Players do not download or separately install an emulator to run a supported cartridge. Maintain CI-01 selective native artifact builds, actual APK payload and rollback.
+- **Release Settings links to an independent open-source emulator-only repository/source/build package** for all integrated console and PC engine technology. It is **not** a runtime installer, optional engine downloader or separate game-launch app. The release repo and URL do not yet exist: [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307).
+- The engine-only repository does **not** negate GPL-covered CARTDECK/Lemuroid/LibretroDroid combined-work corresponding-source requirements. Confirm actual licences/component boundaries and any app host/source release separately; do not represent the repository split as an automatic confidentiality guarantee.
+- **Remove the GameNative project entirely from the active PC programme.** No Steam/Epic/GOG/Amazon storefront sign-on, authenticated external games library, proprietary provider download adapter or competing PC frontend.
+- **Locally launched modern Windows games remain a feasibility objective:** examine Wine, Box64, FEX, Hangover and suitable Winlator/MiceWine technical components on Android ARM64/Xclipse; source/licence and actual execution proof required. Do not import Winlator/MiceWine's entire app shell.
+- **Classic PC first:** DOS, Windows 3.x/95/98, selective XP-era games, lawfully user-provided PC optical images, installers and files. Shandalar / MicroProse Magic: The Gathering (1997) is the first game acceptance path.
 
-**First PC compatibility case: Shandalar / MicroProse Magic: The Gathering (1997), Windows 95/98.** Product Owner has authorised a bounded, **isolated source/feasibility implementation spike** [PC-04 #305](https://github.com/safetyblade/ROMMachine/issues/305), with initial read-only source/native verification in [draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306). This is an explicit exception to the previous broad research-only boundary, not an approval for normal APK integration or public PC gameplay claims.
-
-Start with the existing DOSBox Pure CoreID and pinned LemuroidCores ARM64 library; audit real 16KB ELF, Libretro host and Windows 95 guest capabilities before considering a verified source-built upgrade. Winlator 11.2 (Wine/Box64 + Xclipse-oriented changes) is a secondary, separately approved runtime candidate; GameNative remains the separate PC-01 modern storefront candidate, not a substitute for the legacy PC engine. Upstream DOSBox Pure now maintains canonical source at Codeberg; official updated source pin has not yet been verified.
-
-**Current delivery truth:** PC-04 binary inventory and static verifier source drafted; NO new native engine, Windows installation, Shandalar media, working APK, host OS boot, gameplay or save acceptance delivered. Continue isolated PC-04 proof only, with no production ROM classification/save/schema change. The separate wider PC-00 research controls remain in force.
-
----
-**Status:** RESEARCH / FEASIBILITY ONLY · **Owner decision:** 17 November 2026 · **Implementation:** NOT AUTHORISED.
-**Product Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Architecture:** Daniel Mercer · **Engineering feasibility:** Elliot Shaw · **Product/UX:** Sienna Vale · **QA:** Marcus Reid · **Game curation:** Roxy Quinn.
-
-## Product objective and independent lane boundary
-
-Establish two first-class forms of **local PC gameplay within the existing CARTDECK application** without conflating PC game-store access, Windows execution, and optical media installation:
-
-- **PC Modern** — player-owned storefront libraries and standalone Windows game executables, running locally via licensed, practical Android ARM64 CPU/graphics/Windows compatibility layers.
-- **PC Classics** — original DOS and Windows-era game installations from lawful optical images, installers and existing directories, including a *MicroProse Magic: The Gathering / Shandalar* Windows 95/98 case study.
-
-Both share CARTDECK's single cartridge shelf, profile and Junior entitlements, input/menu/display, catalogue metadata and truthful save-management plan. Different underlying runtimes are acceptable. A game-store frontend, source repo or CD image is **not itself proof of runnable gameplay**.
-
-This is **an independent research lane**. It does not sit inside PERF-02, GC-01D/H, the three-console recovery queue, GEM or CartMods delivery stages. Architecture and public-source review can happen in parallel, but no runtime source changes or APK/CI changes are approved.
-
-## Issue ownership / navigation
-
-| Register | Scope | Status |
+## Dedicated PC lane
+| ID | Work | State |
 | --- | --- | --- |
-| [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) | Parent controlling research programme, decisions and milestones | RESEARCH |
-| [PC-01 #300](https://github.com/safetyblade/ROMMachine/issues/300) | Modern PC, GameNative, Winlator, MiceWine and Wine/FEX/Box64, storefront and exe | RESEARCH |
-| [PC-02 #301](https://github.com/safetyblade/ROMMachine/issues/301) | Classic PC disc images, Win9x guests, Wine legacy routes, install flows | RESEARCH |
-| [PC-03 #302](https://github.com/safetyblade/ROMMachine/issues/302) | Shared PC cartridge architecture, security, controls, profiles, saves, QA | RESEARCH |
-| [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) | Existing Shandalar proof candidate, linked under Classic PC | RESEARCH |
+| [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) | Governance, feasibility and decision record | Controlling |
+| [PC-01 #300](https://github.com/safetyblade/ROMMachine/issues/300) | Local Win32/Win64 execution technology, Wine/Box64/FEX | Research |
+| [PC-02 #301](https://github.com/safetyblade/ROMMachine/issues/301) | DOSBox Pure, DOSBox-X, classic discs and Windows guest environments | Research |
+| [PC-03 #302](https://github.com/safetyblade/ROMMachine/issues/302) | One app, bundled runtime interface, game UI, controls, profiles, Junior, SafeSave and QA | Design |
+| [PC-04 #305](https://github.com/safetyblade/ROMMachine/issues/305) | Shandalar first native integration proof | Protected bootstrap |
+| [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) | Original game-specific Shandalar research and trial | Gameplay not verified |
+| [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) | Separate emulator-only source/build release and future Settings link | Release design |
 
-**Source/rights rule:** evaluate actual pinned source, branch/revision, complete dependency and redistribution obligations, proprietary account/OS/DRM restrictions and game assets. An open-source repository is not proof it is safe or legal to embed a whole frontend. No DRM/copy-protection bypass, unlicensed Windows/retail media redistribution, no website credential harvesting.
+**PC-04 draft source:** [PR #306](https://github.com/safetyblade/ROMMachine/pull/306), original `CoreID.DOSBOX_PURE`, LemuroidCores native AArch64 core, source/provenance verifier and tests. No new Windows runtime or APK, and no Win95 guest or Shandalar gameplay evidence. Preserve unmerged/reversible branch and baseline native engine.
 
-## Current preliminary architecture — research hypothesis, not approval
+## Engineering study
+**DOSBox Pure first:** inspect exact actual pinned native binary, source licence, Android 16 KB ELF load alignment and host support for Windows 95/98 OS guest boot, virtual disk, PC CD mounting, keyboard/mouse and exit. Modern upstream source https://codeberg.org/schelling/dosbox-pure; upstream features do not prove the old binary supports them.
 
-| Concern | Research direction |
-| --- | --- |
-| Embedded Modern runtime | GameNative as storefront/source reference; compare Winlator/MiceWine, Wine/Proton + Box64/FEX/Hangover, Android integration constraints |
-| Classic PC runtime | Inspect actual CARTDECK DOSBox Pure first; compare Wine 32-bit and DOSBox-X Win95/98 only if needed |
-| Graphics/CPU | Samsung SM-S721B Exynos 2400e/Xclipse 940, Android 17, ARM64, 16KB, stock Vulkan baseline, translate DX9/DX11 where actually possible; do not assume Adreno-specific drivers |
-| Optical media | Read-only SAF mount; validate signatures and companion cue/bin tracks; distinguish install media from runnable game; multi-disc and CDDA support must be backend-proven |
-| Storage and identity | Stable game/title/edition/source identity, installed runtime environment, per-player writable save inventory; no extension-only ISO routing; no unsafe direct Room migration in research |
-| Profiles/Junior | Manager-approved PC installs/linked accounts and Junior allowlist; per-player isolated saves, installation and account/privacy boundaries |
-| Menu/display | Consistent CARTDECK Play, install/setup and Return to Shelf, controller + mouse/keyboard + TV escape, per-game options in Advanced |
-| SafeSave/GEM | Export only verified save artifacts, not OS VHD/ROM/installer/prefix by assumption; GEM catalogue/DeckFit status distinct from installed or actually working games |
-| Runtime distribution | On-demand runtime components only if source/licences, signing, integrity and update/rollback are feasible; minimise base APK bloat |
-| Compatibility | Explicit tiers RECOGNISED / INSTALLABLE / BOOTS / RENDERS / INTERACTIVE / SAVES / OWNER ACCEPTED, no universal supported-PC flag |
+**Fallbacks and later Windows:** DOSBox-X only with viable ARM64 Android host; Wine with Box64, FEX or Hangover when legally and technically compatible, using Winlator/MiceWine as component/graphics references. Device baseline Samsung SM-S721B, Android 17, Xclipse 940, stock Vulkan. Do not assume Turnip/Adreno drivers or universal Windows support.
 
-## Research milestones and stop/go gates
+**Media and saves:** Validate real PC media types and mixed-mode tracks/CDDA; no generic ISO extension-based routing that hijacks PS1/PS2/GameCube/Wii/Xbox. Read-only SAF source, licensed/user-provided Windows/game installer and isolated writable per-game guest VHD/Wine prefix. One cartridge → game menu → keyboard/mouse/controller/TV → verified in-game save, quit and reopen. Per-profile save isolation and Junior restrictions, GEM installed/playable distinctions, SafeSave exports only verified progress; OS VHD and installers are not assumed to be saves-only.
 
-| Gate | Owner | Evidence required | Status |
-| --- | --- | --- | --- |
-| **PC-R0 — Current source audit** | Daniel + Elliot | CARTDECK's actual DOSBox Pure pin and host capabilities; latest comparable projects' pinned source/licensing; hardware/API constraints | NOT STARTED |
-| **PC-R1 — Candidate matrix** | Daniel + Elliot | GameNative, Winlator, MiceWine, Wine/Box64/FEX and DOSBox routes by feasibility, legal, embedding, 32/64-bit, GPU, media and save | NOT STARTED |
-| **PC-R2 — Architecture ADR / rights** | Daniel | isolate native host, Wine vs Win95 guest split, store auth/privacy, disk mounting, distributions, save and rollback; GO/NO-GO | NOT STARTED |
-| **PC-R3 — Product design** | Sienna + Daniel | one-app UX, import/install/play, per-game controls/mouse, Junior, profiles, SafeSave, GEM, TV | NOT STARTED |
-| **PC-R4 — Smoke and QA plan** | Elliot + Marcus | bounded lawful test fixtures, Shandalar staged Win9x or Wine path, testing metrics, reversible device-spike proposal, no test PASS assumed | NOT STARTED |
-| **PC-R5 — Owner decision** | Jonathan | written GO/CONDITIONAL/NO-GO per Modern storefront / standalone exe / classic disc / Shandalar route / optional native port; separate implementation issue only after GO | PENDING |
+**Release controls:** Full native APK inventory and engine-only source/build artifact inventory from same verified pinned inputs, SHA, notices, GPL/other upstream rights, ARM64/API/16KB and rollback; app/source release compliance independently assessed. Do not bundle Windows media, retail games, assets, BIOS, passwords or DRM bypass.
 
-**Owner choice:** Research results may independently conclude Modern GO and Classic NO-GO or vice versa. Do not force implementation order or a single emulator architecture.
+## Delivery gates and protections
+PC-R0 actual existing core/source audit (script authored, not yet executed/accepted) → PC-R1 component licence/native compatibility matrix → PC-R2 integrated host/distribution ADR → PC-R3 complete classic/modern local import + controls/profile/SaveSafe UX → PC-R4 lawful Shandalar real-game evidence and Marcus QA → PC-R5 owner per-route GO/CONDITIONAL/NO-GO.
 
-## Boundaries and dependencies
-
-- **Current emulation recovery (execution already commissioned):** [PS3 #297](https://github.com/safetyblade/ROMMachine/issues/297), [Wii U Bayonetta 2 #296](https://github.com/safetyblade/ROMMachine/issues/296), [Xbox360 #295](https://github.com/safetyblade/ROMMachine/issues/295), tracked by [PERF-02 #60](https://github.com/safetyblade/ROMMachine/issues/60).
-- **GC/CI:** [GC-01 #262](https://github.com/safetyblade/ROMMachine/issues/262), [PR #294](https://github.com/safetyblade/ROMMachine/pull/294). Research must not touch branch, native engines or APK, menus, display, controller or artifact producer paths.
-- **Shared future contracts:** [profiles #289](https://github.com/safetyblade/ROMMachine/issues/289), [SafeSave #290](https://github.com/safetyblade/ROMMachine/issues/290), [vault #293](https://github.com/safetyblade/ROMMachine/issues/293), [GEM #194](https://github.com/safetyblade/ROMMachine/issues/194), [QA #248](https://github.com/safetyblade/ROMMachine/issues/248), [post-emulation experience #253](https://github.com/safetyblade/ROMMachine/issues/253).
-- **Not approved:** direct third-party source imports, unpinned APK/OS/game downloads, public PC console support claim, account integrations, new native builds, changed app schema/signing/ROM roots or save ownership.
-
-## First research delivery for owner
-
-Return a table of realistic candidates, high-risk unknowns, legal/source status, fit to Samsung Xclipse, likely install game media flows and embedded integration practicality; then a specific architecture and *unexecuted* proof recommendation. Include a separate Shandalar Windows 95 feasibility judgment. Every claim of gameplay must be tied to actual device/source evidence; any untested item must be labelled UNVERIFIED.
-
-**Research evidence is not an implementation authorisation.**
+This roadmap clarification does **not** authorise new production source, a new APK, repository publication, or physical PASS. Current PERF-02 #60, PS3 #297, Wii U #296, X360 #295, GC-01 #262 / PR #294, CI-01 selective native builds, Room/game library/profile saves, signing and rollback are unaffected.
