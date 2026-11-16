@@ -60,8 +60,8 @@ def issue_receipt(output, engine, version, source_commit, build_script,
             if relative == "receipt.json":
                 raise ValueError("refusing to overwrite existing receipt")
             outputs[relative] = sha(path.read_bytes())
-    if not outputs or not any(key.endswith(".so") for key in outputs):
-        raise ValueError("missing actual native engine library")
+    if not outputs or not any(key.endswith((".so", ".aar")) for key in outputs):
+        raise ValueError("missing actual native engine library or verified host AAR")
     receipt = {"schema": 1, "identity": identity,
                "licence_notices": notice.as_posix(), "outputs": outputs}
     (output / "receipt.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")
