@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -72,7 +73,6 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val touchSticks = intArrayOf(128, 128, 128, 128)
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
     private val rawPressed = mutableMapOf<Int, MutableSet<Int>>()
-    private val remaps = mutableMapOf<Int, Map<Int, Int>>()
     private val menuShortcuts = mutableMapOf<Int, Set<Int>>()
     private val inputManager by lazy {
         com.swordfish.lemuroid.app.shared.input.InputDeviceManager(
@@ -240,7 +240,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                                 },
                             ) {
-                                XboxMenuControls(settings, Ps3Engine.CONTROLLER) { orientation, edit ->
+                                XboxMenuControls(
+                                    settings,
+                                    Ps3Engine.CONTROLLER,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                ) { orientation, edit ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             Ps3Engine.CONTROLLER,
@@ -470,6 +474,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menu || failure || game == null || leaving) return
         release()
         menu = false
@@ -594,17 +599,34 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         )
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            Ps3Engine.CONTROLLER,
+        ) { device -> presence.port(device.id) }
+    }
+
     private val menuEdge = ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            release()
+            return true
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
         if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE) ||
-            remaps[event.deviceId]?.get(event.keyCode) == KeyEvent.KEYCODE_BUTTON_MODE
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
         ) {
             if (menuEdge.handle(event)) {
                 if (menu) closeMenu() else openMenu()
             }
             return true
         }
+        if (menu && physicalMapping.captureKey(event)) return true
+        if (!menu && !physicalMapping.acceptsGameplay(event)) return true
         if (!menu && event.isFromSource(InputDevice.SOURCE_GAMEPAD)) {
             val port = presence.port(event.deviceId) ?: return super.dispatchKeyEvent(event)
             val raw = rawPressed.getOrPut(event.deviceId) { mutableSetOf() }
@@ -615,13 +637,18 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 openMenu()
                 return true
             }
-            key(port, remaps[event.deviceId]?.get(event.keyCode) ?: event.keyCode, down)
+            key(port, mappedKey, down)
             return true
         }
         return super.dispatchKeyEvent(event)
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menu) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menu && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             val port = presence.port(event.deviceId) ?: return super.onGenericMotionEvent(event)
             axis(port, 0, event.getAxisValue(MotionEvent.AXIS_X), -event.getAxisValue(MotionEvent.AXIS_Y))
@@ -640,25 +667,16 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         foreground = true
         presence.start { devices ->
             menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
             connected = devices.isNotEmpty()
             release()
             lifecycleScope.launch {
-                remaps.clear()
                 menuShortcuts.clear()
                 for (device in devices) {
-                    remaps[device.id] =
-                        inputManager.getCurrentBindings(device).mapKeys { it.key.keyCode }.mapValues {
-                            when (it.value.keyCode) {
-                                KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
-                                KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_A
-                                KeyEvent.KEYCODE_BUTTON_X -> KeyEvent.KEYCODE_BUTTON_Y
-                                KeyEvent.KEYCODE_BUTTON_Y -> KeyEvent.KEYCODE_BUTTON_X
-                                else -> it.value.keyCode
-                            }
-                        }
                     menuShortcuts[device.id] =
                         inputManager.getCurrentShortcuts(device).firstOrNull {
                             it.type == com.swordfish.lemuroid.app.shared.settings.GameShortcutType.MENU
@@ -671,6 +689,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        physicalMapping.stop()
         menuEdge.clear()
         foreground = false
         release()

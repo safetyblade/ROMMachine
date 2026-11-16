@@ -39,6 +39,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -296,7 +297,9 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 GameMenuLink(
                                     "Import user-owned PS2 BIOS after a failed launch",
                                 ) { importBios.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK) { orientation, edited ->
+                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK, physicalMapping = {
+                                    physicalMapping.Panel()
+                                }) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.PSX_DUALSHOCK,
@@ -573,23 +576,39 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menu || failed || leaving) return
         menu = false
         syncPause()
         startIfReady()
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(this, lifecycleScope, TouchControllerID.PSX_DUALSHOCK) { device -> 0 }
+    }
+
     private val menuEdge = ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            releaseInput()
+            return true
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
             if (menuEdge.handle(event)) {
                 if (menu) closeMenu() else openMenu()
             }
             return true
         }
+        if (menu && physicalMapping.captureKey(event)) return true
+        if (!menu && !physicalMapping.acceptsGameplay(event)) return true
         if (!menu && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
-            hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+            hardware.key(mappedKey, event.action == KeyEvent.ACTION_DOWN)
         ) {
             sendInput()
             return true
@@ -598,6 +617,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menu) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menu && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             hardware.motion({ event.getAxisValue(it) }, event.device)
             sendInput()
@@ -630,9 +654,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         hostForeground = true
         presence.start { devices ->
             menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
             releaseInput()
             connected = devices.isNotEmpty()
         }
@@ -641,6 +667,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        physicalMapping.stop()
         menuEdge.clear()
         hostForeground = false
         presence.stop()

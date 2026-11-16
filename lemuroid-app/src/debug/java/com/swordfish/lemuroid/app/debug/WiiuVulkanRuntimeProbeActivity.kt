@@ -36,6 +36,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -317,7 +318,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 GameMenuLink(
                                     "Import user-owned keys.txt for next launch",
                                 ) { importKeys.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC) { orientation, edited ->
+                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC, physicalMapping = {
+                                    physicalMapping.Panel()
+                                }) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.WII_CLASSIC,
@@ -534,23 +537,39 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menuOpen || failed || leaving) return
         menuOpen = false
         syncPause()
         startIfReady()
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(this, lifecycleScope, TouchControllerID.WII_CLASSIC) { device -> 0 }
+    }
+
     private val menuEdge = ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            releaseInput()
+            return true
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
             if (menuEdge.handle(event)) {
                 if (menuOpen) closeMenu() else openMenu()
             }
             return true
         }
+        if (menuOpen && physicalMapping.captureKey(event)) return true
+        if (!menuOpen && !physicalMapping.acceptsGameplay(event)) return true
         if (!menuOpen && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
-            hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+            hardware.key(mappedKey, event.action == KeyEvent.ACTION_DOWN)
         ) {
             sendInput()
             return true
@@ -559,6 +578,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menuOpen) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menuOpen && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             hardware.motion({ event.getAxisValue(it) }, event.device)
             sendInput()
@@ -593,9 +617,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         hostForeground = true
         presence.start { devices ->
             menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
             releaseInput()
             physicalConnected = devices.isNotEmpty()
         }
@@ -604,6 +630,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     override fun onPause() {
+        physicalMapping.stop()
         menuEdge.clear()
         hostForeground = false
         presence.stop()

@@ -30,6 +30,8 @@ import com.swordfish.touchinput.radial.settings.NativeControlKind
 internal fun PhysicalControllerMappingPanel(
     inputDeviceManager: InputDeviceManager,
     inventory: NativeControlInventory?,
+    runtimePort: ((InputDevice) -> Int?)? = null,
+    captureHatBindings: Boolean = true,
     captureTarget: Int?,
     mappingRevision: Int,
     generation: Int,
@@ -102,7 +104,9 @@ internal fun PhysicalControllerMappingPanel(
             Text("Connect a game controller to play. Your remote can still open CARTDECK.")
             return@Column
         }
-        GameMenuLink("Controller: ${selected.name} · Player ${(ports(selected) ?: 0) + 1}") {
+        val actualPort = if (runtimePort != null) runtimePort(selected) else ports(selected)
+        val portLabel = actualPort?.let { "Player ${it + 1}" } ?: "Unassigned player port"
+        GameMenuLink("Controller: ${selected.name} · $portLabel") {
             val index = devices.indexOfFirst { it.id == selected.id }
             onDiscard()
             selectedId = devices[(index + 1) % devices.size].id
@@ -126,8 +130,15 @@ internal fun PhysicalControllerMappingPanel(
         }
         Text(
             "Axes show neutral, range and DPAD diagonals. Analog triggers and digital L2/R2 " +
-                "are shown independently. DPAD hats can be captured; " +
-                "stick and trigger axis remapping is unavailable.",
+                "are shown independently. " +
+                (
+                    if (captureHatBindings) {
+                        "DPAD hats can be captured. "
+                    } else {
+                        "DPAD hats are test-only in this native host. "
+                    }
+                ) +
+                "Stick and trigger axis remapping is unavailable.",
             style = MaterialTheme.typography.bodySmall,
         )
         if (captureTarget != null) {

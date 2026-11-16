@@ -46,6 +46,7 @@ internal fun XboxPhysicalMappingPanel(
             controllerName ?: "Connect a gameplay controller to map buttons",
             style = MaterialTheme.typography.bodyMedium,
         )
+        Text("Player port: 1 (native Xbox input)", style = MaterialTheme.typography.bodySmall)
         Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
         GameMenuLink("Select next connected controller", onClick = onNextDevice)
         Text("Console Authentic / Custom. No verified Modern Function controls for this edition.")

@@ -809,6 +809,11 @@ class NativeCoreActivity : SDLActivity() {
             return true
         }
         if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
+            controllerDevices.none { it.id == event.deviceId }
+        ) {
+            return true
+        }
+        if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
             event.keyCode in XboxButtonBindingStore.editableKeys
         ) {
             val mapped = xboxBindings.output(event.device, event.keyCode, registryGame()?.fileUri?.toString())
@@ -838,6 +843,11 @@ class NativeCoreActivity : SDLActivity() {
                 }
         }
         if (menuShowing || paused || leaving) return true
+        if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
+            controllerDevices.none { it.id == event.deviceId }
+        ) {
+            return true
+        }
         if (ready && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK) &&
             event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
         ) {

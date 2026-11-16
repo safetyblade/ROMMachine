@@ -41,6 +41,9 @@ class InputDeviceManager(
     fun getInputBindingsObservable(): Flow<(InputDevice?) -> Map<InputKey, RetroKey>> {
         return getEnabledInputsObservable()
             .flatMapLatest { devices ->
+                if (devices.isEmpty()) {
+                    return@flatMapLatest flowOf<Map<InputDevice, Map<InputKey, RetroKey>>>(emptyMap())
+                }
                 val allDeviceBindingsFlows = devices.map { device -> getBindingsFlow(device).map { device to it } }
                 combine(allDeviceBindingsFlows) { it.toMap() }
             }
@@ -50,6 +53,9 @@ class InputDeviceManager(
     fun getGameShortcutsObservable(): Flow<Map<InputDevice, List<GameShortcut>>> {
         return getEnabledInputsObservable()
             .flatMapLatest { devices ->
+                if (devices.isEmpty()) {
+                    return@flatMapLatest flowOf<Map<InputDevice, List<GameShortcut>>>(emptyMap())
+                }
                 val allShortcutFlows = devices.map { device -> getShortcutBindingsFlow(device).map { device to it } }
                 combine(allShortcutFlows) { it.toMap() }
             }
@@ -244,7 +250,9 @@ class InputDeviceManager(
     }
 
     private fun getDeviceStatus(inputDevice: InputDevice): Flow<DeviceStatus> {
-        val defaultValue = inputDevice.getLemuroidInputDevice().isEnabledByDefault(context)
+        val defaultValue =
+            ControllerHardwareProfile.isGameplayPad(inputDevice) ||
+                inputDevice.getLemuroidInputDevice().isEnabledByDefault(context)
         return flowSharedPreferences.getBoolean(computeEnabledGamePadPreference(inputDevice), defaultValue)
             .asFlow()
             .map { isEnabled -> DeviceStatus(inputDevice, isEnabled) }
@@ -261,7 +269,7 @@ class InputDeviceManager(
             InputDevice.getDeviceIds()
                 .map { InputDevice.getDevice(it) }
                 .filterNotNull()
-                .filter { it.getLemuroidInputDevice().isSupported() }
+                .filter { it.getLemuroidInputDevice().isSupported() || ControllerHardwareProfile.isGameplayPad(it) }
                 .filter { it.name !in BLACKLISTED_DEVICES }
                 .sortedBy { it.controllerNumber }
         }.getOrNull() ?: listOf()
