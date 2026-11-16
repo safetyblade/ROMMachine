@@ -138,14 +138,14 @@ jobs:
           name: xenia-android-backend
           path: work/connected/xenia
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
           name: patched-libretrodroid-host
           path: work/connected/host
       - name: Download both passed genuine ARMSX2 page models
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -153,7 +153,7 @@ jobs:
           name: ps2-armsx2-native-verified-private
           path: work/connected/armsx2
       - name: Download the passed Cemu core and Vulkan host build
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
