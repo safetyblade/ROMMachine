@@ -66,29 +66,46 @@ jobs:
           gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
           test -x "$gradle_bin"
           "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
-      - name: Locate the existing passed native input artifacts
+      - name: Resolve legacy inputs by named component, not fixed artifact IDs
         id: inputs
         uses: actions/github-script@v7
         with:
           script: |
-            const ids = [14116265838, 14115852235, 14115797791, 14115726591, 14115323552,
-                         14115651191, 14116123727, 14115725803, 14114153891, 14116921782];
-            let reusable = true;
-            for (const artifact_id of ids) {
-              try {
-                const result = await github.rest.actions.getArtifact({...context.repo, artifact_id});
-                if (result.data.expired) reusable = false;
-              } catch (error) {
-                if (error.status !== 404 && error.status !== 410) throw error;
-                reusable = false;
+            // Temporary compatibility catalog for native backends awaiting CI-01 receipts.
+            // Do not infer provenance from a name: all downloaded outputs still pass the
+            // existing native staging/ELF/package checks before APK publication.
+            const groups = [
+              {run: 43598603237, names: [
+                'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
+                'native-engine-gc', 'native-engine-ps2', 'hakux-android-backend',
+                'xenia-android-backend', 'patched-libretrodroid-host']},
+              {run: 43595931102, names: ['ps2-armsx2-native-verified-private']},
+              {run: 43601391744, names: ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
+            ];
+            const missing = [];
+            for (const group of groups) {
+              const run = (await github.rest.actions.getWorkflowRun({
+                ...context.repo, run_id: group.run
+              })).data;
+              if (run.conclusion !== 'success') {
+                missing.push(...group.names.map(name => name + ': source run not successful'));
+                continue;
+              }
+              const list = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...context.repo, run_id: group.run, per_page: 100
+              });
+              for (const name of group.names) {
+                const found = list.find(a => a.name === name && !a.expired);
+                if (!found) missing.push(name + ': missing or expired');
               }
             }
-            core.setOutput('reuse', String(reusable));
-            if (reusable) {
-              core.info('Legacy retained native inputs are available; downstream integrity checks remain mandatory.');
-            } else {
-              core.warning('One or more legacy artifacts are missing. CI-01 per-engine resolver is required for routine APK builds.');
-            }
+            core.setOutput('reuse', String(missing.length === 0));
+            core.setOutput('missing', JSON.stringify(missing));
+            core.summary.addHeading('Legacy native component inventory');
+            core.summary.addRaw(missing.length ? missing.join('\\n') :
+              'All named legacy inputs retained; downstream native package verification remains mandatory.');
+            await core.summary.write();
+            if (missing.length) core.warning('Missing native components: ' + missing.join('; '));
       - name: Stop before expensive native compilation without explicit authorization
         if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized != true
         run: |
