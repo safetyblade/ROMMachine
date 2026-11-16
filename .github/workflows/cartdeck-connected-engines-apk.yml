@@ -69,9 +69,11 @@ jobs:
             // existing native staging/ELF/package checks before APK publication.
             const groups = [
               {run: 43598603237, names: [
-                'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
-                'native-engine-gc', 'native-engine-ps2', 'hakux-android-backend',
-                'xenia-android-backend', 'patched-libretrodroid-host']},
+                'hakux-android-backend', 'xenia-android-backend',
+                'patched-libretrodroid-host',
+                ...(!inputs.use_ci01_native_set ? [
+                  'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
+                  'native-engine-gc', 'native-engine-ps2'] : [])]},
               {run: 43595931102, names: ['ps2-armsx2-native-verified-private']},
               {run: 43601391744, names: ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
             ];
@@ -105,7 +107,7 @@ jobs:
           echo '::error::Missing or expired native inputs. Routine APK builds must not rebuild every engine. Rebuild the missing components in their engine workflows and provide verified artifacts; use native_rebuild_authorized only for a deliberate complete recovery.'
           exit 1
       - name: Download the passed five-engine, Wii, hakuX and Xenia builds
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_native_set != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -269,8 +271,11 @@ jobs:
             source="work/connected/ci01-native/$engine"
             python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$source"
             destination="work/connected/legacy/native-engine-$engine"
-            test -d "$destination"
-            rm -rf "$destination"
+            if [[ -e "$destination" ]]; then
+              echo "::error::Refusing to overwrite existing native engine: $destination"
+              exit 1
+            fi
+            mkdir -p "$(dirname "$destination")"
             cp -a "$source" "$destination"
             python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$destination"
           done
