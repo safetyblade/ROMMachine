@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1086" viewBox="0 0 1536 1086" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1150" viewBox="0 0 1536 1150" role="img" aria-labelledby="title desc">
 <title id="title">CARTDECK Landscape Surround Design V1 — Standard and Ornamental on 4:3 and 16:9</title>
 <desc id="desc">Editable design study only. Four diagrams show slightly stronger Standard, thicker Ornamental, and both natural 4:3 and verified 16:9; artwork is fictitious placeholder game imagery.</desc>
 <defs>
@@ -65,7 +65,7 @@
  <text x="797" y="599" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Stealth / Acid · sculpted side rails</text>
  </g>
 <g id="standard-wide">
- <rect x="42" y="590" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="42" y="627" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
  <rect x="51" y="599" width="688" height="386" rx="17" fill="#F2A9C9"/>
  <rect x="60" y="608" width="670" height="368" rx="14" fill="none" stroke="#C873A0" stroke-width="4"/>
  <rect x="66" y="614" width="658" height="356" rx="12" fill="none" stroke="#8D315E" opacity=".34" stroke-width="1.5"/>
@@ -89,7 +89,7 @@
  <text x="50" y="1041" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Pink · verified native 16:9 only</text>
  </g>
 <g id="ornamental-wide">
- <rect x="789" y="590" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="789" y="627" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
  <rect x="798" y="599" width="688" height="386" rx="17" fill="#9BC7A8"/>
  <rect x="807" y="608" width="670" height="368" rx="14" fill="none" stroke="#446F5C" stroke-width="9"/>
  <rect x="813" y="614" width="658" height="356" rx="12" fill="none" stroke="#D4F47D" opacity=".34" stroke-width="1.5"/>
@@ -117,5 +117,5 @@
  <text x="797" y="1019" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#EFF4EF">04  WIDESCREEN / ORNAMENTAL</text>
  <text x="797" y="1041" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Green · ornament compresses at edges</text>
  </g>
-<text x="42" y="1074" font-family="system-ui, sans-serif" font-size="13" fill="#7E909B">SYMBOLIC DESIGN REFERENCES — NOT REAL GAME CAPTURES, NOT RENDERER / HARDWARE PROOF. SOURCE VIDEO MAY HAVE DIFFERENT EFFECTIVE PIXEL ASPECT.</text>
+<text x="42" y="1133" font-family="system-ui, sans-serif" font-size="13" fill="#7E909B">SYMBOLIC DESIGN REFERENCES — NOT REAL GAME CAPTURES, NOT RENDERER / HARDWARE PROOF. SOURCE VIDEO MAY HAVE DIFFERENT EFFECTIVE PIXEL ASPECT.</text>
 </svg>
