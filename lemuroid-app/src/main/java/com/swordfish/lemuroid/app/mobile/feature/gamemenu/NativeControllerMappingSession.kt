@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 
 /** Menu-local configuration and observation. Hosts retain all gameplay event and JNI dispatch ownership. */
 internal class NativeControllerMappingSession(
-    context: Context,
+    private val context: Context,
     private val scope: CoroutineScope,
     private val controller: TouchControllerID?,
     private val cartridge: String? = null,
@@ -123,6 +123,7 @@ internal class NativeControllerMappingSession(
         bindingJob?.cancel()
         bindingJob = null
         chord.clear()
+        navigationHats.clear()
         liveBindings = { emptyMap() }
         enabledIds = null
         discard()
@@ -132,6 +133,7 @@ internal class NativeControllerMappingSession(
     }
 
     fun retainDevices(ids: Set<Int>) {
+        navigationHats.keys.retainAll(ids)
         chord.retainDevices(ids)
         heldOutputs.retainDevices(ids)
         captureEdge.retainDevices(ids)
@@ -231,15 +233,29 @@ internal class NativeControllerMappingSession(
         return pending != null
     }
 
+    private val navigationHats = mutableMapOf<Int, ControllerHatEdges>()
+
     fun observeMotion(event: MotionEvent) {
-        if (event.deviceId != selected?.id) return
-        probe.motion(event, manager.calibration(event.device))
-        event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
-        hats.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+        if (event.deviceId == selected?.id) {
+            probe.motion(event, manager.calibration(event.device))
+            event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
+            hats.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+                .forEach { (code, down) -> probe.key(code, down) }
+            probeRevision++
+        }
+        navigationHats.getOrPut(event.deviceId) { ControllerHatEdges() }
+            .update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
             .forEach { (code, down) ->
-                probe.key(code, down)
+                if (pending == null) {
+                    (context as? android.app.Activity)?.currentFocus?.dispatchKeyEvent(
+                        KeyEvent(
+                            event.downTime, event.eventTime,
+                            if (down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                            code, 0, 0, event.deviceId, 0, 0, InputDevice.SOURCE_DPAD,
+                        ),
+                    )
+                }
             }
-        probeRevision++
     }
 
     @Composable

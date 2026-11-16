@@ -112,11 +112,21 @@ class GameMenuActivity : RetrogradeComponentActivity() {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.deviceId == mappingDevice?.id) {
+            val capturing = pendingBinding != null
             probe.motion(event, inputDeviceManager.calibration(event.device))
             event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
             hatEdges.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
                 .forEach { (code, down) ->
                     probe.key(code, down)
+                    if (!capturing) {
+                        currentFocus?.dispatchKeyEvent(
+                            KeyEvent(
+                                event.downTime, event.eventTime,
+                                if (down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                                code, 0, 0, event.deviceId, 0, 0, InputDevice.SOURCE_DPAD,
+                            ),
+                        )
+                    }
                     val capture = pendingBinding
                     if (capture?.first == event.deviceId && captureEdge.handle(event.deviceId, code, down)) {
                         mappingDraft?.assign(code, capture.second)
@@ -126,7 +136,9 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 }
             probeRevision++
         }
-        return pendingBinding != null || super.dispatchGenericMotionEvent(event)
+        return pendingBinding != null ||
+            (event.deviceId == mappingDevice?.id && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) ||
+            super.dispatchGenericMotionEvent(event)
     }
 
     private val menuEdge = ControllerMenuEdge()

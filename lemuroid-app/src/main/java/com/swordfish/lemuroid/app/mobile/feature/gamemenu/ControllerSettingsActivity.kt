@@ -63,7 +63,10 @@ class ControllerSettingsActivity : ComponentActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        if (::session.isInitialized) session.observeMotion(event)
+        if (::session.isInitialized) {
+            session.observeMotion(event)
+            if (event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) return true
+        }
         return super.dispatchGenericMotionEvent(event)
     }
 }
