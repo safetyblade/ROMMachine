@@ -1,5 +1,24 @@
 # CARTDECK — Master product and delivery roadmap
 
+## 17 November 2026 — PC-00 standalone PC gaming research lane
+
+**Roadmap position:** Standalone **RESEARCH / FEASIBILITY** alongside, not inside or after, the GC-01 A–H implementation sequence. **No native integration, APK, storefront authorisation or PC gameplay support claim approved.** Research can progress independently while current emulation and GC/CI recoveries remain priority.
+
+**Parent and authority:** [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) · [Lane charter and PC-R0–R5 gates](../research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md).
+
+| Independent research workstream | Scope | State / decision gate |
+| --- | --- | --- |
+| **PC-01 Modern PC** [#300](https://github.com/safetyblade/ROMMachine/issues/300) | GameNative/storefront access, Winlator/MiceWine/Wine, Box64/FEX/Hangover and standalone EXE in Android ARM64/Xclipse | RESEARCH; no validated embedded game runtime or app implementation |
+| **PC-02 PC Classics** [#301](https://github.com/safetyblade/ROMMachine/issues/301) | Original lawful PC CD images, install/mount, DOSBox Pure Win95 guest, Wine Win32 legacy, DOSBox-X fallback, multi-disc/media identity | RESEARCH; Shandalar existing [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) benchmark, not gameplay verified |
+| **PC-03 PC integration architecture** [#302](https://github.com/safetyblade/ROMMachine/issues/302) | One CARTDECK shelf, controller/keyboard/mouse, profile/Junior/SafeSave, GEM, secure installer, user storefront privacy, rights and on-demand runtime | DESIGN/RESEARCH only, not Room/schema/UI implementation |
+
+**Gates:** PC-R0 current source and DOSBox Pure audit → R1 alternatives/rights/Android evidence → R2 architecture ADR and feasibility GO/NO-GO → R3 UX/media/identity/saves → R4 reproducible lawful prototype plan/Marcus QA → R5 **Jonathan separately authorises or declines an implementation spike**. Completion of any earlier gate does not promote a game to Working.
+
+**Protection:** preserve current emulation recovery [PS3 #297](https://github.com/safetyblade/ROMMachine/issues/297), [Wii U #296](https://github.com/safetyblade/ROMMachine/issues/296), [X360 #295](https://github.com/safetyblade/ROMMachine/issues/295), GC-01 [#262](https://github.com/safetyblade/ROMMachine/issues/262)/[PR #294](https://github.com/safetyblade/ROMMachine/pull/294), CI-01 selective native build, all existing engines/ROM classification/Room/save/upgrade paths. Shandalar previously appearing as a deferred single experiment should be read as **part of PC-02** in this new controlling research addendum, without changing its pre-existing physical NOT TESTED status.
+
+---
+
+
 **Authoritative current checkpoint: 13 November 2026 · v2.6**
 **Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Design:** Sienna Vale · **Engineering:** Elliot Shaw · **Architecture:** Daniel Mercer · **QA:** Marcus Reid
 **Controlled primary roadmap:** [CARTDECK Product & Delivery Roadmap v2.6 (Drive)](https://docs.google.com/document/d/1wlURBkCoASXTAOFbXrNQWzODEbnVuMJBUz4l68Vac4Q/edit)
