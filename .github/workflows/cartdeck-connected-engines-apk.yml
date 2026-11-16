@@ -131,7 +131,7 @@ jobs:
           name: hakux-android-backend
           path: work/connected/hakux
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
@@ -200,7 +200,7 @@ jobs:
               core.setOutput(engine + '_name', selected.name);
             }
       - name: Download independently verified PS1 candidate
-        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.ps1_run != ''
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.ps1_run != ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -208,7 +208,7 @@ jobs:
           name: ${{ steps.ci01_set.outputs.ps1_name }}
           path: work/connected/ci01-native/ps1
       - name: Download independently verified PSP candidate
-        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.psp_run != ''
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.psp_run != ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -216,7 +216,7 @@ jobs:
           name: ${{ steps.ci01_set.outputs.psp_name }}
           path: work/connected/ci01-native/psp
       - name: Download independently verified DC candidate
-        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.dc_run != ''
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.dc_run != ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -224,7 +224,7 @@ jobs:
           name: ${{ steps.ci01_set.outputs.dc_name }}
           path: work/connected/ci01-native/dc
       - name: Download independently verified GC candidate
-        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.gc_run != ''
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.gc_run != ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -232,7 +232,7 @@ jobs:
           name: ${{ steps.ci01_set.outputs.gc_name }}
           path: work/connected/ci01-native/gc
       - name: Download independently verified PS2 candidate
-        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.ps2_run != ''
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.ps2_run != ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -240,7 +240,7 @@ jobs:
           name: ${{ steps.ci01_set.outputs.ps2_name }}
           path: work/connected/ci01-native/ps2
       - name: Independently verify all five pinned engine receipts
-        if: inputs.use_ci01_native_set == true
+        if: inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true
         shell: bash
         run: |
           set -euo pipefail
@@ -360,7 +360,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Substitute independently verified five-engine native inputs
-        if: inputs.use_ci01_native_set == true && steps.inputs.outputs.reuse == 'true'
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.inputs.outputs.reuse == 'true'
         shell: bash
         run: |
           set -euo pipefail
