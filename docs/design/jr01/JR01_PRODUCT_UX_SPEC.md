@@ -82,3 +82,52 @@ Deferred: mandatory play timers, external sync, remote parental monitoring, onli
 
 ## 10. Explicit design vs architecture boundaries
 This document approves behaviour and presentation, not readiness of authentication, age-label datasets, child protection legal claims, OS kiosk control or save isolation. Daniel must resolve all those constraints before engineering. Sienna design complete for JR-01A; review of mockups on real devices remains a separate stage.
+
+
+## JR-01A Amendment 1 — Controller-approved design changes, 16 November 2026
+
+**This amendment supersedes all conflicting baseline sections.** In particular: no multi-cover shelf/grid in Junior mode; universal player profiles, not Junior-only profiles. Product design only. Do not change active GC/CI implementation.
+
+### Universal player architecture — PROF-01
+- CARTDECK has multiple local player profiles, console-style, supporting at least three but with no hard-coded limit; each has immutable playerProfileId, nickname, avatar, theme, favourites, recent games, collections, visibility policy and isolated saves. All use one canonical, shared ROM library without duplicating games.
+- Existing installation upgrades to a default manager/player with all existing saves intact; migration must be atomic/reversible and not break frozen legacy SaveBinding aliases.
+- Manager can create/edit/delete profiles and administer Junior content; Standard sees all ROMs by default but can hide titles just for that profile (hidden does not delete cartridge or saves); Junior can see/launch only manager-approved canonical cartridge IDs, default deny even on new imports.
+- Switching player uses dedicated Choose Player entry and persistent safe profile control; leaving Junior for any unrestricted profile or manager settings requires parent gate. Standard does not implicitly equal Manager.
+- Avoid equating local player profile with cloud login. Optional online account linkage is later, explicit and per-profile; offline player switching remains complete.
+
+### Junior carousel — One cartridge on screen
+- My Playroom / My Games / Favourites and child collection categories display exactly **one** large cartridge cover at a time, centred, not a row of cards, grid, or multi-cover shelf.
+- Swipe left/right switches exactly one cartridge on touch. D-pad left/right and optionally shoulder buttons provide equivalent controller/TV navigation. Clear previous/next affordances; small index indicator optional; avoid rendering adjacent game covers.
+- Portrait handheld: centre large cover, brief title, system icon, Play or Continue, avatar and subdued Grown-Ups entry. Landscape handheld: dominant cover with controls alongside or beneath; no tall wasted header or cramped bottom. Tablet: same composition with wider whitespace, not a multi-column library. TV: one large cover within safe areas, strong focus ring and D-pad/Confirm/Back usability.
+- Play launches directly from selected cartridge, skipping needless extra screens. Continue appears only for valid profile-owned game state. Return from gameplay restores carousel position. If game becomes disallowed/unavailable, select a safe remaining game without showing its prior metadata.
+- One approved game: hide arrows/dots. No approved games: friendly empty state plus parent gate. Many games: parent-defined child collections/favourites enable narrower swiping without changing single-cartridge contract.
+
+### Player save ownership — SAVE-01
+- All profiles have separate battery/in-game saves, memory cards, savestates, autosaves, screenshots, and resume records, keyed by immutable profile ID and canonical cartridge ID plus emulator identity/type/slot as applicable. One game can belong to three players without any shared mutable save pointer.
+- Before profile switches during active game: pause, save if supported, end/isolate session; never resume gameplay under the wrong player.
+- Save inventory records player owner, game/canonical identity, platform, engine/core and version, save type/slot, timestamps, hashes/size, and storage location. Preserve engine-specific save formats and legacy aliases. Do not claim savestate formats are cross-engine compatible.
+- Existing adult saves migrate safely to default profile, without unexpected overwrite or loss, with backups and rollback.
+
+### Save Centre and portability — SAVE-02
+- New Save Centre accessible to authorised standard player for own data and manager for child/cross-profile data. Actions: Export Save(s), Import Save(s), Copy to Another Player, View Backup/Recover, Manage Storage.
+- Local export: use Android SAF to user-selected provider, versioned manifest and archive with content hashes and source metadata; never package ROMs. Support individual game and entire player backup with explicit size/display. Do not silently upload.
+- Import: choose destination player, scan/validate manifest, identify game/core/type, preview conflicts and missing games, stage and atomically commit, offer restore-as-new or replace after secure backup and confirmation. On unsupported format/corrupt archive abort without harming existing saves; prevent path traversal and malicious file entry.
+- Between-profile transfers always explicit copy by authorised player/manager; source remains intact; replacement destination requires backup/conflict approval. Never infer destination solely from filename.
+- Cloud-ready design SAVE-03: optional linked account/storage upload/download is separate future feature, requiring explicit opt-in, verified auth, encryption, conflict/version rules and deletion/retention. No automatic cloud backup included in MVP.
+- Engine-specific compatibility must be tested for GB/GBC/GBA, PS1, PSP, DS and supported later consoles, including PS2/PS3, GameCube/Wii/Wii U where present. Saves may be portable only within compatible engine/format; report honest restrictions.
+
+### Parent management and permissions
+- Parent gate protects access to unrestricted player switch, ROM import/delete, settings, other profiles' save data, transfers, account linking and management. PIN recovery must be verified, not a visible bypass.
+- Parent collection editor uses shared library with allowlist per Junior. Standard's personal hidden list is never interpreted as Junior approval. Removal from Junior never deletes source ROM or saves.
+- Deleting profile requires explicit options to archive/export/save data vs delete, and cannot silently remove a third party's saves.
+
+### Added/revised screens
+JR-S01 universal Choose Player. JR-S07/JR-S08/JR-S11 child one-cartridge experience. JR-S14 manager dashboard. JR-S19 Profile Manager; JR-S20 Standard Hidden Games; JR-S21 Save Centre; JR-S22 Export wizard; JR-S23 Import Preview/Conflicts; JR-S24 Copy Save to Player; JR-S25 Save Integrity/Recovery; JR-S26 Account Linking (future). The child never sees unrestricted screens.
+
+### QA and sequencing
+- At least three distinct players with separate progress and different visibility; switching safely closes active sessions.
+- Junior shows exactly one cartridge on every device and supports swipe/controller traversal; orientation change and gameplay return preserve selected game.
+- No unauthorized ROM can launch from Junior via resume, shortcut, deep link, recent history or universal menu.
+- Save export/import byte round-trips, checksum/integrity, conflict and malicious archive checks; cross-profile copy proves no mutation of source.
+- Upgrades/rollback preserve existing game identities and saves with existing ARCH-LIB-01 SaveBinding and GC-01 compatibility.
+- Dependencies: PROF-01 (player model), LIB-PR-01 (visibility), SAVE-01 (ownership), SAVE-02 (portability), JR-01 (restricted experience), SAVE-03 (optional online backup later). Do not interrupt current emulation release lane.
