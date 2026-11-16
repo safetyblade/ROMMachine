@@ -3,6 +3,13 @@ name: CARTDECK CI-01 selective native engine proof
 # Initial bounded CI-C implementation: Five existing Libretro engines. Remaining native backends migrate
 # after their provenance and package contracts are verified.
 on:
+  pull_request:
+    paths:
+      - 'scripts/ci/ci01_*.py'
+      - 'scripts/ci/issue_native_receipt.py'
+      - 'scripts/ci/resolve_native_artifacts.py'
+      - 'scripts/ci/test_ci01_*.py'
+      - '.github/workflows/cartdeck-ci01-native-engine.yml'
   workflow_dispatch:
     inputs:
       engine:
@@ -30,7 +37,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  provenance-source-tests:
+    name: Verify native receipt and identity contracts without compilation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute all CI-01 producer and consumer regression tests
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
   native-component:
+    if: github.event_name == 'workflow_dispatch'
     name: Verify and retain one genuine native component
     runs-on: ubuntu-24.04
     timeout-minutes: 350
