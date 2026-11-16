@@ -8,6 +8,8 @@ on:
       - 'scripts/ci/ci01_*.py'
       - 'scripts/ci/issue_native_receipt.py'
       - 'scripts/ci/resolve_native_artifacts.py'
+      - 'scripts/ci/measure_apk_build.py'
+      - 'scripts/ci/test_measure_apk_build.py'
       - 'scripts/ci/test_ci01_*.py'
       - '.github/workflows/cartdeck-ci01-native-engine.yml'
   workflow_dispatch:
@@ -54,7 +56,8 @@ jobs:
           bash -n scripts/ci/build_libretrodroid_host.sh
           python3 -m compileall -q scripts/ci/ci01_remaining_engines.py \
             scripts/ci/ci01_legacy_engines.py scripts/ci/issue_native_receipt.py \
-            scripts/ci/resolve_native_artifacts.py scripts/ci/verify_ci01_ps1.py
+            scripts/ci/resolve_native_artifacts.py scripts/ci/verify_ci01_ps1.py \
+            scripts/ci/measure_apk_build.py
       - name: Execute all CI-01 producer and consumer regression tests
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
@@ -62,6 +65,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
   native-component:
     if: github.event_name == 'workflow_dispatch'
     name: Verify and retain one genuine native component
