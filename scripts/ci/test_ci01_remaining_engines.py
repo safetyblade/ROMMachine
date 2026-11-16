@@ -3,9 +3,11 @@
 
 These fixtures test source validation only and do not claim emulator builds.
 """
+import hashlib
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from ci01_remaining_engines import SPECS, expected, prepare, verify
@@ -39,6 +41,35 @@ class RemainingNativeTests(unittest.TestCase):
             (root / "output").mkdir()
             with self.assertRaises(ValueError):
                 prepare("hakux", root, root / "output")
+
+    def test_libretrodroid_aar_is_retained_and_reverified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "host"
+            source.mkdir()
+            (source / "source").mkdir()
+            (source / "source/LICENSE").write_text("test fixture notice")
+            aar = (source / "maven/com/github/Swordfish90/LibretroDroid/"
+                   "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar")
+            aar.parent.mkdir(parents=True)
+            with zipfile.ZipFile(aar, "w") as archive:
+                archive.writestr("jni/arm64-v8a/libretrodroid.so", b"fixture native payload")
+            (source / "provenance.txt").write_text(
+                "revision=" + SPECS["libretrodroid"]["sha"] + "\\n" +
+                hashlib.sha256(aar.read_bytes()).hexdigest() + "  " + str(aar) + "\\n")
+            output = root / "retained"
+            from ci01_remaining_engines import produce
+            produce("libretrodroid", source, output)
+            self.assertIn("receipt.json", {p.name for p in output.iterdir()})
+            self.assertIn(
+                "maven/com/github/Swordfish90/LibretroDroid/"
+                "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar",
+                verify("libretrodroid", output),
+            )
+            (output / "maven/com/github/Swordfish90/LibretroDroid/"
+             "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar").write_bytes(b"tampered")
+            with self.assertRaises(ValueError):
+                verify("libretrodroid", output)
 
     def test_unknown_component_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
