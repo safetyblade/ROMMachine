@@ -51,6 +51,18 @@ class HostMetadataTests(unittest.TestCase):
         module.write_text(json.dumps(data))
         check(root)
 
+    def test_advertised_source_publication_cannot_be_omitted(self):
+        root, folder, _ = self.fixture()
+        name = NAME + "-sources.jar"
+        data = dict(component=dict(group="com.github.Swordfish90", module="LibretroDroid",
+                                   version="0.14.0-cartdeck3"),
+                    variants=[dict(files=[dict(name=name, sha256=hashlib.sha256(b"sources fixture").hexdigest())])])
+        (folder / (NAME + ".module")).write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "Missing host publication file"):
+            check(root)
+        (folder / name).write_bytes(b"sources fixture")
+        check(root)
+
 
 if __name__ == "__main__":
     unittest.main()

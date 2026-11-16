@@ -13,6 +13,22 @@ RELATIVE = Path("maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3")
 NAME = "LibretroDroid-0.14.0-cartdeck3"
 
 
+def publication_files(root):
+    module = root / (NAME + ".module")
+    if not module.exists():
+        return []
+    data = json.loads(module.read_text())
+    files = []
+    for variant in data["variants"]:
+        for output in variant.get("files", []):
+            name = output["name"]
+            if (Path(name).name != name or not name.startswith(NAME) or
+                    output.get("url", name) != name):
+                raise ValueError("Unsafe Maven publication reference")
+            files.append(output)
+    return files
+
+
 def check(directory):
     root = Path(directory) / RELATIVE
     pom = root / (NAME + ".pom")
@@ -34,12 +50,12 @@ def check(directory):
         if (component["group"], component["module"], component["version"]) != (
                 "com.github.Swordfish90", "LibretroDroid", "0.14.0-cartdeck3"):
             raise ValueError("LibretroDroid module coordinate mismatch")
-        aar = root / (NAME + ".aar")
-        for variant in data["variants"]:
-            for output in variant.get("files", []):
-                if output["name"] == aar.name:
-                    if output.get("sha256") != hashlib.sha256(aar.read_bytes()).hexdigest():
-                        raise ValueError("Host module metadata AAR checksum mismatch")
+        for output in publication_files(root):
+            artifact = root / output["name"]
+            if not artifact.is_file() or artifact.is_symlink():
+                raise ValueError("Missing host publication file: " + output["name"])
+            if output.get("sha256") != hashlib.sha256(artifact.read_bytes()).hexdigest():
+                raise ValueError("Host module metadata AAR checksum mismatch: " + output["name"])
 
 
 def retain(source, directory):
@@ -48,8 +64,10 @@ def retain(source, directory):
     check(source)
     receipt_path = directory / "receipt.json"
     receipt = json.loads(receipt_path.read_text())
-    for suffix in (".pom", ".module"):
-        relative = RELATIVE / (NAME + suffix)
+    names = {NAME + ".pom", NAME + ".module"}
+    names.update(output["name"] for output in publication_files(Path(source) / RELATIVE))
+    for name in sorted(names):
+        relative = RELATIVE / name
         origin, target = Path(source) / relative, directory / relative
         if not origin.exists():
             continue
@@ -57,7 +75,8 @@ def retain(source, directory):
             raise ValueError("Symlinked Maven metadata")
         if target.exists() and target.read_bytes() != origin.read_bytes():
             raise ValueError("Refusing conflicting Maven metadata")
-        shutil.copyfile(origin, target)
+        if not target.exists():
+            shutil.copyfile(origin, target)
         receipt["outputs"][relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
     receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
     verify("libretrodroid", directory)
