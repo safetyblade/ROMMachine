@@ -15,6 +15,11 @@ on:
           - dc
           - gc
           - ps2
+          - hakux
+          - xenia
+          - armsx2
+          - cemu
+          - libretrodroid
 
 permissions:
   contents: read
@@ -28,7 +33,7 @@ jobs:
   native-component:
     name: Verify and retain one genuine native component
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,6 +47,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
       - name: Prepare pinned Android NDK
         shell: bash
         run: |
@@ -52,7 +58,8 @@ jobs:
       - name: Compile selected pinned native source only
         shell: bash
         run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
-      - name: Verify source identity, core and assets; issue immutable receipt
+      - name: Verify five-core source identity, core and assets; issue immutable receipt
+        if: contains(fromJSON('["ps1","psp","dc","gc","ps2"]'), inputs.engine)
         shell: bash
         run: |
           set -euo pipefail
@@ -60,11 +67,46 @@ jobs:
           dir="work/connected/legacy/native-engine-$engine"
           python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$dir" --issue
           python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$dir"
-      - name: Retain independently verified native output
+      - name: Retain independently verified five-core native output
+        if: contains(fromJSON('["ps1","psp","dc","gc","ps2"]'), inputs.engine)
         uses: actions/upload-artifact@v4
         with:
           name: native-ci01-${{ inputs.engine }}-${{ github.sha }}
           path: work/connected/legacy/native-engine-${{ inputs.engine }}/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Package exact ARMSX2 native resources and licences
+        if: inputs.engine == 'armsx2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
+          python3 scripts/ci/package_ps2_runtime_support.py \
+            --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
+      - name: Stage and independently verify selected backend receipt
+        if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine)
+        shell: bash
+        run: |
+          set -euo pipefail
+          engine="${{ inputs.engine }}"
+          case "$engine" in
+            hakux) source=work/connected/hakux ;;
+            xenia) source=work/connected/xenia ;;
+            armsx2) source=work/connected/armsx2 ;;
+            cemu) source=work/connected/cemu ;;
+            libretrodroid) source="$RUNNER_TEMP/connected-libretrodroid-source" ;;
+            *) exit 2 ;;
+          esac
+          python3 scripts/ci/ci01_remaining_engines.py \
+            --engine "$engine" --source "$source" --directory "work/ci01-reusable/$engine"
+          python3 scripts/ci/ci01_remaining_engines.py \
+            --engine "$engine" --directory "work/ci01-reusable/$engine"
+      - name: Retain independent verified backend artifact
+        if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine)
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-ci01-${{ inputs.engine }}-${{ github.sha }}
+          path: work/ci01-reusable/${{ inputs.engine }}/
           if-no-files-found: error
           retention-days: 90
       - name: Publish native failure diagnostics only
