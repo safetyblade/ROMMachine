@@ -44,6 +44,7 @@ fun GameMenuHomeScreen(
         when (action) {
             GameMenuAction.RESUME -> onResult { }
             GameMenuAction.CONTROLS -> navController.navigateToRoute(GameMenuRoute.CONTROLS)
+            GameMenuAction.DISPLAY -> navController.navigateToRoute(GameMenuRoute.DISPLAY)
             GameMenuAction.STATES -> navController.navigateToRoute(GameMenuRoute.STATES)
             GameMenuAction.SETTINGS -> navController.navigateToRoute(GameMenuRoute.OPTIONS)
             GameMenuAction.ADVANCED -> navController.navigateToRoute(GameMenuRoute.ADVANCED)

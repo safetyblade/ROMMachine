@@ -341,6 +341,7 @@ class NativeCoreActivity : SDLActivity() {
                 setContent {
                     Box(Modifier.fillMaxSize()) {
                         XboxGameControls(
+                            game = registryGame(),
                             onInput = ::onTouchInput,
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
@@ -374,6 +375,7 @@ class NativeCoreActivity : SDLActivity() {
                         }
                         if (menuOpen) {
                             XboxGameMenu(
+                                game = registryGame(),
                                 title =
                                     registryGame()?.displayName()
                                         ?: intent.getStringExtra("cartdeck.gameTitle").orEmpty(),

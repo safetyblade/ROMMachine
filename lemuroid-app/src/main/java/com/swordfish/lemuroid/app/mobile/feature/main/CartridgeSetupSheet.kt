@@ -73,7 +73,7 @@ internal fun CartridgeSetupSheet(
             }
             if (section == null) {
                 (
-                    listOf("Emulator", "Controls", "Cartridge artwork", "Advanced / Troubleshooting") +
+                    listOf("Emulator", "Controls", "Display", "Cartridge artwork", "Advanced / Troubleshooting") +
                         if (system.id == SystemID.PLAYSTATION_3) listOf("Manage Saves / PS3 users") else emptyList()
                 ).forEach {
                         name ->
@@ -93,6 +93,11 @@ internal fun CartridgeSetupSheet(
                         emulator()
                         if (system.nativeBackend == "hakux") XboxVersionChoice(game)
                     }
+                    "Display" ->
+                        com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsScreen(
+                            game,
+                            scrollable = false,
+                        )
                     "Controls" -> CartridgeControlChoices(game, system)
                     "Manage Saves / PS3 users" -> com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
                     "Cartridge artwork" -> {

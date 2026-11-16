@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -132,10 +133,20 @@ class GameViewModelRetroGameView(
         launchedGame = game
 
         val autoSaveEnabled = settingsManager.autoSave()
-        val filter = settingsManager.screenFilter()
-        val hdMode = settingsManager.hdMode()
-        val hdModeQuality = settingsManager.hdModeQuality()
-        val alignment = settingsManager.viewportAlignment()
+        val display =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                DisplaySettingsStore(
+                    applicationContext,
+                ).readSafely(
+                    game.cartridgeId.takeIf {
+                        it.isNotBlank()
+                    },
+                ).effective
+            }
+        val filter = display.filter ?: settingsManager.screenFilter()
+        val hdMode = display.hd ?: settingsManager.hdMode()
+        val hdModeQuality = display.quality?.let { HDModeQuality.parse(it) } ?: settingsManager.hdModeQuality()
+        val alignment = display.alignment ?: settingsManager.viewportAlignment()
         val lowLatencyAudio = settingsManager.lowLatencyAudio()
         val enableRumble = settingsManager.enableRumble()
         val directLoad = settingsManager.allowDirectGameLoad()

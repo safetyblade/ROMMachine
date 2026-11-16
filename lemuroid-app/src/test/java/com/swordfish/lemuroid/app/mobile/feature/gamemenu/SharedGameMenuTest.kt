@@ -64,7 +64,7 @@ class SharedGameMenuTest {
                 ) { Text("Touch controls fixture") }
             }
         }
-        compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithText("Resume").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         compose.onNodeWithText("Save & Load").assertIsDisplayed()
         compose.onNodeWithText("Game Settings").assertDoesNotExist()
         compose.onNodeWithText("Copy engine/GPU report").assertDoesNotExist()
@@ -114,7 +114,7 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Repair engine resources").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, resumes) }
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
+        compose.onNodeWithText("Return to Shelf").performScrollTo().assertIsDisplayed()
         // Back at recovery Home must exit, never send Resume to a failed host.
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.runOnIdle {
@@ -176,8 +176,8 @@ class SharedGameMenuTest {
                     width = w
                     height = h
                 }
-                compose.onNodeWithText("Resume").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-                compose.onNodeWithText("Return to Shelf").assertIsDisplayed()
+                compose.onNodeWithText("Resume").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                compose.onNodeWithText("Return to Shelf").performScrollTo().assertIsDisplayed()
                 compose.onNodeWithText("Save & Load").performScrollTo().assertIsDisplayed()
                 compose.runOnIdle { assertEquals(shelfMaterials(selected).interactionAccent, primary) }
             }

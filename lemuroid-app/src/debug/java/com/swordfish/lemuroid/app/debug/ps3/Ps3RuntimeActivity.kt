@@ -221,6 +221,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                         if (menu) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "PlayStation 3 setup", engineInfo = "$engine · $report",
                                 capabilities =
                                     XboxMenuCapabilities(

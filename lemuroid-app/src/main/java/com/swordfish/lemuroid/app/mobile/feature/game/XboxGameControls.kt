@@ -22,10 +22,12 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
+import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
@@ -50,6 +52,7 @@ fun XboxGameControls(
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
+    val display = rememberDisplaySettings(game?.cartridgeId)
     val appearance =
         produceState(ShelfAppearance(), context) {
             value = ShelfStore(context).read().appearance
@@ -103,7 +106,13 @@ fun XboxGameControls(
                 context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
             }
         if (landscape && (physicalControllerConnected || isTv)) {
-            CartdeckMaximisedFrame(tokens, onViewport, presentationAspect, isTv)
+            CartdeckMaximisedFrame(
+                tokens,
+                onViewport,
+                presentationAspect,
+                isTv,
+                display.effective.border(true) == DisplaySettingsStore.Border.STANDARD,
+            )
             return@BoxWithConstraints
         }
         val orientation =
@@ -193,16 +202,26 @@ fun XboxGameControls(
             Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
             onInputEvents = onInput,
         ) {
-            CartdeckConsoleShell(tokens, video.value, root.value, landscape, bounds.values.toList())
-            CartdeckHardwareSeats(
-                rootBounds = root.value,
-                videoBounds = video.value,
-                inputBounds = bounds,
-                tokens = tokens,
-                edition = edition,
-                isDualScreen = false,
-                customColours = appearance.custom.isNotEmpty(),
-            )
+            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+                CartdeckConsoleShell(
+                    tokens,
+                    video.value,
+                    root.value,
+                    landscape,
+                    bounds.values.toList(),
+                )
+            }
+            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+                CartdeckHardwareSeats(
+                    rootBounds = root.value,
+                    videoBounds = video.value,
+                    inputBounds = bounds,
+                    tokens = tokens,
+                    edition = edition,
+                    isDualScreen = false,
+                    customColours = appearance.custom.isNotEmpty(),
+                )
+            }
             CompositionLocalProvider(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,

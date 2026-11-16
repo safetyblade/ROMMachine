@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.tv.settings
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.InputDevice
 import android.view.View
@@ -98,6 +99,23 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore =
             SharedPreferencesHelper.getSharedPreferencesDataStore(requireContext())
         setPreferencesFromResource(R.xml.tv_settings, rootKey)
+        if (rootKey == null) {
+            preferenceScreen.addPreference(
+                Preference(requireContext()).apply {
+                    key = "cartdeck_display_defaults"
+                    title = "Display"
+                    setOnPreferenceClickListener {
+                        startActivity(
+                            Intent(
+                                requireContext(),
+                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsActivity::class.java,
+                            ),
+                        )
+                        true
+                    }
+                },
+            )
+        }
 
         getCoresSelectionScreen()?.let {
             coresSelectionPreferences.addCoresSelectionPreferences(it)

@@ -264,6 +264,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     // The active engine has not acknowledged a pause here. Do not claim one.
                     GameMenuRoute.HOME -> "Game menu"
                     GameMenuRoute.CONTROLS -> "Controls"
+                    GameMenuRoute.DISPLAY -> "Display"
                     GameMenuRoute.STATES -> "Save & Load"
                     GameMenuRoute.OPTIONS -> "Game Settings"
                     GameMenuRoute.ADVANCED -> "Advanced"
@@ -278,7 +279,12 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 route.canGoBack(),
                 onBack = { if (!navController.popBackStack()) onResult { } },
                 onResume = { onResult { } },
-                statusMessage = if (hostCapabilities.canPause) null else "Menu open. Engine pause is not confirmed.",
+                statusMessage =
+                    if (route != GameMenuRoute.ADVANCED || hostCapabilities.canPause) {
+                        null
+                    } else {
+                        "Menu open. Engine pause is not confirmed."
+                    },
             ) {
                 NavHost(
                     modifier =
@@ -292,6 +298,9 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     composable(GameMenuRoute.HOME) {
                         GameMenuHomeScreen(navController, gameMenuRequest, ::onResult)
                     }
+                    composable(
+                        GameMenuRoute.DISPLAY,
+                    ) { DisplaySettingsScreen(gameMenuRequest.game, libretroHost = true) }
                     composable(GameMenuRoute.STATES) { GameMenuStatesHome(navController, gameMenuRequest) }
                     composable(GameMenuRoute.ADVANCED) { GameMenuAdvancedScreen(gameMenuRequest, ::onResult) }
                     composable(GameMenuRoute.PIVOTARC) {

@@ -44,6 +44,7 @@ internal fun XboxGameMenu(
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
     pauseFeedback: String = "Menu open. This engine may continue running.",
     canResume: Boolean = true,
+    game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -57,6 +58,7 @@ internal fun XboxGameMenu(
             when (route) {
                 GameMenuRoute.HOME -> "Game menu"
                 GameMenuRoute.CONTROLS -> "Controls"
+                GameMenuRoute.DISPLAY -> "Display"
                 GameMenuRoute.STATES -> "Save & Load"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
@@ -72,7 +74,7 @@ internal fun XboxGameMenu(
                 }
             },
             onResume = { if (safeResume) onResume() },
-            statusMessage = pauseFeedback,
+            statusMessage = if (route == GameMenuRoute.ADVANCED) pauseFeedback else null,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
@@ -82,6 +84,7 @@ internal fun XboxGameMenu(
                             when (action) {
                                 GameMenuAction.RESUME -> if (safeResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
+                                GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
@@ -92,6 +95,7 @@ internal fun XboxGameMenu(
                     )
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
+                composable(GameMenuRoute.DISPLAY) { DisplaySettingsScreen(game, libretroHost = false) }
                 composable(GameMenuRoute.STATES) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text(storageHelp, Modifier.padding(16.dp))

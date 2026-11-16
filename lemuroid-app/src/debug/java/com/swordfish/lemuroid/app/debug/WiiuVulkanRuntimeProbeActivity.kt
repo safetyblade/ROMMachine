@@ -285,6 +285,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         }
                         if (menuOpen) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "Wii U",
                                 engineInfo = selection?.id ?: "Engine unavailable",
                                 capabilities =

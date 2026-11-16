@@ -10,14 +10,13 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
-import com.swordfish.lemuroid.app.tv.gamemenu.TVGameMenuActivity
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.displayToast
 import kotlinx.coroutines.flow.filter
 
 class TVGameActivity : BaseGameActivity() {
-    override fun getDialogClass() = TVGameMenuActivity::class.java
+    override fun getDialogClass() = com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuActivity::class.java
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

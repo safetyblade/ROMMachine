@@ -15,7 +15,7 @@ class GameMenuCapabilitiesTest {
 
     @Test fun unsupportedFeaturesAreOmittedFromHome() {
         assertEquals(
-            listOf(GameMenuAction.RESUME, GameMenuAction.RETURN_TO_SHELF),
+            listOf(GameMenuAction.RESUME, GameMenuAction.DISPLAY, GameMenuAction.RETURN_TO_SHELF),
             GameMenuCapabilities().homeActions(),
         )
         for (debug in listOf(false, true)) for (probe in listOf(false, true)) for (rollback in listOf(false, true)) {
@@ -23,10 +23,11 @@ class GameMenuCapabilitiesTest {
             assertEquals(
                 listOf(
                     GameMenuAction.RESUME,
-                    GameMenuAction.CONTROLS,
                     GameMenuAction.STATES,
-                    GameMenuAction.ADVANCED,
+                    GameMenuAction.CONTROLS,
+                    GameMenuAction.DISPLAY,
                     GameMenuAction.RETURN_TO_SHELF,
+                    GameMenuAction.ADVANCED,
                 ),
                 native.home.homeActions(),
             )

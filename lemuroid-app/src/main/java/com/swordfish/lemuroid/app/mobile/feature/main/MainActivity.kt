@@ -440,6 +440,11 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onAddGames = { settingsInteractor.changeLocalStorageFolder() },
                         )
                     }
+                    composable(MainRoute.SETTINGS_DISPLAY) {
+                        com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsScreen(
+                            modifier = Modifier.padding(padding),
+                        )
+                    }
                     composable(MainRoute.SETTINGS_LAYOUT) {
                         PivotArcSettingsScreen(modifier = Modifier.padding(padding))
                     }

@@ -243,6 +243,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                         if (menu) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "PlayStation 2",
                                 engineInfo = engine?.let { "ARMSX2 ${it.id}" } ?: "ARMSX2 startup needs attention",
                                 capabilities =

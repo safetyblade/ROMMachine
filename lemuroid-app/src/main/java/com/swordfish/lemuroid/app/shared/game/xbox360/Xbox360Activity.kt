@@ -206,6 +206,10 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                         if (menuOpen && !failed) {
                             XboxGameMenu(
+                                game =
+                                    intent.getSerializableExtra(
+                                        "cartdeck.game",
+                                    ) as? com.swordfish.lemuroid.lib.library.db.entity.Game,
                                 title = intent.getStringExtra("cartdeck.gameTitle").orEmpty(),
                                 engineInfo = if (::engine.isInitialized) engine.id else "Engine unavailable",
                                 capabilities =

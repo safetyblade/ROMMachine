@@ -115,6 +115,7 @@ class BaseGameScreenViewModel(
 
     val systemId = system.id
     private val activeGame = game
+    val cartridgeId = game.cartridgeId
     private val gripArcStore = GripArcProfileStore(appContext)
     private val gripArcProfileState = MutableStateFlow(gripArcStore.read(game))
 
