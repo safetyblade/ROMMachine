@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from issue_native_receipt import issue_receipt
+from ci01_legacy_engines import contract
 from verify_ci01_ps1 import CORE, FLAGS, SOURCE_COMMIT, expected_identity, verify
 
 
@@ -36,6 +37,11 @@ class ReusedPs1Tests(unittest.TestCase):
 
     def test_matching_artifact_reused(self):
         self.assertEqual(verify(self.output, self.script)["engine"], "ps1")
+
+    def test_canonical_producer_receipt_reused(self):
+        (self.output / "receipt.json").unlink()
+        contract("ps1", self.output, issue=True)
+        self.assertEqual(verify(self.output)["engine"], "ps1")
 
     def test_build_script_change_rejected(self):
         self.script.write_text("echo changed")
