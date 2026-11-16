@@ -122,6 +122,10 @@ def prepare(engine, source, dest):
             if required not in entries:
                 raise ValueError("Xenia missing " + required)
         check_sha_inventory(source)
+        symbols = source / "symbols"
+        if not symbols.is_dir() or not (symbols / "libcartdeck_xenia.so").is_file():
+            raise ValueError("Xenia exact-build crash symbols missing")
+        entries.extend(p.relative_to(source).as_posix() for p in symbols.iterdir() if p.is_file())
     elif engine == "armsx2":
         proof = json.loads((source / "native-evidence.json").read_text())
         if proof.get("source_sha") != spec["sha"] or proof.get("result") != "NATIVE_SOURCE_BUILD_VERIFIED_ONLY":
