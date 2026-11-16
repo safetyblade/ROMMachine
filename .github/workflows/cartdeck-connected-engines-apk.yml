@@ -12,8 +12,15 @@ on:
       use_ci01_native_set:
         type: boolean
         default: false
+      use_ci01_all_native:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
+      use_ci01_all_native:
+        description: 'Verify and reuse ten individually built native components (CI-01 trial)'
+        type: boolean
+        default: false
       use_ci01_native_set:
         description: 'Validate and substitute five independent, provenance-verified native inputs'
         type: boolean
@@ -50,6 +57,7 @@ jobs:
       - name: Native resolver source tests (before native downloads)
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
@@ -69,16 +77,17 @@ jobs:
             // existing native staging/ELF/package checks before APK publication.
             const groups = [
               {run: 43598603237, names: [
-                'hakux-android-backend', 'xenia-android-backend',
-                'patched-libretrodroid-host',
-                ...(!inputs.use_ci01_native_set ? [
+                ...(!inputs.use_ci01_all_native ? ['hakux-android-backend', 'xenia-android-backend',
+                'patched-libretrodroid-host'] : []),
+                ...(!(inputs.use_ci01_native_set || inputs.use_ci01_all_native) ? [
                   'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
                   'native-engine-gc', 'native-engine-ps2'] : [])]},
-              {run: 43595931102, names: ['ps2-armsx2-native-verified-private']},
-              {run: 43601391744, names: ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
+              {run: 43595931102, names: inputs.use_ci01_all_native ? [] : ['ps2-armsx2-native-verified-private']},
+              {run: 43601391744, names: inputs.use_ci01_all_native ? [] : ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
             ];
             const missing = [];
             for (const group of groups) {
+              if (!group.names.length) continue;
               const run = (await github.rest.actions.getWorkflowRun({
                 ...context.repo, run_id: group.run
               })).data;
@@ -107,7 +116,7 @@ jobs:
           echo '::error::Missing or expired native inputs. Routine APK builds must not rebuild every engine. Rebuild the missing components in their engine workflows and provide verified artifacts; use native_rebuild_authorized only for a deliberate complete recovery.'
           exit 1
       - name: Download the passed five-engine, Wii, hakuX and Xenia builds
-        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_native_set != true
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_native_set != true && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -115,7 +124,7 @@ jobs:
           pattern: native-engine-*
           path: work/connected/legacy
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
@@ -152,7 +161,7 @@ jobs:
           name: wiiu-cemu-verified-arm64-core-private-not-an-apk
           path: work/connected/cemu
       - name: Resolve successful independent engine workflow runs
-        if: inputs.use_ci01_native_set == true
+        if: inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true
         id: ci01_set
         uses: actions/github-script@v7
         with:
@@ -239,6 +248,94 @@ jobs:
             python3 scripts/ci/ci01_legacy_engines.py \
               --engine "$engine" --directory "work/connected/ci01-native/$engine"
           done
+      - name: Discover remaining five independently verified native backends
+        id: ci01_backends
+        if: inputs.use_ci01_all_native == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const engines = ['hakux', 'xenia', 'armsx2', 'cemu', 'libretrodroid'];
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const runs = new Map();
+            for (const engine of engines) {
+              const prefix = 'native-ci01-' + engine + '-';
+              let chosen = null;
+              const candidates = all.filter(a => !a.expired && a.name.startsWith(prefix))
+                .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+              for (const artifact of candidates) {
+                const runId = artifact.workflow_run?.id;
+                if (!runId) continue;
+                if (!runs.has(runId)) {
+                  const response = await github.rest.actions.getWorkflowRun({...context.repo, run_id: runId});
+                  runs.set(runId, response.data);
+                }
+                const run = runs.get(runId);
+                if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
+                    run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                    artifact.name !== prefix + run.head_sha) continue;
+                chosen = {run_id: run.id, name: artifact.name};
+                break;
+              }
+              if (!chosen) {
+                core.setFailed('Missing verified native artifact for ' + engine +
+                  '. Build the individual CI-01 component and retain its receipt.');
+                return;
+              }
+              core.setOutput(engine + '_run', String(chosen.run_id));
+              core.setOutput(engine + '_name', chosen.name);
+            }
+      - name: Download verified hakux native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.hakux_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.hakux_run }}
+          name: ${{ steps.ci01_backends.outputs.hakux_name }}
+          path: work/connected/ci01-native/hakux
+      - name: Download verified xenia native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.xenia_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.xenia_run }}
+          name: ${{ steps.ci01_backends.outputs.xenia_name }}
+          path: work/connected/ci01-native/xenia
+      - name: Download verified armsx2 native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.armsx2_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.armsx2_run }}
+          name: ${{ steps.ci01_backends.outputs.armsx2_name }}
+          path: work/connected/ci01-native/armsx2
+      - name: Download verified cemu native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.cemu_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.cemu_run }}
+          name: ${{ steps.ci01_backends.outputs.cemu_name }}
+          path: work/connected/ci01-native/cemu
+      - name: Download verified libretrodroid native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.libretrodroid_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.libretrodroid_run }}
+          name: ${{ steps.ci01_backends.outputs.libretrodroid_name }}
+          path: work/connected/ci01-native/libretrodroid
+      - name: Check remaining native receipts before assembly
+        if: inputs.use_ci01_all_native == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            python3 scripts/ci/ci01_remaining_engines.py \
+              --engine "$engine" --directory "work/connected/ci01-native/$engine"
+          done
       - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
         shell: bash
         run: |
@@ -278,6 +375,23 @@ jobs:
             mkdir -p "$(dirname "$destination")"
             cp -a "$source" "$destination"
             python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$destination"
+          done
+      - name: Stage independently verified backends into legacy-compatible build layout
+        if: inputs.use_ci01_all_native == true && steps.inputs.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            source="work/connected/ci01-native/$engine"
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "$source"
+            case "$engine" in
+              libretrodroid) target=work/connected/host ;;
+              *) target="work/connected/$engine" ;;
+            esac
+            test ! -e "$target"
+            mkdir -p "$(dirname "$target")"
+            cp -a "$source" "$target"
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "$target"
           done
       - name: Package source-licensed PS2 resources for the existing engines
         run: |
