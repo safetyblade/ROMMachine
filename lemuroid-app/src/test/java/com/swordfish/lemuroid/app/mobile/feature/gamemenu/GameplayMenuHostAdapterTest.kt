@@ -14,6 +14,7 @@ class GameplayMenuHostAdapterTest {
             GameplayMenuHostKind.XENIA,
             GameplayMenuHostKind.ARMSX2,
             GameplayMenuHostKind.CEMU,
+            GameplayMenuHostKind.PS3,
         ).forEach { kind ->
             val capabilities = GameplayMenuHostProfiles.capabilities(kind)
             assertTrue(capabilities.canPause)

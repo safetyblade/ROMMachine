@@ -31,7 +31,11 @@ import os
 import sys
 from pathlib import Path
 limit = int(os.environ.get("CARTDECK_APK_MAX_MIB", "100"))
-assert 1 <= limit <= 256, "Invalid engineering APK size limit"
+assert 1 <= limit <= 512, "Invalid engineering APK size limit"
+if limit > 256:
+    # A larger bound is valid only for a genuine two-engine PS3 APK, not arbitrary bloat.
+    import subprocess
+    subprocess.run([sys.executable, "scripts/ps3/verify_apk.py", sys.argv[1]], check=True)
 assert Path(sys.argv[1]).stat().st_size < limit * 1024 * 1024, f"APK exceeds {limit} MiB"
 PY
 # Only stage the APK after all identity and signing checks succeed.

@@ -23,11 +23,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
@@ -85,6 +92,14 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
     private var engine = "armsx3"
     private val retro: Boolean get() = engine == "rpcs3-libretro"
+    private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
+    private val menuHost by lazy {
+        GameplayMenuHostAdapter(
+            GameplayMenuHostProfiles.capabilities(GameplayMenuHostKind.PS3),
+            pause = { if (retro) Ps3Libretro.nativePause(true) else Ps3Native.pause(true) },
+            resume = { if (retro) Ps3Libretro.nativePause(false) else Ps3Native.pause(false) },
+        )
+    }
     private val firmware =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null && loaded && !booting) {
@@ -167,6 +182,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             Ps3Engine.CONTROLLER,
                             connected,
                             game,
+                            presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.PS3),
                             onGripPressed = { slot, down, codes ->
                                 if (down && !menu && this@Ps3RuntimeActivity.foreground) {
                                     gripSlots[slot] = codes
@@ -203,11 +219,14 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         Ps3Engine.store(filesDir, engine).canRollback(),
                                         resume = game != null && !failure,
                                     ),
+                                pauseFeedback = menuPauseFeedback,
+                                canResume = game != null && !failure && !leaving,
                                 onResume = {
                                     if (!failure && game != null) {
-                                        menu = false
-                                        pause(false)
-                                        boot()
+                                        pause(false) {
+                                            menu = false
+                                            boot()
+                                        }
                                     }
                                 },
                                 onReturnToShelf = ::leave,
@@ -471,10 +490,29 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         pause(true)
     }
 
-    private fun pause(value: Boolean) {
-        if (loaded && booting && !leaving) {
-            lifecycleScope.launch(Dispatchers.IO) {
-                runCatching { if (retro) Ps3Libretro.nativePause(value) else Ps3Native.pause(value) }
+    private fun pause(
+        value: Boolean,
+        after: (() -> Unit)? = null,
+    ) {
+        if (!loaded || !booting || leaving) {
+            after?.invoke()
+            return
+        }
+        lifecycleScope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    menuHost.dispatch(if (value) GameplayMenuCommand.PAUSE else GameplayMenuCommand.RESUME)
+                }
+            if (value) {
+                menuPauseFeedback = result.menuFeedback()
+            } else {
+                val error = result.resumeFailureFeedback()
+                if (error != null) {
+                    menuPauseFeedback = error
+                    menu = true
+                } else {
+                    after?.invoke()
+                }
             }
         }
     }

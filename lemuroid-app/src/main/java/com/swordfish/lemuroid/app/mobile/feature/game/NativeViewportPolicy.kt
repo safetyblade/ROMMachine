@@ -14,6 +14,7 @@ internal object NativeViewportPolicy {
         XBOX360,
         ARMSX2,
         CEMU,
+        PS3,
     }
 
     // Conservative initial surface shapes. Each engine must continue to
@@ -21,13 +22,13 @@ internal object NativeViewportPolicy {
     fun presentationAspect(host: Host): Float =
         when (host) {
             Host.XBOX, Host.ARMSX2 -> 4f / 3f
-            Host.XBOX360, Host.CEMU -> 16f / 9f
+            Host.XBOX360, Host.CEMU, Host.PS3 -> 16f / 9f
         }
 
     fun portraitApertureRatio(host: Host): String =
         when (host) {
             Host.XBOX, Host.ARMSX2 -> CartdeckViewportPolicy.STANDARD_RATIO
-            Host.XBOX360, Host.CEMU -> "16:9"
+            Host.XBOX360, Host.CEMU, Host.PS3 -> "16:9"
         }
 
     data class SurfacePixels(
