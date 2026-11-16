@@ -394,11 +394,20 @@ jobs:
             python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "$target"
           done
       - name: Package source-licensed PS2 resources for the existing engines
+        if: inputs.use_ci01_all_native != true
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
           python3 scripts/ci/package_ps2_runtime_support.py --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Build the updated Wii U Vulkan frontend against pinned core headers
+        if: inputs.use_ci01_all_native != true
         run: python3 scripts/ci/rebuild_wiiu_host.py
+      - name: Recheck reusable native receipts immediately before staging
+        if: inputs.use_ci01_all_native == true
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "work/connected/ci01-native/$engine"
+          done
       - name: Connect the real engines to one CARTDECK payload
         shell: bash
         run: |
