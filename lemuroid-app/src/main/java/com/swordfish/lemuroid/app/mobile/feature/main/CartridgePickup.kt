@@ -13,13 +13,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -125,12 +128,13 @@ fun CartridgePickup(
     LaunchedEffect(settled, cardAttached) { if (settled && cardAttached) focus.requestFocus() }
     val density = LocalDensity.current
     BoxWithConstraints(
-        Modifier.fillMaxSize().onGloballyPositioned { root = it.boundsInRoot() }
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
+            .onGloballyPositioned { root = it.boundsInRoot() }
             .background(Color.Black.copy(alpha = 0.65f * progress.value))
             .clickable(onClick = close).semantics { paneTitle = "Cartridge details" },
     ) {
         Surface(
-            Modifier.align(Alignment.Center).widthIn(max = 560.dp).fillMaxWidth()
+            Modifier.align(Alignment.Center).widthIn(max = if (maxWidth > maxHeight) 840.dp else 560.dp).fillMaxWidth()
                 .heightIn(max = maxHeight - 32.dp).padding(16.dp)
                 .graphicsLayer { alpha = if (settled) 1f else 0f }
                 .then(if (!settled) Modifier.clearAndSetSemantics {} else Modifier)

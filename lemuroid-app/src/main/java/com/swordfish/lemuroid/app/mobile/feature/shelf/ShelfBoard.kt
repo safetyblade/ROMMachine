@@ -72,7 +72,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.math.floor
 import kotlin.math.roundToInt
 
 private data class ShelfItem(val key: String, val section: ShelfSection, val row: ShelfRow? = null)
@@ -192,8 +191,15 @@ fun ShelfBoard(
                 exclusions = emptyList(),
             )
         }
-        val columns = maxOf(1, floor((maxWidth.value - 24f) / 72f).toInt())
-        val width = ((maxWidth.value - 24f - 4f * (columns - 1)) / columns).dp.coerceAtLeast(48.dp)
+        val sizing =
+            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.shelf(
+                maxWidth.value,
+                maxHeight.value,
+                androidx.compose.ui.platform.LocalDensity.current.fontScale,
+                false,
+            )
+        val columns = sizing.columns
+        val width = sizing.spineWidth.dp
         val items =
             remember(layout, columns, byKey) {
                 layout.visibleSections(byKey.keys).flatMap { section ->

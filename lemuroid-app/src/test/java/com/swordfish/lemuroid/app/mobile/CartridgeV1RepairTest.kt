@@ -2,16 +2,25 @@ package com.swordfish.lemuroid.app.mobile
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import com.swordfish.lemuroid.app.mobile.feature.main.CartridgeDetail
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfBoard
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
@@ -42,6 +51,29 @@ class CartridgeV1RepairTest {
             coverFrontUrl = "https://existing.invalid/atlas.png",
             lastIndexedAt = 0,
         )
+
+    @Test fun shortLandscapeDetailKeepsEntireArtBesideReachableActions() {
+        compose.setContent {
+            CartridgeLibraryTheme {
+                Box(Modifier.requiredSize(700.dp, 260.dp)) {
+                    CartridgeDetail(
+                        game,
+                        {},
+                        {},
+                        { _, _ -> },
+                        {},
+                        frontModifier = Modifier.testTag("detail-art"),
+                    )
+                }
+            }
+        }
+        val art = compose.onNodeWithTag("detail-art").getUnclippedBoundsInRoot()
+        val open = compose.onNodeWithText("Open").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue((art.bottom - art.top).value <= 236.1f)
+        org.junit.Assert.assertTrue(art.right <= open.left)
+        compose.onNodeWithText("Open").assertIsDisplayed()
+        compose.onNodeWithText("Setup").assertIsDisplayed()
+    }
 
     @Test fun verticalShelfStacksRowsAndRetainsFullAccessibleTitles() {
         val games = (1..12).map { game.copy(id = it, title = "Cartridge $it", fileUri = "content://rom/$it") }

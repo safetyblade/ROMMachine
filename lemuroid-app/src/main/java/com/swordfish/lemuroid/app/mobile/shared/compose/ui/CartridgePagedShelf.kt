@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfRail
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import kotlin.math.floor
 
 @Composable
 fun CartridgePagedShelf(
@@ -28,8 +27,15 @@ fun CartridgePagedShelf(
     onGameFavoriteToggle: ((Game, Boolean) -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val columns = maxOf(1, floor((maxWidth.value - 24f) / 72f).toInt())
-        val width = ((maxWidth.value - 24f - 4f * (columns - 1)) / columns).dp.coerceAtLeast(48.dp)
+        val sizing =
+            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.shelf(
+                maxWidth.value,
+                maxHeight.value,
+                androidx.compose.ui.platform.LocalDensity.current.fontScale,
+                onGameFavoriteToggle != null,
+            )
+        val columns = sizing.columns
+        val width = sizing.spineWidth.dp
         LazyColumn(contentPadding = PaddingValues(12.dp)) {
             items((games.itemCount + columns - 1) / columns, key = {
                     row ->
