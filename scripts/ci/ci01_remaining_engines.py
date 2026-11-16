@@ -68,7 +68,7 @@ def prepare(engine, source, dest):
         props = dict(line.split("=", 1) for line in (source / "hakux.properties").read_text().splitlines() if "=" in line)
         if props.get("revision") != spec["sha"]:
             raise ValueError("hakuX source pin mismatch")
-        entries = [p.name for p in source.iterdir() if p.is_file() and p.suffix in (".so", ".zip", ".json", ".properties", ".txt")]
+        entries = [p.name for p in source.iterdir() if p.is_file() and p.suffix in (".so", ".zip", ".json", ".properties", ".txt", ".xz")]
         for required in ("libhakuxcore.so", "hakux.properties", "hakux-licenses.zip", "source-manifest.json", "sha256.txt"):
             if required not in entries:
                 raise ValueError("hakuX missing " + required)
