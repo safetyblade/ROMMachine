@@ -25,13 +25,6 @@
       "status": "not imported; candidate for Wine-based legacy Windows runtime"
     },
     {
-      "name": "GameNative",
-      "repo": "https://github.com/utkarshdalal/GameNative",
-      "observed_revision": "986eafe1058adda624d07c24879e0d5a11866179",
-      "license_root": "GPL-3.0",
-      "status": "not imported; modern PC storefront research"
-    },
-    {
       "name": "Shandalar modern Windows patch",
       "repo": "https://github.com/rlerrr/shandalar-patch",
       "status": "research only; do not import or apply, separate IP/DRM-related analysis required"
@@ -43,5 +36,10 @@
     "no Room or save-root migration",
     "no changes to GC/CI/emulation recovery",
     "no claims of Win95 or Shandalar gameplay"
-  ]
+  ],
+  "distribution_contract": {
+    "cartdeck_apk": "All approved/release-cleared emulator engines bundled in the CARTDECK application; no separate install needed",
+    "engine_only_repository": "Future optional open-source engine-only source/build download linked from CARTDECK Settings; not runtime provisioning",
+    "scope": "REL-ENG-01 #307: source provenance and all GPL app/host corresponding-source obligations must be reviewed separately"
+  }
 }
