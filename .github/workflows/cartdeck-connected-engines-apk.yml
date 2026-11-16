@@ -48,7 +48,10 @@ jobs:
           python-version: '3.12'
       - uses: gradle/actions/setup-gradle@v4
       - name: Native resolver source tests (before native downloads)
-        run: python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
       - name: Early source formatting gate (before native downloads and compilation)
         run: |
           bash scripts/ci/bootstrap_gradle.sh
