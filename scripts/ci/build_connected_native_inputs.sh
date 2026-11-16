@@ -38,7 +38,12 @@ if selected_for_build xenia; then python3 scripts/ci/build_xbox360_native.py wor
 if selected_for_build armsx2; then python3 scripts/ci/ps2_next_armsx2.py work/connected/armsx2 --pages both; fi
 if selected_for_build cemu; then CARTDECK_WIIU_BUILD_VULKAN_HOST=true bash scripts/ci/build_wiiu_cemu_arm64.sh work/connected/cemu; fi
 export HOST_BUILD_DIR="$RUNNER_TEMP/connected-libretrodroid-source"
-export HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/connected/host/maven"
+if [[ "$selected" == libretrodroid ]]; then
+  # Standalone component receipt must contain the same Maven AAR it produced.
+  export HOST_MAVEN_REPO="$HOST_BUILD_DIR/maven"
+else
+  export HOST_MAVEN_REPO="$GITHUB_WORKSPACE/work/connected/host/maven"
+fi
 export LIBRETRODROID_SOURCE_DIR="$HOST_BUILD_DIR/source"
 export BUILD_JOBS=2
 if selected_for_build libretrodroid; then bash scripts/ci/build_libretrodroid_host.sh; fi
