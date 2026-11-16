@@ -1,7 +1,7 @@
 name: CARTDECK CI-01 selective native engine proof
 
-# Initial bounded CI-C implementation: PS1 only. Other engines are added
-# after their provenance and package contracts are individually verified.
+# Initial bounded CI-C implementation: Five existing Libretro engines. Remaining native backends migrate
+# after their provenance and package contracts are verified.
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +11,10 @@ on:
         required: true
         options:
           - ps1
+          - psp
+          - dc
+          - gc
+          - ps2
 
 permissions:
   contents: read
@@ -47,39 +51,19 @@ jobs:
       - name: Compile selected pinned native source only
         shell: bash
         run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
-      - name: Verify PS1 source identity and issue immutable receipt
-        if: inputs.engine == 'ps1'
+      - name: Verify source identity, core and assets; issue immutable receipt
         shell: bash
         run: |
           set -euo pipefail
-          source_commit=7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e
-          dir=work/connected/legacy/native-engine-ps1
-          test "$(sed -n 's/^revision=//p' "$dir/pcsx-rearmed-modern.properties")" = "$source_commit"
-          test -s "$dir/PCSX_UPSTREAM_COPYING"
-          python3 scripts/ci/issue_native_receipt.py \
-            --output "$dir" --engine ps1 --engine-version pcsx-rearmed-modern \
-            --source-commit "$source_commit" \
-            --build-script scripts/ci/build_ps1_upstream_core.sh \
-            --ndk-version 29.0.14206865 --api-level 24 \
-            --compiler-flags 'Makefile.libretro platform=unix ARCH=arm64 DYNAREC=ari64 BUILTIN_GPU=neon APP_PLATFORM=android-24 16KB' \
-            --licence-notices PCSX_UPSTREAM_COPYING
-          python3 - <<'PYCODE'
-          import json
-          from pathlib import Path
-          from sys import path
-          path.insert(0, "scripts/ci")
-          from resolve_native_artifacts import resolve_component
-          directory = Path("work/connected/legacy/native-engine-ps1")
-          identity = json.loads((directory / "receipt.json").read_text())["identity"]
-          resolve_component(identity, directory)
-          print("PS1 native artifact identity and SHA-256 verified")
-          PYCODE
-      - name: Retain independent PS1 native output
-        if: inputs.engine == 'ps1'
+          engine="${{ inputs.engine }}"
+          dir="work/connected/legacy/native-engine-$engine"
+          python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$dir" --issue
+          python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$dir"
+      - name: Retain independently verified native output
         uses: actions/upload-artifact@v4
         with:
-          name: native-ci01-ps1-${{ github.sha }}
-          path: work/connected/legacy/native-engine-ps1/
+          name: native-ci01-${{ inputs.engine }}-${{ github.sha }}
+          path: work/connected/legacy/native-engine-${{ inputs.engine }}/
           if-no-files-found: error
           retention-days: 90
       - name: Publish native failure diagnostics only
