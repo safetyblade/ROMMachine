@@ -22,10 +22,27 @@ SPECS = {
     "libretrodroid": dict(sha="8835c3098514390a271e36983957f7bb5f40abf1", script="build_libretrodroid_host.sh", api=21, version="0.14.0-cartdeck3"),
 }
 EXTRA_SCRIPTS = {
-    "armsx2": ["scripts/ci/package_ps2_runtime_support.py"],
+    "hakux": ["scripts/ci/build_hakux_native.sh", "scripts/ci/verify_hakux_native.py"],
+    "xenia": ["scripts/ci/xbox360_native_abi.py", "scripts/ci/verify_gamecube_core.py"],
+    "armsx2": ["scripts/ci/package_ps2_runtime_support.py",
+               "scripts/ci/ps2_rust_notices.py", "scripts/ci/ps2_sdl_contract.py"],
     "cemu": ["scripts/ci/wiiu_notices.py", "scripts/ci/wiiu_cemu_contract.py",
-             "spikes/wiiu/vulkan-host/CMakeLists.txt"],
+             "scripts/ci/wiiu_cemu_contract.py", "scripts/ci/rebuild_wiiu_host.py"],
+    "libretrodroid": ["scripts/ci/native_symbols.py"],
 }
+
+
+def build_recipe_files(engine):
+    spec = SPECS[engine]
+    scripts = ["scripts/ci/" + spec["script"],
+               "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"]
+    scripts.extend(EXTRA_SCRIPTS.get(engine, []))
+    if engine == "xenia":
+        scripts.extend(p.as_posix() for p in sorted(Path("scripts/ci/xbox360").rglob("*")) if p.is_file())
+    if engine == "cemu":
+        scripts.extend(p.as_posix() for p in sorted(Path("spikes/wiiu/vulkan-host").rglob("*")) if p.is_file())
+    return sorted(set(scripts))
+
 PATCHES = {
     "hakux": [
         "hakux-libslirp-4.7-ssize.patch", "hakux-vulkan-loader-version.patch",
@@ -131,7 +148,7 @@ def prepare(engine, source, dest):
 
 def expected(engine):
     spec = SPECS[engine]
-    scripts = ["scripts/ci/" + spec["script"], "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"] + EXTRA_SCRIPTS.get(engine, [])
+    scripts = build_recipe_files(engine)
     patches = ["scripts/ci/patches/" + p for p in PATCHES.get(engine, [])]
     # Dependencies of a component are part of its immutable recipe.
     return dict(engine=engine, engine_version=spec["version"],
@@ -167,7 +184,7 @@ def verify(engine, directory):
 def produce(engine, source, dest):
     notice = prepare(engine, source, dest)
     identity = expected(engine)
-    scripts = ["scripts/ci/" + SPECS[engine]["script"], "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"] + EXTRA_SCRIPTS.get(engine, [])
+    scripts = build_recipe_files(engine)
     patches = ["scripts/ci/patches/" + p for p in PATCHES.get(engine, [])]
     # The generic issuer fingerprints one path, so use a stable compound
     # fingerprint from the same source recipe as the consumer.
