@@ -3,6 +3,9 @@ name: CARTDECK connected PS2 Wii U Xbox 360 APK
 on:
   workflow_call:
     inputs:
+      measure_apk_reuse:
+        type: boolean
+        default: false
       include_ps3:
         type: boolean
         default: false
@@ -17,6 +20,10 @@ on:
         default: false
   workflow_dispatch:
     inputs:
+      measure_apk_reuse:
+        description: 'Measure clean-output and same-workspace repeat APK builds; retain dependency caches'
+        type: boolean
+        default: false
       use_ci01_all_native:
         description: 'Verify and reuse ten individually built native components (CI-01 trial)'
         type: boolean
@@ -479,14 +486,22 @@ jobs:
           export CARTDECK_OUTPUT=dist/connected
           mkdir -p "$CARTDECK_OUTPUT/evidence"
           git rev-parse HEAD > "$CARTDECK_OUTPUT/evidence/app-source-sha.txt"
-          "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+          benchmark_args=()
+          if [[ '${{ inputs.measure_apk_reuse }}' == true ]]; then
+            "$GRADLE_BIN" clean --no-daemon --no-configuration-cache --max-workers=2
+            benchmark_args+=(--no-build-cache)
+          fi
+          python3 scripts/ci/measure_apk_build.py \
+            --report "$CARTDECK_OUTPUT/evidence/apk-build-timings.json" \
+            --repeat '${{ inputs.measure_apk_reuse }}' -- \
+            "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
             -Pcartdeck.dev.standaloneId=true -Pcartdeck.p0.phoneArm64Only=true \
             -Pcartdeck.p0.testVersionCode="$version_code" -Pcartdeck.p1emu.enabled=true \
             -PcartdeckNativeSystems="$(cat work/connected/bundle/native-systems.txt)" \
             -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/work/connected/bundle" \
             -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/connected/host/maven" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
-            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2
+            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 "${benchmark_args[@]}"
           bash scripts/ci/verify_standalone_apk.sh
           python3 scripts/ci/verify_native_bundle_apk.py \
             "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" work/connected/bundle \
@@ -534,4 +549,5 @@ jobs:
           path: |
             lemuroid-app/build/reports/ktlint/
             lemuroid-app/build/test-results/
+            dist/connected/evidence/apk-build-timings.json
           if-no-files-found: warn
