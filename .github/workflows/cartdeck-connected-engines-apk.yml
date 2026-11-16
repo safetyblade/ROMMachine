@@ -75,15 +75,17 @@ jobs:
             // Temporary compatibility catalog for native backends awaiting CI-01 receipts.
             // Do not infer provenance from a name: all downloaded outputs still pass the
             // existing native staging/ELF/package checks before APK publication.
+            const useAll = '${{ inputs.use_ci01_all_native }}' === 'true';
+            const useFive = '${{ inputs.use_ci01_native_set }}' === 'true';
             const groups = [
               {run: 43598603237, names: [
-                ...(!inputs.use_ci01_all_native ? ['hakux-android-backend', 'xenia-android-backend',
+                ...(!useAll ? ['hakux-android-backend', 'xenia-android-backend',
                 'patched-libretrodroid-host'] : []),
-                ...(!(inputs.use_ci01_native_set || inputs.use_ci01_all_native) ? [
+                ...(!(useFive || useAll) ? [
                   'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
                   'native-engine-gc', 'native-engine-ps2'] : [])]},
-              {run: 43595931102, names: inputs.use_ci01_all_native ? [] : ['ps2-armsx2-native-verified-private']},
-              {run: 43601391744, names: inputs.use_ci01_all_native ? [] : ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
+              {run: 43595931102, names: useAll ? [] : ['ps2-armsx2-native-verified-private']},
+              {run: 43601391744, names: useAll ? [] : ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
             ];
             const missing = [];
             for (const group of groups) {
