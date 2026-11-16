@@ -93,3 +93,28 @@
 **Execution recommendation:** GripArc's failed physical integration #135 is a live blocker and must not be lost in new feature work. In parallel, complete #167 native Fill, #165/166 tablet/TV focus, #176/177 control evidence + normalizer (catalogue parallel), and post-merge shelf #183 device QA. Advance other emulation/ROM lanes separately with rollback.
 
 **Primary truth and update mechanism:** Drive v2.6 controls owner decisions; GitHub source and issue links give implementation/PR/CI status; actual owner/Marcus testing gives physical acceptance. Update both roadmap surfaces after any new device result—especially GripArc, which remains **FAILED** as of this checkpoint.
+
+---
+
+## 16 November 2026 — Junior / Universal Profiles / SafeSave product readiness addendum
+
+**Roadmap location:** Future `Library & Player Experience` lane (does **not** pre-empt active GC-01/CI-01, emulation quality, GEM or other owner priorities). Controlled Drive product roadmap updated with equivalent requirements.
+
+| ID | Feature | Gate / state |
+| --- | --- | --- |
+| [#289 PROF-01](https://github.com/safetyblade/ROMMachine/issues/289) | Console-style local profiles (Manager / Standard / Junior), shared canonical ROM collection, per-player hide/allowlist, explicit profile switch and permissions | Full design; implementation / physical gates pending |
+| [#290 SAVE-01](https://github.com/safetyblade/ROMMachine/issues/290) | Profile-isolated save ownership, native engine memory cards, default legacy save adoption | Source audit and detailed contracts complete; per-engine proof pending |
+| [#290 SAVE-02](https://github.com/safetyblade/ROMMachine/issues/290) | **SafeSave** save inventory, export/import/restore and copy for one game/player/every player including verified memory cards, all exclusions reported | Archive protocol and QA ready; not yet built |
+| [#288 JR-01](https://github.com/safetyblade/ROMMachine/issues/288) | **CARTDECK Junior** — parent-authenticated allowlist and personal themes, exactly **one cartridge on screen**, touch swipe/controller next/previous across handheld/tablet/TV | Sienna interaction design and Daniel architecture ready; not yet built |
+| [#293 SAVE-03](https://github.com/safetyblade/ROMMachine/issues/293) | Optional account-linked **SafeSave Vault**, saves-only: metadata DB + encrypted private object storage; no ROM/BIOS/firmware upload | Concept/architecture documented; backend and release separate approval |
+
+**Readiness pack:**
+- [JR-01 final screen, controller and parent workflow](../design/jr01/JR01_FINAL_SCREEN_INPUT_PARENT_CONTRACT.md)
+- [Daniel's cross-cutting architecture](../architecture/jr01/JR01_PROFILES_SAFESAVE_ARCHITECTURE.md)
+- [Source-level engine persistence and Google Drive sync audit](../architecture/jr01/ENGINE_SAVE_SOURCE_AUDIT_2026-11-16.md)
+- [SafeSave V1 archive / import / export protocol](../architecture/jr01/SAFESAVE_FORMAT_AND_API_V1.md)
+- [Sequenced implementation plan + 34 independent QA cases](jr01/JR01_SAFESAVE_IMPLEMENTATION_READINESS_AND_QA.md)
+
+**Source baseline:** Current `master` inspected on 16 Nov has Room **v13** and `CartridgeSaveBinding`. User-installed Room/ROM/save/engine/appearance/CI compatibility requirements from #145 remain binding; any new migration uses *actual* branch HEAD and tested roll-forward. Existing Play variant Google Drive folder save sync remains a coexistence risk. Native engine multi-profile isolation and backup fidelity are NOT yet tested.
+
+**No runtime implementation or signed APK was produced in the design task.** Marcus must independently mark PASS/FAIL/BLOCKED/NOT TESTED for source/CI/device before release.
