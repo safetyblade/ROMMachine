@@ -131,7 +131,7 @@ def prepare(engine, source, dest):
 
 def expected(engine):
     spec = SPECS[engine]
-    scripts = ["scripts/ci/" + spec["script"]] + EXTRA_SCRIPTS.get(engine, [])
+    scripts = ["scripts/ci/" + spec["script"], "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"] + EXTRA_SCRIPTS.get(engine, [])
     patches = ["scripts/ci/patches/" + p for p in PATCHES.get(engine, [])]
     # Dependencies of a component are part of its immutable recipe.
     return dict(engine=engine, engine_version=spec["version"],
@@ -167,7 +167,7 @@ def verify(engine, directory):
 def produce(engine, source, dest):
     notice = prepare(engine, source, dest)
     identity = expected(engine)
-    scripts = ["scripts/ci/" + SPECS[engine]["script"]] + EXTRA_SCRIPTS.get(engine, [])
+    scripts = ["scripts/ci/" + SPECS[engine]["script"], "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"] + EXTRA_SCRIPTS.get(engine, [])
     patches = ["scripts/ci/patches/" + p for p in PATCHES.get(engine, [])]
     # The generic issuer fingerprints one path, so use a stable compound
     # fingerprint from the same source recipe as the consumer.
