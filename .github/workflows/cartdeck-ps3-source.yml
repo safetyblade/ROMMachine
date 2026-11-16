@@ -124,9 +124,12 @@ jobs:
             work/ps3/build/CMakeCache.txt
 
   integrated-apk:
+    if: github.event_name == 'workflow_dispatch' && inputs.distribution_licensing_cleared
     needs: engines
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
       include_ps3: true
+      use_ci01_all_native: true
+      distribution_licensing_cleared: ${{ inputs.distribution_licensing_cleared }}
       publish_apk: ${{ github.event_name == 'workflow_dispatch' && inputs.distribution_licensing_cleared }}
     secrets: inherit

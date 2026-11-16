@@ -22,8 +22,8 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
-      include_ps3: true
-      ps3_run_id: '43765782031'
+      include_ps3: false
+      use_ci01_all_native: true
       publish_apk: true
     secrets: inherit
 
