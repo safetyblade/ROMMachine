@@ -1,0 +1,91 @@
+name: CARTDECK CI-01 selective native engine proof
+
+# Initial bounded CI-C implementation: PS1 only. Other engines are added
+# after their provenance and package contracts are individually verified.
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: 'Native component to rebuild'
+        type: choice
+        required: true
+        options:
+          - ps1
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: cartdeck-ci01-native-${{ inputs.engine }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-component:
+    name: Verify and retain one genuine native component
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate native provenance test suite
+        run: python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+      - name: Prepare pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Compile selected pinned native source only
+        shell: bash
+        run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
+      - name: Verify PS1 source identity and issue immutable receipt
+        if: inputs.engine == 'ps1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit=7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e
+          dir=work/connected/legacy/native-engine-ps1
+          test "$(sed -n 's/^revision=//p' "$dir/pcsx-rearmed-modern.properties")" = "$source_commit"
+          test -s "$dir/PCSX_UPSTREAM_COPYING"
+          python3 scripts/ci/issue_native_receipt.py \
+            --output "$dir" --engine ps1 --engine-version pcsx-rearmed-modern \
+            --source-commit "$source_commit" \
+            --build-script scripts/ci/build_ps1_upstream_core.sh \
+            --ndk-version 29.0.14206865 --api-level 24 \
+            --compiler-flags 'Makefile.libretro platform=unix ARCH=arm64 DYNAREC=ari64 BUILTIN_GPU=neon APP_PLATFORM=android-24 16KB' \
+            --licence-notices PCSX_UPSTREAM_COPYING
+          python3 - <<'PYCODE'
+          import json
+          from pathlib import Path
+          from sys import path
+          path.insert(0, "scripts/ci")
+          from resolve_native_artifacts import resolve_component
+          directory = Path("work/connected/legacy/native-engine-ps1")
+          identity = json.loads((directory / "receipt.json").read_text())["identity"]
+          resolve_component(identity, directory)
+          print("PS1 native artifact identity and SHA-256 verified")
+          PYCODE
+      - name: Retain independent PS1 native output
+        if: inputs.engine == 'ps1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-ci01-ps1-${{ github.sha }}
+          path: work/connected/legacy/native-engine-ps1/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish native failure diagnostics only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci01-native-failure-${{ github.run_id }}
+          path: |
+            work/connected/legacy/native-engine-ps1/provenance.txt
+            work/connected/legacy/native-engine-ps1/elf-file.txt
+          if-no-files-found: warn
