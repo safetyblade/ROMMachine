@@ -10,6 +10,8 @@ on:
       - 'scripts/ci/resolve_native_artifacts.py'
       - 'scripts/ci/measure_apk_build.py'
       - 'scripts/ci/test_measure_apk_build.py'
+      - 'scripts/ci/retain_ci01_sources.py'
+      - 'scripts/ci/test_retain_ci01_sources.py'
       - 'scripts/ci/test_ci01_*.py'
       - '.github/workflows/cartdeck-ci01-native-engine.yml'
   workflow_dispatch:
@@ -66,6 +68,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_retain_ci01_sources.py' -v
   native-component:
     if: github.event_name == 'workflow_dispatch'
     name: Verify and retain one genuine native component
@@ -138,6 +141,13 @@ jobs:
             --engine "$engine" --source "$source" --directory "work/ci01-reusable/$engine"
           python3 scripts/ci/ci01_remaining_engines.py \
             --engine "$engine" --directory "work/ci01-reusable/$engine"
+      - name: Retain receipt-covered corresponding source with native inputs
+        if: contains(fromJSON('["hakux","armsx2","xenia"]'), inputs.engine)
+        shell: bash
+        run: |
+          python3 scripts/ci/retain_ci01_sources.py --engine "${{ inputs.engine }}" \
+            --source "work/connected/${{ inputs.engine }}" \
+            --directory "work/ci01-reusable/${{ inputs.engine }}"
       - name: Retain independent verified backend artifact
         if: contains(fromJSON('["hakux","xenia","armsx2","cemu","libretrodroid"]'), inputs.engine)
         uses: actions/upload-artifact@v4

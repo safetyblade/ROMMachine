@@ -344,6 +344,11 @@ jobs:
           for engine in hakux xenia armsx2 cemu libretrodroid; do
             python3 scripts/ci/ci01_remaining_engines.py \
               --engine "$engine" --directory "work/connected/ci01-native/$engine"
+            case "$engine" in
+              hakux|armsx2|xenia)
+                python3 scripts/ci/retain_ci01_sources.py --engine "$engine" \
+                  --directory "work/connected/ci01-native/$engine" ;;
+            esac
           done
       - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
         shell: bash
