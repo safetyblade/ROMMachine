@@ -1,5 +1,16 @@
 # CARTDECK — Master product and delivery roadmap
 
+### 17 November 2026 — Shandalar selected as PC-00 first executable proof
+
+**Owner directive:** Shandalar (1997 Windows 95 game) is the first PC target. A **protected PC-04 source/feasibility implementation spike** is authorised, separate from general PC-00 research. This is not a release or proof of gameplay. [PC-04 issue #305](https://github.com/safetyblade/ROMMachine/issues/305), [isolated draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306).
+
+**Start with what CARTDECK already has:** DOSBox Pure `CoreID.DOSBOX_PURE`, DOS `GameSystem`, ARM64 library in LemuroidCores submodule pin `fee2e824525daa22bcf318f96127fe43fa8a15ad`; existing `.dosz` routing does not establish Windows ISO imports or Win95 boot. The PC-04 draft adds a pinned candidate source inventory and read-only native architecture/ELF/16KB proof script. DOSBox Pure source has moved to Codeberg; current official upstream revision unverified. No new runtime binary or APK yet.
+
+**Fallback candidate:** Winlator v11.2 Wine/Box64 (Xclipse-oriented Vortek/Gladio changes) is for a separate 32-bit Win32 proof if DOSBox Pure Win95 guest cannot work; GameNative is for PC-01 modern storefront scope and is NOT required for the first Shandalar game.
+
+**Next gates:** verify checked-out and shipped DOSBox Pure ELF, Libretro OS boot/CD/keyboard/mouse/guest save support → safely mount explicit user-chosen PC CD image without generic ISO collisions → Windows 95 guest → Shandalar installed/overworld/duel/deck/save/exit/reopen with lawfully supplied media → per-profile save + normal CARTDECK game menu → independent Samsung acceptance. Preserve current GC-01 PR #294, source CI-01, #295–297 native repair and all other game/saves. No proprietary media or DRM bypass included.
+
+---
 ## 17 November 2026 — PC-00 standalone PC gaming research lane
 
 **Roadmap position:** Standalone **RESEARCH / FEASIBILITY** alongside, not inside or after, the GC-01 A–H implementation sequence. **No native integration, APK, storefront authorisation or PC gameplay support claim approved.** Research can progress independently while current emulation and GC/CI recoveries remain priority.
