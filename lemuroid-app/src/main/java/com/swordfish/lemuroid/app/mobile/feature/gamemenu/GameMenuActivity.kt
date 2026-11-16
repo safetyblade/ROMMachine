@@ -70,6 +70,8 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     private val hatEdges = ControllerHatEdges()
     private var probeRevision by mutableStateOf(0)
     private var mappingMessage by mutableStateOf<String?>(null)
+    private var mappingCartridge: String? = null
+    private var perCartridge by mutableStateOf(true)
     private var mappingGeneration by mutableStateOf(0)
 
     override fun onResume() {
@@ -93,7 +95,11 @@ class GameMenuActivity : RetrogradeComponentActivity() {
         mappingMessage = null
         if (device != null) {
             lifecycleScope.launch {
-                val initial = inputDeviceManager.getCurrentBindings(device)
+                val initial =
+                    inputDeviceManager.getCurrentBindings(
+                        device,
+                        if (perCartridge) mappingCartridge else null,
+                    )
                 if (mappingDevice?.id == device.id) {
                     mappingDraft =
                         ControllerMappingDraft(
@@ -106,6 +112,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.deviceId == mappingDevice?.id) {
+            probe.motion(event, inputDeviceManager.calibration(event.device))
             event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
             hatEdges.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
                 .forEach { (code, down) ->
@@ -242,6 +249,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                         ?: emptyList(),
             )
 
+        mappingCartridge = gameMenuRequest.game.cartridgeId
         setContent {
             GameMenuScreen(gameMenuRequest)
         }
@@ -354,6 +362,22 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                             physicalControllerOptions = {
                                 PhysicalControllerMappingPanel(
                                     inputDeviceManager = inputDeviceManager,
+                                    cartridge = mappingCartridge,
+                                    perCartridge = perCartridge,
+                                    onScope = {
+                                        perCartridge = it
+                                        selectMappingDevice(mappingDevice)
+                                    },
+                                    onUseDevice = {
+                                        val device = mappingDevice
+                                        val cartridge = mappingCartridge
+                                        if (device != null && cartridge != null) {
+                                            lifecycleScope.launch {
+                                                inputDeviceManager.profiles.useDevice(device.descriptor, cartridge)
+                                                selectMappingDevice(device)
+                                            }
+                                        }
+                                    },
                                     inventory =
                                         gameMenuRequest.coreConfig.controllerConfigs[0]?.let { controllers ->
                                             val selected =
@@ -413,14 +437,23 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                                     mappingDevice?.id == device.id
                                                 ) {
                                                     try {
-                                                        inputDeviceManager.saveDeviceBindings(
-                                                            live,
-                                                            reviewed.mapKeys {
-                                                                InputKey(
-                                                                    it.key,
-                                                                )
-                                                            }.mapValues { RetroKey(it.value) },
-                                                        )
+                                                        val cartridge = mappingCartridge
+                                                        if (perCartridge && cartridge != null) {
+                                                            inputDeviceManager.saveCartridgeBindings(
+                                                                live,
+                                                                cartridge,
+                                                                reviewed,
+                                                            )
+                                                        } else {
+                                                            inputDeviceManager.saveDeviceBindings(
+                                                                live,
+                                                                reviewed.mapKeys {
+                                                                    InputKey(
+                                                                        it.key,
+                                                                    )
+                                                                }.mapValues { RetroKey(it.value) },
+                                                            )
+                                                        }
                                                         if (draft.bindings == reviewed) draft.saved()
                                                         mappingMessage = "Controller mappings saved."
                                                     } catch (error: Exception) {

@@ -14,6 +14,15 @@ import java.security.MessageDigest
 class XboxButtonBindingStore(context: Context) {
     private val prefs = SharedPreferencesHelper.getSharedPreferences(context)
 
+    fun hasCustom(
+        device: InputDevice?,
+        cartridge: String?,
+    ): Boolean =
+        device?.descriptor?.let {
+                descriptor ->
+            prefs.all.keys.any { it.startsWith(scope(descriptor, cartridge)) }
+        } == true
+
     fun output(
         device: InputDevice?,
         source: Int,

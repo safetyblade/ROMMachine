@@ -30,6 +30,18 @@ class ControllerPortRegistryTest {
         )
     }
 
+    @Test fun explicitPortReassignmentSwapsOwnersAndSurvivesReconnect() {
+        val ports = ControllerPortRegistry(7)
+        val first = device(1, "one")
+        val second = device(2, "two")
+        ports.update(listOf(first, second))
+        org.junit.Assert.assertTrue(ports.assign(1, 1))
+        assertEquals(mapOf(1 to 1, 2 to 0), ports.update(listOf(first, second)))
+        ports.update(listOf(second))
+        assertEquals(mapOf(9 to 1, 2 to 0), ports.update(listOf(device(9, "one"), second)))
+        assertFalse(ports.assign(9, 7))
+    }
+
     @Test fun reusedIdAndSessionTeardownDoNotRetainForeignIdentity() {
         val ports = ControllerPortRegistry(7)
         ports.update(listOf(device(1, "a"), device(2, "b")))

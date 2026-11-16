@@ -135,7 +135,7 @@ fun CartridgeDetail(
                 if (landscape) maxWidth.value * 0.44f else maxWidth.value,
                 if (landscape) maxHeight.value else (maxHeight.value - 180f).coerceAtLeast(100f),
             ).dp
-        val actions: @Composable () -> Unit = {
+        val heading: @Composable () -> Unit = {
             TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.cartdeck_back_to_shelf))
             }
@@ -145,6 +145,8 @@ fun CartridgeDetail(
             if (profile.mode.hasGrip || profile.mode.hasPivot) {
                 Text("ARC · ${profile.mode.label}", style = MaterialTheme.typography.labelSmall)
             }
+        }
+        val actions: @Composable () -> Unit = {
             Button(
                 onClick = {
                     if (!opening) {
@@ -174,19 +176,28 @@ fun CartridgeDetail(
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) { actions() }
+                ) {
+                    heading()
+                    actions()
+                }
             }
         } else {
             Column(
-                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                CartridgeFront(
-                    game,
-                    modifier = frontModifier.then(Modifier.width(artWidth)),
-                    artworkRevision = artworkRevision,
-                )
+                Column(
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    heading()
+                    CartridgeFront(
+                        game,
+                        modifier = frontModifier.then(Modifier.width(artWidth)),
+                        artworkRevision = artworkRevision,
+                    )
+                }
                 actions()
             }
         }

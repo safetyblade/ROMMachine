@@ -5,7 +5,7 @@ import android.view.KeyEvent
 
 /** Pure controller capability vocabulary, separate from per-console native button semantics. */
 object ControllerHardwareProfile {
-    enum class Family { XBOX, PLAYSTATION, SWITCH, GENERIC }
+    enum class Family { XBOX, PLAYSTATION, SWITCH, GENERIC, UNKNOWN }
 
     fun isGameplayPad(device: InputDevice): Boolean {
         if (device.isVirtual) return false
@@ -34,7 +34,19 @@ object ControllerHardwareProfile {
         hasAxes: Boolean,
     ): Boolean = !virtual && (gamepadSource || joystickSource) && faceButtons >= 2 && (gamepadSource || hasAxes)
 
-    fun family(device: InputDevice): Family = family(device.name)
+    fun family(device: InputDevice): Family = family(device.name, device.vendorId, device.productId)
+
+    fun family(
+        name: String,
+        vendor: Int,
+        product: Int,
+    ): Family =
+        when (vendor) {
+            0x045e -> Family.XBOX
+            0x054c -> Family.PLAYSTATION
+            0x057e -> Family.SWITCH
+            else -> family(name)
+        }
 
     fun family(name: String): Family {
         val lower = name.lowercase()

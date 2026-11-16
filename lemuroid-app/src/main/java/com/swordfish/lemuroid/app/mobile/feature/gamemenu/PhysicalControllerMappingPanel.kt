@@ -1,9 +1,12 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
+import android.content.Intent
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,17 +16,26 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.input.GamePadShortcutBindingActivity
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
 import com.swordfish.lemuroid.app.shared.input.ControllerMappingDraft
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.input.PhysicalControllerInput
+import com.swordfish.lemuroid.app.shared.input.ShortcutBindingUpdater
+import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import com.swordfish.touchinput.radial.settings.NativeControlIcon
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
 import com.swordfish.touchinput.radial.settings.NativeControlKind
+import kotlinx.coroutines.launch
 
 /** Capture and probe use the menu Activity; the paused gameplay dispatcher stays authoritative. */
 @Composable
@@ -31,6 +43,11 @@ internal fun PhysicalControllerMappingPanel(
     inputDeviceManager: InputDeviceManager,
     inventory: NativeControlInventory?,
     runtimePort: ((InputDevice) -> Int?)? = null,
+    cartridge: String? = null,
+    portCapacity: Int = 16,
+    perCartridge: Boolean = false,
+    onScope: (Boolean) -> Unit = {},
+    onUseDevice: () -> Unit = {},
     captureHatBindings: Boolean = true,
     captureTarget: Int?,
     mappingRevision: Int,
@@ -48,6 +65,9 @@ internal fun PhysicalControllerMappingPanel(
     onResolveConflict: () -> Unit,
     onSave: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var ownershipMessage by remember { mutableStateOf<String?>(null) }
     val enabled by remember(inputDeviceManager) {
         inputDeviceManager.getEnabledInputsObservable()
     }.collectAsState(emptyList())
@@ -111,13 +131,109 @@ internal fun PhysicalControllerMappingPanel(
             onDiscard()
             selectedId = devices[(index + 1) % devices.size].id
         }
+        GameMenuLink("Assign player port · $portLabel") {
+            scope.launch {
+                val next = ((ports(selected) ?: -1) + 1) % portCapacity.coerceAtLeast(1)
+                ownershipMessage =
+                    runCatching { inputDeviceManager.assignPlayerPort(selected, next) }
+                        .fold(
+                            { "Assigned player ${next + 1}; engine attachment remains capability-based." },
+                            { "Could not change assignment. Existing ownership retained." },
+                        )
+            }
+        }
+        ownershipMessage?.let { Text(it) }
+        if (devices.count { it.descriptor == selected.descriptor } > 1) {
+            Text(
+                "These devices report the same descriptor. Runtime IDs distinguish them in this session; " +
+                    "reconnect identity needs verification before a persistent reassignment.",
+            )
+        }
         Text(
             "${ControllerHardwareProfile.family(selected)} · ${selected.descriptor}",
             style = MaterialTheme.typography.bodySmall,
         )
+        val hardware =
+            remember(selected.id, selected.descriptor) {
+                PhysicalControllerInput.hardware(selected)
+            }
+        Text(
+            "VID ${hardware.vendor} · PID ${hardware.product} · sources ${hardware.sources}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            "Reported buttons: ${hardware.keys.joinToString { physicalName(it) }}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (hardware.family in
+            setOf(
+                ControllerHardwareProfile.Family.GENERIC,
+                ControllerHardwareProfile.Family.UNKNOWN,
+            )
+        ) {
+            Text("Unknown layout: verify physical positions in the live tester before saving a Custom map.")
+        }
+        val normalized = remember(probeRevision) { probe.physical.values }
+        normalized.forEach { (control, value) ->
+            Text("${control.name}: ${"%.2f".format(value)}", style = MaterialTheme.typography.bodySmall)
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = {
+                    if (control.name.contains("STICK") && !control.name.endsWith("PRESS")) {
+                        (value + 1f) / 2f
+                    } else {
+                        value.coerceIn(0f, 1f)
+                    }
+                },
+            )
+        }
+        Text("Physical face positions — select a position, then press that physical button to verify its output.")
+        val face: @Composable (Int, String, Modifier) -> Unit = { source, name, modifier ->
+            val target = defaults[source]
+            val used = target != null && target != KeyEvent.KEYCODE_UNKNOWN && (targets == null || target in targets)
+            GameMenuLink(
+                "$name ${if (source in held) "●" else ""} → ${target?.let(::targetName) ?: "Unavailable"}",
+                modifier = modifier,
+                enabled = used,
+            ) { if (target != null) onCapture(selected.id, target) }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row {
+                Spacer(Modifier.weight(1f))
+                face(KeyEvent.KEYCODE_BUTTON_Y, "NORTH", Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+            }
+            Row {
+                face(KeyEvent.KEYCODE_BUTTON_X, "WEST", Modifier.weight(1f))
+                face(KeyEvent.KEYCODE_BUTTON_B, "EAST", Modifier.weight(1f))
+            }
+            Row {
+                Spacer(Modifier.weight(1f))
+                face(KeyEvent.KEYCODE_BUTTON_A, "SOUTH", Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+            }
+        }
+        GameMenuLink("Configure universal menu shortcut", enabled = draft?.dirty != true) {
+            context.startActivity(
+                Intent(context, GamePadShortcutBindingActivity::class.java)
+                    .putExtra(ShortcutBindingUpdater.REQUEST_DEVICE, selected)
+                    .putExtra(ShortcutBindingUpdater.REQUEST_SHORTCUT_TYPE, GameShortcutType.MENU.name),
+            )
+        }
+        Text(
+            "Default: L3 + R3, or Select + Start on pads without stick presses. " +
+                "Use two stick, shoulder, Start or Select buttons. Guide delivery depends on Android.",
+        )
+        ControllerCalibrationPanel(inputDeviceManager, selected, probe)
         val modeName = if (bindings == defaults) "Console Authentic" else "Custom"
         val modeStatus = if (draft?.dirty == true) " (unsaved)" else ""
         Text("Mode: $modeName$modeStatus")
+        Text(if (perCartridge) "Mapping source: this cartridge" else "Mapping source: device default")
+        if (cartridge != null) {
+            GameMenuLink(if (perCartridge) "Edit device default" else "Edit this cartridge override") {
+                onScope(!perCartridge)
+            }
+            GameMenuLink("Use device default for this cartridge", onClick = onUseDevice)
+        }
         GameMenuLink("Console Authentic — reset draft") { onReset(selected) }
         Text("Modern Function unavailable: no verified controls for this edition.")
         Text("Input test: ${probe.lastEvent}")
@@ -161,14 +277,17 @@ internal fun PhysicalControllerMappingPanel(
                 (targets == null || it.keyCode in targets)
         }.forEach { original ->
             val source = bindings.entries.firstOrNull { it.value == original.keyCode }?.key
-            GameMenuLink("${targetName(original.keyCode)} ← ${source?.let(::physicalName) ?: "Unassigned"}") {
+            GameMenuLink(
+                "${targetName(original.keyCode)} ← ${source?.let(::physicalName) ?: "Unassigned"}" +
+                    if (source in held) " ● pressed" else "",
+            ) {
                 onCapture(selected.id, original.keyCode)
             }
         }
         if (draft?.canUndo == true) GameMenuLink("Undo", onClick = onUndo)
         GameMenuLink("Reset draft to Console Authentic", onClick = { onReset(selected) })
         if (draft?.dirty == true && draft.conflict == null) GameMenuLink("Save mappings", onClick = onSave)
-        GameMenuLink("Cancel unsaved mappings", onClick = onDiscard)
+        GameMenuLink("Restore saved profile / discard edits", onClick = onDiscard)
     }
 }
 

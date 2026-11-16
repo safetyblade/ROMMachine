@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineFallbackControls
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -127,6 +128,15 @@ private fun CartridgeControlChoices(
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
+    com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink("Physical controller — edit and test") {
+        context.startActivity(
+            android.content.Intent(
+                context,
+                ControllerSettingsActivity::class.java,
+            )
+                .putExtra("cartdeck.game", game).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
     val store = remember(context) { GripArcProfileStore(context) }
     var mode by remember(game.fileUri) { mutableStateOf(store.read(game).mode) }
     var message by remember(game.fileUri) { mutableStateOf<String?>(null) }

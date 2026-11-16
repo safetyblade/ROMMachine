@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.swordfish.lemuroid.app.shared.input.ControllerChordGate
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerHatEdges
 import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
@@ -19,6 +20,8 @@ import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.NativeControllerKeyMapping
 import com.swordfish.lemuroid.app.shared.input.RetroKey
 import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.settings.GameShortcut
+import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
 import com.swordfish.touchinput.radial.settings.TouchControllerID
@@ -34,10 +37,14 @@ import kotlinx.coroutines.launch
 internal class NativeControllerMappingSession(
     context: Context,
     private val scope: CoroutineScope,
-    private val controller: TouchControllerID,
+    private val controller: TouchControllerID?,
+    private val cartridge: String? = null,
+    private val runtime: Boolean = true,
+    private val portCapacity: Int = 1,
     private val playerPort: (InputDevice) -> Int?,
 ) {
     private val manager = InputDeviceManager(context, Lazy { SharedPreferencesHelper.getSharedPreferences(context) })
+    private var perCartridge by mutableStateOf(cartridge != null)
     private var bindingJob: Job? = null
     private var liveBindings: (InputDevice?) -> Map<InputKey, RetroKey> = { emptyMap() }
     private var selected: InputDevice? = null
@@ -53,6 +60,45 @@ internal class NativeControllerMappingSession(
     private val captureEdge = ControllerMenuEdge()
     private val backEdge = ControllerMenuEdge()
     private val hats = ControllerHatEdges()
+    private val chord = ControllerChordGate()
+    private var shortcuts = emptyMap<InputDevice, List<GameShortcut>>()
+    private var replaying = false
+
+    fun shortcut(
+        event: KeyEvent,
+        invoke: () -> Unit,
+        replay: (KeyEvent) -> Boolean,
+    ): Boolean {
+        if (replaying || event.device?.let(ControllerHardwareProfile::isGameplayPad) != true) return false
+        val keys =
+            shortcuts[event.device]?.firstOrNull {
+                it.type == GameShortcutType.MENU
+            }?.keys ?: setOf(KeyEvent.KEYCODE_BUTTON_THUMBL, KeyEvent.KEYCODE_BUTTON_THUMBR)
+        val decision =
+            chord.route(
+                event.deviceId,
+                event.keyCode,
+                event.action == KeyEvent.ACTION_DOWN,
+                keys,
+                event.isCanceled,
+            )
+        if (decision.invoke) invoke()
+        replaying = true
+        try {
+            decision.replay.forEach {
+                replay(
+                    KeyEvent(
+                        event.downTime, event.eventTime,
+                        if (it.down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                        it.key, 0, event.metaState, event.deviceId, event.scanCode, event.flags, event.source,
+                    ),
+                )
+            }
+        } finally {
+            replaying = false
+        }
+        return decision.consumed
+    }
 
     fun start() {
         bindingJob?.cancel()
@@ -60,11 +106,13 @@ internal class NativeControllerMappingSession(
         bindingJob =
             scope.launch {
                 combine(
-                    manager.getInputBindingsObservable(),
+                    manager.getInputBindingsObservable(cartridge),
                     manager.getEnabledInputsObservable(),
-                ) { bindings, devices ->
-                    bindings to devices.map { it.id }.toSet()
-                }.collect { (bindings, ids) ->
+                    manager.getGameShortcutsObservable(),
+                ) { bindings, devices, combos ->
+                    Triple(bindings, devices.map { it.id }.toSet(), combos)
+                }.collect { (bindings, ids, combos) ->
+                    shortcuts = combos
                     liveBindings = bindings
                     enabledIds = ids
                 }
@@ -74,6 +122,7 @@ internal class NativeControllerMappingSession(
     fun stop() {
         bindingJob?.cancel()
         bindingJob = null
+        chord.clear()
         liveBindings = { emptyMap() }
         enabledIds = null
         discard()
@@ -83,6 +132,7 @@ internal class NativeControllerMappingSession(
     }
 
     fun retainDevices(ids: Set<Int>) {
+        chord.retainDevices(ids)
         heldOutputs.retainDevices(ids)
         captureEdge.retainDevices(ids)
         backEdge.retainDevices(ids)
@@ -92,7 +142,22 @@ internal class NativeControllerMappingSession(
     private fun acceptsDevice(
         device: InputDevice?,
         id: Int,
-    ): Boolean = device?.let(ControllerHardwareProfile::isGameplayPad) != true || enabledIds?.contains(id) != false
+    ): Boolean =
+        if (device == null || !ControllerHardwareProfile.isGameplayPad(device)) {
+            true
+        } else {
+            enabledIds?.contains(id) != false && playerPort(device) != null
+        }
+
+    fun axis(
+        event: MotionEvent,
+        code: Int,
+    ): Float = manager.calibratedAxis(event, code)
+
+    fun hasCanonicalBinding(
+        device: InputDevice?,
+        cartridgeOnly: Boolean = false,
+    ): Boolean = manager.hasCanonicalBinding(device, cartridgeOnly)
 
     fun acceptsGameplay(event: KeyEvent): Boolean = acceptsDevice(event.device, event.deviceId)
 
@@ -132,7 +197,7 @@ internal class NativeControllerMappingSession(
         hats.clear()
         if (device != null) {
             scope.launch {
-                val bindings = manager.getCurrentBindings(device)
+                val bindings = manager.getCurrentBindings(device, if (perCartridge) cartridge else null)
                 if (selected?.id == device.id) {
                     draft = ControllerMappingDraft(bindings.mapKeys { it.key.keyCode }.mapValues { it.value.keyCode })
                 }
@@ -168,6 +233,7 @@ internal class NativeControllerMappingSession(
 
     fun observeMotion(event: MotionEvent) {
         if (event.deviceId != selected?.id) return
+        probe.motion(event, manager.calibration(event.device))
         event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
         hats.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
             .forEach { (code, down) ->
@@ -180,8 +246,24 @@ internal class NativeControllerMappingSession(
     fun Panel() {
         PhysicalControllerMappingPanel(
             inputDeviceManager = manager,
-            inventory = NativeControlInventory.forController(controller),
-            runtimePort = playerPort,
+            inventory = controller?.let(NativeControlInventory::forController),
+            cartridge = cartridge,
+            portCapacity = portCapacity,
+            perCartridge = perCartridge,
+            onScope = {
+                perCartridge = it
+                select(selected)
+            },
+            onUseDevice = {
+                val device = selected
+                if (device != null && cartridge != null) {
+                    scope.launch {
+                        manager.profiles.useDevice(device.descriptor, cartridge)
+                        select(device)
+                    }
+                }
+            },
+            runtimePort = if (runtime) playerPort else null,
             captureHatBindings = false,
             captureTarget = pending,
             mappingRevision = revision,
@@ -227,7 +309,14 @@ internal class NativeControllerMappingSession(
                 return@launch
             }
             try {
-                manager.saveDeviceBindings(live, reviewed.mapKeys { InputKey(it.key) }.mapValues { RetroKey(it.value) })
+                if (perCartridge && cartridge != null) {
+                    manager.saveCartridgeBindings(live, cartridge, reviewed)
+                } else {
+                    manager.saveDeviceBindings(
+                        live,
+                        reviewed.mapKeys { InputKey(it.key) }.mapValues { RetroKey(it.value) },
+                    )
+                }
                 if (transaction.bindings == reviewed) transaction.saved()
                 message = "Controller mappings saved."
             } catch (error: Exception) {

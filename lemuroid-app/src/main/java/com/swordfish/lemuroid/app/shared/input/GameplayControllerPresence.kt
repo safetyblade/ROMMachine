@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.hardware.input.InputManager
 import android.view.InputDevice
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import kotlinx.coroutines.launch
 
 /**
  * Observes real Android gameplay controllers, excluding basic TV remotes and keyboards.
@@ -25,6 +26,13 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
             if (enabledPreferenceChanged) notifyCurrent()
         }
     private var registered = false
+    private val profileStore = ControllerProfileStore(context)
+    private val scope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() +
+                kotlinx.coroutines.Dispatchers.Main.immediate,
+        )
+    private var profileJob: kotlinx.coroutines.Job? = null
     private val slots = ControllerPortRegistry(7)
     private var ports = emptyMap<Int, Int>()
 
@@ -37,6 +45,8 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
             preferences.registerOnSharedPreferenceChangeListener(preferenceListener)
             registered = true
         }
+        profileJob?.cancel()
+        profileJob = scope.launch { profileStore.changes().collect { notifyCurrent() } }
         notifyCurrent()
     }
 
@@ -46,6 +56,8 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
             preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
         }
         registered = false
+        profileJob?.cancel()
+        profileJob = null
         listener = null
     }
 
@@ -65,6 +77,12 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
 
     private fun notifyCurrent() {
         val devices = connected()
+        slots.update(devices.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
+        devices.filter { device -> devices.count { it.descriptor == device.descriptor } == 1 }.forEach { device ->
+            runCatching { profileStore.read(device.descriptor).playerPort }.getOrNull()?.let {
+                slots.assign(device.id, it)
+            }
+        }
         ports = slots.update(devices.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
         listener?.invoke(devices)
     }

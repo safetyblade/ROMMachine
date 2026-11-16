@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.feature.input.GamePadBindingActivity
 import com.swordfish.lemuroid.app.mobile.feature.input.GamePadShortcutBindingActivity
 import com.swordfish.lemuroid.app.shared.input.InputBindingUpdater
@@ -36,6 +37,18 @@ fun InputDevicesSettingsScreen(
             .value
 
     LemuroidSettingsPage(modifier = modifier.fillMaxSize()) {
+        val context = LocalContext.current
+        LemuroidSettingsMenuLink(
+            title = { Text("Controllers — editor, calibration and live test") },
+            onClick = {
+                context.startActivity(
+                    Intent(
+                        context,
+                        ControllerSettingsActivity::class.java,
+                    ),
+                )
+            },
+        )
         EnabledDeviceCategory(state)
         state.bindings.forEach { (device, bindings) ->
             DeviceBindingCategory(device, bindings)

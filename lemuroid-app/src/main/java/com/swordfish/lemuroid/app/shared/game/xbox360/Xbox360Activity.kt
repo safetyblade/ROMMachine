@@ -479,7 +479,21 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private val physicalMapping by lazy {
-        NativeControllerMappingSession(this, lifecycleScope, TouchControllerID.XBOX360) { device -> 0 }
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.XBOX360,
+            cartridge =
+                (
+                    intent.getSerializableExtra(
+                        "cartdeck.game",
+                    ) as? com.swordfish.lemuroid.lib.library.db.entity.Game
+                )?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
     }
 
     private val menuEdge = ControllerMenuEdge()
@@ -489,6 +503,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             menuEdge.clear()
             physicalMapping.cancelInput()
             releaseInputs()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menuOpen) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
             return true
         }
         val mappedKey = physicalMapping.gameplayKey(event)
@@ -517,7 +537,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         }
         if (!physicalMapping.acceptsMotion(event)) return true
         if (!menuOpen && foreground && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion { event.getAxisValue(it) }
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInputs()
             return true
         }

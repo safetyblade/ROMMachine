@@ -9,6 +9,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.input.ControllerChordGate
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
@@ -65,6 +66,8 @@ class GameViewModelInput(
     private val scope: CoroutineScope,
     private val game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
 ) : DefaultLifecycleObserver {
+    private val menuChord = ControllerChordGate()
+
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
 
     private val hasNativeTriggers =
@@ -80,13 +83,13 @@ class GameViewModelInput(
         if (!hasNativeTriggers) return
         val left =
             maxOf(
-                event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
-                event.getAxisValue(MotionEvent.AXIS_BRAKE),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_LTRIGGER),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_BRAKE),
             ).coerceIn(0f, 1f)
         val right =
             maxOf(
-                event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
-                event.getAxisValue(MotionEvent.AXIS_GAS),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_RTRIGGER),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_GAS),
             ).coerceIn(0f, 1f)
         // Source 4 is the versioned CARTDECK host's pair of analog trigger axes.
         retroGameView.retroGameView?.sendMotionEvent(4, left, right, port)
@@ -224,7 +227,10 @@ class GameViewModelInput(
         xAxis: Int,
         yAxis: Int,
     ): PointF {
-        return PointF(event.getAxisValue(xAxis), event.getAxisValue(yAxis))
+        return PointF(
+            inputDeviceManager.calibratedAxis(event, xAxis),
+            inputDeviceManager.calibratedAxis(event, yAxis),
+        )
     }
 
     fun sendKeyEvent(
@@ -360,10 +366,16 @@ class GameViewModelInput(
         val activeChords = mutableMapOf<Int, Set<Set<Int>>>()
         val menuEdge = ControllerMenuEdge()
         val forwarded = mutableMapOf<Pair<Int, Int>, Pair<Int, Int>>()
+        var lastPorts = emptyMap<Int, Int>()
 
         fun releaseHeld() {
             forwarded.values.forEach { (port, code) ->
                 retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_UP, code, port)
+            }
+            (lastPorts.values.toSet() + forwarded.values.map { it.first }).forEach { port ->
+                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT, 4).forEach { source ->
+                    retroGameView.retroGameView?.sendMotionEvent(source, 0f, 0f, port)
+                }
             }
             forwarded.clear()
             pressedByDevice.clear()
@@ -381,7 +393,7 @@ class GameViewModelInput(
             combine(
                 inputDeviceManager.getGameShortcutsObservable(),
                 inputDeviceManager.getGamePadsPortMapperObservable(),
-                inputDeviceManager.getInputBindingsObservable(),
+                inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
                 filteredKeyEvents,
                 ::NTuple4,
             )
@@ -393,8 +405,17 @@ class GameViewModelInput(
                 menuEdge.clear()
             }
             .safeCollect { (shortcuts, ports, bindings, event) ->
-                val activeIds = InputDevice.getDeviceIds().filter { ports(InputDevice.getDevice(it)) != null }.toSet()
+                val currentPorts =
+                    InputDevice.getDeviceIds().asSequence().mapNotNull { id ->
+                        ports(InputDevice.getDevice(id))?.let { id to it }
+                    }.toMap()
+                if (lastPorts != currentPorts) {
+                    releaseHeld()
+                    lastPorts = currentPorts
+                }
+                val activeIds = currentPorts.keys
                 menuEdge.retainDevices(activeIds)
+                menuChord.retainDevices(activeIds)
                 if (pressedByDevice.keys.any { it !in activeIds }) releaseHeld()
                 val device = event.device ?: return@safeCollect
                 val action = event.action
@@ -413,6 +434,25 @@ class GameViewModelInput(
                     if (menuEdge.handle(event)) {
                         releaseHeld()
                         sideEffects.showMenu(tilt, this)
+                    }
+                    return@safeCollect
+                }
+                val menuKeys = shortcuts[device]?.firstOrNull { it.type == GameShortcutType.MENU }?.keys.orEmpty()
+                val route = menuChord.route(device.id, keyCode, action == KeyEvent.ACTION_DOWN, menuKeys)
+                if (route.consumed) {
+                    if (route.invoke) {
+                        releaseHeld()
+                        sideEffects.showMenu(tilt, this)
+                    } else if (port != null) {
+                        route.replay.forEach { edge ->
+                            val target = bindings(device)[InputKey(edge.key)]?.keyCode ?: edge.key
+                            if ((port to target) in forwarded.values) return@forEach
+                            retroGameView.retroGameView?.sendKeyEvent(
+                                if (edge.down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                                target,
+                                port,
+                            )
+                        }
                     }
                     return@safeCollect
                 }
@@ -491,7 +531,7 @@ class GameViewModelInput(
             combine(
                 inputDeviceManager.getGamePadsPortMapperObservable(),
                 motionEventsFlow,
-                inputDeviceManager.getInputBindingsObservable(),
+                inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
             ) { ports, event, bindings -> Triple(ports, event, bindings) }
 
         events

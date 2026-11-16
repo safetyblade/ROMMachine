@@ -8,6 +8,7 @@ class ControllerPortRegistry(private val capacity: Int) {
 
     private val slots = mutableMapOf<Int, Slot>()
 
+    @Synchronized
     fun update(devices: List<Device>): Map<Int, Int> {
         val ids = devices.map { it.id }.toSet()
         slots.values.filter { it.deviceId !in ids }.forEach { it.deviceId = null }
@@ -27,5 +28,21 @@ class ControllerPortRegistry(private val capacity: Int) {
         return slots.mapNotNull { (port, slot) -> slot.deviceId?.let { it to port } }.toMap()
     }
 
+    @Synchronized
+    fun assign(
+        deviceId: Int,
+        port: Int,
+    ): Boolean {
+        if (port !in 0 until capacity) return false
+        val current = slots.entries.firstOrNull { it.value.deviceId == deviceId }?.key ?: return false
+        if (current == port) return true
+        val owner = slots.remove(current) ?: return false
+        val displaced = slots.remove(port)
+        slots[port] = owner
+        if (displaced != null) slots[current] = displaced
+        return true
+    }
+
+    @Synchronized
     fun clear() = slots.clear()
 }

@@ -36,7 +36,11 @@ class ShortcutBindingUpdater(private val inputDeviceManager: InputDeviceManager,
     }
 
     private fun onKeyUp(event: KeyEvent): Boolean {
-        if (!isTargetedDevice(event.device)) return false
+        if (!isTargetedDevice(event.device) || event.isCanceled || event.repeatCount != 0) return false
+        if (extras.shortcutType == GameShortcutType.MENU && event.keyCode !in InputDeviceManager.SAFE_MENU_KEYS) {
+            firstKeyCodeInCombo = null
+            return false
+        }
 
         if (firstKeyCodeInCombo == null) {
             firstKeyCodeInCombo = event.keyCode
@@ -53,7 +57,7 @@ class ShortcutBindingUpdater(private val inputDeviceManager: InputDeviceManager,
     }
 
     private fun isTargetedDevice(device: InputDevice?): Boolean {
-        return device != null && extras.device.name == device.name
+        return device != null && extras.device.id == device.id && extras.device.descriptor == device.descriptor
     }
 
     private fun parseExtras(intent: Intent): IntentExtras {

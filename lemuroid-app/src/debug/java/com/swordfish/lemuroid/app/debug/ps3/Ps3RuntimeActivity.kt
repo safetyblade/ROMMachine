@@ -43,10 +43,12 @@ import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -650,6 +652,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             this,
             lifecycleScope,
             Ps3Engine.CONTROLLER,
+            cartridge = game?.cartridgeId,
+            portCapacity = 7,
         ) { device -> presence.port(device.id) }
     }
 
@@ -660,6 +664,12 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             menuEdge.clear()
             physicalMapping.cancelInput()
             release()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menu) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
             return true
         }
         val mappedKey = physicalMapping.gameplayKey(event)
@@ -698,7 +708,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (!menu && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             val port = presence.port(event.deviceId) ?: return super.onGenericMotionEvent(event)
             axis(port, 0, event.getAxisValue(MotionEvent.AXIS_X), -event.getAxisValue(MotionEvent.AXIS_Y))
-            val right = com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile.rightStickAxes(event.device)
+            val right = ControllerHardwareProfile.rightStickAxes(event.device)
             axis(port, 1, event.getAxisValue(right.first), -event.getAxisValue(right.second))
             key(port, KeyEvent.KEYCODE_DPAD_LEFT, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
             key(port, KeyEvent.KEYCODE_DPAD_RIGHT, event.getAxisValue(MotionEvent.AXIS_HAT_X) > .5f)
@@ -725,7 +735,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 for (device in devices) {
                     menuShortcuts[device.id] =
                         inputManager.getCurrentShortcuts(device).firstOrNull {
-                            it.type == com.swordfish.lemuroid.app.shared.settings.GameShortcutType.MENU
+                            it.type == GameShortcutType.MENU
                         }?.keys.orEmpty()
                 }
             }

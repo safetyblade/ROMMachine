@@ -11,6 +11,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsActivity
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
@@ -102,13 +104,28 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         if (rootKey == null) {
             preferenceScreen.addPreference(
                 Preference(requireContext()).apply {
+                    key = "cartdeck_controller_editor"
+                    title = "Controllers — edit and test"
+                    setOnPreferenceClickListener {
+                        startActivity(
+                            Intent(
+                                requireContext(),
+                                ControllerSettingsActivity::class.java,
+                            ),
+                        )
+                        true
+                    }
+                },
+            )
+            preferenceScreen.addPreference(
+                Preference(requireContext()).apply {
                     key = "cartdeck_display_defaults"
                     title = "Display"
                     setOnPreferenceClickListener {
                         startActivity(
                             Intent(
                                 requireContext(),
-                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsActivity::class.java,
+                                DisplaySettingsActivity::class.java,
                             ),
                         )
                         true

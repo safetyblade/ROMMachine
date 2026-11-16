@@ -43,6 +43,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -104,6 +105,14 @@ class NativeCoreActivity : SDLActivity() {
     private val menuShowing get() = menuOpen || recoveryDialog?.isShowing == true
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.XBOX,
+            registryGame()?.cartridgeId,
+        ) { device -> gameplayControllers.port(device.id)?.takeIf { it == 0 } }
+    }
     private val gameplayControllers by lazy { GameplayControllerPresence(this) }
     private val xboxBindings by lazy { XboxButtonBindingStore(this) }
     private val hardwareOwners = XboxHardwareKeyRouter()
@@ -304,6 +313,7 @@ class NativeCoreActivity : SDLActivity() {
             val activeIds = devices.map { it.id }.toSet()
             menuEdge.retainDevices(activeIds)
             mappingCaptureEdge.retainDevices(activeIds)
+            physicalMapping.retainDevices(activeIds)
             if (nativeMappingDevice?.id !in activeIds) {
                 nativeMappingDraft?.cancel()
                 nativeMappingDevice = null
@@ -408,6 +418,7 @@ class NativeCoreActivity : SDLActivity() {
                                         }
                                     },
                                     physicalMapping = {
+                                        physicalMapping.Panel()
                                         val activePad =
                                             controllerDevices.firstOrNull { it.id == selectedMappingId }
                                                 ?: controllerDevices.firstOrNull()
@@ -522,6 +533,7 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         paused = false
         lastPoll = 0L
         if (ready) {
@@ -532,6 +544,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun onPause() {
+        physicalMapping.stop()
         menuEdge.clear()
         mappingCaptureEdge.clear()
         nativeMappingDraft?.cancel()
@@ -754,6 +767,13 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (!ready) return super.dispatchKeyEvent(event)
+        if (physicalMapping.shortcut(event, {
+                if (menuOpen) closeMenu() else showMenu()
+            }, ::dispatchKeyEvent)
+        ) {
+            return true
+        }
+        if (menuOpen && physicalMapping.captureKey(event)) return true
         val systemBack =
             event.keyCode == KeyEvent.KEYCODE_BACK &&
                 !event.isFromSource(android.view.InputDevice.SOURCE_GAMEPAD)
@@ -820,14 +840,26 @@ class NativeCoreActivity : SDLActivity() {
             return true
         }
         if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
-            controllerDevices.none { it.id == event.deviceId }
+            (controllerDevices.none { it.id == event.deviceId } || gameplayControllers.port(event.deviceId) != 0)
         ) {
             return true
         }
         if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
             event.keyCode in XboxButtonBindingStore.editableKeys
         ) {
-            val mapped = xboxBindings.output(event.device, event.keyCode, registryGame()?.fileUri?.toString())
+            val cartridge = registryGame()?.fileUri?.toString()
+            val useShared =
+                physicalMapping.hasCanonicalBinding(event.device, cartridgeOnly = true) ||
+                    (
+                        !xboxBindings.hasCustom(event.device, cartridge) &&
+                            physicalMapping.hasCanonicalBinding(event.device)
+                    )
+            val mapped =
+                if (useShared) {
+                    physicalMapping.gameplayKey(event)
+                } else {
+                    xboxBindings.output(event.device, event.keyCode, cartridge)
+                }
             val emitted =
                 hardwareOwners.route(
                     event.deviceId,
@@ -846,6 +878,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menuOpen) physicalMapping.observeMotion(event)
         if (menuOpen && event.deviceId == nativeMappingDevice?.id) {
             event.device?.motionRanges?.forEach { mappingProbe.axis(it.axis, event.getAxisValue(it.axis)) }
             lastPhysicalInput =
@@ -855,14 +888,14 @@ class NativeCoreActivity : SDLActivity() {
         }
         if (menuShowing || paused || leaving) return true
         if (event.device?.let(ControllerHardwareProfile::isGameplayPad) == true &&
-            controllerDevices.none { it.id == event.deviceId }
+            (controllerDevices.none { it.id == event.deviceId } || gameplayControllers.port(event.deviceId) != 0)
         ) {
             return true
         }
         if (ready && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK) &&
             event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
         ) {
-            hardware.motion({ axis -> event.getAxisValue(axis) }, event.device)
+            hardware.motion({ axis -> physicalMapping.axis(event, axis) }, event.device)
             sendHardware()
             return true
         }

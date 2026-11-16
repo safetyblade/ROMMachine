@@ -558,7 +558,16 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private val physicalMapping by lazy {
-        NativeControllerMappingSession(this, lifecycleScope, TouchControllerID.WII_CLASSIC) { device -> 0 }
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.WII_CLASSIC,
+            cartridge = game?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
     }
 
     private val menuEdge = ControllerMenuEdge()
@@ -568,6 +577,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             menuEdge.clear()
             physicalMapping.cancelInput()
             releaseInput()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menuOpen) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
             return true
         }
         val mappedKey = physicalMapping.gameplayKey(event)
@@ -597,7 +612,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         }
         if (!physicalMapping.acceptsMotion(event)) return true
         if (!menuOpen && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion({ event.getAxisValue(it) }, event.device)
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInput()
             return true
         }

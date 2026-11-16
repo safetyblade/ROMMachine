@@ -599,7 +599,16 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private val physicalMapping by lazy {
-        NativeControllerMappingSession(this, lifecycleScope, TouchControllerID.PSX_DUALSHOCK) { device -> 0 }
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.PSX_DUALSHOCK,
+            cartridge = game?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
     }
 
     private val menuEdge = ControllerMenuEdge()
@@ -609,6 +618,12 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             menuEdge.clear()
             physicalMapping.cancelInput()
             releaseInput()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menu) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
             return true
         }
         val mappedKey = physicalMapping.gameplayKey(event)
@@ -638,7 +653,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
         if (!physicalMapping.acceptsMotion(event)) return true
         if (!menu && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion({ event.getAxisValue(it) }, event.device)
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInput()
             return true
         }
