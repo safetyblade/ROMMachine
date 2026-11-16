@@ -9,8 +9,15 @@ on:
       publish_apk:
         type: boolean
         default: true
+      use_ci01_ps1:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
+      use_ci01_ps1:
+        description: 'Validate and substitute a provenance-verified CI-01 PS1 artifact (bounded trial)'
+        type: boolean
+        default: false
       native_rebuild_authorized:
         description: 'Explicitly authorize complete pinned-source native rebuild (legacy recovery only)'
         type: boolean
@@ -121,6 +128,44 @@ jobs:
           run-id: 43601391744
           name: wiiu-cemu-verified-arm64-core-private-not-an-apk
           path: work/connected/cemu
+      - name: Find latest verified-workflow PS1 artifact candidate
+        id: ci01_ps1
+        if: inputs.use_ci01_ps1 == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefix = 'native-ci01-ps1-';
+            const items = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const candidates = items.filter(a => !a.expired && a.name.startsWith(prefix));
+            candidates.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            for (const artifact of candidates) {
+              if (!artifact.workflow_run?.id) continue;
+              const run = (await github.rest.actions.getWorkflowRun({
+                ...context.repo, run_id: artifact.workflow_run.id
+              })).data;
+              if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
+                  run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
+                  run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                  artifact.name !== prefix + run.head_sha) continue;
+              core.setOutput('run_id', String(run.id));
+              core.setOutput('artifact_name', artifact.name);
+              core.info('Candidate retained PS1 artifact: ' + artifact.id + ' from run ' + run.id);
+              return;
+            }
+            core.setFailed('No successful CI-01 PS1 provenance workflow artifact is retained; run the independent PS1 native workflow first.');
+      - name: Download candidate independently retained PS1
+        if: inputs.use_ci01_ps1 == true && steps.ci01_ps1.outputs.run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_ps1.outputs.run_id }}
+          name: ${{ steps.ci01_ps1.outputs.artifact_name }}
+          path: work/connected/ci01-ps1
+      - name: Reject PS1 candidate unless full identity and all payload hashes match
+        if: inputs.use_ci01_ps1 == true
+        run: python3 scripts/ci/verify_ci01_ps1.py --directory work/connected/ci01-ps1
       - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
         shell: bash
         run: |
@@ -144,6 +189,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Substitute only fully verified PS1 native input
+        if: inputs.use_ci01_ps1 == true && steps.inputs.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/verify_ci01_ps1.py --directory work/connected/ci01-ps1
+          dest=work/connected/legacy/native-engine-ps1
+          test -d "$dest"
+          rm -rf "$dest"
+          cp -a work/connected/ci01-ps1 "$dest"
+          python3 scripts/ci/verify_ci01_ps1.py --directory "$dest"
       - name: Package source-licensed PS2 resources for the existing engines
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
