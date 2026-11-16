@@ -34,7 +34,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validate native provenance test suite
-        run: python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
       - name: Prepare pinned Android NDK
         shell: bash
         run: |
