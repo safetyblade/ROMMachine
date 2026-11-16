@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "programme": "PC-00",
+  "phase": "PC-04_SHANDALAR_SOURCE_BOOTSTRAP",
+  "status": "SOURCE_REVIEW_NO_ENGINE_IMPORTED_NO_GAMEPLAY",
+  "date": "2026-11-17",
+  "existing_dosbox_pure": {
+    "submodule": "https://github.com/Swordfish90/LemuroidCores",
+    "gitlink_sha": "fee2e824525daa22bcf318f96127fe43fa8a15ad",
+    "arm64_binary": "lemuroid-cores/lemuroid_core_dosbox_pure/src/main/jniLibs/arm64-v8a/libdosbox_pure_libretro_android.so",
+    "github_blob_sha": "8ada78cfcc87b5f915ede3534f41a53e883a7a9e",
+    "license": "GPL-2.0-or-later, verify corresponding source before redistribution",
+    "canonical_upstream": "https://codeberg.org/schelling/dosbox-pure",
+    "canonical_source_revision": "UNVERIFIED",
+    "win9x_compatibility": "UNVERIFIED",
+    "_note": "Git blob SHA is NOT SHA256; verify actual checked-out ELF."
+  },
+  "alternatives": [
+    {
+      "name": "Winlator",
+      "repo": "https://github.com/brunodev85/winlator",
+      "tag": "v11.2.0",
+      "commit": "fb66541b93a4eb3ee585a433b4c7b20544d58e40",
+      "license_root": "LGPL-2.1 with complex third-party dependencies",
+      "status": "not imported; candidate for Wine-based legacy Windows runtime"
+    },
+    {
+      "name": "GameNative",
+      "repo": "https://github.com/utkarshdalal/GameNative",
+      "observed_revision": "986eafe1058adda624d07c24879e0d5a11866179",
+      "license_root": "GPL-3.0",
+      "status": "not imported; modern PC storefront research"
+    },
+    {
+      "name": "Shandalar modern Windows patch",
+      "repo": "https://github.com/rlerrr/shandalar-patch",
+      "status": "research only; do not import or apply, separate IP/DRM-related analysis required"
+    }
+  ],
+  "restrictions": [
+    "no commercial game/Windows media in repo",
+    "no generic ISO to PC auto-routing",
+    "no Room or save-root migration",
+    "no changes to GC/CI/emulation recovery",
+    "no claims of Win95 or Shandalar gameplay"
+  ]
+}
