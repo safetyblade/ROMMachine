@@ -10,6 +10,11 @@ on:
         type: boolean
         default: true
   workflow_dispatch:
+    inputs:
+      native_rebuild_authorized:
+        description: 'Explicitly authorize complete pinned-source native rebuild (legacy recovery only)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +40,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Early source formatting gate (before native downloads and compilation)
+        run: |
+          bash scripts/ci/bootstrap_gradle.sh
+          "$GRADLE_BIN" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
       - name: Locate the existing passed native input artifacts
         id: inputs
         uses: actions/github-script@v7
@@ -53,8 +62,16 @@ jobs:
               }
             }
             core.setOutput('reuse', String(reusable));
-            core.info(reusable ? 'Reuse the passed genuine engines; no native recompilation.' :
-                                'Native input retention expired; compile pinned sources once.');
+            if (reusable) {
+              core.info('Legacy retained native inputs are available; downstream integrity checks remain mandatory.');
+            } else {
+              core.warning('One or more legacy artifacts are missing. CI-01 per-engine resolver is required for routine APK builds.');
+            }
+      - name: Stop before expensive native compilation without explicit authorization
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized != true
+        run: |
+          echo '::error::Missing or expired native inputs. Routine APK builds must not rebuild every engine. Rebuild the missing components in their engine workflows and provide verified artifacts; use native_rebuild_authorized only for a deliberate complete recovery.'
+          exit 1
       - name: Download the passed five-engine, Wii, hakuX and Xenia builds
         if: steps.inputs.outputs.reuse == 'true'
         uses: actions/download-artifact@v4
@@ -110,12 +127,12 @@ jobs:
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
           bash scripts/ci/bootstrap_gradle.sh
       - uses: actions/setup-java@v4
-        if: steps.inputs.outputs.reuse != 'true'
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized == true
         with:
           distribution: temurin
           java-version: '21'
       - name: Refresh expired inputs from the real pinned sources
-        if: steps.inputs.outputs.reuse != 'true'
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized == true
         run: bash scripts/ci/build_connected_native_inputs.sh
       - uses: actions/setup-java@v4
         with:
