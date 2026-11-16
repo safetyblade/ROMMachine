@@ -137,7 +137,9 @@ jobs:
           java-version: '21'
       - name: Refresh expired inputs from the real pinned sources
         if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized == true
-        run: bash scripts/ci/build_connected_native_inputs.sh
+        env:
+          CARTDECK_FULL_NATIVE_REBUILD_AUTHORIZED: 'true'
+        run: bash scripts/ci/build_connected_native_inputs.sh --all
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
