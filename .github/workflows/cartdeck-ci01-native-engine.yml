@@ -47,6 +47,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check native scripts and Python syntax without building emulators
+        run: |
+          set -euo pipefail
+          bash -n scripts/ci/build_connected_native_inputs.sh
+          bash -n scripts/ci/build_libretrodroid_host.sh
+          python3 -m compileall -q scripts/ci/ci01_remaining_engines.py \
+            scripts/ci/ci01_legacy_engines.py scripts/ci/issue_native_receipt.py \
+            scripts/ci/resolve_native_artifacts.py scripts/ci/verify_ci01_ps1.py
       - name: Execute all CI-01 producer and consumer regression tests
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
