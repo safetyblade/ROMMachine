@@ -55,8 +55,8 @@ class RemainingNativeTests(unittest.TestCase):
             with zipfile.ZipFile(aar, "w") as archive:
                 archive.writestr("jni/arm64-v8a/libretrodroid.so", b"fixture native payload")
             (source / "provenance.txt").write_text(
-                "revision=" + SPECS["libretrodroid"]["sha"] + "\\n" +
-                hashlib.sha256(aar.read_bytes()).hexdigest() + "  " + str(aar) + "\\n")
+                "revision=" + SPECS["libretrodroid"]["sha"] + chr(10) +
+                hashlib.sha256(aar.read_bytes()).hexdigest() + "  " + str(aar) + chr(10))
             output = root / "retained"
             from ci01_remaining_engines import produce
             produce("libretrodroid", source, output)
