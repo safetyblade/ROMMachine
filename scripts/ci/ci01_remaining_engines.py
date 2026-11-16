@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import shutil
+import zipfile
 from pathlib import Path
 
 from issue_native_receipt import issue_receipt, fingerprint
@@ -69,6 +70,21 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def check_sha_inventory(source):
+    entries = (source / "sha256.txt").read_text().splitlines()
+    if not entries:
+        raise ValueError("native SHA-256 inventory empty")
+    for line in entries:
+        parts = line.split("  ", 1)
+        if len(parts) != 2 or not re.fullmatch("[0-9a-f]{64}", parts[0]):
+            raise ValueError("invalid source SHA-256 manifest record")
+        relative = Path(parts[1])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("unsafe source manifest path")
+        if sha(source / relative) != parts[0]:
+            raise ValueError("source-produced native hash mismatch: " + parts[1])
+
+
 def copy_file(source, dest, relative):
     origin = source / relative
     if origin.is_symlink() or not origin.is_file():
@@ -96,26 +112,38 @@ def prepare(engine, source, dest):
         for required in ("libhakuxcore.so", "hakux.properties", "hakux-licenses.zip", "source-manifest.json", "sha256.txt"):
             if required not in entries:
                 raise ValueError("hakuX missing " + required)
+        check_sha_inventory(source)
     elif engine == "xenia":
         props = dict(line.split("=", 1) for line in (source / "xenia.properties").read_text().splitlines() if "=" in line)
         if props.get("revision") != spec["sha"]:
             raise ValueError("Xenia source pin mismatch")
-        entries = [p.name for p in source.iterdir() if p.is_file() and p.suffix in (".so", ".zip", ".json", ".properties", ".txt")]
+        entries = [p.name for p in source.iterdir() if p.is_file() and p.suffix in (".so", ".zip", ".json", ".properties", ".txt", ".xz")]
         for required in ("libcartdeck_xenia.so", "xenia-licenses.zip", "xenia.properties", "source-manifest.json", "sha256.txt"):
             if required not in entries:
                 raise ValueError("Xenia missing " + required)
+        check_sha_inventory(source)
     elif engine == "armsx2":
         proof = json.loads((source / "native-evidence.json").read_text())
         if proof.get("source_sha") != spec["sha"] or proof.get("result") != "NATIVE_SOURCE_BUILD_VERIFIED_ONLY":
             raise ValueError("ARMSX2 source proof mismatch")
         if sorted(x.get("host_page_size") for x in proof.get("artifacts", [])) != [4096, 16384]:
             raise ValueError("ARMSX2 requires both page models")
+        for name, field in (("armsx2-licenses.zip", "notices_sha256"),
+                            ("armsx2-resources.zip", "resources_sha256")):
+            if sha(source / name) != proof.get(field):
+                raise ValueError("ARMSX2 resources or notices proof mismatch")
         entries = ["native-evidence.json", "armsx2-licenses.zip", "armsx2-resources.zip"]
         for page in (4096, 16384):
             folder = source / "verified" / ("page-" + str(page))
             if not folder.is_dir():
                 raise ValueError("ARMSX2 page directory missing")
             entries.extend(p.relative_to(source).as_posix() for p in folder.iterdir() if p.is_file())
+            evidence = next(x for x in proof["artifacts"] if x["host_page_size"] == page)
+            if sha(folder / ("libemucore_4k.so" if page == 4096 else "libemucore_16k.so")) != evidence["sha256"]:
+                raise ValueError("ARMSX2 page model checksum mismatch")
+            for name, details in evidence["dependency_closure"].items():
+                if sha(folder / name) != details["sha256"]:
+                    raise ValueError("ARMSX2 dependency closure checksum mismatch: " + name)
         if not any(p.endswith(".so") for p in entries):
             raise ValueError("ARMSX2 binary closure missing")
     elif engine == "cemu":
@@ -129,6 +157,8 @@ def prepare(engine, source, dest):
             raise ValueError("Cemu core evidence checksum mismatch")
         if sha(source / "cartdeck_wiiu_vulkan_host_arm64.so") != proof.get("host_sha256"):
             raise ValueError("Cemu host evidence checksum mismatch")
+        if sha(source / "cemu-licenses.zip") != proof.get("notices_sha256"):
+            raise ValueError("Cemu source notices checksum mismatch")
     else:
         relative = "maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar"
         entries = [relative, "provenance.txt"]
@@ -138,8 +168,16 @@ def prepare(engine, source, dest):
         if not notice:
             raise ValueError("LibretroDroid pinned source licence missing")
         entries.append("source/" + notice)
-        if "revision=" + spec["sha"] not in (source / "provenance.txt").read_text():
+        provenance = (source / "provenance.txt").read_text()
+        if "revision=" + spec["sha"] not in provenance:
             raise ValueError("LibretroDroid provenance pin mismatch")
+        aar = source / relative
+        if not any(line.startswith(sha(aar) + "  ") and ".aar" in line for line in provenance.splitlines()):
+            raise ValueError("LibretroDroid AAR source-produced checksum mismatch")
+        with zipfile.ZipFile(aar) as package:
+            if not any(name.startswith("jni/arm64-v8a/") and name.endswith(".so")
+                       for name in package.namelist()):
+                raise ValueError("LibretroDroid AAR missing ARM64 native host")
     for entry in entries:
         copy_file(source, dest, entry)
     if engine in ("armsx2", "cemu"):
