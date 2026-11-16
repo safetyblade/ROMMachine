@@ -4,16 +4,32 @@
 These fixtures test source validation only and do not claim emulator builds.
 """
 import hashlib
+import contextlib
 import json
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
-from ci01_remaining_engines import SPECS, expected, prepare, verify
+from ci01_remaining_engines import SPECS, build_recipe_files, expected, prepare, verify
 
 
 class RemainingNativeTests(unittest.TestCase):
+    def test_generated_bytecode_never_changes_recipe_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+            for engine, relative in (("xenia", "scripts/ci/xbox360"),
+                                     ("cemu", "spikes/wiiu/vulkan-host")):
+                root = Path(relative)
+                root.mkdir(parents=True)
+                (root / "source.cpp").write_text("pinned source fixture")
+                before = build_recipe_files(engine)
+                cache = root / "__pycache__"
+                cache.mkdir()
+                (cache / "prepare_source.cpython-312.pyc").write_bytes(b"machine-specific")
+                (root / "old.pyc").write_bytes(b"legacy bytecode")
+                self.assertEqual(build_recipe_files(engine), before)
+                self.assertIn((root / "source.cpp").as_posix(), before)
+
     def test_five_distinct_pinned_components(self):
         self.assertEqual(set(SPECS), {"hakux", "xenia", "armsx2", "cemu", "libretrodroid"})
         for name, spec in SPECS.items():

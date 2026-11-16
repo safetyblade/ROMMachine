@@ -2,6 +2,7 @@
 """CI-01B fail-closed artifact resolution regression tests."""
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -91,6 +92,58 @@ class NativeResolverTests(unittest.TestCase):
     def test_duplicate_engine_rejected(self):
         with self.assertRaises(ValueError):
             resolve_inventory([IDENTITY, IDENTITY], self.root)
+
+    def test_unreceipted_staging_payload_rejected(self):
+        (self.engine / "extra.so").write_bytes(b"not verified")
+        self.assertIn("ps1", self.resolve()["missing_or_invalid"])
+
+    def test_omitted_output_rejected_even_when_file_exists(self):
+        del self.receipt["outputs"]["libcore.so"]
+        self.write_receipt()
+        self.assertIn("ps1", self.resolve()["missing_or_invalid"])
+
+    def test_parent_symlink_rejected(self):
+        external = self.root / "external"
+        external.mkdir()
+        (external / "core.so").write_bytes(b"outside artifact")
+        (self.engine / "libs").symlink_to(external, target_is_directory=True)
+        self.receipt["outputs"]["libs/core.so"] = hashlib.sha256(b"outside artifact").hexdigest()
+        self.write_receipt()
+        self.assertIn("ps1", self.resolve()["missing_or_invalid"])
+
+    def test_component_symlink_rejected(self):
+        moved = self.root / "moved"
+        self.engine.rename(moved)
+        self.engine.symlink_to(moved, target_is_directory=True)
+        self.assertIn("ps1", self.resolve()["missing_or_invalid"])
+
+    def test_malformed_receipts_fail_per_component(self):
+        for contents in (b"[]", b"null", b"{", b"\xff"):
+            with self.subTest(contents=contents):
+                (self.engine / "receipt.json").write_bytes(contents)
+                self.assertIn("ps1", self.resolve()["missing_or_invalid"])
+
+    def test_engine_cannot_escape_artifact_root(self):
+        with self.assertRaises(ValueError):
+            self.resolve(dict(IDENTITY, engine="../ps1"))
+
+    def test_source_change_invalidates_only_changed_engine(self):
+        second = dict(IDENTITY, engine="psp")
+        shutil.copytree(self.engine, self.root / "psp")
+        second_receipt = dict(self.receipt, identity=second)
+        (self.root / "psp/receipt.json").write_text(json.dumps(second_receipt))
+        changed = dict(IDENTITY, source_commit="e" * 40)
+        result = resolve_inventory([changed, second], self.root)
+        self.assertEqual(set(result["verified"]), {"psp"})
+        self.assertEqual(set(result["missing_or_invalid"]), {"ps1"})
+
+    def test_missing_receipt_keeps_unrelated_component_reusable(self):
+        second = dict(IDENTITY, engine="psp")
+        shutil.copytree(self.engine, self.root / "psp")
+        (self.root / "psp/receipt.json").unlink()
+        result = resolve_inventory([IDENTITY, second], self.root)
+        self.assertEqual(set(result["verified"]), {"ps1"})
+        self.assertEqual(set(result["missing_or_invalid"]), {"psp"})
 
 
 if __name__ == "__main__":

@@ -33,15 +33,23 @@ EXTRA_SCRIPTS = {
 }
 
 
+def source_files(root):
+    # Bytecode depends on checkout paths, mtimes and the Python runtime. It is
+    # generated validation state, never a pinned native build input.
+    return [p.as_posix() for p in sorted(Path(root).rglob("*"))
+            if p.is_file() and "__pycache__" not in p.parts
+            and p.suffix not in (".pyc", ".pyo")]
+
+
 def build_recipe_files(engine):
     spec = SPECS[engine]
     scripts = ["scripts/ci/" + spec["script"],
                "scripts/ci/ci01_remaining_engines.py", "scripts/ci/issue_native_receipt.py"]
     scripts.extend(EXTRA_SCRIPTS.get(engine, []))
     if engine == "xenia":
-        scripts.extend(p.as_posix() for p in sorted(Path("scripts/ci/xbox360").rglob("*")) if p.is_file())
+        scripts.extend(source_files("scripts/ci/xbox360"))
     if engine == "cemu":
-        scripts.extend(p.as_posix() for p in sorted(Path("spikes/wiiu/vulkan-host").rglob("*")) if p.is_file())
+        scripts.extend(source_files("spikes/wiiu/vulkan-host"))
     return sorted(set(scripts))
 
 BUILD_FLAGS = {

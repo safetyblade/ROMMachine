@@ -8,6 +8,7 @@ hits as evidence of compatibility.
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 REQUIRED_IDENTITY = (
@@ -31,6 +32,8 @@ def validate_identity(value):
         key not in value or value[key] in (None, "") for key in REQUIRED_IDENTITY
     ):
         raise ValueError("incomplete immutable native build identity")
+    if not isinstance(value["engine"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", value["engine"]):
+        raise ValueError("invalid native engine identity")
     if value["abi"] != "arm64-v8a":
         raise ValueError("unsupported native ABI")
     if type(value["api_level"]) is not int or value["api_level"] < 21:
@@ -42,11 +45,13 @@ def resolve_component(required, artifact_dir):
     """Return the verified files for exactly one required component."""
     expected = validate_identity(required)
     directory = Path(artifact_dir)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("missing or symlinked native component directory")
     receipt_path = directory / "receipt.json"
     if not receipt_path.is_file() or receipt_path.is_symlink():
         raise ValueError("missing signed-off provenance receipt")
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    if receipt.get("schema") != SCHEMA or receipt.get("identity") != expected:
+    if not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA or receipt.get("identity") != expected:
         raise ValueError("native build identity mismatch")
     notices = receipt.get("licence_notices")
     if not isinstance(notices, str) or not notices:
@@ -54,9 +59,19 @@ def resolve_component(required, artifact_dir):
     outputs = receipt.get("outputs")
     if not isinstance(outputs, dict) or not outputs:
         raise ValueError("missing native output checksum inventory")
+    # Downstream staging copies complete directories. Every file it can consume
+    # must be covered by the receipt, including assets and dependency libraries.
+    actual_files = set()
+    for entry in directory.rglob("*"):
+        if entry.is_symlink():
+            raise ValueError("symlinked native output: " + str(entry))
+        if entry.is_file() and entry != receipt_path:
+            actual_files.add(entry.relative_to(directory).as_posix())
+    if actual_files != set(outputs):
+        raise ValueError("native output inventory differs from receipt")
     validated = {}
     for rel, checksum in outputs.items():
-        if not isinstance(rel, str) or not isinstance(checksum, str) or len(checksum) != 64:
+        if not isinstance(rel, str) or not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum):
             raise ValueError("invalid native output entry")
         path = Path(rel)
         if path.is_absolute() or ".." in path.parts or str(path) in (".", ""):
@@ -84,7 +99,7 @@ def resolve_inventory(required, root):
         engines.add(engine)
         try:
             result["verified"][engine] = resolve_component(identity, root / engine)
-        except (ValueError, OSError, json.JSONDecodeError) as exc:
+        except (ValueError, OSError, UnicodeError) as exc:
             result["missing_or_invalid"][engine] = str(exc)
     return result
 

@@ -6,12 +6,10 @@ import json
 from pathlib import Path
 
 from issue_native_receipt import fingerprint
+from ci01_legacy_engines import SPECS
 from resolve_native_artifacts import resolve_component
 
-SOURCE_COMMIT = "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e"
-FLAGS = ("Makefile.libretro platform=unix ARCH=arm64 DYNAREC=ari64 "
-         "BUILTIN_GPU=neon APP_PLATFORM=android-24 16KB")
-CORE = "libpcsx_rearmed_modern_libretro_android.so"
+SOURCE_COMMIT, _, _, _, CORE, _, _, _, FLAGS = SPECS["ps1"]
 
 
 def expected_identity(script=Path("scripts/ci/build_ps1_upstream_core.sh")):

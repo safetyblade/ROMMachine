@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -208,7 +209,10 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Recovery options").assertIsFocused()
     }
 
-    @Test fun remoteDpadOkAndGuideReleaseCannotResumeRecovery() {
+    // Key injection is experimental in the pinned Compose test API.
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun remoteDpadOkAndGuideReleaseCannotResumeRecovery() {
         var resumed = 0
         var exits = 0
         compose.setContent {

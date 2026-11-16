@@ -40,6 +40,14 @@ jobs:
         run: |
           set -euo pipefail
           "$GRADLE_BIN" :retrograde-app-shared:kaptDebugKotlin --no-daemon --no-configuration-cache --max-workers=2
+      - name: Require generated Room v13 schema to match approved source
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema=retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/13.json
+          test -s "$schema"
+          python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["database"]["version"] == 13' "$schema"
+          git diff --exit-code -- "$schema"
       - name: Emit generated v13 schema for exact commit
         if: always()
         shell: bash
@@ -56,6 +64,6 @@ jobs:
         if: always()
         with:
           name: room-v13-generated-schema
-          path: retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/12.json
-          if-no-files-found: warn
+          path: retrograde-app-shared/schemas/com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase/13.json
+          if-no-files-found: error
           retention-days: 14
