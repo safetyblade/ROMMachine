@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1086" viewBox="0 0 1536 1086" role="img" aria-labelledby="title desc">
+<title id="title">CARTDECK Landscape Surround Design V1 — Standard and Ornamental on 4:3 and 16:9</title>
+<desc id="desc">Editable design study only. Four diagrams show slightly stronger Standard, thicker Ornamental, and both natural 4:3 and verified 16:9; artwork is fictitious placeholder game imagery.</desc>
+<defs>
+<linearGradient id="game-bg" x1="0" y1="0" x2=".3" y2="1"><stop stop-color="#264461"/><stop offset=".58" stop-color="#6082A0"/><stop offset="1" stop-color="#263E43"/></linearGradient>
+<clipPath id="clip-standard-auto"><rect x="160.5" y="185" width="469" height="352"/></clipPath>
+<clipPath id="clip-ornamental-auto"><rect x="907.5" y="185" width="469" height="352"/></clipPath>
+<clipPath id="clip-standard-wide"><rect x="85" y="627" width="620" height="348"/></clipPath>
+<clipPath id="clip-ornamental-wide"><rect x="832" y="627" width="620" height="348"/></clipPath>
+</defs>
+<rect width="1536" height="1086" fill="#0E1219"/>
+<text x="42" y="53" font-family="system-ui, sans-serif" fill="#F0F5F4" font-size="34" font-weight="750">CARTDECK  /  LANDSCAPE SURROUND</text>
+<text x="42" y="86" font-family="system-ui, sans-serif" fill="#95A8B1" font-size="18">DESIGN V1  ·  Standard is the default  ·  Ornamental is optional  ·  Aspect always starts Auto</text>
+<g id="standard-auto">
+ <rect x="42" y="148" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="51" y="157" width="688" height="386" rx="17" fill="#303B49"/>
+ <rect x="60" y="166" width="670" height="368" rx="14" fill="none" stroke="#1C2430" stroke-width="4"/>
+ <rect x="66" y="172" width="658" height="356" rx="12" fill="none" stroke="#4ED8C4" opacity=".34" stroke-width="1.5"/>
+ <g stroke="#4ED8C4" stroke-width="2" opacity=".72" stroke-linecap="round">
+  <path d="M 78 220 h 35 M 712 220 h -35 M 78 477 h 35 M 712 477 h -35"/></g>
+ <rect x="149.5" y="174" width="491" height="374" rx="8" fill="#1C2430" stroke="#0D1721" stroke-width="4"/>
+ <rect x="154.5" y="179" width="481" height="364" rx="6" fill="#09131B" stroke="#4ED8C4" stroke-opacity=".75" stroke-width="1.75"/>
+ <rect x="160.5" y="185" width="469" height="352" fill="url(#game-bg)" stroke="#141A25" stroke-width="1"/>
+ <g clip-path="url(#clip-standard-auto)">
+    <path d="M 160.5 403.24 Q 371.55 332.84000000000003 629.5 420.84000000000003 V 537 H 160.5 Z" fill="#204A50" opacity=".78"/>
+    <path d="M 357.48 364.52 L 432.52 364.52 L 577.9100000000001 537 H 216.78 Z" fill="#48565C"/>
+    <path d="M 395 368.04 L 399.69 368.04 L 470.04 537 H 315.27 Z" fill="#ADB9AD" opacity=".73"/>
+    <path d="M 395 385.64 L 399.69 385.64 L 423.14000000000004 537 H 366.86 Z" fill="#F1EBC3" opacity=".7"/>
+    <path d="M 301.2 427.88 q 93.80000000000001 -63.36 187.60000000000002 0 l -18.76 59.84 h -150.08 Z" fill="#111C2C" stroke="#789BAB" stroke-width="2"/>
+    <circle cx="357.48" cy="491.24" r="11" fill="#090E12"/><circle cx="432.52" cy="491.24" r="11" fill="#090E12"/>
+    <g fill="#EFF6EC" font-family="system-ui, sans-serif" font-size="17" font-weight="650" opacity=".85"><text x="178.5" y="214">SAMPLE FRAME</text></g>
+ </g>
+ <rect x="54" y="152" width="175" height="21" rx="4" fill="#0A111B" opacity=".84"/>
+ <text x="66" y="168" font-family="system-ui, sans-serif" font-size="12" fill="#4ED8C4" font-weight="700">STANDARD  ·  4:3</text>
+ <text x="50" y="577" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#EFF4EF">01  AUTO / STANDARD</text>
+ <text x="50" y="599" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Original · stronger default chassis</text>
+ </g>
+<g id="ornamental-auto">
+ <rect x="789" y="148" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="798" y="157" width="688" height="386" rx="17" fill="#151C20"/>
+ <rect x="807" y="166" width="670" height="368" rx="14" fill="none" stroke="#465840" stroke-width="9"/>
+ <rect x="813" y="172" width="658" height="356" rx="12" fill="none" stroke="#9BC74A" opacity=".34" stroke-width="1.5"/>
+ <g stroke="#9BC74A" stroke-width="2" opacity=".74" stroke-linecap="round">
+    <path d="M 853 220 l 13 -10 l 13 10 M 853 232 l 13 -10 l 13 10"/>
+    <path d="M 853 460 l 13 -10 l 13 10 M 853 472 l 13 -10 l 13 10"/>
+   </g><g fill="#0B1112" stroke="#465840" stroke-width="2"><circle cx="866" cy="259" r="5"/><circle cx="866" cy="436" r="5"/></g><g stroke="#9BC74A" stroke-width="2" opacity=".74" stroke-linecap="round">
+    <path d="M 1405 220 l 13 -10 l 13 10 M 1405 232 l 13 -10 l 13 10"/>
+    <path d="M 1405 460 l 13 -10 l 13 10 M 1405 472 l 13 -10 l 13 10"/>
+   </g><g fill="#0B1112" stroke="#465840" stroke-width="2"><circle cx="1418" cy="259" r="5"/><circle cx="1418" cy="436" r="5"/></g><g fill="none" stroke="#9BC74A" opacity=".52" stroke-width="2"><path d="M 838 283 V 415 M 1446 283 V 415"/></g>
+ <rect x="878.5" y="156" width="527" height="410" rx="8" fill="#465840" stroke="#0B1112" stroke-width="11"/>
+ <rect x="901.5" y="179" width="481" height="364" rx="6" fill="#070D0D" stroke="#9BC74A" stroke-opacity=".75" stroke-width="2"/>
+ <rect x="907.5" y="185" width="469" height="352" fill="url(#game-bg)" stroke="#141A25" stroke-width="1"/>
+ <g clip-path="url(#clip-ornamental-auto)">
+    <path d="M 907.5 403.24 Q 1118.55 332.84000000000003 1376.5 420.84000000000003 V 537 H 907.5 Z" fill="#204A50" opacity=".78"/>
+    <path d="M 1104.48 364.52 L 1179.52 364.52 L 1324.91 537 H 963.78 Z" fill="#48565C"/>
+    <path d="M 1142 368.04 L 1146.69 368.04 L 1217.04 537 H 1062.27 Z" fill="#ADB9AD" opacity=".73"/>
+    <path d="M 1142 385.64 L 1146.69 385.64 L 1170.14 537 H 1113.8600000000001 Z" fill="#F1EBC3" opacity=".7"/>
+    <path d="M 1048.2 427.88 q 93.80000000000001 -63.36 187.60000000000002 0 l -18.76 59.84 h -150.08 Z" fill="#111C2C" stroke="#789BAB" stroke-width="2"/>
+    <circle cx="1104.48" cy="491.24" r="11" fill="#090E12"/><circle cx="1179.52" cy="491.24" r="11" fill="#090E12"/>
+    <g fill="#EFF6EC" font-family="system-ui, sans-serif" font-size="17" font-weight="650" opacity=".85"><text x="925.5" y="214">SAMPLE FRAME</text></g>
+ </g>
+ <rect x="801" y="152" width="175" height="21" rx="4" fill="#0A111B" opacity=".84"/>
+ <text x="813" y="168" font-family="system-ui, sans-serif" font-size="12" fill="#9BC74A" font-weight="700">ORNAMENTAL  ·  4:3</text>
+ <text x="797" y="577" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#EFF4EF">02  AUTO / ORNAMENTAL</text>
+ <text x="797" y="599" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Stealth / Acid · sculpted side rails</text>
+ </g>
+<g id="standard-wide">
+ <rect x="42" y="590" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="51" y="599" width="688" height="386" rx="17" fill="#F2A9C9"/>
+ <rect x="60" y="608" width="670" height="368" rx="14" fill="none" stroke="#C873A0" stroke-width="4"/>
+ <rect x="66" y="614" width="658" height="356" rx="12" fill="none" stroke="#8D315E" opacity=".34" stroke-width="1.5"/>
+ <g stroke="#8D315E" stroke-width="2" opacity=".72" stroke-linecap="round">
+  <path d="M 78 662 h 35 M 712 662 h -35 M 78 919 h 35 M 712 919 h -35"/></g>
+ <rect x="74" y="616" width="642" height="370" rx="8" fill="#C873A0" stroke="#743D5A" stroke-width="4"/>
+ <rect x="79" y="621" width="632" height="360" rx="6" fill="#251525" stroke="#8D315E" stroke-opacity=".75" stroke-width="1.75"/>
+ <rect x="85" y="627" width="620" height="348" fill="url(#game-bg)" stroke="#141A25" stroke-width="1"/>
+ <g clip-path="url(#clip-standard-wide)">
+    <path d="M 85 842.76 Q 364 773.16 705 860.1600000000001 V 975 H 85 Z" fill="#204A50" opacity=".78"/>
+    <path d="M 345.4 804.48 L 444.59999999999997 804.48 L 636.8 975 H 159.39999999999998 Z" fill="#48565C"/>
+    <path d="M 395 807.96 L 401.2 807.96 L 494.20000000000005 975 H 289.6 Z" fill="#ADB9AD" opacity=".73"/>
+    <path d="M 395 825.36 L 401.2 825.36 L 432.20000000000005 975 H 357.8 Z" fill="#F1EBC3" opacity=".7"/>
+    <path d="M 271 867.12 q 124 -62.64 248 0 l -24.8 59.160000000000004 h -198.4 Z" fill="#111C2C" stroke="#789BAB" stroke-width="2"/>
+    <circle cx="345.4" cy="929.76" r="11" fill="#090E12"/><circle cx="444.59999999999997" cy="929.76" r="11" fill="#090E12"/>
+    <g fill="#EFF6EC" font-family="system-ui, sans-serif" font-size="17" font-weight="650" opacity=".85"><text x="103" y="656">SAMPLE FRAME</text></g>
+ </g>
+ <rect x="54" y="594" width="175" height="21" rx="4" fill="#0A111B" opacity=".84"/>
+ <text x="66" y="610" font-family="system-ui, sans-serif" font-size="12" fill="#8D315E" font-weight="700">STANDARD  ·  16:9</text>
+ <text x="50" y="1019" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#EFF4EF">03  WIDESCREEN / STANDARD</text>
+ <text x="50" y="1041" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Pink · verified native 16:9 only</text>
+ </g>
+<g id="ornamental-wide">
+ <rect x="789" y="590" width="706" height="404" rx="20" fill="#131923" stroke="#39414E" stroke-width="1"/>
+ <rect x="798" y="599" width="688" height="386" rx="17" fill="#9BC7A8"/>
+ <rect x="807" y="608" width="670" height="368" rx="14" fill="none" stroke="#446F5C" stroke-width="9"/>
+ <rect x="813" y="614" width="658" height="356" rx="12" fill="none" stroke="#D4F47D" opacity=".34" stroke-width="1.5"/>
+ <g stroke="#D4F47D" stroke-width="2" opacity=".74" stroke-linecap="round">
+    <path d="M 853 662 l 13 -10 l 13 10 M 853 674 l 13 -10 l 13 10"/>
+    <path d="M 853 902 l 13 -10 l 13 10 M 853 914 l 13 -10 l 13 10"/>
+   </g><g fill="#163B36" stroke="#446F5C" stroke-width="2"><circle cx="866" cy="701" r="5"/><circle cx="866" cy="878" r="5"/></g><g stroke="#D4F47D" stroke-width="2" opacity=".74" stroke-linecap="round">
+    <path d="M 1405 662 l 13 -10 l 13 10 M 1405 674 l 13 -10 l 13 10"/>
+    <path d="M 1405 902 l 13 -10 l 13 10 M 1405 914 l 13 -10 l 13 10"/>
+   </g><g fill="#163B36" stroke="#446F5C" stroke-width="2"><circle cx="1418" cy="701" r="5"/><circle cx="1418" cy="878" r="5"/></g><g fill="none" stroke="#D4F47D" opacity=".52" stroke-width="2"><path d="M 838 725 V 857 M 1446 725 V 857"/></g>
+ <rect x="817" y="612" width="650" height="378" rx="8" fill="#446F5C" stroke="#163B36" stroke-width="11"/>
+ <rect x="826" y="621" width="632" height="360" rx="6" fill="#102F28" stroke="#D4F47D" stroke-opacity=".75" stroke-width="2"/>
+ <rect x="832" y="627" width="620" height="348" fill="url(#game-bg)" stroke="#141A25" stroke-width="1"/>
+ <g clip-path="url(#clip-ornamental-wide)">
+    <path d="M 832 842.76 Q 1111 773.16 1452 860.1600000000001 V 975 H 832 Z" fill="#204A50" opacity=".78"/>
+    <path d="M 1092.4 804.48 L 1191.6 804.48 L 1383.8 975 H 906.4 Z" fill="#48565C"/>
+    <path d="M 1142 807.96 L 1148.2 807.96 L 1241.2 975 H 1036.6 Z" fill="#ADB9AD" opacity=".73"/>
+    <path d="M 1142 825.36 L 1148.2 825.36 L 1179.2 975 H 1104.8 Z" fill="#F1EBC3" opacity=".7"/>
+    <path d="M 1018 867.12 q 124 -62.64 248 0 l -24.8 59.160000000000004 h -198.4 Z" fill="#111C2C" stroke="#789BAB" stroke-width="2"/>
+    <circle cx="1092.4" cy="929.76" r="11" fill="#090E12"/><circle cx="1191.6" cy="929.76" r="11" fill="#090E12"/>
+    <g fill="#EFF6EC" font-family="system-ui, sans-serif" font-size="17" font-weight="650" opacity=".85"><text x="850" y="656">SAMPLE FRAME</text></g>
+ </g>
+ <rect x="801" y="594" width="175" height="21" rx="4" fill="#0A111B" opacity=".84"/>
+ <text x="813" y="610" font-family="system-ui, sans-serif" font-size="12" fill="#D4F47D" font-weight="700">ORNAMENTAL  ·  16:9</text>
+ <text x="797" y="1019" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#EFF4EF">04  WIDESCREEN / ORNAMENTAL</text>
+ <text x="797" y="1041" font-family="system-ui, sans-serif" font-size="14" fill="#ABB6BF">Green · ornament compresses at edges</text>
+ </g>
+<text x="42" y="1074" font-family="system-ui, sans-serif" font-size="13" fill="#7E909B">SYMBOLIC DESIGN REFERENCES — NOT REAL GAME CAPTURES, NOT RENDERER / HARDWARE PROOF. SOURCE VIDEO MAY HAVE DIFFERENT EFFECTIVE PIXEL ASPECT.</text>
+</svg>
