@@ -1,34 +1,25 @@
 # CARTDECK — Master product and delivery roadmap
 
-### 17 November 2026 — Shandalar selected as PC-00 first executable proof
+## 17 November 2026 — CONTROLLING PC-00 / REL-ENG owner decisions
 
-**Owner directive:** Shandalar (1997 Windows 95 game) is the first PC target. A **protected PC-04 source/feasibility implementation spike** is authorised, separate from general PC-00 research. This is not a release or proof of gameplay. [PC-04 issue #305](https://github.com/safetyblade/ROMMachine/issues/305), [isolated draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306).
+**Bundled release:** CARTDECK includes **all approved, licence-cleared emulators within the app**. No runtime is installed through a separate emulator download or third-party app. At release Settings links to a **separate open-source emulator-only source/build repository** for the assembled engine technologies, **not** a CARTDECK engine downloader. [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) controls source/binary provenance and release; that separate repository does not independently fulfil applicable GPL app/host corresponding-source obligations.
 
-**Start with what CARTDECK already has:** DOSBox Pure `CoreID.DOSBOX_PURE`, DOS `GameSystem`, ARM64 library in LemuroidCores submodule pin `fee2e824525daa22bcf318f96127fe43fa8a15ad`; existing `.dosz` routing does not establish Windows ISO imports or Win95 boot. The PC-04 draft adds a pinned candidate source inventory and read-only native architecture/ELF/16KB proof script. DOSBox Pure source has moved to Codeberg; current official upstream revision unverified. No new runtime binary or APK yet.
+**PC direction:** GameNative and all external gaming-storefront/sign-on integration **removed** from active engineering. Preserve the ability to run **locally imported Windows EXE/game installers** using embedded, compatible Wine/Box64/FEX/Hangover runtimes, with Winlator/MiceWine as technical source references only. Focus first on legacy PC: DOSBox Pure, DOSBox-X feasibility, Windows 3.x/95/98 and selective XP, original PC optical images and installation workflow. **Shandalar (MicroProse Magic 1997)** is the first real PC game test; DOSBox Pure first, Wine fallback.
 
-**Fallback candidate:** Winlator v11.2 Wine/Box64 (Xclipse-oriented Vortek/Gladio changes) is for a separate 32-bit Win32 proof if DOSBox Pure Win95 guest cannot work; GameNative is for PC-01 modern storefront scope and is NOT required for the first Shandalar game.
-
-**Next gates:** verify checked-out and shipped DOSBox Pure ELF, Libretro OS boot/CD/keyboard/mouse/guest save support → safely mount explicit user-chosen PC CD image without generic ISO collisions → Windows 95 guest → Shandalar installed/overworld/duel/deck/save/exit/reopen with lawfully supplied media → per-profile save + normal CARTDECK game menu → independent Samsung acceptance. Preserve current GC-01 PR #294, source CI-01, #295–297 native repair and all other game/saves. No proprietary media or DRM bypass included.
-
----
-## 17 November 2026 — PC-00 standalone PC gaming research lane
-
-**Roadmap position:** Standalone **RESEARCH / FEASIBILITY** alongside, not inside or after, the GC-01 A–H implementation sequence. **No native integration, APK, storefront authorisation or PC gameplay support claim approved.** Research can progress independently while current emulation and GC/CI recoveries remain priority.
-
-**Parent and authority:** [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) · [Lane charter and PC-R0–R5 gates](../research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md).
-
-| Independent research workstream | Scope | State / decision gate |
+| Lane | Scope | State |
 | --- | --- | --- |
-| **PC-01 Modern PC** [#300](https://github.com/safetyblade/ROMMachine/issues/300) | GameNative/storefront access, Winlator/MiceWine/Wine, Box64/FEX/Hangover and standalone EXE in Android ARM64/Xclipse | RESEARCH; no validated embedded game runtime or app implementation |
-| **PC-02 PC Classics** [#301](https://github.com/safetyblade/ROMMachine/issues/301) | Original lawful PC CD images, install/mount, DOSBox Pure Win95 guest, Wine Win32 legacy, DOSBox-X fallback, multi-disc/media identity | RESEARCH; Shandalar existing [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) benchmark, not gameplay verified |
-| **PC-03 PC integration architecture** [#302](https://github.com/safetyblade/ROMMachine/issues/302) | One CARTDECK shelf, controller/keyboard/mouse, profile/Junior/SafeSave, GEM, secure installer, user storefront privacy, rights and on-demand runtime | DESIGN/RESEARCH only, not Room/schema/UI implementation |
+| [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) | Independent PC integration programme | Controlling |
+| [PC-01 #300](https://github.com/safetyblade/ROMMachine/issues/300) | Local Win32/Win64 game execution and integrated compatibility technology | Research |
+| [PC-02 #301](https://github.com/safetyblade/ROMMachine/issues/301) | Original PC CD, DOS/Win9x guest installers and execution | Research |
+| [PC-03 #302](https://github.com/safetyblade/ROMMachine/issues/302) | Bundled runtime, cartridge, menu, profiles/Junior and SafeSave | Design |
+| [PC-04 #305](https://github.com/safetyblade/ROMMachine/issues/305), [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) | Shandalar-first protected [draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306) | Source/native audit authored; no Win95/gameplay PASS |
+| [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) | Engine-only open-source repository/build release and future in-app Settings link | Release design; repo not created |
 
-**Gates:** PC-R0 current source and DOSBox Pure audit → R1 alternatives/rights/Android evidence → R2 architecture ADR and feasibility GO/NO-GO → R3 UX/media/identity/saves → R4 reproducible lawful prototype plan/Marcus QA → R5 **Jonathan separately authorises or declines an implementation spike**. Completion of any earlier gate does not promote a game to Working.
+**PC gates:** PC-R0 actual DOSBox Pure/native core audit → R1 licence/ABI candidates → R2 integrated engine/rights architecture → R3 game installer/media/input/profile/save UX → R4 lawful Shandalar test and hardware QA → R5 owner GO/NO-GO. **No engine binaries, APKs, repo publication, guest game or physical PASS** authorised by this roadmap correction.
 
-**Protection:** preserve current emulation recovery [PS3 #297](https://github.com/safetyblade/ROMMachine/issues/297), [Wii U #296](https://github.com/safetyblade/ROMMachine/issues/296), [X360 #295](https://github.com/safetyblade/ROMMachine/issues/295), GC-01 [#262](https://github.com/safetyblade/ROMMachine/issues/262)/[PR #294](https://github.com/safetyblade/ROMMachine/pull/294), CI-01 selective native build, all existing engines/ROM classification/Room/save/upgrade paths. Shandalar previously appearing as a deferred single experiment should be read as **part of PC-02** in this new controlling research addendum, without changing its pre-existing physical NOT TESTED status.
+**Protected:** PERF #60, PS3 #297, Wii U #296, X360 #295; GC-01 #262 / PR #294; selective CI-01, all existing consoles, library/Room/save identity, signing and rollback. Source detail: [PC-00 charter](../research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md).
 
 ---
-
 
 **Authoritative current checkpoint: 13 November 2026 · v2.6**
 **Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Design:** Sienna Vale · **Engineering:** Elliot Shaw · **Architecture:** Daniel Mercer · **QA:** Marcus Reid
