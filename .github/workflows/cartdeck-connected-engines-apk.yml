@@ -12,10 +12,17 @@ on:
       use_ci01_ps1:
         type: boolean
         default: false
+      use_ci01_native_set:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
+      use_ci01_native_set:
+        description: 'Validate and substitute five independent, provenance-verified native inputs'
+        type: boolean
+        default: false
       use_ci01_ps1:
-        description: 'Validate and substitute a provenance-verified CI-01 PS1 artifact (bounded trial)'
+        description: 'Legacy PS1-only experiment; prefer native set for new tests'
         type: boolean
         default: false
       native_rebuild_authorized:
@@ -49,6 +56,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Native resolver source tests (before native downloads)
         run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
@@ -169,6 +177,94 @@ jobs:
       - name: Reject PS1 candidate unless full identity and all payload hashes match
         if: inputs.use_ci01_ps1 == true
         run: python3 scripts/ci/verify_ci01_ps1.py --directory work/connected/ci01-ps1
+      - name: Resolve successful independent engine workflow runs
+        if: inputs.use_ci01_native_set == true
+        id: ci01_set
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const engines = ['ps1', 'psp', 'dc', 'gc', 'ps2'];
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const runCache = new Map();
+            for (const engine of engines) {
+              const prefix = 'native-ci01-' + engine + '-';
+              const candidates = artifacts.filter(a => !a.expired && a.name.startsWith(prefix))
+                .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+              let selected = null;
+              for (const artifact of candidates) {
+                const id = artifact.workflow_run?.id;
+                if (!id) continue;
+                if (!runCache.has(id)) {
+                  const response = await github.rest.actions.getWorkflowRun({...context.repo, run_id: id});
+                  runCache.set(id, response.data);
+                }
+                const run = runCache.get(id);
+                if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
+                    run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                    artifact.name !== prefix + run.head_sha) continue;
+                selected = {run_id: run.id, name: artifact.name};
+                break;
+              }
+              if (!selected) {
+                core.setFailed('Missing verified native build for ' + engine +
+                  '; dispatch its individual CI-01 engine build.');
+                return;
+              }
+              core.setOutput(engine + '_run', String(selected.run_id));
+              core.setOutput(engine + '_name', selected.name);
+            }
+      - name: Download independently verified PS1 candidate
+        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.ps1_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.ps1_run }}
+          name: ${{ steps.ci01_set.outputs.ps1_name }}
+          path: work/connected/ci01-native/ps1
+      - name: Download independently verified PSP candidate
+        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.psp_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.psp_run }}
+          name: ${{ steps.ci01_set.outputs.psp_name }}
+          path: work/connected/ci01-native/psp
+      - name: Download independently verified DC candidate
+        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.dc_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.dc_run }}
+          name: ${{ steps.ci01_set.outputs.dc_name }}
+          path: work/connected/ci01-native/dc
+      - name: Download independently verified GC candidate
+        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.gc_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.gc_run }}
+          name: ${{ steps.ci01_set.outputs.gc_name }}
+          path: work/connected/ci01-native/gc
+      - name: Download independently verified PS2 candidate
+        if: inputs.use_ci01_native_set == true && steps.ci01_set.outputs.ps2_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.ps2_run }}
+          name: ${{ steps.ci01_set.outputs.ps2_name }}
+          path: work/connected/ci01-native/ps2
+      - name: Independently verify all five pinned engine receipts
+        if: inputs.use_ci01_native_set == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in ps1 psp dc gc ps2; do
+            python3 scripts/ci/ci01_legacy_engines.py \
+              --engine "$engine" --directory "work/connected/ci01-native/$engine"
+          done
       - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
         shell: bash
         run: |
@@ -203,6 +299,20 @@ jobs:
           rm -rf "$dest"
           cp -a work/connected/ci01-ps1 "$dest"
           python3 scripts/ci/verify_ci01_ps1.py --directory "$dest"
+      - name: Substitute independently verified five-engine native inputs
+        if: inputs.use_ci01_native_set == true && steps.inputs.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in ps1 psp dc gc ps2; do
+            source="work/connected/ci01-native/$engine"
+            python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$source"
+            destination="work/connected/legacy/native-engine-$engine"
+            test -d "$destination"
+            rm -rf "$destination"
+            cp -a "$source" "$destination"
+            python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$destination"
+          done
       - name: Package source-licensed PS2 resources for the existing engines
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
