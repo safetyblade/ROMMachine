@@ -86,3 +86,51 @@ confirm the corrected full SHA/Build ID; cold boot Bayonetta 2, play 15 minutes,
 save through the game, Return to Shelf, reopen and load the save. Repeat Sonic's
 previously working segment and a controller/menu/rotation cycle. Capture exact
 native trace if it fails. **Physical acceptance PENDING, continuing crash OPEN.**
+
+### Increment 3: Xenia buffered performance candidate
+
+The pinned runtime already owns asynchronous pipeline creation, AAudio callbacks,
+Vulkan completion timelines and its surface lifecycle. Those paths were studied
+against the #257/#260/#263 lessons and were NOT replaced with Cemu code.
+
+Implemented native 512-sample bounded windows for guest-swap/host-present intervals,
+ARM64 JIT assembly calls, shader translation calls, driver pipeline creation,
+swapchain acquire, present calls, present queue-lock waits, presentation fence
+waits and CPU submission duration. Sampling is allocation-free; percentile sorting
+occurs only on report requests. Reports distinguish CPU wall time from GPU execution.
+Added skipped-draw and actual AAudio concealment-frame counters, guest-sequence
+repeat counts, process RSS/native heap and Android thermal status. Host presents
+and guest swap identities remain explicitly NOT unique correctly rendered images;
+GPU execution/unique completed FPS/guest simulation speed are UNAVAILABLE until
+reliably measured. Window percentiles can include pauses; capture uninterrupted runs.
+
+Targeted correction: two unconditional per-skipped-draw XELOGI formatting/logcat
+paths now increment buffered counters instead. Async pipeline decisions, missing
+geometry behavior, shaders, blending/depth, texture data, renderer ownership and
+stock Samsung driver selection are unchanged. This removes avoidable hot-path
+logging; it does NOT establish that reported graphical corruption is repaired.
+
+Verification so far: all pinned source replacement hooks applied to real upstream
+files; bounded percentile/overwrite/concurrency/report-buffer native test PASS;
+four existing native Xenia contract tests PASS. Synthetic Linux-host record-only
+cost was 17.21–23.70 ns/event across two runs (not Android overhead, frame time,
+FPS or a game performance comparison). Exact-source ARM64 rebuild is in progress;
+no replacement engine is accepted without that build and its matching symbols.
+No firmware, game or proprietary licence data is used by these tests.
+
+Selective recovery workflow builds ONLY cemu and xenia, then reuses eight unchanged
+CI-01 components. Missing/mismatched artifacts fail; no all-engine fallback. The
+recovery candidate uses the same complete APK/signing/native inventory/unit gates
+as the normal pipeline. PS3 is explicitly excluded until recorded distribution
+clearance. No master merge or GC-01 feature merge occurs.
+
+Owner/Marcus physical procedure after delivery: preserve the old Xenia engine,
+profile and saves; use stock Vulkan and identical FIFA Street 3 segment/controller/
+orientation. Capture Advanced reports at boot, match entry, 60 seconds and 15 minutes,
+plus an identical video segment. Repeat without clearing caches for warm-cache
+comparison; cache state is UNKNOWN unless independently controlled. Record frame
+interval p50/p95/p99, JIT/pipeline totals/deltas, acquire/fence/queue/present times,
+audio concealment, RSS and thermal status; compare menus, geometry/textures/depth,
+save/reopen and Return to Shelf. Do not derive unique-image FPS from presents.
+No same-device before/after, visuals, thermals or sustained speed are yet measured.
+**Gameplay improvement/fidelity acceptance PENDING, not PASS.**

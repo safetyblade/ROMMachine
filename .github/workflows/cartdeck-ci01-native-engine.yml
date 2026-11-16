@@ -16,6 +16,11 @@ on:
       - 'scripts/ci/test_retain_ci01_host_metadata.py'
       - 'scripts/ci/test_ci01_*.py'
       - '.github/workflows/cartdeck-ci01-native-engine.yml'
+  workflow_call:
+    inputs:
+      engine:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       engine:
@@ -73,7 +78,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_retain_ci01_sources.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_retain_ci01_host_metadata.py' -v
   native-component:
-    if: github.event_name == 'workflow_dispatch'
+    if: inputs.engine != ''
     name: Verify and retain one genuine native component
     runs-on: ubuntu-24.04
     timeout-minutes: 350

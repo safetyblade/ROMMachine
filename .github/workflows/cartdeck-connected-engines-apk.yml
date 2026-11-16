@@ -3,6 +3,9 @@ name: CARTDECK connected native engines APK
 on:
   workflow_call:
     inputs:
+      recovery_native_run_id:
+        type: string
+        default: ""
       measure_apk_reuse:
         type: boolean
         default: false
@@ -282,6 +285,19 @@ jobs:
             for (const engine of engines) {
               const prefix = 'native-ci01-' + engine + '-';
               let chosen = null;
+              const recoveryRun = '${{ inputs.recovery_native_run_id }}';
+              if (recoveryRun && ['cemu','xenia'].includes(engine)) {
+                if (recoveryRun !== String(context.runId)) {
+                  core.setFailed('Recovery override must be the current dependency-ordered run'); return;
+                }
+                const exact = all.find(a => !a.expired &&
+                  String(a.workflow_run?.id) === recoveryRun &&
+                  a.name === prefix + '${{ github.sha }}');
+                if (!exact) { core.setFailed('Current verified recovery component missing: ' + engine); return; }
+                core.setOutput(engine + '_run', recoveryRun);
+                core.setOutput(engine + '_name', exact.name);
+                continue;
+              }
               const candidates = all.filter(a => !a.expired && a.name.startsWith(prefix))
                 .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
               for (const artifact of candidates) {

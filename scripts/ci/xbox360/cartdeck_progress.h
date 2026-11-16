@@ -2,6 +2,7 @@
 #pragma once
 #include <atomic>
 #include <cstdio>
+#include "cartdeck_performance.h"
 namespace cartdeck {
 inline std::atomic<unsigned> stages{0}, error{0};
 inline std::atomic<bool> exited{false};
@@ -23,5 +24,6 @@ inline void report(char* out, size_t size) {
     last,flags,error.load(),jit_blocks.load(),guest_swaps.load(),host_presents.load(),
     gpu_vendor.load(),gpu_device.load(),gpu_driver.load(),vulkan_api.load(),missing_capability.load(),
     device_result.load(),present_result.load(),int(exited.load()));
+  perf::append(out, size);
 }
 }
