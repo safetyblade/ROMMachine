@@ -1,0 +1,152 @@
+{
+  "schema": "cartdeck.landscape-surround-design/1.0",
+  "status": "design-only-not-runtime",
+  "owner_decision_date": "2026-11-16",
+  "source_spec": "../../../docs/design/GC01H_LANDSCAPE_ASPECT_SURROUND_V1.md",
+  "aspect": {
+    "default_on_every_new_game_session": "AUTO",
+    "choices": [
+      "AUTO",
+      "WIDESCREEN"
+    ],
+    "persistence": "session-only",
+    "widescreen_requires": [
+      "verified_backend_support",
+      "verified_title_or_engine_output",
+      "native_apply_acknowledgement"
+    ],
+    "widescreen_never_automatically": [
+      "stretches_4_3",
+      "crops_gameplay",
+      "enables_unreviewed_patches",
+      "writes_save_data"
+    ],
+    "fallback_on_error": "AUTO",
+    "diagnostic_status_if_no_native_aspect": "UNVERIFIED"
+  },
+  "surround": {
+    "default": "STANDARD",
+    "choices": [
+      "STANDARD",
+      "ORNAMENTAL"
+    ],
+    "persistence": "appearance-only",
+    "never_overdraws": [
+      "game_video",
+      "controls",
+      "logo_seat",
+      "tv_overscan"
+    ],
+    "standard": {
+      "frame_target_dp": 10,
+      "frame_minimum_dp": 7,
+      "accent_rail_dp": 2,
+      "accent_opacity_range": [
+        0.55,
+        0.7
+      ],
+      "glass_guard_physical_px": 1,
+      "details": [
+        "chamfered_chassis",
+        "inner_glass_lip",
+        "short_corner_return",
+        "subtle_parallel_rail"
+      ]
+    },
+    "ornamental": {
+      "full_target_dp": 26,
+      "medium_target_dp": 18,
+      "compressed_target_dp": 12,
+      "minimum_edge_rail_dp": 8,
+      "max_symmetric_video_size_reduction_percent": 5,
+      "details": [
+        "step_milled_chassis",
+        "inset_secondary_shoulder",
+        "bezel_rail",
+        "twin_gutter_rails",
+        "c_slot_diagonal_mill",
+        "optional_micro_fasteners"
+      ],
+      "layout_priority": [
+        "reuse_existing_gutters",
+        "bounded_symmetric_shrink_if_user_selected",
+        "compressed_ornament_if_tight"
+      ],
+      "avoid": [
+        "fake_buttons",
+        "continuous_neon_outline",
+        "uncleared_control_hit_areas",
+        "logo_duplicate",
+        "texture_network_request"
+      ]
+    },
+    "smart_compact": {
+      "safe_drawing_insets": true,
+      "tv_overscan_minimum_dp": 32,
+      "touch_hit_target_minimum_dp": 48,
+      "shell_draws_outside_video": true,
+      "keep_one_pixel_inward_guard": true,
+      "dualscreen_touch_unchanged": true
+    }
+  },
+  "appearances": {
+    "original": {
+      "source": "design/cartdeck-v03/editions/original.json",
+      "chassis": "#303B49",
+      "secondary": "#1C2430",
+      "bezel": "#0D1721",
+      "accent": "#4ED8C4",
+      "detail": "precision_milled_teal"
+    },
+    "pink": {
+      "source": "design/cartdeck-v03/editions/pink.json",
+      "chassis": "#F2A9C9",
+      "secondary": "#C873A0",
+      "bezel": "#743D5A",
+      "accent": "#8D315E",
+      "detail": "satin_double_rail_soft_facets"
+    },
+    "green": {
+      "source": "design/cartdeck-v03/editions/green.json",
+      "chassis": "#9BC7A8",
+      "secondary": "#446F5C",
+      "bezel": "#163B36",
+      "accent": "#D4F47D",
+      "detail": "organic_step_cut"
+    },
+    "stealth-acid": {
+      "source": "CartdeckCuratedDesigns.STEALTH_ACID_ID",
+      "chassis": "#151C20",
+      "secondary": "#465840",
+      "bezel": "#0B1112",
+      "accent": "#9BC74A",
+      "detail": "technical_louvres_chevron"
+    },
+    "custom": {
+      "source": "ShelfAppearance.custom",
+      "tokens": [
+        "chassis",
+        "secondary",
+        "bezel",
+        "glass",
+        "accent",
+        "focus"
+      ],
+      "detail": "geometry_shared_patterns_clipped_outside_source"
+    }
+  },
+  "source_paths": [
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/CartdeckMaximisedFrame.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/NativeViewportPolicy.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/game/CartdeckConsoleShell.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfLayout.kt",
+    "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/shelf/ShelfStore.kt"
+  ],
+  "implementation_gates": [
+    "H-DISPLAY-01",
+    "H-DESIGN-02",
+    "H-UX-03",
+    "H-PS2-04",
+    "H-QA-05"
+  ]
+}
