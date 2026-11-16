@@ -14,14 +14,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
@@ -176,6 +181,63 @@ class SharedGameMenuTest {
                 compose.onNodeWithText("Save & Load").performScrollTo().assertIsDisplayed()
                 compose.runOnIdle { assertEquals(shelfMaterials(selected).interactionAccent, primary) }
             }
+        }
+    }
+
+    @Test fun unavailableResumeWithoutAdvancedFocusesShelf() {
+        var action: GameMenuAction? = null
+        compose.setContent {
+            MaterialTheme {
+                SharedGameMenuHome(
+                    capabilities = GameMenuCapabilities(advanced = false),
+                    onAction = { action = it },
+                    canResume = false,
+                )
+            }
+        }
+        compose.onNodeWithText("Resume").assertIsNotEnabled()
+        compose.onNodeWithText("Return to Shelf").assertIsFocused().performClick()
+        compose.runOnIdle { assertEquals(GameMenuAction.RETURN_TO_SHELF, action) }
+    }
+
+    @Test fun recoveryInitiallyFocusesRecoveryAction() {
+        compose.setContent {
+            MaterialTheme {
+                SharedGameMenuHome(GameMenuCapabilities(advanced = true), canResume = false) {}
+            }
+        }
+        compose.onNodeWithText("Recovery options").assertIsFocused()
+    }
+
+    // Key injection is experimental in the pinned Compose test API.
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun remoteDpadOkAndGuideReleaseCannotResumeRecovery() {
+        var resumed = 0
+        var exits = 0
+        compose.setContent {
+            XboxGameMenu(
+                title = "Setup only",
+                engineInfo = "PS3",
+                capabilities = XboxMenuCapabilities(false, false, false, resume = false),
+                onResume = { resumed++ }, onReturnToShelf = { exits++ },
+                onCopyReport = {}, onProbe = {}, onPreviousEngine = {},
+                recovery = { Text("Firmware recovery") },
+            ) { Text("Controller setup") }
+        }
+        compose.onNodeWithText("Recovery options").assertIsFocused()
+        compose.onNodeWithTag("game-menu").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("Firmware recovery").assertIsDisplayed()
+        // An unmatched Guide release from another surface must not dismiss recovery.
+        compose.runOnIdle {
+            compose.activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, 110))
+        }
+        compose.onNodeWithText("Firmware recovery").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Return to Shelf").performClick()
+        compose.runOnIdle {
+            assertEquals(0, resumed)
+            assertEquals(1, exits)
         }
     }
 }

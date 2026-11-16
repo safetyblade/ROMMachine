@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -33,15 +34,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -50,7 +56,8 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
-import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 
 @Composable
 internal fun GameMenuTheme(
@@ -91,6 +98,9 @@ internal fun GameMenuPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val backFocus = remember { FocusRequester() }
+    val menuView = LocalView.current
+    val menuEdge = remember { ControllerMenuEdge() }
+    val backEdge = remember { ControllerMenuEdge() }
     // Nested routes start with a reachable Back control. Home keeps its
     // separate first-action focus, so opening a menu selects Resume.
     LaunchedEffect(page, canGoBack) {
@@ -100,12 +110,25 @@ internal fun GameMenuPanel(
     BoxWithConstraints(
         Modifier.fillMaxSize().testTag("game-menu").onPreviewKeyEvent { event ->
             when (event.nativeKeyEvent.keyCode) {
+                KeyEvent.KEYCODE_BUTTON_A -> {
+                    val raw = event.nativeKeyEvent
+                    menuView.dispatchKeyEvent(
+                        KeyEvent(
+                            raw.downTime,
+                            raw.eventTime,
+                            raw.action,
+                            KeyEvent.KEYCODE_DPAD_CENTER,
+                            raw.repeatCount,
+                        ),
+                    )
+                    true
+                }
                 KeyEvent.KEYCODE_BUTTON_B -> {
-                    if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) onBack()
+                    if (backEdge.handle(event.nativeKeyEvent)) onBack()
                     true
                 }
                 KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU -> {
-                    if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) onResume()
+                    if (menuEdge.handle(event.nativeKeyEvent)) onResume()
                     true
                 }
                 else -> false
@@ -153,14 +176,25 @@ internal fun GameMenuPanel(
 internal fun GameMenuLink(
     label: String,
     icon: Int = R.drawable.ic_menu_settings,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-        LemuroidSettingsMenuLink(
-            title = { Text(label) },
-            icon = { Icon(painterResource(icon), contentDescription = null) },
-            onClick = onClick,
-        )
+    var focused by remember { mutableStateOf(false) }
+    Button(
+        onClick = onClick,
+        modifier =
+            modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .onFocusChanged { focused = it.isFocused }
+                .then(
+                    if (focused) {
+                        Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, MaterialTheme.shapes.small)
+                    } else {
+                        Modifier
+                    },
+                ),
+    ) {
+        Icon(painterResource(icon), contentDescription = null)
+        Text(label, Modifier.weight(1f).padding(12.dp))
     }
 }
 
@@ -170,24 +204,25 @@ internal fun SharedGameMenuHome(
     canResume: Boolean = true,
     onAction: (GameMenuAction) -> Unit,
 ) {
+    val safeResume = canResume && capabilities.resume
     val resumeFocus = remember { FocusRequester() }
     val recoveryFocus = remember { FocusRequester() }
-    LaunchedEffect(canResume) {
-        if (canResume) resumeFocus.requestFocus() else recoveryFocus.requestFocus()
+    LaunchedEffect(safeResume) {
+        if (safeResume) resumeFocus.requestFocus() else recoveryFocus.requestFocus()
     }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Button(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(resumeFocus),
                 onClick = { onAction(GameMenuAction.RESUME) },
-                enabled = canResume,
+                enabled = safeResume,
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Text(GameMenuAction.RESUME.label)
             }
-            if (!canResume && capabilities.advanced) {
-                Box(Modifier.focusRequester(recoveryFocus)) {
-                    GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
+            if (!safeResume && capabilities.advanced) {
+                GameMenuLink("Recovery options", modifier = Modifier.focusRequester(recoveryFocus)) {
+                    onAction(GameMenuAction.ADVANCED)
                 }
             }
             capabilities.homeActions().filterNot {
@@ -204,7 +239,11 @@ internal fun SharedGameMenuHome(
             }
         }
         HorizontalDivider()
-        GameMenuLink(GameMenuAction.RETURN_TO_SHELF.label, R.drawable.ic_menu_quit) {
+        GameMenuLink(
+            GameMenuAction.RETURN_TO_SHELF.label,
+            R.drawable.ic_menu_quit,
+            modifier = if (!safeResume && !capabilities.advanced) Modifier.focusRequester(recoveryFocus) else Modifier,
+        ) {
             onAction(GameMenuAction.RETURN_TO_SHELF)
         }
     }
