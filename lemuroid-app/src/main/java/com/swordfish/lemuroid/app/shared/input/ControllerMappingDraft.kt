@@ -8,6 +8,7 @@ class ControllerMappingDraft(initial: Map<Int, Int>) {
     private val history = mutableListOf<Map<Int, Int>>()
     var conflict: Pair<Int, Int>? = null
         private set
+    val savedBindings: Map<Int, Int> get() = saved.toMap()
     val dirty get() = bindings != saved
     val canUndo get() = history.isNotEmpty()
 

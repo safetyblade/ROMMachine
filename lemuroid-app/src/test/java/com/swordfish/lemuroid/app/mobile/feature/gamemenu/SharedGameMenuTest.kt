@@ -73,9 +73,12 @@ class SharedGameMenuTest {
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Advanced").performClick()
         compose.onNodeWithText("Previous Engine").assertDoesNotExist()
+        compose.onNodeWithText("Fixture engine").assertDoesNotExist()
+        compose.onNodeWithText("Diagnostics").performClick()
         compose.onNodeWithText("Fixture engine").assertIsDisplayed()
         compose.onNodeWithText("Copy engine/GPU report").performClick()
         compose.runOnIdle { assertEquals("Fixture report", clipboard.primaryClip!!.getItemAt(0).text) }
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Troubleshooting").performClick()
         compose.onNodeWithText("Probe blank viewport (debug)").performScrollTo().performClick()
         compose.runOnIdle {
@@ -83,7 +86,7 @@ class SharedGameMenuTest {
             assertEquals(0, resumes)
             compose.activity.onBackPressedDispatcher.onBackPressed()
         }
-        compose.onNodeWithText("Copy engine/GPU report").assertIsDisplayed()
+        compose.onNodeWithText("Diagnostics").assertIsDisplayed()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Resume").performClick()
         compose.onNodeWithTag("game-menu").assertDoesNotExist()

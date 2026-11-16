@@ -66,7 +66,8 @@ class InputDeviceManager(
     }
 
     val profiles = ControllerProfileStore(context)
-    private val cartridgeOverrides = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+    private val cartridgeOverrides = java.util.concurrent.ConcurrentHashMap<Pair<String, String?>, Boolean>()
+    private val canonicalBindings = java.util.concurrent.ConcurrentHashMap<Pair<String, String?>, Boolean>()
     private val calibrationCache = java.util.concurrent.ConcurrentHashMap<String, ControllerProfileStore.Profile>()
 
     private val playerSlots = ControllerPortRegistry(16)
@@ -128,7 +129,12 @@ class InputDeviceManager(
                 profiles.read(device.descriptor, cartridge?.takeIf { it.isNotBlank() })
             }.getOrNull() ?: return null
         calibrationCache[device.descriptor] = profile
-        cartridgeOverrides[device.descriptor] = cartridge?.takeIf { it.isNotBlank() }?.let {
+        canonicalBindings[device.descriptor to cartridge] = profile.buttons != null
+        canonicalBindings[device.descriptor to null] =
+            runCatching {
+                profiles.read(device.descriptor).buttons != null
+            }.getOrDefault(false)
+        cartridgeOverrides[device.descriptor to cartridge] = cartridge?.takeIf { it.isNotBlank() }?.let {
             runCatching { profiles.hasOverride(device.descriptor, it) }.getOrDefault(false)
         } ?: false
         return profile.buttons?.takeIf { values -> values.values.all { RetroKey(it) in OUTPUT_KEYS } }
@@ -138,9 +144,14 @@ class InputDeviceManager(
     fun hasCanonicalBinding(
         device: InputDevice?,
         cartridgeOnly: Boolean = false,
+        cartridge: String? = null,
     ): Boolean =
         device?.descriptor?.let {
-            calibrationCache[it]?.buttons != null && (!cartridgeOnly || cartridgeOverrides[it] == true)
+            if (cartridgeOnly) {
+                cartridgeOverrides[it to cartridge] == true
+            } else {
+                canonicalBindings[it to cartridge] == true
+            }
         } == true
 
     fun calibration(device: InputDevice?): ControllerProfileStore.Profile =

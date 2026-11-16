@@ -2,17 +2,13 @@ package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -62,7 +55,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme
@@ -93,7 +85,11 @@ internal fun GameMenuTheme(
                 }
             }
         }.value
-    AppTheme { CartridgeLibraryTheme(appearance ?: persisted, content) }
+    AppTheme {
+        androidx.compose.runtime.CompositionLocalProvider(LocalCompactCartdeckMenu provides true) {
+            CartridgeLibraryTheme(appearance ?: persisted, content)
+        }
+    }
 }
 
 /** The established right-side panel, shared by the Activity menu and native overlay. */
@@ -170,10 +166,13 @@ internal fun GameMenuPanel(
                     }
                     Column(Modifier.padding(start = 56.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)) {
                         Text(page, style = MaterialTheme.typography.titleLarge)
-                        Text("$console · $title", style = MaterialTheme.typography.bodyMedium)
-                        if (!statusMessage.isNullOrBlank()) {
-                            Text(statusMessage, style = MaterialTheme.typography.bodySmall)
-                        }
+                        Text(
+                            playerMenuTitle(title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                        Text(console, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
                 HorizontalDivider()
@@ -186,51 +185,29 @@ internal fun GameMenuPanel(
 @Composable
 internal fun GameMenuLink(
     label: String,
-    icon: Int = R.drawable.ic_menu_settings,
+    icon: Int? = null,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
     leading: ImageVector? = null,
     onClick: () -> Unit,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    Surface(
-        modifier =
-            modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp)
-                .heightIn(min = 48.dp).onFocusChanged { focused = it.hasFocus }
-                .clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = if (focused) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-        contentColor =
-            if (enabled) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = 0.5f,
-                )
-            },
-        border =
-            BorderStroke(
-                if (focused) 2.dp else 1.dp,
-                if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-            ),
-    ) {
-        Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (leading != null) {
-                Icon(
-                    leading,
-                    null,
-                    Modifier.size(22.dp),
-                )
-            } else {
-                Icon(painterResource(icon), null, Modifier.size(22.dp))
+    val artwork: (@Composable () -> Unit)? =
+        when {
+            leading != null -> {
+                { Icon(leading, null, Modifier.size(22.dp)) }
             }
-            Text(label, style = MaterialTheme.typography.bodyLarge)
+            icon != null -> {
+                { Icon(painterResource(icon), null, Modifier.size(22.dp)) }
+            }
+            else -> null
         }
-    }
+    CartdeckMenuRow(
+        title = { Text(label) },
+        modifier = modifier,
+        enabled = enabled,
+        leading = artwork,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -287,3 +264,9 @@ internal fun SharedGameMenuHome(
         }
     }
 }
+
+internal fun playerMenuTitle(value: String): String =
+    value.substringAfterLast('/').replace(
+        Regex("(?i)\\.(iso|chd|cso|rom|bin|cue|nes|sfc|smc|gba|gbc|gb|nds|3ds|wbfs|wud|wux|xex)$"),
+        "",
+    ).take(120)

@@ -178,9 +178,17 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             }
                         }
                         if (message.isNotEmpty() && !menuOpen && !failed) {
-                            CartdeckLoadingScreen(message, onCancel = {
-                                leave()
-                            }, cancelling = preparation.cancelling.collectAsState().value)
+                            CartdeckLoadingScreen(
+                                message,
+                                title =
+                                    intent.getStringExtra(
+                                        "cartdeck.gameTitle",
+                                    ),
+                                onCancel = {
+                                    leave()
+                                },
+                                cancelling = preparation.cancelling.collectAsState().value,
+                            )
                         }
                         if (menuOpen && failed) {
                             com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme {
@@ -417,6 +425,10 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (!contentReady && !failed) {
+            leave()
+            return
+        }
         if (menuOpen || leaving) return
         menuOpen = true
         releaseInputs()
@@ -510,6 +522,13 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             }, ::dispatchKeyEvent)
         ) {
             return true
+        }
+        if (message.isNotEmpty() && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
         }
         val mappedKey = physicalMapping.gameplayKey(event)
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||

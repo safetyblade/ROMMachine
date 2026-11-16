@@ -1,11 +1,14 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
@@ -36,6 +39,7 @@ internal fun XboxPhysicalMappingPanel(
     onCancelCapture: () -> Unit,
     onReset: () -> Unit,
 ) {
+    var testing by remember { mutableStateOf(false) }
     Column {
         Text(
             "Physical controller",
@@ -47,9 +51,10 @@ internal fun XboxPhysicalMappingPanel(
             style = MaterialTheme.typography.bodyMedium,
         )
         Text("Player port: 1 (native Xbox input)", style = MaterialTheme.typography.bodySmall)
-        Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
+        GameMenuLink(if (testing) "Close input tester" else "Test controller inputs") { testing = !testing }
+        if (testing) Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
         GameMenuLink("Select next connected controller", onClick = onNextDevice)
-        Text("Console Authentic / Custom. No verified Modern Function controls for this edition.")
+        Text("Console Authentic / Custom")
         notice?.let { Text(it) }
         if (conflict) {
             Text("This button has another binding. Review and swap, or cancel the draft.")
@@ -68,7 +73,8 @@ internal fun XboxPhysicalMappingPanel(
         }
         XboxButtonBindingStore.editableKeys.forEach { target ->
             GameMenuLink(
-                "Xbox ${name(target)}  ←  ${mappings[target] ?: name(target)}",
+                "Xbox ${name(target)} ← ${mappings[target] ?: name(target)}",
+                enabled = controllerName != null,
             ) { if (controllerName != null) onStartCapture(target) }
         }
         if (controllerName != null) {
@@ -80,9 +86,4 @@ internal fun XboxPhysicalMappingPanel(
     }
 }
 
-private fun name(key: Int): String =
-    when (key) {
-        KeyEvent.KEYCODE_BUTTON_L1 -> "White"
-        KeyEvent.KEYCODE_BUTTON_R1 -> "Black"
-        else -> KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_BUTTON_").removePrefix("KEYCODE_DPAD_")
-    }
+private fun name(key: Int): String = com.swordfish.lemuroid.app.shared.input.ControllerLabels.xboxOutput(key)

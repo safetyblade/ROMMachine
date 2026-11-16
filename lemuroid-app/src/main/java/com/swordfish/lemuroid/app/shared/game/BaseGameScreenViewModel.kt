@@ -116,6 +116,10 @@ class BaseGameScreenViewModel(
     val systemId = system.id
     private val activeGame = game
     val cartridgeId = game.cartridgeId
+    val launchTitle = "${game.displayName()} · ${system.id.dbname}"
+
+    fun isPreparingLaunch(): Boolean = retroGameView.isPreparing()
+
     private val gripArcStore = GripArcProfileStore(appContext)
     private val gripArcProfileState = MutableStateFlow(gripArcStore.read(game))
 

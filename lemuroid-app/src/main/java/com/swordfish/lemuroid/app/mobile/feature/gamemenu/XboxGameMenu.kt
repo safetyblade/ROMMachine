@@ -60,6 +60,7 @@ internal fun XboxGameMenu(
                 GameMenuRoute.CONTROLS -> "Controls"
                 GameMenuRoute.DISPLAY -> "Display"
                 GameMenuRoute.STATES -> "Save & Load"
+                GameMenuRoute.DIAGNOSTICS -> "Diagnostics"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
             }
@@ -74,7 +75,7 @@ internal fun XboxGameMenu(
                 }
             },
             onResume = { if (safeResume) onResume() },
-            statusMessage = if (route == GameMenuRoute.ADVANCED) pauseFeedback else null,
+            statusMessage = null,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
@@ -107,12 +108,23 @@ internal fun XboxGameMenu(
                 }
                 composable(GameMenuRoute.ADVANCED) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Current engine", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-                        Text(engineInfo, Modifier.padding(horizontal = 16.dp))
-                        recovery()
-                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        Text(
+                            "Additional options",
+                            Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (!safeResume) recovery()
+                        GameMenuLink("Diagnostics") { nav.navigateToRoute(GameMenuRoute.DIAGNOSTICS) }
                         if (capabilities.rollback) GameMenuLink("Previous Engine", onClick = onPreviousEngine)
                         GameMenuLink("Troubleshooting") { nav.navigateToRoute(GameMenuRoute.TROUBLESHOOTING) }
+                    }
+                }
+                composable(GameMenuRoute.DIAGNOSTICS) {
+                    Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
+                        Text("Engine information", style = MaterialTheme.typography.titleMedium)
+                        Text(engineInfo, style = MaterialTheme.typography.bodySmall)
+                        Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
+                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
                     }
                 }
                 composable(GameMenuRoute.TROUBLESHOOTING) {
@@ -122,6 +134,7 @@ internal fun XboxGameMenu(
                                 storageHelp,
                             Modifier.padding(16.dp),
                         )
+                        if (safeResume) recovery()
                         if (capabilities.showProbe) GameMenuLink("Probe blank viewport (debug)", onClick = onProbe)
                     }
                 }

@@ -33,6 +33,18 @@ class DisplaySettingsStoreTest {
         assertTrue(store.read("one").effective.hd == true)
     }
 
+    @Test fun reportedEngineOptionsRespectNamespaceOverrideAndGlobalReset() {
+        val store = DisplaySettingsStore(temporary.newFolder())
+        val values = setOf("top/bottom", "left/right")
+        store.setEngineOption(null, "nds:DESMUME", "screens", "top/bottom", values)
+        store.setEngineOption("one", "nds:DESMUME", "screens", "left/right", values)
+        assertEquals("left/right", store.read("one").effective.engineOptions["nds:DESMUME:screens"])
+        assertEquals("top/bottom", store.read("two").effective.engineOptions["nds:DESMUME:screens"])
+        assertTrue(runCatching { store.setEngineOption("one", "nds:DESMUME", "screens", "stretch", values) }.isFailure)
+        store.useGlobal("one")
+        assertEquals("top/bottom", store.read("one").effective.engineOptions["nds:DESMUME:screens"])
+    }
+
     @Test fun futureAndMalformedDocumentsArePreservedAndNeverOverwritten() {
         val root = temporary.newFolder()
         val global = root.resolve("global.json")

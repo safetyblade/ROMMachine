@@ -18,6 +18,22 @@ class ControllerInputProbeTest {
         assertTrue(probe.held.isEmpty())
     }
 
+    @Test fun prolongedAndRepeatedPressesRemainVisibleUntilReleaseOrDisconnect() {
+        var now = 0L
+        val probe = ControllerInputProbe { now }
+        probe.key(96, true)
+        now = 11_000L
+        repeat(6) { probe.key(96, true) }
+        assertEquals(setOf(96), probe.heldLongerThan(10_000))
+        assertEquals(setOf(96), probe.repeatedKeys)
+        probe.key(96, false)
+        assertTrue(probe.heldLongerThan(10_000).isEmpty())
+        assertTrue(probe.repeatedKeys.isEmpty())
+        probe.key(97, true)
+        probe.clear()
+        assertTrue(probe.heldLongerThan(0).isEmpty())
+    }
+
     @Test fun neutralRangesDiagonalsAndAnalogDigitalTriggersStayIndependent() {
         val probe = ControllerInputProbe()
         listOf(0f, -1f, 1f, 0.02f).forEach { probe.axis(0, it) }

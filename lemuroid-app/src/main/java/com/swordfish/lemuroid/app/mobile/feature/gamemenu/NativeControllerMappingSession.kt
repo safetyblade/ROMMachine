@@ -41,6 +41,8 @@ internal class NativeControllerMappingSession(
     private val cartridge: String? = null,
     private val runtime: Boolean = true,
     private val portCapacity: Int = 1,
+    private val legacyBindings: ((InputDevice, Boolean) -> Map<Int, Int>?)? = null,
+    private val clearLegacyOverride: ((InputDevice) -> Unit)? = null,
     private val playerPort: (InputDevice) -> Int?,
 ) {
     private val manager = InputDeviceManager(context, Lazy { SharedPreferencesHelper.getSharedPreferences(context) })
@@ -156,10 +158,12 @@ internal class NativeControllerMappingSession(
         code: Int,
     ): Float = manager.calibratedAxis(event, code)
 
+    fun hasDeviceBinding(device: InputDevice?): Boolean = manager.hasCanonicalBinding(device)
+
     fun hasCanonicalBinding(
         device: InputDevice?,
         cartridgeOnly: Boolean = false,
-    ): Boolean = manager.hasCanonicalBinding(device, cartridgeOnly)
+    ): Boolean = manager.hasCanonicalBinding(device, cartridgeOnly, cartridge)
 
     fun acceptsGameplay(event: KeyEvent): Boolean = acceptsDevice(event.device, event.deviceId)
 
@@ -201,7 +205,21 @@ internal class NativeControllerMappingSession(
             scope.launch {
                 val bindings = manager.getCurrentBindings(device, if (perCartridge) cartridge else null)
                 if (selected?.id == device.id) {
-                    draft = ControllerMappingDraft(bindings.mapKeys { it.key.keyCode }.mapValues { it.value.keyCode })
+                    val inherited =
+                        if (!manager.hasCanonicalBinding(
+                                device,
+                                cartridgeOnly = perCartridge,
+                                cartridge = if (perCartridge) cartridge else null,
+                            )
+                        ) {
+                            legacyBindings?.invoke(device, perCartridge)
+                        } else {
+                            null
+                        }
+                    draft =
+                        ControllerMappingDraft(
+                            inherited ?: bindings.mapKeys { it.key.keyCode }.mapValues { it.value.keyCode },
+                        )
                 }
             }
         }
@@ -265,6 +283,27 @@ internal class NativeControllerMappingSession(
             inventory = controller?.let(NativeControlInventory::forController),
             cartridge = cartridge,
             portCapacity = portCapacity,
+            outputLabel = { code ->
+                val native = NativeControllerKeyMapping.output(code, code)
+                when (controller) {
+                    TouchControllerID.XBOX ->
+                        com.swordfish.lemuroid.app.shared.input.ControllerLabels.xboxOutput(
+                            native,
+                        )
+                    TouchControllerID.XBOX360 ->
+                        com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(
+                            native,
+                            ControllerHardwareProfile.Family.XBOX,
+                        )
+                    null -> com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(native)
+                    TouchControllerID.WII_CLASSIC ->
+                        com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(
+                            native,
+                            ControllerHardwareProfile.Family.XBOX,
+                        )
+                    else -> null
+                }
+            },
             perCartridge = perCartridge,
             onScope = {
                 perCartridge = it
@@ -274,8 +313,17 @@ internal class NativeControllerMappingSession(
                 val device = selected
                 if (device != null && cartridge != null) {
                     scope.launch {
-                        manager.profiles.useDevice(device.descriptor, cartridge)
-                        select(device)
+                        try {
+                            draft?.savedBindings?.let {
+                                manager.profiles.rememberPrevious(device.descriptor, cartridge, it)
+                            }
+                            manager.profiles.useDevice(device.descriptor, cartridge)
+                            clearLegacyOverride?.invoke(device)
+                            select(device)
+                        } catch (error: Exception) {
+                            if (error is CancellationException) throw error
+                            message = "Could not fully restore device defaults. Review the current mapping."
+                        }
                     }
                 }
             },
@@ -343,7 +391,5 @@ internal class NativeControllerMappingSession(
         }
     }
 
-    private fun managerKey(code: Int) =
-        code != KeyEvent.KEYCODE_UNKNOWN &&
-            code != KeyEvent.KEYCODE_BUTTON_MODE && InputDeviceManager.OUTPUT_KEYS.any { it.keyCode == code }
+    private fun managerKey(code: Int): Boolean = ControllerHardwareProfile.bindable(code)
 }

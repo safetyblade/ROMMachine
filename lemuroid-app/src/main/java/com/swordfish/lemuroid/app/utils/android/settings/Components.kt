@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +24,8 @@ import com.alorma.compose.settings.storage.base.SettingValueState
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSlider
 import com.alorma.compose.settings.ui.SettingsSwitch
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.LocalCompactCartdeckMenu
 import kotlin.math.roundToInt
 
 @Composable
@@ -51,6 +54,19 @@ fun LemuroidSettingsSwitch(
     subtitle: @Composable (() -> Unit)? = null,
     onCheckedChange: (Boolean) -> Unit = {},
 ) {
+    if (LocalCompactCartdeckMenu.current) {
+        CartdeckMenuRow(
+            title,
+            enabled = enabled,
+            leading = icon,
+            supporting = subtitle,
+            trailing = { Switch(checked = state.value, onCheckedChange = null, enabled = enabled) },
+        ) {
+            state.value = !state.value
+            onCheckedChange(state.value)
+        }
+        return
+    }
     SettingsSwitch(
         enabled = enabled,
         state = state.value,
@@ -74,6 +90,17 @@ fun LemuroidSettingsMenuLink(
     action: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    if (LocalCompactCartdeckMenu.current) {
+        CartdeckMenuRow(
+            title,
+            enabled = enabled,
+            leading = icon,
+            supporting = subtitle,
+            trailing = action,
+            onClick = onClick,
+        )
+        return
+    }
     SettingsMenuLink(
         enabled = enabled,
         icon = icon,

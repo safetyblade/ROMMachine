@@ -141,6 +141,23 @@ class ControllerProfileStore(private val root: File) {
         AtomicFile(file(descriptor, cartridge)).delete()
     }
 
+    fun rememberPrevious(
+        descriptor: String,
+        cartridge: String?,
+        buttons: Map<Int, Int>,
+    ) = locked {
+        readFile(descriptor, cartridge)
+        val target = AtomicFile(File(file(descriptor, cartridge).path + ".previous"))
+        val output = target.startWrite()
+        try {
+            output.write(json.encodeToString(Profile(buttons = buttons)).toByteArray())
+            target.finishWrite(output)
+        } catch (error: Throwable) {
+            target.failWrite(output)
+            throw error
+        }
+    }
+
     fun restorePrevious(
         descriptor: String,
         cartridge: String?,
@@ -150,7 +167,8 @@ class ControllerProfileStore(private val root: File) {
                 val target = File(file(descriptor, cartridge).path + ".previous")
                 AtomicFile(target).openRead().use { json.decodeFromString<Profile>(it.reader().readText()) }
             }
-        save(descriptor, cartridge, previous)
+        val current = read(descriptor, cartridge)
+        save(descriptor, cartridge, current.copy(buttons = previous.buttons))
     }
 
     fun resetMappings() =

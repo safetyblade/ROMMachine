@@ -42,6 +42,7 @@ class DisplaySettingsStore(
         val filter: String? = null,
         val hd: Boolean? = null,
         val quality: Int? = null,
+        val engineOptions: Map<String, String> = emptyMap(),
     ) {
         fun over(parent: Choices) =
             Choices(
@@ -51,6 +52,7 @@ class DisplaySettingsStore(
                 filter ?: parent.filter,
                 hd ?: parent.hd,
                 quality ?: parent.quality,
+                parent.engineOptions + engineOptions,
             )
 
         fun border(landscape: Boolean): Border =
@@ -150,6 +152,33 @@ class DisplaySettingsStore(
             target.finishWrite(output)
         } catch (error: Throwable) {
             target.failWrite(output)
+            throw error
+        }
+    }
+
+    fun setEngineOption(
+        cartridge: String?,
+        namespace: String,
+        key: String,
+        value: String,
+        allowed: Set<String>,
+    ) = locked {
+        require(namespace.isNotBlank() && key.isNotBlank() && value in allowed)
+        require(namespace.length <= 160 && key.length <= 160 && value.length <= 256)
+        val document = document(cartridge).toMutableMap()
+        val options = document["engineOptions"]?.jsonObject?.toMutableMap() ?: mutableMapOf()
+        options["$namespace:$key"] = JsonPrimitive(value)
+        document["engineOptions"] = JsonObject(options)
+        document["schema"] = JsonPrimitive(1)
+        val atomic = AtomicFile(file(cartridge))
+        val output = atomic.startWrite()
+        try {
+            output.write(json.encodeToString(JsonObject(document)).toByteArray())
+            atomic.finishWrite(output)
+        } catch (
+            error: Throwable,
+        ) {
+            atomic.failWrite(output)
             throw error
         }
     }

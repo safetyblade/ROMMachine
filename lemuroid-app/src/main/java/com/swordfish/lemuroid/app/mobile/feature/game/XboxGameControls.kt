@@ -269,7 +269,7 @@ fun XboxGameControls(
                             }
                         },
                     )
-                    if (placement == null) {
+                    if (placement == null && !physicalControllerConnected && !isTv) {
                         val config = TouchControllerID.getConfig(controllerId)
                         config.leftComposable(
                             this@PadKit,
@@ -283,7 +283,7 @@ fun XboxGameControls(
                         )
                     }
                 }
-                if (placement != null && arc != null) {
+                if (placement != null && arc != null && !physicalControllerConnected && !isTv) {
                     GripArcCombinedControls(placement)
                     GripArcAccessory(placement.dock, arc, tokens, false, false, onGripPressed)
                 }

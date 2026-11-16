@@ -14,6 +14,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -288,6 +291,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     GameMenuRoute.STATES -> "Save & Load"
                     GameMenuRoute.OPTIONS -> "Game Settings"
                     GameMenuRoute.ADVANCED -> "Advanced"
+                    GameMenuRoute.DIAGNOSTICS -> "Diagnostics"
                     GameMenuRoute.GRIPARC -> "GripArc"
                     GameMenuRoute.PIVOTARC -> "PivotArc"
                     else -> stringResource(route.titleId)
@@ -299,12 +303,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                 route.canGoBack(),
                 onBack = { if (!navController.popBackStack()) onResult { } },
                 onResume = { onResult { } },
-                statusMessage =
-                    if (route != GameMenuRoute.ADVANCED || hostCapabilities.canPause) {
-                        null
-                    } else {
-                        "Menu open. Engine pause is not confirmed."
-                    },
+                statusMessage = null,
             ) {
                 NavHost(
                     modifier =
@@ -320,9 +319,29 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     }
                     composable(
                         GameMenuRoute.DISPLAY,
-                    ) { DisplaySettingsScreen(gameMenuRequest.game, libretroHost = true) }
+                    ) {
+                        DisplaySettingsScreen(
+                            gameMenuRequest.game,
+                            libretroHost = true,
+                            coreConfig = gameMenuRequest.coreConfig,
+                        )
+                    }
                     composable(GameMenuRoute.STATES) { GameMenuStatesHome(navController, gameMenuRequest) }
-                    composable(GameMenuRoute.ADVANCED) { GameMenuAdvancedScreen(gameMenuRequest, ::onResult) }
+                    composable(GameMenuRoute.ADVANCED) {
+                        GameMenuAdvancedScreen(gameMenuRequest, ::onResult) {
+                            navController.navigateToRoute(GameMenuRoute.DIAGNOSTICS)
+                        }
+                    }
+                    composable(GameMenuRoute.DIAGNOSTICS) {
+                        androidx.compose.foundation.layout.Column(
+                            Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(12.dp),
+                        ) {
+                            androidx.compose.material3.Text("Detailed engine settings")
+                            androidx.compose.material3.Text("Pause acknowledgement is provided by the active engine.")
+                            com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions
+                                .GameMenuTechnicalOptions(gameMenuRequest)
+                        }
+                    }
                     composable(GameMenuRoute.PIVOTARC) {
                         com.swordfish.lemuroid.app.mobile.feature.settings.layout.PivotArcSettingsScreen()
                     }
@@ -375,6 +394,8 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                 PhysicalControllerMappingPanel(
                                     inputDeviceManager = inputDeviceManager,
                                     cartridge = mappingCartridge,
+                                    portCapacity =
+                                        (gameMenuRequest.coreConfig.controllerConfigs.keys.maxOrNull() ?: 0) + 1,
                                     perCartridge = perCartridge,
                                     onScope = {
                                         perCartridge = it

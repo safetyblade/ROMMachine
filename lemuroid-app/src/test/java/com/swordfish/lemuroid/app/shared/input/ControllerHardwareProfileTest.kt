@@ -15,6 +15,14 @@ class ControllerHardwareProfileTest {
         assertTrue(ControllerHardwareProfile.qualifies(false, false, true, 4, true))
     }
 
+    @Test fun numberedGenericButtonsCanBeMappedButEscapeKeysCannot() {
+        assertTrue(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_1))
+        assertTrue(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_16))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BACK))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_MODE))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_HOME))
+    }
+
     @Test fun knownAndGenericNamesRetainPhysicalFamilyWithoutInvertingButtons() {
         assertEquals(
             ControllerHardwareProfile.Family.XBOX,

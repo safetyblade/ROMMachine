@@ -99,7 +99,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var physicalConnected by mutableStateOf(false)
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
-    private var message by mutableStateOf("Preparing Wii U content. Open the game menu to cancel.")
+    private var message by mutableStateOf("Preparing Wii U content…")
     private var showLoadingScreen by mutableStateOf(true)
     private var presentationRecorded = false
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
@@ -279,7 +279,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             }
                         }
                         if (!menuOpen && showLoadingScreen && !failed) {
-                            CartdeckLoadingScreen(message, onCancel = {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
                                 leave()
                             }, cancelling = preparation.cancelling.collectAsState().value)
                         }
@@ -543,6 +543,10 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun openMenu() {
+        if (showLoadingScreen && !failed) {
+            leave()
+            return
+        }
         if (menuOpen || leaving) return
         menuOpen = true
         releaseInput()
@@ -584,6 +588,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
             }, ::dispatchKeyEvent)
         ) {
             return true
+        }
+        if (showLoadingScreen && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
         }
         val mappedKey = physicalMapping.gameplayKey(event)
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||

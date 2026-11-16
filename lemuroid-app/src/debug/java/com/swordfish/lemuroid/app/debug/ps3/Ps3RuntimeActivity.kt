@@ -211,7 +211,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             }
                         }
                         if (loading && !menu) {
-                            CartdeckLoadingScreen(message, onCancel = {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
                                 leave()
                             }, cancelling = preparation.cancelling.collectAsState().value)
                         }
@@ -496,6 +496,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (loading && !failure) {
+            leave()
+            return
+        }
         menu = true
         release()
         pause(true)
@@ -671,6 +675,13 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             }, ::dispatchKeyEvent)
         ) {
             return true
+        }
+        if (loading && !failure) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
         }
         val mappedKey = physicalMapping.gameplayKey(event)
         if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE) ||

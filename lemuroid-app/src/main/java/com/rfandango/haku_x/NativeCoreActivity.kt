@@ -25,10 +25,8 @@ import android.widget.RelativeLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -47,7 +45,6 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappin
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
-import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxPhysicalMappingPanel
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
@@ -105,12 +102,29 @@ class NativeCoreActivity : SDLActivity() {
     private val menuShowing get() = menuOpen || recoveryDialog?.isShowing == true
     private val main = Handler(Looper.getMainLooper())
     private val hardware = XboxPadState()
-    private val physicalMapping by lazy {
+    private val physicalMapping: NativeControllerMappingSession by lazy {
         NativeControllerMappingSession(
             this,
             lifecycleScope,
             TouchControllerID.XBOX,
             registryGame()?.cartridgeId,
+            legacyBindings = { device, perCartridge ->
+                val cartridge = if (perCartridge) registryGame()?.fileUri?.toString() else null
+                val romCustom = perCartridge && xboxBindings.hasCustom(device, cartridge)
+                if (romCustom || (!physicalMapping.hasDeviceBinding(device) && xboxBindings.hasCustom(device, null))) {
+                    XboxButtonBindingStore.editableKeys.associateWith { source ->
+                        com.swordfish.lemuroid.app.shared.input.NativeControllerKeyMapping.output(
+                            source,
+                            xboxBindings.output(device, source, cartridge),
+                        )
+                    }
+                } else {
+                    null
+                }
+            },
+            clearLegacyOverride = { device ->
+                check(xboxBindings.reset(device, registryGame()?.fileUri?.toString()))
+            },
         ) { device -> gameplayControllers.port(device.id)?.takeIf { it == 0 } }
     }
     private val gameplayControllers by lazy { GameplayControllerPresence(this) }
@@ -340,7 +354,13 @@ class NativeCoreActivity : SDLActivity() {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (menuOpen) closeMenu() else showMenu()
+                    if (awaitingFirstFrame && startupFailure == null) {
+                        leave()
+                    } else if (menuOpen) {
+                        closeMenu()
+                    } else {
+                        showMenu()
+                    }
                 }
             },
         )
@@ -379,6 +399,7 @@ class NativeCoreActivity : SDLActivity() {
                         if (awaitingFirstFrame && !menuOpen && startupFailure == null) {
                             com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen(
                                 "Starting Xbox game",
+                                title = registryGame()?.displayName(),
                                 onCancel = { leave() },
                                 cancelling = leaving,
                             )
@@ -417,106 +438,7 @@ class NativeCoreActivity : SDLActivity() {
                                             )
                                         }
                                     },
-                                    physicalMapping = {
-                                        physicalMapping.Panel()
-                                        val activePad =
-                                            controllerDevices.firstOrNull { it.id == selectedMappingId }
-                                                ?: controllerDevices.firstOrNull()
-                                        val cartridge =
-                                            if (mappingPerCartridge) registryGame()?.fileUri?.toString() else null
-                                        val draft =
-                                            remember(activePad?.id, cartridge) {
-                                                ControllerMappingDraft(
-                                                    activePad?.let { pad ->
-                                                        XboxButtonBindingStore.editableKeys.associateWith { source ->
-                                                            xboxBindings.output(pad, source, cartridge)
-                                                        }
-                                                    }.orEmpty(),
-                                                )
-                                            }
-                                        SideEffect {
-                                            nativeMappingDraft = draft
-                                            nativeMappingDevice = activePad
-                                        }
-                                        val mappings =
-                                            remember(draft, mappingRevision) {
-                                                XboxButtonBindingStore.editableKeys.associateWith { target ->
-                                                    draft.bindings.filterValues { it == target }.keys.joinToString(
-                                                        " / ",
-                                                    ) { source ->
-                                                        KeyEvent.keyCodeToString(source).removePrefix("KEYCODE_BUTTON_")
-                                                    }
-                                                }
-                                            }
-                                        XboxPhysicalMappingPanel(
-                                            controllerName = activePad?.name,
-                                            pendingTarget = captureMappingTarget,
-                                            lastInput = lastPhysicalInput,
-                                            dirty = draft.dirty,
-                                            canUndo = draft.canUndo,
-                                            conflict = draft.conflict != null,
-                                            notice = mappingNotice,
-                                            onNextDevice = {
-                                                draft.cancel()
-                                                val index = controllerDevices.indexOfFirst { it.id == activePad?.id }
-                                                if (controllerDevices.isNotEmpty()) {
-                                                    selectedMappingId =
-                                                        controllerDevices[(index + 1) % controllerDevices.size].id
-                                                }
-                                                captureMappingTarget = null
-                                                mappingCaptureEdge.clear()
-                                            },
-                                            onUndo = {
-                                                draft.undo()
-                                                mappingRevision++
-                                            },
-                                            onDiscard = {
-                                                draft.cancel()
-                                                captureMappingTarget = null
-                                                mappingRevision++
-                                            },
-                                            onResolve = {
-                                                draft.resolveConflict()
-                                                mappingRevision++
-                                            },
-                                            onSave = {
-                                                mappingNotice =
-                                                    if (activePad != null &&
-                                                        xboxBindings.saveAll(activePad, draft.bindings, cartridge)
-                                                    ) {
-                                                        draft.saved()
-                                                        "Controller mappings saved."
-                                                    } else {
-                                                        "Mappings were not saved. Try again."
-                                                    }
-                                                mappingRevision++
-                                            },
-                                            perCartridge = mappingPerCartridge,
-                                            mappings = mappings,
-                                            onScopeChange = {
-                                                draft.cancel()
-                                                mappingPerCartridge = it
-                                                captureMappingTarget = null
-                                                mappingCaptureEdge.clear()
-                                            },
-                                            onStartCapture = {
-                                                mappingCaptureEdge.clear()
-                                                captureMappingTarget = it
-                                            },
-                                            onCancelCapture = {
-                                                mappingCaptureEdge.clear()
-                                                captureMappingTarget = null
-                                            },
-                                            onReset = {
-                                                if (activePad != null) {
-                                                    draft.reset(
-                                                        XboxButtonBindingStore.editableKeys.associateWith { it },
-                                                    )
-                                                    mappingRevision++
-                                                }
-                                            },
-                                        )
-                                    },
+                                    physicalMapping = { physicalMapping.Panel() },
                                 )
                             }
                         }
@@ -545,6 +467,7 @@ class NativeCoreActivity : SDLActivity() {
 
     override fun onPause() {
         physicalMapping.stop()
+        backEdge.clear()
         menuEdge.clear()
         mappingCaptureEdge.clear()
         nativeMappingDraft?.cancel()
@@ -763,6 +686,7 @@ class NativeCoreActivity : SDLActivity() {
         onBackPressedDispatcher.onBackPressed()
     }
 
+    private val backEdge = ControllerMenuEdge()
     private val menuEdge = ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -779,6 +703,10 @@ class NativeCoreActivity : SDLActivity() {
                 !event.isFromSource(android.view.InputDevice.SOURCE_GAMEPAD)
         if (systemBack || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE || event.keyCode == KeyEvent.KEYCODE_MENU) {
             if (menuEdge.handle(event)) {
+                if (awaitingFirstFrame && startupFailure == null) {
+                    leave()
+                    return true
+                }
                 if (menuOpen) {
                     if (systemBack && captureMappingTarget != null) {
                         captureMappingTarget = null
@@ -793,6 +721,9 @@ class NativeCoreActivity : SDLActivity() {
                 }
             }
             return true
+        }
+        if (awaitingFirstFrame && !menuOpen && startupFailure == null) {
+            return controlOverlay?.dispatchKeyEvent(event) ?: super.dispatchKeyEvent(event)
         }
         if (menuOpen && event.device?.let(ControllerHardwareProfile::isGameplayPad) == true) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
@@ -820,7 +751,7 @@ class NativeCoreActivity : SDLActivity() {
         if (menuShowing || paused || leaving) {
             if (menuOpen) {
                 if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B) {
-                    if (event.action == KeyEvent.ACTION_UP) onBackPressedDispatcher.onBackPressed()
+                    if (backEdge.handle(event)) onBackPressedDispatcher.onBackPressed()
                 } else {
                     val routed =
                         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_A) {

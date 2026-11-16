@@ -106,7 +106,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.ARMSX2)
     private var connected by mutableStateOf(false)
-    private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
+    private var message by mutableStateOf("Preparing PS2 cartridge…")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
@@ -237,7 +237,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             }
                         }
                         if (!menu && message.isNotEmpty() && !failed) {
-                            CartdeckLoadingScreen(message, onCancel = {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
                                 leave()
                             }, cancelling = preparation.cancelling.collectAsState().value)
                         }
@@ -584,6 +584,10 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (!loaded && !failed) {
+            leave()
+            return
+        }
         if (menu || leaving) return
         menu = true
         releaseInput()
@@ -625,6 +629,13 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
             }, ::dispatchKeyEvent)
         ) {
             return true
+        }
+        if (!loaded && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
         }
         val mappedKey = physicalMapping.gameplayKey(event)
         if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||

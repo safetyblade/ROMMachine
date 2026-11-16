@@ -1,7 +1,7 @@
 package com.swordfish.lemuroid.app.shared.input
 
 /** Voluntary diagnostics only. The probe never forwards or synthesizes guest input. */
-class ControllerInputProbe {
+class ControllerInputProbe(private val clockMillis: () -> Long = { System.nanoTime() / 1_000_000 }) {
     data class Axis(val value: Float, val minimum: Float, val maximum: Float)
 
     val physical = PhysicalControllerInput.State()
@@ -14,6 +14,12 @@ class ControllerInputProbe {
         physical.motion({ event.getAxisValue(it) }, ranges, profile)
     }
 
+    private val since = mutableMapOf<Int, Long>()
+    private val repeated = mutableMapOf<Int, Int>()
+    val repeatedKeys: Set<Int> get() = repeated.filterValues { it > 4 }.keys
+
+    fun heldLongerThan(milliseconds: Long): Set<Int> = since.filterValues { clockMillis() - it >= milliseconds }.keys
+
     private val buttons = mutableSetOf<Int>()
     val held: Set<Int> get() = buttons.toSet()
     val axes = mutableMapOf<Int, Axis>()
@@ -25,7 +31,17 @@ class ControllerInputProbe {
         down: Boolean,
     ) {
         physical.key(code, down)
-        if (down) buttons.add(code) else buttons.remove(code)
+        if (down) {
+            if (buttons.add(code)) {
+                since[code] = clockMillis()
+            } else {
+                repeated[code] = (repeated[code] ?: 0) + 1
+            }
+        } else {
+            buttons.remove(code)
+            since.remove(code)
+            repeated.remove(code)
+        }
         lastEvent = "$code ${if (down) "pressed" else "released"}"
     }
 
@@ -39,6 +55,8 @@ class ControllerInputProbe {
     }
 
     fun clear() {
+        since.clear()
+        repeated.clear()
         physical.clear()
         buttons.clear()
         axes.clear()

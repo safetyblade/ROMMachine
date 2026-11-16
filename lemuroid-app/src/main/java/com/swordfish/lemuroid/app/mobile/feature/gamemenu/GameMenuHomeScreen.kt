@@ -37,7 +37,10 @@ fun GameMenuHomeScreen(
             controls = true,
             // Always provide save guidance; actual save-state actions remain capability gated.
             states = true,
-            settings = gameMenuRequest.advancedCoreOptions.isNotEmpty() || gameMenuRequest.coreOptions.isNotEmpty(),
+            settings =
+                gameMenuRequest.coreOptions.any {
+                    !com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
+                },
             advanced = true,
         )
     SharedGameMenuHome(capabilities) { action ->
@@ -102,8 +105,10 @@ fun GameMenuStatesHome(
 fun GameMenuAdvancedScreen(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
+    onDiagnostics: () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        GameMenuLink("Diagnostics", onClick = onDiagnostics)
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.game_menu_restart)) },
             icon = {

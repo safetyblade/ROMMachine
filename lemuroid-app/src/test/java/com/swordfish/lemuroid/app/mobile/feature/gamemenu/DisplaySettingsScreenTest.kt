@@ -42,7 +42,7 @@ class DisplaySettingsScreenTest {
         compose.onNodeWithText("Use Global Default").performClick()
         compose.waitUntil(5000) { store.read(game.cartridgeId).own.landscapeBorder == null }
         compose.runOnIdle { nativeRoute.value = true }
-        compose.onNodeWithText("Widescreen — unavailable in this adapter").assertIsNotEnabled()
+        compose.onNodeWithText("Widescreen — unavailable for this engine").assertIsNotEnabled()
         compose.onAllNodesWithText("Standard · selected")[0].assertIsDisplayed()
         compose.onNodeWithText("Use Global Default").performScrollTo().assertIsDisplayed()
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(game.cartridgeId).effective.border(true))

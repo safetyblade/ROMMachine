@@ -7,6 +7,18 @@ import android.view.KeyEvent
 object ControllerHardwareProfile {
     enum class Family { XBOX, PLAYSTATION, SWITCH, GENERIC, UNKNOWN }
 
+    fun bindable(code: Int): Boolean =
+        code !in
+            setOf(
+                KeyEvent.KEYCODE_UNKNOWN, KeyEvent.KEYCODE_BUTTON_MODE,
+                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_HOME,
+            ) &&
+            (
+                code in KeyEvent.KEYCODE_BUTTON_A..KeyEvent.KEYCODE_BUTTON_MODE ||
+                    code in KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_16 ||
+                    code in KeyEvent.KEYCODE_DPAD_UP..KeyEvent.KEYCODE_DPAD_RIGHT
+            )
+
     fun isGameplayPad(device: InputDevice): Boolean {
         if (device.isVirtual) return false
         val source = device.sources

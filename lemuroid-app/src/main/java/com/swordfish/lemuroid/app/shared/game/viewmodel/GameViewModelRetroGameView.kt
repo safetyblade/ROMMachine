@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
@@ -406,7 +407,31 @@ class GameViewModelRetroGameView(
         try {
             waitRetroGameViewInitialized()
             val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
-            updateCoreVariables(options)
+            val namespace =
+                com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(
+                    system.id.dbname,
+                    systemCoreConfig,
+                )
+            val variables = retroGameViewFlow().getVariables()
+            val reported =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions(appContext)
+                            .record(namespace, systemCoreConfig, variables)
+                    }.getOrDefault(emptyList())
+                }
+            val display =
+                withContext(Dispatchers.IO) {
+                    DisplaySettingsStore(appContext).readSafely(launchedGame?.cartridgeId).effective
+                }
+            val overrides =
+                reported.mapNotNull { option ->
+                    val existing = options.firstOrNull { it.key == option.key }?.value ?: option.values.first()
+                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing
+                    chosen.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
+                }
+            val keys = overrides.map { it.key }.toSet()
+            updateCoreVariables(options.filterNot { it.key in keys } + overrides)
         } catch (e: Exception) {
             Timber.e(e)
         }
