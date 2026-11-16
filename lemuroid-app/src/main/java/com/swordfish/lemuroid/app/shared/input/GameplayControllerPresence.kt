@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.input
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.hardware.input.InputManager
 import android.view.InputDevice
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -14,19 +15,36 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
     private val manager = context.getSystemService(Context.INPUT_SERVICE) as InputManager
     private val preferences = SharedPreferencesHelper.getSharedPreferences(context)
     private var listener: ((List<InputDevice>) -> Unit)? = null
+    private val preferenceListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            val enabledPreferenceChanged =
+                InputDevice.getDeviceIds().any { id ->
+                    val device = InputDevice.getDevice(id)
+                    device != null && InputDeviceManager.computeEnabledGamePadPreference(device) == key
+                }
+            if (enabledPreferenceChanged) notifyCurrent()
+        }
     private var registered = false
+    private val slots = ControllerPortRegistry(7)
+    private var ports = emptyMap<Int, Int>()
+
+    fun port(deviceId: Int): Int? = ports[deviceId]
 
     fun start(onChanged: (List<InputDevice>) -> Unit) {
         listener = onChanged
         if (!registered) {
             manager.registerInputDeviceListener(this, null)
+            preferences.registerOnSharedPreferenceChangeListener(preferenceListener)
             registered = true
         }
         notifyCurrent()
     }
 
     fun stop() {
-        if (registered) manager.unregisterInputDeviceListener(this)
+        if (registered) {
+            manager.unregisterInputDeviceListener(this)
+            preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
+        }
         registered = false
         listener = null
     }
@@ -46,7 +64,9 @@ class GameplayControllerPresence(context: Context) : InputManager.InputDeviceLis
     }
 
     private fun notifyCurrent() {
-        listener?.invoke(connected())
+        val devices = connected()
+        ports = slots.update(devices.map { ControllerPortRegistry.Device(it.id, it.descriptor) })
+        listener?.invoke(devices)
     }
 
     override fun onInputDeviceAdded(deviceId: Int) = notifyCurrent()

@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.InputDevice
 import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,9 +34,15 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesV
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.ControllerHatEdges
+import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
+import com.swordfish.lemuroid.app.shared.input.ControllerMappingDraft
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.RetroKey
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.common.kotlin.serializable
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
@@ -43,6 +50,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
 import kotlinx.coroutines.launch
 import java.security.InvalidParameterException
 import javax.inject.Inject
@@ -55,38 +63,110 @@ class GameMenuActivity : RetrogradeComponentActivity() {
     private var pendingBinding by mutableStateOf<Pair<Int, Int>?>(null)
     private var lastPhysicalKey by mutableStateOf<Int?>(null)
     private var mappingRevision by mutableStateOf(0)
+    private var mappingDraft by mutableStateOf<ControllerMappingDraft?>(null)
+    private var mappingDevice: InputDevice? = null
+    private val captureEdge = ControllerMenuEdge()
+    private val probe = ControllerInputProbe()
+    private val hatEdges = ControllerHatEdges()
+    private var probeRevision by mutableStateOf(0)
+    private var mappingMessage by mutableStateOf<String?>(null)
+    private var mappingGeneration by mutableStateOf(0)
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN &&
-            event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
-        ) {
-            lastPhysicalKey = event.keyCode
-        }
-        val capture = pendingBinding
-        if (capture != null) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK ||
-                event.keyCode == KeyEvent.KEYCODE_MENU ||
-                event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE
-            ) {
-                if (event.action == KeyEvent.ACTION_UP) pendingBinding = null
-                return true
-            }
-            if (event.action == KeyEvent.ACTION_UP && event.deviceId == capture.first &&
-                InputDeviceManager.OUTPUT_KEYS.any { it.keyCode == event.keyCode } &&
-                event.keyCode != KeyEvent.KEYCODE_UNKNOWN
-            ) {
-                val device = InputDevice.getDevice(event.deviceId)
-                pendingBinding = null
-                if (device != null) {
-                    lifecycleScope.launch {
-                        inputDeviceManager.updateBinding(
-                            device,
-                            RetroKey(capture.second),
-                            InputKey(event.keyCode),
+    override fun onResume() {
+        super.onResume()
+        mappingGeneration++
+    }
+
+    private fun cancelCapture() {
+        pendingBinding = null
+        captureEdge.clear()
+        probe.clear()
+        probeRevision++
+    }
+
+    private fun selectMappingDevice(device: InputDevice?) {
+        cancelCapture()
+        mappingDraft?.cancel()
+        mappingDraft = null
+        mappingDevice = device
+        hatEdges.clear()
+        mappingMessage = null
+        if (device != null) {
+            lifecycleScope.launch {
+                val initial = inputDeviceManager.getCurrentBindings(device)
+                if (mappingDevice?.id == device.id) {
+                    mappingDraft =
+                        ControllerMappingDraft(
+                            initial.mapKeys { it.key.keyCode }.mapValues { it.value.keyCode },
                         )
+                }
+            }
+        }
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.deviceId == mappingDevice?.id) {
+            event.device?.motionRanges?.forEach { probe.axis(it.axis, event.getAxisValue(it.axis)) }
+            hatEdges.update(event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+                .forEach { (code, down) ->
+                    probe.key(code, down)
+                    val capture = pendingBinding
+                    if (capture?.first == event.deviceId && captureEdge.handle(event.deviceId, code, down)) {
+                        mappingDraft?.assign(code, capture.second)
+                        pendingBinding = null
                         mappingRevision++
                     }
                 }
+            probeRevision++
+        }
+        return pendingBinding != null || super.dispatchGenericMotionEvent(event)
+    }
+
+    private val menuEdge = ControllerMenuEdge()
+
+    override fun onPause() {
+        menuEdge.clear()
+        cancelCapture()
+        mappingDraft?.cancel()
+        mappingDraft = null
+        mappingDevice = null
+        super.onPause()
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
+            if (menuEdge.handle(event)) {
+                pendingBinding = null
+                finish()
+            }
+            return true
+        }
+        if (event.deviceId == mappingDevice?.id &&
+            event.device?.let(ControllerHardwareProfile::isGameplayPad) == true
+        ) {
+            if (event.isCanceled) {
+                cancelCapture()
+                return true
+            }
+            if (event.action == KeyEvent.ACTION_DOWN || event.action == KeyEvent.ACTION_UP) {
+                lastPhysicalKey = event.keyCode
+                probe.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+                probeRevision++
+            }
+        }
+        val capture = pendingBinding
+        if (capture != null) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                if (menuEdge.handle(event)) cancelCapture()
+                return true
+            }
+            if (event.deviceId == capture.first && captureEdge.handle(event) &&
+                InputDeviceManager.OUTPUT_KEYS.any { it.keyCode == event.keyCode } &&
+                event.keyCode != KeyEvent.KEYCODE_UNKNOWN
+            ) {
+                pendingBinding = null
+                mappingDraft?.assign(event.keyCode, capture.second)
+                mappingRevision++
             }
             return true
         }
@@ -116,6 +196,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge, captureEdge)
 
         enableEdgeToEdge(
             SystemBarStyle.dark(Color.TRANSPARENT),
@@ -264,16 +345,86 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                             physicalControllerOptions = {
                                 PhysicalControllerMappingPanel(
                                     inputDeviceManager = inputDeviceManager,
+                                    inventory =
+                                        gameMenuRequest.coreConfig.controllerConfigs[0]?.let { controllers ->
+                                            val selected =
+                                                controllers.firstOrNull { controller ->
+                                                    controller.name == gameMenuRequest.currentControllerName
+                                                }
+                                                    ?: controllers.firstOrNull()
+                                            selected?.touchControllerID?.let {
+                                                NativeControlInventory.forController(
+                                                    it,
+                                                )
+                                            }
+                                        },
                                     captureTarget = pendingBinding?.second,
-                                    lastPhysicalKey = lastPhysicalKey,
                                     mappingRevision = mappingRevision,
-                                    onCapture = { id, native -> pendingBinding = id to native },
-                                    onCancel = { pendingBinding = null },
+                                    generation = mappingGeneration,
+                                    draft = mappingDraft,
+                                    probe = probe,
+                                    probeRevision = probeRevision,
+                                    message = mappingMessage,
+                                    onSelect = ::selectMappingDevice,
+                                    onCapture = { id, native ->
+                                        cancelCapture()
+                                        pendingBinding = id to native
+                                    },
+                                    onCancel = ::cancelCapture,
                                     onReset = { device ->
-                                        pendingBinding = null
-                                        lifecycleScope.launch {
-                                            inputDeviceManager.resetDeviceBindings(device)
-                                            mappingRevision++
+                                        cancelCapture()
+                                        mappingDraft?.reset(
+                                            inputDeviceManager.defaultBindings(device)
+                                                .mapKeys { it.key.keyCode }.mapValues { it.value.keyCode },
+                                        )
+                                        mappingRevision++
+                                    },
+                                    onUndo = {
+                                        mappingDraft?.undo()
+                                        mappingRevision++
+                                    },
+                                    onDiscard = {
+                                        cancelCapture()
+                                        mappingDraft?.cancel()
+                                        mappingRevision++
+                                    },
+                                    onResolveConflict = {
+                                        mappingDraft?.resolveConflict()
+                                        mappingRevision++
+                                    },
+                                    onSave = {
+                                        cancelCapture()
+                                        val device = mappingDevice
+                                        val draft = mappingDraft
+                                        if (device != null && draft != null && draft.conflict == null) {
+                                            val reviewed = draft.bindings.toMap()
+                                            lifecycleScope.launch {
+                                                val live = InputDevice.getDevice(device.id)
+                                                if (live != null && live.descriptor == device.descriptor &&
+                                                    mappingDevice?.id == device.id
+                                                ) {
+                                                    try {
+                                                        inputDeviceManager.saveDeviceBindings(
+                                                            live,
+                                                            reviewed.mapKeys {
+                                                                InputKey(
+                                                                    it.key,
+                                                                )
+                                                            }.mapValues { RetroKey(it.value) },
+                                                        )
+                                                        if (draft.bindings == reviewed) draft.saved()
+                                                        mappingMessage = "Controller mappings saved."
+                                                    } catch (error: Exception) {
+                                                        if (error is kotlinx.coroutines.CancellationException) {
+                                                            throw error
+                                                        }
+                                                        mappingMessage = "Mappings were not saved. Try again."
+                                                    }
+                                                } else {
+                                                    selectMappingDevice(null)
+                                                }
+                                                mappingRevision++
+                                            }
                                         }
                                     },
                                 )
