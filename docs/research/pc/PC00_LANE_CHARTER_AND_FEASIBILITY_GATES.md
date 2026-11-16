@@ -1,4 +1,14 @@
 # CARTDECK PC-00 — Dedicated PC Gaming Research Lane
+
+## 17 November 2026 — owner-authorised Shandalar source bootstrap
+
+**First PC compatibility case: Shandalar / MicroProse Magic: The Gathering (1997), Windows 95/98.** Product Owner has authorised a bounded, **isolated source/feasibility implementation spike** [PC-04 #305](https://github.com/safetyblade/ROMMachine/issues/305), with initial read-only source/native verification in [draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306). This is an explicit exception to the previous broad research-only boundary, not an approval for normal APK integration or public PC gameplay claims.
+
+Start with the existing DOSBox Pure CoreID and pinned LemuroidCores ARM64 library; audit real 16KB ELF, Libretro host and Windows 95 guest capabilities before considering a verified source-built upgrade. Winlator 11.2 (Wine/Box64 + Xclipse-oriented changes) is a secondary, separately approved runtime candidate; GameNative remains the separate PC-01 modern storefront candidate, not a substitute for the legacy PC engine. Upstream DOSBox Pure now maintains canonical source at Codeberg; official updated source pin has not yet been verified.
+
+**Current delivery truth:** PC-04 binary inventory and static verifier source drafted; NO new native engine, Windows installation, Shandalar media, working APK, host OS boot, gameplay or save acceptance delivered. Continue isolated PC-04 proof only, with no production ROM classification/save/schema change. The separate wider PC-00 research controls remain in force.
+
+---
 **Status:** RESEARCH / FEASIBILITY ONLY · **Owner decision:** 17 November 2026 · **Implementation:** NOT AUTHORISED.
 **Product Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Architecture:** Daniel Mercer · **Engineering feasibility:** Elliot Shaw · **Product/UX:** Sienna Vale · **QA:** Marcus Reid · **Game curation:** Roxy Quinn.
 
