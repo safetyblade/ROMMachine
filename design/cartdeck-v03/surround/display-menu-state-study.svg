@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="795" viewBox="0 0 1280 795" role="img" aria-labelledby="title desc">
+<title id="title">CARTDECK Display menu — Auto and Widescreen capability states, Standard and Ornamental surround selection</title>
+<desc id="desc">Design-only editable visual study. Left panel shows Auto default and supported widescreen choice. Right panel shows unsupported widescreen disabled and Ornamental surround selected. Actual CARTDECK menu will use the existing native Compose GameMenuPanel.</desc>
+<rect width="1280" height="795" fill="#0D121A"/>
+<text x="42" y="48" fill="#EDF6F2" font-family="system-ui, sans-serif" font-weight="750" font-size="30">CARTDECK / DISPLAY</text>
+<text x="42" y="79" fill="#99A9B1" font-family="system-ui, sans-serif" font-size="17">DESIGN V1  ·  RADIO CHOICES / CAPABILITY FEEDBACK / ACCESSIBLE CONTROLLER FOCUS</text>
+<!-- The grey canvas behind each screen stands for the paused game under the native menu, never gameplay captured. -->
+<g id="display-supported">
+<rect x="42" y="115" width="579" height="615" rx="18" fill="#1D2630" stroke="#3B4C58" stroke-width="2"/>
+<rect x="58" y="132" width="546" height="580" rx="15" fill="#273642" stroke="#4ED8C4" stroke-opacity=".65" stroke-width="2"/>
+<text x="82" y="167" font-size="13" fill="#4ED8C4" font-family="system-ui, sans-serif" letter-spacing="2">ORIGINAL / GAME MENU</text>
+<text x="82" y="211" font-size="31" fill="#EDF6F2" font-family="system-ui, sans-serif" font-weight="750">Display</text>
+<text x="82" y="239" font-size="15" fill="#BCC9CB" font-family="system-ui, sans-serif">Aspect ratio</text>
+<rect x="78" y="256" width="504" height="84" rx="11" fill="#162B33" stroke="#4ED8C4" stroke-width="2.5"/>
+<circle cx="110" cy="292" r="12" stroke="#4ED8C4" fill="none" stroke-width="2"/><circle cx="110" cy="292" r="6" fill="#4ED8C4"/>
+<text x="136" y="289" font-size="21" fill="#EDF6F2" font-family="system-ui, sans-serif" font-weight="700">Auto</text>
+<text x="136" y="318" font-size="13" fill="#A8BEC2" font-family="system-ui, sans-serif">Original proportions. Resets each launch.</text>
+<rect x="78" y="351" width="504" height="84" rx="11" fill="#24313B" stroke="#657B86" stroke-width="1.5"/>
+<circle cx="110" cy="389" r="12" stroke="#AFC7CA" fill="none" stroke-width="2"/>
+<text x="136" y="384" font-size="21" fill="#EDF6F2" font-family="system-ui, sans-serif" font-weight="700">Widescreen</text>
+<text x="136" y="413" font-size="13" fill="#A8BEC2" font-family="system-ui, sans-serif">Supported genuine widescreen mode.</text>
+<text x="82" y="477" font-size="15" fill="#BCC9CB" font-family="system-ui, sans-serif">Surround</text>
+<rect x="78" y="493" width="504" height="65" rx="11" fill="#162B33" stroke="#4ED8C4" stroke-width="2"/>
+<circle cx="110" cy="525" r="12" stroke="#4ED8C4" fill="none" stroke-width="2"/><circle cx="110" cy="525" r="6" fill="#4ED8C4"/>
+<text x="136" y="533" font-size="20" fill="#EDF6F2" font-family="system-ui, sans-serif" font-weight="650">Standard</text>
+<rect x="78" y="565" width="504" height="65" rx="11" fill="#24313B" stroke="#657B86" stroke-width="1.5"/>
+<circle cx="110" cy="597" r="12" stroke="#AFC7CA" fill="none" stroke-width="2"/>
+<text x="136" y="604" font-size="20" fill="#EDF6F2" font-family="system-ui, sans-serif">Ornamental</text>
+<text x="82" y="674" font-size="15" fill="#4ED8C4" font-family="system-ui, sans-serif">RETURN TO GAME</text>
+<text x="562" y="674" text-anchor="end" font-size="15" fill="#B7C8CB" font-family="system-ui, sans-serif">BACK</text>
+</g>
+<g id="display-unsupported">
+<rect x="660" y="115" width="579" height="615" rx="18" fill="#1D2630" stroke="#3B4C58" stroke-width="2"/>
+<rect x="676" y="132" width="546" height="580" rx="15" fill="#17211C" stroke="#9BC74A" stroke-opacity=".65" stroke-width="2"/>
+<text x="700" y="167" font-size="13" fill="#9BC74A" font-family="system-ui, sans-serif" letter-spacing="2">STEALTH / ACID / GAME MENU</text>
+<text x="700" y="211" font-size="31" fill="#F0F5E9" font-family="system-ui, sans-serif" font-weight="750">Display</text>
+<text x="700" y="239" font-size="15" fill="#CDDCC4" font-family="system-ui, sans-serif">Aspect ratio</text>
+<rect x="696" y="256" width="504" height="84" rx="11" fill="#1B2A20" stroke="#9BC74A" stroke-width="2"/>
+<circle cx="728" cy="292" r="12" stroke="#9BC74A" fill="none" stroke-width="2"/><circle cx="728" cy="292" r="6" fill="#9BC74A"/>
+<text x="754" y="289" font-size="21" fill="#F0F5E9" font-family="system-ui, sans-serif" font-weight="700">Auto</text>
+<text x="754" y="318" font-size="13" fill="#AFC4A9" font-family="system-ui, sans-serif">Original proportions. Resets each launch.</text>
+<rect x="696" y="351" width="504" height="93" rx="11" fill="#202723" stroke="#4E594D" stroke-width="1"/>
+<circle cx="728" cy="389" r="12" stroke="#63715D" fill="none" stroke-width="2"/>
+<text x="754" y="384" font-size="21" fill="#8D9889" font-family="system-ui, sans-serif" font-weight="700">Widescreen</text>
+<text x="754" y="413" font-size="12" fill="#94A392" font-family="system-ui, sans-serif">Not verified for this game; Auto is preserved.</text>
+<text x="700" y="482" font-size="15" fill="#CDDCC4" font-family="system-ui, sans-serif">Surround</text>
+<rect x="696" y="493" width="504" height="65" rx="11" fill="#202723" stroke="#4E594D" stroke-width="1"/>
+<circle cx="728" cy="525" r="12" stroke="#94AA89" fill="none" stroke-width="2"/>
+<text x="754" y="533" font-size="20" fill="#F0F5E9" font-family="system-ui, sans-serif">Standard</text>
+<rect x="696" y="565" width="504" height="65" rx="11" fill="#1B2A20" stroke="#9BC74A" stroke-width="2.5"/>
+<circle cx="728" cy="597" r="12" stroke="#9BC74A" fill="none" stroke-width="2"/><circle cx="728" cy="597" r="6" fill="#9BC74A"/>
+<text x="754" y="604" font-size="20" fill="#F0F5E9" font-family="system-ui, sans-serif" font-weight="650">Ornamental</text>
+<text x="700" y="674" font-size="15" fill="#9BC74A" font-family="system-ui, sans-serif">RETURN TO GAME</text>
+<text x="1180" y="674" text-anchor="end" font-size="15" fill="#B5C7B0" font-family="system-ui, sans-serif">BACK</text>
+</g>
+<text x="42" y="764" font-size="14" font-family="system-ui, sans-serif" fill="#8B9CA8">SCHEMATIC COMPOSE UI ONLY — labels, focus states and token use are source handoff; no actual runtime menu change or hardware verification.</text>
+</svg>
