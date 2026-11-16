@@ -55,3 +55,34 @@ All three issues remain OPEN. Each increment must add its source/native/test/CI
 receipts here. No data clear, reinstall, save conversion or identity change.
 Keep old engine versions and their matching symbols. A new candidate is not master
 acceptance and must not displace the owner-tested APK until explicitly accepted.
+
+### Increment 2: confirmed stale candidate / patch attestation
+
+Downloaded exact CI-01 Cemu artifact **14197560121**, source run **43801396773**,
+producer revision `d61303e268360d35774955b8283cde73336f87eb`. Its core hash and
+Build ID match the 43805557009 staging log. Its source-patches.json/native receipt
+contain ONLY the USB/CMake manifest repair: **the #292 atomic64 repair is absent**.
+The candidate is conclusively pre-fix even though its checksum differs from b956dab.
+The owner's subsequently crashing installed Wii U APK is not uniquely identified;
+no fresh fault mechanism is inferred without its exact report.
+
+Correction: staging/native evidence now requires the actual pinned atomic64 CPP
+hash plus current helper hash. This rejects the real 15980240 artifact, missing,
+duplicated or modified proofs. Current CI-01 Cemu identity includes the changed
+Cemu verifier, invalidating Cemu only; other engine recipes remain unchanged.
+Actual loaded-core SHA256 is computed once off the UI thread before load and
+reported with full Build ID/source revision. No per-frame hashing or ROM paths.
+
+The existing corrected local Cemu binary remains SHA256
+`5ccae18918cd9f0986ca6ab8c906351081a6320fbede1690cabb82bfbe4b65ae`, Build ID
+`bb0f95b6e539ca4c808fe67674bb0c1d2e6d7447`. Its compiled CPP/helper match this
+repair; no new speculative CPU/GPU fix or forced all-engine rebuild was made.
+Three artifact-attestation regression tests PASS; actual alignment/CAS/endian and
+concurrency execution at offsets 0–7 passes ASan/UBSan. Fresh selective Cemu receipt,
+combined APK and loaded-runtime retest remain required. NAND/save roots unchanged.
+
+Physical procedure: install over existing package; copy engine report before play;
+confirm the corrected full SHA/Build ID; cold boot Bayonetta 2, play 15 minutes,
+save through the game, Return to Shelf, reopen and load the save. Repeat Sonic's
+previously working segment and a controller/menu/rotation cycle. Capture exact
+native trace if it fails. **Physical acceptance PENDING, continuing crash OPEN.**
