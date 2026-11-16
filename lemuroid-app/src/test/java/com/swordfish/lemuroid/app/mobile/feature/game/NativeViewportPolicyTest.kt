@@ -10,11 +10,13 @@ import org.junit.Test
 
 class NativeViewportPolicyTest {
     @Test
-    fun allFourHostsHaveConservativeAspectProfiles() {
+    fun allNativeHostsHaveConservativeAspectProfiles() {
         assertEquals(4f / 3f, NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX), 0.001f)
         assertEquals(16f / 9f, NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360), 0.001f)
         assertEquals(4f / 3f, NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2), 0.001f)
         assertEquals(16f / 9f, NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU), 0.001f)
+        assertEquals(16f / 9f, NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.PS3), 0.001f)
+        assertEquals("16:9", NativeViewportPolicy.portraitApertureRatio(NativeViewportPolicy.Host.PS3))
         assertEquals("4:3", NativeViewportPolicy.portraitApertureRatio(NativeViewportPolicy.Host.XBOX))
         assertEquals("4:3", NativeViewportPolicy.portraitApertureRatio(NativeViewportPolicy.Host.ARMSX2))
         assertEquals("16:9", NativeViewportPolicy.portraitApertureRatio(NativeViewportPolicy.Host.XBOX360))

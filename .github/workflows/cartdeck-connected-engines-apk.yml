@@ -1,4 +1,4 @@
-name: CARTDECK connected PS2 Wii U Xbox 360 APK
+name: CARTDECK connected native engines APK
 
 on:
   workflow_call:
@@ -6,6 +6,9 @@ on:
       include_ps3:
         type: boolean
         default: false
+      ps3_run_id:
+        type: string
+        default: ""
       publish_apk:
         type: boolean
         default: true
@@ -121,6 +124,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Rebuild Cemu with guest-alignment-safe atomics
+        if: steps.inputs.outputs.reuse == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build pkg-config glslang-tools spirv-tools
+          mv work/connected/cemu work/connected/cemu-before-atomic64
+          bash scripts/ci/build_wiiu_cemu_arm64.sh work/connected/cemu
+      - name: Test guest atomic64 alignment, endianness and concurrency
+        run: |
+          c++ -std=c++17 -pthread -fsanitize=undefined,address native/wiiu/GuestAtomic64Test.cpp -o "$RUNNER_TEMP/guest-atomic64-test"
+          "$RUNNER_TEMP/guest-atomic64-test"
       - name: Package source-licensed PS2 resources for the existing engines
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
@@ -152,6 +166,8 @@ jobs:
         if: inputs.include_ps3
         uses: actions/download-artifact@v4
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.ps3_run_id || github.run_id }}
           pattern: PS3_ENGINE_*
           path: work/connected/ps3-inputs
       - name: Connect both real PS3 engines and build their native frontends
@@ -228,7 +244,7 @@ jobs:
         if: ${{ !inputs.include_ps3 || inputs.publish_apk }}
         uses: actions/upload-artifact@v4
         with:
-          name: CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG
+          name: ${{ inputs.include_ps3 && 'CARTDECK_CONNECTED_PS2_WIIU_X360_PS3_ARM64_DEBUG' || 'CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG' }}
           path: dist/connected/
           if-no-files-found: error
           retention-days: 30
@@ -241,6 +257,8 @@ jobs:
             work/connected/armsx2/verified/page-16384/libemucore_16k.so
             work/connected/xenia/symbols/
             work/connected/cemu/cartdeck_wiiu_vulkan_host_arm64.so
+            work/connected/cemu/cemu_libretro_android_arm64.so
+            work/connected/cemu/native-evidence.json
           if-no-files-found: error
           retention-days: 30
       - name: Keep build failure diagnostics

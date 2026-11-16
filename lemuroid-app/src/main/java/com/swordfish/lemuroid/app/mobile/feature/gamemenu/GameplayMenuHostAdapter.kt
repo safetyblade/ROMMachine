@@ -10,6 +10,7 @@ internal enum class GameplayMenuHostKind {
     XENIA,
     ARMSX2,
     CEMU,
+    PS3,
 }
 
 internal object GameplayMenuHostProfiles {
@@ -39,6 +40,11 @@ internal object GameplayMenuHostProfiles {
                 GameplayMenuHostCapabilities(
                     canPause = true,
                     saveMethodDescription = "Save inside the PS2 game to its existing memory card.",
+                )
+            GameplayMenuHostKind.PS3 ->
+                GameplayMenuHostCapabilities(
+                    canPause = true,
+                    saveMethodDescription = "Save inside the PS3 game using its selected virtual user.",
                 )
             GameplayMenuHostKind.CEMU ->
                 GameplayMenuHostCapabilities(
