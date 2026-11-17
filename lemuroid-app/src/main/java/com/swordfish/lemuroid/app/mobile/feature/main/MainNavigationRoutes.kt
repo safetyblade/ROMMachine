@@ -44,6 +44,10 @@ enum class MainRoute(
         route = "home",
         titleId = R.string.title_home,
     ),
+    CARTMOD(
+        route = "cartmod",
+        titleId = R.string.title_home,
+    ),
     FAVORITES(
         route = "favorites",
         titleId = R.string.favorites,
