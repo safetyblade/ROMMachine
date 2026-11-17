@@ -151,6 +151,9 @@ object PhysicalControllerInput {
         }
     }
 
+    fun effectiveDeadzone(profile: ControllerProfileStore.Profile): Float =
+        if (profile.calibrated || profile.deadzone > 0f) profile.deadzone else 0.10f
+
     /** Unadvertised axes and ambiguous unipolar stick axes are neutral, not full negative travel. */
     fun sampleAxis(
         raw: (Int) -> Float,
@@ -166,7 +169,8 @@ object PhysicalControllerInput {
             } ?: return 0f
         val range = ranges[actual] ?: return 0f
         val value = raw(actual)
-        if (!value.isFinite()) return 0f
+        if (!value.isFinite() || !range.minimum.isFinite() || !range.maximum.isFinite()) return 0f
+        if (range.maximum <= range.minimum) return 0f
         if (actual == MotionEvent.AXIS_HAT_X || actual == MotionEvent.AXIS_HAT_Y) {
             return value.coerceIn(-1f, 1f)
         }
@@ -176,8 +180,7 @@ object PhysicalControllerInput {
                 MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS, MotionEvent.AXIS_THROTTLE,
             )
         if (!trigger && !stickSupported(actual, ranges, profile)) return 0f
-        val deadzone = if (profile.calibrated) profile.deadzone else maxOf(0.10f, profile.deadzone)
-        return axis(value, range, trigger, deadzone, profile.centres[actual])
+        return axis(value, range, trigger, effectiveDeadzone(profile), profile.centres[actual])
     }
 
     fun sample(
