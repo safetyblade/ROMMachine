@@ -1,6 +1,6 @@
 {
   "schema": "cartdeck.settings-experience/1",
-  "status": "proposed",
+  "status": "owner-approved-design",
   "label": "Settings",
   "title": "Settings",
   "subtitle": "Appearance, controls and your system",
@@ -44,6 +44,11 @@
       "title": "Profiles & family",
       "summary": "Player and Junior administration",
       "gate": "manager authorised capability only"
+    },
+    {
+      "id": "help",
+      "title": "Help & guides",
+      "summary": "How to use CARTMOD and CARTDECK walkthroughs"
     },
     {
       "id": "system",
