@@ -36,6 +36,11 @@ class LegacyCoreProbeTests(unittest.TestCase):
         self.assertTrue(report["valid"])
         self.assertFalse(report["all_load_segments_aligned_16kb"])
 
+    def test_misaligned_file_offset_rejected(self):
+        data = bytearray(fake_aarch64_elf(16384))
+        struct.pack_into("<Q", data, 64 + 8, 1)
+        self.assertFalse(mod.elf_abi(bytes(data))["all_load_segments_aligned_16kb"])
+
     def test_wrong_machine_rejected(self):
         data = bytearray(fake_aarch64_elf(16384))
         struct.pack_into("<H", data, 18, 62)

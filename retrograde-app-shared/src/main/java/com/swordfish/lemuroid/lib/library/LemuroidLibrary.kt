@@ -33,6 +33,7 @@ import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
+import com.swordfish.lemuroid.lib.storage.local.LocalStorageProvider
 import com.swordfish.lemuroid.lib.storage.scanner.NextGenDiscIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.SerialScanner
 import dagger.Lazy
@@ -340,6 +341,21 @@ class LemuroidLibrary(
         onPhase: (String) -> Unit,
     ): ScanEntry {
         onPhase("disc_identification")
+        val managedPc = (provider as? LocalStorageProvider)?.managedPcCartridge(groupedStorageFile.primaryFile)
+        if (managedPc != null) {
+            val game =
+                Game(
+                    fileName = managedPc.content.name,
+                    fileUri = groupedStorageFile.primaryFile.uri.toString(),
+                    title = managedPc.title,
+                    systemId = SystemID.DOS.dbname,
+                    developer = null,
+                    coverFrontUrl = null,
+                    lastIndexedAt = startedAtMs,
+                    cartridgeId = managedPc.id.toString(),
+                )
+            return buildScanEntry(groupedStorageFile, game)
+        }
         // New imports must retain the full GDI family. Existing entries use the
         // existing-record branch and survive a temporarily missing companion.
         val names = groupedStorageFile.allFiles().map { it.name }.toSet()

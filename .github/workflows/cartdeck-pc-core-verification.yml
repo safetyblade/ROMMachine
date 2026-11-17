@@ -1,0 +1,36 @@
+name: CARTDECK PC core verification
+on:
+  pull_request:
+    paths:
+      - 'spikes/pc/**'
+      - '**/library/pc/**'
+      - '**/PcImportSettings.kt'
+      - '.github/workflows/cartdeck-pc-core-verification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pc-core-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Synthetic native audit regressions
+        run: python3 -m unittest discover -s spikes/pc/tests -v
+      - name: Actual bundled ARM64 DOSBox binary audit
+        run: |
+          mkdir -p pc-evidence
+          set -o pipefail
+          python3 spikes/pc/verify_legacy_core.py --strict-binary | tee pc-evidence/native-audit.json
+          binary=lemuroid-cores/lemuroid_core_dosbox_pure/src/main/jniLibs/arm64-v8a/libdosbox_pure_libretro_android.so
+          readelf -Ws "$binary" > pc-evidence/native-symbols.txt
+          for symbol in retro_init retro_run retro_load_game retro_unload_game retro_set_environment; do
+            grep -Eq "GLOBAL.*DEFAULT.*[0-9]+ ${symbol}$" pc-evidence/native-symbols.txt
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-core-audit
+          path: pc-evidence/
+          if-no-files-found: warn
