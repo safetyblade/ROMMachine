@@ -290,7 +290,8 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     private val pcHardwareInput = PcHardwareInput()
 
     private fun pcInputView() =
-        if (::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
+        if (PcHardwareInput.NATIVE_PROTOCOL_AVAILABLE &&
+            ::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
             systemCoreConfig.coreID == CoreID.DOSBOX_PURE &&
             !baseGameScreenViewModel.isPreparingLaunch() && hasWindowFocus()
         ) {
@@ -300,7 +301,8 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         }
 
     private fun clearPcInput() {
-        if (::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
+        if (PcHardwareInput.NATIVE_PROTOCOL_AVAILABLE &&
+            ::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
             systemCoreConfig.coreID == CoreID.DOSBOX_PURE
         ) {
             pcHardwareInput.release(baseGameScreenViewModel.retroGameView.retroGameView)

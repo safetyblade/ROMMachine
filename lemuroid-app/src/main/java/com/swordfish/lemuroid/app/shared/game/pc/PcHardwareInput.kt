@@ -83,6 +83,9 @@ internal class PcHardwareInput {
     }
 
     companion object {
+        // The stock console host does not implement the PC native input protocol.
+        // Enable only in a separately verified PC runtime, never in the console APK.
+        const val NATIVE_PROTOCOL_AVAILABLE = false
         private const val KEY_BASE = 10000
         private const val MOUSE_BUTTON_BASE = 10600
         private const val CLEAR = 10610

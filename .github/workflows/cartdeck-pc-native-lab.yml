@@ -1,0 +1,65 @@
+name: CARTDECK isolated PC native host lab
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'spikes/pc/native-host/**'
+      - '.github/workflows/cartdeck-pc-native-lab.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pc-native-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pc-host-lab:
+    name: Prove experimental PC host separately
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Validate the PC host patch against the pinned console source
+        run: |
+          set -euo pipefail
+          source="$RUNNER_TEMP/pc-host-patch-check"
+          git clone --no-checkout https://github.com/Swordfish90/LibretroDroid.git "$source"
+          git -C "$source" checkout --detach 8835c3098514390a271e36983957f7bb5f40abf1
+          for patch in libretrodroid-gles-context-validation.patch libretrodroid-frontend-gl-state.patch libretrodroid-graphics-error.patch libretrodroid-core-frame-signal.patch; do
+            git -C "$source" apply "$GITHUB_WORKSPACE/scripts/ci/patches/$patch"
+          done
+          git -C "$source" apply --check "$GITHUB_WORKSPACE/spikes/pc/native-host/libretrodroid-play-vm-bridge.patch"
+      - name: Apply PC lab overlay to disposable checkout only
+        run: |
+          set -euo pipefail
+          cp spikes/pc/native-host/build_libretrodroid_host.sh scripts/ci/build_libretrodroid_host.sh
+          cp spikes/pc/native-host/libretrodroid-play-vm-bridge.patch scripts/ci/patches/libretrodroid-play-vm-bridge.patch
+          cp spikes/pc/native-host/libretrodroid_input_test.cpp scripts/ci/fixtures/libretrodroid_input_test.cpp
+          bash -n scripts/ci/build_libretrodroid_host.sh
+      - name: Build PC laboratory native host only
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'ndk;29.0.14206865' 'cmake;3.22.1'
+          export ANDROID_HOME="$sdk"
+          export HOST_BUILD_DIR="$RUNNER_TEMP/pc-lab-host"
+          bash scripts/ci/build_libretrodroid_host.sh
+      - name: Publish isolated PC lab only (not a console receipt or APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-lab-host-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/pc-lab-host/maven/
+            ${{ runner.temp }}/pc-lab-host/provenance.txt
+          if-no-files-found: error
+          retention-days: 14
