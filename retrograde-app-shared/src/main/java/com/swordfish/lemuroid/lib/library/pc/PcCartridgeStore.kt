@@ -51,6 +51,7 @@ class PcCartridgeStore(private val filesRoot: File) {
         title: String,
         game: InputStream,
         windows: InputStream? = null,
+        launchRecipe: PcWindowsLaunchRecipe? = null,
         checkCancellation: () -> Unit = {},
     ): Entry {
         val cleanTitle = title.trim().take(120)
@@ -79,6 +80,11 @@ class PcCartridgeStore(private val filesRoot: File) {
                             }
                         zip.putNextEntry(entry)
                         disc.file.inputStream().use { copyBounded(it, zip, checkCancellation) }
+                        zip.closeEntry()
+                    }
+                    if (launchRecipe != null) {
+                        zip.putNextEntry(ZipEntry("CARTPLAY.LNK"))
+                        zip.write(launchRecipe.startupShortcut())
                         zip.closeEntry()
                     }
                     zip.finish()

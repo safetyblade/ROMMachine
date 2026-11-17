@@ -12,26 +12,47 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShelfQueryTest {
-    private fun game(id: Int, title: String, system: String, favourite: Boolean = false, played: Long? = null) =
-        Game(
-            id = id, fileName = "$title.rom", fileUri = "file:///$id", title = title,
-            systemId = system, developer = null, coverFrontUrl = null, lastIndexedAt = 0,
-            lastPlayedAt = played, isFavorite = favourite, cartridgeId = "fixture-$id",
-        )
+    private fun game(
+        id: Int,
+        title: String,
+        system: String,
+        favourite: Boolean = false,
+        played: Long? = null,
+    ) = Game(
+        id = id,
+        fileName = "$title.rom",
+        fileUri = "file:///$id",
+        title = title,
+        systemId = system,
+        developer = null,
+        coverFrontUrl = null,
+        lastIndexedAt = 0,
+        lastPlayedAt = played,
+        isFavorite = favourite,
+        cartridgeId = "fixture-$id",
+    )
 
     private val alpha = game(1, "Alpha", "gba", true, 1)
     private val zeta = game(2, "Zeta", "gba", true, 2)
     private val beta = game(3, "Beta", "psx")
     private val games = listOf(alpha, zeta, beta)
 
-    private fun cell(game: Game, facing: CartridgeFacing = CartridgeFacing.SPINE) =
-        ShelfCell(id = "cell-${game.id}", gameKey = shelfGameKey(game.systemId, game.fileUri), facing = facing)
+    private fun cell(
+        game: Game,
+        facing: CartridgeFacing = CartridgeFacing.SPINE,
+    ) = ShelfCell(id = "cell-${game.id}", gameKey = shelfGameKey(game.systemId, game.fileUri), facing = facing)
 
-    private val layout = ShelfLayout(
-        sections = listOf(
-            ShelfSection(ShelfLayout.UNSORTED, "Unsorted", listOf(cell(zeta), ShelfCell(id = "gap"), cell(alpha, CartridgeFacing.FRONT), cell(beta))),
-        ),
-    )
+    private val layout =
+        ShelfLayout(
+            sections =
+                listOf(
+                    ShelfSection(
+                        ShelfLayout.UNSORTED,
+                        "Unsorted",
+                        listOf(cell(zeta), ShelfCell(id = "gap"), cell(alpha, CartridgeFacing.FRONT), cell(beta)),
+                    ),
+                ),
+        )
 
     @Test fun clearReturnsOriginalArrangementAndExplicitGap() {
         val original = projectShelf(layout, games, ShelfQuery())
@@ -40,7 +61,8 @@ class ShelfQueryTest {
     }
 
     @Test fun combinedFiltersPreserveFacingAndNeverRemoveOriginalGap() {
-        val filtered = projectShelf(layout, games, ShelfQuery(text = "ALPHA", favourites = true, systems = setOf("gba")))
+        val filtered =
+            projectShelf(layout, games, ShelfQuery(text = "ALPHA", favourites = true, systems = setOf("gba")))
         assertEquals(listOf(alpha), filtered.games)
         assertEquals(listOf(cell(alpha, CartridgeFacing.FRONT)), filtered.layout.sections.single().cells)
         assertEquals(4, layout.sections.single().cells.size)

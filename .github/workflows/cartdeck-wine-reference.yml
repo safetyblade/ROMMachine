@@ -1,0 +1,32 @@
+name: CARTDECK Wine reference source audit
+on:
+  pull_request:
+    paths:
+      - 'spikes/pc/wine_reference.json'
+      - 'spikes/pc/audit_wine_reference.py'
+      - '.github/workflows/cartdeck-wine-reference.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reference-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out exact reference commits without installing or running Winlator
+        run: |
+          git clone --no-checkout https://github.com/brunodev85/winlator.git /tmp/winlator-base
+          git -C /tmp/winlator-base checkout --detach fb66541b93a4eb3ee585a433b4c7b20544d58e40
+          git clone --no-checkout https://github.com/brunodev85/winlator-app.git /tmp/winlator-app
+          git -C /tmp/winlator-app checkout --detach c2f4ad4534f4637b543a9a3b085e28f50cf6d01c
+      - name: Verify exact asset bytes, inventory archive contents and check source references
+        run: |
+          mkdir -p wine-evidence
+          set -o pipefail
+          python3 spikes/pc/audit_wine_reference.py /tmp/winlator-base /tmp/winlator-app | tee wine-evidence/audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wine-reference-audit
+          path: wine-evidence/
+          if-no-files-found: warn

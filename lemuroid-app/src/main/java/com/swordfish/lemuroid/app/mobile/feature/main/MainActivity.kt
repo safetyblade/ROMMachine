@@ -361,9 +361,25 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
                             modifier = Modifier.padding(padding),
                             enabled = !mainUIState.operationInProgress,
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
+                            onOpenGuest = { gameInteractor.onGamePlay(it) },
                             onOpenShelf = {
                                 navController.popBackStack(MainRoute.HOME.route, false)
                             },
+                        )
+                    }
+                    composable(MainRoute.CARTMOD_INSTALLATION) { entry ->
+                        val cartridgeId = entry.arguments?.getString("cartridgeId").orEmpty()
+                        val games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value
+                        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
+                            modifier = Modifier.padding(padding),
+                            enabled = !mainUIState.operationInProgress,
+                            games = games,
+                            onOpenGuest = { gameInteractor.onGamePlay(it) },
+                            onOpenShelf = {
+                                navController.popBackStack(MainRoute.HOME.route, false)
+                            },
+                            cartridgeId = cartridgeId,
                         )
                     }
                     composable(MainRoute.FAVORITES) {
@@ -589,6 +605,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 onClearCustomName = { game -> gameInteractor.onClearCustomName(game) },
                 onSetCustomCoverUri = { game, uri -> gameInteractor.onSetCustomCoverUri(game, uri) },
                 onClearCustomCoverUri = { game -> gameInteractor.onClearCustomCoverUri(game) },
+                onManagePcInstallation = { game ->
+                    navController.navigate("cartmod/install/${game.cartridgeId}")
+                },
             )
 
             if (infoDialogDisplayed.value) {

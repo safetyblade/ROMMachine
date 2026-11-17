@@ -7,6 +7,9 @@ on:
       - 'scripts/ci/build_libretrodroid_host.sh'
       - 'scripts/ci/patches/libretrodroid-play-vm-bridge.patch'
       - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/pc/**'
+      - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/settings/general/Pc*'
+      - '**/library/pc/**'
+      - '.github/workflows/cartdeck-connected-engines-apk.yml'
 permissions:
   contents: read
   actions: write

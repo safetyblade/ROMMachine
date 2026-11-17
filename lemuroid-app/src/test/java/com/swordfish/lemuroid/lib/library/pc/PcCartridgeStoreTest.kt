@@ -37,6 +37,22 @@ class PcCartridgeStoreTest {
     }
 
     @Test
+    fun windowsShortcutIsPackagedWithoutDosAutoExecutable() {
+        val root = Files.createTempDirectory("pc-shortcut").toFile()
+        try {
+            val recipe = PcWindowsLaunchRecipe("C:\\MAGIC\\MAGIC.EXE")
+            val entry = PcCartridgeStore(root).importIso("Magic", iso().inputStream(), launchRecipe = recipe)
+            ZipFile(entry.content).use { zip ->
+                assertEquals(listOf("01-game.iso", "CARTPLAY.LNK"), zip.entries().toList().map { it.name })
+                val startup = zip.getInputStream(zip.getEntry("CARTPLAY.LNK")).use { it.readBytes() }
+                assertArrayEquals(recipe.startupShortcut(), startup)
+            }
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun invalidMediaAndCancelledImportNeverPublish() {
         val root = Files.createTempDirectory("pc-cartridge").toFile()
         try {

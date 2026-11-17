@@ -1,9 +1,10 @@
-package com.swordfish.lemuroid.app.mobile.feature.settings.general
+package com.swordfish.lemuroid.app.mobile.feature.cartmod
 
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +17,7 @@ import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
+import com.swordfish.lemuroid.lib.library.pc.PcWindowsLaunchRecipe
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -23,11 +25,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun PcImportSettings(enabled: Boolean) {
+internal fun PcImportSettings(
+    enabled: Boolean,
+    onImported: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var game by remember { mutableStateOf<Uri?>(null) }
     var windows by remember { mutableStateOf<Uri?>(null) }
+    var executable by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var message by remember {
         mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.")
@@ -46,7 +52,7 @@ internal fun PcImportSettings(enabled: Boolean) {
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) windows = uri
         }
-    LemuroidCardSettingsGroup(title = { Text("PC Classics · Experimental") }) {
+    LemuroidCardSettingsGroup(title = { Text("Setup PC game · DOSBox Pure") }) {
         LemuroidSettingsMenuLink(
             title = { Text("Choose PC game ISO") },
             subtitle = { Text(if (game == null) "No game selected" else "Game selected") },
@@ -66,6 +72,14 @@ internal fun PcImportSettings(enabled: Boolean) {
                 onClick = { windows = null },
             )
         }
+        OutlinedTextField(
+            value = executable,
+            onValueChange = { executable = it },
+            label = { Text("Installed Windows EXE (optional)") },
+            supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
+            enabled = !busy,
+            singleLine = true,
+        )
         LemuroidSettingsMenuLink(
             title = { Text("Import as PC cartridge") },
             subtitle = {
@@ -75,6 +89,7 @@ internal fun PcImportSettings(enabled: Boolean) {
             onClick = {
                 val gameUri = game
                 val osUri = windows
+                val executablePath = executable
                 if (gameUri != null) {
                     busy = true
                     message = "Importing PC media…"
@@ -86,12 +101,18 @@ internal fun PcImportSettings(enabled: Boolean) {
                                 require(osUri != gameUri) { "Select different game and Windows media" }
                                 val title = name(gameUri).substringBeforeLast('.')
                                 val store = PcCartridgeStore(context.filesDir)
+                                val recipe = executablePath.takeIf { it.isNotBlank() }?.let(::PcWindowsLaunchRecipe)
                                 checkNotNull(resolver.openInputStream(gameUri)).use { source ->
                                     if (osUri == null) {
-                                        store.importIso(title, source, checkCancellation = checkCancellation)
+                                        store.importIso(
+                                            title,
+                                            source,
+                                            launchRecipe = recipe,
+                                            checkCancellation = checkCancellation,
+                                        )
                                     } else {
                                         checkNotNull(resolver.openInputStream(osUri)).use { os ->
-                                            store.importIso(title, source, os, checkCancellation)
+                                            store.importIso(title, source, os, recipe, checkCancellation)
                                         }
                                     }
                                 }
@@ -99,6 +120,8 @@ internal fun PcImportSettings(enabled: Boolean) {
                             LibraryIndexScheduler.scheduleLibrarySync(context)
                             game = null
                             windows = null
+                            executable = ""
+                            onImported()
                             message = "PC cartridge imported. Refresh the shelf if it is not yet visible."
                         } catch (cancelled: CancellationException) {
                             throw cancelled
@@ -113,6 +136,6 @@ internal fun PcImportSettings(enabled: Boolean) {
             },
         )
         Text(message)
-        Text("Open the cartridge from the shelf. Guest boot and installed Windows games are experimental.")
+        Text("Import creates a cartridge, not a verified installation. Open guest setup to continue.")
     }
 }

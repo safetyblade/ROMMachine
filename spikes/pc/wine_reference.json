@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "reference-audit-only; not a runtime receipt",
+  "root": {
+    "repository": "https://github.com/brunodev85/winlator",
+    "commit": "fb66541b93a4eb3ee585a433b4c7b20544d58e40"
+  },
+  "app": {
+    "repository": "https://github.com/brunodev85/winlator-app",
+    "commit": "c2f4ad4534f4637b543a9a3b085e28f50cf6d01c",
+    "target_sdk": 28
+  },
+  "assets": {
+    "app/src/main/assets/rootfs.tzst": "33aa9e92c9ffbcd14e215169a66541072bbb6b4f",
+    "app/src/main/assets/rootfs_patches.tzst": "99cd04ffc6c653053cb0804f4965d0a97d04db8d",
+    "app/src/main/assets/container_pattern.tzst": "fd17803aee16fc4ef6a1d973e4428a7da5ca6b2a",
+    "app/src/main/assets/box64/box64-0.4.0.tzst": "195a26f85c639585a9d487e5dd90ce52da83e3d0"
+  },
+  "source": [
+    "app/src/main/java/com/winlator/xenvironment/components/GuestProgramLauncherComponent.java",
+    "app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java",
+    "app/src/main/java/com/winlator/XServerDisplayActivity.java",
+    "app/src/main/java/com/winlator/core/ProcessHelper.java",
+    "LICENSE"
+  ],
+  "requirements": [
+    "pin exact Box64 source and Android-compatible packaged executable",
+    "pin Wine and glibc/rootfs corresponding sources and notices",
+    "verify WoW64; modern Android execute/mmap policy; X11/audio/SHM host; process tree cleanup",
+    "do not import proprietary or unverified binaries into CARTDECK"
+  ]
+}
