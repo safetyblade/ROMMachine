@@ -1,6 +1,6 @@
 # BRAND-01 / B2 — Product identities
 
-Design candidate, 18 November 2026. Continues B1 on the same design-only branch. No changes to the original CARTDECK C-slot, wordmark, launcher mark, hardware, runtime, or approval gates. The user-approved direction is classic by default, expressive by choice; the three specific marks, secondary accents and optional copy below require owner visual approval.
+Design candidate, 18 November 2026. Continues B1 on the same design-only branch. No changes to the original CARTDECK C-slot, wordmark, launcher mark, hardware, runtime, or approval gates. The user-approved direction is classic by default, expressive by choice; the selected marks are approved; no promotional taglines.
 
 ## Identity inventory
 
@@ -31,7 +31,7 @@ Original default UI: GEM muted amethyst #C6A6D9; SafeSave mist blue #ADC6E1; CAR
 GEM: For You / Browse / My Ratings / Search. Search websites and My Sources are GEM-owned. Discovery is inviting but precise. Cold start offers unpersonalised browse; never fake recommendations, user scores, ownership or legal availability. GEMRating, GemFinder and DeckFit are subordinate features; do not imply scores are interchangeable. 
 SafeSave: save inventory, verified status, import/export and recovery. Emphasise the actual scope, source and state. Explicit confirmations where necessary; no cloud claim. SafeSave Vault is an optional future feature only. 
 CARTMOD: workshop action cards; PC media setup, managed installations, future Patch Studio when available; FAQs at the bottom. My Sources and customizable website search belong in GEM. Hide detailed instructions until requested; imported media does not equal verified install. Keep canonical shared Shelf cartridges and existing storage protections.
-Product copy proposals in the manifest/specimen are for visual review, not runtime strings or release claims.
+Only factual task descriptions and state labels are used. No promotional taglines.
 
 ## Owner review — 18 November 2026
 
