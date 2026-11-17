@@ -40,6 +40,7 @@ import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.InputDeviceBuilder
 import org.robolectric.shadows.ShadowInputManager
+import org.robolectric.shadows.ShadowInputManagerGlobal
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
@@ -47,7 +48,7 @@ import java.io.File
     sdk = [34],
     application = Application::class,
     qualifiers = "w900dp-h1000dp-mdpi",
-    shadows = [MenuFixtureInputManager::class],
+    shadows = [MenuFixtureInputManager::class, MenuFixtureInputManagerGlobal::class],
 )
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CompactMenuScreensTest {
@@ -140,6 +141,20 @@ class CompactMenuScreensTest {
             bitmap.recycle()
         }
     }
+}
+
+// Android 14 routes InputDevice's static queries through InputManagerGlobal.
+@Implements(className = "android.hardware.input.InputManagerGlobal", minSdk = 34, isInAndroidSdk = false)
+class MenuFixtureInputManagerGlobal : ShadowInputManagerGlobal() {
+    @Implementation override fun getInputDeviceIds(): IntArray =
+        MenuFixtureInputManager.device?.let { intArrayOf(it.id) } ?: intArrayOf()
+
+    @Implementation fun getInputDevice(id: Int): InputDevice? = MenuFixtureInputManager.device?.takeIf { it.id == id }
+
+    @Implementation fun deviceHasKeys(
+        deviceId: Int,
+        keyCodes: IntArray,
+    ): BooleanArray = BooleanArray(keyCodes.size) { true }
 }
 
 @Implements(InputManager::class)
