@@ -33,7 +33,8 @@
         "monochrome": "gem/lockup.svg",
         "emptyState": "gem/empty-state.svg"
       },
-      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "unchanged"
     },
     {
       "id": "safesave",
@@ -57,7 +58,8 @@
         "monochrome": "safesave/lockup.svg",
         "emptyState": "safesave/empty-state.svg"
       },
-      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "options review pending"
     },
     {
       "id": "cartmod",
@@ -81,7 +83,8 @@
         "monochrome": "cartmod/lockup.svg",
         "emptyState": "cartmod/empty-state.svg"
       },
-      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "options review pending"
     }
   ],
   "sizes": {
@@ -140,5 +143,7 @@
         4.87
       ]
     }
-  ]
+  ],
+  "appearanceReactiveApproved": true,
+  "lightAppearanceApproved": true
 }
