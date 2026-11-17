@@ -271,9 +271,10 @@ private fun ColourPicker(
     var advanced by remember(role) { mutableStateOf(false) }
     var blend by remember(role) { mutableStateOf(false) }
     var typed by remember(role) { mutableStateOf(colourHex(current)) }
-    val initial = remember(role, current) {
-        FloatArray(3).also { android.graphics.Color.colorToHSV(current.toArgb(), it) }
-    }
+    val initial =
+        remember(role, current) {
+            FloatArray(3).also { android.graphics.Color.colorToHSV(current.toArgb(), it) }
+        }
     var hue by remember(role, current) { mutableStateOf(initial[0]) }
     var saturation by remember(role, current) { mutableStateOf(initial[1]) }
     var brightness by remember(role, current) { mutableStateOf(initial[2]) }
@@ -1127,13 +1128,14 @@ fun ShelfAppearanceEditor(
         ColourPicker(
             role,
             overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
-            listOf(
-                NamedColour("Original", original.getValue(role)),
-                NamedColour("Pink", pink.getValue(role)),
-                NamedColour("Green", green.getValue(role)),
-            ) + CartdeckCuratedDesigns.designs.mapNotNull { design ->
-                design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
-            },
+            defaults =
+                listOf(
+                    NamedColour("Original", original.getValue(role)),
+                    NamedColour("Pink", pink.getValue(role)),
+                    NamedColour("Green", green.getValue(role)),
+                ) + CartdeckCuratedDesigns.designs.mapNotNull { design ->
+                    design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
+                },
             onChoose = { changeColour(role, it) },
             onDismiss = { picker = null },
             warning = warning,
