@@ -7,6 +7,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GameMenuCapabilitiesTest {
+    @Test fun playerPortsAreLimitedByTheSelectedEngineAttachmentContract() {
+        val native = com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry.Host.HAKUX_SDL3
+        val libretro = com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry.Host.LIBRETRO
+        assertEquals(1, controllerPortCapacity(native, setOf(0, 1), true))
+        assertEquals(2, controllerPortCapacity(libretro, setOf(0, 1), true))
+        assertEquals(16, controllerPortCapacity(null, emptySet(), false))
+        assertEquals(1, controllerPortCapacity(null, emptySet(), true))
+        assertEquals("Atlas", playerMenuTitle("Atlas (USA).gba"))
+        assertEquals("Xbox game", playerMenuTitle("Xbox game.xiso"))
+        assertEquals("Ms. Pac-Man", playerMenuTitle("Ms. Pac-Man"))
+    }
+
     @Test fun fullBackendUsesCommonOrderWithoutDuplicateActions() {
         val actions = GameMenuCapabilities(true, true, true, true).homeActions()
         assertEquals(GameMenuAction.values().toList(), actions)

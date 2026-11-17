@@ -430,7 +430,9 @@ class GameViewModelInput(
                 val bindKeyCode = bindings(device)[InputKey(keyCode)]?.keyCode ?: keyCode
 
                 // Host keys are owned on every port, including unassigned devices.
-                if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE || keyCode == KeyEvent.KEYCODE_MENU) {
+                if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE ||
+                    keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)
+                ) {
                     if (menuEdge.handle(event)) {
                         releaseHeld()
                         sideEffects.showMenu(tilt, this)

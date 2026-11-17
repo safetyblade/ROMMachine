@@ -265,8 +265,15 @@ internal fun SharedGameMenuHome(
     }
 }
 
+private val menuRomSuffix by lazy {
+    val systems =
+        com.swordfish.lemuroid.lib.library.GameSystem.all() +
+            com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+    val extensions = systems.flatMap { it.supportedExtensions }.toSet() + setOf("zip", "7z", "m3u", "xiso", "xbe")
+    Regex("(?i)\\.(" + extensions.filter { it.isNotBlank() }.joinToString("|") { Regex.escape(it) } + ")$")
+}
+
 internal fun playerMenuTitle(value: String): String =
-    value.substringAfterLast('/').replace(
-        Regex("(?i)\\.(iso|chd|cso|rom|bin|cue|nes|sfc|smc|gba|gbc|gb|nds|3ds|wbfs|wud|wux|xex)$"),
-        "",
+    com.swordfish.lemuroid.app.mobile.shared.compose.ui.shelfPresentationTitle(
+        value.substringAfterLast('/').replace(menuRomSuffix, ""),
     ).take(120)
