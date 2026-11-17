@@ -1,0 +1,159 @@
+{
+  "schema": "cartdeck.brand-foundation/1",
+  "status": "proposal-design-only",
+  "masterAssets": {
+    "mark": "../../cartdeck-v03/brand/cslot-master.svg",
+    "wordmark": "../../cartdeck-v03/brand/cartdeck-wordmark-master.svg",
+    "lockup": "../../cartdeck-v03/brand/logo-lockup-master.svg",
+    "immutable": true
+  },
+  "font": {
+    "candidate": "Source Sans 3",
+    "upstream": "https://github.com/adobe-fonts/source-sans",
+    "license": "OFL-1.1",
+    "fallback": "sans-serif",
+    "packagingApproved": false,
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "italicWeight": 600,
+    "allowFontScaling": true
+  },
+  "roles": {
+    "display": {
+      "sizeSp": 32,
+      "lineHeightSp": 38,
+      "weight": 600,
+      "italic": false
+    },
+    "page": {
+      "sizeSp": 24,
+      "lineHeightSp": 30,
+      "weight": 600,
+      "italic": false
+    },
+    "section": {
+      "sizeSp": 20,
+      "lineHeightSp": 26,
+      "weight": 600,
+      "italic": false
+    },
+    "card": {
+      "sizeSp": 17,
+      "lineHeightSp": 22,
+      "weight": 600,
+      "italic": false
+    },
+    "body": {
+      "sizeSp": 16,
+      "lineHeightSp": 22,
+      "weight": 400,
+      "italic": false
+    },
+    "secondary": {
+      "sizeSp": 14,
+      "lineHeightSp": 20,
+      "weight": 400,
+      "italic": false
+    },
+    "action": {
+      "sizeSp": 15,
+      "lineHeightSp": 20,
+      "weight": 600,
+      "italic": false
+    },
+    "label": {
+      "sizeSp": 13,
+      "lineHeightSp": 18,
+      "weight": 500,
+      "italic": false
+    },
+    "caption": {
+      "sizeSp": 12,
+      "lineHeightSp": 16,
+      "weight": 400,
+      "italic": false
+    },
+    "hardware": {
+      "sizeSp": 12,
+      "lineHeightSp": 16,
+      "weight": 600,
+      "italic": false
+    },
+    "signature": {
+      "sizeSp": 20,
+      "lineHeightSp": 26,
+      "weight": 600,
+      "italic": true
+    }
+  },
+  "palette": {
+    "originalHardware": {
+      "chassis": "#303B49",
+      "secondary": "#1C2430",
+      "bezel": "#0D1721",
+      "accent": "#4ED8C4",
+      "ink": "#EDF6F2"
+    },
+    "neutralDark": {
+      "room": "#151A20",
+      "surface": "#202731",
+      "raised": "#2B3440",
+      "outline": "#526171",
+      "ink": "#F1F3F4",
+      "secondaryInk": "#BAC4CE",
+      "accent": "#4ED8C4",
+      "onAccent": "#132421"
+    },
+    "lightCandidate": {
+      "room": "#F4F2ED",
+      "surface": "#FFFFFF",
+      "raised": "#E8E5DF",
+      "outline": "#788189",
+      "ink": "#202630",
+      "secondaryInk": "#4D5965",
+      "accent": "#146E66",
+      "onAccent": "#FFFFFF"
+    }
+  },
+  "geometry": {
+    "spacingDp": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32
+    ],
+    "cardRadiusDp": 12,
+    "smallControlRadiusDp": 8,
+    "minHitTargetDp": 48,
+    "iconViewBox": 24,
+    "iconStroke": 1.75,
+    "standardIconDp": 24,
+    "compactIconDp": 20,
+    "metadataIconDp": 16
+  },
+  "contrast": {
+    "normalText": 4.5,
+    "largeText": 3,
+    "essentialNonText": 3
+  },
+  "products": [
+    "Shelf",
+    "GEM",
+    "SafeSave",
+    "CARTMOD"
+  ],
+  "alternateExperience": "CARTDECK Junior",
+  "signatureFeatures": [
+    "PivotArc",
+    "GripArc"
+  ],
+  "personasInProduct": false,
+  "lightingDefault": false,
+  "uiChangesAuthorized": false
+}
