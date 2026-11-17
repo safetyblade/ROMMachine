@@ -31,7 +31,7 @@ def prepare(source, support):
     };
 ''' + text[end:]
     text = text.replace('int register_xendroid_Emulator(JNIEnv* env)', '''static jstring j_cartdeck_report(JNIEnv* env, jobject) {
-    char out[2048]; cartdeck::report(out, sizeof(out)); return env->NewStringUTF(out);
+    char out[16384]; cartdeck::report(out, sizeof(out)); return env->NewStringUTF(out);
 }
 int register_xendroid_Emulator(JNIEnv* env)''')
     # Release JNI strings; do not pin per-launch arrays indefinitely.
@@ -118,3 +118,6 @@ int register_xendroid_Emulator(JNIEnv* env)''')
     for marker in ('j_cartdeck_report', 'cartdeck::HOST_INIT'):
         assert marker in jni.read_text(), marker
     assert 'cartdeck::GPU_READY' in host.read_text()
+
+    from instrument_performance import instrument
+    instrument(cpp, support)

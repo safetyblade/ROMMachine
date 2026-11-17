@@ -1,5 +1,26 @@
 # CARTDECK — Master product and delivery roadmap
 
+## 17 November 2026 — CONTROLLING PC-00 / REL-ENG owner decisions
+
+**Bundled release:** CARTDECK includes **all approved, licence-cleared emulators within the app**. No runtime is installed through a separate emulator download or third-party app. At release Settings links to a **separate open-source emulator-only source/build repository** for the assembled engine technologies, **not** a CARTDECK engine downloader. [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) controls source/binary provenance and release; that separate repository does not independently fulfil applicable GPL app/host corresponding-source obligations.
+
+**PC direction:** GameNative and all external gaming-storefront/sign-on integration **removed** from active engineering. Preserve the ability to run **locally imported Windows EXE/game installers** using embedded, compatible Wine/Box64/FEX/Hangover runtimes, with Winlator/MiceWine as technical source references only. Focus first on legacy PC: DOSBox Pure, DOSBox-X feasibility, Windows 3.x/95/98 and selective XP, original PC optical images and installation workflow. **Shandalar (MicroProse Magic 1997)** is the first real PC game test; DOSBox Pure first, Wine fallback.
+
+| Lane | Scope | State |
+| --- | --- | --- |
+| [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) | Independent PC integration programme | Controlling |
+| [PC-01 #300](https://github.com/safetyblade/ROMMachine/issues/300) | Local Win32/Win64 game execution and integrated compatibility technology | Research |
+| [PC-02 #301](https://github.com/safetyblade/ROMMachine/issues/301) | Original PC CD, DOS/Win9x guest installers and execution | Research |
+| [PC-03 #302](https://github.com/safetyblade/ROMMachine/issues/302) | Bundled runtime, cartridge, menu, profiles/Junior and SafeSave | Design |
+| [PC-04 #305](https://github.com/safetyblade/ROMMachine/issues/305), [EXP-95 #195](https://github.com/safetyblade/ROMMachine/issues/195) | Shandalar-first protected [draft PR #306](https://github.com/safetyblade/ROMMachine/pull/306) | Source/native audit authored; no Win95/gameplay PASS |
+| [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) | Engine-only open-source repository/build release and future in-app Settings link | Release design; repo not created |
+
+**PC gates:** PC-R0 actual DOSBox Pure/native core audit → R1 licence/ABI candidates → R2 integrated engine/rights architecture → R3 game installer/media/input/profile/save UX → R4 lawful Shandalar test and hardware QA → R5 owner GO/NO-GO. **No engine binaries, APKs, repo publication, guest game or physical PASS** authorised by this roadmap correction.
+
+**Protected:** PERF #60, PS3 #297, Wii U #296, X360 #295; GC-01 #262 / PR #294; selective CI-01, all existing consoles, library/Room/save identity, signing and rollback. Source detail: [PC-00 charter](../research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md).
+
+---
+
 **Authoritative current checkpoint: 13 November 2026 · v2.6**
 **Owner:** Jonathan Prestwich · **Project Director:** Cassia Rowan · **Design:** Sienna Vale · **Engineering:** Elliot Shaw · **Architecture:** Daniel Mercer · **QA:** Marcus Reid
 **Controlled primary roadmap:** [CARTDECK Product & Delivery Roadmap v2.6 (Drive)](https://docs.google.com/document/d/1wlURBkCoASXTAOFbXrNQWzODEbnVuMJBUz4l68Vac4Q/edit)
@@ -93,3 +114,28 @@
 **Execution recommendation:** GripArc's failed physical integration #135 is a live blocker and must not be lost in new feature work. In parallel, complete #167 native Fill, #165/166 tablet/TV focus, #176/177 control evidence + normalizer (catalogue parallel), and post-merge shelf #183 device QA. Advance other emulation/ROM lanes separately with rollback.
 
 **Primary truth and update mechanism:** Drive v2.6 controls owner decisions; GitHub source and issue links give implementation/PR/CI status; actual owner/Marcus testing gives physical acceptance. Update both roadmap surfaces after any new device result—especially GripArc, which remains **FAILED** as of this checkpoint.
+
+---
+
+## 16 November 2026 — Junior / Universal Profiles / SafeSave product readiness addendum
+
+**Roadmap location:** Future `Library & Player Experience` lane (does **not** pre-empt active GC-01/CI-01, emulation quality, GEM or other owner priorities). Controlled Drive product roadmap updated with equivalent requirements.
+
+| ID | Feature | Gate / state |
+| --- | --- | --- |
+| [#289 PROF-01](https://github.com/safetyblade/ROMMachine/issues/289) | Console-style local profiles (Manager / Standard / Junior), shared canonical ROM collection, per-player hide/allowlist, explicit profile switch and permissions | Full design; implementation / physical gates pending |
+| [#290 SAVE-01](https://github.com/safetyblade/ROMMachine/issues/290) | Profile-isolated save ownership, native engine memory cards, default legacy save adoption | Source audit and detailed contracts complete; per-engine proof pending |
+| [#290 SAVE-02](https://github.com/safetyblade/ROMMachine/issues/290) | **SafeSave** save inventory, export/import/restore and copy for one game/player/every player including verified memory cards, all exclusions reported | Archive protocol and QA ready; not yet built |
+| [#288 JR-01](https://github.com/safetyblade/ROMMachine/issues/288) | **CARTDECK Junior** — parent-authenticated allowlist and personal themes, exactly **one cartridge on screen**, touch swipe/controller next/previous across handheld/tablet/TV | Sienna interaction design and Daniel architecture ready; not yet built |
+| [#293 SAVE-03](https://github.com/safetyblade/ROMMachine/issues/293) | Optional account-linked **SafeSave Vault**, saves-only: metadata DB + encrypted private object storage; no ROM/BIOS/firmware upload | Concept/architecture documented; backend and release separate approval |
+
+**Readiness pack:**
+- [JR-01 final screen, controller and parent workflow](../design/jr01/JR01_FINAL_SCREEN_INPUT_PARENT_CONTRACT.md)
+- [Daniel's cross-cutting architecture](../architecture/jr01/JR01_PROFILES_SAFESAVE_ARCHITECTURE.md)
+- [Source-level engine persistence and Google Drive sync audit](../architecture/jr01/ENGINE_SAVE_SOURCE_AUDIT_2026-11-16.md)
+- [SafeSave V1 archive / import / export protocol](../architecture/jr01/SAFESAVE_FORMAT_AND_API_V1.md)
+- [Sequenced implementation plan + 34 independent QA cases](jr01/JR01_SAFESAVE_IMPLEMENTATION_READINESS_AND_QA.md)
+
+**Source baseline:** Current `master` inspected on 16 Nov has Room **v13** and `CartridgeSaveBinding`. User-installed Room/ROM/save/engine/appearance/CI compatibility requirements from #145 remain binding; any new migration uses *actual* branch HEAD and tested roll-forward. Existing Play variant Google Drive folder save sync remains a coexistence risk. Native engine multi-profile isolation and backup fidelity are NOT yet tested.
+
+**No runtime implementation or signed APK was produced in the design task.** Marcus must independently mark PASS/FAIL/BLOCKED/NOT TESTED for source/CI/device before release.
