@@ -153,6 +153,8 @@ internal fun HomeScreen(
                     onEdit,
                     onSectionEdit,
                     artworkRevision = state.artworkRevision,
+                    showSectionHeadings = pageKey == "all" || query.active,
+                    bottomContentPadding = if (arrange) 8.dp else 68.dp,
                     header = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (state.showNoGamesCard) {
@@ -161,7 +163,7 @@ internal fun HomeScreen(
                                     enabled = !state.indexInProgress,
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                 ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else {
+                            } else if (pageKey == "all" && !query.active) {
                                 TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
                                     Text(stringResource(R.string.cartdeck_add_cartridges))
                                 }
@@ -197,19 +199,26 @@ internal fun HomeScreen(
                                     onAction = onOpenCoreSelection,
                                 )
                             }
-                            state.recentGames.firstOrNull()?.takeUnless { query.active }?.let { recent ->
-                                TextButton(
-                                    onClick = { onGameClicked(recent) },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                ) {
-                                    Text(
-                                        stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
-                                        maxLines = 2,
-                                    )
+                            if (!query.active && pageKey == "all") {
+                                state.recentGames.firstOrNull()?.let { recent ->
+                                    TextButton(
+                                        onClick = { onGameClicked(recent) },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
+                                            maxLines = 1,
+                                        )
+                                    }
                                 }
                             }
                             if (query.active && projection.games.isEmpty()) {
                                 Text("No matching cartridges", modifier = Modifier.padding(16.dp))
+                            }
+                            if (!query.active && !arrange && pageLayout.sections.all { it.cells.isEmpty() }) {
+                                TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                    Text("Empty collection · Add cartridges")
+                                }
                             }
                             tools()
                         }
