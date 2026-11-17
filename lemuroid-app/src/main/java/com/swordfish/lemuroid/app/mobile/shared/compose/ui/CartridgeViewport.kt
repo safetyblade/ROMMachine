@@ -23,6 +23,19 @@ object CartridgeViewport {
         return Shelf(columns, minOf(slot, 72f, heightLimit).coerceAtLeast(1f))
     }
 
+    /** Scrollable shelf rows use one width-based density regardless of page content or remaining height. */
+    fun scrollingShelf(
+        width: Float,
+        fontScale: Float,
+    ): Shelf {
+        val available = (width - 24f).coerceAtLeast(1f)
+        val scale = fontScale.coerceIn(1f, 2f)
+        val adaptive = floor(available / (64f * scale)).toInt().coerceAtLeast(1)
+        val columns = if (width < 600f) minOf(5, adaptive) else adaptive
+        val slot = ((available - 4f * (columns - 1)) / columns).coerceAtLeast(1f)
+        return Shelf(columns, slot)
+    }
+
     fun detailArtWidth(
         width: Float,
         height: Float,
