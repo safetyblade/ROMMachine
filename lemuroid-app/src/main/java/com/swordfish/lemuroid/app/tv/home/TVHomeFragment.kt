@@ -98,9 +98,9 @@ class TVHomeFragment : BrowseSupportFragment() {
     ) {
         super.onViewCreated(view, savedInstanceState)
 
-        title = "CARTDECK"
-        brandColor = Color.rgb(16, 28, 35)
-        searchAffordanceColor = Color.rgb(80, 210, 194)
+        setTitle("CARTDECK")
+        setBrandColor(Color.rgb(16, 28, 35))
+        setSearchAffordanceColor(Color.rgb(80, 210, 194))
 
         recreateAdapter(
             includeFavorites = false,
