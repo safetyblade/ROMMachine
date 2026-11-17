@@ -95,6 +95,7 @@ fun ShelfBoard(
     onSectionEdit: (ShelfSection) -> Unit = {},
     header: (@Composable () -> Unit)? = null,
     artworkRevision: Int = 0,
+    showSectionHeaders: Boolean = true,
 ) {
     val colors = LocalShelfMaterials.current
     val decorationPattern =
@@ -196,19 +197,17 @@ fun ShelfBoard(
             )
         }
         val sizing =
-            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.shelf(
+            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.scrollingShelf(
                 maxWidth.value,
-                maxHeight.value,
-                androidx.compose.ui.platform.LocalDensity.current.fontScale,
-                false,
+                density.fontScale,
             )
         val columns = sizing.columns
         val width = sizing.spineWidth.dp
         val items =
-            remember(layout, columns, byKey) {
+            remember(layout, columns, byKey, showSectionHeaders) {
                 layout.visibleSections(byKey.keys).flatMap { section ->
                     val rows = section.rows(columns).map { ShelfItem(it.key, section, it) }
-                    listOf(ShelfItem("header:${section.id}", section)) + rows
+                    if (showSectionHeaders) listOf(ShelfItem("header:${section.id}", section)) + rows else rows
                 }
             }
         val headerOffset = if (header == null) 0 else 1
@@ -246,10 +245,13 @@ fun ShelfBoard(
         }
         LazyColumn(
             state = scroll,
-            modifier = Modifier.testTag("cartdeck_shelf_vertical_list"),
+            modifier = Modifier.fillMaxSize().testTag("cartdeck_shelf_vertical_list"),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         ) {
             if (header != null) item(key = "library-header") { header() }
+            if (!showSectionHeaders && items.isEmpty() && games.isNotEmpty()) {
+                item(key = "empty-section") { Text("No cartridges in this section", Modifier.padding(12.dp)) }
+            }
             items(items.size, key = { items[it].key }) { index ->
                 val item = items[index]
                 if (item.row == null) {
