@@ -1,0 +1,153 @@
+{
+  "result": "PASS",
+  "apk_sha256": "a0af941f23fcb9c49645dfec9cdd2982b25ec3cee3f4f5842bd32b579753a38f",
+  "apk_bytes": 196928299,
+  "source_sha": "8db4ce42d9c0a36d5bfdeeee592e3ac6ad441d5d",
+  "branch_source_sha": "0c003bf96f4e32e5824882a8bae82535421a77d0",
+  "package": "dev.prestwich.cartdeck.debug",
+  "version_code": 90829006,
+  "signer_certificate_sha256": "ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8",
+  "native_library_count": 42,
+  "all_arm64": true,
+  "all_elf_16k": true,
+  "ps3_packaged": false,
+  "ps2_packaging": "Established llvm-strip --strip-unneeded; source/packaged receipts and runtime PT_LOAD bytes independently compared",
+  "matched_native_components": {
+    "ps1": {
+      "libpcsx_rearmed_modern_libretro_android.so": "21629573d7fbf7f48558994cc00b2f03f86293045f7b7585b4d67bf4e5da25cc"
+    },
+    "psp": {
+      "libppsspp_modern_libretro_android.so": "cfad147cb858aaefa32bde1c5c0fa3fe8d83e7c34b66ca739a21040a30826df4"
+    },
+    "dc": {
+      "libflycast_libretro_android.so": "28bf72bcb71a049702c2ee5302340a5a887ccd8d6a47fcc70b649a4765613fc8"
+    },
+    "gc": {
+      "libdolphin_modern_libretro_android.so": "db7f46b1821c96568d6b4c2b6b9ecfe4064291221372a386897310f2d885a5c6"
+    },
+    "ps2": {
+      "libplay_modern_libretro_android.so": "79f2ecdea33b75f490702f177c404a1f1f4271fea6ea7da2f65fc897f042337b"
+    },
+    "hakux": {
+      "libhakuxcore.so": "dcf8e5ae330f44fea969c9cd89b9f936281cd687d4d282a6e703852d0ecfbf97",
+      "libkgsl_context_hook.so": "3463833e6d706f524ca10290f93eb14e7875be02788b52e05e5fa77322e62381",
+      "libhook_impl.so": "2376ada6f3efbbb2d1fbfe8f97fd1e5f1482a812dfdafdb471d6b695590ca7d1",
+      "libgsl_alloc_hook.so": "d719e4e5436096402e7b503af8499d120a3ecf14026c2acd9d7a562b2ec774b4",
+      "libmain_hook.so": "16c6e675351533284e4c81079cd4b6b3ef2696941e62745627834ec1f6b5d27d",
+      "libfile_redirect_hook.so": "5fee1025cb094883e78cebe022ea51b54c88c8cdb3551ce7e1568193d28ef956",
+      "libSDL3.so": "fdea9e4469b0b4e41d6da6d9097628aeee5e368f3b2fc418cd0daa3bc93706d3"
+    },
+    "xenia": {
+      "libcartdeck_xenia.so": "6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937",
+      "libSPIRV-Tools-shared.so": "1cfaf1345e1da5e58af24f695486ca96a371681cce4a5964a3078ab7544585f8"
+    },
+    "armsx2": {
+      "libemucore_4k.so": "a4cf41aba7b40e7a869c27399b6cf17b266d8f43aede08829fcafedbf9e5d6e3",
+      "libemucore_16k.so": "909ccbc21bc48cc2299d9608b48940ba0f341251120b2b45545098f973e67c21"
+    },
+    "cemu": {
+      "libcartdeckwiiuvulkanhost.so": "8c48f4ea83ae59c3fca59aabd5c32bfa77d435a5d90d3bcfd0c9ee1583c6d801",
+      "libcemu_libretro_android.so": "18911ab654df005c7142ff67b3b34e43c1adfe4733c5bba5cc97d09b58a2c48c"
+    },
+    "libretrodroid": {
+      "liblibretrodroid.so": "70e2e7a43f608735231db38410cbb56fec243dc3c633c3b290885a6960e92d01"
+    }
+  },
+  "all_native_sha256": {
+    "lib/arm64-v8a/libSDL3.so": "fdea9e4469b0b4e41d6da6d9097628aeee5e368f3b2fc418cd0daa3bc93706d3",
+    "lib/arm64-v8a/libSPIRV-Tools-shared.so": "1cfaf1345e1da5e58af24f695486ca96a371681cce4a5964a3078ab7544585f8",
+    "lib/arm64-v8a/libandroidx.graphics.path.so": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+    "lib/arm64-v8a/libc++_shared.so": "0c52cfab2df0d957d8b346a2bdc5ae8d71feca2591924d77e1cd724d5bf74352",
+    "lib/arm64-v8a/libcartdeck_xenia.so": "6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937",
+    "lib/arm64-v8a/libcartdeckwiiuvulkanhost.so": "8c48f4ea83ae59c3fca59aabd5c32bfa77d435a5d90d3bcfd0c9ee1583c6d801",
+    "lib/arm64-v8a/libcemu_libretro_android.so": "18911ab654df005c7142ff67b3b34e43c1adfe4733c5bba5cc97d09b58a2c48c",
+    "lib/arm64-v8a/libcitra_libretro_android.so": "a733a6dbb80a6f1de2bc551e41c3f50d3d5d937938571a0bc68da59ab922f063",
+    "lib/arm64-v8a/libdesmume_libretro_android.so": "d1ecc0bad6ad6ff573b88315202eb1ffdf7ba4da18c1709c098e1f2744276e0c",
+    "lib/arm64-v8a/libdolphin_modern_libretro_android.so": "db7f46b1821c96568d6b4c2b6b9ecfe4064291221372a386897310f2d885a5c6",
+    "lib/arm64-v8a/libdosbox_pure_libretro_android.so": "454c1d864353d946317d6bca04948ff8f9fd25cee7fe600f0d5238d42825babe",
+    "lib/arm64-v8a/libemucore_16k.so": "909ccbc21bc48cc2299d9608b48940ba0f341251120b2b45545098f973e67c21",
+    "lib/arm64-v8a/libemucore_4k.so": "a4cf41aba7b40e7a869c27399b6cf17b266d8f43aede08829fcafedbf9e5d6e3",
+    "lib/arm64-v8a/libfbneo_libretro_android.so": "88fd9f4aa9d8f235b58e64e78947ede0965c1e7ff85caf03dbcfcfe914b2e583",
+    "lib/arm64-v8a/libfceumm_libretro_android.so": "a47b7abf60d5cf964e320b7db164379eef0201f05319a248f3f7591308aa2778",
+    "lib/arm64-v8a/libfile_redirect_hook.so": "5fee1025cb094883e78cebe022ea51b54c88c8cdb3551ce7e1568193d28ef956",
+    "lib/arm64-v8a/libflycast_libretro_android.so": "28bf72bcb71a049702c2ee5302340a5a887ccd8d6a47fcc70b649a4765613fc8",
+    "lib/arm64-v8a/libgambatte_libretro_android.so": "546c3f3a5517518b74258290983164638561c47fc779588f702a5cc215a5ec59",
+    "lib/arm64-v8a/libgenesis_plus_gx_libretro_android.so": "9c958d1fe2c060cf824aaa503751e32c9c819d0b3a3584c959a32cb954c3a000",
+    "lib/arm64-v8a/libgsl_alloc_hook.so": "d719e4e5436096402e7b503af8499d120a3ecf14026c2acd9d7a562b2ec774b4",
+    "lib/arm64-v8a/libhakuxcore.so": "dcf8e5ae330f44fea969c9cd89b9f936281cd687d4d282a6e703852d0ecfbf97",
+    "lib/arm64-v8a/libhandy_libretro_android.so": "8da01c2bc5f92d648baa70b7f6e702b800485343516e18035e6665574b4881e5",
+    "lib/arm64-v8a/libhook_impl.so": "2376ada6f3efbbb2d1fbfe8f97fd1e5f1482a812dfdafdb471d6b695590ca7d1",
+    "lib/arm64-v8a/libkgsl_context_hook.so": "3463833e6d706f524ca10290f93eb14e7875be02788b52e05e5fa77322e62381",
+    "lib/arm64-v8a/liblibrashader_capi.so": "66e12b19c495afc9c27dce1b61eb4c429176a8bd8c2dc2840ec9125f117b4a6c",
+    "lib/arm64-v8a/liblibretrodroid.so": "70e2e7a43f608735231db38410cbb56fec243dc3c633c3b290885a6960e92d01",
+    "lib/arm64-v8a/libmain_hook.so": "16c6e675351533284e4c81079cd4b6b3ef2696941e62745627834ec1f6b5d27d",
+    "lib/arm64-v8a/libmame2003_plus_libretro_android.so": "2300bf7239879088ec10f82b823b61562fdf5e02bc843d02d6bd2cc455d69962",
+    "lib/arm64-v8a/libmednafen_ngp_libretro_android.so": "acfdafc719373d37c7ab5423f02a6b0d41153a6af5db940b4adb0819e1fa528d",
+    "lib/arm64-v8a/libmednafen_pce_fast_libretro_android.so": "6487d7828b48d1f63d2233e45f5aa909f91543114355bf326364f430a37a32e9",
+    "lib/arm64-v8a/libmednafen_wswan_libretro_android.so": "b7f879b3dc0ad2aef221d040bc580b9fd44193179745a8d775a59d2e812fb771",
+    "lib/arm64-v8a/libmelonds_libretro_android.so": "71f305fa273d27c57eb438fd3447a4c33bbd2f321ead9ac7d5c46d6a707d760d",
+    "lib/arm64-v8a/libmgba_libretro_android.so": "fbb03681b7d7ea4fa04bac0f60a005d9fcdc732ece3df1b715fabc19d1f9b2ab",
+    "lib/arm64-v8a/libmupen64plus_next_gles3_libretro_android.so": "c7e44a9f6bfc67411a76d0253e12b546cd36746cc5adf2fffe68146544fe8d7a",
+    "lib/arm64-v8a/libpcsx_rearmed_libretro_android.so": "1c32c21dcc488889db7556bd0bd11c72219228f8d35d36bc30c640472af21fd3",
+    "lib/arm64-v8a/libpcsx_rearmed_modern_libretro_android.so": "21629573d7fbf7f48558994cc00b2f03f86293045f7b7585b4d67bf4e5da25cc",
+    "lib/arm64-v8a/libplay_modern_libretro_android.so": "79f2ecdea33b75f490702f177c404a1f1f4271fea6ea7da2f65fc897f042337b",
+    "lib/arm64-v8a/libppsspp_libretro_android.so": "2d5370602e07df1e5bc0fb20467cff52aafa8ccbade904b5d7f60b3eebd2ff23",
+    "lib/arm64-v8a/libppsspp_modern_libretro_android.so": "cfad147cb858aaefa32bde1c5c0fa3fe8d83e7c34b66ca739a21040a30826df4",
+    "lib/arm64-v8a/libprosystem_libretro_android.so": "a4cccee6c86de93e3af14b8dcea47383cb7a6502fe84685ed29ad830b70f5dec",
+    "lib/arm64-v8a/libsnes9x_libretro_android.so": "4e5dc9199967f23bca5a8f56142f737ecd110b75afd05b2b90df6bf622b2806b",
+    "lib/arm64-v8a/libstella_libretro_android.so": "3154ccca93fa67d6bcabe1fe47cc5e69299501a5617ba005769757cd15450c2b"
+  },
+  "physical_install_over_verified": false,
+  "workflow_run": 44009495057,
+  "workflow_url": "https://github.com/safetyblade/ROMMachine/actions/runs/44009495057",
+  "apk_artifact_id": 14296792285,
+  "apk_artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/44009495057/artifacts/14296792285",
+  "artifact_archive_sha256": "8f369608e600bc14b0c0af5ec4def81f884038cc2a4d02299819e11cc5c1db15",
+  "artifact_archive_digest_verified": true,
+  "tests": {
+    "whole_project_ktlint": "PASS",
+    "kotlin_f1": 546,
+    "kotlin_f2": 546,
+    "python": 173,
+    "failures": 0,
+    "skipped": 0
+  },
+  "ps2_source_to_packaged": [
+    {
+      "page_size": 4096,
+      "source_elf_sha256": "587898d3b252540fe94b95a44d195badf7ddc638030d1e2ec5b31f49e11dd92a",
+      "packaged_elf_sha256": "a4cf41aba7b40e7a869c27399b6cf17b266d8f43aede08829fcafedbf9e5d6e3",
+      "build_id": "2fe54b860488535d75178dba6e72d55603b1d362"
+    },
+    {
+      "page_size": 16384,
+      "source_elf_sha256": "8ed1245214788cafdcb5cbc6646ed71bc0e9ec3a304fdb63da1651787e67fb80",
+      "packaged_elf_sha256": "909ccbc21bc48cc2299d9608b48940ba0f341251120b2b45545098f973e67c21",
+      "build_id": "4428b4766f654a617391bf4ce98079295cd5c999"
+    }
+  ],
+  "build_measurement": {
+    "dependency_caches": "retained",
+    "measurements": [
+      {
+        "apk_sha256": "a0af941f23fcb9c49645dfec9cdd2982b25ec3cee3f4f5842bd32b579753a38f",
+        "exit_code": 0,
+        "label": "first_build",
+        "wall_seconds": 357.08436063299996
+      }
+    ],
+    "native_input_files": 2751,
+    "native_inputs_unchanged": true,
+    "project_outputs_cleaned_and_build_cache_disabled": false,
+    "scope": "Gradle checks and APK assembly; excludes native producers and staging"
+  },
+  "physical_acceptance": "PENDING_JONATHAN",
+  "independent_qa": "PENDING_MARCUS",
+  "source_tree_identity": {
+    "branch_head": "0c003bf96f4e32e5824882a8bae82535421a77d0",
+    "ci_checkout_sha": "8db4ce42d9c0a36d5bfdeeee592e3ac6ad441d5d",
+    "branch_tree": "e08624c6887e4c14e3ab33ba34a3da828e038cde",
+    "ci_tree": "e08624c6887e4c14e3ab33ba34a3da828e038cde",
+    "identical_trees": true
+  }
+}
