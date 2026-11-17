@@ -273,6 +273,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         shelfAvailable = shelfReady,
                         onToggleArrangeShelf = { arrangingShelf.value = !arrangingShelf.value },
                         onShelfAppearance = { editingAppearance.value = true },
+                        onAddCartridges = { settingsInteractor.changeLocalStorageFolder() },
                         onRefreshLibrary = {
                             val requestId = LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
                             refreshScope.launch {
