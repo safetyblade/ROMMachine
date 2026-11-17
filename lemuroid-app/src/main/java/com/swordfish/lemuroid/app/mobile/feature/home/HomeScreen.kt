@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -138,6 +139,7 @@ internal fun HomeScreen(
             },
         )
     val shelfStates = rememberSaveableStateHolder()
+    val shortScreen = LocalConfiguration.current.screenHeightDp < 480
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
         PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
@@ -163,7 +165,7 @@ internal fun HomeScreen(
                                     enabled = !state.indexInProgress,
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                 ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else if (pageKey == "all" && !query.active) {
+                            } else if (pageKey == "all" && !query.active && !shortScreen) {
                                 TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
                                     Text(stringResource(R.string.cartdeck_add_cartridges))
                                 }
@@ -199,7 +201,9 @@ internal fun HomeScreen(
                                     onAction = onOpenCoreSelection,
                                 )
                             }
-                            if (!query.active && pageKey == "all") {
+                            val firstCollection =
+                                pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
+                            if (!query.active && !arrange && !shortScreen && (pageKey == "all" || firstCollection)) {
                                 state.recentGames.firstOrNull()?.let { recent ->
                                     TextButton(
                                         onClick = { onGameClicked(recent) },
