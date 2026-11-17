@@ -298,6 +298,7 @@ internal fun CartdeckHardwareSeats(
     customColours: Boolean,
     pivotArc: Boolean = false,
     drawPivotModule: Boolean = true,
+    useFlushSideRails: Boolean = false,
 ) {
     if (rootBounds == null || inputBounds.isEmpty()) return
     val density = LocalDensity.current
@@ -340,7 +341,7 @@ internal fun CartdeckHardwareSeats(
 
         // P1-C2A side-rail masters sized to the real external screen margin,
         // never stretched across the game aperture or touch controls.
-        if (video != null) {
+        if (video != null && !useFlushSideRails) {
             val inset = with(density) { 4.dp.toPx() }
             val railWidth =
                 minOf(
