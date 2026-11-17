@@ -348,6 +348,7 @@ class CartridgeExperienceTest {
         home(HomeViewModel.UIState(indexInProgress = false, recentGames = listOf(game)))
         compose.onNodeWithText("Search collection").assertDoesNotExist()
         compose.onNodeWithText("Filters").performClick()
+        settleSheet()
         compose.onNodeWithText("Search collection").assertExists()
     }
 
@@ -396,9 +397,11 @@ class CartridgeExperienceTest {
                 )
             }
         }
+        val roomBounds = compose.onNodeWithTag("cartdeck_stationary_room").fetchSemanticsNode().boundsInRoot
         compose.onNodeWithTag("cartdeck_shelf_vertical_list")
             .performScrollToNode(hasContentDescription("Cartridge 16, GB, spine facing"))
         compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
+        assertEquals(roomBounds, compose.onNodeWithTag("cartdeck_stationary_room").fetchSemanticsNode().boundsInRoot)
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
     }
