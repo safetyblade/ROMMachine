@@ -2,12 +2,9 @@ package com.swordfish.lemuroid.app.mobile.feature.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -45,7 +42,11 @@ internal fun UnifiedShelfChrome(
     modifier: Modifier,
     games: List<Game>,
     arrange: Boolean,
-    content: @Composable (ShelfQuery, Modifier) -> Unit,
+    onAddCartridges: () -> Unit,
+    canAddCartridges: Boolean,
+    recentGame: Game?,
+    onContinue: (Game) -> Unit,
+    content: @Composable (ShelfQuery, Modifier, @Composable () -> Unit) -> Unit,
 ) {
     var text by rememberSaveable { mutableStateOf("") }
     var favourites by rememberSaveable { mutableStateOf(false) }
@@ -68,60 +69,10 @@ internal fun UnifiedShelfChrome(
         focus.clearFocus()
         clear()
     }
-    Column(modifier.fillMaxSize()) {
+    content(query, modifier) {
         if (!arrange) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                singleLine = true,
-                placeholder = { Text("Search collection") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (text.isNotEmpty()) {
-                        IconButton(onClick = { text = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
-            )
-            if (query.active) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        buildList {
-                            if (favourites) add("Favourites")
-                            if (recent) add("Played")
-                            if (systems.isNotEmpty()) add(systems.joinToString { cartridgeSystemLabel(it) })
-                            if (query.sort != ShelfSort.ARRANGEMENT) add(sortLabel(query.sort))
-                            if (text.isNotBlank()) add("Search")
-                        }.joinToString(" · "),
-                        modifier = Modifier.weight(1f),
-                        maxLines = 2,
-                    )
-                    TextButton(onClick = ::clear) { Text("Clear") }
-                }
-            }
-        }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            content(
-                query,
-                Modifier.fillMaxSize().then(if (arrange) Modifier else Modifier.padding(bottom = 60.dp)),
-            )
-            if (!arrange) {
-                FilledTonalButton(
-                    onClick = {
-                        focus.clearFocus()
-                        filters = true
-                    },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Text(if (query.active) "Filters •" else "Filters")
-                }
+            FilledTonalButton(onClick = { filters = true }) {
+                Text(if (query.active) "Filters •" else "Filters")
             }
         }
     }
@@ -134,6 +85,23 @@ internal fun UnifiedShelfChrome(
                     Modifier.widthIn(max = 420.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Search collection") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (text.isNotEmpty()) {
+                                IconButton(onClick = { text = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = favourites, onCheckedChange = { favourites = it })
                         Text("Favourites only")
@@ -161,9 +129,28 @@ internal fun UnifiedShelfChrome(
                             Text(sortLabel(sort))
                         }
                     }
+                    Text("Library actions")
+                    TextButton(
+                        enabled = canAddCartridges,
+                        onClick = {
+                            filters = false
+                            onAddCartridges()
+                        },
+                    ) { Text("Add cartridges") }
+                    recentGame?.let { game ->
+                        TextButton(onClick = {
+                            filters = false
+                            onContinue(game)
+                        }) { Text("Continue · ${game.displayName()}", maxLines = 2) }
+                    }
                 }
             },
-            confirmButton = { TextButton(onClick = { filters = false }) { Text("Done") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    focus.clearFocus()
+                    filters = false
+                }) { Text("Done") }
+            },
             dismissButton = { TextButton(onClick = ::clear) { Text("Clear all") } },
         )
     }
