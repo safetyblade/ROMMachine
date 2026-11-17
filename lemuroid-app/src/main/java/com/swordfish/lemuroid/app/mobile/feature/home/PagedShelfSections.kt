@@ -1,0 +1,63 @@
+package com.swordfish.lemuroid.app.mobile.feature.home
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
+import kotlinx.coroutines.launch
+
+/** Browse-only: editing still receives the full layout and can move cells between sections. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun PagedShelfSections(
+    layout: ShelfLayout,
+    modifier: Modifier,
+    enabled: Boolean,
+    content: @Composable (ShelfLayout, Modifier, String) -> Unit,
+) {
+    val sections = layout.sections
+    if (!enabled || sections.isEmpty()) {
+        content(layout, modifier, "all")
+        return
+    }
+    val pager = rememberPagerState(pageCount = { sections.size })
+    val scope = rememberCoroutineScope()
+    Column(modifier) {
+        if (sections.size > 1) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                sections.forEachIndexed { index, section ->
+                    FilterChip(
+                        selected = pager.currentPage == index,
+                        onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                        label = { Text(section.title, maxLines = 1) },
+                    )
+                }
+            }
+        }
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            key = { sections[it].id },
+        ) { index ->
+            val section = sections[index]
+            content(layout.copy(sections = listOf(section)), Modifier.fillMaxSize(), "section:${section.id}")
+        }
+    }
+}
