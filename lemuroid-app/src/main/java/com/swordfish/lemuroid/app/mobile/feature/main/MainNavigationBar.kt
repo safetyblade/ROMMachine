@@ -11,20 +11,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -69,7 +69,7 @@ fun MainNavigationBar(
                         Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .heightIn(min = 72.dp),
+                            .heightIn(min = 48.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -107,10 +107,16 @@ private fun ProductDock(
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
-    NavigationBar(containerColor = materials.shelfBackboard, tonalElevation = 0.dp) {
+    Row(
+        Modifier.fillMaxWidth().navigationBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
         listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD").forEach { (route, title) ->
-            NavigationBarItem(
-                selected = currentRoute == route,
+            val active = currentRoute == route
+            val ink = if (active) materials.interactionAccent else materials.sectionText
+            TextButton(
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { selected = active },
                 onClick = {
                     if (currentRoute != route) {
                         navController.navigate(route.route) {
@@ -120,22 +126,14 @@ private fun ProductDock(
                         }
                     }
                 },
-                icon = {
-                    Icon(
-                        if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
-                        contentDescription = null,
-                    )
-                },
-                label = { Text(title) },
-                colors =
-                    NavigationBarItemDefaults.colors(
-                        selectedIconColor = materials.interactionAccent,
-                        selectedTextColor = materials.sectionText,
-                        unselectedIconColor = materials.sectionText,
-                        unselectedTextColor = materials.sectionText,
-                        indicatorColor = materials.roomBackdrop,
-                    ),
-            )
+            ) {
+                Icon(
+                    if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
+                    contentDescription = null,
+                    tint = ink,
+                )
+                Text(title, Modifier.padding(start = 8.dp), color = ink, maxLines = 1)
+            }
         }
     }
 }
