@@ -37,7 +37,7 @@ internal fun PagedShelfSections(
 ) {
     val sections = layout.sections
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
-    if (!enabled || sections.isEmpty()) {
+    if (!enabled || sections.size <= 1) {
         content(layout, modifier, "all")
         return
     }
