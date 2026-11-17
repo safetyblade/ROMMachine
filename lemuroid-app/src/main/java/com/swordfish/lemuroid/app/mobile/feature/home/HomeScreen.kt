@@ -140,10 +140,18 @@ internal fun HomeScreen(
     val shelfStates = rememberSaveableStateHolder()
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
-        PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) { pageLayout, pageModifier, pageKey ->
+        PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
+                pageLayout, pageModifier, pageKey ->
             shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
                 ShelfBoard(
-                    pageLayout, projection.games, onGameClicked, onGameLongClick, pageModifier, arrange, onEdit, onSectionEdit,
+                    pageLayout,
+                    projection.games,
+                    onGameClicked,
+                    onGameLongClick,
+                    pageModifier,
+                    arrange,
+                    onEdit,
+                    onSectionEdit,
                     artworkRevision = state.artworkRevision,
                     header = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -160,7 +168,10 @@ internal fun HomeScreen(
                             }
                             if (state.indexInProgress) {
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-                                Text(stringResource(R.string.cartdeck_scanning), modifier = Modifier.padding(horizontal = 16.dp))
+                                Text(
+                                    stringResource(R.string.cartdeck_scanning),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
                             }
                             AnimatedVisibility(state.showNoNotificationPermissionCard) {
                                 HomeNotification(
@@ -187,8 +198,14 @@ internal fun HomeScreen(
                                 )
                             }
                             state.recentGames.firstOrNull()?.takeUnless { query.active }?.let { recent ->
-                                TextButton(onClick = { onGameClicked(recent) }, modifier = Modifier.padding(horizontal = 16.dp)) {
-                                    Text(stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(), maxLines = 2)
+                                TextButton(
+                                    onClick = { onGameClicked(recent) },
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                ) {
+                                    Text(
+                                        stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
+                                        maxLines = 2,
+                                    )
                                 }
                             }
                             if (query.active && projection.games.isEmpty()) {
