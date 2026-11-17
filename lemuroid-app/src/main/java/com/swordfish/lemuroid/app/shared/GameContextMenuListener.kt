@@ -60,5 +60,6 @@ internal fun addCartridgeSetupEntries(
 ) {
     val setup = menu.addSubMenu("Setup")
     setup.add("Display").intent = Intent(context, DisplaySettingsActivity::class.java).putExtra("cartdeck.game", game)
-    setup.add("Controls").intent = Intent(context, ControllerSettingsActivity::class.java).putExtra("cartdeck.game", game)
+    setup.add("Controls").intent =
+        Intent(context, ControllerSettingsActivity::class.java).putExtra("cartdeck.game", game)
 }
