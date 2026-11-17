@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
@@ -33,12 +34,22 @@ internal fun PagedShelfSections(
     layout: ShelfLayout,
     modifier: Modifier,
     enabled: Boolean,
+    showFilters: Boolean,
+    filters: @Composable () -> Unit,
     content: @Composable (ShelfLayout, Modifier, String) -> Unit,
 ) {
     val sections = layout.sections
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     if (!enabled || sections.isEmpty()) {
-        content(layout, modifier, "all")
+        Column(modifier.fillMaxSize()) {
+            if (showFilters) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) { filters() }
+            }
+            content(layout, Modifier.weight(1f).fillMaxWidth(), "all")
+        }
         return
     }
     val initialPage = sections.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
@@ -49,11 +60,15 @@ internal fun PagedShelfSections(
         }
     }
     val scope = rememberCoroutineScope()
-    Column(modifier) {
-        if (sections.size > 1) {
+    Column(modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 sections.forEachIndexed { index, section ->
                     FilterChip(
@@ -63,6 +78,7 @@ internal fun PagedShelfSections(
                     )
                 }
             }
+            if (showFilters) filters()
         }
         HorizontalPager(
             state = pager,
