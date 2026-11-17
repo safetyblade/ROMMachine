@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 internal fun PcImportSettings(
     enabled: Boolean,
     onImported: () -> Unit,
+    visible: Boolean = true,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -52,15 +53,16 @@ internal fun PcImportSettings(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) windows = uri
         }
-    LemuroidCardSettingsGroup(title = { Text("Setup PC game · DOSBox Pure") }) {
+    if (!visible) return
+    LemuroidCardSettingsGroup(title = { Text("Set up PC game · DOSBox Pure") }) {
         LemuroidSettingsMenuLink(
-            title = { Text("Choose PC game ISO") },
+            title = { Text("1 · Choose PC game ISO") },
             subtitle = { Text(if (game == null) "No game selected" else "Game selected") },
             enabled = enabled && !busy,
             onClick = { gamePicker.launch(arrayOf("*/*")) },
         )
         LemuroidSettingsMenuLink(
-            title = { Text("Choose Windows installation ISO (optional)") },
+            title = { Text("2 · Windows installation ISO (optional)") },
             subtitle = { Text(if (windows == null) "No OS media selected" else "Windows media selected") },
             enabled = enabled && !busy,
             onClick = { windowsPicker.launch(arrayOf("*/*")) },
@@ -75,13 +77,13 @@ internal fun PcImportSettings(
         OutlinedTextField(
             value = executable,
             onValueChange = { executable = it },
-            label = { Text("Installed Windows EXE (optional)") },
+            label = { Text("3 · Installed Windows EXE (optional)") },
             supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
             enabled = !busy,
             singleLine = true,
         )
         LemuroidSettingsMenuLink(
-            title = { Text("Import as PC cartridge") },
+            title = { Text("4 · Import cartridge") },
             subtitle = {
                 Text("Copies selected media read-only. Original files and console cartridges remain unchanged.")
             },
