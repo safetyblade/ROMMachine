@@ -5,6 +5,7 @@ import kotlin.math.sqrt
 /** Pure, offline recommendation calculation. No ROM, save, network or database access. */
 object GemRatingRecommender {
     enum class Eligibility { GAME, RESEARCH_ONLY, EXCLUDED }
+
     enum class Evidence { SOURCE_BACKED, EDITORIAL_PROVISIONAL, WEAK_CONTEXT }
 
     data class Game(
@@ -21,6 +22,7 @@ object GemRatingRecommender {
     )
 
     data class Rating(val releaseId: String, val score: Double)
+
     data class Recommendation(
         val game: Game,
         val score: Double,
@@ -28,23 +30,29 @@ object GemRatingRecommender {
         val wildcard: Boolean,
     )
 
-    private val ignored = setOf(
-        "unknown", "unclassified", "misc", "miscellaneous", "other", "application",
-        "compilation", "arcade", "vertical arcade", "none", "n/a",
-    )
+    private val ignored =
+        setOf(
+            "unknown", "unclassified", "misc", "miscellaneous", "other", "application",
+            "compilation", "arcade", "vertical arcade", "none", "n/a",
+        )
 
-    private fun clean(value: String?): String? = value?.trim()?.lowercase()
-        ?.replace(Regex("\\s+"), " ")?.takeIf { it.isNotEmpty() && it !in ignored }
+    private fun clean(value: String?): String? =
+        value?.trim()?.lowercase()
+            ?.replace(Regex("\\s+"), " ")?.takeIf { it.isNotEmpty() && it !in ignored }
 
     /** The vector is deliberately sparse: absence of evidence is not a negative signal. */
-    private fun features(game: Game): Map<String, Double> = buildMap {
-        clean(game.primaryGenre)?.let { put("genre:$it", 0.25) }
-        clean(game.crossoverGenre)?.let { put("crossover:$it", 0.25) }
-        clean(game.playstyle)?.let { put("playstyle:$it", 0.30) }
-        game.mechanics.mapNotNull(::clean).distinct().forEach { put("mechanic:$it", 0.20) }
-    }
+    private fun features(game: Game): Map<String, Double> =
+        buildMap {
+            clean(game.primaryGenre)?.let { put("genre:$it", 0.25) }
+            clean(game.crossoverGenre)?.let { put("crossover:$it", 0.25) }
+            clean(game.playstyle)?.let { put("playstyle:$it", 0.30) }
+            game.mechanics.mapNotNull(::clean).distinct().forEach { put("mechanic:$it", 0.20) }
+        }
 
-    private fun similarity(a: Map<String, Double>, b: Map<String, Double>): Double {
+    private fun similarity(
+        a: Map<String, Double>,
+        b: Map<String, Double>,
+    ): Double {
         if (a.isEmpty() || b.isEmpty()) return 0.0
         val overlap = a.keys.intersect(b.keys).sumOf { key -> a.getValue(key) * b.getValue(key) }
         val magnitudeA = sqrt(a.values.sumOf { it * it })
@@ -76,51 +84,58 @@ object GemRatingRecommender {
         val ratedIds = ratings.map { it.releaseId }.toSet()
         val ratedWorks = known.mapNotNull { it.first.verifiedWorkId }.toSet()
         val likedGenres = known.filter { it.second > 5.5 }.mapNotNull { clean(it.first.primaryGenre) }.toSet()
-        val training = known.mapNotNull { (game, rating) ->
-            features(game).takeIf { it.isNotEmpty() }?.let { Triple(game, it, (rating - 5.5) / 4.5) }
-        }
+        val training =
+            known.mapNotNull { (game, rating) ->
+                features(game).takeIf { it.isNotEmpty() }?.let { Triple(game, it, (rating - 5.5) / 4.5) }
+            }
         if (training.isEmpty()) return emptyList()
 
-        val candidates = catalogue.asSequence()
-            .filter { it.releaseId !in ratedIds && it.eligibility == Eligibility.GAME }
-            .filter { it.verifiedWorkId == null || it.verifiedWorkId !in ratedWorks }
-            .mapNotNull { game ->
-                val vector = features(game)
-                if (vector.isEmpty()) return@mapNotNull null
-                val pairs = training.mapNotNull { (ratedGame, ratedFeatures, preference) ->
-                    val match = similarity(vector, ratedFeatures)
-                    if (match <= 0.0) null else Triple(ratedGame, match, preference)
+        val candidates =
+            catalogue.asSequence()
+                .filter { it.releaseId !in ratedIds && it.eligibility == Eligibility.GAME }
+                .filter { it.verifiedWorkId == null || it.verifiedWorkId !in ratedWorks }
+                .mapNotNull { game ->
+                    val vector = features(game)
+                    if (vector.isEmpty()) return@mapNotNull null
+                    val pairs =
+                        training.mapNotNull { (ratedGame, ratedFeatures, preference) ->
+                            val match = similarity(vector, ratedFeatures)
+                            if (match <= 0.0) null else Triple(ratedGame, match, preference)
+                        }
+                    if (pairs.isEmpty()) return@mapNotNull null
+                    // Dislikes contribute negative evidence without banning an entire genre.
+                    val preference = pairs.sumOf { it.second * it.third } / pairs.sumOf { it.second }
+                    if (preference <= 0.0) return@mapNotNull null
+                    val best =
+                        pairs.filter { it.third > 0.0 }.maxByOrNull { it.second * it.third }
+                            ?: return@mapNotNull null
+                    val common = vector.keys.intersect(features(best.first).keys).sorted()
+                    val confidence =
+                        when (game.evidence) {
+                            Evidence.SOURCE_BACKED -> 1.0
+                            Evidence.EDITORIAL_PROVISIONAL -> 0.75
+                            Evidence.WEAK_CONTEXT -> 0.40
+                        }
+                    val score = preference * best.second * confidence
+                    val novelGenre = clean(game.primaryGenre)?.let { it !in likedGenres } == true
+                    Recommendation(
+                        game = game,
+                        score = score,
+                        reason = "Similar to ${best.first.title}: ${common.joinToString(
+                            ", ",
+                        ) { it.substringAfter(':') }}",
+                        wildcard = novelGenre,
+                    )
                 }
-                if (pairs.isEmpty()) return@mapNotNull null
-                // Dislikes contribute negative evidence without banning an entire genre.
-                val preference = pairs.sumOf { it.second * it.third } / pairs.sumOf { it.second }
-                if (preference <= 0.0) return@mapNotNull null
-                val best = pairs.filter { it.third > 0.0 }.maxByOrNull { it.second * it.third }
-                    ?: return@mapNotNull null
-                val common = vector.keys.intersect(features(best.first).keys).sorted()
-                val confidence = when (game.evidence) {
-                    Evidence.SOURCE_BACKED -> 1.0
-                    Evidence.EDITORIAL_PROVISIONAL -> 0.75
-                    Evidence.WEAK_CONTEXT -> 0.40
-                }
-                val score = preference * best.second * confidence
-                val novelGenre = clean(game.primaryGenre)?.let { it !in likedGenres } == true
-                Recommendation(
-                    game = game,
-                    score = score,
-                    reason = "Similar to ${best.first.title}: ${common.joinToString(", ") { it.substringAfter(':') }}",
-                    wildcard = novelGenre,
-                )
-            }
-            .sortedWith(compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId })
-            .toList()
+                .sortedWith(compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId })
+                .toList()
 
         val wildcardSlots = (limit * wildcardShare).toInt()
         val wildcards = candidates.filter { it.wildcard }.take(wildcardSlots)
         val standards = candidates.filterNot { it in wildcards }.take(limit - wildcards.size)
         // Final order stable. No auto-collapse for same-title releases lacking verified work IDs.
         return (standards + wildcards).sortedWith(
-            compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId }
+            compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId },
         ).take(limit)
     }
 }

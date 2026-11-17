@@ -1,19 +1,31 @@
 package com.swordfish.lemuroid.app.gemrating
 
-import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender.Evidence
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender.Eligibility
+import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender.Evidence
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender.Game
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender.Rating
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GemRatingRecommenderTest {
-    private fun game(id: String, genre: String = "Strategy", mechanic: String = "Grid combat", work: String? = null,
-        eligibility: Eligibility = Eligibility.GAME, evidence: Evidence = Evidence.SOURCE_BACKED) = Game(
-        releaseId = id, title = id, platform = "GBA", primaryGenre = genre,
-        mechanics = setOf(mechanic), verifiedWorkId = work, eligibility = eligibility, evidence = evidence,
+    private fun game(
+        id: String,
+        genre: String = "Strategy",
+        mechanic: String = "Grid combat",
+        work: String? = null,
+        eligibility: Eligibility = Eligibility.GAME,
+        evidence: Evidence = Evidence.SOURCE_BACKED,
+    ) = Game(
+        releaseId = id,
+        title = id,
+        platform = "GBA",
+        primaryGenre = genre,
+        mechanics = setOf(mechanic),
+        verifiedWorkId = work,
+        eligibility = eligibility,
+        evidence = evidence,
     )
 
     @Test fun coldStartDoesNotInventPreferences() {
@@ -26,7 +38,8 @@ class GemRatingRecommenderTest {
     }
 
     @Test fun negativeRatingsPenalizeRatherThanTrainPositiveMatches() {
-        val data = listOf(game("liked"), game("disliked", "Shooter", "FPS"), game("good"), game("bad", "Shooter", "FPS"))
+        val data =
+            listOf(game("liked"), game("disliked", "Shooter", "FPS"), game("good"), game("bad", "Shooter", "FPS"))
         val r = GemRatingRecommender.recommend(data, listOf(Rating("liked", 9.0), Rating("disliked", 2.0)))
         assertEquals(listOf("good"), r.map { it.game.releaseId })
     }
@@ -38,27 +51,44 @@ class GemRatingRecommenderTest {
 
     @Test fun knownSameWorkDoesNotInheritRatingOrRecommendDuplicate() {
         val data = listOf(game("EU", work = "verified-work"), game("US", work = "verified-work"), game("other"))
-        assertEquals(listOf("other"), GemRatingRecommender.recommend(data, listOf(Rating("EU", 9.0))).map { it.game.releaseId })
+        assertEquals(
+            listOf("other"),
+            GemRatingRecommender.recommend(data, listOf(Rating("EU", 9.0))).map { it.game.releaseId },
+        )
     }
 
     @Test fun identicalNamesWithDifferentReleaseIdsAreNotAutoMerged() {
         val data = listOf(game("Aladdin-SNES"), game("Aladdin-GEN"))
-        assertEquals("Aladdin-GEN", GemRatingRecommender.recommend(data, listOf(Rating("Aladdin-SNES", 9.0))).single().game.releaseId)
+        assertEquals(
+            "Aladdin-GEN",
+            GemRatingRecommender.recommend(data, listOf(Rating("Aladdin-SNES", 9.0))).single().game.releaseId,
+        )
     }
 
     @Test fun originalAndDxRemainSeparateWhenNoVerifiedWork() {
         val data = listOf(game("original"), game("dx"))
-        assertEquals("dx", GemRatingRecommender.recommend(data, listOf(Rating("original", 9.0))).single().game.releaseId)
+        assertEquals(
+            "dx",
+            GemRatingRecommender.recommend(data, listOf(Rating("original", 9.0))).single().game.releaseId,
+        )
     }
 
     @Test fun excludesHoldAndResearchOnlyAsPlayableSuggestions() {
-        val data = listOf(game("rated"), game("demo", eligibility = Eligibility.EXCLUDED), game("research", eligibility = Eligibility.RESEARCH_ONLY))
+        val data =
+            listOf(
+                game("rated"),
+                game("demo", eligibility = Eligibility.EXCLUDED),
+                game("research", eligibility = Eligibility.RESEARCH_ONLY),
+            )
         assertTrue(GemRatingRecommender.recommend(data, listOf(Rating("rated", 9.0))).isEmpty())
     }
 
     @Test fun editorialConfidenceDoesNotOutrankEquivalentSourcedEvidence() {
-        val data = listOf(game("rated"),game("sourced"),game("editorial", evidence = Evidence.EDITORIAL_PROVISIONAL))
-        assertEquals("sourced", GemRatingRecommender.recommend(data, listOf(Rating("rated", 9.0))).first().game.releaseId)
+        val data = listOf(game("rated"), game("sourced"), game("editorial", evidence = Evidence.EDITORIAL_PROVISIONAL))
+        assertEquals(
+            "sourced",
+            GemRatingRecommender.recommend(data, listOf(Rating("rated", 9.0))).first().game.releaseId,
+        )
     }
 
     @Test fun ratingsMustBeInAllowedRange() {

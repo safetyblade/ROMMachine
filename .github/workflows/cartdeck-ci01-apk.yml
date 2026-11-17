@@ -1,0 +1,50 @@
+name: CARTDECK CI-01 verified APK modes
+run-name: CI-01 ${{ inputs.build_mode }} at ${{ github.sha }}
+
+# Opt-in acceptance path. The normal APK workflow stays unchanged until QA accepts
+# the ten-component inventory, reuse matrix and exact-source APK evidence.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cartdeck-ci01-apk.yml'
+      - 'scripts/ci/measure_apk_build.py'
+      - 'scripts/ci/test_measure_apk_build.py'
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'Use ten verified native receipts; missing engines fail without compilation'
+        type: choice
+        required: true
+        default: FAST_TEST_APK
+        options:
+          - FAST_TEST_APK
+          - FULL_INTEGRATION_APK
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ci01-apk-${{ inputs.build_mode }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mode-source-checks:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify APK timing success and failure evidence
+        run: python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
+  verified-apk:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: false
+      use_ci01_all_native: true
+      measure_apk_reuse: ${{ inputs.build_mode == 'FULL_INTEGRATION_APK' }}

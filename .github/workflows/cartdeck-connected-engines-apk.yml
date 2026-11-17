@@ -3,6 +3,15 @@ name: CARTDECK connected native engines APK
 on:
   workflow_call:
     inputs:
+      recovery_native_run_id:
+        type: string
+        default: ""
+      measure_apk_reuse:
+        type: boolean
+        default: false
+      distribution_licensing_cleared:
+        type: boolean
+        default: false
       include_ps3:
         type: boolean
         default: false
@@ -12,7 +21,30 @@ on:
       publish_apk:
         type: boolean
         default: true
+      use_ci01_native_set:
+        type: boolean
+        default: false
+      use_ci01_all_native:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      measure_apk_reuse:
+        description: 'Measure clean-output and same-workspace repeat APK builds; retain dependency caches'
+        type: boolean
+        default: false
+      use_ci01_all_native:
+        description: 'Verify and reuse ten individually built native components (CI-01 trial)'
+        type: boolean
+        default: false
+      use_ci01_native_set:
+        description: 'Validate and substitute five independent, provenance-verified native inputs'
+        type: boolean
+        default: false
+      native_rebuild_authorized:
+        description: 'Explicitly authorize complete pinned-source native rebuild (legacy recovery only)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,28 +70,76 @@ jobs:
         with:
           python-version: '3.12'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Locate the existing passed native input artifacts
+      - name: Enforce PS3 distribution clearance before staging
+        if: inputs.include_ps3 == true && inputs.distribution_licensing_cleared != true
+        run: |
+          echo '::error::PS3 distribution BLOCKED: distribution_licensing_cleared must be explicitly recorded before combining these engines with the application.'
+          exit 1
+      - name: Native resolver source tests (before native downloads)
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_remaining_engines.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_resolve_native_artifacts.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_issue_native_receipt.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_ci01_ps1.py' -v
+      - name: Early source formatting gate (before native downloads and compilation)
+        run: |
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          test -x "$gradle_bin"
+          "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
+      - name: Resolve legacy inputs by named component, not fixed artifact IDs
         id: inputs
         uses: actions/github-script@v7
         with:
           script: |
-            const ids = [14116265838, 14115852235, 14115797791, 14115726591, 14115323552,
-                         14115651191, 14116123727, 14115725803, 14114153891, 14116921782];
-            let reusable = true;
-            for (const artifact_id of ids) {
-              try {
-                const result = await github.rest.actions.getArtifact({...context.repo, artifact_id});
-                if (result.data.expired) reusable = false;
-              } catch (error) {
-                if (error.status !== 404 && error.status !== 410) throw error;
-                reusable = false;
+            // Temporary compatibility catalog for native backends awaiting CI-01 receipts.
+            // Do not infer provenance from a name: all downloaded outputs still pass the
+            // existing native staging/ELF/package checks before APK publication.
+            const useAll = '${{ inputs.use_ci01_all_native }}' === 'true';
+            const useFive = '${{ inputs.use_ci01_native_set }}' === 'true';
+            const groups = [
+              {run: 43598603237, names: [
+                ...(!useAll ? ['hakux-android-backend', 'xenia-android-backend',
+                'patched-libretrodroid-host'] : []),
+                ...(!(useFive || useAll) ? [
+                  'native-engine-ps1', 'native-engine-psp', 'native-engine-dc',
+                  'native-engine-gc', 'native-engine-ps2'] : [])]},
+              {run: 43595931102, names: useAll ? [] : ['ps2-armsx2-native-verified-private']},
+              {run: 43601391744, names: useAll ? [] : ['wiiu-cemu-verified-arm64-core-private-not-an-apk']}
+            ];
+            const missing = [];
+            for (const group of groups) {
+              if (!group.names.length) continue;
+              const run = (await github.rest.actions.getWorkflowRun({
+                ...context.repo, run_id: group.run
+              })).data;
+              if (run.conclusion !== 'success') {
+                missing.push(...group.names.map(name => name + ': source run not successful'));
+                continue;
+              }
+              const list = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...context.repo, run_id: group.run, per_page: 100
+              });
+              for (const name of group.names) {
+                const found = list.find(a => a.name === name && !a.expired);
+                if (!found) missing.push(name + ': missing or expired');
               }
             }
-            core.setOutput('reuse', String(reusable));
-            core.info(reusable ? 'Reuse the passed genuine engines; no native recompilation.' :
-                                'Native input retention expired; compile pinned sources once.');
+            core.setOutput('reuse', String(missing.length === 0));
+            core.setOutput('missing', JSON.stringify(missing));
+            core.summary.addHeading('Legacy native component inventory');
+            core.summary.addRaw(missing.length ? missing.join('\\n') :
+              'All named legacy inputs retained; downstream native package verification remains mandatory.');
+            await core.summary.write();
+            if (missing.length) core.warning('Missing native components: ' + missing.join('; '));
+      - name: Stop before expensive native compilation without explicit authorization
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized != true
+        run: |
+          echo '::error::Missing or expired native inputs. Routine APK builds must not rebuild every engine. Rebuild the missing components in their engine workflows and provide verified artifacts; use native_rebuild_authorized only for a deliberate complete recovery.'
+          exit 1
       - name: Download the passed five-engine, Wii, hakuX and Xenia builds
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_native_set != true && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -67,28 +147,28 @@ jobs:
           pattern: native-engine-*
           path: work/connected/legacy
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
           name: hakux-android-backend
           path: work/connected/hakux
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
           name: xenia-android-backend
           path: work/connected/xenia
       - uses: actions/download-artifact@v4
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43598603237
           name: patched-libretrodroid-host
           path: work/connected/host
       - name: Download both passed genuine ARMSX2 page models
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -96,13 +176,214 @@ jobs:
           name: ps2-armsx2-native-verified-private
           path: work/connected/armsx2
       - name: Download the passed Cemu core and Vulkan host build
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 43601391744
           name: wiiu-cemu-verified-arm64-core-private-not-an-apk
           path: work/connected/cemu
+      - name: Resolve successful independent engine workflow runs
+        if: inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true
+        id: ci01_set
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const engines = ['ps1', 'psp', 'dc', 'gc', 'ps2'];
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const runCache = new Map();
+            for (const engine of engines) {
+              const prefix = 'native-ci01-' + engine + '-';
+              const candidates = artifacts.filter(a => !a.expired && a.name.startsWith(prefix))
+                .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+              let selected = null;
+              for (const artifact of candidates) {
+                const id = artifact.workflow_run?.id;
+                if (!id) continue;
+                if (!runCache.has(id)) {
+                  const response = await github.rest.actions.getWorkflowRun({...context.repo, run_id: id});
+                  runCache.set(id, response.data);
+                }
+                const run = runCache.get(id);
+                if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
+                    run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                    artifact.name !== prefix + run.head_sha) continue;
+                selected = {run_id: run.id, name: artifact.name};
+                break;
+              }
+              if (!selected) {
+                core.setFailed('Missing verified native build for ' + engine +
+                  '; dispatch its individual CI-01 engine build.');
+                return;
+              }
+              core.setOutput(engine + '_run', String(selected.run_id));
+              core.setOutput(engine + '_name', selected.name);
+            }
+      - name: Download independently verified PS1 candidate
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.ps1_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.ps1_run }}
+          name: ${{ steps.ci01_set.outputs.ps1_name }}
+          path: work/connected/ci01-native/ps1
+      - name: Download independently verified PSP candidate
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.psp_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.psp_run }}
+          name: ${{ steps.ci01_set.outputs.psp_name }}
+          path: work/connected/ci01-native/psp
+      - name: Download independently verified DC candidate
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.dc_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.dc_run }}
+          name: ${{ steps.ci01_set.outputs.dc_name }}
+          path: work/connected/ci01-native/dc
+      - name: Download independently verified GC candidate
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.gc_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.gc_run }}
+          name: ${{ steps.ci01_set.outputs.gc_name }}
+          path: work/connected/ci01-native/gc
+      - name: Download independently verified PS2 candidate
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.ci01_set.outputs.ps2_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_set.outputs.ps2_run }}
+          name: ${{ steps.ci01_set.outputs.ps2_name }}
+          path: work/connected/ci01-native/ps2
+      - name: Independently verify all five pinned engine receipts
+        if: inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in ps1 psp dc gc ps2; do
+            python3 scripts/ci/ci01_legacy_engines.py \
+              --engine "$engine" --directory "work/connected/ci01-native/$engine"
+          done
+      - name: Discover remaining five independently verified native backends
+        id: ci01_backends
+        if: inputs.use_ci01_all_native == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const engines = ['hakux', 'xenia', 'armsx2', 'cemu', 'libretrodroid'];
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const runs = new Map();
+            for (const engine of engines) {
+              const prefix = 'native-ci01-' + engine + '-';
+              let chosen = null;
+              const recoveryRun = '${{ inputs.recovery_native_run_id }}';
+              if (recoveryRun && ['cemu','xenia'].includes(engine)) {
+                if (recoveryRun !== String(context.runId)) {
+                  core.setFailed('Recovery override must be the current dependency-ordered run'); return;
+                }
+                const exact = all.find(a => !a.expired &&
+                  String(a.workflow_run?.id) === recoveryRun &&
+                  a.name === prefix + '${{ github.sha }}');
+                if (!exact) { core.setFailed('Current verified recovery component missing: ' + engine); return; }
+                core.setOutput(engine + '_run', recoveryRun);
+                core.setOutput(engine + '_name', exact.name);
+                continue;
+              }
+              const candidates = all.filter(a => !a.expired && a.name.startsWith(prefix))
+                .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+              for (const artifact of candidates) {
+                const runId = artifact.workflow_run?.id;
+                if (!runId) continue;
+                if (!runs.has(runId)) {
+                  const response = await github.rest.actions.getWorkflowRun({...context.repo, run_id: runId});
+                  runs.set(runId, response.data);
+                }
+                const run = runs.get(runId);
+                const dispatched = run.event === 'workflow_dispatch' &&
+                  run.path === '.github/workflows/cartdeck-ci01-native-engine.yml' && artifact.name === prefix + run.head_sha;
+                const recovered = run.event === 'pull_request' &&
+                  run.path === '.github/workflows/cartdeck-emu-recovery.yml' &&
+                  run.head_branch?.startsWith('engineering/emu-recovery-') &&
+                  new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                if (run.conclusion !== 'success' || !(dispatched || recovered) ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
+                chosen = {run_id: run.id, name: artifact.name};
+                break;
+              }
+              if (!chosen) {
+                core.setFailed('Missing verified native artifact for ' + engine +
+                  '. Build the individual CI-01 component and retain its receipt.');
+                return;
+              }
+              core.setOutput(engine + '_run', String(chosen.run_id));
+              core.setOutput(engine + '_name', chosen.name);
+            }
+      - name: Download verified hakux native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.hakux_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.hakux_run }}
+          name: ${{ steps.ci01_backends.outputs.hakux_name }}
+          path: work/connected/ci01-native/hakux
+      - name: Download verified xenia native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.xenia_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.xenia_run }}
+          name: ${{ steps.ci01_backends.outputs.xenia_name }}
+          path: work/connected/ci01-native/xenia
+      - name: Download verified armsx2 native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.armsx2_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.armsx2_run }}
+          name: ${{ steps.ci01_backends.outputs.armsx2_name }}
+          path: work/connected/ci01-native/armsx2
+      - name: Download verified cemu native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.cemu_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.cemu_run }}
+          name: ${{ steps.ci01_backends.outputs.cemu_name }}
+          path: work/connected/ci01-native/cemu
+      - name: Download verified libretrodroid native backend
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.libretrodroid_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci01_backends.outputs.libretrodroid_run }}
+          name: ${{ steps.ci01_backends.outputs.libretrodroid_name }}
+          path: work/connected/ci01-native/libretrodroid
+      - name: Check remaining native receipts before assembly
+        if: inputs.use_ci01_all_native == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            python3 scripts/ci/ci01_remaining_engines.py \
+              --engine "$engine" --directory "work/connected/ci01-native/$engine"
+            case "$engine" in
+              hakux|armsx2|xenia)
+                python3 scripts/ci/retain_ci01_sources.py --engine "$engine" \
+                  --directory "work/connected/ci01-native/$engine" ;;
+              libretrodroid)
+                python3 scripts/ci/retain_ci01_host_metadata.py \
+                  --directory "work/connected/ci01-native/$engine" ;;
+            esac
+          done
       - name: Prepare APK toolchain and pinned source resources (no emulator compilation)
         shell: bash
         run: |
@@ -113,19 +394,55 @@ jobs:
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
           bash scripts/ci/bootstrap_gradle.sh
       - uses: actions/setup-java@v4
-        if: steps.inputs.outputs.reuse != 'true'
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized == true
         with:
           distribution: temurin
           java-version: '21'
       - name: Refresh expired inputs from the real pinned sources
-        if: steps.inputs.outputs.reuse != 'true'
-        run: bash scripts/ci/build_connected_native_inputs.sh
+        if: steps.inputs.outputs.reuse != 'true' && inputs.native_rebuild_authorized == true
+        env:
+          CARTDECK_FULL_NATIVE_REBUILD_AUTHORIZED: 'true'
+        run: bash scripts/ci/build_connected_native_inputs.sh --all
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+      - name: Substitute independently verified five-engine native inputs
+        if: (inputs.use_ci01_native_set == true || inputs.use_ci01_all_native == true) && steps.inputs.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in ps1 psp dc gc ps2; do
+            source="work/connected/ci01-native/$engine"
+            python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$source"
+            destination="work/connected/legacy/native-engine-$engine"
+            if [[ -e "$destination" ]]; then
+              echo "::error::Refusing to overwrite existing native engine: $destination"
+              exit 1
+            fi
+            mkdir -p "$(dirname "$destination")"
+            cp -a "$source" "$destination"
+            python3 scripts/ci/ci01_legacy_engines.py --engine "$engine" --directory "$destination"
+          done
+      - name: Stage independently verified backends into legacy-compatible build layout
+        if: inputs.use_ci01_all_native == true && steps.inputs.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            source="work/connected/ci01-native/$engine"
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "$source"
+            case "$engine" in
+              libretrodroid) target=work/connected/host ;;
+              *) target="work/connected/$engine" ;;
+            esac
+            test ! -e "$target"
+            mkdir -p "$(dirname "$target")"
+            cp -a "$source" "$target"
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "$target"
+          done
       - name: Rebuild Cemu with guest-alignment-safe atomics
-        if: steps.inputs.outputs.reuse == 'true'
+        if: steps.inputs.outputs.reuse == 'true' && inputs.use_ci01_all_native != true
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ninja-build pkg-config glslang-tools spirv-tools
@@ -136,11 +453,20 @@ jobs:
           c++ -std=c++17 -pthread -fsanitize=undefined,address native/wiiu/GuestAtomic64Test.cpp -o "$RUNNER_TEMP/guest-atomic64-test"
           "$RUNNER_TEMP/guest-atomic64-test"
       - name: Package source-licensed PS2 resources for the existing engines
+        if: inputs.use_ci01_all_native != true
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ps2_android_resources.py' -v
           python3 scripts/ci/package_ps2_runtime_support.py --work work/connected/armsx2 --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Build the updated Wii U Vulkan frontend against pinned core headers
+        if: inputs.use_ci01_all_native != true
         run: python3 scripts/ci/rebuild_wiiu_host.py
+      - name: Recheck reusable native receipts immediately before staging
+        if: inputs.use_ci01_all_native == true
+        run: |
+          set -euo pipefail
+          for engine in hakux xenia armsx2 cemu libretrodroid; do
+            python3 scripts/ci/ci01_remaining_engines.py --engine "$engine" --directory "work/connected/ci01-native/$engine"
+          done
       - name: Connect the real engines to one CARTDECK payload
         shell: bash
         run: |
@@ -212,14 +538,22 @@ jobs:
           export CARTDECK_OUTPUT=dist/connected
           mkdir -p "$CARTDECK_OUTPUT/evidence"
           git rev-parse HEAD > "$CARTDECK_OUTPUT/evidence/app-source-sha.txt"
-          "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+          benchmark_args=()
+          if [[ '${{ inputs.measure_apk_reuse }}' == true ]]; then
+            "$GRADLE_BIN" clean --no-daemon --no-configuration-cache --max-workers=2
+            benchmark_args+=(--no-build-cache)
+          fi
+          python3 scripts/ci/measure_apk_build.py \
+            --report "$CARTDECK_OUTPUT/evidence/apk-build-timings.json" \
+            --repeat '${{ inputs.measure_apk_reuse }}' -- \
+            "$GRADLE_BIN" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
             -Pcartdeck.dev.standaloneId=true -Pcartdeck.p0.phoneArm64Only=true \
             -Pcartdeck.p0.testVersionCode="$version_code" -Pcartdeck.p1emu.enabled=true \
             -PcartdeckNativeSystems="$(cat work/connected/bundle/native-systems.txt)" \
             -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/work/connected/bundle" \
             -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/connected/host/maven" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
-            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2
+            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 "${benchmark_args[@]}"
           bash scripts/ci/verify_standalone_apk.sh
           python3 scripts/ci/verify_native_bundle_apk.py \
             "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" work/connected/bundle \
@@ -269,4 +603,5 @@ jobs:
           path: |
             lemuroid-app/build/reports/ktlint/
             lemuroid-app/build/test-results/
+            dist/connected/evidence/apk-build-timings.json
           if-no-files-found: warn

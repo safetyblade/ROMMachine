@@ -1,0 +1,64 @@
+name: CARTDECK EMU recovery candidate
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/cartdeck-emu-recovery.yml'
+      - '.github/workflows/cartdeck-connected-engines-apk.yml'
+      - 'scripts/ci/xbox360/**'
+      - 'scripts/ci/wiiu_cemu_contract.py'
+      - 'scripts/ci/stage_wiiu_vulkan_lab.py'
+      - 'native/wiiu/**'
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: emu-recovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gates:
+    if: github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'engineering/emu-recovery-')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Reject source formatting failures before native work
+        run: |
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
+      - run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_cemu_atomic_attestation.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_xbox360_native.py' -v
+          c++ -std=c++17 -pthread -fsanitize=undefined,address native/wiiu/GuestAtomic64Test.cpp -o /tmp/atomic64-test
+          /tmp/atomic64-test
+  corrected-cemu:
+    needs: gates
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: cemu
+    secrets: inherit
+  instrumented-xenia:
+    needs: gates
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: xenia
+    secrets: inherit
+  candidate-apk:
+    needs: [corrected-cemu, instrumented-xenia]
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      use_ci01_all_native: true
+      recovery_native_run_id: ${{ format('{0}', github.run_id) }}
+      include_ps3: false
+      distribution_licensing_cleared: false
+      publish_apk: true
+    secrets: inherit

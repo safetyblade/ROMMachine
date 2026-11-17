@@ -73,10 +73,17 @@ def main():
         if not shutil.which(tool):
             raise RuntimeError('Missing host shader compiler: ' + tool)
     work.mkdir(parents=True, exist_ok=True)
-    source = work / 'source'
-    run('git', 'clone', '--no-checkout', 'https://github.com/rfandango/XenDroid.git', source)
-    run('git', '-C', source, 'checkout', '--detach', REVISION)
-    run('git', '-C', source, 'submodule', 'update', '--init', '--recursive', '--depth', '1')
+    existing = os.environ.get('X360_SOURCE_CHECKOUT')
+    source = pathlib.Path(existing).resolve() if existing else work / 'source'
+    if existing:
+        if subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True).strip():
+            raise ValueError('Reusable source checkout must be pristine before adaptation')
+        if subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip() != REVISION:
+            raise ValueError('Reusable Xenia source pin mismatch')
+    else:
+        run('git', 'clone', '--no-checkout', 'https://github.com/rfandango/XenDroid.git', source)
+        run('git', '-C', source, 'checkout', '--detach', REVISION)
+        run('git', '-C', source, 'submodule', 'update', '--init', '--recursive', '--depth', '1')
     submodules = subprocess.check_output(['git', '-C', str(source), 'submodule', 'status', '--recursive'], text=True)
     if any(line and line[0] in '-+U' for line in submodules.splitlines()):
         raise ValueError('Unverified submodule revisions')

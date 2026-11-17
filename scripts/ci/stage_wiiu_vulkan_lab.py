@@ -34,6 +34,8 @@ def stage(work, output, readelf):
     if output.exists():
         raise ValueError("Output directory exists; refuse reuse")
     proof = json.loads((work / "native-evidence.json").read_text(encoding="utf-8"))
+    from wiiu_cemu_contract import require_guest_atomic64
+    require_guest_atomic64(proof)
     if proof.get("native_abi_pass") is not True or (
         proof.get("source", {}).get("revision") != CEMU_SHA
     ) or proof.get("vulkan_frontend_verified") is not False:
@@ -98,6 +100,8 @@ def stage(work, output, readelf):
         "library.names": ",".join(sorted(verified)),
     }
     props.update({"library." + name + ".sha256": meta["sha256"] for name, meta in verified.items()})
+    props.update({"library." + name + ".build_id": meta["build_id"] for name, meta in verified.items()})
+    props["atomic64.repair"] = "verified"
     (assets / "cemu.properties").write_text("".join(key + "=" + value + "\n" for key, value in sorted(props.items())))
     shutil.copyfile(notices, assets / "cemu-licenses.zip")
     report = {

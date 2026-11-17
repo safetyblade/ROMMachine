@@ -1,0 +1,29 @@
+{
+  "core_sha256": "15980240cc76f97bf270c31d1dfcf39a7cc9f9b40acc4d2c75fe30134ca669d5",
+  "build_id": "3d9c4d31dbe5a94db49c4044c553ebac262bdeb1",
+  "source_patches": [
+    {
+      "after_sha256": "193c41eacbe36ce13660c9a009424f0e153a1f18362eb35a0ae7ccf25da53ebb",
+      "before_sha256": "0710017b1bacaad2a2815b0f40c4efa060da67632fcb79529e4006de1bcf197a",
+      "path": "CMakeLists.txt",
+      "purpose": "Respect explicit ENABLE_LIBUSB=OFF; Android controllers use Libretro"
+    }
+  ],
+  "artifact_id": 14197560121,
+  "run_id": 43801396773,
+  "packaged_in_candidate_run": 43805557009,
+  "producer_identity": {
+    "abi": "arm64-v8a",
+    "api_level": 28,
+    "build_configuration": "script-defined",
+    "build_script_sha256": "3fb143cfcf96e9d24128b6105efdac748dcc1e52b2dde4a3b83aa5c772dbe1ac",
+    "compiler_flags_sha256": "68335449360d98dd5257763c5f8e46548faa6eda5a118df2d4088aec304fbed6",
+    "engine": "cemu",
+    "engine_version": "cemu-vulkan",
+    "ndk_version": "29.0.14206865",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_commit": "444c585202302a7f4b319bafb4cf72156a8cac8b"
+  },
+  "atomic64_repair_present": false,
+  "owner_current_installed_engine": "UNIDENTIFIED"
+}

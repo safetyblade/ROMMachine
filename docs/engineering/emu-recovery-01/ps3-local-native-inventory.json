@@ -1,0 +1,43 @@
+{
+  "armsx3": {
+    "source": "d396f0b6b8372789e6423a4f4d242cab4c5135eb",
+    "source_elf_sha256": "e2ae180cdd83851bfc3343c03bdf2a9c8eaa184e9847a6e05df88fefe47ff664",
+    "bytes": 1257352816,
+    "build_id": "93e95eb56e46152734fcd5b665bf1a431af013b7",
+    "needed": [
+      "libandroid.so",
+      "liblog.so",
+      "libaaudio.so",
+      "libz.so",
+      "libc.so",
+      "libvulkan.so",
+      "libdl.so",
+      "libOpenSLES.so",
+      "libamidi.so",
+      "libm.so"
+    ],
+    "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "arm64_16k_load_alignment": "PASS",
+    "exported_native_abi": "PASS",
+    "distribution": "BLOCKED",
+    "host_runtime": "UNVERIFIED"
+  },
+  "rpcs3-libretro": {
+    "source": "993a9914a05361e6b3afe0487c463d9cb5f5b12b",
+    "source_elf_sha256": "15bb12ad65f36aec59f02616384efd8e57ebc518d3974d23370b6f89cd102090",
+    "bytes": 1161329856,
+    "build_id": "5c75af5df9ae4cc1a9655a74af43f3a35fa28a60",
+    "needed": [
+      "libdl.so",
+      "libc.so",
+      "libvulkan.so",
+      "liblog.so",
+      "libm.so"
+    ],
+    "source_patch_sha256": "5628ed810cc72b17d6fdf9bedd439b9e7c1d769f98d4d9727836fcccda3915e7",
+    "arm64_16k_load_alignment": "PASS",
+    "exported_native_abi": "PASS",
+    "distribution": "BLOCKED",
+    "host_runtime": "UNVERIFIED"
+  }
+}

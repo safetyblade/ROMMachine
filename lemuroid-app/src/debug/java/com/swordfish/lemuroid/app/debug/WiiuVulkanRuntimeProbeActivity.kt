@@ -96,6 +96,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var message by mutableStateOf("Preparing Wii U content. Open the game menu to cancel.")
     private var showLoadingScreen by mutableStateOf(true)
     private var presentationRecorded = false
+    private var loadedCoreSha256 = "UNVERIFIED"
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
@@ -350,6 +351,19 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         val data = WiiuStorage.cartridgeRoot(filesDir, current.cartridgeId)
                         sandbox = data
                         val engine = WiiuEngine.install(this@WiiuVulkanRuntimeProbeActivity)
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        engine.core.inputStream().use { input ->
+                            val buffer = ByteArray(65536)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                digest.update(buffer, 0, count)
+                            }
+                        }
+                        loadedCoreSha256 = digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+                        check(loadedCoreSha256 == engine.properties.getProperty("core.sha256")) {
+                            "Selected Cemu engine checksum mismatch; saves retained"
+                        }
                         check(data.isDirectory || data.mkdirs())
                         val image =
                             WiiuContent.stage(
@@ -421,8 +435,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         }
     }
 
-    private fun engineReport(native: String) =
-        "apk_version_code=${com.swordfish.lemuroid.BuildConfig.VERSION_CODE}\nengine=${selection?.id}\n$native"
+    private fun engineReport(native: String): String {
+        val properties = selection?.properties
+        val buildId = properties?.getProperty("library.libcemu_libretro_android.so.build_id", "UNKNOWN")
+        val source = properties?.getProperty("upstream.revision", "UNKNOWN")
+        return "apk_version_code=${com.swordfish.lemuroid.BuildConfig.VERSION_CODE}\nengine=${selection?.id}\n" +
+            "core_sha256=$loadedCoreSha256\ncore_build_id=$buildId\ncore_source=$source\n$native"
+    }
 
     private fun startIfReady() {
         val engine = selection ?: return
