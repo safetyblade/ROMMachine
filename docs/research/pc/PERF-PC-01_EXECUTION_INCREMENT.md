@@ -29,3 +29,10 @@ No APK or source-test PASS until current-head CI completes. Keep release clearan
 
 ## PC-F4 continuation — physical keyboard and mouse
 Build fix #315 shortens the failing message from APK run 44044622365. Added DOSBox-only Activity input dispatch, host keyboard polling and callback registration, relative mouse deltas and button states, and input release on focus/pause. Other cores do not send the PC protocol. The existing final host bridge patch now includes the PC input additions in separate file-diff sections; the host-specific patch and build recipe hashes change without invalidating the shared recipe for all five native backends. The existing native host input suite is now a mandatory pre-publication gate. Kotlin regressions authored. No APK or device acceptance is claimed. Wheel, Unicode, touch keyboard, controller mouse, guest boot and save/reopen remain pending. Wine remains a separate outstanding increment.
+
+## PC-F2/F3 Windows setup continuation
+- Fixed invalid connected APK resolver on merged master ef580690; prior build repair #315 APK passed but #316 workflow definition failed before compilation.
+- Prepared guest disk import copies a raw 7 MiB–2 GiB sector-aligned IMG to the selected cartridge's system directory, never overwrites; existing archive/progress unchanged.
+- New imports can include a guest-only CARTPLAY.BAT generated from an explicitly selected 8.3 Windows executable path with its working directory. Windows Startup copy/shortcut and DOSBox Pure core auto-start selection must be completed in the guest. No host process is used and no Windows OS files are provided. Existing imports retain immutable archive; use normal guest shortcut.
+- UI shows disk presence only, not installed/boot verified. Tests authored for command-path validation and guest isolation.
+- Reference https://docs.libretro.com/library/dosbox_pure/ and sysfce2/libretro-dosbox-pure dosbox_pure_run.h OS auto-start mechanism; actual bundled revision parity remains to verify. Windows installation, one-click boot and Shandalar physical acceptance remain open.

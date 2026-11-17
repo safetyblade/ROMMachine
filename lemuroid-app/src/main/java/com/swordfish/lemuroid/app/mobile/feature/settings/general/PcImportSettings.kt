@@ -4,6 +4,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +17,7 @@ import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
+import com.swordfish.lemuroid.lib.library.pc.PcWindowsLaunchRecipe
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -28,6 +30,8 @@ internal fun PcImportSettings(enabled: Boolean) {
     val scope = rememberCoroutineScope()
     var game by remember { mutableStateOf<Uri?>(null) }
     var windows by remember { mutableStateOf<Uri?>(null) }
+    var executable by remember { mutableStateOf("") }
+    var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var message by remember {
         mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.")
@@ -66,6 +70,14 @@ internal fun PcImportSettings(enabled: Boolean) {
                 onClick = { windows = null },
             )
         }
+        OutlinedTextField(
+            value = executable,
+            onValueChange = { executable = it },
+            label = { Text("Installed Windows EXE (optional)") },
+            supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE. Can be set inside Windows later.") },
+            enabled = !busy,
+            singleLine = true,
+        )
         LemuroidSettingsMenuLink(
             title = { Text("Import as PC cartridge") },
             subtitle = {
@@ -75,6 +87,7 @@ internal fun PcImportSettings(enabled: Boolean) {
             onClick = {
                 val gameUri = game
                 val osUri = windows
+                val executablePath = executable
                 if (gameUri != null) {
                     busy = true
                     message = "Importing PC media…"
@@ -86,12 +99,15 @@ internal fun PcImportSettings(enabled: Boolean) {
                                 require(osUri != gameUri) { "Select different game and Windows media" }
                                 val title = name(gameUri).substringBeforeLast('.')
                                 val store = PcCartridgeStore(context.filesDir)
+                                val recipe = executablePath.takeIf { it.isNotBlank() }?.let(::PcWindowsLaunchRecipe)
                                 checkNotNull(resolver.openInputStream(gameUri)).use { source ->
                                     if (osUri == null) {
-                                        store.importIso(title, source, checkCancellation = checkCancellation)
+                                        store.importIso(
+                                            title, source, launchRecipe = recipe, checkCancellation = checkCancellation,
+                                        )
                                     } else {
                                         checkNotNull(resolver.openInputStream(osUri)).use { os ->
-                                            store.importIso(title, source, os, checkCancellation)
+                                            store.importIso(title, source, os, recipe, checkCancellation)
                                         }
                                     }
                                 }
@@ -99,6 +115,8 @@ internal fun PcImportSettings(enabled: Boolean) {
                             LibraryIndexScheduler.scheduleLibrarySync(context)
                             game = null
                             windows = null
+                            executable = ""
+                            revision++
                             message = "PC cartridge imported. Refresh the shelf if it is not yet visible."
                         } catch (cancelled: CancellationException) {
                             throw cancelled
@@ -115,4 +133,5 @@ internal fun PcImportSettings(enabled: Boolean) {
         Text(message)
         Text("Open the cartridge from the shelf. Guest boot and installed Windows games are experimental.")
     }
+    PcWindowsSetupSettings(enabled = enabled && !busy, revision = revision)
 }
