@@ -1,6 +1,6 @@
 {
   "schema": "cartdeck.junior-brand/1",
-  "status": "design-candidate",
+  "status": "owner-approved-visual-design",
   "master": "../../cartdeck-v03/brand/logo-lockup-master.svg",
   "lockup": "junior/lockup.svg",
   "wordmark": "junior/wordmark.svg",
@@ -147,6 +147,7 @@
     "minTargetDp": 48,
     "noExternalArt": true,
     "noPersonas": true,
-    "runtimeChanges": false
+    "runtimeChanges": false,
+    "taglines": false
   }
 }
