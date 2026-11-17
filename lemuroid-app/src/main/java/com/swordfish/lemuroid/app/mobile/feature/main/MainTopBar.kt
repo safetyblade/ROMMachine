@@ -27,6 +27,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -162,7 +164,7 @@ internal fun ShelfActions(
     val context = LocalContext.current
     var libraryOptionsExpanded by remember { mutableStateOf(false) }
     Box {
-        androidx.compose.material3.TextButton(onClick = { libraryOptionsExpanded = true }) {
+        TextButton(onClick = { libraryOptionsExpanded = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = null)
             Text("Shelf tools")
         }

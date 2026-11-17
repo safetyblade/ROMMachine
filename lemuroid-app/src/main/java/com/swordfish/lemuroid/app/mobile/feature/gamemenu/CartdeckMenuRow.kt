@@ -39,7 +39,7 @@ internal fun CartdeckMenuRow(
     var focused by remember { mutableStateOf(false) }
     Surface(
         modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
-            .heightIn(min = 56.dp).onFocusChanged { focused = it.hasFocus }
+            .heightIn(min = 48.dp).onFocusChanged { focused = it.hasFocus }
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = if (focused) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,

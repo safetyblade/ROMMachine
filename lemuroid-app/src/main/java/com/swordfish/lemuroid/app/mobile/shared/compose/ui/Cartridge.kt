@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -80,9 +82,10 @@ fun CartridgeLibraryTheme(
         LocalCartridgeGeometry provides geometry,
         LocalShelfMaterials provides materials,
     ) {
+        val base = if (materials.roomBackdrop.luminance() > 0.5f) lightColorScheme() else darkColorScheme()
         MaterialTheme(
             colorScheme =
-                darkColorScheme(
+                base.copy(
                     primary = materials.interactionAccent,
                     onPrimary =
                         com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
@@ -93,16 +96,29 @@ fun CartridgeLibraryTheme(
                     background = materials.roomBackdrop,
                     surface = materials.shelfBackboard,
                     surfaceVariant = materials.shelfDeck,
-                    onBackground = materials.sectionText,
+                    onBackground =
+                        com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
+                            materials.sectionText,
+                            listOf(materials.roomBackdrop),
+                            4.5f,
+                        ),
                     onSurface = materials.sectionText,
-                    onSurfaceVariant = materials.sectionText,
+                    onSurfaceVariant =
+                        com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
+                            materials.sectionText,
+                            listOf(materials.shelfDeck),
+                            4.5f,
+                        ),
                     secondary = materials.interactionAccent,
                     primaryContainer = materials.shelfBackboard,
                     onPrimaryContainer = materials.sectionText,
                     secondaryContainer = materials.shelfBackboard,
                     onSecondaryContainer = materials.interactionAccent,
                     surfaceTint = materials.interactionAccent,
+                    outline = materials.sectionDivider,
+                    outlineVariant = materials.sectionDivider,
                 ),
+            typography = CartdeckTypography,
             content = content,
         )
     }

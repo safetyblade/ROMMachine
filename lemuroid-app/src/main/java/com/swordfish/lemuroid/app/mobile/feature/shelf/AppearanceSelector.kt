@@ -253,7 +253,7 @@ private fun CuratedDesignOption(
             }
         }
         Text(
-            "Original finish · colour, pattern and stamp. Lighting starts off.",
+            "Lighting starts off.",
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -666,7 +666,7 @@ fun ShelfAppearanceEditor(
                     )
                     Text("Base colours", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "The original CARTDECK editions.",
+                        "Original editions and Light.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -681,13 +681,20 @@ fun ShelfAppearanceEditor(
                             )
                         }
                     }
+                    CartdeckCuratedDesigns.byId(CartdeckCuratedDesigns.LIGHT_ID)?.let { design ->
+                        CuratedDesignOption(
+                            design = design,
+                            checked = selectedDesignId == design.id && !modified,
+                            onClick = { chooseCuratedDesign(design) },
+                        )
+                    }
                     HorizontalDivider()
                     Text("Custom designs", style = MaterialTheme.typography.titleMedium)
                     Text(
                         "CARTDECK-designed finishes. Choose one, or save a personal variation below.",
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    CartdeckCuratedDesigns.designs.forEach { design ->
+                    CartdeckCuratedDesigns.designs.filterNot { it.id == CartdeckCuratedDesigns.LIGHT_ID }.forEach { design ->
                         CuratedDesignOption(
                             design = design,
                             checked = selectedDesignId == design.id && !modified,
