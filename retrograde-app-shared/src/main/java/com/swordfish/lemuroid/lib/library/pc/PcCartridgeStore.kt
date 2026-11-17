@@ -83,8 +83,8 @@ class PcCartridgeStore(private val filesRoot: File) {
                         zip.closeEntry()
                     }
                     if (launchRecipe != null) {
-                        zip.putNextEntry(ZipEntry("CARTPLAY.BAT"))
-                        zip.write(launchRecipe.startupBatch())
+                        zip.putNextEntry(ZipEntry("CARTPLAY.LNK"))
+                        zip.write(launchRecipe.startupShortcut())
                         zip.closeEntry()
                     }
                     zip.finish()

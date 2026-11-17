@@ -74,7 +74,7 @@ internal fun PcImportSettings(enabled: Boolean) {
             value = executable,
             onValueChange = { executable = it },
             label = { Text("Installed Windows EXE (optional)") },
-            supportingText = { Text("Use a short guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
+            supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
             enabled = !busy,
             singleLine = true,
         )
