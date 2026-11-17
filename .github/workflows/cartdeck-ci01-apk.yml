@@ -41,6 +41,17 @@ jobs:
           python-version: '3.12'
       - name: Verify APK timing success and failure evidence
         run: python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
+  gc-f2-verified-apk:
+    # Exact GC branch only; cannot run until complete F1 unit and Python suites pass.
+    if: github.event_name == 'pull_request' && github.head_ref == 'engineering/gc01-abc-completion-20261116'
+    needs: gc-f1-full-suite
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: false
+      use_ci01_all_native: true
+      measure_apk_reuse: false
+      publish_apk: true
+
   verified-apk:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
