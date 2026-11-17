@@ -44,7 +44,7 @@ import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(
-    sdk = [28],
+    sdk = [34],
     application = Application::class,
     qualifiers = "w900dp-h1000dp-mdpi",
     shadows = [MenuFixtureInputManager::class],
