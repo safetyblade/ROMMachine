@@ -90,5 +90,9 @@ class CartdeckChromeTest {
         compose.onNodeWithText("Systems").assertDoesNotExist()
         compose.onNodeWithText("Search").assertDoesNotExist()
         compose.onNodeWithText("Done").assertDoesNotExist()
+        compose.onNodeWithText("Shelf").assertExists()
+        compose.onNodeWithText("CARTMOD").assertExists()
+        compose.onNodeWithText("GEM").assertDoesNotExist()
+        compose.onNodeWithText("SafeSave").assertDoesNotExist()
     }
 }
