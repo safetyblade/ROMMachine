@@ -19,6 +19,14 @@ class CartridgeViewportTest {
         }
     }
 
+    @Test fun portraitPhoneRestoresFiveColumnsAtDefaultFontScale() {
+        for (width in listOf(360f, 390f, 412f, 480f)) {
+            org.junit.Assert.assertEquals(5, CartridgeViewport.shelf(width, 800f, 1f, false).columns)
+            assertTrue(CartridgeViewport.shelf(width, 800f, 2f, false).columns < 5)
+        }
+        org.junit.Assert.assertEquals(4, CartridgeViewport.shelf(412f, 300f, 1f, false).columns)
+    }
+
     @Test fun largeFontsReduceDensityInsteadOfPackingMoreSpines() {
         assertTrue(
             CartridgeViewport.shelf(900f, 600f, 2f, false).columns <
