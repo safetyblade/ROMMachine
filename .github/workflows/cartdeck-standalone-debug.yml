@@ -17,6 +17,144 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  host-preflight:
+    name: Verify current LibretroDroid receipt
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    outputs:
+      valid: ${{ steps.check.outputs.valid }}
+      run: ${{ steps.candidate.outputs.run }}
+      name: ${{ steps.candidate.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Find newest trusted host producer
+        id: candidate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefix = 'native-ci01-libretrodroid-';
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            for (const artifact of all.filter(a => !a.expired && a.name.startsWith(prefix))
+                .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))) {
+              const id = artifact.workflow_run?.id;
+              if (!id || String(id) === String(context.runId)) continue;
+              const run = (await github.rest.actions.getWorkflowRun({...context.repo, run_id: id})).data;
+              if (run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
+              const dispatched = run.event === 'workflow_dispatch' &&
+                run.path === '.github/workflows/cartdeck-ci01-native-engine.yml' &&
+                artifact.name === prefix + run.head_sha;
+              const pc = run.event === 'pull_request' &&
+                run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
+                run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
+                new RegExp('^' + prefix + '[0-9a-f]{40}
+    name: Complete CARTDECK ARM64 APK
+    needs: [host-preflight, host-refresh]
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
+      !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
+      (github.ref != 'refs/heads/master' ||
+        (needs.host-preflight.result == 'success' &&
+          (needs.host-refresh.result == 'success' ||
+            (needs.host-refresh.result == 'skipped' && needs.host-preflight.outputs.valid == 'true'))))
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: false
+      use_ci01_all_native: true
+      pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
+      pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
+      pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}
+      publish_apk: true
+    secrets: inherit
+
+  griparc-engineering-review:
+    name: Mark GripArc PR ready after source and APK gates
+    needs: engineering
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.number == 152 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/pivotarc-griparc-joint'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Mark this verified head ready for engineering review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          current_head=$(gh api "repos/$GH_REPO/pulls/152" --jq '.head.sha')
+          if [[ "$current_head" != "$VERIFIED_HEAD" ]]; then
+            echo 'A newer head needs its own gates; leaving review state unchanged.'
+            exit 0
+          fi
+          is_draft=$(gh api "repos/$GH_REPO/pulls/152" --jq '.draft')
+          if [[ "$is_draft" == true ]]; then
+            gh pr ready 152 --repo "$GH_REPO"
+          fi
+).test(artifact.name);
+              let trusted = run.conclusion === 'success' && (dispatched || pc);
+              if (!trusted && run.status === 'completed' && run.head_branch === 'master' &&
+                  run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                  artifact.name === prefix + run.head_sha) {
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                  ...context.repo, run_id: id, per_page: 100
+                });
+                trusted = jobs.some(j => j.name.startsWith('Refresh LibretroDroid only / ') &&
+                  j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
+              }
+              if (!trusted) continue;
+              core.setOutput('run', String(id));
+              core.setOutput('name', artifact.name);
+              return;
+            }
+      - name: Download candidate receipt and native host
+        if: steps.candidate.outputs.run != ''
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.candidate.outputs.run }}
+          name: ${{ steps.candidate.outputs.name }}
+          path: work/host-preflight
+      - name: Require exact current native recipe and receipt-covered Maven metadata
+        id: check
+        run: |
+          set -euo pipefail
+          valid=false
+          if [[ -f work/host-preflight/receipt.json ]]; then
+            if python3 scripts/ci/retain_ci01_host_metadata.py --directory work/host-preflight; then
+              valid=true
+            fi
+          fi
+          echo "valid=$valid" >> "$GITHUB_OUTPUT"
+          if [[ "$valid" != true ]]; then
+            echo "Only LibretroDroid requires a source rebuild; all other engine receipts remain mandatory."
+          fi
+
+  host-refresh:
+    name: Refresh LibretroDroid only
+    needs: host-preflight
+    if: needs.host-preflight.outputs.valid == 'false'
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: libretrodroid
+    secrets: inherit
+
   engineering:
     name: Complete CARTDECK ARM64 APK
     if: >-

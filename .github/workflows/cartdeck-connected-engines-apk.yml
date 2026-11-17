@@ -9,6 +9,12 @@ on:
       pc_host_native_run_id:
         type: string
         default: ""
+      pc_host_reuse_run_id:
+        type: string
+        default: ""
+      pc_host_reuse_artifact_name:
+        type: string
+        default: ""
       measure_apk_reuse:
         type: boolean
         default: false
@@ -304,7 +310,13 @@ jobs:
                 core.setOutput(engine + '_name', exact.name);
                 continue;
               }
-              const candidates = all.filter(a => !a.expired && a.name.startsWith(prefix))
+              const reuseRun = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_run_id }}' : '';
+              const reuseName = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_artifact_name }}' : '';
+              if (Boolean(reuseRun) !== Boolean(reuseName)) {
+                core.setFailed('Incomplete preflight host selection'); return;
+              }
+              const candidates = all.filter(a => !a.expired && a.name.startsWith(prefix) &&
+                  (!reuseRun || (String(a.workflow_run?.id) === reuseRun && a.name === reuseName)))
                 .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
               for (const artifact of candidates) {
                 const runId = artifact.workflow_run?.id;
@@ -324,8 +336,19 @@ jobs:
                   run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                   run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
                   new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
-                if (run.conclusion !== 'success' || !(dispatched || recovered || pcHost) ||
-                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
+                if (run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
+                let trusted = run.conclusion === 'success' && (dispatched || recovered || pcHost);
+                // A completed master build can retain a valid host even when its later APK job fails.
+                if (!trusted && engine === 'libretrodroid' && run.status === 'completed' &&
+                    run.head_branch === 'master' && run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                    artifact.name === prefix + run.head_sha) {
+                  const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                    ...context.repo, run_id: runId, per_page: 100
+                  });
+                  trusted = jobs.some(j => j.name.startsWith('Refresh LibretroDroid only / ') &&
+                    j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
+                }
+                if (!trusted) continue;
                 chosen = {run_id: run.id, name: artifact.name};
                 break;
               }
@@ -383,6 +406,7 @@ jobs:
         run: |
           set -euo pipefail
           for engine in hakux xenia armsx2 cemu libretrodroid; do
+            echo "Verifying native receipt: $engine"
             python3 scripts/ci/ci01_remaining_engines.py \
               --engine "$engine" --directory "work/connected/ci01-native/$engine"
             case "$engine" in
