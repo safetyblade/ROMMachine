@@ -79,7 +79,10 @@ jobs:
           bash scripts/ci/bootstrap_gradle.sh
           gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
           test -x "$gradle_bin"
-          "$gradle_bin" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest --no-daemon --no-configuration-cache --max-workers=2
+          "$gradle_bin" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest \
+            -Pcartdeck.dev.standaloneId=true -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p1emu.enabled=true -Pkotlin.compiler.execution.strategy=in-process \
+            --no-daemon --no-configuration-cache --max-workers=2
       - name: Run complete Python CI regression suite
         shell: bash
         run: |
