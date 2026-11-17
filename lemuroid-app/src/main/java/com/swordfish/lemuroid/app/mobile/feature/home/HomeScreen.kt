@@ -6,8 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -30,6 +32,7 @@ import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfBoard
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfRoomBackdrop
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
@@ -47,6 +50,7 @@ fun HomeScreen(
     shelfViewModel: ShelfViewModel,
     arrange: Boolean = false,
     onSectionEdit: (ShelfSection) -> Unit = {},
+    shelfActions: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val applicationContext = context.applicationContext
@@ -103,6 +107,7 @@ fun HomeScreen(
         arrange = arrange,
         onEdit = { shelfViewModel.edit(transform = it) },
         onSectionEdit = onSectionEdit,
+        shelfActions = shelfActions,
         tools = {
             shelf.error?.let {
                 Text(it)
@@ -126,6 +131,7 @@ internal fun HomeScreen(
     arrange: Boolean = false,
     onEdit: ((ShelfLayout) -> ShelfLayout) -> Unit = {},
     onSectionEdit: (ShelfSection) -> Unit = {},
+    shelfActions: @Composable () -> Unit = {},
     tools: @Composable () -> Unit = {},
 ) {
     val games =
@@ -141,102 +147,107 @@ internal fun HomeScreen(
     val shelfStates = rememberSaveableStateHolder()
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
-        PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
-                pageLayout, pageModifier, pageKey ->
-            shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
-                ShelfBoard(
-                    pageLayout,
-                    projection.games,
-                    onGameClicked,
-                    onGameLongClick,
-                    pageModifier,
-                    arrange,
-                    onEdit,
-                    onSectionEdit,
-                    artworkRevision = state.artworkRevision,
-                    showSectionHeadings = pageKey == "all" || query.active,
-                    bottomContentPadding = if (arrange) 8.dp else 68.dp,
-                    header = {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            val firstCollection =
-                                pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
-                            if (state.showNoGamesCard) {
-                                Button(
-                                    onClick = onSetDirectoryClicked,
-                                    enabled = !state.indexInProgress,
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else if (!query.active && (pageKey == "all" || firstCollection)) {
-                                // Keep both actions available even in compact landscape windows.
-                                // They scroll with the collection, rather than reserving fixed chrome.
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
-                                        Text(stringResource(R.string.cartdeck_add_cartridges))
-                                    }
-                                    if (!arrange) {
-                                        state.recentGames.firstOrNull()?.let { recent ->
-                                            TextButton(
-                                                onClick = { onGameClicked(recent) },
-                                                modifier = Modifier.weight(1f),
-                                            ) {
-                                                Text(
-                                                    stringResource(R.string.cartdeck_continue) + " · " +
-                                                        recent.displayName(),
-                                                    maxLines = 1,
-                                                )
+        Box(shelfModifier) {
+            ShelfRoomBackdrop(layout.appearance)
+            PagedShelfSections(projection.layout, Modifier.fillMaxSize(), enabled = !arrange && !query.active) {
+                    pageLayout, pageModifier, pageKey ->
+                shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
+                    ShelfBoard(
+                        pageLayout,
+                        projection.games,
+                        onGameClicked,
+                        onGameLongClick,
+                        pageModifier,
+                        arrange,
+                        onEdit,
+                        onSectionEdit,
+                        artworkRevision = state.artworkRevision,
+                        drawRoomBackdrop = false,
+                        showSectionHeadings = pageKey == "all" || query.active,
+                        bottomContentPadding = if (arrange) 8.dp else 68.dp,
+                        header = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val firstCollection =
+                                    pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
+                                if (state.showNoGamesCard) {
+                                    Button(
+                                        onClick = onSetDirectoryClicked,
+                                        enabled = !state.indexInProgress,
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
+                                } else if (!query.active && (pageKey == "all" || firstCollection)) {
+                                    // Keep both actions available even in compact landscape windows.
+                                    // They scroll with the collection, rather than reserving fixed chrome.
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                            Text(stringResource(R.string.cartdeck_add_cartridges))
+                                        }
+                                        if (!arrange) {
+                                            state.recentGames.firstOrNull()?.let { recent ->
+                                                TextButton(
+                                                    onClick = { onGameClicked(recent) },
+                                                    modifier = Modifier.weight(1f),
+                                                ) {
+                                                    Text(
+                                                        stringResource(R.string.cartdeck_continue) + " · " +
+                                                            recent.displayName(),
+                                                        maxLines = 1,
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            if (state.indexInProgress) {
-                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-                                Text(
-                                    stringResource(R.string.cartdeck_scanning),
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                )
-                            }
-                            AnimatedVisibility(state.showNoNotificationPermissionCard) {
-                                HomeNotification(
-                                    titleId = R.string.home_notification_title,
-                                    messageId = R.string.home_notification_message,
-                                    actionId = R.string.home_notification_action,
-                                    onAction = onEnableNotificationsClicked,
-                                )
-                            }
-                            AnimatedVisibility(state.showNoMicrophonePermissionCard) {
-                                HomeNotification(
-                                    titleId = R.string.home_microphone_title,
-                                    messageId = R.string.home_microphone_message,
-                                    actionId = R.string.home_microphone_action,
-                                    onAction = onEnableMicrophoneClicked,
-                                )
-                            }
-                            AnimatedVisibility(state.showDesmumeDeprecatedCard) {
-                                HomeNotification(
-                                    titleId = R.string.home_notification_desmume_deprecated_title,
-                                    messageId = R.string.home_notification_desmume_deprecated_message,
-                                    actionId = R.string.home_notification_desmume_deprecated_action,
-                                    onAction = onOpenCoreSelection,
-                                )
-                            }
-                            if (query.active && projection.games.isEmpty()) {
-                                Text("No matching cartridges", modifier = Modifier.padding(16.dp))
-                            }
-                            if (!state.showNoGamesCard && !query.active && !arrange &&
-                                pageKey != "all" && !firstCollection && pageLayout.sections.all { it.cells.isEmpty() }
-                            ) {
-                                TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
-                                    Text("Empty collection · Add cartridges")
+                                if (state.indexInProgress) {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                                    Text(
+                                        stringResource(R.string.cartdeck_scanning),
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    )
                                 }
+                                AnimatedVisibility(state.showNoNotificationPermissionCard) {
+                                    HomeNotification(
+                                        titleId = R.string.home_notification_title,
+                                        messageId = R.string.home_notification_message,
+                                        actionId = R.string.home_notification_action,
+                                        onAction = onEnableNotificationsClicked,
+                                    )
+                                }
+                                AnimatedVisibility(state.showNoMicrophonePermissionCard) {
+                                    HomeNotification(
+                                        titleId = R.string.home_microphone_title,
+                                        messageId = R.string.home_microphone_message,
+                                        actionId = R.string.home_microphone_action,
+                                        onAction = onEnableMicrophoneClicked,
+                                    )
+                                }
+                                AnimatedVisibility(state.showDesmumeDeprecatedCard) {
+                                    HomeNotification(
+                                        titleId = R.string.home_notification_desmume_deprecated_title,
+                                        messageId = R.string.home_notification_desmume_deprecated_message,
+                                        actionId = R.string.home_notification_desmume_deprecated_action,
+                                        onAction = onOpenCoreSelection,
+                                    )
+                                }
+                                if (query.active && projection.games.isEmpty()) {
+                                    Text("No matching cartridges", modifier = Modifier.padding(16.dp))
+                                }
+                                if (!state.showNoGamesCard && !query.active && !arrange &&
+                                    pageKey != "all" && !firstCollection && pageLayout.sections.all { it.cells.isEmpty() }
+                                ) {
+                                    TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                        Text("Empty collection · Add cartridges")
+                                    }
+                                }
+                                shelfActions()
+                                tools()
                             }
-                            tools()
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
     }

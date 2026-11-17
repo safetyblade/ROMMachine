@@ -340,6 +340,13 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Continue", substring = true).performClick()
         assertEquals(game, selected)
         compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w720dp-h360dp-land")
+    fun shortLandscapeFilterSearchRemainsAvailable() {
+        home(HomeViewModel.UIState(indexInProgress = false, recentGames = listOf(game)))
+        compose.onNodeWithText("Search collection").assertDoesNotExist()
         compose.onNodeWithText("Filters").performClick()
         compose.onNodeWithText("Search collection").assertExists()
     }

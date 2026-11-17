@@ -82,6 +82,36 @@ private data class ShelfItem(val key: String, val section: ShelfSection, val row
 
 private data class DropPosition(val section: String, val before: String?)
 
+/** One viewport-relative room layer, independent of pager and lazy shelf rows. */
+@Composable
+internal fun ShelfRoomBackdrop(appearance: ShelfAppearance) {
+    val colors = LocalShelfMaterials.current
+    Box(Modifier.fillMaxSize().background(colors.roomBackdrop).testTag("cartdeck_stationary_room")) {
+        if (!appearance.highContrast) {
+            if (
+                appearance.patternId != CartdeckSurfaceDesign.PATTERN_NONE ||
+                appearance.stampId != CartdeckSurfaceDesign.STAMP_NONE
+            ) {
+                Canvas(Modifier.fillMaxSize()) {
+                    drawCartdeckSurfaceDesign(
+                        patternId = appearance.patternId,
+                        stampId = appearance.stampId,
+                        frame = Rect(0f, 0f, size.width, size.height),
+                        exclusions = emptyList(),
+                        lineColour = colors.interactionAccent,
+                        stampColour = colors.edgeHighlight,
+                        cellSize = 32.dp.toPx(),
+                        clearance = 12.dp.toPx(),
+                    )
+                }
+            }
+            appearance.decal?.let { decal ->
+                CartdeckDecalLayer(decal = decal, exclusions = emptyList())
+            }
+        }
+    }
+}
+
 /** Lazy vertical rows: there is deliberately no horizontally scrolling container. */
 @Composable
 fun ShelfBoard(
@@ -97,13 +127,9 @@ fun ShelfBoard(
     artworkRevision: Int = 0,
     showSectionHeadings: Boolean = true,
     bottomContentPadding: androidx.compose.ui.unit.Dp = 8.dp,
+    drawRoomBackdrop: Boolean = true,
 ) {
     val colors = LocalShelfMaterials.current
-    val decorationPattern =
-        if (layout.appearance.highContrast) CartdeckSurfaceDesign.PATTERN_NONE else layout.appearance.patternId
-    val decorationStamp =
-        if (layout.appearance.highContrast) CartdeckSurfaceDesign.STAMP_NONE else layout.appearance.stampId
-    val personalDecal = if (layout.appearance.highContrast) null else layout.appearance.decal
     val byKey = remember(games) { games.associateBy { shelfGameKey(it.systemId, it.fileUri) } }
     val positions = remember { mutableStateMapOf<String, Pair<Rect, DropPosition>>() }
     var dragging by remember { mutableStateOf<String?>(null) }
@@ -169,34 +195,8 @@ fun ShelfBoard(
     val scroll = rememberLazyListState()
     var anchor by rememberSaveable { mutableStateOf<String?>(null) }
     var anchorOffset by rememberSaveable { mutableStateOf(0) }
-    BoxWithConstraints(modifier.background(colors.roomBackdrop).onGloballyPositioned { viewport = it.boundsInRoot() }) {
-        // The same saved design carries into landscape, tablet and controller-
-        // first library navigation. This layer is decorative and non-touchable.
-        if (
-            decorationPattern != CartdeckSurfaceDesign.PATTERN_NONE ||
-            decorationStamp != CartdeckSurfaceDesign.STAMP_NONE
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                drawCartdeckSurfaceDesign(
-                    patternId = decorationPattern,
-                    stampId = decorationStamp,
-                    frame = Rect(0f, 0f, size.width, size.height),
-                    exclusions = emptyList(),
-                    lineColour = colors.interactionAccent,
-                    stampColour = colors.edgeHighlight,
-                    cellSize = 32.dp.toPx(),
-                    clearance = 12.dp.toPx(),
-                )
-            }
-        }
-        if (personalDecal != null) {
-            // Controller-first/TV-sized library: theme identity is visible in
-            // navigation, never on top of the running game or native input.
-            CartdeckDecalLayer(
-                decal = personalDecal,
-                exclusions = emptyList(),
-            )
-        }
+    BoxWithConstraints(modifier.onGloballyPositioned { viewport = it.boundsInRoot() }) {
+        if (drawRoomBackdrop) ShelfRoomBackdrop(layout.appearance)
         val sizing =
             com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.shelf(
                 maxWidth.value,
@@ -261,21 +261,7 @@ fun ShelfBoard(
                 if (item.row == null) {
                     DropSurface("header:${item.section.id}", DropPosition(item.section.id, null), positions) {
                         Row(
-                            Modifier.fillMaxWidth().background(colors.roomBackdrop)
-                                .drawBehind {
-                                    if (decorationPattern != CartdeckSurfaceDesign.PATTERN_NONE) {
-                                        drawCartdeckSurfaceDesign(
-                                            patternId = decorationPattern,
-                                            stampId = CartdeckSurfaceDesign.STAMP_NONE,
-                                            frame = Rect(0f, 0f, size.width, size.height),
-                                            exclusions = emptyList(),
-                                            lineColour = colors.interactionAccent.copy(alpha = 0.45f),
-                                            stampColour = colors.edgeHighlight,
-                                            cellSize = 28.dp.toPx(),
-                                            clearance = 0f,
-                                        )
-                                    }
-                                }.padding(vertical = 12.dp),
+                            Modifier.fillMaxWidth().background(colors.roomBackdrop.copy(alpha = 0.88f)).padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
