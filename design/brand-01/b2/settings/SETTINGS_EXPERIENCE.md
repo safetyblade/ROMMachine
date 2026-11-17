@@ -1,14 +1,14 @@
 # B2 extension — Settings & Appearance destination
 
-Status: proposed for owner review, 18 November 2026. No runtime changes. This extends B1/B2 and proposes an amendment to HOT03; the existing four-destination contract remains controlling until approved. Light and appearance-reactive tint already owner-approved. Original default unchanged.
+Status: owner-approved, 18 November 2026. Design only, no runtime changes. The approved five-destination contract supersedes the conflicting four-destination HOT03 passages. Light and appearance-reactive tint already owner-approved. Original default unchanged.
 
 ## Decision
 
-Recommend first-class Settings, not another coined brand or bundling inside CARTMOD. Dock label and page title both "Settings"; supporting subtitle "Appearance, controls and your system". Appearance is the primary area, not an overflow-only item. Settings uses a 24-unit three-slider functional mark with the same weight as B2 product glyphs. No independent launcher or marketing logo. Proposed adult order Shelf / GEM / SafeSave / CARTMOD / Settings. CARTMOD changes the game/media or installed edition; Settings changes the presentation/play environment. Shelf owns actual collection arrangement and artwork; SafeSave owns save data operations. Contextual shortcuts can lead to the same underlying settings scoped to the selected cartridge, not duplicate stores or authorities.
+First-class Settings, not another coined brand or bundling inside CARTMOD. Dock label and page title both "Settings"; supporting subtitle "Appearance, controls and your system". Appearance is the primary area, not an overflow-only item. Settings uses a 24-unit three-slider functional mark with the same weight as B2 product glyphs. No independent launcher or marketing logo. Approved adult order Shelf / GEM / SafeSave / CARTMOD / Settings. CARTMOD changes the game/media or installed edition; Settings changes the presentation/play environment. Shelf owns actual collection arrangement and artwork; SafeSave owns save data operations. Contextual shortcuts can lead to the same underlying settings scoped to the selected cartridge, not duplicate stores or authorities.
 
 ## Landing
 
-One compact Settings header and responsive action cards. First card Appearance carries a real active-appearance thumbnail and name, plus "Edit appearance". No mock thumbnail if state unavailable. Cards below: Controllers; Display & gameplay; Shelf & library; System & advanced. Profiles & family becomes a manager-authorized entry when actual profile capability exists; persistent profile switch remains in header when shipped. About is an unobtrusive bottom link. Search settings is not a prerequisite; no permanent search. Show only real actions; source inventory is not a release claim.
+One compact Settings header and responsive action cards. First card Appearance carries a real active-appearance thumbnail and name, plus "Edit appearance". No mock thumbnail if state unavailable. Cards below: Controllers; Display & gameplay; Shelf & library; Help & guides; System & advanced. Profiles & family becomes a manager-authorized entry when actual profile capability exists; persistent profile switch remains in header when shipped. About is an unobtrusive bottom link. Search settings is not a prerequisite; no permanent search. Show only real actions; source inventory is not a release claim.
 
 | Area | Grouping and ownership |
 |---|---|
@@ -17,9 +17,10 @@ One compact Settings header and responsive action cards. First card Appearance c
 | Display & gameplay | Global defaults for fullscreen, shell, aspect, scaling, orientation and gameplay options already supported. Explicit system/game overrides via current menu. No change to core defaults, native viewport or input routing under this design. Autosave preference here; actual save files/recovery belong to SafeSave. |
 | Shelf & library | Existing folder selection, supported formats, index/refresh/stop, shelf appearance shortcut and Arrange Shelf shortcut. Arrange operates in actual Shelf with Done/Tools/Undo. Per-cartridge artwork, rename and favourites remain on Shelf; presentation options may route to the same existing editor. Recovery remains available through current handler until SafeSave/library-specific replacements verified. No new destructive action. |
 | Profiles & family | Manager-authorized future profile administration, child allowlists and Junior themes. Adult switch stays in header, leaving Junior requires parent gate; never expose an unrestricted Settings dock in Junior. SafeSave owns authorized cross-player copy/export. |
+| Help & guides | How to use CARTMOD and other verified application walkthroughs. Move the existing CARTMOD how-to here, including existing Windows setup guide; task-context help may deep-link to the same article. FAQs remain a separate reference area at the bottom of CARTMOD. |
 | System & advanced | BIOS/firmware/engine compatibility, PS2 and PS3 setup when actual capability permits, permissions, storage/diagnostics, legacy sync and recovery shortcuts until verified replacements, About/version/licenses. Keep technical details behind expandable sections. No hidden regression in existing advanced routes. |
 
-CARTMOD remains PC Setup, installations, patches/mods, My Sources (when live), and cartridge content/edition preparation. PC guest-specific media, executable setup, guest input/display profiles belong to CARTMOD, not global Settings. No separate ROM store, no extra save store. Appearance modifies presentation, never ROM bytes. Existing direct shortcuts in Shelf overflow, Settings recovery, and game menu remain where useful, routing to same canonical handlers; avoid renaming an unrelated persisted preference. Settings page naming consistent across mobile/tablet/TV.
+CARTMOD remains PC Setup, installations, patches/mods and cartridge content/edition preparation, plus FAQs. GEM owns My Sources and web search. Shelf long-press owns Search for covers. PC guest-specific media, executable setup, guest input/display profiles belong to CARTMOD, not global Settings. No separate ROM store, no extra save store. Appearance modifies presentation, never ROM bytes. Existing direct shortcuts in Shelf overflow, Settings recovery, and game menu remain where useful, routing to same canonical handlers; avoid renaming an unrelated persisted preference. Settings page naming consistent across mobile/tablet/TV.
 
 ## Flows and responsive grammar
 
@@ -33,4 +34,4 @@ Inventory current SettingsScreen.kt: Appearance shortcut, ROMs folder/formats/re
 
 ## Acceptance decisions
 
-Owner to approve fifth destination name / ownership / slider mark, then align brand tokens and navigation spec. CARTMOD alternate mark remains pending. GEM retains geometry and SafeSave C approved. B3 remains next once B2 decisions are locked.
+Owner approved Settings in full, including fifth destination and slider mark; SafeSave C and CARTMOD F approved. See B2 final handoff for the new Help, FAQs, GEM search and Shelf cover flows.
