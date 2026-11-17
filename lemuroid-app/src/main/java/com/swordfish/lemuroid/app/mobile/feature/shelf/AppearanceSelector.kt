@@ -124,26 +124,43 @@ private fun colourHex(color: Color): String = "#%06X".format(color.toArgb() and 
 
 private fun longColour(color: Color): Long = color.toArgb().toLong() and 0xFFFFFFFFL
 
-/** Curated choices in the controlled design/cartdeck-v07/material-swatches.json. */
-private fun suggestions(role: String): List<Color> {
-    val group =
-        when (role) {
-            "chassis", "secondary" -> "chassis"
-            "bezel", "button", "glass" -> "button"
-            "shelfBackboard", "roomBackdrop", "shelfGroove", "shelfShadow", "vacantCell" -> "back"
-            "shelfDeck", "shelfLip", "sectionDivider" -> "deck"
-            else -> "accent"
-        }
-    val hex =
-        when (group) {
-            "chassis" -> listOf("#303B49", "#F2A9C9", "#9BC7A8", "#28435C", "#D9D1C8", "#9F91C6")
-            "button" -> listOf("#111923", "#793653", "#194437", "#26374A", "#51443E", "#413450")
-            "back" -> listOf("#14212D", "#382536", "#163127", "#142B3F", "#332D42", "#3F332A")
-            "deck" -> listOf("#293847", "#69445D", "#315443", "#334A61", "#665747", "#5C4F71")
-            else -> listOf("#4ED8C4", "#FFE5F1", "#D4F47D", "#F2C879", "#A3C5FF", "#F5B0A1")
-        }
-    return hex.map { Color(android.graphics.Color.parseColor(it)) }
-}
+private data class NamedColour(val name: String, val colour: Color)
+
+private val namedColours =
+    listOf(
+        NamedColour("Black", Color(0xFF111318)),
+        NamedColour("Graphite", Color(0xFF303B49)),
+        NamedColour("Slate", Color(0xFF65758A)),
+        NamedColour("Silver", Color(0xFFBFC6D0)),
+        NamedColour("Ivory", Color(0xFFF0E4D1)),
+        NamedColour("White", Color(0xFFFFFFFF)),
+        NamedColour("Burgundy", Color(0xFF641F38)),
+        NamedColour("Crimson", Color(0xFFA62E43)),
+        NamedColour("Coral", Color(0xFFEC7567)),
+        NamedColour("Rose", Color(0xFFF2A9C9)),
+        NamedColour("Plum", Color(0xFF492E5C)),
+        NamedColour("Amethyst", Color(0xFF7855A3)),
+        NamedColour("Lavender", Color(0xFFB4A0E0)),
+        NamedColour("Midnight navy", Color(0xFF18233A)),
+        NamedColour("Indigo", Color(0xFF354A77)),
+        NamedColour("Cobalt", Color(0xFF315FBE)),
+        NamedColour("Sky blue", Color(0xFF86BCF1)),
+        NamedColour("Deep teal", Color(0xFF194B53)),
+        NamedColour("Aqua", Color(0xFF4ED8C4)),
+        NamedColour("Forest", Color(0xFF254537)),
+        NamedColour("Sage", Color(0xFF9BC7A8)),
+        NamedColour("Lime", Color(0xFFD4F47D)),
+        NamedColour("Chocolate", Color(0xFF51443E)),
+        NamedColour("Copper", Color(0xFFD18C60)),
+        NamedColour("Terracotta", Color(0xFFB65D38)),
+        NamedColour("Amber", Color(0xFFE5A13A)),
+        NamedColour("Antique gold", Color(0xFFD9B477)),
+        NamedColour("Sand", Color(0xFFD9D1C8)),
+        NamedColour("Yellow", Color(0xFFF9DC68)),
+    )
+
+private fun colourName(colour: Color): String =
+    namedColours.firstOrNull { it.colour.toArgb() == colour.toArgb() }?.name ?: "Custom colour"
 
 @Composable
 private fun EditionOption(
@@ -211,7 +228,7 @@ private fun CuratedDesignOption(
         verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Text(
-            if (checked) "✓ 001 · " + design.title else "001 · " + design.title,
+            (if (checked) "✓ " else "") + design.id.takeLast(3) + " · " + design.title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
@@ -236,7 +253,7 @@ private fun CuratedDesignOption(
             }
         }
         Text(
-            "Colour finish available now. Patterns, stamps and LED effects follow in later phases.",
+            "Original finish · colour, pattern and stamp. Lighting starts off.",
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -246,47 +263,63 @@ private fun CuratedDesignOption(
 private fun ColourPicker(
     role: String,
     current: Color,
-    defaults: List<Color>,
+    defaults: List<NamedColour>,
     onChoose: (Color) -> Unit,
     onDismiss: () -> Unit,
+    warning: String? = null,
 ) {
     var advanced by remember(role) { mutableStateOf(false) }
+    var blend by remember(role) { mutableStateOf(false) }
     var typed by remember(role) { mutableStateOf(colourHex(current)) }
+    val initial =
+        remember(role, current) {
+            FloatArray(3).also { android.graphics.Color.colorToHSV(current.toArgb(), it) }
+        }
+    var hue by remember(role, current) { mutableStateOf(initial[0]) }
+    var saturation by remember(role, current) { mutableStateOf(initial[1]) }
+    var brightness by remember(role, current) { mutableStateOf(initial[2]) }
+    val mixed = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, brightness)))
     val valid = typed.matches(Regex("#[0-9a-fA-F]{6}"))
-    val chips = (listOf(current) + defaults + suggestions(role)).distinct()
+    val recommended = (listOf(NamedColour("Current", current)) + defaults).distinctBy { it.colour.toArgb() }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choose " + role.replace(Regex("([a-z])([A-Z])"), "$1 $2").lowercase()) },
         text = {
-            Column(Modifier.heightIn(max = 450.dp).verticalScroll(rememberScrollState())) {
-                chips.chunked(3).forEach { chunk ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        chunk.forEach { color ->
-                            Column(
-                                modifier =
-                                    Modifier.padding(5.dp).clickable { onChoose(color) }
-                                        .semantics { contentDescription = "Colour " + colourHex(color) },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Box(
-                                    Modifier.size(48.dp).background(color, CircleShape)
-                                        .border(
-                                            if (color == current) 3.dp else 1.dp,
-                                            if (color == current) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.outline
-                                            },
-                                            CircleShape,
-                                        ),
-                                )
-                                Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
+            Column(
+                Modifier.heightIn(max = 450.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("Suggested finishes", style = MaterialTheme.typography.titleSmall)
+                ColourSwatchRows(
+                    recommended,
+                    current,
+                    onChoose,
+                )
+                HorizontalDivider()
+                Text("Colour palette", style = MaterialTheme.typography.titleSmall)
+                ColourSwatchRows(namedColours, current, onChoose)
+                TextButton(onClick = { blend = !blend }) {
+                    Text(if (blend) "Hide custom mixer" else "Mix your own colour")
+                }
+                if (blend) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(64.dp).background(mixed, RoundedCornerShape(8.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+                        )
+                        Text("Your colour", Modifier.padding(start = 12.dp))
                     }
+                    Text("Hue")
+                    Slider(value = hue, onValueChange = { hue = it }, valueRange = 0f..359f)
+                    Text("Saturation")
+                    Slider(value = saturation, onValueChange = { saturation = it })
+                    Text("Brightness")
+                    Slider(value = brightness, onValueChange = { brightness = it })
+                    TextButton(onClick = { onChoose(mixed) }) { Text("Use mixed colour") }
                 }
                 TextButton(onClick = { advanced = !advanced }) {
-                    Text(if (advanced) "Hide precise colour" else "Precise colour (hex)")
+                    Text(if (advanced) "Hide precise colour" else "Advanced · hex code")
                 }
                 if (advanced) {
                     OutlinedTextField(
@@ -296,14 +329,51 @@ private fun ColourPicker(
                         isError = !valid,
                         singleLine = true,
                     )
-                    TextButton(enabled = valid, onClick = {
-                        onChoose(Color(android.graphics.Color.parseColor(typed)))
-                    }) { Text("Use colour") }
+                    TextButton(
+                        enabled = valid,
+                        onClick = { onChoose(Color(android.graphics.Color.parseColor(typed))) },
+                    ) { Text("Use colour") }
                 }
+                warning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
+}
+
+@Composable
+private fun ColourSwatchRows(
+    choices: List<NamedColour>,
+    current: Color,
+    onChoose: (Color) -> Unit,
+) {
+    choices.chunked(3).forEach { chunk ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            chunk.forEach { choice ->
+                val active = choice.colour.toArgb() == current.toArgb()
+                Column(
+                    modifier =
+                        Modifier.weight(1f).heightIn(min = 72.dp).clickable { onChoose(choice.colour) }
+                            .semantics {
+                                selected = active
+                                contentDescription = choice.name
+                            },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        Modifier.size(48.dp).background(choice.colour, CircleShape)
+                            .border(
+                                if (active) 3.dp else 1.dp,
+                                if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                CircleShape,
+                            ),
+                    )
+                    Text(choice.name, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                }
+            }
+            repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
+        }
+    }
 }
 
 /** Live console preview using the SAME saved chassis, button, bezel and accent roles as gameplay. */
@@ -946,7 +1016,7 @@ fun ShelfAppearanceEditor(
                                         Row(
                                             Modifier.weight(1f).clickable { picker = key }
                                                 .semantics {
-                                                    contentDescription = "$label, ${colourHex(color)}, change colour"
+                                                    contentDescription = "$label, ${colourName(color)}, change colour"
                                                 }.padding(vertical = 5.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -961,7 +1031,7 @@ fun ShelfAppearanceEditor(
                                             )
                                             Column {
                                                 Text(label, style = MaterialTheme.typography.bodyMedium)
-                                                Text(colourHex(color), style = MaterialTheme.typography.labelSmall)
+                                                Text(colourName(color), style = MaterialTheme.typography.labelSmall)
                                             }
                                         }
                                         if (overrides.containsKey(key)) {
@@ -1055,12 +1125,23 @@ fun ShelfAppearanceEditor(
     }
 
     picker?.let { role ->
+        val curatedColours =
+            CartdeckCuratedDesigns.designs.mapNotNull { design ->
+                design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
+            }
+        val editionColours =
+            listOf(
+                NamedColour("Original", original.getValue(role)),
+                NamedColour("Pink", pink.getValue(role)),
+                NamedColour("Green", green.getValue(role)),
+            )
         ColourPicker(
             role,
             overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
-            listOf(original.getValue(role), pink.getValue(role), green.getValue(role)),
+            defaults = editionColours + curatedColours,
             onChoose = { changeColour(role, it) },
             onDismiss = { picker = null },
+            warning = warning,
         )
     }
     if (lightingPicker) {
@@ -1069,11 +1150,11 @@ fun ShelfAppearanceEditor(
             current = lighting.colour?.let { Color(it.toInt()) } ?: base.getValue("accent"),
             defaults =
                 listOf(
-                    base.getValue("accent"),
-                    Color(0xFF9BC74A),
-                    Color(0xFF4ED8C4),
-                    Color(0xFFFFC06A),
-                    Color(0xFFF2A9C9),
+                    NamedColour("Edition accent", base.getValue("accent")),
+                    NamedColour("Acid green", Color(0xFF9BC74A)),
+                    NamedColour("Aqua", Color(0xFF4ED8C4)),
+                    NamedColour("Amber", Color(0xFFFFC06A)),
+                    NamedColour("Rose", Color(0xFFF2A9C9)),
                 ),
             onChoose = { chosen ->
                 lighting = lighting.copy(colour = longColour(chosen))

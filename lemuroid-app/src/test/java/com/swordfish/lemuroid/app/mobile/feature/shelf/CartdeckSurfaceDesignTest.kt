@@ -10,6 +10,23 @@ import org.junit.Test
 /** Defensive proof that decorative art cannot occupy measured game or control pixels. */
 class CartdeckSurfaceDesignTest {
     @Test
+    fun specialEditionsPreserveCompleteMaterialRolesAndSafeDefaults() {
+        val baseline = requireNotNull(CartdeckCuratedDesigns.byId(CartdeckCuratedDesigns.STEALTH_ACID_ID))
+        val ids = listOf(CartdeckCuratedDesigns.ARCANA_GILDED_ID, CartdeckCuratedDesigns.WILDBOUND_FORGE_ID)
+        for (id in ids) {
+            val design = requireNotNull(CartdeckCuratedDesigns.byId(id))
+            assertEquals(baseline.colours.keys, design.colours.keys)
+            assertTrue(CartdeckSurfaceDesign.validPattern(design.patternId))
+            assertTrue(CartdeckSurfaceDesign.validStamp(design.stampId))
+            val applied = CartdeckCuratedDesigns.apply(ShelfAppearance(), id)
+            assertEquals(id, applied.curatedDesignId)
+            assertEquals(design.colours, applied.custom)
+            assertEquals(CartdeckLighting(), applied.lighting)
+        }
+        assertEquals(3, CartdeckCuratedDesigns.designs.map { it.id }.distinct().size)
+    }
+
+    @Test
     fun portraitPatternTilesNeverOverlapVideoControlsOrBrand() {
         val frame = Rect(10f, 10f, 383f, 842f)
         val exclusions =

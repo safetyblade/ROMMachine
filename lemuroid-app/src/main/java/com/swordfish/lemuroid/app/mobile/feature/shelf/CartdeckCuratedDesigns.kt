@@ -1,9 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
 /**
- * First-party appearance collections are colour-only in Phase 1.
- * Future original shell patterns and lighting may extend this catalogue,
- * but no copyrighted game artwork or game pixels belong to a design.
+ * First-party appearance collections use original colours and bounded surface art.
+ * No copyrighted game artwork or game pixels belong to a design.
  */
 data class CartdeckCuratedDesign(
     val id: String,
@@ -17,6 +16,8 @@ data class CartdeckCuratedDesign(
 
 object CartdeckCuratedDesigns {
     const val STEALTH_ACID_ID = "stealth-acid-001"
+    const val ARCANA_GILDED_ID = "arcana-gilded-002"
+    const val WILDBOUND_FORGE_ID = "wildbound-forge-003"
 
     val designs: List<CartdeckCuratedDesign> =
         listOf(
@@ -50,6 +51,70 @@ object CartdeckCuratedDesigns {
                         "sectionText" to 0xFFE7F0DFL,
                         "focusOutline" to 0xFFC6E468L,
                         "interactionAccent" to 0xFFB5DA53L,
+                    ),
+            ),
+            CartdeckCuratedDesign(
+                id = ARCANA_GILDED_ID,
+                title = "Arcana / Gilded",
+                description = "Amethyst enamel, antique gold and engraved card geometry",
+                baseEdition = "original",
+                patternId = CartdeckSurfaceDesign.PATTERN_ARCANA,
+                stampId = CartdeckSurfaceDesign.STAMP_ARCANA,
+                colours =
+                    mapOf(
+                        "chassis" to 0xFF362347L,
+                        "secondary" to 0xFF624477L,
+                        "bezel" to 0xFF1B1228L,
+                        "glass" to 0xFF110D19L,
+                        "button" to 0xFF492E5CL,
+                        "accent" to 0xFFD9B477L,
+                        "onChassis" to 0xFFF0E4D1L,
+                        "onButton" to 0xFFFFF1D7L,
+                        "focus" to 0xFFFFE19DL,
+                        "roomBackdrop" to 0xFF17101FL,
+                        "shelfBackboard" to 0xFF2B1C38L,
+                        "shelfDeck" to 0xFF4B345EL,
+                        "shelfLip" to 0xFF907347L,
+                        "shelfGroove" to 0xFF20152AL,
+                        "edgeHighlight" to 0xFFBDA16FL,
+                        "shelfShadow" to 0xFF0D0913L,
+                        "sectionDivider" to 0xFF725788L,
+                        "vacantCell" to 0xFF3C294BL,
+                        "sectionText" to 0xFFF3E8D5L,
+                        "focusOutline" to 0xFFF3D28AL,
+                        "interactionAccent" to 0xFFE7C67FL,
+                    ),
+            ),
+            CartdeckCuratedDesign(
+                id = WILDBOUND_FORGE_ID,
+                title = "Wildbound / Forge",
+                description = "Midnight indigo, forged copper and expedition-map engraving",
+                baseEdition = "original",
+                patternId = CartdeckSurfaceDesign.PATTERN_CONTOUR,
+                stampId = CartdeckSurfaceDesign.STAMP_SUMMIT,
+                colours =
+                    mapOf(
+                        "chassis" to 0xFF263044L,
+                        "secondary" to 0xFF465671L,
+                        "bezel" to 0xFF111827L,
+                        "glass" to 0xFF0C1220L,
+                        "button" to 0xFF354159L,
+                        "accent" to 0xFFD18C60L,
+                        "onChassis" to 0xFFF0E7DEL,
+                        "onButton" to 0xFFFCE8D8L,
+                        "focus" to 0xFFFFC197L,
+                        "roomBackdrop" to 0xFF121924L,
+                        "shelfBackboard" to 0xFF222C3DL,
+                        "shelfDeck" to 0xFF3C4B64L,
+                        "shelfLip" to 0xFF93674FL,
+                        "shelfGroove" to 0xFF172131L,
+                        "edgeHighlight" to 0xFFBA9278L,
+                        "shelfShadow" to 0xFF090E17L,
+                        "sectionDivider" to 0xFF52637DL,
+                        "vacantCell" to 0xFF303D53L,
+                        "sectionText" to 0xFFEFE8DDL,
+                        "focusOutline" to 0xFFEDAE80L,
+                        "interactionAccent" to 0xFFE3A477L,
                     ),
             ),
         )

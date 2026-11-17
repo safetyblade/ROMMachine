@@ -20,11 +20,15 @@ object CartdeckSurfaceDesign {
     const val PATTERN_CAMO = "camo"
     const val PATTERN_DIAGONAL = "diagonal"
     const val PATTERN_PIXEL = "pixel"
+    const val PATTERN_ARCANA = "arcana-card"
+    const val PATTERN_CONTOUR = "forge-contour"
 
     const val STAMP_NONE = "none"
     const val STAMP_CHEVRON = "c-chevron"
     const val STAMP_SMILEY = "smiley"
     const val STAMP_SIGNAL = "signal"
+    const val STAMP_ARCANA = "arcana-diamond"
+    const val STAMP_SUMMIT = "forge-summit"
 
     val patterns =
         linkedMapOf(
@@ -33,6 +37,8 @@ object CartdeckSurfaceDesign {
             PATTERN_CAMO to "Camo",
             PATTERN_DIAGONAL to "Diagonal hatching",
             PATTERN_PIXEL to "Pixel relief",
+            PATTERN_ARCANA to "Arcana engraving",
+            PATTERN_CONTOUR to "Expedition contours",
         )
 
     val stamps =
@@ -41,6 +47,8 @@ object CartdeckSurfaceDesign {
             STAMP_CHEVRON to "CARTDECK chevron",
             STAMP_SMILEY to "Smiley",
             STAMP_SIGNAL to "Signal",
+            STAMP_ARCANA to "Arcana card",
+            STAMP_SUMMIT to "Summit crest",
         )
 
     fun validPattern(value: String): Boolean = value in patterns
@@ -166,6 +174,29 @@ internal fun DrawScope.drawCartdeckSurfaceDesign(
                         }
                     drawPath(silhouette, lineColour.copy(alpha = 0.14f))
                 }
+                CartdeckSurfaceDesign.PATTERN_ARCANA -> {
+                    val diamond =
+                        Path().apply {
+                            moveTo(cx, tile.top + tile.height * 0.14f)
+                            lineTo(tile.right - tile.width * 0.22f, cy)
+                            lineTo(cx, tile.bottom - tile.height * 0.14f)
+                            lineTo(tile.left + tile.width * 0.22f, cy)
+                            close()
+                        }
+                    drawPath(diamond, lineColour.copy(alpha = 0.22f), style = Stroke(stroke))
+                    drawCircle(lineColour.copy(alpha = 0.2f), stroke * 1.5f, tile.center)
+                }
+                CartdeckSurfaceDesign.PATTERN_CONTOUR -> {
+                    repeat(3) { index ->
+                        val y = tile.top + tile.height * (0.2f + index * 0.28f)
+                        val contour =
+                            Path().apply {
+                                moveTo(tile.left + tile.width * 0.08f, y)
+                                quadraticBezierTo(cx, y - tile.height * 0.15f, tile.right - tile.width * 0.08f, y)
+                            }
+                        drawPath(contour, lineColour.copy(alpha = 0.18f), style = Stroke(stroke))
+                    }
+                }
                 CartdeckSurfaceDesign.PATTERN_PIXEL -> {
                     drawRect(
                         lineColour.copy(alpha = 0.22f),
@@ -218,6 +249,38 @@ internal fun DrawScope.drawCartdeckSurfaceDesign(
                 Offset(center.x + radius * 0.35f, center.y + radius * 0.3f),
                 strokeWidth = stroke,
             )
+        }
+        CartdeckSurfaceDesign.STAMP_ARCANA -> {
+            val card =
+                Path().apply {
+                    moveTo(center.x - radius * 0.65f, center.y - radius)
+                    lineTo(center.x + radius * 0.65f, center.y - radius)
+                    lineTo(center.x + radius * 0.65f, center.y + radius)
+                    lineTo(center.x - radius * 0.65f, center.y + radius)
+                    close()
+                    moveTo(center.x, center.y - radius * 0.65f)
+                    lineTo(center.x + radius * 0.4f, center.y)
+                    lineTo(center.x, center.y + radius * 0.65f)
+                    lineTo(center.x - radius * 0.4f, center.y)
+                    close()
+                }
+            drawPath(card, ink, style = Stroke(stroke))
+        }
+        CartdeckSurfaceDesign.STAMP_SUMMIT -> {
+            val crest =
+                Path().apply {
+                    moveTo(center.x, center.y - radius)
+                    lineTo(center.x + radius, center.y - radius * 0.55f)
+                    lineTo(center.x + radius * 0.8f, center.y + radius * 0.4f)
+                    lineTo(center.x, center.y + radius)
+                    lineTo(center.x - radius * 0.8f, center.y + radius * 0.4f)
+                    lineTo(center.x - radius, center.y - radius * 0.55f)
+                    close()
+                    moveTo(center.x - radius * 0.65f, center.y + radius * 0.3f)
+                    lineTo(center.x, center.y - radius * 0.48f)
+                    lineTo(center.x + radius * 0.65f, center.y + radius * 0.3f)
+                }
+            drawPath(crest, ink, style = Stroke(stroke))
         }
         CartdeckSurfaceDesign.STAMP_SIGNAL -> {
             for (index in 0..2) {

@@ -457,6 +457,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                 ),
                             navController = navController,
                             onOpenRecovery = { recoveryOpen.value = true },
+                            onOpenAppearance = if (shelfReady) ({ editingAppearance.value = true }) else null,
                         )
                     }
                     composable(MainRoute.SETTINGS_SUPPORTED_GAMES) {

@@ -29,6 +29,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     navController: NavController,
     onOpenRecovery: () -> Unit = {},
+    onOpenAppearance: (() -> Unit)? = null,
 ) {
     val state =
         viewModel.uiState
@@ -46,6 +47,13 @@ fun SettingsScreen(
             .value
 
     LemuroidSettingsPage(modifier = modifier) {
+        if (onOpenAppearance != null) {
+            LemuroidSettingsMenuLink(
+                title = { Text("Appearance") },
+                subtitle = { Text("Special editions, colours and personal finishes") },
+                onClick = onOpenAppearance,
+            )
+        }
         RomsSettings(
             state = state,
             onChangeFolder = { viewModel.changeLocalStorageFolder() },

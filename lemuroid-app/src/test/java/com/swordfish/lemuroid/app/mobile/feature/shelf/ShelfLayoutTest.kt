@@ -280,12 +280,13 @@ class ShelfLayoutTest {
     }
 
     @Test fun curatedDesignPaletteMeetsShelfContrastAndOldV2DataStillLoads() {
-        val design = CartdeckCuratedDesigns.designs.single()
-        val selected = CartdeckCuratedDesigns.apply(ShelfAppearance(), design.id)
-        val colours = shelfMaterials(selected)
-        assertTrue(colorContrast(colours.sectionText, colours.shelfBackboard) >= 4.5f)
-        assertTrue(colorContrast(colours.focusOutline, colours.shelfBackboard) >= 3f)
-        assertTrue(colorContrast(colours.focusOutline, colours.vacantCell) >= 3f)
+        for (design in CartdeckCuratedDesigns.designs) {
+            val selected = CartdeckCuratedDesigns.apply(ShelfAppearance(), design.id)
+            val colours = shelfMaterials(selected)
+            assertTrue(colorContrast(colours.sectionText, colours.shelfBackboard) >= 4.5f)
+            assertTrue(colorContrast(colours.focusOutline, colours.shelfBackboard) >= 3f)
+            assertTrue(colorContrast(colours.focusOutline, colours.vacantCell) >= 3f)
+        }
 
         val legacy =
             ShelfLayout().copy(
