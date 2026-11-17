@@ -77,10 +77,13 @@ internal fun ControllerCalibrationPanel(
         }
     }
     GameMenuLink(
-        "Deadzone: ${((profile?.deadzone ?: 0f) * 100).toInt()}% — adjust",
+        "Deadzone: ${(PhysicalControllerInput.effectiveDeadzone(profile ?: ControllerProfileStore.Profile()) * 100).toInt()}% — adjust",
         enabled = sticks.isNotEmpty(),
     ) {
-        save { it.copy(deadzone = if (it.deadzone >= 0.2f) 0f else it.deadzone + 0.05f) }
+        save {
+            val current = PhysicalControllerInput.effectiveDeadzone(it)
+            it.copy(deadzone = if (current >= 0.2f) (if (it.calibrated) 0f else 0.05f) else current + 0.05f)
+        }
     }
     val bothRight =
         setOf(
@@ -101,7 +104,7 @@ internal fun ControllerCalibrationPanel(
         }
         Text("Move only the right stick and verify the axis response before saving a mapping.")
     }
-    GameMenuLink("Reset calibration to driver defaults") {
+    GameMenuLink("Reset calibration to automatic defaults") {
         save { it.copy(deadzone = 0f, centres = emptyMap(), rightX = null, rightY = null, calibrated = false) }
     }
 }
