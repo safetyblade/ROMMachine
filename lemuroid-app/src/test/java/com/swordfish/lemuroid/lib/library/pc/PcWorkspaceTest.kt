@@ -1,9 +1,13 @@
 package com.swordfish.lemuroid.lib.library.pc
 
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
 import java.io.File
 import java.util.UUID
-import org.junit.Assert.*
-import org.junit.Test
 
 class PcWorkspaceTest {
     @Test fun rejectsExtensionOnlyAndPreservesSource() {
@@ -15,10 +19,14 @@ class PcWorkspaceTest {
             try {
                 original.inputStream().use { workspace.importMedia("iso", it) }
                 fail("Invalid media accepted")
-            } catch (_: IllegalArgumentException) {}
+            } catch (_: IllegalArgumentException) {
+                // Unsupported media must be rejected.
+            }
             assertEquals(40000L, original.length())
             assertTrue(workspace.media.listFiles()!!.isEmpty())
-        } finally { root.deleteRecursively() }
+        } finally {
+            root.deleteRecursively()
+        }
     }
 
     @Test fun copiesRecognisedMediaAndSeparatesProfiles() {
@@ -35,6 +43,8 @@ class PcWorkspaceTest {
             b.prepareWritableDirectories()
             assertNotEquals(a.progress.canonicalPath, b.progress.canonicalPath)
             assertNotEquals(a.guest.canonicalPath, a.media.canonicalPath)
-        } finally { root.deleteRecursively() }
+        } finally {
+            root.deleteRecursively()
+        }
     }
 }

@@ -185,9 +185,11 @@ internal fun CartdeckConsoleShell(
                             Rect(railInset, railTop, rim.left, railBottom),
                             Rect(rim.right, railTop, size.width - railInset, railBottom),
                         )
-                        rails.filter { it.width > 0f && controls.none { c -> CartdeckHardwareGeometry.intersects(c, it) } }.forEach { rail ->
-                            drawRect(tokens.secondary, topLeft = rail.topLeft, size = rail.size)
-                        }
+                        rails
+                            .filter { it.width > 0f && controls.none { c -> CartdeckHardwareGeometry.intersects(c, it) } }
+                            .forEach { rail ->
+                                drawRect(tokens.secondary, topLeft = rail.topLeft, size = rail.size)
+                            }
                     }
                 }
                 drawPath(bezel, tokens.bezel)
