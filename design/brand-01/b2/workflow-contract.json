@@ -1,0 +1,72 @@
+{
+  "schema": "cartdeck.b2-workflows/1",
+  "status": "design-ready; implementation pending",
+  "dock": [
+    "Shelf",
+    "GEM",
+    "SafeSave",
+    "CARTMOD",
+    "Settings"
+  ],
+  "routes": [
+    {
+      "id": "settings.help",
+      "children": [
+        "settings.help.cartmod",
+        "settings.help.pc-setup"
+      ],
+      "owner": "settings"
+    },
+    {
+      "id": "cartmod.faq",
+      "position": "last",
+      "owner": "cartmod",
+      "source": "help-content.json",
+      "query": "local article text and tags"
+    },
+    {
+      "id": "gem.search",
+      "owner": "gem",
+      "children": [
+        "gem.search.sources",
+        "gem.search.sources.edit"
+      ],
+      "launch": "explicit single external HTTPS browser navigation",
+      "fields": [
+        "id",
+        "displayName",
+        "homeUrl",
+        "category",
+        "searchTemplate",
+        "enabled",
+        "order",
+        "systemLabel"
+      ],
+      "defaultSources": [],
+      "templateRule": "one {query} in a query parameter value, same HTTPS host and port, encoded UTF-8, no background fetch"
+    },
+    {
+      "id": "shelf.cover-search",
+      "owner": "shelf",
+      "entry": "cartridge hold or focused context action",
+      "identity": "canonical cartridgeId",
+      "actions": [
+        "Search covers",
+        "Upload / replace image",
+        "Preview",
+        "Use cover",
+        "Reset cover"
+      ],
+      "savePolicy": "existing CustomCoverManager and authorized explicit commit only"
+    }
+  ],
+  "settingsMark": "settings/mark.svg",
+  "selectedMarks": {
+    "safesave": "safesave-c",
+    "cartmod": "cartmod-f",
+    "gem": "unchanged"
+  },
+  "juniorAdultWebAllowed": false,
+  "guideContentReviewRequired": true,
+  "runtimeChanges": false
+}
