@@ -63,30 +63,31 @@ Current accepted instrumentation and stock Samsung Vulkan remain preserved.
 Sustained resource-coherency/lifetime investigation in progress. No physical
 rendering correctness or frame-rate acceptance asserted.
 
-### Confirmed Xenia constant-cache increment
+### Xenia sustained constants verification — no speculative engine change
 
-The pinned Vulkan interpreter path uploads the full 256 vertex float constants,
-but installs only the compiled shader's sparse constant map for dirty tracking.
-Both per-register and bulk writes use that map; a write to an interpreter-consumed
-register outside the sparse map leaves the existing UBO incorrectly valid.
-The interpreter's effective read map is now all 256 registers; switching back to
-the compiled shader restores its compact map and existing caching. No renderer,
-driver, resolution, async-policy or frames-in-flight change.
+Initial full-buffer test found stale values outside a sparse shader's read map.
+Review of Shader::AnalyzeUcode showed dynamic-addressed shaders already receive
+all256 bits in that map. The initial test therefore did not establish stale
+**consumed** constants or a rendering defect. The proposed full-map override is
+withdrawn; do not ship it or count it as a confirmed geometry repair. An earlier
+intermediate native build may contain that rejected override; its receipt cannot
+match the final restored recipe. The final engine reuses the accepted source and
+verified binary, preserving pacing and instrumentation. This correction supersedes
+initial #295 commentary about a confirmed interpreter-cache defect.
 
-Regression compiles the actual pinned map-selection block and full bulk-write
-method against minimal type fixtures. Unmodified source fails on a register outside
-the compact map; patched source passes 10000 repeated updates across all 256 vertex
-registers and compiled/interpreter transitions under ASan/UBSan. Fixture is not a
-native runtime or gameplay substitute. Real Xenia ARM64 rebuild/receipt required.
-This is a confirmed source defect, not proof it caused the owner's progressive
-FIFA Street3 deformation. Precise retest binary, scene/time-to-onset and render
-capture remain absent; sustained geometry acceptance stays PENDING.
+Retained regression compiles actual pinned map-selection and bulk-write method
+bodies against minimal types. It passes10000 animation-like updates across all256
+registers in dynamic read maps, static sparse reads, unused writes and transitions
+under ASan/UBSan. This is sustained source verification, not gameplay simulation
+or a binary runtime substitute. No graphics correctness acceptance inferred.
 
-Audited the existing upload pool's capacity bounds/flush-before-retire and fence
-reclaim, constant UBO invalidation, descriptor retirement at frame_completed_,
-atom-aligned noncoherent flush/invalidate, shared-memory host/device aliases and
-barriers. No unsupported blanket synchronization or unrelated shader fix applied.
+Audited existing upload pool capacity bounds/flush-before-retire and fence reclaim,
+constant UBO invalidation, descriptor retirement at frame_completed_, atom-aligned
+noncoherent flush/invalidate, shared-memory host/device aliases and barriers.
+No confirmed FIFA geometry root cause with available evidence; exact latest binary,
+scene/time-to-onset and GPU capture remain missing. No blanket synchronization,
+shader, driver, resolution, frame skipping or frames-in-flight changes applied.
 Existing timing windows, skipped-draw counter, RSS/thermal/audio metrics retained.
-Physical comparison: identical match, multiple players, 15-minute play, restart
-and rematch, cold/warm cache, regular Advanced reports/video at onset, save/reopen.
-Do not infer correct geometry or FPS from host presents. Stock Vulkan baseline.
+Physical comparison: identical match, multiple players,15-minute play, restart and
+rematch, cold/warm cache, Advanced reports/video at onset, save/reopen. Do not infer
+correct geometry/FPS from host presents. Stock Vulkan baseline.

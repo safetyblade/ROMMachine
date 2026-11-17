@@ -121,6 +121,3 @@ int register_xendroid_Emulator(JNIEnv* env)''')
 
     from instrument_performance import instrument
     instrument(cpp, support)
-
-    from fix_interpreter_constants import apply as fix_interpreter_constants
-    fix_interpreter_constants(cpp)

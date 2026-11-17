@@ -11,8 +11,6 @@ import tempfile
 import unittest
 import urllib.request
 
-sys.path.insert(0, str(Path(__file__).parent / 'xbox360'))
-from fix_interpreter_constants import fix
 
 PIN = '779680ade075d2d2a4c589c6a8d57a8e26c116c0'
 REL = 'emulator-core/src/main/cpp/xenia/src/xenia/gpu/vulkan/vulkan_command_processor.cc'
@@ -74,6 +72,9 @@ int main() {
   VertexShader shader;
   // Run repeated animation-like register updates, across vec4 and bank edges.
   for (uint32_t frame = 1; frame <= 10000; ++frame) {
+    // Dynamic-addressing shaders are analyzed with all256 constants in the map.
+    for (auto& word : shader.map.float_bitmap) word = UINT64_MAX;
+    shader.map.float_count = 256;
     cp.map(&shader, true);
     cp.current_constant_buffers_up_to_date_ = 3;
     uint32_t bone = __builtin_bswap32(frame);
@@ -82,6 +83,9 @@ int main() {
     if (cp.current_constant_buffers_up_to_date_ & 1) return 10;
     if (cp.registers.values[0x4000 + index * 4] != frame) return 11;
     // Returning to compiled layout re-uploads and retains sparse optimization.
+    shader.map.float_bitmap[0] = 1;
+    for (int i = 1; i < 4; ++i) shader.map.float_bitmap[i] = 0;
+    shader.map.float_count = 1;
     cp.map(&shader, false);
     cp.current_constant_buffers_up_to_date_ = 3;
     cp.WriteShaderConstantsFromMem(0x4000 + 255 * 4, &bone, 1);
@@ -94,7 +98,7 @@ int main() {
 
 
 class InterpreterConstants(unittest.TestCase):
-    def test_repeated_full_register_updates_invalidate_interpreter_buffer(self):
+    def test_repeated_dynamic_and_static_shader_constant_updates(self):
         root = os.environ.get('X360_SOURCE_CHECKOUT')
         if root:
             source = (Path(root) / REL).read_text()
@@ -103,7 +107,7 @@ class InterpreterConstants(unittest.TestCase):
             source = urllib.request.urlopen(url, timeout=60).read().decode()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
-            for name, text, expected in [('before', source, 10), ('after', fix(source), 0)]:
+            for name, text, expected in [('accepted', source, 0)]:
                 cpp, exe = path / (name + '.cpp'), path / name
                 cpp.write_text(fixture(text))
                 subprocess.run(['c++', '-std=c++17', '-O2', '-fsanitize=undefined,address',
