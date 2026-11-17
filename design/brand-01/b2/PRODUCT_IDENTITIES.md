@@ -24,7 +24,7 @@ Each product has four independent SVG assets: mark (24-unit viewBox), path-built
 
 ## Colour
 
-Original default UI: GEM muted amethyst #C6A6D9; SafeSave mist blue #ADC6E1; CARTMOD warm brass #D9B18D. B1 optional warm-light candidate: #725281, #365D82, #865735 respectively. Product colour is a small optional accent, not page background, required identification or status meaning. On personal appearances use a contrast-safe semantic foreground/accent with existing appearance protections; all three remain distinguishable in monochrome. Do not save new appearance roles, change existing editions, or infer a colour from product data. Contrast ratios for the six B1 neutral backgrounds recorded in product-identities.json; custom appearances still require real contrast verification.
+Original default UI: GEM muted amethyst #C6A6D9; SafeSave mist blue #ADC6E1; CARTMOD warm brass #D9B18D. B1 approved warm Light appearance: #725281, #365D82, #865735 respectively. Product colour is a small optional accent, not page background, required identification or status meaning. Owner approved all product marks and the CARTDECK logo reacting to the selected appearance through contrast-safe semantic foreground/accent; geometry and wordmarks never change. All three remain distinguishable in monochrome. Do not save new appearance roles, change existing editions, or infer a colour from product data. Contrast ratios for the six B1 neutral backgrounds recorded in product-identities.json; custom appearances still require real contrast verification.
 
 ## Product presentation and boundaries
 
@@ -32,6 +32,10 @@ GEM: For You / Browse / My Ratings. Discovery is inviting but precise. Cold star
 SafeSave: save inventory, verified status, import/export and recovery. Emphasise the actual scope, source and state. Explicit confirmations where necessary; no cloud claim. SafeSave Vault is an optional future feature only. 
 CARTMOD: workshop action cards; PC media setup, managed installations, future Patch Studio/My Sources only when available. Hide detailed instructions until requested; imported media does not equal verified install. Keep canonical shared Shelf cartridges and existing storage protections.
 Product copy proposals in the manifest/specimen are for visual review, not runtime strings or release claims.
+
+## Owner review — 18 November 2026
+
+Light and appearance-reactive logo tint are approved for eventual integration. GEM geometry remains unchanged. SafeSave and CARTMOD original marks are retained as option A, not locked; compare alternatives in `options/REVIEW.md` before selecting the final marks. No new product assets are promoted by default.
 
 ## Integration and verification
 
