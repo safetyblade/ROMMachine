@@ -10,10 +10,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -60,11 +62,15 @@ internal fun WorkshopPanel(
     subtitle: String,
     content: @Composable () -> Unit,
 ) {
+    var expanded by rememberSaveable(title) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Text(subtitle, style = MaterialTheme.typography.bodySmall)
-            content()
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Hide details" else "Open")
+            }
+            if (expanded) content()
         }
     }
 }

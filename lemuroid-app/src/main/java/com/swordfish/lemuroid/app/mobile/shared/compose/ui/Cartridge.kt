@@ -40,8 +40,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -83,14 +83,20 @@ fun CartridgeLibraryTheme(
         LocalShelfMaterials provides materials,
     ) {
         val base = if (materials.roomBackdrop.luminance() > 0.5f) lightColorScheme() else darkColorScheme()
+        val primary =
+            com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
+                materials.interactionAccent,
+                listOf(materials.shelfBackboard),
+                4.5f,
+            )
         MaterialTheme(
             colorScheme =
                 base.copy(
-                    primary = materials.interactionAccent,
+                    primary = primary,
                     onPrimary =
                         com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor(
                             materials.roomBackdrop,
-                            listOf(materials.interactionAccent),
+                            listOf(primary),
                             4.5f,
                         ),
                     background = materials.roomBackdrop,

@@ -13,6 +13,8 @@ import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckCuratedDesigns
+import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
@@ -49,12 +51,20 @@ fun SettingsScreen(
 
     LemuroidSettingsPage(modifier = modifier) {
         if (onOpenAppearance != null) {
-            LemuroidSettingsMenuLink(
-                title = { Text("Appearance") },
-                subtitle = { Text("Special editions, colours and personal finishes") },
-                onClick = onOpenAppearance,
-            )
+            val appearance = LocalShelfAppearance.current
+            val current =
+                CartdeckCuratedDesigns.byId(appearance.curatedDesignId)?.title
+                    ?: appearance.edition.replaceFirstChar { it.uppercase() }
+            LemuroidCardSettingsGroup(title = { Text("Appearance") }) {
+                LemuroidSettingsMenuLink(
+                    title = { Text("Edit appearance") },
+                    subtitle = { Text(current) },
+                    onClick = onOpenAppearance,
+                )
+            }
         }
+        InputSettings(navController = navController)
+        GeneralSettings(navController)
         RomsSettings(
             state = state,
             onChangeFolder = { viewModel.changeLocalStorageFolder() },
@@ -62,16 +72,6 @@ fun SettingsScreen(
             scanInProgress = scanInProgress,
             onSupportedGames = { navController.navigateToRoute(MainRoute.SETTINGS_SUPPORTED_GAMES) },
         )
-        LemuroidSettingsMenuLink(title = {
-            Text("Display")
-        }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
-        LemuroidSettingsMenuLink(
-            title = { Text("CARTMOD") },
-            subtitle = { Text("PC game setup and cartridge preparation") },
-            onClick = { navController.navigateToRoute(MainRoute.CARTMOD) },
-        )
-        GeneralSettings()
-        InputSettings(navController = navController)
         com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodHelpSettings(onOpenHelp)
         MiscSettings(
             indexingInProgress = indexingInProgress,
@@ -90,7 +90,7 @@ private fun MiscSettings(
     navController: NavController,
 ) {
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_misc)) },
+        title = { Text("System & advanced") },
     ) {
         LemuroidSettingsMenuLink(
             title = { Text("PlayStation 3 setup") },
@@ -145,7 +145,7 @@ private fun MiscSettings(
 @Composable
 private fun InputSettings(navController: NavController) {
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_input)) },
+        title = { Text("Controllers") },
     ) {
         LemuroidSettingsMenuLink(
             title = { Text("Layout") },
@@ -175,12 +175,16 @@ private fun InputSettings(navController: NavController) {
 }
 
 @Composable
-private fun GeneralSettings() {
+private fun GeneralSettings(navController: NavController) {
     val immersiveMode = booleanPreferenceState(R.string.pref_key_enable_immersive_mode, false)
 
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_general)) },
+        title = { Text("Display & gameplay") },
     ) {
+        LemuroidSettingsMenuLink(
+            title = { Text("Display") },
+            onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) },
+        )
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_autosave, true),
             title = { Text(text = stringResource(id = R.string.settings_title_enable_autosave)) },
@@ -214,7 +218,7 @@ private fun RomsSettings(
             }.getOrNull() ?: emptyDirectory
         }
 
-    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {
+    LemuroidCardSettingsGroup(title = { Text("Shelf & library") }) {
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.directory)) },
             subtitle = { Text(text = currentDirectoryName) },

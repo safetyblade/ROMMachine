@@ -88,7 +88,7 @@ internal fun PcWindowsSetupSettings(
                 }
             }
         }
-    WorkshopPanel("02 · My installations", "Manage guest disks and launch setup") {
+    WorkshopPanel("Manage installations", "Manage guest disks and launch setup") {
         LemuroidSettingsMenuLink(
             title = { Text("Refresh guest disk status") },
             enabled = !busy,

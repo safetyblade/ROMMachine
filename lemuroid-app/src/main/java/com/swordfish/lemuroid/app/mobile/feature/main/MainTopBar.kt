@@ -52,6 +52,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
+import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 
 @Composable
@@ -139,15 +140,32 @@ private fun BrandHeader(
         Icon(
             painterResource(icon),
             contentDescription = null,
-            tint = materials.interactionAccent,
+            tint = readableColor(materials.interactionAccent, listOf(materials.roomBackdrop), 3f),
             modifier = Modifier.size(30.dp),
         )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = materials.sectionText,
-            maxLines = 1,
-        )
+        val ink = readableColor(materials.sectionText, listOf(materials.roomBackdrop), 4.5f)
+        val wordmark =
+            when (title) {
+                "CARTDECK" -> R.drawable.cartdeck_wordmark_native
+                "GEM" -> R.drawable.cartdeck_brand_gem_wordmark
+                "CARTMOD" -> R.drawable.cartdeck_brand_cartmod_wordmark
+                else -> null
+            }
+        if (wordmark != null) {
+            Icon(
+                painterResource(wordmark),
+                contentDescription = title,
+                tint = ink,
+                modifier = Modifier.height(26.dp).fillMaxWidth(0.68f),
+            )
+        } else {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = ink,
+                maxLines = 1,
+            )
+        }
     }
 }
 

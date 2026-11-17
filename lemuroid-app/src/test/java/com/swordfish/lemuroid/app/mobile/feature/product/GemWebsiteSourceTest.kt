@@ -6,7 +6,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class GemWebsiteSourceTest {
-    private val source = GemWebsiteSource(name = "Example", home = "https://example.com", category = "Games", template = "")
+    private val source =
+        GemWebsiteSource(name = "Example", home = "https://example.com", category = "Games", template = "")
 
     @Test fun homeWebsiteRequiresNoQuery() {
         assertEquals("https://example.com", source.searchUri("")?.toASCIIString())

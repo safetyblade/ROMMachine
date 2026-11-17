@@ -202,7 +202,9 @@ internal fun HomeScreen(
                                     }
                                 }
                                 if (state.indexInProgress) {
-                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                                    LinearProgressIndicator(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                    )
                                     Text(
                                         stringResource(R.string.cartdeck_scanning),
                                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -235,8 +237,10 @@ internal fun HomeScreen(
                                 if (query.active && projection.games.isEmpty()) {
                                     Text("No matching cartridges", modifier = Modifier.padding(16.dp))
                                 }
-                                if (!state.showNoGamesCard && !query.active && !arrange &&
-                                    pageKey != "all" && !firstCollection && pageLayout.sections.all { it.cells.isEmpty() }
+                                if (
+                                    !state.showNoGamesCard && !query.active && !arrange &&
+                                    pageKey != "all" && !firstCollection &&
+                                    pageLayout.sections.all { it.cells.isEmpty() }
                                 ) {
                                     TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
                                         Text("Empty collection · Add cartridges")

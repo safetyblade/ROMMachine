@@ -77,7 +77,10 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
         )
         Text("Search opens the selected site in your browser. Do not enter private information.")
         if (initial.isFailure) {
-            Text("Saved websites could not be read. Existing data is retained.", color = MaterialTheme.colorScheme.error)
+            Text(
+                "Saved websites could not be read. Existing data is retained.",
+                color = MaterialTheme.colorScheme.error,
+            )
         } else {
             sources.filter { it.enabled }.groupBy { it.category.ifBlank { "Websites" } }.forEach { (category, list) ->
                 Text(category, style = MaterialTheme.typography.titleMedium)
@@ -169,9 +172,12 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
                 if (duplicate) {
                     "A website with this name or address already exists."
                 } else {
-                    val next = if (existing == null) sources + source else sources.map {
-                        if (it.id == source.id) source else it
-                    }
+                    val next =
+                        if (existing == null) {
+                            sources + source
+                        } else {
+                            sources.map { if (it.id == source.id) source else it }
+                        }
                     if (save(next)) {
                         editorOpen = false
                         null
@@ -210,7 +216,10 @@ private fun GemWebsiteEditor(
     var category by rememberSaveable(draftId) { mutableStateOf(existing?.category.orEmpty()) }
     var template by rememberSaveable(draftId) { mutableStateOf(existing?.template.orEmpty()) }
     var error by rememberSaveable(draftId) { mutableStateOf("") }
-    val draft = GemWebsiteSource(draftId, name.trim(), home.trim(), category.trim(), template.trim(), existing?.enabled ?: true)
+    val draft =
+        GemWebsiteSource(
+            draftId, name.trim(), home.trim(), category.trim(), template.trim(), existing?.enabled ?: true,
+        )
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text(if (existing == null) "Add website" else "Edit website") },
