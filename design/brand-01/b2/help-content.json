@@ -1,0 +1,105 @@
+{
+  "schema": "cartdeck.help-content/1",
+  "revision": 1,
+  "status": "design-seed-review-before-publication",
+  "publicationPolicy": "App-bundled reviewed static data; no remote CMS; no draft exposed",
+  "articles": [
+    {
+      "id": "guide-cartmod",
+      "kind": "guide",
+      "owner": "settings",
+      "category": "Getting started",
+      "title": "How to use CARTMOD",
+      "summary": "Prepare and modify games using files you provide.",
+      "steps": [
+        "Choose a task that is available in CARTMOD.",
+        "Select a cartridge or game media you have permission to use.",
+        "Review the proposed changes and any storage or save implications.",
+        "Follow the task-specific setup instructions. Importing a game does not prove it is playable.",
+        "When preparation is complete, return to Shelf to open the cartridge. Check the actual readiness status."
+      ],
+      "applicability": "General; individual actions depend on installed capabilities.",
+      "status": "draft"
+    },
+    {
+      "id": "guide-pc-windows",
+      "kind": "guide",
+      "owner": "settings",
+      "category": "PC games",
+      "title": "Install Windows and a PC game",
+      "summary": "Existing DOSBox Pure guest setup procedure, subject to runtime support.",
+      "steps": [
+        "Open a PC cartridge. Boot and install Windows from your own installation media.",
+        "Run the installed operating system, install the game and shut Windows down normally.",
+        "In Windows, create a Startup shortcut to the installed EXE with the game folder as Start in.",
+        "For new imports with an EXE path, copy the CARTPLAY shortcut from the content drive to Startup.",
+        "Set the installed OS as auto-start in the core menu. Shelf keeps opening the same guest when supported.",
+        "To recover setup, remove the guest startup shortcut and reopen the core menu."
+      ],
+      "applicability": "Transferred from PcWindowsSetupSettings.kt; verify against actual DOSBox Pure runtime before publication. Guest boot and installed-game launch are not claimed verified.",
+      "status": "draft"
+    },
+    {
+      "id": "faq-emulation",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "Emulation",
+      "title": "What is emulation?",
+      "summary": "An emulator reproduces parts of a gaming system in software. Different titles and devices may perform differently.",
+      "detail": "Supported system, firmware, hardware and emulator settings can affect behaviour. Import success alone does not demonstrate compatibility.",
+      "status": "draft"
+    },
+    {
+      "id": "faq-rom",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "Getting started",
+      "title": "Does CARTDECK include games?",
+      "summary": "CARTDECK uses game files and media supplied by the player.",
+      "detail": "Only use files you are permitted to use. Game media and system firmware are not supplied by this FAQ.",
+      "status": "draft"
+    },
+    {
+      "id": "faq-patch",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "Mods & patches",
+      "title": "What is a game patch?",
+      "summary": "A patch contains changes intended for a particular version of a game.",
+      "detail": "The correct base file and a supported patch format are required. CARTDECK should verify the input and output before exposing a separate playable edition. Not every patch or system is supported.",
+      "status": "draft"
+    },
+    {
+      "id": "faq-install",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "PC games",
+      "title": "Why does an imported PC cartridge say Setup needed?",
+      "summary": "Creating a cartridge is different from installing and verifying its game.",
+      "detail": "Guest installation, boot and executable configuration may still be required. The available tasks depend on the supported runtime.",
+      "relatedGuide": "guide-pc-windows",
+      "status": "draft"
+    },
+    {
+      "id": "faq-saves",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "Saves & recovery",
+      "title": "Will a modified edition share my saves?",
+      "summary": "Do not assume saves are compatible between original and modified games.",
+      "detail": "Use the actual save scope and transfer options shown by CARTDECK. Preserve original progress and confirm any copy or replacement explicitly.",
+      "status": "draft"
+    },
+    {
+      "id": "faq-failure",
+      "kind": "faq",
+      "owner": "cartmod",
+      "category": "Troubleshooting",
+      "title": "What if setup or a patch fails?",
+      "summary": "Check the recorded status and error before retrying.",
+      "detail": "Keep your original game and saves. Use available recovery or rollback actions, and do not assume a failed preparation is ready to play.",
+      "relatedGuide": "guide-cartmod",
+      "status": "draft"
+    }
+  ]
+}

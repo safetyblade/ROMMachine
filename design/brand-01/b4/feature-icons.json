@@ -1,0 +1,320 @@
+{
+  "schema": "cartdeck.feature-icons/1",
+  "status": "owner-approved-hierarchy; new nested-product artwork candidate",
+  "foundation": "../b1/foundation-tokens.json",
+  "taglines": false,
+  "geometry": {
+    "viewBox": 24,
+    "stroke": 1.75,
+    "regularDp": 24,
+    "compactDp": 20,
+    "metadataDp": 16,
+    "minTouchDp": 48
+  },
+  "features": [
+    {
+      "id": "pivotarc",
+      "name": "PivotArc",
+      "parent": "Settings / Controls",
+      "kind": "signature",
+      "notes": "One-hand control layout; use existing safe-fit and actual availability. The mark is illustrative, never a substitute for the actual hardware.",
+      "asset": "features/pivotarc/mark.svg",
+      "wordmark": "features/pivotarc/wordmark.svg",
+      "typography": "true semibold italic",
+      "capabilityGated": true
+    },
+    {
+      "id": "griparc",
+      "name": "GripArc",
+      "parent": "Settings / Controls",
+      "kind": "signature",
+      "notes": "Programmable grip module; no inactive button or moved slot implied; full-L hardware remains unchanged.",
+      "asset": "features/griparc/mark.svg",
+      "wordmark": "features/griparc/wordmark.svg",
+      "typography": "true semibold italic",
+      "capabilityGated": true
+    },
+    {
+      "id": "gemrating",
+      "name": "GEMRating",
+      "parent": "GEM",
+      "kind": "capability",
+      "notes": "Personal recommendation explanation; don't conflate user ratings, editorial scores or DeckFit.",
+      "asset": "features/gemrating/mark.svg",
+      "wordmark": null,
+      "typography": "B1 upright section/title",
+      "capabilityGated": true
+    },
+    {
+      "id": "gemfinder",
+      "name": "GemFinder",
+      "parent": "GEM",
+      "kind": "capability",
+      "notes": "Discovery capability; not web availability or automated download.",
+      "asset": "features/gemfinder/mark.svg",
+      "wordmark": null,
+      "typography": "B1 upright section/title",
+      "capabilityGated": true
+    },
+    {
+      "id": "deckfit",
+      "name": "DeckFit",
+      "parent": "GEM",
+      "kind": "capability",
+      "notes": "Separate fit signal; use actual evidence, never an unsupported compatibility guarantee.",
+      "asset": "features/deckfit/mark.svg",
+      "wordmark": null,
+      "typography": "B1 upright section/title",
+      "capabilityGated": true
+    }
+  ],
+  "icons": [
+    {
+      "id": "back",
+      "label": "Back",
+      "asset": "icons/back.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "next",
+      "label": "Next",
+      "asset": "icons/next.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "close",
+      "label": "Close",
+      "asset": "icons/close.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "add",
+      "label": "Add",
+      "asset": "icons/add.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "search",
+      "label": "Search",
+      "asset": "icons/search.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "filters",
+      "label": "Filters",
+      "asset": "icons/filters.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "sort",
+      "label": "Sort",
+      "asset": "icons/sort.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "refresh",
+      "label": "Refresh",
+      "asset": "icons/refresh.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "play",
+      "label": "Play",
+      "asset": "icons/play.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "pause",
+      "label": "Pause",
+      "asset": "icons/pause.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "favourite",
+      "label": "Favourite",
+      "asset": "icons/favourite.svg",
+      "selectedAsset": "icons/favourite-selected.svg"
+    },
+    {
+      "id": "cover",
+      "label": "Cover artwork",
+      "asset": "icons/cover.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "controller",
+      "label": "Controllers",
+      "asset": "icons/controller.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "display",
+      "label": "Display",
+      "asset": "icons/display.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "asset": "icons/appearance.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "profiles",
+      "label": "Players",
+      "asset": "icons/profiles.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "help",
+      "label": "Help & guides",
+      "asset": "icons/help.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "faq",
+      "label": "FAQs",
+      "asset": "icons/faq.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "source",
+      "label": "My Sources / website",
+      "asset": "icons/source.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "external",
+      "label": "External website",
+      "asset": "icons/external.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "folder",
+      "label": "Game folder",
+      "asset": "icons/folder.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "import",
+      "label": "Import",
+      "asset": "icons/import.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "export",
+      "label": "Export",
+      "asset": "icons/export.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "copy",
+      "label": "Copy",
+      "asset": "icons/copy.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "restore",
+      "label": "Recover",
+      "asset": "icons/restore.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "edit",
+      "label": "Edit",
+      "asset": "icons/edit.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "check",
+      "label": "Confirmed",
+      "asset": "icons/check.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "warning",
+      "label": "Warning",
+      "asset": "icons/warning.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "lock",
+      "label": "Protected",
+      "asset": "icons/lock.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "delete",
+      "label": "Delete",
+      "asset": "icons/delete.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "undo",
+      "label": "Undo",
+      "asset": "icons/undo.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "more",
+      "label": "More",
+      "asset": "icons/more.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "storage",
+      "label": "Storage",
+      "asset": "icons/storage.svg",
+      "selectedAsset": null
+    },
+    {
+      "id": "patch",
+      "label": "Patch",
+      "asset": "icons/patch.svg",
+      "selectedAsset": null
+    }
+  ],
+  "reuse": {
+    "shelf": "../../cartdeck-v03/brand/cslot-master.svg",
+    "gem": "../b2/gem/mark.svg",
+    "safesave": "../b2/safesave/mark.svg",
+    "cartmod": "../b2/cartmod/mark.svg",
+    "settings": "../b2/settings/mark.svg",
+    "playroom": "../b3/playroom/mark.svg",
+    "grownUps": "../b3/grown-ups/mark.svg"
+  },
+  "hardwareGeometryChanges": false,
+  "appChanges": false,
+  "subproducts": [
+    {
+      "id": "modern",
+      "name": "Modern",
+      "parent": "Settings / Controllers",
+      "route": "settings.controllers.modern",
+      "entry": "Game Controls > Modern (when supported)",
+      "asset": "subproducts/modern/mark.svg",
+      "wordmark": "subproducts/modern/wordmark.svg",
+      "lockup": "subproducts/modern/lockup.svg",
+      "kind": "nested-product",
+      "legacyInternalId": "modern-function",
+      "capabilityGated": true,
+      "independentDock": false,
+      "taglines": false
+    },
+    {
+      "id": "vault",
+      "name": "Vault",
+      "parent": "SafeSave",
+      "route": "safesave.vault",
+      "entry": "SafeSave > Vault (when service verified)",
+      "asset": "subproducts/vault/mark.svg",
+      "wordmark": "subproducts/vault/wordmark.svg",
+      "lockup": "subproducts/vault/lockup.svg",
+      "kind": "nested-product",
+      "legacyInternalId": "safesave-vault",
+      "capabilityGated": true,
+      "independentDock": false,
+      "taglines": false
+    }
+  ]
+}

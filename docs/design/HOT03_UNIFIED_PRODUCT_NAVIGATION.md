@@ -1,6 +1,8 @@
 # CARTDECK — HOT-03 Unified product navigation
 Owner direction approved 17 November 2026. Sienna Vale design; Daniel Mercer architecture review; Elliot Shaw delivery; Marcus Reid verification. Design handoff only; no runtime functionality or build validation claimed. Companion to HOT-01/02 draft PR #312. Retain active lanes and merge against current release baseline only.
 
+> **Owner-approved amendment, 18 November 2026:** [B2 final handoff](../../design/brand-01/b2/B2_FINAL_HANDOFF.md) supersedes conflicting instructions here: five adult destinations (Settings fifth), local Shelf search inside Filters, GEM-owned website search/My Sources, Shelf cartridge-context cover search, CARTMOD FAQs last and procedural guides in Settings. Historical HOT03 source mapping below is retained for traceability; follow B2 for integration.
+
 ## 1. Product information architecture
 Four adult product destinations in order: Shelf / GEM / SafeSave / CARTMOD. Shelf is the home and only ROM collection browser. GEM discovers and rates; SafeSave protects progress; CARTMOD prepares and modifies playable cartridges, including PC setup. Profiles are a persistent header entry once profile capability is delivered; settings and info remain available. Junior enters its own single-cartridge My Playroom, never adult dock. No dead destination, coming-soon tile, or simulated action in shipped navigation. Show dock only when two or more real destinations are available, otherwise reclaim its height; preserve existing Done/Tools/Undo arrangement dock. Stable destination IDs, not positional tab indices; restore selected destination and shelf context on Back. Use existing theme tokens and named resources; no new dependencies.
 
