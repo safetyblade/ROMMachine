@@ -21,7 +21,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -219,7 +218,7 @@ class CartridgeExperienceTest {
             .performSemanticsAction(SemanticsActions.OnClick)
         settleSheet()
         compose.onNodeWithText("Back to Setup").assertExists()
-        compose.onNodeWithText("Change Cover").assertExists()
+        compose.onNodeWithText("Upload / replace image").assertExists()
     }
 
     @Test fun singleXboxEngineDoesNotOfferFakeAlternatives() {
@@ -243,7 +242,7 @@ class CartridgeExperienceTest {
     @Test fun cartridgeFrontKeepsTechnicalControlsBehindSetupWithoutChangingChoices() {
         detail()
         compose.onNodeWithText("Open").assertIsEnabled()
-        compose.onNodeWithText("Change Cover").assertDoesNotExist()
+        compose.onNodeWithText("Upload / replace image").assertDoesNotExist()
         compose.onNodeWithText("Automatic / reset to recommended").assertDoesNotExist()
         openSetup()
         compose.onNodeWithText("Emulator").assertExists()
@@ -251,7 +250,7 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Cartridge artwork").assertExists()
         compose.onNodeWithText("Close Setup").performClick()
         compose.onNodeWithText("Open").assertIsEnabled()
-        compose.onNodeWithText("Change Cover").assertDoesNotExist()
+        compose.onNodeWithText("Upload / replace image").assertDoesNotExist()
     }
 
     @Test fun selectFrontCoverDoesNotLaunchAndOpenDispatchesOnce() {
@@ -287,7 +286,7 @@ class CartridgeExperienceTest {
         var writes = 0
         detail(change = { _, _ -> writes++ })
         openArtworkSetup()
-        compose.onNodeWithText("Change Cover")
+        compose.onNodeWithText("Upload / replace image")
             .performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
         val activity = shadowOf(compose.activity)
@@ -338,7 +337,7 @@ class CartridgeExperienceTest {
         }
         compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled()
         openArtworkSetup()
-        compose.onNodeWithText("Change Cover").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Upload / replace image").performScrollTo().assertIsEnabled()
     }
 
     @Test fun customCoverManagerPersistsAndResetsOnlyTheSelectedCover() =
@@ -373,9 +372,8 @@ class CartridgeExperienceTest {
                 )
             }
         }
-        compose.onNode(
-            hasScrollToIndexAction(),
-        ).performScrollToNode(hasContentDescription("Cartridge 16, GB, spine facing"))
+        compose.onNodeWithTag("cartdeck_shelf_vertical_list")
+            .performScrollToNode(hasContentDescription("Cartridge 16, GB, spine facing"))
         compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithContentDescription("Cartridge 16, GB, spine facing").assertExists()
@@ -406,7 +404,7 @@ class CartridgeExperienceTest {
             cover = uri
         })
         openArtworkSetup()
-        compose.onNodeWithText("Change Cover")
+        compose.onNodeWithText("Upload / replace image")
             .performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
         val activity = shadowOf(compose.activity)

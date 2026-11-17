@@ -62,6 +62,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -243,7 +244,11 @@ fun ShelfBoard(
                 }
             }
         }
-        LazyColumn(state = scroll, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+        LazyColumn(
+            state = scroll,
+            modifier = Modifier.testTag("cartdeck_shelf_vertical_list"),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
             if (header != null) item(key = "library-header") { header() }
             items(items.size, key = { items[it].key }) { index ->
                 val item = items[index]

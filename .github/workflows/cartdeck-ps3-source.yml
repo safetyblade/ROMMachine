@@ -9,8 +9,12 @@ on:
       - '.github/workflows/cartdeck-ps3-source.yml'
   workflow_dispatch:
     inputs:
+      development_integration:
+        description: 'Compile and verify integrated PS3 for development; no combined APK upload'
+        type: boolean
+        default: true
       distribution_licensing_cleared:
-        description: 'Publish the combined engineering APK only after distribution licensing clearance'
+        description: 'Publish the combined engineering APK only after actual distribution licensing clearance'
         type: boolean
         default: false
 permissions:
@@ -112,8 +116,8 @@ jobs:
           path: work/ps3/engine-input/
           retention-days: 7
           if-no-files-found: error
-      # These are internal build inputs. The combined APK is compiled/verified below;
-      # its publication stays gated by the Product Owner's deferred distribution clearance.
+      # Native inputs retain their provenance and licence inventories. Combined APK
+      # development verification is distinct from publication and release clearance.
       - name: Preserve build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -124,12 +128,13 @@ jobs:
             work/ps3/build/CMakeCache.txt
 
   integrated-apk:
-    if: github.event_name == 'workflow_dispatch' && inputs.distribution_licensing_cleared
+    if: github.event_name == 'workflow_dispatch' && (inputs.development_integration || inputs.distribution_licensing_cleared)
     needs: engines
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
       include_ps3: true
       use_ci01_all_native: true
+      ps3_development_integration: ${{ inputs.development_integration }}
       distribution_licensing_cleared: ${{ inputs.distribution_licensing_cleared }}
       publish_apk: ${{ github.event_name == 'workflow_dispatch' && inputs.distribution_licensing_cleared }}
     secrets: inherit

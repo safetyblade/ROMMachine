@@ -21,6 +21,9 @@ on:
       distribution_licensing_cleared:
         type: boolean
         default: false
+      ps3_development_integration:
+        type: boolean
+        default: false
       include_ps3:
         type: boolean
         default: false
@@ -79,10 +82,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Enforce PS3 distribution clearance before staging
-        if: inputs.include_ps3 == true && inputs.distribution_licensing_cleared != true
+      - name: Enforce PS3 development and distribution boundaries
+        if: inputs.include_ps3 == true && inputs.distribution_licensing_cleared != true && (inputs.ps3_development_integration != true || inputs.publish_apk == true)
         run: |
-          echo '::error::PS3 distribution BLOCKED: distribution_licensing_cleared must be explicitly recorded before combining these engines with the application.'
+          echo '::error::PS3: use explicitly authorised compile-only development mode without APK publication, or record actual distribution clearance.'
           exit 1
       - name: Native resolver source tests (before native downloads)
         run: |
@@ -619,7 +622,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Publish the actual combined upgrade APK
-        if: ${{ !inputs.include_ps3 || inputs.publish_apk }}
+        if: ${{ !inputs.include_ps3 || (inputs.publish_apk && inputs.distribution_licensing_cleared) }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.include_ps3 && 'CARTDECK_CONNECTED_PS2_WIIU_X360_PS3_ARM64_DEBUG' || 'CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG' }}
