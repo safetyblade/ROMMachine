@@ -62,3 +62,31 @@ identity is unknown; never substitute Wii U diagnostics or the older25143bdb cor
 Current accepted instrumentation and stock Samsung Vulkan remain preserved.
 Sustained resource-coherency/lifetime investigation in progress. No physical
 rendering correctness or frame-rate acceptance asserted.
+
+### Confirmed Xenia constant-cache increment
+
+The pinned Vulkan interpreter path uploads the full 256 vertex float constants,
+but installs only the compiled shader's sparse constant map for dirty tracking.
+Both per-register and bulk writes use that map; a write to an interpreter-consumed
+register outside the sparse map leaves the existing UBO incorrectly valid.
+The interpreter's effective read map is now all 256 registers; switching back to
+the compiled shader restores its compact map and existing caching. No renderer,
+driver, resolution, async-policy or frames-in-flight change.
+
+Regression compiles the actual pinned map-selection block and full bulk-write
+method against minimal type fixtures. Unmodified source fails on a register outside
+the compact map; patched source passes 10000 repeated updates across all 256 vertex
+registers and compiled/interpreter transitions under ASan/UBSan. Fixture is not a
+native runtime or gameplay substitute. Real Xenia ARM64 rebuild/receipt required.
+This is a confirmed source defect, not proof it caused the owner's progressive
+FIFA Street3 deformation. Precise retest binary, scene/time-to-onset and render
+capture remain absent; sustained geometry acceptance stays PENDING.
+
+Audited the existing upload pool's capacity bounds/flush-before-retire and fence
+reclaim, constant UBO invalidation, descriptor retirement at frame_completed_,
+atom-aligned noncoherent flush/invalidate, shared-memory host/device aliases and
+barriers. No unsupported blanket synchronization or unrelated shader fix applied.
+Existing timing windows, skipped-draw counter, RSS/thermal/audio metrics retained.
+Physical comparison: identical match, multiple players, 15-minute play, restart
+and rematch, cold/warm cache, regular Advanced reports/video at onset, save/reopen.
+Do not infer correct geometry or FPS from host presents. Stock Vulkan baseline.

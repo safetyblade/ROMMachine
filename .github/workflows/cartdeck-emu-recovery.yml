@@ -40,6 +40,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_cemu_atomic_attestation.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_native.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_x360_interpreter_constants.py' -v
           c++ -std=c++17 -pthread -fsanitize=undefined,address native/wiiu/GuestAtomic64Test.cpp -o /tmp/atomic64-test
           /tmp/atomic64-test
   corrected-cemu:

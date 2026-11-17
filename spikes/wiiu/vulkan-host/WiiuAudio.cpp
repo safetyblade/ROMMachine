@@ -4,6 +4,7 @@
 
 namespace {
 bool failed(std::string* error, const char* operation, aaudio_result_t result) {
+    WiiuMetrics::audio_recovery_result.store(result);
     if (error) *error = std::string("WIIU_AUDIO_") + operation + ":" +
         AAudio_convertResultToText(result);
     return false;
@@ -148,7 +149,6 @@ void WiiuAudio::service() {
     } else {
         // A missing output route must not tear down Cemu. Bounded timed retries
         // run even while the menu is open; callback never waits or closes.
-        WiiuMetrics::audio_recovery_result.store(AAUDIO_ERROR_DISCONNECTED);
         retry_at_us_ = now + 1000000;
     }
 }
