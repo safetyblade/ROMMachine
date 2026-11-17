@@ -90,13 +90,15 @@ object PhysicalControllerInput {
         if (!value.isFinite()) return 0f
         val min = range?.minimum ?: if (trigger) 0f else -1f
         val max = range?.maximum ?: 1f
-        if (max <= min) return 0f
+        if (!min.isFinite() || !max.isFinite() || max <= min) return 0f
         if (trigger) return ((value - min) / (max - min)).coerceIn(0f, 1f)
-        val middle = (centre ?: if (min < 0f && max > 0f) 0f else (min + max) / 2f).coerceIn(min, max)
+        val middle = (centre ?: if (min < 0f && max > 0f) 0f else (min + max) / 2f)
+        if (!middle.isFinite() || middle <= min || middle >= max) return 0f
         val span = if (value >= middle) max - middle else middle - min
         if (span <= 0f) return 0f
         val normalized = ((value - middle) / span).coerceIn(-1f, 1f)
         val flat = maxOf(deadzone, (range?.flat ?: 0f) / span).coerceIn(0f, 0.95f)
+        if (!flat.isFinite()) return 0f
         return if (abs(normalized) <= flat) {
             0f
         } else {
@@ -111,40 +113,78 @@ object PhysicalControllerInput {
             MotionEvent.AXIS_RX to MotionEvent.AXIS_RY
         }
 
+    /** Use only ranges advertised for this event's joystick source. */
+    fun eventRanges(event: MotionEvent): Map<Int, Range> {
+        if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return emptyMap()
+        return event.device?.motionRanges.orEmpty()
+            .filter { it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK }
+            .filter { event.isFromSource(it.source) }
+            .associate { it.axis to Range(it.min, it.max, it.flat) }
+    }
+
+    private fun signedStick(range: Range?): Boolean =
+        range != null && range.minimum < 0f && range.maximum > 0f
+
+    private fun stickSupported(
+        code: Int,
+        ranges: Map<Int, Range>,
+        profile: ControllerProfileStore.Profile,
+    ): Boolean {
+        val range = ranges[code] ?: return false
+        val centre = profile.centres[code]
+        return signedStick(range) ||
+            (centre != null && centre.isFinite() && centre > range.minimum && centre < range.maximum)
+    }
+
+    private fun resolvedRightAxes(
+        ranges: Map<Int, Range>,
+        profile: ControllerProfileStore.Profile,
+    ): Pair<Int, Int>? {
+        val candidates =
+            listOfNotNull(
+                profile.rightX?.let { x -> profile.rightY?.let { y -> x to y } },
+                MotionEvent.AXIS_Z to MotionEvent.AXIS_RZ,
+                MotionEvent.AXIS_RX to MotionEvent.AXIS_RY,
+            )
+        return candidates.firstOrNull { (x, y) ->
+            x != y && stickSupported(x, ranges, profile) && stickSupported(y, ranges, profile)
+        }
+    }
+
+    /** Unadvertised axes and ambiguous unipolar stick axes are neutral, not full negative travel. */
+    fun sampleAxis(
+        raw: (Int) -> Float,
+        ranges: Map<Int, Range>,
+        requested: Int,
+        profile: ControllerProfileStore.Profile,
+    ): Float {
+        val actual =
+            when (requested) {
+                MotionEvent.AXIS_Z, MotionEvent.AXIS_RX -> resolvedRightAxes(ranges, profile)?.first
+                MotionEvent.AXIS_RZ, MotionEvent.AXIS_RY -> resolvedRightAxes(ranges, profile)?.second
+                else -> requested
+            } ?: return 0f
+        val range = ranges[actual] ?: return 0f
+        val value = raw(actual)
+        if (!value.isFinite()) return 0f
+        if (actual == MotionEvent.AXIS_HAT_X || actual == MotionEvent.AXIS_HAT_Y) {
+            return value.coerceIn(-1f, 1f)
+        }
+        val trigger =
+            actual in setOf(
+                MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER,
+                MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS, MotionEvent.AXIS_THROTTLE,
+            )
+        if (!trigger && !stickSupported(actual, ranges, profile)) return 0f
+        val deadzone = if (profile.calibrated) profile.deadzone else maxOf(0.10f, profile.deadzone)
+        return axis(value, range, trigger, deadzone, profile.centres[actual])
+    }
+
     fun sample(
         event: MotionEvent,
         requested: Int,
         profile: ControllerProfileStore.Profile,
-    ): Float {
-        val device = event.device
-        val right = ControllerHardwareProfile.rightStickAxes(device)
-        val actual =
-            when (requested) {
-                MotionEvent.AXIS_Z, MotionEvent.AXIS_RX -> profile.rightX ?: right.first
-                MotionEvent.AXIS_RZ, MotionEvent.AXIS_RY -> profile.rightY ?: right.second
-                else -> requested
-            }
-        val range = device?.getMotionRange(actual)?.let { Range(it.min, it.max, it.flat) }
-        val trigger =
-            actual in
-                setOf(
-                    MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER,
-                    MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS, MotionEvent.AXIS_THROTTLE,
-                )
-        val stick =
-            actual in
-                setOf(
-                    MotionEvent.AXIS_X, MotionEvent.AXIS_Y,
-                    MotionEvent.AXIS_Z, MotionEvent.AXIS_RZ, MotionEvent.AXIS_RX, MotionEvent.AXIS_RY,
-                )
-        return axis(
-            event.getAxisValue(actual),
-            range,
-            trigger,
-            if (stick) profile.deadzone else 0f,
-            profile.centres[actual],
-        )
-    }
+    ): Float = sampleAxis({ event.getAxisValue(it) }, eventRanges(event), requested, profile)
 
     class State {
         private val held = mutableSetOf<Int>()
@@ -170,20 +210,13 @@ object PhysicalControllerInput {
             ranges: Map<Int, Range>,
             profile: ControllerProfileStore.Profile = ControllerProfileStore.Profile(),
         ) {
-            val reported = rightAxes(ranges.keys)
-            val right = (profile.rightX ?: reported.first) to (profile.rightY ?: reported.second)
             listOf(
-                Triple(Control.STICK_L_X, MotionEvent.AXIS_X, false),
-                Triple(Control.STICK_L_Y, MotionEvent.AXIS_Y, false),
-                Triple(Control.STICK_R_X, right.first, false),
-                Triple(Control.STICK_R_Y, right.second, false),
-            ).forEach { (control, code, trigger) ->
-                if (code in ranges) {
-                    analog[control] =
-                        axis(
-                            raw(code), ranges[code], trigger, profile.deadzone, profile.centres[code],
-                        )
-                }
+                Control.STICK_L_X to MotionEvent.AXIS_X,
+                Control.STICK_L_Y to MotionEvent.AXIS_Y,
+                Control.STICK_R_X to MotionEvent.AXIS_Z,
+                Control.STICK_R_Y to MotionEvent.AXIS_RZ,
+            ).forEach { (control, code) ->
+                analog[control] = sampleAxis(raw, ranges, code, profile)
             }
             analog[Control.TRIGGER_L] = listOf(MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_BRAKE)
                 .filter { it in ranges }.maxOfOrNull { axis(raw(it), ranges[it], true) } ?: 0f
@@ -191,8 +224,8 @@ object PhysicalControllerInput {
                 MotionEvent.AXIS_RTRIGGER, MotionEvent.AXIS_GAS, MotionEvent.AXIS_THROTTLE,
             )
                 .filter { it in ranges }.maxOfOrNull { axis(raw(it), ranges[it], true) } ?: 0f
-            val x = raw(MotionEvent.AXIS_HAT_X)
-            val y = raw(MotionEvent.AXIS_HAT_Y)
+            val x = sampleAxis(raw, ranges, MotionEvent.AXIS_HAT_X, profile)
+            val y = sampleAxis(raw, ranges, MotionEvent.AXIS_HAT_Y, profile)
             analog[Control.DPAD_LEFT] = if (x < -0.5f) 1f else 0f
             analog[Control.DPAD_RIGHT] = if (x > 0.5f) 1f else 0f
             analog[Control.DPAD_UP] = if (y < -0.5f) 1f else 0f
