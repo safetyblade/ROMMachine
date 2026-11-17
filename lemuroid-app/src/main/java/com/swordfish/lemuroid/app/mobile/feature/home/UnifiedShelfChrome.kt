@@ -99,8 +99,9 @@ internal fun UnifiedShelfChrome(
                         focus.clearFocus()
                         filters = true
                     },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 6.dp)
-                        .heightIn(min = 48.dp),
+                    modifier =
+                        Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 6.dp)
+                            .heightIn(min = 48.dp),
                 ) {
                     Text(if (query.active) "Filters •" else "Filters")
                 }
