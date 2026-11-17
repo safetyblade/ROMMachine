@@ -365,6 +365,11 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             },
                         )
                     }
+                    composable(MainRoute.GEM) {
+                        com.swordfish.lemuroid.app.mobile.feature.product.GemWebsiteSearchScreen(
+                            modifier = Modifier.padding(padding),
+                        )
+                    }
                     composable(MainRoute.CARTMOD) {
                         com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
                             modifier = Modifier.padding(padding),

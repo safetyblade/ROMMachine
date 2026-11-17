@@ -49,7 +49,7 @@ fun MainNavigationBar(
     onUndoShelf: () -> Unit = {},
 ) {
     AnimatedVisibility(
-        visible = currentRoute in listOf(MainRoute.HOME, MainRoute.CARTMOD, MainRoute.SETTINGS),
+        visible = currentRoute in listOf(MainRoute.HOME, MainRoute.GEM, MainRoute.CARTMOD, MainRoute.SETTINGS),
         enter = expandVertically(),
         exit = shrinkVertically(),
     ) {
@@ -111,6 +111,7 @@ private fun ProductDock(
     val destinations =
         listOf(
             Triple(MainRoute.HOME, "Shelf", R.drawable.cartdeck_brand_shelf),
+            Triple(MainRoute.GEM, "GEM", R.drawable.cartdeck_brand_gem),
             Triple(MainRoute.CARTMOD, "CARTMOD", R.drawable.cartdeck_brand_cartmod),
             Triple(MainRoute.SETTINGS, "Settings", R.drawable.cartdeck_brand_settings),
         )

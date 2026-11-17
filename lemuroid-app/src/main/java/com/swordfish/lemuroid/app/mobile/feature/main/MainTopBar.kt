@@ -95,6 +95,7 @@ fun LemuroidTopAppBar(
                         onUpdateQueryString = onUpdateQueryString,
                     )
                 MainRoute.HOME -> BrandHeader("CARTDECK", R.drawable.cartdeck_brand_shelf)
+                MainRoute.GEM -> BrandHeader("GEM", R.drawable.cartdeck_brand_gem)
                 MainRoute.CARTMOD -> BrandHeader("CARTMOD", R.drawable.cartdeck_brand_cartmod)
                 MainRoute.SETTINGS -> BrandHeader("Settings", R.drawable.cartdeck_brand_settings)
                 else -> Text(text = stringResource(route.titleId))

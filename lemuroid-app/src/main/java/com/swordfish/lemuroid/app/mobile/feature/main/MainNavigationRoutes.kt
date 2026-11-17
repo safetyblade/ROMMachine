@@ -44,6 +44,10 @@ enum class MainRoute(
         route = "home",
         titleId = R.string.title_home,
     ),
+    GEM(
+        route = "gem",
+        titleId = R.string.cartdeck_gem_title,
+    ),
     CARTMOD(
         route = "cartmod",
         titleId = R.string.cartdeck_cartmod_title,
