@@ -42,10 +42,11 @@ class PcWindowsSetupTest {
             val profile = UUID.randomUUID()
             val workspace = PcWorkspace(root, profile, UUID.randomUUID())
             val other = PcWorkspace(root, profile, UUID.randomUUID())
-            val bytes = ByteArray(7 * 1024 * 1024).apply {
-                this[510] = 0x55
-                this[511] = 0xaa.toByte()
-            }
+            val bytes =
+                ByteArray(7 * 1024 * 1024).apply {
+                    this[510] = 0x55
+                    this[511] = 0xaa.toByte()
+                }
             val store = PcGuestDiskStore(workspace)
             val result = store.importPrepared(bytes.inputStream())
             assertEquals(listOf(result), store.disks())
