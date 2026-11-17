@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +87,9 @@ internal fun PhysicalControllerMappingPanel(
     var selectedId by remember { mutableIntStateOf(-1) }
     val selected = devices.firstOrNull { it.id == selectedId } ?: devices.firstOrNull()
     var testing by remember(selected?.id) { mutableStateOf(false) }
+    var chooseDevice by remember { mutableStateOf(false) }
+    var choosePort by remember { mutableStateOf(false) }
+    var pendingPort by remember(selected?.id) { mutableStateOf<Int?>(null) }
 
     fun physicalName(code: Int): String =
         com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(
@@ -138,21 +145,82 @@ internal fun PhysicalControllerMappingPanel(
         }
         val actualPort = if (runtimePort != null) runtimePort(selected) else ports(selected)
         val portLabel = actualPort?.let { "Player ${it + 1}" } ?: "Unassigned player port"
-        GameMenuLink("Controller: ${selected.name} · $portLabel") {
-            val index = devices.indexOfFirst { it.id == selected.id }
-            onDiscard()
-            selectedId = devices[(index + 1) % devices.size].id
+        val editing = draft?.dirty == true || draft?.conflict != null || captureTarget != null
+        Text("Connected controller", style = MaterialTheme.typography.labelLarge)
+        Text(selected.name, style = MaterialTheme.typography.titleMedium)
+        Text(portLabel)
+        GameMenuLink("Choose controller (${devices.size} connected)", enabled = !editing) {
+            chooseDevice = true
         }
-        GameMenuLink("Assign player port · $portLabel") {
-            scope.launch {
-                val next = ((ports(selected) ?: -1) + 1) % portCapacity.coerceAtLeast(1)
-                ownershipMessage =
-                    runCatching { inputDeviceManager.assignPlayerPort(selected, next) }
-                        .fold(
-                            { "Assigned player ${next + 1}; engine attachment remains capability-based." },
-                            { "Could not change assignment. Existing ownership retained." },
-                        )
-            }
+        GameMenuLink("Assign player", enabled = !editing) { choosePort = true }
+        if (editing) {
+            Text("Save or discard your mapping changes before switching controller, player or scope.")
+        }
+        if (chooseDevice) {
+            AlertDialog(
+                onDismissRequest = { chooseDevice = false },
+                title = { Text("Choose controller") },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        devices.forEach { device ->
+                            val port = if (runtimePort != null) runtimePort(device) else ports(device)
+                            val assignment = port?.let { "Player ${it + 1}" } ?: "Unassigned"
+                            val current = if (device.id == selected.id) " · Selected" else ""
+                            GameMenuLink("${device.name} · $assignment$current") {
+                                selectedId = device.id
+                                chooseDevice = false
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { chooseDevice = false }) { Text("Close") } },
+            )
+        }
+        if (choosePort) {
+            AlertDialog(
+                onDismissRequest = { choosePort = false },
+                title = { Text("Assign player") },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Choose a supported port. Assignment does not change save ownership.")
+                        repeat(portCapacity.coerceIn(1, 16)) { port ->
+                            val occupant = devices.firstOrNull { ports(it) == port }
+                            val label = occupant?.let { " · ${it.name}" }.orEmpty()
+                            GameMenuLink("Player ${port + 1}$label") {
+                                pendingPort = port
+                                choosePort = false
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { choosePort = false }) { Text("Cancel") } },
+            )
+        }
+        pendingPort?.let { next ->
+            AlertDialog(
+                onDismissRequest = { pendingPort = null },
+                title = { Text("Confirm player ${next + 1}") },
+                text = {
+                    Text(
+                        "Assign ${selected.name} to this port? If occupied, the existing saved assignment " +
+                            "may change. Actual engine attachment depends on its supported ports.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        pendingPort = null
+                        scope.launch {
+                            ownershipMessage =
+                                runCatching { inputDeviceManager.assignPlayerPort(selected, next) }
+                                    .fold(
+                                        { "Assignment saved; engine attachment remains capability-based." },
+                                        { "Could not change assignment. Review current assignments." },
+                                    )
+                        }
+                    }) { Text("Assign") }
+                },
+                dismissButton = { TextButton(onClick = { pendingPort = null }) { Text("Cancel") } },
+            )
         }
         ownershipMessage?.let { Text(it) }
         if (devices.count { it.descriptor == selected.descriptor } > 1) {
@@ -201,9 +269,9 @@ internal fun PhysicalControllerMappingPanel(
                     },
                 )
             }
-            Text("Select a physical position, then press its button to verify the output.")
+            Text("Press a physical button to see its mapped output. Select a mapping to change it.")
             val face: @Composable (Int, String, Modifier) -> Unit = { source, name, modifier ->
-                val target = defaults[source]
+                val target = bindings[source] ?: defaults[source]
                 val used =
                     target != null && target != KeyEvent.KEYCODE_UNKNOWN &&
                         (targets == null || target in targets)
@@ -261,7 +329,7 @@ internal fun PhysicalControllerMappingPanel(
                 )
             }
         }
-        GameMenuLink("Restore previous saved mapping") {
+        GameMenuLink("Restore previous saved mapping", enabled = !editing) {
             scope.launch {
                 ownershipMessage =
                     withContext(Dispatchers.IO) {
@@ -284,12 +352,14 @@ internal fun PhysicalControllerMappingPanel(
         Text("Mode: $modeName$modeStatus")
         Text(if (perCartridge) "Mapping source: this cartridge" else "Mapping source: device default")
         if (cartridge != null) {
-            GameMenuLink(if (perCartridge) "Edit device default" else "Edit this cartridge override") {
+            GameMenuLink(
+                if (perCartridge) "Edit device default" else "Edit this cartridge override",
+                enabled = !editing,
+            ) {
                 onScope(!perCartridge)
             }
-            GameMenuLink("Use device default for this cartridge", onClick = onUseDevice)
+            GameMenuLink("Use device default for this cartridge", enabled = !editing, onClick = onUseDevice)
         }
-        GameMenuLink("Console Authentic — reset draft") { onReset(selected) }
         Text("Console Authentic preserves the original console controls.")
         if (testing) {
             Text("Input test: ${probe.lastEvent}")
@@ -329,6 +399,8 @@ internal fun PhysicalControllerMappingPanel(
             GameMenuLink("Swap conflicting bindings", onClick = onResolveConflict)
         }
         message?.let { Text(it) }
+        Text("Map buttons", style = MaterialTheme.typography.titleMedium)
+        Text("Console button ← Your controller button. Choose a row, then press and release the desired button.")
         InputDeviceManager.OUTPUT_KEYS.filter {
             it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
                 (targets == null || it.keyCode in targets)
@@ -341,6 +413,7 @@ internal fun PhysicalControllerMappingPanel(
                 onCapture(selected.id, original.keyCode)
             }
         }
+        Text("Review changes", style = MaterialTheme.typography.titleMedium)
         if (draft?.canUndo == true) GameMenuLink("Undo", onClick = onUndo)
         GameMenuLink("Reset draft to Console Authentic", onClick = { onReset(selected) })
         if (draft?.dirty == true && draft.conflict == null) GameMenuLink("Save mappings", onClick = onSave)
