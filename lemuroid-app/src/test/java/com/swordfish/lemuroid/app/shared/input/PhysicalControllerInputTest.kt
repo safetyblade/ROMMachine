@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.input
 import android.view.KeyEvent
 import android.view.MotionEvent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,5 +46,87 @@ class PhysicalControllerInputTest {
             PhysicalControllerInput.Control.FACE_SOUTH,
             PhysicalControllerInput.keys[KeyEvent.KEYCODE_BUTTON_A],
         )
+    }
+
+    @Test fun missingAndUnipolarAxesCannotProducePhantomMovement() {
+        val profile = ControllerProfileStore.Profile()
+        val ranges =
+            mapOf(
+                MotionEvent.AXIS_Y to PhysicalControllerInput.Range(0f, 1f),
+                MotionEvent.AXIS_Z to PhysicalControllerInput.Range(0f, 1f),
+                MotionEvent.AXIS_RZ to PhysicalControllerInput.Range(0f, 1f),
+            )
+        listOf(
+            MotionEvent.AXIS_X, MotionEvent.AXIS_Y, MotionEvent.AXIS_Z,
+            MotionEvent.AXIS_RZ, MotionEvent.AXIS_HAT_Y, MotionEvent.AXIS_BRAKE,
+        ).forEach { code ->
+            assertEquals(0f, PhysicalControllerInput.sampleAxis({ 0f }, ranges, code, profile), 0f)
+        }
+    }
+
+    @Test fun neutralDeadzoneAndFullTravelRemainCorrect() {
+        val ranges = mapOf(MotionEvent.AXIS_Y to PhysicalControllerInput.Range(-1f, 1f))
+        val profile = ControllerProfileStore.Profile()
+        fun sample(value: Float) =
+            PhysicalControllerInput.sampleAxis({ value }, ranges, MotionEvent.AXIS_Y, profile)
+        assertEquals(0f, sample(-0.08f), 0f)
+        assertEquals(-1f, sample(-1f), 0f)
+        assertEquals(1f, sample(1f), 0f)
+        assertEquals(0f, sample(0f), 0f)
+        assertEquals(0.05f, PhysicalControllerInput.effectiveDeadzone(profile.copy(deadzone = 0.05f)), 0f)
+        assertEquals(0f, PhysicalControllerInput.effectiveDeadzone(profile.copy(calibrated = true)), 0f)
+    }
+
+    @Test fun signedRightStickPreferredOverTriggerLikeAxes() {
+        val ranges =
+            mapOf(
+                MotionEvent.AXIS_Z to PhysicalControllerInput.Range(0f, 1f),
+                MotionEvent.AXIS_RZ to PhysicalControllerInput.Range(0f, 1f),
+                MotionEvent.AXIS_RX to PhysicalControllerInput.Range(-1f, 1f),
+                MotionEvent.AXIS_RY to PhysicalControllerInput.Range(-1f, 1f),
+            )
+        val raw: (Int) -> Float = { if (it == MotionEvent.AXIS_RY) -1f else 0f }
+        val profile = ControllerProfileStore.Profile()
+        assertEquals(-1f, PhysicalControllerInput.sampleAxis(raw, ranges, MotionEvent.AXIS_RZ, profile), 0f)
+        assertEquals(0f, PhysicalControllerInput.sampleAxis(raw, ranges, MotionEvent.AXIS_Z, profile), 0f)
+    }
+
+    @Test fun explicitOffsetCalibrationRetainsUnipolarStickSupport() {
+        val range = mapOf(MotionEvent.AXIS_Y to PhysicalControllerInput.Range(0f, 1f))
+        val profile = ControllerProfileStore.Profile(centres = mapOf(MotionEvent.AXIS_Y to 0.5f), calibrated = true)
+        fun sample(value: Float) =
+            PhysicalControllerInput.sampleAxis({ value }, range, MotionEvent.AXIS_Y, profile)
+        assertEquals(0f, sample(0.5f), 0f)
+        assertEquals(-1f, sample(0f), 0f)
+        assertEquals(1f, sample(1f), 0f)
+        assertEquals(0f, sample(0.5f), 0f)
+    }
+
+    @Test fun staleFramesCannotReplayAfterMappingOrTopologyChanges() {
+        val gate = ControllerFrameGate()
+        assertTrue(gate.accepts(1L, 0L, 0L))
+        assertFalse(gate.accepts(1L, 0L, 0L))
+        assertFalse(gate.accepts(2L, 0L, 1L))
+        assertTrue(gate.accepts(3L, 1L, 1L))
+        assertFalse(gate.accepts(2L, 1L, 1L))
+        assertTrue(gate.accepts(4L, 1L, 1L))
+    }
+
+    @Test fun perPortAxisReleaseAndRemapDoNotLeaveOldDirectionsHeld() {
+        val state = ControllerDigitalAxisState()
+        val up = KeyEvent.KEYCODE_DPAD_UP
+        val down = KeyEvent.KEYCODE_DPAD_DOWN
+        assertEquals(listOf(ControllerDigitalAxisState.Edge(up, true)), state.update(0, setOf(up)))
+        assertEquals(listOf(ControllerDigitalAxisState.Edge(up, true)), state.update(1, setOf(up)))
+        assertEquals(emptyList<ControllerDigitalAxisState.Edge>(), state.update(0, setOf(up)))
+        assertEquals(
+            listOf(ControllerDigitalAxisState.Edge(up, false), ControllerDigitalAxisState.Edge(down, true)),
+            state.update(0, setOf(down)),
+        )
+        assertEquals(listOf(ControllerDigitalAxisState.Edge(up, false)), state.update(1, emptySet()))
+        assertEquals(listOf(ControllerDigitalAxisState.Edge(down, false)), state.update(0, emptySet()))
+        state.update(0, setOf(up))
+        state.clear()
+        assertEquals(emptyList<ControllerDigitalAxisState.Edge>(), state.update(0, emptySet()))
     }
 }

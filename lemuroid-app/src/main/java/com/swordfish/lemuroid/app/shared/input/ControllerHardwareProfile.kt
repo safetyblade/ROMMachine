@@ -34,8 +34,16 @@ object ControllerHardwareProfile {
                     KeyEvent.KEYCODE_BUTTON_Y,
                 ).count { it }
             }.getOrDefault(0)
+        val numbered =
+            runCatching {
+                device.hasKeys(*(KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_16).toList().toIntArray())
+                    .count { it }
+            }.getOrDefault(0)
         // A TV remote with just D-pad/OK/Back never qualifies as a gameplay controller.
-        return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, faces, device.motionRanges.isNotEmpty())
+        val joystickAxes = device.motionRanges.any {
+            it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        }
+        return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, maxOf(faces, numbered), joystickAxes)
     }
 
     fun qualifies(
@@ -72,7 +80,18 @@ object ControllerHardwareProfile {
 
     /** Right sticks vary across Android gamepad drivers: Z/RZ or RX/RY. */
     fun rightStickAxes(device: InputDevice?): Pair<Int, Int> {
-        val supported = device?.motionRanges?.map { it.axis }?.toSet().orEmpty()
+        val joystickRanges = device?.motionRanges.orEmpty().filter {
+            it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        }
+        val signed = joystickRanges.filter { it.min < 0f && it.max > 0f }.map { it.axis }.toSet()
+        val candidates =
+            listOf(
+                android.view.MotionEvent.AXIS_Z to android.view.MotionEvent.AXIS_RZ,
+                android.view.MotionEvent.AXIS_RX to android.view.MotionEvent.AXIS_RY,
+            )
+        candidates.firstOrNull { (x, y) -> x in signed && y in signed }?.let { return it }
+        // Keep advertised unsigned axes discoverable for explicit user calibration.
+        val supported = joystickRanges.map { it.axis }.toSet()
         return if (android.view.MotionEvent.AXIS_RX in supported && android.view.MotionEvent.AXIS_RY in supported &&
             !(android.view.MotionEvent.AXIS_Z in supported && android.view.MotionEvent.AXIS_RZ in supported)
         ) {

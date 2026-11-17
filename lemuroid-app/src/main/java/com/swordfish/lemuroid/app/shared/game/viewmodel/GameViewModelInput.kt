@@ -10,9 +10,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.input.ControllerChordGate
+import com.swordfish.lemuroid.app.shared.input.ControllerDigitalAxisState
+import com.swordfish.lemuroid.app.shared.input.ControllerFrameGate
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
+import com.swordfish.lemuroid.app.shared.input.PhysicalControllerInput
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.inputclass.getInputClass
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
@@ -41,14 +44,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.math.abs
@@ -68,7 +67,27 @@ class GameViewModelInput(
 ) : DefaultLifecycleObserver {
     private val menuChord = ControllerChordGate()
 
-    private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
+    private data class KeyFrame(
+        val event: KeyEvent,
+        val sequence: Long,
+        val generation: Long,
+        val descriptor: String?,
+    )
+
+    private class MotionFrame(
+        val device: InputDevice,
+        val source: Int,
+        val sequence: Long,
+        val generation: Long,
+        val axes: Map<Int, Float>,
+        val ranges: Map<Int, PhysicalControllerInput.Range>,
+    ) {
+        fun axis(code: Int): Float = axes[code] ?: 0f
+    }
+
+    private var frameSequence = 0L
+    private var inputGeneration = 0L
+    private var activePhysicalPorts = emptyMap<Int, Int>()
 
     private val hasNativeTriggers =
         systemCoreConfig.coreID in
@@ -77,27 +96,27 @@ class GameViewModelInput(
             )
 
     private fun sendNativeTriggers(
-        event: MotionEvent,
+        event: MotionFrame,
         port: Int,
     ) {
         if (!hasNativeTriggers) return
         val left =
             maxOf(
-                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_LTRIGGER),
-                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_BRAKE),
+                calibratedAxis(event, MotionEvent.AXIS_LTRIGGER),
+                calibratedAxis(event, MotionEvent.AXIS_BRAKE),
             ).coerceIn(0f, 1f)
         val right =
             maxOf(
-                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_RTRIGGER),
-                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_GAS),
+                calibratedAxis(event, MotionEvent.AXIS_RTRIGGER),
+                calibratedAxis(event, MotionEvent.AXIS_GAS),
             ).coerceIn(0f, 1f)
         // Source 4 is the versioned CARTDECK host's pair of analog trigger axes.
         retroGameView.retroGameView?.sendMotionEvent(4, left, right, port)
     }
 
     private val controllerConfigsState = MutableStateFlow<Map<Int, ControllerConfig>>(mapOf())
-    private val keyEventsFlow: MutableSharedFlow<KeyEvent?> = MutableSharedFlow()
-    private val motionEventsFlow: MutableSharedFlow<MotionEvent> = MutableSharedFlow()
+    private val keyEventsFlow: MutableSharedFlow<KeyFrame> = MutableSharedFlow()
+    private val motionEventsFlow: MutableSharedFlow<MotionFrame> = MutableSharedFlow()
 
     fun getAllTiltConfigurations(): List<TiltConfiguration> {
         return controllerConfigsState.value[0]
@@ -128,24 +147,22 @@ class GameViewModelInput(
     }
 
     private fun sendStickMotions(
-        event: MotionEvent,
+        event: MotionFrame,
         port: Int,
     ) {
         if (port < 0) return
         sendNativeTriggers(event, port)
-        when (event.source) {
-            InputDevice.SOURCE_JOYSTICK -> {
-                if (controllerConfigsState.value[port]?.mergeDPADAndLeftStickEvents == true) {
-                    sendMergedMotionEvents(event, port)
-                } else {
-                    sendSeparateMotionEvents(event, port)
-                }
+        if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
+            if (controllerConfigsState.value[port]?.mergeDPADAndLeftStickEvents == true) {
+                sendMergedMotionEvents(event, port)
+            } else {
+                sendSeparateMotionEvents(event, port)
             }
         }
     }
 
     private fun sendMergedMotionEvents(
-        event: MotionEvent,
+        event: MotionFrame,
         port: Int,
     ) {
         val events =
@@ -170,7 +187,7 @@ class GameViewModelInput(
     }
 
     private fun sendStickMotion(
-        event: MotionEvent,
+        event: MotionFrame,
         source: Int,
         xAxis: Int,
         yAxis: Int,
@@ -181,7 +198,7 @@ class GameViewModelInput(
     }
 
     private fun sendDPADMotion(
-        event: MotionEvent,
+        event: MotionFrame,
         source: Int,
         xAxis: Int,
         yAxis: Int,
@@ -189,14 +206,14 @@ class GameViewModelInput(
     ) {
         retroGameView.retroGameView?.sendMotionEvent(
             source,
-            event.getAxisValue(xAxis),
-            event.getAxisValue(yAxis),
+            calibratedAxis(event, xAxis),
+            calibratedAxis(event, yAxis),
             port,
         )
     }
 
     private fun sendSeparateMotionEvents(
-        event: MotionEvent,
+        event: MotionFrame,
         port: Int,
     ) {
         sendDPADMotion(
@@ -223,23 +240,29 @@ class GameViewModelInput(
     }
 
     private fun retrieveCoordinates(
-        event: MotionEvent,
+        event: MotionFrame,
         xAxis: Int,
         yAxis: Int,
     ): PointF {
         return PointF(
-            inputDeviceManager.calibratedAxis(event, xAxis),
-            inputDeviceManager.calibratedAxis(event, yAxis),
+            calibratedAxis(event, xAxis),
+            calibratedAxis(event, yAxis),
         )
     }
+
+    private fun calibratedAxis(event: MotionFrame, code: Int): Float =
+        PhysicalControllerInput.sampleAxis(
+            event::axis, event.ranges, code, inputDeviceManager.calibration(event.device),
+        )
 
     fun sendKeyEvent(
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
         if (keyCode == KeyEvent.KEYCODE_MENU || InputKey(keyCode) in event.device.getInputClass().getInputKeys()) {
+            val frame = KeyFrame(KeyEvent(event), ++frameSequence, inputGeneration, event.device?.descriptor)
             scope.launch {
-                keyEventsFlow.emit(event)
+                keyEventsFlow.emit(frame)
             }
             return true
         }
@@ -247,8 +270,23 @@ class GameViewModelInput(
     }
 
     fun sendMotionEvent(event: MotionEvent): Boolean {
+        if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return false
+        if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            releasePhysicalInputs()
+            return true
+        }
+        if (event.actionMasked != MotionEvent.ACTION_MOVE) return false
+        val device = event.device ?: return false
+        val ranges = PhysicalControllerInput.eventRanges(event)
+        if (ranges.isEmpty()) return false
+        // Android owns MotionEvent lifetime. Snapshot before handing off to the asynchronous flows.
+        val frame =
+            MotionFrame(
+                device, event.source, ++frameSequence, inputGeneration,
+                ranges.keys.associateWith { event.getAxisValue(it) }, ranges,
+            )
         scope.launch {
-            motionEventsFlow.emit(event)
+            motionEventsFlow.emit(frame)
         }
         return true
     }
@@ -282,9 +320,11 @@ class GameViewModelInput(
     }
 
     private fun releasePhysicalInputs() {
+        inputGeneration++
+        menuChord.clear()
         pivotArcHoldGate.clear()
         val view = retroGameView.retroGameView ?: return
-        controllerConfigsState.value.keys.forEach { port ->
+        (controllerConfigsState.value.keys + activePhysicalPorts.values).forEach { port ->
             InputDeviceManager.OUTPUT_KEYS.forEach { key ->
                 view.sendKeyEvent(KeyEvent.ACTION_UP, key.keyCode, port)
             }
@@ -305,9 +345,15 @@ class GameViewModelInput(
         inputDeviceManager.beginGameplaySession()
 
         owner.launchOnState(Lifecycle.State.RESUMED) {
-            inputDeviceManager.getEnabledInputsObservable().drop(1).safeCollect {
-                releasePhysicalInputs()
-            }
+            var initialized = false
+            inputDeviceManager.getGamePadsPortMapperObservable()
+                .map(::currentPorts)
+                .distinctUntilChanged()
+                .safeCollect { ports ->
+                    if (initialized && activePhysicalPorts != ports) releasePhysicalInputs()
+                    activePhysicalPorts = ports
+                    initialized = true
+                }
         }
 
         owner.launchOnState(Lifecycle.State.CREATED) {
@@ -361,21 +407,30 @@ class GameViewModelInput(
             }
     }
 
+    private fun currentPorts(mapper: (InputDevice?) -> Int?): Map<Int, Int> =
+        InputDevice.getDeviceIds().mapNotNull { id -> mapper(InputDevice.getDevice(id))?.let { id to it } }.toMap()
+
+    private fun MotionFrame.isCurrent(): Boolean =
+        generation == inputGeneration && InputDevice.getDevice(device.id)?.descriptor == device.descriptor
+
     private suspend fun initializeGamePadKeysFlow() {
         val pressedByDevice = mutableMapOf<Int, MutableSet<Int>>()
         val activeChords = mutableMapOf<Int, Set<Set<Int>>>()
         val menuEdge = ControllerMenuEdge()
         val forwarded = mutableMapOf<Pair<Int, Int>, Pair<Int, Int>>()
         var lastPorts = emptyMap<Int, Int>()
+        val frameGate = ControllerFrameGate()
+        var generation = inputGeneration
 
         fun releaseHeld() {
             forwarded.values.forEach { (port, code) ->
                 retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_UP, code, port)
             }
             (lastPorts.values.toSet() + forwarded.values.map { it.first }).forEach { port ->
-                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT, 4).forEach { source ->
+                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT).forEach { source ->
                     retroGameView.retroGameView?.sendMotionEvent(source, 0f, 0f, port)
                 }
+                if (hasNativeTriggers) retroGameView.retroGameView?.sendMotionEvent(4, 0f, 0f, port)
             }
             forwarded.clear()
             pressedByDevice.clear()
@@ -385,9 +440,7 @@ class GameViewModelInput(
 
         val filteredKeyEvents =
             keyEventsFlow
-                .filterNotNull()
-                .filter { it.repeatCount == 0 }
-                .filter { it.device != null }
+                .filter { it.event.repeatCount == 0 && it.event.device != null }
 
         val combinedObservable =
             combine(
@@ -404,15 +457,23 @@ class GameViewModelInput(
                 releaseHeld()
                 menuEdge.clear()
             }
-            .safeCollect { (shortcuts, ports, bindings, event) ->
-                val currentPorts =
-                    InputDevice.getDeviceIds().asSequence().mapNotNull { id ->
-                        ports(InputDevice.getDevice(id))?.let { id to it }
-                    }.toMap()
+            .safeCollect { (shortcuts, ports, bindings, frame) ->
+                val currentPorts = currentPorts(ports)
+                if (generation != inputGeneration) {
+                    forwarded.clear()
+                    pressedByDevice.clear()
+                    activeChords.clear()
+                    menuEdge.clear()
+                    lastPorts = emptyMap()
+                    generation = inputGeneration
+                }
                 if (lastPorts != currentPorts) {
-                    releaseHeld()
+                    if (lastPorts.isNotEmpty()) releaseHeld()
                     lastPorts = currentPorts
                 }
+                if (!frameGate.accepts(frame.sequence, frame.generation, inputGeneration)) return@safeCollect
+                val event = frame.event
+                if (frame.descriptor != event.device?.descriptor) return@safeCollect
                 val activeIds = currentPorts.keys
                 menuEdge.retainDevices(activeIds)
                 menuChord.retainDevices(activeIds)
@@ -421,6 +482,7 @@ class GameViewModelInput(
                 val action = event.action
                 val keyCode = event.keyCode
                 if (event.isCanceled) {
+                    releasePhysicalInputs()
                     releaseHeld()
                     menuEdge.clear()
                     return@safeCollect
@@ -510,16 +572,17 @@ class GameViewModelInput(
                             )
                     if (!captured) {
                         retroGameView.retroGameView?.let { gameView ->
-                            if (action == KeyEvent.ACTION_DOWN) {
-                                forwarded[device.id to keyCode] = targetPort to bindKeyCode
-                            } else {
-                                forwarded.remove(device.id to keyCode)
-                            }
-                            gameView.sendKeyEvent(action, bindKeyCode, targetPort)
+                            val output =
+                                if (action == KeyEvent.ACTION_DOWN) {
+                                    (targetPort to bindKeyCode).also { forwarded[device.id to keyCode] = it }
+                                } else {
+                                    forwarded.remove(device.id to keyCode) ?: (targetPort to bindKeyCode)
+                                }
+                            gameView.sendKeyEvent(action, output.second, output.first)
                             // Post-forward observation: never intercept or retry input.
                             retroGameView.onAcceptedMappedButton(
-                                source = "physical:${device.id}:$targetPort",
-                                mappedKey = bindKeyCode,
+                                source = "physical:${device.id}:${output.first}",
+                                mappedKey = output.second,
                                 action = action,
                             )
                         }
@@ -529,77 +592,62 @@ class GameViewModelInput(
     }
 
     private suspend fun initializeVirtualGamePadMotionsFlow() {
-        val events =
-            combine(
-                inputDeviceManager.getGamePadsPortMapperObservable(),
-                motionEventsFlow,
-                inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
-            ) { ports, event, bindings -> Triple(ports, event, bindings) }
-
-        events
-            .mapNotNull { (ports, event, bindings) ->
-                ports(event.device)?.let { Triple(it, event, bindings(event.device)) }
-            }
-            .map { (port, event, bindings) ->
+        val frameGate = ControllerFrameGate()
+        var generation = inputGeneration
+        val digital = ControllerDigitalAxisState()
+        combine(
+            inputDeviceManager.getGamePadsPortMapperObservable(),
+            motionEventsFlow,
+            inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
+        ) { ports, event, bindings -> Triple(ports, event, bindings) }
+            .safeCollect { (ports, event, bindingLookup) ->
+                if (generation != inputGeneration) {
+                    digital.clear()
+                    generation = inputGeneration
+                }
+                if (!event.isCurrent() || !frameGate.accepts(event.sequence, event.generation, inputGeneration)) {
+                    return@safeCollect
+                }
+                val port = ports(event.device) ?: return@safeCollect
+                val bindings = bindingLookup(event.device)
                 val axes =
                     event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
                         hasNativeTriggers &&
-                            axis in
-                            setOf(
-                                MotionEvent.AXIS_LTRIGGER,
-                                MotionEvent.AXIS_RTRIGGER,
-                                MotionEvent.AXIS_BRAKE,
-                                MotionEvent.AXIS_GAS,
+                            axis in setOf(
+                                MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER,
+                                MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS,
                             )
                     }
-
-                axes.map { (axis, button) ->
-                    val action =
-                        if (event.getAxisValue(axis) > 0.5) {
-                            KeyEvent.ACTION_DOWN
-                        } else {
-                            KeyEvent.ACTION_UP
-                        }
-                    SingleAxisEvent(
-                        axis,
-                        action,
-                        bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button,
-                        port,
+                val next =
+                    axes.filter { (axis, _) -> calibratedAxis(event, axis) > 0.5f }
+                        .map { (_, button) ->
+                            bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button
+                        }.toSet()
+                val view = retroGameView.retroGameView ?: return@safeCollect
+                fun forward(code: Int, action: Int) {
+                    view.sendKeyEvent(action, code, port)
+                    retroGameView.onAcceptedMappedButton(
+                        source = "axis:$port:$code", mappedKey = code, action = action,
                     )
-                }.toSet()
-            }
-            .scan(emptySet<SingleAxisEvent>()) { prev, next ->
-                next.minus(prev).forEach {
-                    retroGameView.retroGameView?.let { gameView ->
-                        gameView.sendKeyEvent(it.action, it.keyCode, it.port)
-                        // Only existing mapped digital axis transitions. Continuous
-                        // sticks and native analog triggers are never sampled.
-                        retroGameView.onAcceptedMappedButton(
-                            source = "axis:${it.port}:${it.axis}",
-                            mappedKey = it.keyCode,
-                            action = it.action,
-                        )
-                    }
                 }
-                next
+                digital.update(port, next).forEach { edge ->
+                    forward(edge.code, if (edge.down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP)
+                }
             }
-            .safeCollect { }
     }
 
     private suspend fun initializeGamePadMotionsFlow() {
-        val events =
-            combine(
-                inputDeviceManager.getGamePadsPortMapperObservable(),
-                motionEventsFlow,
-                ::NTuple2,
-            )
-
-        events
-            .safeCollect { (ports, event) ->
-                ports(event.device)?.let {
-                    sendStickMotions(event, it)
-                }
+        val frameGate = ControllerFrameGate()
+        combine(
+            inputDeviceManager.getGamePadsPortMapperObservable(),
+            motionEventsFlow,
+            ::NTuple2,
+        ).safeCollect { (ports, event) ->
+            if (!event.isCurrent() || !frameGate.accepts(event.sequence, event.generation, inputGeneration)) {
+                return@safeCollect
             }
+            ports(event.device)?.let { sendStickMotions(event, it) }
+        }
     }
 
     private suspend fun initializeControllersConfigFlow() {

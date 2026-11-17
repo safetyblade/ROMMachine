@@ -10,7 +10,7 @@ class ControllerInputProbe(private val clockMillis: () -> Long = { System.nanoTi
         event: android.view.MotionEvent,
         profile: ControllerProfileStore.Profile = ControllerProfileStore.Profile(),
     ) {
-        val ranges = event.device?.let(PhysicalControllerInput::hardware)?.ranges.orEmpty()
+        val ranges = PhysicalControllerInput.eventRanges(event)
         physical.motion({ event.getAxisValue(it) }, ranges, profile)
     }
 

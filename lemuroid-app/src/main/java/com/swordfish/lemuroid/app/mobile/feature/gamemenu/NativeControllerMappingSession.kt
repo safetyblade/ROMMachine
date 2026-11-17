@@ -167,7 +167,12 @@ internal class NativeControllerMappingSession(
 
     fun acceptsGameplay(event: KeyEvent): Boolean = acceptsDevice(event.device, event.deviceId)
 
-    fun acceptsMotion(event: MotionEvent): Boolean = acceptsDevice(event.device, event.deviceId)
+    fun acceptsMotion(event: MotionEvent): Boolean =
+        event.isFromSource(InputDevice.SOURCE_JOYSTICK) &&
+            event.actionMasked == MotionEvent.ACTION_MOVE &&
+            event.device?.let { device ->
+                ControllerHardwareProfile.isGameplayPad(device) && acceptsDevice(device, event.deviceId)
+            } == true
 
     fun gameplayKey(event: KeyEvent): Int =
         heldOutputs.key(

@@ -42,8 +42,8 @@ jobs:
       - name: Verify APK timing success and failure evidence
         run: python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
   gc-f2-verified-apk:
-    # Exact GC branch only; cannot run until complete F1 unit and Python suites pass.
-    if: github.event_name == 'pull_request' && github.head_ref == 'engineering/gc01-abc-completion-20261116'
+    # Explicit GC acceptance/hotfix branches only; APK requires Kotlin and Python suites.
+    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral')
     needs: gc-f1-full-suite
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
@@ -61,8 +61,8 @@ jobs:
       measure_apk_reuse: ${{ inputs.build_mode == 'FULL_INTEGRATION_APK' }}
 
   gc-f1-full-suite:
-    # Explicit one-branch GC preflight. No native download, APK or protected merge.
-    if: github.event_name == 'pull_request' && github.head_ref == 'engineering/gc01-abc-completion-20261116'
+    # Explicit GC preflight branches. No native download, APK or protected merge.
+    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
