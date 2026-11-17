@@ -41,7 +41,7 @@
       "name": "SafeSave",
       "purpose": "Saves and recovery",
       "line": "Your progress. Your collection.",
-      "description": "A cartridge resting inside a protective enclosure. No checkmark, lock or cloud claim.",
+      "description": "A cartridge with an integrated bookmark representing a return to saved progress, not a verified backup.",
       "dark": "#ADC6E1",
       "light": "#365D82",
       "empty": {
@@ -59,7 +59,8 @@
         "emptyState": "safesave/empty-state.svg"
       },
       "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
-      "markReview": "options review pending"
+      "markReview": "owner-approved Checkpoint (C)",
+      "selectedMark": "safesave-c"
     },
     {
       "id": "cartmod",
@@ -145,5 +146,16 @@
     }
   ],
   "appearanceReactiveApproved": true,
-  "lightAppearanceApproved": true
+  "lightAppearanceApproved": true,
+  "navigationReview": {
+    "status": "proposal",
+    "dockOrder": [
+      "Shelf",
+      "GEM",
+      "SafeSave",
+      "CARTMOD",
+      "Settings"
+    ],
+    "spec": "settings/SETTINGS_EXPERIENCE.md"
+  }
 }
