@@ -95,6 +95,8 @@ fun ShelfBoard(
     onSectionEdit: (ShelfSection) -> Unit = {},
     header: (@Composable () -> Unit)? = null,
     artworkRevision: Int = 0,
+    showSectionHeadings: Boolean = true,
+    bottomContentPadding: androidx.compose.ui.unit.Dp = 8.dp,
 ) {
     val colors = LocalShelfMaterials.current
     val decorationPattern =
@@ -205,10 +207,14 @@ fun ShelfBoard(
         val columns = sizing.columns
         val width = sizing.spineWidth.dp
         val items =
-            remember(layout, columns, byKey) {
+            remember(layout, columns, byKey, showSectionHeadings, arrange) {
                 layout.visibleSections(byKey.keys).flatMap { section ->
                     val rows = section.rows(columns).map { ShelfItem(it.key, section, it) }
-                    listOf(ShelfItem("header:${section.id}", section)) + rows
+                    if (showSectionHeadings || arrange) {
+                        listOf(ShelfItem("header:${section.id}", section)) + rows
+                    } else {
+                        rows
+                    }
                 }
             }
         val headerOffset = if (header == null) 0 else 1
@@ -246,8 +252,8 @@ fun ShelfBoard(
         }
         LazyColumn(
             state = scroll,
-            modifier = Modifier.testTag("cartdeck_shelf_vertical_list"),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxSize().testTag("cartdeck_shelf_vertical_list"),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = bottomContentPadding),
         ) {
             if (header != null) item(key = "library-header") { header() }
             items(items.size, key = { items[it].key }) { index ->
