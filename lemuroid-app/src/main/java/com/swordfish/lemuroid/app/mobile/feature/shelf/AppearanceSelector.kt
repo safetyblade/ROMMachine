@@ -1125,17 +1125,20 @@ fun ShelfAppearanceEditor(
     }
 
     picker?.let { role ->
+        val curatedColours =
+            CartdeckCuratedDesigns.designs.mapNotNull { design ->
+                design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
+            }
+        val editionColours =
+            listOf(
+                NamedColour("Original", original.getValue(role)),
+                NamedColour("Pink", pink.getValue(role)),
+                NamedColour("Green", green.getValue(role)),
+            )
         ColourPicker(
             role,
             overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
-            defaults =
-                listOf(
-                    NamedColour("Original", original.getValue(role)),
-                    NamedColour("Pink", pink.getValue(role)),
-                    NamedColour("Green", green.getValue(role)),
-                ) + CartdeckCuratedDesigns.designs.mapNotNull { design ->
-                    design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
-                },
+            defaults = editionColours + curatedColours,
             onChoose = { changeColour(role, it) },
             onDismiss = { picker = null },
             warning = warning,
