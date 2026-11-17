@@ -1,0 +1,58 @@
+{
+  "schema": "cartdeck.settings-experience/1",
+  "status": "proposed",
+  "label": "Settings",
+  "title": "Settings",
+  "subtitle": "Appearance, controls and your system",
+  "dockOrder": [
+    "Shelf",
+    "GEM",
+    "SafeSave",
+    "CARTMOD",
+    "Settings"
+  ],
+  "mark": "mark.svg",
+  "appearance": {
+    "primary": true,
+    "lightApproved": true,
+    "default": "original",
+    "editor": "existing ShelfAppearanceEditor"
+  },
+  "sections": [
+    {
+      "id": "appearance",
+      "title": "Appearance",
+      "summary": "Editions, colours and finishes"
+    },
+    {
+      "id": "controllers",
+      "title": "Controllers",
+      "summary": "Devices, mapping and touch layouts"
+    },
+    {
+      "id": "display",
+      "title": "Display & gameplay",
+      "summary": "Screen, default gameplay preferences"
+    },
+    {
+      "id": "library",
+      "title": "Shelf & library",
+      "summary": "Layout, game folders and refresh"
+    },
+    {
+      "id": "profiles",
+      "title": "Profiles & family",
+      "summary": "Player and Junior administration",
+      "gate": "manager authorised capability only"
+    },
+    {
+      "id": "system",
+      "title": "System & advanced",
+      "summary": "Compatibility, BIOS and diagnostics"
+    }
+  ],
+  "compactLayout": "measured responsive",
+  "juniorAdultSettings": false,
+  "removeLegacyIcon": "only after live parity and verified integration",
+  "runtimeChanges": false
+}
