@@ -1,0 +1,283 @@
+{
+  "schema": "cartdeck.product-screen-register/1",
+  "logicalOnly": true,
+  "adultDock": [
+    "shelf",
+    "gem",
+    "safesave",
+    "cartmod",
+    "settings"
+  ],
+  "screens": [
+    {
+      "id": "shelf",
+      "label": "Shelf",
+      "parent": null,
+      "capability": "SHELF",
+      "sourceId": "SHELF"
+    },
+    {
+      "id": "shelf.filters",
+      "label": "Filters",
+      "parent": "shelf",
+      "capability": "SHELF",
+      "sourceId": "SHELF_FILTERS"
+    },
+    {
+      "id": "shelf.covers",
+      "label": "Search for covers",
+      "parent": "shelf",
+      "capability": "SHELF",
+      "sourceId": "SHELF_COVERS"
+    },
+    {
+      "id": "gem",
+      "label": "GEM",
+      "parent": null,
+      "capability": "GEM",
+      "sourceId": "GEM"
+    },
+    {
+      "id": "gem.for-you",
+      "label": "For You",
+      "parent": "gem",
+      "capability": "RECOMMENDATIONS",
+      "sourceId": "GEM_FOR_YOU"
+    },
+    {
+      "id": "gem.browse",
+      "label": "Browse",
+      "parent": "gem",
+      "capability": "CATALOGUE",
+      "sourceId": "GEM_BROWSE"
+    },
+    {
+      "id": "gem.my-ratings",
+      "label": "My Ratings",
+      "parent": "gem",
+      "capability": "RATINGS",
+      "sourceId": "GEM_RATINGS"
+    },
+    {
+      "id": "gem.search",
+      "label": "Search",
+      "parent": "gem",
+      "capability": "WEB_SOURCES",
+      "sourceId": "GEM_SEARCH"
+    },
+    {
+      "id": "gem.search.sources",
+      "label": "My Sources",
+      "parent": "gem.search",
+      "capability": "WEB_SOURCES",
+      "sourceId": "GEM_SOURCES"
+    },
+    {
+      "id": "safesave",
+      "label": "SafeSave",
+      "parent": null,
+      "capability": "SAVE_INVENTORY",
+      "sourceId": "SAFESAVE"
+    },
+    {
+      "id": "safesave.inventory",
+      "label": "Inventory",
+      "parent": "safesave",
+      "capability": "SAVE_INVENTORY",
+      "sourceId": "SAVE_INVENTORY"
+    },
+    {
+      "id": "safesave.export",
+      "label": "Export saves",
+      "parent": "safesave",
+      "capability": "SAVE_EXPORT",
+      "sourceId": "SAVE_EXPORT"
+    },
+    {
+      "id": "safesave.import",
+      "label": "Import saves",
+      "parent": "safesave",
+      "capability": "SAVE_IMPORT",
+      "sourceId": "SAVE_IMPORT"
+    },
+    {
+      "id": "safesave.recovery",
+      "label": "Recovery",
+      "parent": "safesave",
+      "capability": "SAVE_RECOVERY",
+      "sourceId": "SAVE_RECOVERY"
+    },
+    {
+      "id": "safesave.vault",
+      "label": "Vault",
+      "parent": "safesave",
+      "capability": "VAULT",
+      "sourceId": "VAULT"
+    },
+    {
+      "id": "safesave.vault.account",
+      "label": "Account & access",
+      "parent": "safesave.vault",
+      "capability": "VAULT",
+      "sourceId": "VAULT_ACCOUNT"
+    },
+    {
+      "id": "safesave.vault.snapshots",
+      "label": "Snapshots",
+      "parent": "safesave.vault",
+      "capability": "VAULT",
+      "sourceId": "VAULT_SNAPSHOTS"
+    },
+    {
+      "id": "safesave.vault.storage",
+      "label": "Storage & retention",
+      "parent": "safesave.vault",
+      "capability": "VAULT",
+      "sourceId": "VAULT_STORAGE"
+    },
+    {
+      "id": "safesave.vault.recovery",
+      "label": "Recovery",
+      "parent": "safesave.vault",
+      "capability": "VAULT",
+      "sourceId": "VAULT_RECOVERY"
+    },
+    {
+      "id": "cartmod",
+      "label": "CARTMOD",
+      "parent": null,
+      "capability": "CARTMOD",
+      "sourceId": "CARTMOD"
+    },
+    {
+      "id": "cartmod.pc-setup",
+      "label": "Set up a PC game",
+      "parent": "cartmod",
+      "capability": "PC_SETUP",
+      "sourceId": "PC_SETUP"
+    },
+    {
+      "id": "cartmod.installations",
+      "label": "Manage installations",
+      "parent": "cartmod",
+      "capability": "PC_SETUP",
+      "sourceId": "PC_INSTALLATIONS"
+    },
+    {
+      "id": "cartmod.patch-studio",
+      "label": "Mods & patches",
+      "parent": "cartmod",
+      "capability": "PATCH",
+      "sourceId": "PATCH_STUDIO"
+    },
+    {
+      "id": "cartmod.tools",
+      "label": "Cartridge tools",
+      "parent": "cartmod",
+      "capability": "CARTRIDGE_TOOLS",
+      "sourceId": "CARTRIDGE_TOOLS"
+    },
+    {
+      "id": "cartmod.faqs",
+      "label": "FAQs",
+      "parent": "cartmod",
+      "capability": "CARTMOD",
+      "sourceId": "FAQS"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "parent": null,
+      "capability": "SETTINGS",
+      "sourceId": "SETTINGS"
+    },
+    {
+      "id": "settings.appearance",
+      "label": "Appearance",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "APPEARANCE"
+    },
+    {
+      "id": "settings.controllers",
+      "label": "Controllers",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "CONTROLLERS"
+    },
+    {
+      "id": "settings.controllers.modern",
+      "label": "Modern",
+      "parent": "settings.controllers",
+      "capability": "MODERN",
+      "sourceId": "MODERN"
+    },
+    {
+      "id": "settings.display",
+      "label": "Display & gameplay",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "DISPLAY"
+    },
+    {
+      "id": "settings.library",
+      "label": "Shelf & library",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "LIBRARY"
+    },
+    {
+      "id": "settings.family",
+      "label": "Profiles & family",
+      "parent": "settings",
+      "capability": "PROFILES",
+      "sourceId": "FAMILY"
+    },
+    {
+      "id": "settings.help",
+      "label": "Help & guides",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "HELP"
+    },
+    {
+      "id": "settings.system",
+      "label": "System & advanced",
+      "parent": "settings",
+      "capability": "SETTINGS",
+      "sourceId": "SYSTEM"
+    },
+    {
+      "id": "players",
+      "label": "Who's playing?",
+      "parent": null,
+      "capability": "PROFILES",
+      "sourceId": "PLAYERS"
+    },
+    {
+      "id": "junior.playroom",
+      "label": "My Playroom",
+      "parent": null,
+      "capability": "JUNIOR",
+      "sourceId": "PLAYROOM"
+    },
+    {
+      "id": "junior.grown-ups",
+      "label": "Grown-Ups",
+      "parent": null,
+      "capability": "MANAGER",
+      "sourceId": "GROWN_UPS"
+    }
+  ],
+  "nested": [
+    "settings.controllers.modern",
+    "safesave.vault"
+  ],
+  "initialMountedRoots": [
+    "shelf",
+    "gem",
+    "cartmod",
+    "settings"
+  ],
+  "authorization": "No mounted or verified capability is a permission grant; Junior adult dock forbidden."
+}

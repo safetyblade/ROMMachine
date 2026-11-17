@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.product.ProductFramework
+import com.swordfish.lemuroid.app.mobile.feature.product.ProductScreen
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 
 /** Editing replaces the library's navigation dock; non-Home routes never inherit it. */
@@ -108,13 +110,24 @@ private fun ProductDock(
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
-    val destinations =
-        listOf(
-            Triple(MainRoute.HOME, "Shelf", R.drawable.cartdeck_brand_shelf),
-            Triple(MainRoute.GEM, "GEM", R.drawable.cartdeck_brand_gem),
-            Triple(MainRoute.CARTMOD, "CARTMOD", R.drawable.cartdeck_brand_cartmod),
-            Triple(MainRoute.SETTINGS, "Settings", R.drawable.cartdeck_brand_settings),
+    val mounted =
+        mapOf(
+            ProductScreen.SHELF to (MainRoute.HOME to R.drawable.cartdeck_brand_shelf),
+            ProductScreen.GEM to (MainRoute.GEM to R.drawable.cartdeck_brand_gem),
+            ProductScreen.CARTMOD to (MainRoute.CARTMOD to R.drawable.cartdeck_brand_cartmod),
+            ProductScreen.SETTINGS to (MainRoute.SETTINGS to R.drawable.cartdeck_brand_settings),
         )
+    // Existing single-player shell only. Profile-era callers must supply actual
+    // session and capability checks here and at the route and service boundaries.
+    val destinations =
+        ProductFramework.adultDestinations(
+            mounted = mounted.keys,
+            verifiedCapabilities = mounted.keys.map { it.capability }.toSet(),
+            adultAllowed = true,
+        ).map { screen ->
+            val (route, mark) = mounted.getValue(screen)
+            Triple(route, screen.label, mark)
+        }
 
     fun navigate(route: MainRoute) {
         if (currentRoute != route) {
