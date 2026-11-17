@@ -108,7 +108,7 @@
       "accent": "#4ED8C4",
       "onAccent": "#132421"
     },
-    "lightCandidate": {
+    "light": {
       "room": "#F4F2ED",
       "surface": "#FFFFFF",
       "raised": "#E8E5DF",
@@ -155,5 +155,19 @@
   ],
   "personasInProduct": false,
   "lightingDefault": false,
-  "uiChangesAuthorized": false
+  "uiChangesAuthorized": false,
+  "appearancePolicy": {
+    "default": "original",
+    "light": {
+      "approved": true,
+      "selectable": true,
+      "implementation": "B6 pending"
+    },
+    "logoTint": {
+      "approved": true,
+      "source": "active appearance contrast-safe semantic foreground or accent",
+      "geometryInvariant": true,
+      "monochromeFallback": true
+    }
+  }
 }
