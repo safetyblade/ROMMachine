@@ -1,0 +1,63 @@
+{
+  "schema": "cartdeck.product-mark-review/1",
+  "status": "pending-selection",
+  "approval": {
+    "lightAppearance": true,
+    "appearanceReactiveLogoTint": true,
+    "geometryChange": "pending",
+    "gem": "unchanged"
+  },
+  "options": [
+    {
+      "id": "safesave-a",
+      "product": "SafeSave",
+      "name": "Protective case",
+      "asset": "../safesave/mark.svg",
+      "description": "Original B2 candidate."
+    },
+    {
+      "id": "cartmod-a",
+      "product": "CARTMOD",
+      "name": "Fitted module",
+      "asset": "../cartmod/mark.svg",
+      "description": "Original B2 candidate."
+    },
+    {
+      "id": "safesave-b",
+      "product": "SafeSave",
+      "name": "Archive",
+      "description": "Two offset memory cartridges. A tangible collection of saved progress; neither a cloud nor a backup-success claim.",
+      "asset": "safesave-b.svg"
+    },
+    {
+      "id": "safesave-c",
+      "product": "SafeSave",
+      "name": "Checkpoint",
+      "description": "A cartridge with an integrated bookmark. Warm, recognisable and focused on returning to your progress.",
+      "asset": "safesave-c.svg"
+    },
+    {
+      "id": "cartmod-b",
+      "product": "CARTMOD",
+      "name": "Assembly",
+      "description": "Two interlocking components with the silhouette of a cartridge. A purposeful manufactured mark, without tools or a generic settings gear.",
+      "asset": "cartmod-b.svg"
+    },
+    {
+      "id": "cartmod-c",
+      "product": "CARTMOD",
+      "name": "Workshop",
+      "description": "A cartridge with two precision adjustment rails. Explicitly communicates configuration and preparation, not gameplay.",
+      "asset": "cartmod-c.svg"
+    }
+  ],
+  "wordmarks": "Existing B2 path lettering unchanged for comparison; optional heavier stroke in specimen only, not a new master.",
+  "selection": {
+    "safesave": null,
+    "cartmod": null
+  },
+  "recommendation": {
+    "safesave": "safesave-c",
+    "cartmod": "cartmod-b"
+  }
+}
