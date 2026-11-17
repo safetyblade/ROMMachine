@@ -1,10 +1,10 @@
 {
   "schema": "cartdeck.product-mark-review/1",
-  "status": "pending-selection",
+  "status": "SafeSave approved; CARTMOD second review",
   "approval": {
     "lightAppearance": true,
     "appearanceReactiveLogoTint": true,
-    "geometryChange": "pending",
+    "geometryChange": "SafeSave C approved; CARTMOD pending",
     "gem": "unchanged"
   },
   "options": [
@@ -12,7 +12,7 @@
       "id": "safesave-a",
       "product": "SafeSave",
       "name": "Protective case",
-      "asset": "../safesave/mark.svg",
+      "asset": "safesave-a.svg",
       "description": "Original B2 candidate."
     },
     {
@@ -49,15 +49,36 @@
       "name": "Workshop",
       "description": "A cartridge with two precision adjustment rails. Explicitly communicates configuration and preparation, not gameplay.",
       "asset": "cartmod-c.svg"
+    },
+    {
+      "id": "cartmod-d",
+      "product": "CARTMOD",
+      "name": "Patch",
+      "description": "One complete custom interlocking patch silhouette, with an inset seam to suggest fitting new content. No settings rails or shield.",
+      "asset": "cartmod-d.svg"
+    },
+    {
+      "id": "cartmod-e",
+      "product": "CARTMOD",
+      "name": "Workbench",
+      "description": "An angled precision spanner above a short bench line. Directly evokes a game workshop with a strong simple silhouette.",
+      "asset": "cartmod-e.svg"
+    },
+    {
+      "id": "cartmod-f",
+      "product": "CARTMOD",
+      "name": "CM maker's mark",
+      "description": "A custom C and M pair, drawn as one coherent compact maker's stamp. Abstract brand identity rather than literal settings icon.",
+      "asset": "cartmod-f.svg"
     }
   ],
   "wordmarks": "Existing B2 path lettering unchanged for comparison; optional heavier stroke in specimen only, not a new master.",
   "selection": {
-    "safesave": null,
+    "safesave": "safesave-c",
     "cartmod": null
   },
   "recommendation": {
     "safesave": "safesave-c",
-    "cartmod": "cartmod-b"
+    "cartmod": "cartmod-f"
   }
 }
