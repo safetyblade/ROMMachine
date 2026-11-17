@@ -29,11 +29,17 @@ def elf_abi(data: bytes):
         for i in range(phcount)
         if struct.unpack_from("<I", data, phoff + i * phsize)[0] == 1
     ]
+    congruent = all(
+        (struct.unpack_from("<Q", data, phoff + i * phsize + 8)[0] -
+         struct.unpack_from("<Q", data, phoff + i * phsize + 16)[0]) % 16384 == 0
+        for i in range(phcount)
+        if struct.unpack_from("<I", data, phoff + i * phsize)[0] == 1
+    )
     return {
         "valid": machine == 183,
         "aarch64_machine": machine,
         "load_segment_alignments": alignment,
-        "all_load_segments_aligned_16kb": bool(alignment) and all(a >= 16384 for a in alignment),
+        "all_load_segments_aligned_16kb": bool(alignment) and congruent and all(a >= 16384 and a & (a - 1) == 0 for a in alignment),
     }
 
 
@@ -70,7 +76,7 @@ def inspect(strict_binary=False):
     if not checks["submodule_baseline_matches"]:
         warnings.append("Submodule gitlink does not match recorded source baseline")
     valid_source = checks["core_id_registered"] and checks["dos_system_routes_to_core"]
-    ok = valid_source and (not strict_binary or native["present"] and native.get("valid", False))
+    ok = valid_source and (not strict_binary or (native["present"] and native.get("valid", False) and native.get("all_load_segments_aligned_16kb", False) and checks["submodule_baseline_matches"]))
     return {
         "status": "FAIL" if not ok else "NATIVE_AUDIT_ONLY" if native["present"] else "SOURCE_AUDIT_ONLY",
         "gitlink": gitlink, "source_checks": checks, "native": native,
