@@ -160,7 +160,7 @@ jobs:
         run: |
           set -euo pipefail
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'cmake;3.30.3'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
       - name: Rebuild changed Wii U host with attested unchanged core
         if: inputs.engine == 'cemu' && steps.reuse.outputs.valid != 'true'
