@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -463,6 +466,16 @@ fun ShelfBoard(
                                                             }
                                                         },
                                                     )
+                                                    if (game.isFavorite) {
+                                                        Icon(
+                                                            imageVector = Icons.Filled.Favorite,
+                                                            contentDescription = "Favourite",
+                                                            modifier = Modifier.align(Alignment.TopStart)
+                                                                .padding(top = 8.dp, start = 4.dp)
+                                                                .size(12.dp),
+                                                            tint = colors.interactionAccent,
+                                                        )
+                                                    }
                                                     if (rememberGripArcProfile(game).value.mode.hasGrip) {
                                                         Text(
                                                             "ARC",

@@ -19,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -136,59 +137,68 @@ internal fun HomeScreen(
                 shelfGameKey(it.systemId, it.fileUri) to it.displayName()
             },
         )
-    ShelfBoard(
-        layout, games, onGameClicked, onGameLongClick, modifier, arrange, onEdit, onSectionEdit,
-        artworkRevision = state.artworkRevision,
-        header = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.showNoGamesCard) {
-                    Button(
-                        onClick = onSetDirectoryClicked,
-                        enabled = !state.indexInProgress,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                } else {
-                    TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
-                        Text(stringResource(R.string.cartdeck_add_cartridges))
+    val shelfStates = rememberSaveableStateHolder()
+    UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
+        val projection = projectShelf(layout, games, query)
+        shelfStates.SaveableStateProvider(if (query.active) "filtered" else "arranged") {
+            ShelfBoard(
+                projection.layout, projection.games, onGameClicked, onGameLongClick, shelfModifier, arrange, onEdit, onSectionEdit,
+                artworkRevision = state.artworkRevision,
+                header = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (state.showNoGamesCard) {
+                            Button(
+                                onClick = onSetDirectoryClicked,
+                                enabled = !state.indexInProgress,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
+                        } else {
+                            TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                Text(stringResource(R.string.cartdeck_add_cartridges))
+                            }
+                        }
+                        if (state.indexInProgress) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                            Text(stringResource(R.string.cartdeck_scanning), modifier = Modifier.padding(horizontal = 16.dp))
+                        }
+                        AnimatedVisibility(state.showNoNotificationPermissionCard) {
+                            HomeNotification(
+                                titleId = R.string.home_notification_title,
+                                messageId = R.string.home_notification_message,
+                                actionId = R.string.home_notification_action,
+                                onAction = onEnableNotificationsClicked,
+                            )
+                        }
+                        AnimatedVisibility(state.showNoMicrophonePermissionCard) {
+                            HomeNotification(
+                                titleId = R.string.home_microphone_title,
+                                messageId = R.string.home_microphone_message,
+                                actionId = R.string.home_microphone_action,
+                                onAction = onEnableMicrophoneClicked,
+                            )
+                        }
+                        AnimatedVisibility(state.showDesmumeDeprecatedCard) {
+                            HomeNotification(
+                                titleId = R.string.home_notification_desmume_deprecated_title,
+                                messageId = R.string.home_notification_desmume_deprecated_message,
+                                actionId = R.string.home_notification_desmume_deprecated_action,
+                                onAction = onOpenCoreSelection,
+                            )
+                        }
+                        state.recentGames.firstOrNull()?.takeUnless { query.active }?.let { recent ->
+                            TextButton(onClick = { onGameClicked(recent) }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                                Text(stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(), maxLines = 2)
+                            }
+                        }
+                        if (query.active && projection.games.isEmpty()) {
+                            Text("No matching cartridges", modifier = Modifier.padding(16.dp))
+                        }
+                        tools()
                     }
-                }
-                if (state.indexInProgress) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-                    Text(stringResource(R.string.cartdeck_scanning), modifier = Modifier.padding(horizontal = 16.dp))
-                }
-                AnimatedVisibility(state.showNoNotificationPermissionCard) {
-                    HomeNotification(
-                        titleId = R.string.home_notification_title,
-                        messageId = R.string.home_notification_message,
-                        actionId = R.string.home_notification_action,
-                        onAction = onEnableNotificationsClicked,
-                    )
-                }
-                AnimatedVisibility(state.showNoMicrophonePermissionCard) {
-                    HomeNotification(
-                        titleId = R.string.home_microphone_title,
-                        messageId = R.string.home_microphone_message,
-                        actionId = R.string.home_microphone_action,
-                        onAction = onEnableMicrophoneClicked,
-                    )
-                }
-                AnimatedVisibility(state.showDesmumeDeprecatedCard) {
-                    HomeNotification(
-                        titleId = R.string.home_notification_desmume_deprecated_title,
-                        messageId = R.string.home_notification_desmume_deprecated_message,
-                        actionId = R.string.home_notification_desmume_deprecated_action,
-                        onAction = onOpenCoreSelection,
-                    )
-                }
-                state.recentGames.firstOrNull()?.let { recent ->
-                    TextButton(onClick = { onGameClicked(recent) }, modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(), maxLines = 2)
-                    }
-                }
-                tools()
-            }
-        },
-    )
+                },
+            )
+        }
+    }
 }
 
 @Composable
