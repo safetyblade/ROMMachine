@@ -1,0 +1,254 @@
+{
+  "schema": "cartdeck.runtime-assets/1",
+  "status": "converted-from-embedded-design-svgs; pending Android build and visual verification",
+  "resources": [
+    {
+      "resource": "cartdeck_brand_icon_back",
+      "source": "design/brand-01/b4/icons/back.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_next",
+      "source": "design/brand-01/b4/icons/next.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_close",
+      "source": "design/brand-01/b4/icons/close.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_add",
+      "source": "design/brand-01/b4/icons/add.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_search",
+      "source": "design/brand-01/b4/icons/search.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_filters",
+      "source": "design/brand-01/b4/icons/filters.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_sort",
+      "source": "design/brand-01/b4/icons/sort.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_refresh",
+      "source": "design/brand-01/b4/icons/refresh.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_play",
+      "source": "design/brand-01/b4/icons/play.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_pause",
+      "source": "design/brand-01/b4/icons/pause.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_favourite",
+      "source": "design/brand-01/b4/icons/favourite.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_favourite_selected",
+      "source": "design/brand-01/b4/icons/favourite-selected.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_cover",
+      "source": "design/brand-01/b4/icons/cover.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_controller",
+      "source": "design/brand-01/b4/icons/controller.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_display",
+      "source": "design/brand-01/b4/icons/display.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_appearance",
+      "source": "design/brand-01/b4/icons/appearance.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_profiles",
+      "source": "design/brand-01/b4/icons/profiles.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_help",
+      "source": "design/brand-01/b4/icons/help.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_faq",
+      "source": "design/brand-01/b4/icons/faq.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_source",
+      "source": "design/brand-01/b4/icons/source.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_external",
+      "source": "design/brand-01/b4/icons/external.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_folder",
+      "source": "design/brand-01/b4/icons/folder.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_import",
+      "source": "design/brand-01/b4/icons/import.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_export",
+      "source": "design/brand-01/b4/icons/export.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_copy",
+      "source": "design/brand-01/b4/icons/copy.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_restore",
+      "source": "design/brand-01/b4/icons/restore.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_edit",
+      "source": "design/brand-01/b4/icons/edit.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_check",
+      "source": "design/brand-01/b4/icons/check.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_warning",
+      "source": "design/brand-01/b4/icons/warning.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_lock",
+      "source": "design/brand-01/b4/icons/lock.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_delete",
+      "source": "design/brand-01/b4/icons/delete.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_undo",
+      "source": "design/brand-01/b4/icons/undo.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_more",
+      "source": "design/brand-01/b4/icons/more.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_storage",
+      "source": "design/brand-01/b4/icons/storage.svg"
+    },
+    {
+      "resource": "cartdeck_brand_icon_patch",
+      "source": "design/brand-01/b4/icons/patch.svg"
+    },
+    {
+      "resource": "cartdeck_brand_pivotarc_mark",
+      "source": "design/brand-01/b4/features/pivotarc/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_pivotarc_wordmark",
+      "source": "design/brand-01/b4/features/pivotarc/wordmark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_griparc_mark",
+      "source": "design/brand-01/b4/features/griparc/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_griparc_wordmark",
+      "source": "design/brand-01/b4/features/griparc/wordmark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_gemrating_mark",
+      "source": "design/brand-01/b4/features/gemrating/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_gemfinder_mark",
+      "source": "design/brand-01/b4/features/gemfinder/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_deckfit_mark",
+      "source": "design/brand-01/b4/features/deckfit/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_modern_mark",
+      "source": "design/brand-01/b4/subproducts/modern/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_modern_wordmark",
+      "source": "design/brand-01/b4/subproducts/modern/wordmark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_vault_mark",
+      "source": "design/brand-01/b4/subproducts/vault/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_vault_wordmark",
+      "source": "design/brand-01/b4/subproducts/vault/wordmark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_junior_lockup",
+      "source": "design/brand-01/b3/junior/lockup.svg"
+    },
+    {
+      "resource": "cartdeck_brand_grown_ups_mark",
+      "source": "design/brand-01/b3/grown-ups/mark.svg"
+    },
+    {
+      "resource": "cartdeck_brand_playroom_empty",
+      "source": "design/brand-01/b3/playroom/empty-state.svg"
+    },
+    {
+      "resource": "cartdeck_brand_theme_candy_garden",
+      "source": "design/brand-01/b3/themes/candy-garden.svg"
+    },
+    {
+      "resource": "cartdeck_brand_theme_dino_adventure",
+      "source": "design/brand-01/b3/themes/dino-adventure.svg"
+    },
+    {
+      "resource": "cartdeck_brand_theme_space_explorer",
+      "source": "design/brand-01/b3/themes/space-explorer.svg"
+    },
+    {
+      "resource": "cartdeck_brand_theme_ocean_friends",
+      "source": "design/brand-01/b3/themes/ocean-friends.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_star",
+      "source": "design/brand-01/b3/avatars/star.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_cat",
+      "source": "design/brand-01/b3/avatars/cat.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_rocket",
+      "source": "design/brand-01/b3/avatars/rocket.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_leaf",
+      "source": "design/brand-01/b3/avatars/leaf.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_fish",
+      "source": "design/brand-01/b3/avatars/fish.svg"
+    },
+    {
+      "resource": "cartdeck_brand_avatar_balloon",
+      "source": "design/brand-01/b3/avatars/balloon.svg"
+    }
+  ],
+  "existingResources": [
+    "cartdeck_brand_shelf",
+    "cartdeck_wordmark_native",
+    "cartdeck_brand_gem",
+    "cartdeck_brand_gem_wordmark",
+    "cartdeck_brand_safesave",
+    "cartdeck_brand_safesave_wordmark",
+    "cartdeck_brand_cartmod",
+    "cartdeck_brand_cartmod_wordmark",
+    "cartdeck_brand_settings"
+  ],
+  "notes": "Single-color vectors tint at call site. Source specimens are static and not an authorization mechanism. Android conversion uses translation/scale and path equivalent circle/rect; no device proof."
+}
