@@ -1,0 +1,152 @@
+{
+  "schema": "cartdeck.junior-brand/1",
+  "status": "design-candidate",
+  "master": "../../cartdeck-v03/brand/logo-lockup-master.svg",
+  "lockup": "junior/lockup.svg",
+  "wordmark": "junior/wordmark.svg",
+  "playroom": "playroom/mark.svg",
+  "grownUps": "grown-ups/mark.svg",
+  "empty": "playroom/empty-state.svg",
+  "themes": [
+    {
+      "id": "standard",
+      "name": "Standard CARTDECK",
+      "room": "#151A20",
+      "surface": "#202731",
+      "raised": "#2B3440",
+      "ink": "#F1F3F4",
+      "muted": "#BAC4CE",
+      "accent": "#4ED8C4",
+      "onAccent": "#132421",
+      "focus": "#4ED8C4",
+      "motifAsset": null
+    },
+    {
+      "id": "candy-garden",
+      "name": "Candy Garden",
+      "room": "#F9D8EE",
+      "surface": "#FFF4FA",
+      "raised": "#F4C6E5",
+      "ink": "#49253F",
+      "muted": "#6D3B60",
+      "accent": "#8B347B",
+      "onAccent": "#FFFFFF",
+      "focus": "#75276B",
+      "motifAsset": "themes/candy-garden.svg"
+    },
+    {
+      "id": "dino-adventure",
+      "name": "Dino Adventure",
+      "room": "#D1EFCB",
+      "surface": "#F3FAEA",
+      "raised": "#BFE1B5",
+      "ink": "#203E2E",
+      "muted": "#365A42",
+      "accent": "#326C48",
+      "onAccent": "#FFFFFF",
+      "focus": "#235638",
+      "motifAsset": "themes/dino-adventure.svg"
+    },
+    {
+      "id": "space-explorer",
+      "name": "Space Explorer",
+      "room": "#D6DEFD",
+      "surface": "#F0F3FF",
+      "raised": "#C8D2F7",
+      "ink": "#242E59",
+      "muted": "#465583",
+      "accent": "#354C98",
+      "onAccent": "#FFFFFF",
+      "focus": "#283A7C",
+      "motifAsset": "themes/space-explorer.svg"
+    },
+    {
+      "id": "ocean-friends",
+      "name": "Ocean Friends",
+      "room": "#C8EDF1",
+      "surface": "#ECFAFB",
+      "raised": "#B6DDE4",
+      "ink": "#183B46",
+      "muted": "#355964",
+      "accent": "#176A7A",
+      "onAccent": "#FFFFFF",
+      "focus": "#125362",
+      "motifAsset": "themes/ocean-friends.svg"
+    }
+  ],
+  "avatars": [
+    {
+      "id": "star",
+      "asset": "avatars/star.svg"
+    },
+    {
+      "id": "cat",
+      "asset": "avatars/cat.svg"
+    },
+    {
+      "id": "rocket",
+      "asset": "avatars/rocket.svg"
+    },
+    {
+      "id": "leaf",
+      "asset": "avatars/leaf.svg"
+    },
+    {
+      "id": "fish",
+      "asset": "avatars/fish.svg"
+    },
+    {
+      "id": "balloon",
+      "asset": "avatars/balloon.svg"
+    }
+  ],
+  "contrastEvidence": [
+    {
+      "id": "standard",
+      "inkMin": 11.31,
+      "mutedMin": 7.12,
+      "button": 9.17,
+      "focusMin": 7.16
+    },
+    {
+      "id": "candy-garden",
+      "inkMin": 8.68,
+      "mutedMin": 5.75,
+      "button": 7.3,
+      "focusMin": 6.22
+    },
+    {
+      "id": "dino-adventure",
+      "inkMin": 8.19,
+      "mutedMin": 5.43,
+      "button": 6.22,
+      "focusMin": 5.96
+    },
+    {
+      "id": "space-explorer",
+      "inkMin": 8.71,
+      "mutedMin": 4.85,
+      "button": 7.96,
+      "focusMin": 7.06
+    },
+    {
+      "id": "ocean-friends",
+      "inkMin": 8.24,
+      "mutedMin": 5.23,
+      "button": 6.21,
+      "focusMin": 5.92
+    }
+  ],
+  "guardrails": {
+    "exactlyOneCover": true,
+    "masterImmutable": true,
+    "adultDock": false,
+    "childThemeRequiresParentAllowlist": true,
+    "default": "standard",
+    "primaryActionMinDp": 56,
+    "minTargetDp": 48,
+    "noExternalArt": true,
+    "noPersonas": true,
+    "runtimeChanges": false
+  }
+}
