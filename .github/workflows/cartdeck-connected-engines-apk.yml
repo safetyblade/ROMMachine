@@ -90,7 +90,7 @@ jobs:
           bash scripts/ci/bootstrap_gradle.sh
           gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
           test -x "$gradle_bin"
-          "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
+          "$gradle_bin" ktlintCheck --continue --no-daemon --no-configuration-cache --max-workers=2
       - name: Resolve legacy inputs by named component, not fixed artifact IDs
         id: inputs
         uses: actions/github-script@v7

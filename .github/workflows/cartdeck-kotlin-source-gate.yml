@@ -1,0 +1,63 @@
+name: CARTDECK Kotlin source gate
+
+# Independent complete merge-tree check, with no native build or branch exceptions.
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartdeck-kotlin-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kotlin-source:
+    name: Kotlin formatting (whole repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned Gradle
+        run: bash scripts/ci/bootstrap_gradle.sh
+      - name: Check all Kotlin source sets
+        id: lint
+        run: |
+          set -euo pipefail
+          "$GRADLE_BIN" ktlintCheck --continue --no-daemon --no-configuration-cache --max-workers=2
+      - name: Generate actual formatter patch on failure (no commit)
+        if: failure() && steps.lint.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kotlin-format"
+          git diff --exit-code
+          set +e
+          "$GRADLE_BIN" ktlintFormat --continue --no-daemon --no-configuration-cache --max-workers=2 \
+            > "$RUNNER_TEMP/kotlin-format/formatter.log" 2>&1
+          format_status=$?
+          set -e
+          git diff --binary > "$RUNNER_TEMP/kotlin-format/ktlint-format.patch"
+          printf 'formatter exit status: %s\n' "$format_status" >> "$RUNNER_TEMP/kotlin-format/formatter.log"
+          cat "$RUNNER_TEMP/kotlin-format/formatter.log"
+      - name: Retain formatter patch and lint reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-format-diagnostics
+          path: |
+            ${{ runner.temp }}/kotlin-format/
+            **/build/reports/ktlint/
+          if-no-files-found: warn
+          retention-days: 14

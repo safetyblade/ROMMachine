@@ -624,12 +624,12 @@ class GameViewModelInput(
                     event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
                         hasNativeTriggers &&
                             axis in
-                                setOf(
-                                    MotionEvent.AXIS_LTRIGGER,
-                                    MotionEvent.AXIS_RTRIGGER,
-                                    MotionEvent.AXIS_BRAKE,
-                                    MotionEvent.AXIS_GAS,
-                                )
+                            setOf(
+                                MotionEvent.AXIS_LTRIGGER,
+                                MotionEvent.AXIS_RTRIGGER,
+                                MotionEvent.AXIS_BRAKE,
+                                MotionEvent.AXIS_GAS,
+                            )
                     }
                 val next =
                     axes.filter { (axis, _) -> calibratedAxis(event, axis) > 0.5f }

@@ -74,7 +74,7 @@ internal fun projectShelf(
                                 compareByDescending<ShelfCell> {
                                     byKey.getValue(requireNotNull(it.gameKey)).lastPlayedAt ?: Long.MIN_VALUE
                                 }.then(title),
-                        )
+                            )
                     }
                 section.copy(cells = ordered)
             }
