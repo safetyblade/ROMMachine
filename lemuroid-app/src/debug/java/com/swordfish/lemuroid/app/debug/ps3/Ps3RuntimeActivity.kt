@@ -17,6 +17,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,6 +31,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -41,7 +43,12 @@ import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
+import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -62,6 +69,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var loaded = false
     private var ready = false
     private var booting = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var foreground = false
     private var failure = false
@@ -76,7 +84,6 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val touchSticks = intArrayOf(128, 128, 128, 128)
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
     private val rawPressed = mutableMapOf<Int, MutableSet<Int>>()
-    private val remaps = mutableMapOf<Int, Map<Int, Int>>()
     private val menuShortcuts = mutableMapOf<Int, Set<Int>>()
     private val inputManager by lazy {
         com.swordfish.lemuroid.app.shared.input.InputDeviceManager(
@@ -160,6 +167,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -202,7 +210,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                             }
                         }
-                        if (loading && !menu) CartdeckLoadingScreen(message)
+                        if (loading && !menu) {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (!menu && (loading || connected)) {
                             androidx.compose.material3.TextButton(
                                 onClick = ::openMenu,
@@ -211,6 +223,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                         if (menu) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "PlayStation 3 setup", engineInfo = "$engine · $report",
                                 capabilities =
                                     XboxMenuCapabilities(
@@ -221,14 +234,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     ),
                                 pauseFeedback = menuPauseFeedback,
                                 canResume = game != null && !failure && !leaving,
-                                onResume = {
-                                    if (!failure && game != null) {
-                                        pause(false) {
-                                            menu = false
-                                            boot()
-                                        }
-                                    }
-                                },
+                                onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = {
                                     (
@@ -261,7 +267,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     }
                                 },
                             ) {
-                                XboxMenuControls(settings, Ps3Engine.CONTROLLER) { orientation, edit ->
+                                XboxMenuControls(
+                                    settings,
+                                    Ps3Engine.CONTROLLER,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                ) { orientation, edit ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             Ps3Engine.CONTROLLER,
@@ -284,7 +294,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() = openMenu()
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             runCatching {
                 withContext(Dispatchers.IO) {
                     GameProcessLock.acquireExclusive(this@Ps3RuntimeActivity)
@@ -477,6 +487,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun fail(error: Throwable) {
+        if (error is kotlinx.coroutines.CancellationException) throw error
         failure = true
         loading = false
         message = error.message?.take(1024) ?: "PS3 engine failed; saves were retained."
@@ -485,9 +496,23 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (loading && !failure) {
+            leave()
+            return
+        }
         menu = true
         release()
         pause(true)
+    }
+
+    private fun closeMenu() {
+        physicalMapping.discard()
+        if (!menu || failure || game == null || leaving) return
+        release()
+        pause(false) {
+            menu = false
+            boot()
+        }
     }
 
     private fun pause(
@@ -626,13 +651,51 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
         )
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            Ps3Engine.CONTROLLER,
+            cartridge = game?.cartridgeId,
+            portCapacity = 7,
+        ) { device -> presence.port(device.id) }
+    }
+
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
-            if (event.action == KeyEvent.ACTION_UP) openMenu()
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            release()
             return true
         }
+        if (physicalMapping.shortcut(event, {
+                if (menu) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
+            return true
+        }
+        if (loading && !failure) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
+            if (menuEdge.handle(event)) {
+                if (menu) closeMenu() else openMenu()
+            }
+            return true
+        }
+        if (menu && physicalMapping.captureKey(event)) return true
+        if (!menu && !physicalMapping.acceptsGameplay(event)) return true
         if (!menu && event.isFromSource(InputDevice.SOURCE_GAMEPAD)) {
-            val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
+            val port = presence.port(event.deviceId) ?: return super.dispatchKeyEvent(event)
             val raw = rawPressed.getOrPut(event.deviceId) { mutableSetOf() }
             val down = event.action == KeyEvent.ACTION_DOWN
             if (down) raw.add(event.keyCode) else raw.remove(event.keyCode)
@@ -641,17 +704,22 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 openMenu()
                 return true
             }
-            key(port, remaps[event.deviceId]?.get(event.keyCode) ?: event.keyCode, down)
+            key(port, mappedKey, down)
             return true
         }
         return super.dispatchKeyEvent(event)
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menu) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menu && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            val port = presence.connected().indexOfFirst { it.id == event.deviceId }.coerceIn(0, 6)
+            val port = presence.port(event.deviceId) ?: return super.onGenericMotionEvent(event)
             axis(port, 0, event.getAxisValue(MotionEvent.AXIS_X), -event.getAxisValue(MotionEvent.AXIS_Y))
-            val right = com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile.rightStickAxes(event.device)
+            val right = ControllerHardwareProfile.rightStickAxes(event.device)
             axis(port, 1, event.getAxisValue(right.first), -event.getAxisValue(right.second))
             key(port, KeyEvent.KEYCODE_DPAD_LEFT, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
             key(port, KeyEvent.KEYCODE_DPAD_RIGHT, event.getAxisValue(MotionEvent.AXIS_HAT_X) > .5f)
@@ -666,27 +734,19 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         foreground = true
         presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
             connected = devices.isNotEmpty()
             release()
             lifecycleScope.launch {
-                remaps.clear()
                 menuShortcuts.clear()
                 for (device in devices) {
-                    remaps[device.id] =
-                        inputManager.getCurrentBindings(device).mapKeys { it.key.keyCode }.mapValues {
-                            when (it.value.keyCode) {
-                                KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
-                                KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_A
-                                KeyEvent.KEYCODE_BUTTON_X -> KeyEvent.KEYCODE_BUTTON_Y
-                                KeyEvent.KEYCODE_BUTTON_Y -> KeyEvent.KEYCODE_BUTTON_X
-                                else -> it.value.keyCode
-                            }
-                        }
                     menuShortcuts[device.id] =
                         inputManager.getCurrentShortcuts(device).firstOrNull {
-                            it.type == com.swordfish.lemuroid.app.shared.settings.GameShortcutType.MENU
+                            it.type == GameShortcutType.MENU
                         }?.keys.orEmpty()
                 }
             }
@@ -696,6 +756,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        physicalMapping.stop()
+        menuEdge.clear()
         foreground = false
         release()
         pause(true)
@@ -744,8 +806,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave(reopen: Boolean = false) {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         release()
         lifecycleScope.launch {
+            preparation.awaitCleanup()
             val stopped = java.util.concurrent.atomic.AtomicBoolean(!loaded)
             if (loaded) {
                 Thread({

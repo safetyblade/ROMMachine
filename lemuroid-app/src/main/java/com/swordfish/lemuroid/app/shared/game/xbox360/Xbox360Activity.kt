@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,6 +36,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -45,7 +47,10 @@ import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -82,6 +87,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private var booted = false
     private var subsystemsReady = false
     private var foreground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var menuOpen by mutableStateOf(false)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
@@ -119,6 +125,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
@@ -170,7 +177,19 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (message.isNotEmpty() && !menuOpen && !failed) CartdeckLoadingScreen(message)
+                        if (message.isNotEmpty() && !menuOpen && !failed) {
+                            CartdeckLoadingScreen(
+                                message,
+                                title =
+                                    intent.getStringExtra(
+                                        "cartdeck.gameTitle",
+                                    ),
+                                onCancel = {
+                                    leave()
+                                },
+                                cancelling = preparation.cancelling.collectAsState().value,
+                            )
+                        }
                         if (menuOpen && failed) {
                             com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme {
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPanel(
@@ -195,6 +214,10 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                         if (menuOpen && !failed) {
                             XboxGameMenu(
+                                game =
+                                    intent.getSerializableExtra(
+                                        "cartdeck.game",
+                                    ) as? com.swordfish.lemuroid.lib.library.db.entity.Game,
                                 title = intent.getStringExtra("cartdeck.gameTitle").orEmpty(),
                                 engineInfo = if (::engine.isInitialized) engine.id else "Engine unavailable",
                                 capabilities =
@@ -222,7 +245,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                             "Presentation is not gameplay acceptance."
                                     },
                             ) {
-                                XboxMenuControls(settings, TouchControllerID.XBOX360) { orientation, edited ->
+                                XboxMenuControls(settings, TouchControllerID.XBOX360, physicalMapping = {
+                                    physicalMapping.Panel()
+                                }) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.XBOX360,
@@ -244,11 +269,17 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menuOpen) closeMenu() else openMenu()
+                    if (!contentReady) {
+                        leave()
+                    } else if (menuOpen) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 val staged =
                     withContext(Dispatchers.IO) {
@@ -337,8 +368,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         foreground = true
         presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
+            releaseInputs()
             physicalConnected = devices.isNotEmpty()
             if (physicalConnected) {
                 touch.clear()
@@ -351,6 +386,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onPause() {
+        physicalMapping.stop()
+        menuEdge.clear()
         foreground = false
         presence.stop()
         syncPause()
@@ -388,6 +425,10 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (!contentReady && !failed) {
+            leave()
+            return
+        }
         if (menuOpen || leaving) return
         menuOpen = true
         releaseInputs()
@@ -395,6 +436,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menuOpen || failed || leaving) return
         menuOpen = false
         syncPause()
@@ -448,15 +490,59 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         if (!menuOpen) sendInputs()
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.XBOX360,
+            cartridge =
+                (
+                    intent.getSerializableExtra(
+                        "cartdeck.game",
+                    ) as? com.swordfish.lemuroid.lib.library.db.entity.Game
+                )?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
+    }
+
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            releaseInputs()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menuOpen) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
+            return true
+        }
+        if (message.isNotEmpty() && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
+            if (menuEdge.handle(event)) {
                 if (menuOpen) closeMenu() else openMenu()
             }
             return true
         }
+        if (menuOpen && physicalMapping.captureKey(event)) return true
+        if (!menuOpen && !physicalMapping.acceptsGameplay(event)) return true
         if (menuOpen || !foreground) return super.dispatchKeyEvent(event)
-        if (hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)) {
+        if (hardware.key(mappedKey, event.action == KeyEvent.ACTION_DOWN)) {
             sendInputs()
             return true
         }
@@ -464,8 +550,13 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menuOpen) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menuOpen && foreground && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion { event.getAxisValue(it) }
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInputs()
             return true
         }
@@ -526,30 +617,34 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInputs()
         syncPause()
         main.removeCallbacksAndMessages(null)
-        saveReport(runCatching { emulator?.cartdeck_report() }.getOrNull() ?: "stage=HOST_UNAVAILABLE")
-        val result =
-            Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, intent.getSerializableExtra("cartdeck.game"))
-                .putExtra(
-                    BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
-                    intent.getBooleanExtra("cartdeck.leanback", false),
-                )
-                .putExtra(
-                    BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,
-                    android.os.SystemClock.elapsedRealtime() -
-                        intent.getLongExtra(
-                            "cartdeck.startTime", android.os.SystemClock.elapsedRealtime(),
-                        ),
-                )
-        setResult(
-            if (failed) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
-            result.apply {
-                if (failed) putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, message)
-            },
-        )
-        finish()
+        lifecycleScope.launch {
+            preparation.awaitCleanup()
+            saveReport(runCatching { emulator?.cartdeck_report() }.getOrNull() ?: "stage=HOST_UNAVAILABLE")
+            val result =
+                Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME, intent.getSerializableExtra("cartdeck.game"))
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,
+                        intent.getBooleanExtra("cartdeck.leanback", false),
+                    )
+                    .putExtra(
+                        BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,
+                        android.os.SystemClock.elapsedRealtime() -
+                            intent.getLongExtra(
+                                "cartdeck.startTime", android.os.SystemClock.elapsedRealtime(),
+                            ),
+                    )
+            setResult(
+                if (failed) BaseGameActivity.RESULT_ERROR else Activity.RESULT_OK,
+                result.apply {
+                    if (failed) putExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR, message)
+                },
+            )
+            finish()
+        }
     }
 
     override fun onDestroy() {

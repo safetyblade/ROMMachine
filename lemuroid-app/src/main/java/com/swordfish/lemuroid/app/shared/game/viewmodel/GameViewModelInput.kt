@@ -9,8 +9,11 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.input.ControllerChordGate
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.inputclass.getInputClass
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
@@ -38,6 +41,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -62,6 +66,8 @@ class GameViewModelInput(
     private val scope: CoroutineScope,
     private val game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
 ) : DefaultLifecycleObserver {
+    private val menuChord = ControllerChordGate()
+
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
 
     private val hasNativeTriggers =
@@ -77,13 +83,13 @@ class GameViewModelInput(
         if (!hasNativeTriggers) return
         val left =
             maxOf(
-                event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
-                event.getAxisValue(MotionEvent.AXIS_BRAKE),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_LTRIGGER),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_BRAKE),
             ).coerceIn(0f, 1f)
         val right =
             maxOf(
-                event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
-                event.getAxisValue(MotionEvent.AXIS_GAS),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_RTRIGGER),
+                inputDeviceManager.calibratedAxis(event, MotionEvent.AXIS_GAS),
             ).coerceIn(0f, 1f)
         // Source 4 is the versioned CARTDECK host's pair of analog trigger axes.
         retroGameView.retroGameView?.sendMotionEvent(4, left, right, port)
@@ -221,14 +227,17 @@ class GameViewModelInput(
         xAxis: Int,
         yAxis: Int,
     ): PointF {
-        return PointF(event.getAxisValue(xAxis), event.getAxisValue(yAxis))
+        return PointF(
+            inputDeviceManager.calibratedAxis(event, xAxis),
+            inputDeviceManager.calibratedAxis(event, yAxis),
+        )
     }
 
     fun sendKeyEvent(
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
-        if (InputKey(keyCode) in event.device.getInputClass().getInputKeys()) {
+        if (keyCode == KeyEvent.KEYCODE_MENU || InputKey(keyCode) in event.device.getInputClass().getInputKeys()) {
             scope.launch {
                 keyEventsFlow.emit(event)
             }
@@ -272,8 +281,34 @@ class GameViewModelInput(
             }?.id
     }
 
+    private fun releasePhysicalInputs() {
+        pivotArcHoldGate.clear()
+        val view = retroGameView.retroGameView ?: return
+        controllerConfigsState.value.keys.forEach { port ->
+            InputDeviceManager.OUTPUT_KEYS.forEach { key ->
+                view.sendKeyEvent(KeyEvent.ACTION_UP, key.keyCode, port)
+            }
+            listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT).forEach { source ->
+                view.sendMotionEvent(source, 0f, 0f, port)
+            }
+            if (hasNativeTriggers) view.sendMotionEvent(4, 0f, 0f, port)
+        }
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        releasePhysicalInputs()
+        super.onPause(owner)
+    }
+
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
+        inputDeviceManager.beginGameplaySession()
+
+        owner.launchOnState(Lifecycle.State.RESUMED) {
+            inputDeviceManager.getEnabledInputsObservable().drop(1).safeCollect {
+                releasePhysicalInputs()
+            }
+        }
 
         owner.launchOnState(Lifecycle.State.CREATED) {
             initializeControllerConfigsFlow()
@@ -283,15 +318,15 @@ class GameViewModelInput(
             initializeGamePadShortcutsFlow()
         }
 
-        owner.launchOnState(Lifecycle.State.CREATED) {
+        owner.launchOnState(Lifecycle.State.RESUMED) {
             initializeGamePadKeysFlow()
         }
 
-        owner.launchOnState(Lifecycle.State.CREATED) {
+        owner.launchOnState(Lifecycle.State.RESUMED) {
             initializeVirtualGamePadMotionsFlow()
         }
 
-        owner.launchOnState(Lifecycle.State.CREATED) {
+        owner.launchOnState(Lifecycle.State.RESUMED) {
             initializeGamePadMotionsFlow()
         }
 
@@ -327,67 +362,128 @@ class GameViewModelInput(
     }
 
     private suspend fun initializeGamePadKeysFlow() {
-        val pressedKeys = mutableSetOf<Int>()
+        val pressedByDevice = mutableMapOf<Int, MutableSet<Int>>()
+        val activeChords = mutableMapOf<Int, Set<Set<Int>>>()
+        val menuEdge = ControllerMenuEdge()
+        val forwarded = mutableMapOf<Pair<Int, Int>, Pair<Int, Int>>()
+        var lastPorts = emptyMap<Int, Int>()
+
+        fun releaseHeld() {
+            forwarded.values.forEach { (port, code) ->
+                retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_UP, code, port)
+            }
+            (lastPorts.values.toSet() + forwarded.values.map { it.first }).forEach { port ->
+                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT, 4).forEach { source ->
+                    retroGameView.retroGameView?.sendMotionEvent(source, 0f, 0f, port)
+                }
+            }
+            forwarded.clear()
+            pressedByDevice.clear()
+            activeChords.clear()
+            pivotArcHoldGate.clear()
+        }
 
         val filteredKeyEvents =
             keyEventsFlow
                 .filterNotNull()
                 .filter { it.repeatCount == 0 }
-                .map { Triple(it.device, it.action, it.keyCode) }
-                .distinctUntilChanged()
+                .filter { it.device != null }
 
         val combinedObservable =
             combine(
                 inputDeviceManager.getGameShortcutsObservable(),
                 inputDeviceManager.getGamePadsPortMapperObservable(),
-                inputDeviceManager.getInputBindingsObservable(),
+                inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
                 filteredKeyEvents,
                 ::NTuple4,
             )
 
         combinedObservable
-            .onStart { pressedKeys.clear() }
-            .onCompletion { pressedKeys.clear() }
+            .onStart { releaseHeld() }
+            .onCompletion {
+                releaseHeld()
+                menuEdge.clear()
+            }
             .safeCollect { (shortcuts, ports, bindings, event) ->
-                val (device, action, keyCode) = event
+                val currentPorts =
+                    InputDevice.getDeviceIds().asSequence().mapNotNull { id ->
+                        ports(InputDevice.getDevice(id))?.let { id to it }
+                    }.toMap()
+                if (lastPorts != currentPorts) {
+                    releaseHeld()
+                    lastPorts = currentPorts
+                }
+                val activeIds = currentPorts.keys
+                menuEdge.retainDevices(activeIds)
+                menuChord.retainDevices(activeIds)
+                if (pressedByDevice.keys.any { it !in activeIds }) releaseHeld()
+                val device = event.device ?: return@safeCollect
+                val action = event.action
+                val keyCode = event.keyCode
+                if (event.isCanceled) {
+                    releaseHeld()
+                    menuEdge.clear()
+                    return@safeCollect
+                }
+                val pressedKeys = pressedByDevice.getOrPut(device.id) { mutableSetOf() }
                 val port = ports(device)
                 val bindKeyCode = bindings(device)[InputKey(keyCode)]?.keyCode ?: keyCode
 
-                if (port == 0) {
-                    // MODE belongs to CARTDECK, never to the guest. Consume BOTH
-                    // transitions and open only after release; the new menu must
-                    // never inherit the trailing UP and immediately close itself.
-                    if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
-                        if (action == KeyEvent.ACTION_UP) {
-                            pivotArcHoldGate.clear()
-                            sideEffects.showMenu(tilt, this)
+                // Host keys are owned on every port, including unassigned devices.
+                if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE ||
+                    keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)
+                ) {
+                    if (menuEdge.handle(event)) {
+                        releaseHeld()
+                        sideEffects.showMenu(tilt, this)
+                    }
+                    return@safeCollect
+                }
+                val menuKeys = shortcuts[device]?.firstOrNull { it.type == GameShortcutType.MENU }?.keys.orEmpty()
+                val route = menuChord.route(device.id, keyCode, action == KeyEvent.ACTION_DOWN, menuKeys)
+                if (route.consumed) {
+                    if (route.invoke) {
+                        releaseHeld()
+                        sideEffects.showMenu(tilt, this)
+                    } else if (port != null) {
+                        route.replay.forEach { edge ->
+                            val target = bindings(device)[InputKey(edge.key)]?.keyCode ?: edge.key
+                            if ((port to target) in forwarded.values) return@forEach
+                            retroGameView.retroGameView?.sendKeyEvent(
+                                if (edge.down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                                target,
+                                port,
+                            )
+                        }
+                    }
+                    return@safeCollect
+                }
+                val changed =
+                    when (action) {
+                        KeyEvent.ACTION_DOWN -> pressedKeys.add(keyCode)
+                        KeyEvent.ACTION_UP -> pressedKeys.remove(keyCode)
+                        else -> false
+                    }
+                if (!changed) return@safeCollect
+                val complete =
+                    shortcuts[device].orEmpty().filter {
+                        it.keys.isNotEmpty() && pressedKeys.containsAll(it.keys)
+                    }
+                val previous = activeChords[device.id].orEmpty()
+                activeChords[device.id] = complete.map { it.keys.toSet() }.toSet()
+                if (port == 0 && action == KeyEvent.ACTION_DOWN) {
+                    val shortcut = complete.firstOrNull { it.keys.toSet() !in previous }
+                    if (shortcut != null) {
+                        when (shortcut.type) {
+                            GameShortcutType.MENU -> {
+                                releaseHeld()
+                                sideEffects.showMenu(tilt, this)
+                            }
+                            GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
+                            GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
+                            GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
                         }
                         return@safeCollect
-                    }
-
-                    if (action == KeyEvent.ACTION_DOWN) {
-                        pressedKeys.add(keyCode)
-                    } else if (action == KeyEvent.ACTION_UP) {
-                        pressedKeys.remove(keyCode)
-                    }
-
-                    // Trigger a chord on its DOWN edge only. A released key must
-                    // not reopen the menu or replay a quick-save/quick-load.
-                    if (action == KeyEvent.ACTION_DOWN) {
-                        shortcuts[device]?.forEach { shortcut ->
-                            if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
-                                when (shortcut.type) {
-                                    GameShortcutType.MENU -> {
-                                        pivotArcHoldGate.clear()
-                                        sideEffects.showMenu(tilt, this)
-                                    }
-                                    GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
-                                    GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
-                                    GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
-                                }
-                                return@safeCollect
-                            }
-                        }
                     }
                 }
 
@@ -414,6 +510,11 @@ class GameViewModelInput(
                             )
                     if (!captured) {
                         retroGameView.retroGameView?.let { gameView ->
+                            if (action == KeyEvent.ACTION_DOWN) {
+                                forwarded[device.id to keyCode] = targetPort to bindKeyCode
+                            } else {
+                                forwarded.remove(device.id to keyCode)
+                            }
                             gameView.sendKeyEvent(action, bindKeyCode, targetPort)
                             // Post-forward observation: never intercept or retry input.
                             retroGameView.onAcceptedMappedButton(
@@ -432,14 +533,14 @@ class GameViewModelInput(
             combine(
                 inputDeviceManager.getGamePadsPortMapperObservable(),
                 motionEventsFlow,
-                ::NTuple2,
-            )
+                inputDeviceManager.getInputBindingsObservable(game?.cartridgeId),
+            ) { ports, event, bindings -> Triple(ports, event, bindings) }
 
         events
-            .mapNotNull { (ports, event) ->
-                ports(event.device)?.let { it to event }
+            .mapNotNull { (ports, event, bindings) ->
+                ports(event.device)?.let { Triple(it, event, bindings(event.device)) }
             }
-            .map { (port, event) ->
+            .map { (port, event, bindings) ->
                 val axes =
                     event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
                         hasNativeTriggers &&
@@ -459,7 +560,12 @@ class GameViewModelInput(
                         } else {
                             KeyEvent.ACTION_UP
                         }
-                    SingleAxisEvent(axis, action, button, port)
+                    SingleAxisEvent(
+                        axis,
+                        action,
+                        bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button,
+                        port,
+                    )
                 }.toSet()
             }
             .scan(emptySet<SingleAxisEvent>()) { prev, next ->

@@ -14,6 +14,15 @@ import java.security.MessageDigest
 class XboxButtonBindingStore(context: Context) {
     private val prefs = SharedPreferencesHelper.getSharedPreferences(context)
 
+    fun hasCustom(
+        device: InputDevice?,
+        cartridge: String?,
+    ): Boolean =
+        device?.descriptor?.let {
+                descriptor ->
+            prefs.all.keys.any { it.startsWith(scope(descriptor, cartridge)) }
+        } == true
+
     fun output(
         device: InputDevice?,
         source: Int,
@@ -37,6 +46,19 @@ class XboxButtonBindingStore(context: Context) {
     ): Boolean {
         if (source !in editableKeys || target !in editableKeys) return false
         return prefs.edit().putInt(key(device.descriptor, cartridge, source), target).commit()
+    }
+
+    fun saveAll(
+        device: InputDevice,
+        bindings: Map<Int, Int>,
+        cartridge: String?,
+    ): Boolean {
+        if (bindings.keys.any { it !in editableKeys } || bindings.values.any { it !in editableKeys }) return false
+        val editor = prefs.edit()
+        val prefix = scope(device.descriptor, cartridge)
+        prefs.all.keys.filter { it.startsWith(prefix) }.forEach { editor.remove(it) }
+        bindings.forEach { (source, target) -> editor.putInt(key(device.descriptor, cartridge, source), target) }
+        return editor.commit()
     }
 
     fun reset(

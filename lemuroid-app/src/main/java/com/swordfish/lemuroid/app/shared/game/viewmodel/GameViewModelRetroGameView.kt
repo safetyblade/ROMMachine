@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -51,6 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
@@ -118,6 +120,8 @@ class GameViewModelRetroGameView(
         return gameState.debounce(200)
     }
 
+    fun isPreparing(): Boolean = gameState.value is GameState.Uninitialized || gameState.value is GameState.Loading
+
     suspend fun initialize(
         applicationContext: Context,
         game: Game,
@@ -130,10 +134,20 @@ class GameViewModelRetroGameView(
         launchedGame = game
 
         val autoSaveEnabled = settingsManager.autoSave()
-        val filter = settingsManager.screenFilter()
-        val hdMode = settingsManager.hdMode()
-        val hdModeQuality = settingsManager.hdModeQuality()
-        val alignment = settingsManager.viewportAlignment()
+        val display =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                DisplaySettingsStore(
+                    applicationContext,
+                ).readSafely(
+                    game.cartridgeId.takeIf {
+                        it.isNotBlank()
+                    },
+                ).effective
+            }
+        val filter = display.filter ?: settingsManager.screenFilter()
+        val hdMode = display.hd ?: settingsManager.hdMode()
+        val hdModeQuality = display.quality?.let { HDModeQuality.parse(it) } ?: settingsManager.hdModeQuality()
+        val alignment = display.alignment ?: settingsManager.viewportAlignment()
         val lowLatencyAudio = settingsManager.lowLatencyAudio()
         val enableRumble = settingsManager.enableRumble()
         val directLoad = settingsManager.allowDirectGameLoad()
@@ -393,7 +407,31 @@ class GameViewModelRetroGameView(
         try {
             waitRetroGameViewInitialized()
             val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
-            updateCoreVariables(options)
+            val namespace =
+                com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(
+                    system.id.dbname,
+                    systemCoreConfig,
+                )
+            val variables = retroGameViewFlow().getVariables()
+            val reported =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions(appContext)
+                            .record(namespace, systemCoreConfig, variables)
+                    }.getOrDefault(emptyList())
+                }
+            val display =
+                withContext(Dispatchers.IO) {
+                    DisplaySettingsStore(appContext).readSafely(launchedGame?.cartridgeId).effective
+                }
+            val overrides =
+                reported.mapNotNull { option ->
+                    val existing = options.firstOrNull { it.key == option.key }?.value ?: option.values.first()
+                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing
+                    chosen.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
+                }
+            val keys = overrides.map { it.key }.toSet()
+            updateCoreVariables(options.filterNot { it.key in keys } + overrides)
         } catch (e: Exception) {
             Timber.e(e)
         }

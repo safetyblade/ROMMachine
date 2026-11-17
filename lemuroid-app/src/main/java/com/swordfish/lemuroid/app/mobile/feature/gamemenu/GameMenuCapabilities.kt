@@ -7,25 +7,28 @@ data class GameMenuCapabilities(
     val settings: Boolean = false,
     val advanced: Boolean = false,
     val resume: Boolean = true,
+    val display: Boolean = true,
 ) {
     fun homeActions(): List<GameMenuAction> =
         buildList {
             if (resume) add(GameMenuAction.RESUME)
-            if (controls) add(GameMenuAction.CONTROLS)
             if (states) add(GameMenuAction.STATES)
+            if (controls) add(GameMenuAction.CONTROLS)
+            if (display) add(GameMenuAction.DISPLAY)
             if (settings) add(GameMenuAction.SETTINGS)
-            if (advanced) add(GameMenuAction.ADVANCED)
             add(GameMenuAction.RETURN_TO_SHELF)
+            if (advanced) add(GameMenuAction.ADVANCED)
         }
 }
 
 enum class GameMenuAction(val label: String) {
     RESUME("Resume"),
-    CONTROLS("Controls"),
     STATES("Save & Load"),
+    CONTROLS("Controls"),
+    DISPLAY("Display"),
     SETTINGS("Game Settings"),
-    ADVANCED("Advanced"),
     RETURN_TO_SHELF("Return to Shelf"),
+    ADVANCED("Advanced"),
 }
 
 /** Deduplicate requests from menu and Activity lifecycle without unpausing in the background. */

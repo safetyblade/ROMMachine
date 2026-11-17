@@ -289,9 +289,14 @@ class ShelfFacingUiTest {
     }
 
     @Test fun animatedTurnCommitsAtMidpointAndRestoresFocusAfterWrapping() {
-        // Four preceding spines fill most of the first row. Atlas must wrap
-        // to the next row when its footprint expands to three slots.
-        val preceding = (3..6).map { atlas.copy(id = it, title = "Earlier $it", fileUri = "content://test/$it") }
+        // Fill all but one responsive column. Expanding Atlas must wrap.
+        val columns =
+            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
+                .shelf(393f, 1200f, 1f, false).columns
+        val preceding =
+            (3 until 3 + columns - 1).map {
+                atlas.copy(id = it, title = "Earlier $it", fileUri = "content://test/$it")
+            }
         val records = preceding + atlas
         var layout by mutableStateOf(
             ShelfLayout().reconcile(
@@ -308,7 +313,10 @@ class ShelfFacingUiTest {
             }
         }
         val initial = compose.onNodeWithContentDescription("Atlas, GB, spine facing").getUnclippedBoundsInRoot()
-        val neighbor = compose.onNodeWithContentDescription("Earlier 6, GB, spine facing").getUnclippedBoundsInRoot()
+        val neighbor =
+            compose.onNodeWithContentDescription(
+                "${preceding.last().title}, GB, spine facing",
+            ).getUnclippedBoundsInRoot()
         assertEquals(neighbor.bottom.value, initial.bottom.value, 1f)
         // Use the same accessible action as the arrangement menu. Wrapped
         // cartridges need not expose a stable popup during frame-clock testing.

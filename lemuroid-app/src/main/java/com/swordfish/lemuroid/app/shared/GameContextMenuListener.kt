@@ -1,8 +1,13 @@
 package com.swordfish.lemuroid.app.shared
 
+import android.content.Context
+import android.content.Intent
 import android.view.ContextMenu
+import android.view.Menu
 import android.view.View
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsActivity
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 class GameContextMenuListener(
@@ -24,6 +29,8 @@ class GameContextMenuListener(
             true
         }
 
+        addCartridgeSetupEntries(menu, v.context, game)
+
         if (game.isFavorite) {
             menu.add(R.string.game_context_menu_remove_from_favorites).setOnMenuItemClickListener {
                 gameInteractor.onFavoriteToggle(game, false)
@@ -43,4 +50,16 @@ class GameContextMenuListener(
             }
         }
     }
+}
+
+/** The TV/legacy library keeps its existing cartridge context-menu navigation. */
+internal fun addCartridgeSetupEntries(
+    menu: Menu,
+    context: Context,
+    game: Game,
+) {
+    val setup = menu.addSubMenu("Setup")
+    setup.add("Display").intent = Intent(context, DisplaySettingsActivity::class.java).putExtra("cartdeck.game", game)
+    setup.add("Controls").intent =
+        Intent(context, ControllerSettingsActivity::class.java).putExtra("cartdeck.game", game)
 }

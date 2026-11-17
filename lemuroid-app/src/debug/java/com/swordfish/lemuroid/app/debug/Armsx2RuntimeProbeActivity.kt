@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,6 +40,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -56,7 +58,10 @@ import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -83,6 +88,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var ready = false
     private var started = false
     private var hostForeground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var failed = false
     private var missingBios = false
@@ -100,7 +106,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.ARMSX2)
     private var connected by mutableStateOf(false)
-    private var message by mutableStateOf("Preparing PS2 cartridge. Open the game menu to cancel.")
+    private var message by mutableStateOf("Preparing PS2 cartridge…")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
@@ -185,6 +191,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         game = intent.getSerializableExtra("cartdeck.game") as? Game
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -229,9 +236,14 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 }
                             }
                         }
-                        if (!menu && message.isNotEmpty() && !failed) CartdeckLoadingScreen(message)
+                        if (!menu && message.isNotEmpty() && !failed) {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (menu) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "PlayStation 2",
                                 engineInfo = engine?.let { "ARMSX2 ${it.id}" } ?: "ARMSX2 startup needs attention",
                                 capabilities =
@@ -292,7 +304,9 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 GameMenuLink(
                                     "Import user-owned PS2 BIOS after a failed launch",
                                 ) { importBios.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK) { orientation, edited ->
+                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK, physicalMapping = {
+                                    physicalMapping.Panel()
+                                }) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.PSX_DUALSHOCK,
@@ -315,11 +329,17 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menu) closeMenu() else openMenu()
+                    if (!loaded) {
+                        leave()
+                    } else if (menu) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 if (biosSetupMode) {
                     var attempts = 0
@@ -360,6 +380,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 job.ensureActive()
                             }
                     }
+                    job.ensureActive()
                     com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.begin(
                         this@Armsx2RuntimeProbeActivity,
                         "PS2",
@@ -382,6 +403,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         ).getBoolean("show_free_software_notice", false),
                     )
                     NativeApp.initialize(data.gameRoot.absolutePath, data.bios.absolutePath, Build.VERSION.SDK_INT)
+                    job.ensureActive()
                     NativeApp.setCustomVulkanDriver("", "", "", "")
                     NativeApp.setAffinityMode(0) // Let the Samsung scheduler place threads; no Adreno assumptions.
                     val renderer = getSharedPreferences("armsx2-runtime", MODE_PRIVATE).getString("renderer", "Vulkan")
@@ -562,6 +584,10 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun openMenu() {
+        if (!loaded && !failed) {
+            leave()
+            return
+        }
         if (menu || leaving) return
         menu = true
         releaseInput()
@@ -569,21 +595,61 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menu || failed || leaving) return
         menu = false
         syncPause()
         startIfReady()
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.PSX_DUALSHOCK,
+            cartridge = game?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
+    }
+
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            releaseInput()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menu) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
+            return true
+        }
+        if (!loaded && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
+            if (menuEdge.handle(event)) {
                 if (menu) closeMenu() else openMenu()
             }
             return true
         }
+        if (menu && physicalMapping.captureKey(event)) return true
+        if (!menu && !physicalMapping.acceptsGameplay(event)) return true
         if (!menu && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
-            hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+            hardware.key(mappedKey, event.action == KeyEvent.ACTION_DOWN)
         ) {
             sendInput()
             return true
@@ -592,8 +658,13 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menu) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menu && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion({ event.getAxisValue(it) }, event.device)
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInput()
             return true
         }
@@ -624,13 +695,21 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         hostForeground = true
-        presence.start { connected = it.isNotEmpty() }
+        presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
+            releaseInput()
+            connected = devices.isNotEmpty()
+        }
         syncPause()
         startIfReady()
     }
 
     override fun onPause() {
+        physicalMapping.stop()
+        menuEdge.clear()
         hostForeground = false
         presence.stop()
         releaseInput()
@@ -654,13 +733,15 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInput()
-        val shutdown =
-            Thread(
-                { if (loaded && !biosSetupMode) runCatching { NativeApp.shutdown() } },
-                "cartdeck-armsx2-stop",
-            ).also { it.start() }
         lifecycleScope.launch {
+            preparation.awaitCleanup()
+            val shutdown =
+                Thread(
+                    { if (loaded && !biosSetupMode) runCatching { NativeApp.shutdown() } },
+                    "cartdeck-armsx2-stop",
+                ).also { it.start() }
             withContext(Dispatchers.IO) { shutdown.join(8000) }
             paths?.let { File(it.gameRoot, "last-report.txt").writeText(report.take(16384)) }
             if (!shutdown.isAlive) {

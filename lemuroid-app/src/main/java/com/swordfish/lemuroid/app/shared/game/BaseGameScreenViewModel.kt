@@ -65,6 +65,20 @@ class BaseGameScreenViewModel(
     coreVariablesManager: CoreVariablesManager,
     rumbleManager: RumbleManager,
 ) : ViewModel(), DefaultLifecycleObserver {
+    private val preparation = LaunchPreparation()
+
+    fun launchCancelling(): StateFlow<Boolean> = preparation.cancelling
+
+    fun cancelLoading() {
+        if (preparation.cancelling.value) return
+        preparation.requestCancellation()
+        pivotArcHeldInputGate.clear()
+        viewModelScope.launch {
+            preparation.awaitCleanup()
+            sideEffects.requestSuccessfulFinish()
+        }
+    }
+
     class Factory(
         private val appContext: Context,
         private val game: Game,
@@ -101,6 +115,11 @@ class BaseGameScreenViewModel(
 
     val systemId = system.id
     private val activeGame = game
+    val cartridgeId = game.cartridgeId
+    val launchTitle = "${game.displayName()} · ${system.id.dbname}"
+
+    fun isPreparingLaunch(): Boolean = retroGameView.isPreparing()
+
     private val gripArcStore = GripArcProfileStore(appContext)
     private val gripArcProfileState = MutableStateFlow(gripArcStore.read(game))
 
@@ -262,7 +281,9 @@ class BaseGameScreenViewModel(
     ) {
         pivotArcHeldInputGate.clear()
         Timber.i("Calling load game: $game")
-        retroGameView.initialize(applicationContext, game, systemCoreConfig, gameLoader, requestLoadSave)
+        preparation.start(viewModelScope) {
+            retroGameView.initialize(applicationContext, game, systemCoreConfig, gameLoader, requestLoadSave)
+        }?.join()
     }
 
     fun showEditControls(show: Boolean) {
@@ -367,12 +388,20 @@ class BaseGameScreenViewModel(
 
     /** Remote/Menu action uses the same existing side-effect path as a controller shortcut. */
     fun requestGameMenuFromHardware(): Boolean {
+        if (retroGameView.isPreparing()) {
+            cancelLoading()
+            return true
+        }
         if (loadingState.value) return false
         sideEffects.showMenu(tilt, inputs)
         return true
     }
 
     fun requestFinish() {
+        if (retroGameView.isPreparing()) {
+            cancelLoading()
+            return
+        }
         pivotArcHeldInputGate.clear()
         if (loadingState.value) return
         viewModelScope.launch {

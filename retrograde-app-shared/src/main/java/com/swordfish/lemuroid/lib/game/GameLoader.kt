@@ -244,6 +244,8 @@ class GameLoader(
                         ),
                     ),
                 )
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (e: GameLoaderException) {
                 Timber.e(e, "Error while preparing game")
                 throw e

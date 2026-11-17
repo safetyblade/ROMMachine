@@ -20,6 +20,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,6 +37,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuCommand
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostAdapter
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostKind
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameplayMenuHostProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.NativeControllerMappingSession
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxGameMenu
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuCapabilities
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
@@ -53,7 +55,10 @@ import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuViewport
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -76,6 +81,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var loaded = false
     private var started = false
     private var hostForeground = false
+    private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var failed = false
     private var vmThread: Thread? = null
@@ -93,7 +99,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var physicalConnected by mutableStateOf(false)
     private var proController by mutableStateOf(false)
     private var frameAspect = 16f / 9f
-    private var message by mutableStateOf("Preparing Wii U content. Open the game menu to cancel.")
+    private var message by mutableStateOf("Preparing Wii U content…")
     private var showLoadingScreen by mutableStateOf(true)
     private var presentationRecorded = false
     private var loadedCoreSha256 = "UNVERIFIED"
@@ -210,6 +216,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -272,9 +279,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 }
                             }
                         }
-                        if (!menuOpen && showLoadingScreen && !failed) CartdeckLoadingScreen(message)
+                        if (!menuOpen && showLoadingScreen && !failed) {
+                            CartdeckLoadingScreen(message, title = game?.displayName(), onCancel = {
+                                leave()
+                            }, cancelling = preparation.cancelling.collectAsState().value)
+                        }
                         if (menuOpen) {
                             XboxGameMenu(
+                                game = game,
                                 title = game?.displayName() ?: "Wii U",
                                 engineInfo = selection?.id ?: "Engine unavailable",
                                 capabilities =
@@ -314,7 +326,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 GameMenuLink(
                                     "Import user-owned keys.txt for next launch",
                                 ) { importKeys.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC) { orientation, edited ->
+                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC, physicalMapping = {
+                                    physicalMapping.Panel()
+                                }) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.WII_CLASSIC,
@@ -337,11 +351,17 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 override fun handleOnBackPressed() {
                     // Compose handles Back within a submenu. This is the Activity
                     // fallback for opening or dismissing the top-level menu.
-                    if (menuOpen) closeMenu() else openMenu()
+                    if (showLoadingScreen) {
+                        leave()
+                    } else if (menuOpen) {
+                        closeMenu()
+                    } else {
+                        openMenu()
+                    }
                 }
             },
         )
-        lifecycleScope.launch {
+        preparation.start(lifecycleScope) launch@{
             try {
                 GameProcessLock.acquireExclusive(this@WiiuVulkanRuntimeProbeActivity)
                 val current = requireNotNull(game) { "Open a Wii U cartridge from the shelf" }
@@ -542,6 +562,10 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun openMenu() {
+        if (showLoadingScreen && !failed) {
+            leave()
+            return
+        }
         if (menuOpen || leaving) return
         menuOpen = true
         releaseInput()
@@ -549,21 +573,61 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun closeMenu() {
+        physicalMapping.discard()
         if (!menuOpen || failed || leaving) return
         menuOpen = false
         syncPause()
         startIfReady()
     }
 
+    private val physicalMapping by lazy {
+        NativeControllerMappingSession(
+            this,
+            lifecycleScope,
+            TouchControllerID.WII_CLASSIC,
+            cartridge = game?.cartridgeId,
+        ) { device ->
+            presence.port(device.id)?.takeIf {
+                it == 0
+            }
+        }
+    }
+
+    private val menuEdge = ControllerMenuEdge()
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU)) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+        if (event.isCanceled) {
+            menuEdge.clear()
+            physicalMapping.cancelInput()
+            releaseInput()
+            return true
+        }
+        if (physicalMapping.shortcut(event, {
+                if (menuOpen) closeMenu() else openMenu()
+            }, ::dispatchKeyEvent)
+        ) {
+            return true
+        }
+        if (showLoadingScreen && !failed) {
+            if (event.keyCode in setOf(KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE)) {
+                if (menuEdge.handle(event)) leave()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        val mappedKey = physicalMapping.gameplayKey(event)
+        if (event.keyCode in setOf(KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU) ||
+            mappedKey == KeyEvent.KEYCODE_BUTTON_MODE
+        ) {
+            if (menuEdge.handle(event)) {
                 if (menuOpen) closeMenu() else openMenu()
             }
             return true
         }
+        if (menuOpen && physicalMapping.captureKey(event)) return true
+        if (!menuOpen && !physicalMapping.acceptsGameplay(event)) return true
         if (!menuOpen && hostForeground && event.action in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP) &&
-            hardware.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
+            hardware.key(mappedKey, event.action == KeyEvent.ACTION_DOWN)
         ) {
             sendInput()
             return true
@@ -572,8 +636,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (menuOpen) {
+            physicalMapping.observeMotion(event)
+            return true
+        }
+        if (!physicalMapping.acceptsMotion(event)) return true
         if (!menuOpen && hostForeground && event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-            hardware.motion({ event.getAxisValue(it) }, event.device)
+            hardware.motion({ physicalMapping.axis(event, it) }, event.device)
             sendInput()
             return true
         }
@@ -606,13 +675,21 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
 
     override fun onResume() {
         super.onResume()
+        physicalMapping.start()
         hostForeground = true
-        presence.start { physicalConnected = it.isNotEmpty() }
+        presence.start { devices ->
+            menuEdge.retainDevices(devices.map { it.id }.toSet())
+            physicalMapping.retainDevices(devices.map { it.id }.toSet())
+            releaseInput()
+            physicalConnected = devices.isNotEmpty()
+        }
         syncPause()
         startIfReady()
     }
 
     override fun onPause() {
+        physicalMapping.stop()
+        menuEdge.clear()
         hostForeground = false
         presence.stop()
         releaseInput()
@@ -636,9 +713,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private fun leave() {
         if (leaving) return
         leaving = true
+        preparation.requestCancellation()
         releaseInput()
-        if (loaded) nativeStop()
         lifecycleScope.launch {
+            preparation.awaitCleanup()
+            if (loaded) nativeStop()
             val stopped =
                 withContext(Dispatchers.IO) {
                     vmThread?.join(8000)

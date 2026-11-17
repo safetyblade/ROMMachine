@@ -5,7 +5,10 @@ import android.view.KeyEvent
 import androidx.fragment.app.Fragment
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.app.tv.shared.TVBaseSettingsActivity
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -26,6 +29,7 @@ class TVGameMenuActivity : TVBaseSettingsActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         if (savedInstanceState == null) {
             val game =
                 intent.extras?.getSerializable(GameMenuContract.EXTRA_GAME) as Game?
@@ -89,6 +93,13 @@ class TVGameMenuActivity : TVBaseSettingsActivity() {
         }
     }
 
+    private val menuEdge = ControllerMenuEdge()
+
+    override fun onPause() {
+        menuEdge.clear()
+        super.onPause()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Match the native CARTDECK menus: Guide/MENU closes the current
         // overlay on UP; consume both edges and repeats so the core never
@@ -96,7 +107,7 @@ class TVGameMenuActivity : TVBaseSettingsActivity() {
         if (event.keyCode == KeyEvent.KEYCODE_MENU ||
             event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE
         ) {
-            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+            if (menuEdge.handle(event)) {
                 finish()
             }
             return true

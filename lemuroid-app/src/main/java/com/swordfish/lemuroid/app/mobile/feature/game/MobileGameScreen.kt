@@ -64,6 +64,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
@@ -71,6 +72,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
+import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
 import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
@@ -92,6 +94,8 @@ import gg.padkit.inputstate.InputState
 fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isLandscape = constraints.maxWidth > constraints.maxHeight
+        val display = rememberDisplaySettings(viewModel.cartridgeId)
+        val showBorder = display.effective.border(isLandscape) == DisplaySettingsStore.Border.STANDARD
         val appContext = LocalContext.current
         // Read existing appearance atomically. No mutation of library, inputs,
         // ROM files, emulator state or save data.
@@ -589,7 +593,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 
-            if (!fullscreenWithGamepad) {
+            if (showBorder) {
                 CartdeckConsoleShell(
                     tokens = shellTokens,
                     videoBounds = viewPos,
@@ -663,21 +667,23 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 touchControllerSettings != null &&
                 currentControllerConfig != null
             ) {
-                CartdeckHardwareSeats(
-                    tokens = shellTokens,
-                    edition = edition,
-                    rootBounds = fullPos,
-                    videoBounds = viewPos,
-                    inputBounds = hardwareInputBounds,
-                    isDualScreen =
-                        portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
-                    customColours = appearance.custom.isNotEmpty(),
-                    pivotArc = pivotPlacement != null,
-                    drawPivotModule = jointPlacement == null,
-                )
+                if (showBorder) {
+                    CartdeckHardwareSeats(
+                        tokens = shellTokens,
+                        edition = edition,
+                        rootBounds = fullPos,
+                        videoBounds = viewPos,
+                        inputBounds = hardwareInputBounds,
+                        isDualScreen =
+                            portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
+                        customColours = appearance.custom.isNotEmpty(),
+                        pivotArc = pivotPlacement != null,
+                        drawPivotModule = jointPlacement == null,
+                    )
+                }
             }
 
-            LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad) {
+            LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, showBorder) {
                 val gameView = viewModel.retroGameView.retroGameViewFlow()
                 if (fullPos == null || viewPos == null) return@LaunchedEffect
                 // Fit the COMPLETE rendered frame just inside its measured
@@ -685,7 +691,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 // shader bleed; never apply it to DS touch geometry or to
                 // full-screen controller play.
                 val guard =
-                    if (!fullscreenWithGamepad && portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD) {
+                    if (showBorder && !fullscreenWithGamepad &&
+                        portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD
+                    ) {
                         1f
                     } else {
                         0f

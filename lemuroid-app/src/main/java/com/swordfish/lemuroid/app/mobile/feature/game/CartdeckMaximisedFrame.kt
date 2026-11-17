@@ -33,8 +33,9 @@ internal fun CartdeckMaximisedFrame(
     onViewport: (AndroidRect) -> Unit,
     presentationAspect: Float = 4f / 3f,
     isTv: Boolean = false,
+    showBorder: Boolean = true,
 ) {
-    val trim = 6.dp
+    val trim = if (showBorder) 6.dp else 0.dp
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         val density = LocalDensity.current
         val safeMargin = if (isTv) 32.dp else trim
@@ -50,26 +51,28 @@ internal fun CartdeckMaximisedFrame(
                 presentationAspect,
                 guardDp.value,
             )
-        Canvas(Modifier.fillMaxSize()) {
-            val edge = trim.toPx()
-            drawRoundRect(
-                color = tokens.chassis,
-                topLeft = Offset(edge / 2f, edge / 2f),
-                size = Size((size.width - edge).coerceAtLeast(0f), (size.height - edge).coerceAtLeast(0f)),
-                cornerRadius = CornerRadius(10.dp.toPx()),
-                style = Stroke(edge),
-            )
-            drawRoundRect(
-                color = tokens.accent.copy(alpha = 0.75f),
-                topLeft = Offset(edge, edge),
-                size =
-                    Size(
-                        (size.width - edge * 2f).coerceAtLeast(0f),
-                        (size.height - edge * 2f).coerceAtLeast(0f),
-                    ),
-                cornerRadius = CornerRadius(5.dp.toPx()),
-                style = Stroke(1.dp.toPx()),
-            )
+        if (showBorder) {
+            Canvas(Modifier.fillMaxSize()) {
+                val edge = trim.toPx()
+                drawRoundRect(
+                    color = tokens.chassis,
+                    topLeft = Offset(edge / 2f, edge / 2f),
+                    size = Size((size.width - edge).coerceAtLeast(0f), (size.height - edge).coerceAtLeast(0f)),
+                    cornerRadius = CornerRadius(10.dp.toPx()),
+                    style = Stroke(edge),
+                )
+                drawRoundRect(
+                    color = tokens.accent.copy(alpha = 0.75f),
+                    topLeft = Offset(edge, edge),
+                    size =
+                        Size(
+                            (size.width - edge * 2f).coerceAtLeast(0f),
+                            (size.height - edge * 2f).coerceAtLeast(0f),
+                        ),
+                    cornerRadius = CornerRadius(5.dp.toPx()),
+                    style = Stroke(1.dp.toPx()),
+                )
+            }
         }
         if (fit.width > 0f && fit.height > 0f) {
             Box(

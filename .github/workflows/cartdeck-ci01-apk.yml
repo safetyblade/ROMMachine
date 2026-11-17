@@ -41,6 +41,17 @@ jobs:
           python-version: '3.12'
       - name: Verify APK timing success and failure evidence
         run: python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
+  gc-f2-verified-apk:
+    # Exact GC branch only; cannot run until complete F1 unit and Python suites pass.
+    if: github.event_name == 'pull_request' && github.head_ref == 'engineering/gc01-abc-completion-20261116'
+    needs: gc-f1-full-suite
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: false
+      use_ci01_all_native: true
+      measure_apk_reuse: false
+      publish_apk: true
+
   verified-apk:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
@@ -48,3 +59,54 @@ jobs:
       include_ps3: false
       use_ci01_all_native: true
       measure_apk_reuse: ${{ inputs.build_mode == 'FULL_INTEGRATION_APK' }}
+
+  gc-f1-full-suite:
+    # Explicit one-branch GC preflight. No native download, APK or protected merge.
+    if: github.event_name == 'pull_request' && github.head_ref == 'engineering/gc01-abc-completion-20261116'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK platform for GC Kotlin tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35'
+      - name: Run whole-app Kotlin lint and GC debug unit suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          test -x "$gradle_bin"
+          "$gradle_bin" ktlintCheck :lemuroid-app:testFreeBundleDebugUnitTest \
+            -Pcartdeck.dev.standaloneId=true -Pcartdeck.p0.phoneArm64Only=true \
+            -Pcartdeck.p1emu.enabled=true -Pkotlin.compiler.execution.strategy=in-process \
+            --no-daemon --no-configuration-cache --max-workers=2
+      - name: Run complete Python CI regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/ci -p 'test_*.py' -v
+      - name: Retain GC-F1 unit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gc-f1-full-suite-test-evidence
+          path: |
+            lemuroid-app/build/test-results/testFreeBundleDebugUnitTest/
+            lemuroid-app/build/reports/ktlint/
+          if-no-files-found: warn
+          retention-days: 30

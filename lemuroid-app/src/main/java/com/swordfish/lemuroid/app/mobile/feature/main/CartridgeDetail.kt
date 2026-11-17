@@ -3,10 +3,13 @@ package com.swordfish.lemuroid.app.mobile.feature.main
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -34,6 +37,7 @@ import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -122,16 +126,17 @@ fun CartridgeDetail(
     // Consumed before dispatch, so rapid taps cannot launch twice. Reopening permits a retry.
     var opening by remember(game.id) { mutableStateOf(false) }
     var setup by rememberSaveable(game.id) { mutableStateOf(false) }
-    Column(
-        Modifier.testTag("cartridge_front").fillMaxWidth().padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    BoxWithConstraints(
+        Modifier.testTag("cartridge_front").fillMaxWidth().padding(12.dp),
     ) {
-        Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.Start).heightIn(min = 48.dp)) {
+        val landscape = maxWidth > maxHeight
+        val artWidth =
+            CartridgeViewport.detailArtWidth(
+                if (landscape) maxWidth.value * 0.44f else maxWidth.value,
+                if (landscape) maxHeight.value else (maxHeight.value - 180f).coerceAtLeast(100f),
+            ).dp
+        val heading: @Composable () -> Unit = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.cartdeck_back_to_shelf))
             }
             Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
@@ -140,20 +145,61 @@ fun CartridgeDetail(
             if (profile.mode.hasGrip || profile.mode.hasPivot) {
                 Text("ARC · ${profile.mode.label}", style = MaterialTheme.typography.labelSmall)
             }
-            CartridgeFront(game, modifier = frontModifier, artworkRevision = artworkRevision)
         }
-        Button(
-            onClick = {
-                if (!opening) {
-                    opening = true
-                    onOpen(game)
+        val actions: @Composable () -> Unit = {
+            Button(
+                onClick = {
+                    if (!opening) {
+                        opening = true
+                        onOpen(game)
+                    }
+                },
+                enabled = !opening,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text(stringResource(R.string.cartdeck_open)) }
+            OutlinedButton(
+                onClick = { setup = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text("Setup") }
+        }
+        if (landscape) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CartridgeFront(
+                    game,
+                    modifier = frontModifier.then(Modifier.width(artWidth)),
+                    artworkRevision = artworkRevision,
+                )
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    heading()
+                    actions()
                 }
-            },
-            enabled = !opening,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(stringResource(R.string.cartdeck_open)) }
-        TextButton(onClick = { setup = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Text("Setup")
+            }
+        } else {
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Column(
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    heading()
+                    CartridgeFront(
+                        game,
+                        modifier = frontModifier.then(Modifier.width(artWidth)),
+                        artworkRevision = artworkRevision,
+                    )
+                }
+                actions()
+            }
         }
     }
     if (setup) {

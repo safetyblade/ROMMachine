@@ -31,12 +31,25 @@ fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest)
 
     val allOptions =
         remember(gameMenuRequest) {
-            gameMenuRequest.coreOptions + gameMenuRequest.advancedCoreOptions
+            gameMenuRequest.coreOptions.filterNot {
+                com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
+            }
         }
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         CoreOptions(gameMenuRequest.game.systemId, allOptions, context)
     }
+}
+
+@Composable
+fun GameMenuTechnicalOptions(request: GameMenuActivity.GameMenuRequest) {
+    CoreOptions(
+        request.game.systemId,
+        request.advancedCoreOptions.filterNot {
+            com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
+        },
+        LocalContext.current,
+    )
 }
 
 @Composable

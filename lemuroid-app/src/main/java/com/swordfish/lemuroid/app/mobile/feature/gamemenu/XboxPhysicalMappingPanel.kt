@@ -1,18 +1,21 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 
 /**
  * The Xbox emulator's in-process Compose menu owns this capture interface.
- * Every assignment is written only after the next physical key is released.
+ * Matched release stages an assignment; only explicit Save writes preferences.
  * MODE/MENU/Android Back remain hard-wired escape controls.
  */
 @Composable
@@ -21,12 +24,22 @@ internal fun XboxPhysicalMappingPanel(
     pendingTarget: Int?,
     lastInput: String,
     perCartridge: Boolean,
+    dirty: Boolean,
+    canUndo: Boolean,
+    conflict: Boolean,
+    notice: String?,
+    onNextDevice: () -> Unit,
+    onUndo: () -> Unit,
+    onDiscard: () -> Unit,
+    onResolve: () -> Unit,
+    onSave: () -> Unit,
     mappings: Map<Int, String>,
     onScopeChange: (Boolean) -> Unit,
     onStartCapture: (Int) -> Unit,
     onCancelCapture: () -> Unit,
     onReset: () -> Unit,
 ) {
+    var testing by remember { mutableStateOf(false) }
     Column {
         Text(
             "Physical controller",
@@ -37,7 +50,16 @@ internal fun XboxPhysicalMappingPanel(
             controllerName ?: "Connect a gameplay controller to map buttons",
             style = MaterialTheme.typography.bodyMedium,
         )
-        Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
+        Text("Player port: 1 (native Xbox input)", style = MaterialTheme.typography.bodySmall)
+        GameMenuLink(if (testing) "Close input tester" else "Test controller inputs") { testing = !testing }
+        if (testing) Text("Last input: $lastInput", style = MaterialTheme.typography.bodySmall)
+        GameMenuLink("Select next connected controller", onClick = onNextDevice)
+        Text("Console Authentic / Custom")
+        notice?.let { Text(it) }
+        if (conflict) {
+            Text("This button has another binding. Review and swap, or cancel the draft.")
+            GameMenuLink("Swap conflicting bindings", onClick = onResolve)
+        }
         GameMenuLink(
             if (perCartridge) "Scope: this cartridge" else "Scope: this physical controller",
         ) { onScopeChange(!perCartridge) }
@@ -51,12 +73,17 @@ internal fun XboxPhysicalMappingPanel(
         }
         XboxButtonBindingStore.editableKeys.forEach { target ->
             GameMenuLink(
-                "Xbox ${name(target)}  ←  ${mappings[target] ?: name(target)}",
+                "Xbox ${name(target)} ← ${mappings[target] ?: name(target)}",
+                enabled = controllerName != null,
             ) { if (controllerName != null) onStartCapture(target) }
         }
-        if (controllerName != null) GameMenuLink("Reset mappings for selected scope", onClick = onReset)
+        if (controllerName != null) {
+            if (dirty && !conflict) GameMenuLink("Save mappings", onClick = onSave)
+            if (canUndo) GameMenuLink("Undo", onClick = onUndo)
+            GameMenuLink("Cancel unsaved mappings", onClick = onDiscard)
+            GameMenuLink("Reset draft for selected scope", onClick = onReset)
+        }
     }
 }
 
-private fun name(key: Int): String =
-    KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_BUTTON_").removePrefix("KEYCODE_DPAD_")
+private fun name(key: Int): String = com.swordfish.lemuroid.app.shared.input.ControllerLabels.xboxOutput(key)

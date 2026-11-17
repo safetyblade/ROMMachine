@@ -1,0 +1,282 @@
+{
+  "verified_source_sha": "0c003bf96f4e32e5824882a8bae82535421a77d0",
+  "components": [
+    {
+      "engine": "ps1",
+      "run_id": 43799044001,
+      "artifact_id": 14196295416,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43799044001/artifacts/14196295416",
+      "archive_sha256": "5158731bd6b6f6f3d46c19efbc22a8a620c805642ce2c89891470e526d43f0c3",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 24,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "a7ba4c541e0b034547bc8f9c63dcb54067cb9c925774b2eb9b3e0373703e7b52",
+        "compiler_flags_sha256": "6f4082bd4c7771c8c26478e939a4c5c409073bae89a59191a9b7aabc0a549aac",
+        "engine": "ps1",
+        "engine_version": "pcsx-rearmed-modern",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e"
+      },
+      "receipt_sha256": "6aa23af1e2ba96b6b6cb5093a4d485ad0ee8ab08f1645c30f3e3dd3420871e22",
+      "native_output_sha256": {
+        "libpcsx_rearmed_modern_libretro_android.so": "21629573d7fbf7f48558994cc00b2f03f86293045f7b7585b4d67bf4e5da25cc"
+      }
+    },
+    {
+      "engine": "psp",
+      "run_id": 43799069662,
+      "artifact_id": 14195722251,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43799069662/artifacts/14195722251",
+      "archive_sha256": "8f9927f0f99e0e866a68880059e60f372610bf6d2e54fe7a1ce8eb471c0c6a56",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 24,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "a46ed70821c8554e8d84da8f19edeae0b453f43fbc6b79a5ae3f3d07accc0f1e",
+        "compiler_flags_sha256": "e6b99bab7524f18f5cdf9a4145977fbc512db2c6b345fd84638a0bc2e2c2e438",
+        "engine": "psp",
+        "engine_version": "ppsspp-modern",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "fa50bb1976065c4f8b1b47af227d367fe9771555"
+      },
+      "receipt_sha256": "9ccfacc6a144d20e95e8fd986735835cf5128c4e8b9f797dc8d136ccf6ab5181",
+      "native_output_sha256": {
+        "libppsspp_modern_libretro_android.so": "cfad147cb858aaefa32bde1c5c0fa3fe8d83e7c34b66ca739a21040a30826df4"
+      }
+    },
+    {
+      "engine": "dc",
+      "run_id": 43799072402,
+      "artifact_id": 14196106148,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43799072402/artifacts/14196106148",
+      "archive_sha256": "8d1ec85fad1d88c261bbcdb4d85df7ebf4384ce2edb8b0a178b4ae70a9aa8325",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "bb747f89c0915c073b3a1c0d7db6e00d674dd81c94b587e2c9f269dcb70ca987",
+        "compiler_flags_sha256": "6a7974457c649ae2f8aa934ca27abdf6f82ead7b00ce2015d61ff4d13147f7fb",
+        "engine": "dc",
+        "engine_version": "flycast",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "1b7c7d63b73ea6987fb23f9334a7d597401a50f8"
+      },
+      "receipt_sha256": "466acbbd488f3029554395cdbfbb484394b541bf574b0d669831d223859cb3be",
+      "native_output_sha256": {
+        "libflycast_libretro_android.so": "28bf72bcb71a049702c2ee5302340a5a887ccd8d6a47fcc70b649a4765613fc8"
+      }
+    },
+    {
+      "engine": "gc",
+      "run_id": 43799076021,
+      "artifact_id": 14195958523,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43799076021/artifacts/14195958523",
+      "archive_sha256": "006f25d78b91f794b8d9f5cfa051330dddb02438472643d2b9785af47cfecc55",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "4c3c2131af6cd2c384de6617b9f3e448ac529277e780c323ffb75c7987d01207",
+        "compiler_flags_sha256": "ed0d203b06b8f736ae1ac1cb1439df2415a5c860919f493a87bd7c9ac412ed0f",
+        "engine": "gc",
+        "engine_version": "dolphin-modern",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "32c61f9d0e933331bb7087ba57e96883241b4960"
+      },
+      "receipt_sha256": "a56ed7decfc5d96a24a2117dee340685360889c7443dc3b7c295f67a061c6325",
+      "native_output_sha256": {
+        "libdolphin_modern_libretro_android.so": "db7f46b1821c96568d6b4c2b6b9ecfe4064291221372a386897310f2d885a5c6"
+      }
+    },
+    {
+      "engine": "ps2",
+      "run_id": 43799079120,
+      "artifact_id": 14195761644,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43799079120/artifacts/14195761644",
+      "archive_sha256": "1eb2c3c9c8a5ef4ddc50c3f3d55a12431ba1811225bf911669a8d14541f338c8",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "9d4bd39c3f809df69a5035221bb51e9d17674441881684ab56997e5dcc4c2c74",
+        "compiler_flags_sha256": "116ac31e9589aa55e51c57882f5a33d9eec470565d79a53f108c48dc6cca3eaa",
+        "engine": "ps2",
+        "engine_version": "play-modern",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "2444c9099fb014f507b6f1c80daadf092d58b6818b26f0c9c21d96840ec512c5",
+        "source_commit": "1f27232772e484bfb79364b751b84f41f4c87481"
+      },
+      "receipt_sha256": "d61a9809d34a4c3d4d9e24548ae4715ea7e64919110751ea8ed9437abb16a52e",
+      "native_output_sha256": {
+        "libplay_modern_libretro_android.so": "79f2ecdea33b75f490702f177c404a1f1f4271fea6ea7da2f65fc897f042337b"
+      }
+    },
+    {
+      "engine": "hakux",
+      "run_id": 43801997235,
+      "artifact_id": 14196737865,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43801997235/artifacts/14196737865",
+      "archive_sha256": "c60ff05a9c756ca864d3e2cdcf56898d0714c1f130eb841b3d073acd8a94d97c",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "17b0b19ecf2f23511547ea4899747243c9b8894ca6bafe0ed8707c85e540af7e",
+        "compiler_flags_sha256": "da2c326c359012eb16603db0119b49fd4f20c7a06a86c5455279a8d65108abff",
+        "engine": "hakux",
+        "engine_version": "hakux-android",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "428362f6e89b6f65cf804a725ee2b98edb8176b3bafc5355ce5b724eef3c2179",
+        "source_commit": "a7cdb5a975e31730d488c47f6f10440b16c1e6f4"
+      },
+      "receipt_sha256": "9672120d0f91a6421fa048bfe8b2d950262bad835ec7f866c425e28624d5779d",
+      "native_output_sha256": {
+        "libhakuxcore.so": "dcf8e5ae330f44fea969c9cd89b9f936281cd687d4d282a6e703852d0ecfbf97",
+        "libkgsl_context_hook.so": "3463833e6d706f524ca10290f93eb14e7875be02788b52e05e5fa77322e62381",
+        "libhook_impl.so": "2376ada6f3efbbb2d1fbfe8f97fd1e5f1482a812dfdafdb471d6b695590ca7d1",
+        "libgsl_alloc_hook.so": "d719e4e5436096402e7b503af8499d120a3ecf14026c2acd9d7a562b2ec774b4",
+        "libmain_hook.so": "16c6e675351533284e4c81079cd4b6b3ef2696941e62745627834ec1f6b5d27d",
+        "libfile_redirect_hook.so": "5fee1025cb094883e78cebe022ea51b54c88c8cdb3551ce7e1568193d28ef956",
+        "libSDL3.so": "fdea9e4469b0b4e41d6da6d9097628aeee5e368f3b2fc418cd0daa3bc93706d3"
+      }
+    },
+    {
+      "engine": "xenia",
+      "run_id": 43947615252,
+      "artifact_id": 14267658103,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43947615252/artifacts/14267658103",
+      "archive_sha256": "801fc7d9d0225fd8c82fbe9171f454f17b086ec0f436e35b686b293edeb193c9",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 29,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "c997de7ab1b9512cc0833365591953565794ef23af510452699eec6ee3f9a6a3",
+        "compiler_flags_sha256": "faa9410f7a4f57bde3aa595e0a4e1a496e05af53edd7952756420132944bf3b0",
+        "engine": "xenia",
+        "engine_version": "xenia-arm64-vulkan",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "779680ade075d2d2a4c589c6a8d57a8e26c116c0"
+      },
+      "receipt_sha256": "b41130da77ce8be53f96fa110297935435322fad41ea7e6cd4a7cbc4a3a35dd0",
+      "native_output_sha256": {
+        "libcartdeck_xenia.so": "6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937",
+        "libSPIRV-Tools-shared.so": "1cfaf1345e1da5e58af24f695486ca96a371681cce4a5964a3078ab7544585f8"
+      }
+    },
+    {
+      "engine": "armsx2",
+      "run_id": 43802000269,
+      "artifact_id": 14197862449,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43802000269/artifacts/14197862449",
+      "archive_sha256": "012010a57a010b30ccf96edb9b174e7e90a2e87f06e7b3fd2a320841bcfc028a",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "35da4c286e388413f85abe0481ce3b15de519f3ef78c4b1378c854da87ca757f",
+        "compiler_flags_sha256": "348e16413c8ab5fb3141b7c32152ff3395a1b482ce7769a8d1789507bb0ec480",
+        "engine": "armsx2",
+        "engine_version": "armsx2-dual-page",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "7a999782377e61fb96eca65e476b5ec0d182058e"
+      },
+      "receipt_sha256": "0f1f28c0267826529098ab08bf66e85ad8fd2f944847bff0d642583e5c72c401",
+      "native_output_sha256": {
+        "verified/page-4096/libflurry.so": "f1f4921dccd3e29674f944abafea77997ec370af742ee8964b5abd2c36dc59a4",
+        "verified/page-4096/liblibrashader_capi.so": "66e12b19c495afc9c27dce1b61eb4c429176a8bd8c2dc2840ec9125f117b4a6c",
+        "verified/page-4096/libc++_shared.so": "0c52cfab2df0d957d8b346a2bdc5ae8d71feca2591924d77e1cd724d5bf74352",
+        "verified/page-4096/libemucore_4k.so": "587898d3b252540fe94b95a44d195badf7ddc638030d1e2ec5b31f49e11dd92a",
+        "verified/page-4096/libsavers.so": "ddbd1c667adb26f064bdbf64005e6e55ecbae186ccadb03f9c7e40d1c07a9a31",
+        "verified/page-16384/libflurry.so": "59273dfbfec0710f6681483cf0118b2912995eaa631a2a9e0afbe81ad0ac9586",
+        "verified/page-16384/liblibrashader_capi.so": "66e12b19c495afc9c27dce1b61eb4c429176a8bd8c2dc2840ec9125f117b4a6c",
+        "verified/page-16384/libc++_shared.so": "0c52cfab2df0d957d8b346a2bdc5ae8d71feca2591924d77e1cd724d5bf74352",
+        "verified/page-16384/libemucore_16k.so": "8ed1245214788cafdcb5cbc6646ed71bc0e9ec3a304fdb63da1651787e67fb80",
+        "verified/page-16384/libsavers.so": "ee38273f57ec6e5b4ff543ca88c43d4339d9cb308acd43f43675b046acabc933"
+      }
+    },
+    {
+      "engine": "cemu",
+      "run_id": 43947615252,
+      "artifact_id": 14265749150,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43947615252/artifacts/14265749150",
+      "archive_sha256": "a5e743a83deb3fe0d552bf2fb1e9af41ff899207fa17d225779e0e3d2ce3851b",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 28,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "3a4ec63ce769cb8a4b450d352c203fa4101955dd2a01e293d54fa78cf408c8d6",
+        "compiler_flags_sha256": "68335449360d98dd5257763c5f8e46548faa6eda5a118df2d4088aec304fbed6",
+        "engine": "cemu",
+        "engine_version": "cemu-vulkan",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_commit": "444c585202302a7f4b319bafb4cf72156a8cac8b"
+      },
+      "receipt_sha256": "9a595692aaf703b0b746875b645b018f4512a11b58b278290d322383009983e7",
+      "native_output_sha256": {
+        "cartdeck_wiiu_vulkan_host_arm64.so": "8c48f4ea83ae59c3fca59aabd5c32bfa77d435a5d90d3bcfd0c9ee1583c6d801",
+        "cemu_libretro_android_arm64.so": "18911ab654df005c7142ff67b3b34e43c1adfe4733c5bba5cc97d09b58a2c48c"
+      }
+    },
+    {
+      "engine": "libretrodroid",
+      "run_id": 43803143645,
+      "artifact_id": 14197432543,
+      "artifact_url": "https://github.com/safetyblade/ROMMachine/actions/runs/43803143645/artifacts/14197432543",
+      "archive_sha256": "c0d9ebf148b0b9b2a0cbf0938fe1e1333137a398ed8673615decb6e145f6072e",
+      "archive_digest_verified": true,
+      "reused": true,
+      "rebuilt_this_closure": false,
+      "identity": {
+        "abi": "arm64-v8a",
+        "api_level": 21,
+        "build_configuration": "script-defined",
+        "build_script_sha256": "7e7e832633f7faf1951b91d08637930bc633dcc271d04a0d6d22ef3bfe977ad7",
+        "compiler_flags_sha256": "275232b82dddca25296ac70a539ab49dc583d6a84977ca7b28b1e29142e4a9e5",
+        "engine": "libretrodroid",
+        "engine_version": "0.14.0-cartdeck3",
+        "ndk_version": "29.0.14206865",
+        "patch_sha256": "8fb1ffad1bd1491e260230d571b3b4d2c05ef5d7be03342ab6d3320b7a3141b6",
+        "source_commit": "8835c3098514390a271e36983957f7bb5f40abf1"
+      },
+      "receipt_sha256": "15d9bfe270d272fb8b943be3ff8447dd8c93a3043278cea96e3229df621774b1",
+      "native_output_sha256": {
+        "maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar": "e8e9fd0b63df707736c19d553d3e8979b5e28274a837cf4c152c0ed71e2900e1"
+      }
+    }
+  ]
+}

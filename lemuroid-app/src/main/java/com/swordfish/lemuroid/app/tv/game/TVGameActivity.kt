@@ -7,17 +7,20 @@ import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
-import com.swordfish.lemuroid.app.tv.gamemenu.TVGameMenuActivity
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
+import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.displayToast
 import kotlinx.coroutines.flow.filter
 
 class TVGameActivity : BaseGameActivity() {
-    override fun getDialogClass() = TVGameMenuActivity::class.java
+    override fun getDialogClass() = com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuActivity::class.java
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        observeControllerMenuEdges(this, menuEdge)
         initializeFlows()
     }
 
@@ -26,30 +29,19 @@ class TVGameActivity : BaseGameActivity() {
         TVGameScreen(viewModel)
     }
 
-    // An actual remote MENU key must open the same in-game menu as controller
-    // MENU or the existing Start+Select shortcut. Do not steal DPAD/OK or
-    // Android system HOME keys, which may also be used in active gameplay.
-    override fun onKeyDown(
-        keyCode: Int,
-        event: KeyEvent,
-    ): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            // Keep both edges out of gameplay. Open on release so the newly
-            // launched menu Activity cannot inherit this key's trailing UP.
+    private val menuEdge = ControllerMenuEdge()
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_MENU) {
+            if (menuEdge.handle(event)) requestGameMenuFromHardware()
             return true
         }
-        return super.onKeyDown(keyCode, event)
+        return super.dispatchKeyEvent(event)
     }
 
-    override fun onKeyUp(
-        keyCode: Int,
-        event: KeyEvent,
-    ): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            if (event.repeatCount == 0) requestGameMenuFromHardware()
-            return true
-        }
-        return super.onKeyUp(keyCode, event)
+    override fun onPause() {
+        menuEdge.clear()
+        super.onPause()
     }
 
     private fun initializeFlows() {

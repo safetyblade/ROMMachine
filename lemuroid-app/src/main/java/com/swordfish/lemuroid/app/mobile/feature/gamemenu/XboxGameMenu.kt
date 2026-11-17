@@ -44,9 +44,11 @@ internal fun XboxGameMenu(
     storageHelp: String = "Xbox saves in-game to its virtual HDD. Emulator save states are not available.",
     pauseFeedback: String = "Menu open. This engine may continue running.",
     canResume: Boolean = true,
+    game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
+    val safeResume = canResume && capabilities.resume
     GameMenuTheme(appearance) {
         val nav = rememberNavController()
         val route =
@@ -56,7 +58,9 @@ internal fun XboxGameMenu(
             when (route) {
                 GameMenuRoute.HOME -> "Game menu"
                 GameMenuRoute.CONTROLS -> "Controls"
+                GameMenuRoute.DISPLAY -> "Display"
                 GameMenuRoute.STATES -> "Save & Load"
+                GameMenuRoute.DIAGNOSTICS -> "Diagnostics"
                 GameMenuRoute.TROUBLESHOOTING -> "Troubleshooting"
                 else -> "Advanced"
             }
@@ -67,11 +71,11 @@ internal fun XboxGameMenu(
             route.canGoBack(),
             onBack = {
                 if (!nav.popBackStack()) {
-                    if (canResume) onResume() else onReturnToShelf()
+                    if (safeResume) onResume() else onReturnToShelf()
                 }
             },
-            onResume = { if (canResume) onResume() },
-            statusMessage = pauseFeedback,
+            onResume = { if (safeResume) onResume() },
+            statusMessage = null,
         ) {
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
@@ -79,18 +83,20 @@ internal fun XboxGameMenu(
                         capabilities = capabilities.home,
                         onAction = { action ->
                             when (action) {
-                                GameMenuAction.RESUME -> if (canResume) onResume()
+                                GameMenuAction.RESUME -> if (safeResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
+                                GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                                 else -> Unit // Not advertised by this backend.
                             }
                         },
-                        canResume = canResume,
+                        canResume = safeResume,
                     )
                 }
                 composable(GameMenuRoute.CONTROLS) { controls() }
+                composable(GameMenuRoute.DISPLAY) { DisplaySettingsScreen(game, libretroHost = false) }
                 composable(GameMenuRoute.STATES) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text(storageHelp, Modifier.padding(16.dp))
@@ -102,12 +108,23 @@ internal fun XboxGameMenu(
                 }
                 composable(GameMenuRoute.ADVANCED) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Current engine", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-                        Text(engineInfo, Modifier.padding(horizontal = 16.dp))
-                        recovery()
-                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        Text(
+                            "Additional options",
+                            Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (!safeResume) recovery()
+                        GameMenuLink("Diagnostics") { nav.navigateToRoute(GameMenuRoute.DIAGNOSTICS) }
                         if (capabilities.rollback) GameMenuLink("Previous Engine", onClick = onPreviousEngine)
                         GameMenuLink("Troubleshooting") { nav.navigateToRoute(GameMenuRoute.TROUBLESHOOTING) }
+                    }
+                }
+                composable(GameMenuRoute.DIAGNOSTICS) {
+                    Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
+                        Text("Engine information", style = MaterialTheme.typography.titleMedium)
+                        Text(engineInfo, style = MaterialTheme.typography.bodySmall)
+                        Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
+                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
                     }
                 }
                 composable(GameMenuRoute.TROUBLESHOOTING) {
@@ -117,6 +134,7 @@ internal fun XboxGameMenu(
                                 storageHelp,
                             Modifier.padding(16.dp),
                         )
+                        if (safeResume) recovery()
                         if (capabilities.showProbe) GameMenuLink("Probe blank viewport (debug)", onClick = onProbe)
                     }
                 }

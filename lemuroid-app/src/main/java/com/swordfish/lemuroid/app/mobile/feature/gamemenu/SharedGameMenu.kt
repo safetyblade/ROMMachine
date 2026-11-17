@@ -16,15 +16,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,24 +39,28 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.AppTheme
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
-import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 
 @Composable
 internal fun GameMenuTheme(
@@ -75,7 +85,11 @@ internal fun GameMenuTheme(
                 }
             }
         }.value
-    AppTheme { CartridgeLibraryTheme(appearance ?: persisted, content) }
+    AppTheme {
+        androidx.compose.runtime.CompositionLocalProvider(LocalCompactCartdeckMenu provides true) {
+            CartridgeLibraryTheme(appearance ?: persisted, content)
+        }
+    }
 }
 
 /** The established right-side panel, shared by the Activity menu and native overlay. */
@@ -91,6 +105,9 @@ internal fun GameMenuPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val backFocus = remember { FocusRequester() }
+    val menuView = LocalView.current
+    val menuEdge = remember { ControllerMenuEdge() }
+    val backEdge = remember { ControllerMenuEdge() }
     // Nested routes start with a reachable Back control. Home keeps its
     // separate first-action focus, so opening a menu selects Resume.
     LaunchedEffect(page, canGoBack) {
@@ -100,12 +117,25 @@ internal fun GameMenuPanel(
     BoxWithConstraints(
         Modifier.fillMaxSize().testTag("game-menu").onPreviewKeyEvent { event ->
             when (event.nativeKeyEvent.keyCode) {
+                KeyEvent.KEYCODE_BUTTON_A -> {
+                    val raw = event.nativeKeyEvent
+                    menuView.dispatchKeyEvent(
+                        KeyEvent(
+                            raw.downTime,
+                            raw.eventTime,
+                            raw.action,
+                            KeyEvent.KEYCODE_DPAD_CENTER,
+                            raw.repeatCount,
+                        ),
+                    )
+                    true
+                }
                 KeyEvent.KEYCODE_BUTTON_B -> {
-                    if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) onBack()
+                    if (backEdge.handle(event.nativeKeyEvent)) onBack()
                     true
                 }
                 KeyEvent.KEYCODE_BUTTON_MODE, KeyEvent.KEYCODE_MENU -> {
-                    if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) onResume()
+                    if (menuEdge.handle(event.nativeKeyEvent)) onResume()
                     true
                 }
                 else -> false
@@ -136,10 +166,13 @@ internal fun GameMenuPanel(
                     }
                     Column(Modifier.padding(start = 56.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)) {
                         Text(page, style = MaterialTheme.typography.titleLarge)
-                        Text("$console · $title", style = MaterialTheme.typography.bodyMedium)
-                        if (!statusMessage.isNullOrBlank()) {
-                            Text(statusMessage, style = MaterialTheme.typography.bodySmall)
-                        }
+                        Text(
+                            playerMenuTitle(title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                        Text(console, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
                 HorizontalDivider()
@@ -152,16 +185,29 @@ internal fun GameMenuPanel(
 @Composable
 internal fun GameMenuLink(
     label: String,
-    icon: Int = R.drawable.ic_menu_settings,
+    icon: Int? = null,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    leading: ImageVector? = null,
     onClick: () -> Unit,
 ) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-        LemuroidSettingsMenuLink(
-            title = { Text(label) },
-            icon = { Icon(painterResource(icon), contentDescription = null) },
-            onClick = onClick,
-        )
-    }
+    val artwork: (@Composable () -> Unit)? =
+        when {
+            leading != null -> {
+                { Icon(leading, null, Modifier.size(22.dp)) }
+            }
+            icon != null -> {
+                { Icon(painterResource(icon), null, Modifier.size(22.dp)) }
+            }
+            else -> null
+        }
+    CartdeckMenuRow(
+        title = { Text(label) },
+        modifier = modifier,
+        enabled = enabled,
+        leading = artwork,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -170,42 +216,64 @@ internal fun SharedGameMenuHome(
     canResume: Boolean = true,
     onAction: (GameMenuAction) -> Unit,
 ) {
-    val resumeFocus = remember { FocusRequester() }
-    val recoveryFocus = remember { FocusRequester() }
-    LaunchedEffect(canResume) {
-        if (canResume) resumeFocus.requestFocus() else recoveryFocus.requestFocus()
-    }
-    Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Button(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp).focusRequester(resumeFocus),
-                onClick = { onAction(GameMenuAction.RESUME) },
-                enabled = canResume,
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(canResume) { firstFocus.requestFocus() }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
+        GameMenuLink(
+            GameMenuAction.RESUME.label,
+            enabled = canResume,
+            modifier = if (canResume) Modifier.focusRequester(firstFocus) else Modifier,
+            leading = Icons.Default.PlayArrow,
+        ) { onAction(GameMenuAction.RESUME) }
+        if (!canResume && capabilities.advanced) {
+            GameMenuLink(
+                "Recovery options",
+                modifier = Modifier.focusRequester(firstFocus),
+                leading = Icons.Default.MoreHoriz,
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Text(GameMenuAction.RESUME.label)
-            }
-            if (!canResume && capabilities.advanced) {
-                Box(Modifier.focusRequester(recoveryFocus)) {
-                    GameMenuLink("Recovery options") { onAction(GameMenuAction.ADVANCED) }
-                }
-            }
-            capabilities.homeActions().filterNot {
-                it == GameMenuAction.RESUME || it == GameMenuAction.RETURN_TO_SHELF
-            }.forEach { action ->
-                GameMenuLink(
-                    action.label,
-                    when (action) {
-                        GameMenuAction.CONTROLS -> R.drawable.ic_menu_controls
-                        GameMenuAction.STATES -> R.drawable.ic_menu_save
-                        else -> R.drawable.ic_menu_settings
-                    },
-                ) { onAction(action) }
+                onAction(GameMenuAction.ADVANCED)
             }
         }
-        HorizontalDivider()
-        GameMenuLink(GameMenuAction.RETURN_TO_SHELF.label, R.drawable.ic_menu_quit) {
-            onAction(GameMenuAction.RETURN_TO_SHELF)
+        capabilities.homeActions().filterNot { it == GameMenuAction.RESUME || it == GameMenuAction.ADVANCED }.forEach {
+                action ->
+            GameMenuLink(
+                action.label,
+                modifier =
+                    if (!canResume && !capabilities.advanced && action == GameMenuAction.RETURN_TO_SHELF) {
+                        Modifier.focusRequester(firstFocus)
+                    } else {
+                        Modifier
+                    },
+                leading =
+                    when (action) {
+                        GameMenuAction.STATES -> Icons.Default.Save
+                        GameMenuAction.CONTROLS -> Icons.Default.Gamepad
+                        GameMenuAction.DISPLAY -> Icons.Default.AspectRatio
+                        GameMenuAction.SETTINGS -> Icons.Default.Tune
+                        GameMenuAction.RETURN_TO_SHELF -> Icons.Default.Logout
+                        else -> Icons.Default.PlayArrow
+                    },
+            ) { onAction(action) }
+        }
+        if (capabilities.advanced) {
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            GameMenuLink(
+                GameMenuAction.ADVANCED.label,
+                leading = Icons.Default.MoreHoriz,
+            ) { onAction(GameMenuAction.ADVANCED) }
         }
     }
 }
+
+private val menuRomSuffix by lazy {
+    val systems =
+        com.swordfish.lemuroid.lib.library.GameSystem.all() +
+            com.swordfish.lemuroid.lib.library.NativeGameSystems.configurations()
+    val extensions = systems.flatMap { it.supportedExtensions }.toSet() + setOf("zip", "7z", "m3u", "xiso", "xbe")
+    Regex("(?i)\\.(" + extensions.filter { it.isNotBlank() }.joinToString("|") { Regex.escape(it) } + ")$")
+}
+
+internal fun playerMenuTitle(value: String): String =
+    com.swordfish.lemuroid.app.mobile.shared.compose.ui.shelfPresentationTitle(
+        value.substringAfterLast('/').replace(menuRomSuffix, ""),
+    ).take(120)

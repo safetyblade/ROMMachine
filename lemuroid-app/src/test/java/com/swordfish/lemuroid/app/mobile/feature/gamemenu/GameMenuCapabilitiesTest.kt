@@ -7,6 +7,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GameMenuCapabilitiesTest {
+    @Test fun playerPortsAreLimitedByTheSelectedEngineAttachmentContract() {
+        val native = com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry.Host.HAKUX_SDL3
+        val libretro = com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry.Host.LIBRETRO
+        assertEquals(1, controllerPortCapacity(native, setOf(0, 1), true))
+        assertEquals(2, controllerPortCapacity(libretro, setOf(0, 1), true))
+        assertEquals(16, controllerPortCapacity(null, emptySet(), false))
+        assertEquals(1, controllerPortCapacity(null, emptySet(), true))
+        assertEquals("Atlas", playerMenuTitle("Atlas (USA).gba"))
+        assertEquals("Xbox game", playerMenuTitle("Xbox game.xiso"))
+        assertEquals("Ms. Pac-Man", playerMenuTitle("Ms. Pac-Man"))
+    }
+
     @Test fun fullBackendUsesCommonOrderWithoutDuplicateActions() {
         val actions = GameMenuCapabilities(true, true, true, true).homeActions()
         assertEquals(GameMenuAction.values().toList(), actions)
@@ -15,7 +27,7 @@ class GameMenuCapabilitiesTest {
 
     @Test fun unsupportedFeaturesAreOmittedFromHome() {
         assertEquals(
-            listOf(GameMenuAction.RESUME, GameMenuAction.RETURN_TO_SHELF),
+            listOf(GameMenuAction.RESUME, GameMenuAction.DISPLAY, GameMenuAction.RETURN_TO_SHELF),
             GameMenuCapabilities().homeActions(),
         )
         for (debug in listOf(false, true)) for (probe in listOf(false, true)) for (rollback in listOf(false, true)) {
@@ -23,10 +35,11 @@ class GameMenuCapabilitiesTest {
             assertEquals(
                 listOf(
                     GameMenuAction.RESUME,
-                    GameMenuAction.CONTROLS,
                     GameMenuAction.STATES,
-                    GameMenuAction.ADVANCED,
+                    GameMenuAction.CONTROLS,
+                    GameMenuAction.DISPLAY,
                     GameMenuAction.RETURN_TO_SHELF,
+                    GameMenuAction.ADVANCED,
                 ),
                 native.home.homeActions(),
             )

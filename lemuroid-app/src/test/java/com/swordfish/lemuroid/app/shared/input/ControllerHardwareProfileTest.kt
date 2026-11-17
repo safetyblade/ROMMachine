@@ -1,0 +1,38 @@
+package com.swordfish.lemuroid.app.shared.input
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ControllerHardwareProfileTest {
+    @Test fun remoteKeyboardAndVirtualDevicesNeverQualify() {
+        assertFalse(ControllerHardwareProfile.qualifies(false, false, false, 0, false))
+        assertFalse(ControllerHardwareProfile.qualifies(false, true, false, 1, false))
+        assertFalse(ControllerHardwareProfile.qualifies(true, true, true, 4, true))
+        assertFalse(ControllerHardwareProfile.qualifies(false, false, true, 4, false))
+        assertTrue(ControllerHardwareProfile.qualifies(false, true, false, 4, false))
+        assertTrue(ControllerHardwareProfile.qualifies(false, false, true, 4, true))
+    }
+
+    @Test fun numberedGenericButtonsCanBeMappedButEscapeKeysCannot() {
+        assertTrue(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_1))
+        assertTrue(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_16))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BACK))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_BUTTON_MODE))
+        assertFalse(ControllerHardwareProfile.bindable(android.view.KeyEvent.KEYCODE_HOME))
+    }
+
+    @Test fun knownAndGenericNamesRetainPhysicalFamilyWithoutInvertingButtons() {
+        assertEquals(
+            ControllerHardwareProfile.Family.XBOX,
+            ControllerHardwareProfile.family("Xbox Wireless Controller"),
+        )
+        assertEquals(ControllerHardwareProfile.Family.PLAYSTATION, ControllerHardwareProfile.family("DualSense"))
+        assertEquals(
+            ControllerHardwareProfile.Family.SWITCH,
+            ControllerHardwareProfile.family("Nintendo Switch Pro Controller"),
+        )
+        assertEquals(ControllerHardwareProfile.Family.GENERIC, ControllerHardwareProfile.family("USB HID Controller"))
+    }
+}

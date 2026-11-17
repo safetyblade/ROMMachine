@@ -18,11 +18,9 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGro
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsPage
-import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSlider
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
-import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
 
 @Composable
@@ -55,6 +53,9 @@ fun SettingsScreen(
             scanInProgress = scanInProgress,
             onSupportedGames = { navController.navigateToRoute(MainRoute.SETTINGS_SUPPORTED_GAMES) },
         )
+        LemuroidSettingsMenuLink(title = {
+            Text("Display")
+        }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
         GeneralSettings()
         InputSettings(navController = navController)
         MiscSettings(
@@ -149,7 +150,7 @@ private fun InputSettings(navController: NavController) {
             items = stringListResource(R.array.pref_key_haptic_feedback_mode_display_names),
         )
         LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_gamepad_settings)) },
+            title = { Text(text = "Controllers") },
             subtitle = {
                 Text(text = stringResource(id = R.string.settings_description_gamepad_settings))
             },
@@ -160,7 +161,6 @@ private fun InputSettings(navController: NavController) {
 
 @Composable
 private fun GeneralSettings() {
-    val hdMode = booleanPreferenceState(R.string.pref_key_hd_mode, false)
     val immersiveMode = booleanPreferenceState(R.string.pref_key_enable_immersive_mode, false)
 
     LemuroidCardSettingsGroup(
@@ -175,44 +175,6 @@ private fun GeneralSettings() {
             state = immersiveMode,
             title = { Text(text = stringResource(id = R.string.settings_title_immersive_mode)) },
             subtitle = { Text(text = stringResource(id = R.string.settings_description_immersive_mode)) },
-        )
-        LemuroidSettingsSwitch(
-            state = hdMode,
-            title = { Text(text = stringResource(id = R.string.settings_title_hd_mode)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_hd_mode)) },
-        )
-        LemuroidSettingsSlider(
-            enabled = hdMode.value,
-            state =
-                intPreferenceState(
-                    key = stringResource(id = R.string.pref_key_hd_mode_quality),
-                    default = 2,
-                ),
-            steps = 1,
-            valueRange = 0f..2f,
-            title = { Text(text = stringResource(R.string.settings_title_hd_quality)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_hd_quality)) },
-        )
-        LemuroidSettingsList(
-            enabled = !hdMode.value,
-            state =
-                indexPreferenceState(
-                    R.string.pref_key_shader_filter,
-                    "auto",
-                    stringListResource(R.array.pref_key_shader_filter_values).toList(),
-                ),
-            title = { Text(text = stringResource(id = R.string.display_filter)) },
-            items = stringListResource(R.array.pref_key_shader_filter_display_names),
-        )
-        LemuroidSettingsList(
-            state =
-                indexPreferenceState(
-                    R.string.pref_key_viewport_alignment,
-                    "center",
-                    stringListResource(R.array.pref_key_viewport_alignment_values).toList(),
-                ),
-            title = { Text(text = stringResource(id = R.string.settings_title_viewport_alignment)) },
-            items = stringListResource(R.array.pref_key_viewport_alignment_display_names),
         )
     }
 }

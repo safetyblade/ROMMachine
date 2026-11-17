@@ -23,6 +23,7 @@ import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSideEffects
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.tv.game.TVGameActivity
@@ -285,7 +286,24 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         baseGameScreenViewModel.toggleFastForward()
     }
 
+    private val loadingEscape = com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge()
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (::baseGameScreenViewModel.isInitialized && baseGameScreenViewModel.isPreparingLaunch() &&
+            event.keyCode in
+            setOf(
+                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_MODE,
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B,
+            )
+        ) {
+            if (loadingEscape.handle(event)) baseGameScreenViewModel.cancelLoading()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onGenericMotionEvent(event)
         val handled = baseGameScreenViewModel.sendMotionEvent(event)
         if (handled) {
             return true
@@ -297,6 +315,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
+        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onKeyDown(keyCode, event)
         val handled = baseGameScreenViewModel.sendKeyEvent(keyCode, event)
         if (handled) {
             return true
@@ -308,6 +327,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
+        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onKeyUp(keyCode, event)
         val handled = baseGameScreenViewModel.sendKeyEvent(keyCode, event)
         if (handled) {
             return true
