@@ -3,7 +3,17 @@ package com.swordfish.lemuroid.app.mobile.feature.cartmod
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -11,7 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
@@ -31,6 +43,7 @@ internal fun PcWindowsSetupSettings(
     cartridgeId: String?,
     games: List<Game>,
     onOpenGuest: (Game) -> Unit,
+    visible: Boolean = true,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -40,6 +53,7 @@ internal fun PcWindowsSetupSettings(
     var busy by remember { mutableStateOf(false) }
     var refresh by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("") }
+    var instructions by remember { mutableStateOf(false) }
 
     LaunchedEffect(revision, refresh, cartridgeId) {
         try {
@@ -81,28 +95,43 @@ internal fun PcWindowsSetupSettings(
                 }
             }
         }
+    if (!visible) return
     LemuroidCardSettingsGroup(title = { Text("Manage PC installations") }) {
-        Text("1. Open a PC cartridge. Boot and install Windows from your own installation media.")
-        Text("2. Run the installed operating system, install the game and shut Windows down normally.")
-        Text("3. In Windows, create a Startup shortcut to the installed EXE with the game folder as Start in.")
-        Text("For new imports with an EXE path, copy the CARTPLAY shortcut from the content drive to Startup.")
-        Text("4. Set the installed OS as auto-start in the core menu. The shelf keeps opening the same guest.")
-        Text("To recover setup, remove the guest startup shortcut and reopen the core menu.")
+        Text("Select a cartridge to continue its setup.", Modifier.padding(horizontal = 16.dp))
+        LemuroidSettingsMenuLink(
+            title = { Text("Windows setup guide") },
+            subtitle = { Text("Installation, startup and recovery instructions") },
+            onClick = { instructions = true },
+        )
         LemuroidSettingsMenuLink(
             title = { Text("Refresh guest disk status") },
             enabled = !busy,
             onClick = { refresh++ },
         )
         if (entries.isEmpty()) {
-            Text(if (cartridgeId == null) "No managed PC cartridges yet." else "Installation not found.")
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    if (cartridgeId == null) "No PC installations yet" else "Installation not found",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text("Set up a PC game from the workshop to begin.", style = MaterialTheme.typography.bodySmall)
+            }
         }
         for ((entry, count) in entries) {
             val canonical =
                 games.singleOrNull {
                     it.cartridgeId == entry.id.toString() && it.fileUri == Uri.fromFile(entry.content).toString()
                 }
-            Text(entry.title)
-            Text(if (count == 0) "Setup needed" else "Guest disk present · boot not verified")
+            ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(entry.title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (count == 0) "Setup needed" else "Guest disk present · boot not verified",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
             LemuroidSettingsMenuLink(
                 title = { Text("Open guest setup") },
                 subtitle = { Text("Start the same cartridge used by Shelf") },
@@ -123,6 +152,31 @@ internal fun PcWindowsSetupSettings(
                 },
             )
         }
-        if (message.isNotBlank()) Text(message)
+        if (message.isNotBlank()) Text(message, Modifier.padding(16.dp))
+    }
+    if (instructions) {
+        AlertDialog(
+            onDismissRequest = { instructions = false },
+            title = { Text("Windows setup guide") },
+            text = {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("1 · Install Windows", style = MaterialTheme.typography.titleSmall)
+                    Text("Open a PC cartridge and boot your own installation media.")
+                    Text("2 · Install the game", style = MaterialTheme.typography.titleSmall)
+                    Text("Run the installed OS, install the game and shut down Windows normally.")
+                    Text("3 · Configure startup", style = MaterialTheme.typography.titleSmall)
+                    Text("Create a Startup shortcut to the EXE; set Start in to the game folder.")
+                    Text("For imports with an EXE path, copy the CARTPLAY shortcut from the content drive to Startup.")
+                    Text("4 · Select guest auto-start", style = MaterialTheme.typography.titleSmall)
+                    Text("Set the installed OS as auto-start in the core menu. Shelf opens the same guest.")
+                    Text("Recover setup", style = MaterialTheme.typography.titleSmall)
+                    Text("Remove the guest startup shortcut and reopen the core menu.")
+                }
+            },
+            confirmButton = { TextButton(onClick = { instructions = false }) { Text("Close") } },
+        )
     }
 }
