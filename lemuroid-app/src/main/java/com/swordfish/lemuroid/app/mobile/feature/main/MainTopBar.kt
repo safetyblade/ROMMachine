@@ -119,6 +119,7 @@ fun LemuroidTopAppBar(
                         onUpdateQueryString = onUpdateQueryString,
                     )
                 MainRoute.HOME -> CartdeckHomeTitle()
+                MainRoute.CARTMOD -> Text("CARTMOD")
                 else -> Text(text = stringResource(route.titleId))
             }
         },

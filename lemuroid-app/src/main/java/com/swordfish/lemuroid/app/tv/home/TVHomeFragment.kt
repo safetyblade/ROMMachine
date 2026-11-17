@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.tv.home
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -96,6 +97,10 @@ class TVHomeFragment : BrowseSupportFragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+
+        setTitle("CARTDECK")
+        setBrandColor(Color.rgb(16, 28, 35))
+        setSearchAffordanceColor(Color.rgb(80, 210, 194))
 
         recreateAdapter(
             includeFavorites = false,

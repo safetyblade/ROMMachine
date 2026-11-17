@@ -56,7 +56,11 @@ fun SettingsScreen(
         LemuroidSettingsMenuLink(title = {
             Text("Display")
         }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
-        PcImportSettings(enabled = !indexingInProgress && !scanInProgress)
+        LemuroidSettingsMenuLink(
+            title = { Text("CARTMOD") },
+            subtitle = { Text("PC game setup and cartridge preparation") },
+            onClick = { navController.navigateToRoute(MainRoute.CARTMOD) },
+        )
         GeneralSettings()
         InputSettings(navController = navController)
         MiscSettings(

@@ -44,6 +44,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -395,23 +397,38 @@ fun CartridgeFront(
                 },
             style = MaterialTheme.typography.labelLarge,
         )
-        Text(
-            shelfPresentationTitle(game.displayName()),
-            modifier = Modifier.offset(unit * 40, unit * 316).width(unit * 240),
-            color = cartridgeInk,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        // Manufactured nameplate text follows the asset's geometry. The
+        // complete accessible title remains in the enclosing cartridge and detail view.
+        val textScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+        val plateStyle = MaterialTheme.typography.labelSmall.copy(
+            fontSize = (unit.value * 15f / textScale).sp,
+            lineHeight = (unit.value * 18f / textScale).sp,
         )
-        Text(
-            cartridgeSystemLabel(game.systemId),
-            modifier = Modifier.offset(unit * 215, unit * 334).width(unit * 78),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = cartridgeInk,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Box(
+            Modifier.offset(unit * 40, unit * 315).size(unit * 240, unit * 18).clipToBounds(),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                shelfPresentationTitle(game.displayName()),
+                color = cartridgeInk,
+                style = plateStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(
+            Modifier.offset(unit * 215, unit * 335).size(unit * 70, unit * 23)
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(unit * 4)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                cartridgeSystemLabel(game.systemId),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = plateStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
