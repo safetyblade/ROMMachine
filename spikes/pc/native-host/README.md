@@ -24,3 +24,7 @@ Future PC execution should own a runtime capability boundary (DOSBox/Wine/transl
 with independently versioned native outputs and a separate laboratory install ID.
 Reject unknown PC runtime protocols; do not change existing console inputs or host
 receipts in order to implement PC-specific features.
+
+## Controlling roadmap
+
+Read [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) and the [PC-00 charter](../../../docs/research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md). PC-R01 is the next increment; the current lab is not yet an independently integrated PC runtime. Use separate PC artifact identity, protocol capability, install ID and storage, without modifying or replacing the production console host or blocking standard APK assembly. PC-R02–R07 govern later guest execution, product integration, Wine and promotion.

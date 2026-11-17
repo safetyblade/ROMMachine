@@ -1,5 +1,7 @@
 # PERF-PC-01 — explicit PC Classics execution increment
 
+> **Controlling recovery direction (17 Nov 2026):** [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) and the updated [PC-00 charter](PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md) govern PC-R01–PC-R07. Earlier implementation notes are historical evidence, not permission to modify the shared console host. Resume at PC-R01.
+
 Based on the approved #299/#301/#302/#305 contract and the existing cleanup branch (#313).
 Implementation uses the current bundled DOSBox Pure route rather than importing the Winlator app.
 Reference: https://docs.libretro.com/library/dosbox_pure/ (ZIP-contained disc images, guest setup,
@@ -47,3 +49,7 @@ Reconciled with master 6c015bea (PR #317). CARTMOD owns PC import and guest mana
 
 ## HOT-04/HOT-05 reconciliation
 Merged current master 2a0f888a into the PC continuation branch without replacing the approved HOT-04 product dock, shelf section paging, cartridge setup or HOT-05 controller screens. Extended the existing CARTMOD page with the PC wizard, guest management, UUID-targeted installation route and original Return to Shelf action. Retained Settings redirect and current chrome tests. Reformatted the failing ShelfQueryTest fixture without changing test expectations. Reused the repaired connected APK workflow (removes a repeated malformed suffix from the corruption on master, preserving each actual build stage once). CI and physical acceptance pending.
+
+## Superseding native execution direction
+
+The shared host implementation described in PC-F4 is no longer active. The standard APK uses the restored console host and PC-native protocol disabled; the failed experiment remains in spikes/pc/native-host with a dedicated laboratory workflow. Preserve import, guest/workspace, Windows setup, launch preparation and Wine groundwork; prove the runtime independently under PC-R01–PC-R04 before integrating the verified classic runtime under R05, and meet R07 release/console regression gates. Wine R06 remains separate feasibility work. Do not infer Windows boot, one-click launch, gameplay or save success from UI/source availability.
