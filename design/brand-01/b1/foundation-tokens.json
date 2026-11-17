@@ -171,5 +171,15 @@
       "monochromeFallback": true
     }
   },
-  "taglinesAllowed": false
+  "taglinesAllowed": false,
+  "nestedProducts": [
+    {
+      "name": "Modern",
+      "parent": "Settings / Controllers"
+    },
+    {
+      "name": "Vault",
+      "parent": "SafeSave"
+    }
+  ]
 }

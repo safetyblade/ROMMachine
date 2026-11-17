@@ -1,6 +1,6 @@
 {
   "schema": "cartdeck.feature-icons/1",
-  "status": "design-candidate",
+  "status": "owner-approved-hierarchy; new nested-product artwork candidate",
   "foundation": "../b1/foundation-tokens.json",
   "taglines": false,
   "geometry": {
@@ -35,17 +35,6 @@
       "capabilityGated": true
     },
     {
-      "id": "modern-function",
-      "name": "Modern Function",
-      "parent": "Controls",
-      "kind": "capability",
-      "notes": "Named mode; show only for verified supported game and resolver.",
-      "asset": "features/modern-function/mark.svg",
-      "wordmark": null,
-      "typography": "B1 upright section/title",
-      "capabilityGated": true
-    },
-    {
       "id": "gemrating",
       "name": "GEMRating",
       "parent": "GEM",
@@ -74,17 +63,6 @@
       "kind": "capability",
       "notes": "Separate fit signal; use actual evidence, never an unsupported compatibility guarantee.",
       "asset": "features/deckfit/mark.svg",
-      "wordmark": null,
-      "typography": "B1 upright section/title",
-      "capabilityGated": true
-    },
-    {
-      "id": "safesave-vault",
-      "name": "SafeSave Vault",
-      "parent": "SafeSave",
-      "kind": "capability",
-      "notes": "Future only; no live entry until audited backend and verified restore.",
-      "asset": "features/safesave-vault/mark.svg",
       "wordmark": null,
       "typography": "B1 upright section/title",
       "capabilityGated": true
@@ -306,5 +284,37 @@
     "grownUps": "../b3/grown-ups/mark.svg"
   },
   "hardwareGeometryChanges": false,
-  "appChanges": false
+  "appChanges": false,
+  "subproducts": [
+    {
+      "id": "modern",
+      "name": "Modern",
+      "parent": "Settings / Controllers",
+      "route": "settings.controllers.modern",
+      "entry": "Game Controls > Modern (when supported)",
+      "asset": "subproducts/modern/mark.svg",
+      "wordmark": "subproducts/modern/wordmark.svg",
+      "lockup": "subproducts/modern/lockup.svg",
+      "kind": "nested-product",
+      "legacyInternalId": "modern-function",
+      "capabilityGated": true,
+      "independentDock": false,
+      "taglines": false
+    },
+    {
+      "id": "vault",
+      "name": "Vault",
+      "parent": "SafeSave",
+      "route": "safesave.vault",
+      "entry": "SafeSave > Vault (when service verified)",
+      "asset": "subproducts/vault/mark.svg",
+      "wordmark": "subproducts/vault/wordmark.svg",
+      "lockup": "subproducts/vault/lockup.svg",
+      "kind": "nested-product",
+      "legacyInternalId": "safesave-vault",
+      "capabilityGated": true,
+      "independentDock": false,
+      "taglines": false
+    }
+  ]
 }

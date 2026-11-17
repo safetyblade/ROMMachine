@@ -2,6 +2,7 @@
 18 November 2026. Owner-approved decisions: SafeSave C; CARTMOD F; Settings as fifth adult destination in full; Light selectable; appearance-reactive logos; CARTMOD how-to in Settings; FAQs at the bottom of CARTMOD; customizable website search in GEM; cover search from Shelf hold/context. This document is the controlling amendment to HOT03 and HOT04 where they conflict. B3 is separate. Design complete for architecture/engineering review; no code, runtime or release claims.
 
 ## A. Navigation and ownership
+Modern and Vault are approved nested products, not additional adult dock destinations. Modern lives in Settings > Controllers with verified game-context entry; Vault lives in SafeSave, gated until actual secure service. See B4 and B5.
 Shelf / GEM / SafeSave / CARTMOD / Settings, in that order. Keep existing C-slot and wordmark; GEM unchanged; SafeSave Checkpoint and CM maker's mark approved. All use contrast-safe appearance-derived tint, and named functional Settings slider mark. No team personas or product taglines. Original default, selectable Light; no automatic palette overwrite. Only real destinations/actions appear; preserve existing Settings route immediately in implementation, GEM/SafeSave readiness gates independent. Profiles header when capability exists; Junior locked and separate. Compact dock and TV/focus parity per Settings spec. Remove redundant top Settings button only after parity proven. Routes below are logical design IDs, not actual NavController implementation names.
 
 | Destination | Sections |
