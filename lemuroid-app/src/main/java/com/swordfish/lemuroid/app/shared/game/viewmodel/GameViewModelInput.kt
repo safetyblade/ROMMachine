@@ -250,9 +250,15 @@ class GameViewModelInput(
         )
     }
 
-    private fun calibratedAxis(event: MotionFrame, code: Int): Float =
+    private fun calibratedAxis(
+        event: MotionFrame,
+        code: Int,
+    ): Float =
         PhysicalControllerInput.sampleAxis(
-            event::axis, event.ranges, code, inputDeviceManager.calibration(event.device),
+            event::axis,
+            event.ranges,
+            code,
+            inputDeviceManager.calibration(event.device),
         )
 
     fun sendKeyEvent(
@@ -282,8 +288,12 @@ class GameViewModelInput(
         // Android owns MotionEvent lifetime. Snapshot before handing off to the asynchronous flows.
         val frame =
             MotionFrame(
-                device, event.source, ++frameSequence, inputGeneration,
-                ranges.keys.associateWith { event.getAxisValue(it) }, ranges,
+                device,
+                event.source,
+                ++frameSequence,
+                inputGeneration,
+                ranges.keys.associateWith { event.getAxisValue(it) },
+                ranges,
             )
         scope.launch {
             motionEventsFlow.emit(frame)
@@ -613,10 +623,13 @@ class GameViewModelInput(
                 val axes =
                     event.device.getInputClass().getAxesMap().entries.filterNot { (axis, _) ->
                         hasNativeTriggers &&
-                            axis in setOf(
-                                MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER,
-                                MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS,
-                            )
+                            axis in
+                                setOf(
+                                    MotionEvent.AXIS_LTRIGGER,
+                                    MotionEvent.AXIS_RTRIGGER,
+                                    MotionEvent.AXIS_BRAKE,
+                                    MotionEvent.AXIS_GAS,
+                                )
                     }
                 val next =
                     axes.filter { (axis, _) -> calibratedAxis(event, axis) > 0.5f }
@@ -624,10 +637,16 @@ class GameViewModelInput(
                             bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button
                         }.toSet()
                 val view = retroGameView.retroGameView ?: return@safeCollect
-                fun forward(code: Int, action: Int) {
+
+                fun forward(
+                    code: Int,
+                    action: Int,
+                ) {
                     view.sendKeyEvent(action, code, port)
                     retroGameView.onAcceptedMappedButton(
-                        source = "axis:$port:$code", mappedKey = code, action = action,
+                        source = "axis:$port:$code",
+                        mappedKey = code,
+                        action = action,
                     )
                 }
                 digital.update(port, next).forEach { edge ->

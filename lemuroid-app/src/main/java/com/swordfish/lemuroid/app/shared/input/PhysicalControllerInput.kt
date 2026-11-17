@@ -122,8 +122,7 @@ object PhysicalControllerInput {
             .associate { it.axis to Range(it.min, it.max, it.flat) }
     }
 
-    private fun signedStick(range: Range?): Boolean =
-        range != null && range.minimum < 0f && range.maximum > 0f
+    private fun signedStick(range: Range?): Boolean = range != null && range.minimum < 0f && range.maximum > 0f
 
     private fun stickSupported(
         code: Int,
@@ -175,10 +174,14 @@ object PhysicalControllerInput {
             return value.coerceIn(-1f, 1f)
         }
         val trigger =
-            actual in setOf(
-                MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER,
-                MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS, MotionEvent.AXIS_THROTTLE,
-            )
+            actual in
+                setOf(
+                    MotionEvent.AXIS_LTRIGGER,
+                    MotionEvent.AXIS_RTRIGGER,
+                    MotionEvent.AXIS_BRAKE,
+                    MotionEvent.AXIS_GAS,
+                    MotionEvent.AXIS_THROTTLE,
+                )
         if (!trigger && !stickSupported(actual, ranges, profile)) return 0f
         return axis(value, range, trigger, effectiveDeadzone(profile), profile.centres[actual])
     }
@@ -247,7 +250,11 @@ object PhysicalControllerInput {
 internal class ControllerFrameGate {
     private var last = Long.MIN_VALUE
 
-    fun accepts(sequence: Long, generation: Long, currentGeneration: Long): Boolean {
+    fun accepts(
+        sequence: Long,
+        generation: Long,
+        currentGeneration: Long,
+    ): Boolean {
         if (generation != currentGeneration || sequence <= last) return false
         last = sequence
         return true
@@ -260,7 +267,10 @@ internal class ControllerDigitalAxisState {
 
     private val pressed = mutableMapOf<Int, Set<Int>>()
 
-    fun update(port: Int, next: Set<Int>): List<Edge> {
+    fun update(
+        port: Int,
+        next: Set<Int>,
+    ): List<Edge> {
         val previous = pressed[port].orEmpty()
         pressed[port] = next.toSet()
         return (previous - next).map { Edge(it, false) } + (next - previous).map { Edge(it, true) }

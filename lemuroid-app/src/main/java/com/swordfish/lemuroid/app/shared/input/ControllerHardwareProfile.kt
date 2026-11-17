@@ -40,9 +40,10 @@ object ControllerHardwareProfile {
                     .count { it }
             }.getOrDefault(0)
         // A TV remote with just D-pad/OK/Back never qualifies as a gameplay controller.
-        val joystickAxes = device.motionRanges.any {
-            it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
-        }
+        val joystickAxes =
+            device.motionRanges.any {
+                it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+            }
         return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, maxOf(faces, numbered), joystickAxes)
     }
 
@@ -80,9 +81,10 @@ object ControllerHardwareProfile {
 
     /** Right sticks vary across Android gamepad drivers: Z/RZ or RX/RY. */
     fun rightStickAxes(device: InputDevice?): Pair<Int, Int> {
-        val joystickRanges = device?.motionRanges.orEmpty().filter {
-            it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
-        }
+        val joystickRanges =
+            device?.motionRanges.orEmpty().filter {
+                it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+            }
         val signed = joystickRanges.filter { it.min < 0f && it.max > 0f }.map { it.axis }.toSet()
         val candidates =
             listOf(

@@ -100,10 +100,12 @@ fun MainNavigationBar(
     }
 }
 
-
 /** GEM and SafeSave join only when their actual routes are ready. */
 @Composable
-private fun ProductDock(currentRoute: MainRoute?, navController: NavHostController) {
+private fun ProductDock(
+    currentRoute: MainRoute?,
+    navController: NavHostController,
+) {
     val materials = LocalShelfMaterials.current
     NavigationBar(containerColor = materials.shelfBackboard, tonalElevation = 0.dp) {
         listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD").forEach { (route, title) ->
@@ -125,13 +127,14 @@ private fun ProductDock(currentRoute: MainRoute?, navController: NavHostControll
                     )
                 },
                 label = { Text(title) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = materials.interactionAccent,
-                    selectedTextColor = materials.sectionText,
-                    unselectedIconColor = materials.sectionText,
-                    unselectedTextColor = materials.sectionText,
-                    indicatorColor = materials.roomBackdrop,
-                ),
+                colors =
+                    NavigationBarItemDefaults.colors(
+                        selectedIconColor = materials.interactionAccent,
+                        selectedTextColor = materials.sectionText,
+                        unselectedIconColor = materials.sectionText,
+                        unselectedTextColor = materials.sectionText,
+                        indicatorColor = materials.roomBackdrop,
+                    ),
             )
         }
     }

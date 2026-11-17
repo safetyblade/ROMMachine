@@ -24,7 +24,11 @@ internal data class ShelfQuery(
 internal data class ShelfProjection(val layout: ShelfLayout, val games: List<Game>)
 
 /** Temporary rendering projection only; never passed to ShelfStore or reconciliation. */
-internal fun projectShelf(layout: ShelfLayout, games: List<Game>, query: ShelfQuery): ShelfProjection {
+internal fun projectShelf(
+    layout: ShelfLayout,
+    games: List<Game>,
+    query: ShelfQuery,
+): ShelfProjection {
     if (!query.active) return ShelfProjection(layout, games)
     val needle = query.text.trim()
     val visible =
@@ -32,14 +36,22 @@ internal fun projectShelf(layout: ShelfLayout, games: List<Game>, query: ShelfQu
             (!query.favourites || game.isFavorite) &&
                 (!query.recent || game.lastPlayedAt != null) &&
                 (query.systems.isEmpty() || game.systemId in query.systems) &&
-                (needle.isEmpty() ||
-                    listOf(game.displayName(), game.title, game.fileName, game.systemId, cartridgeSystemLabel(game.systemId))
-                        .any { it.contains(needle, ignoreCase = true) })
+                (
+                    needle.isEmpty() ||
+                        listOf(
+                            game.displayName(),
+                            game.title,
+                            game.fileName,
+                            game.systemId,
+                            cartridgeSystemLabel(game.systemId),
+                        ).any { it.contains(needle, ignoreCase = true) }
+                )
         }
     val byKey = visible.associateBy { shelfGameKey(it.systemId, it.fileUri) }
-    val title = compareBy<ShelfCell> {
-        byKey.getValue(requireNotNull(it.gameKey)).displayName().lowercase(Locale.ROOT)
-    }
+    val title =
+        compareBy<ShelfCell> {
+            byKey.getValue(requireNotNull(it.gameKey)).displayName().lowercase(Locale.ROOT)
+        }
     val sections =
         layout.sections.mapNotNull { section ->
             val cells = section.cells.filter { it.gameKey != null && it.gameKey in byKey }
@@ -51,15 +63,17 @@ internal fun projectShelf(layout: ShelfLayout, games: List<Game>, query: ShelfQu
                         ShelfSort.ARRANGEMENT -> cells
                         ShelfSort.TITLE_ASC -> cells.sortedWith(title)
                         ShelfSort.TITLE_DESC -> cells.sortedWith(title.reversed())
-                        ShelfSort.SYSTEM -> cells.sortedWith(
-                            compareBy<ShelfCell> {
-                                byKey.getValue(requireNotNull(it.gameKey)).systemId
-                            }.then(title),
-                        )
-                        ShelfSort.LAST_PLAYED -> cells.sortedWith(
-                            compareByDescending<ShelfCell> {
-                                byKey.getValue(requireNotNull(it.gameKey)).lastPlayedAt ?: Long.MIN_VALUE
-                            }.then(title),
+                        ShelfSort.SYSTEM ->
+                            cells.sortedWith(
+                                compareBy<ShelfCell> {
+                                    byKey.getValue(requireNotNull(it.gameKey)).systemId
+                                }.then(title),
+                            )
+                        ShelfSort.LAST_PLAYED ->
+                            cells.sortedWith(
+                                compareByDescending<ShelfCell> {
+                                    byKey.getValue(requireNotNull(it.gameKey)).lastPlayedAt ?: Long.MIN_VALUE
+                                }.then(title),
                         )
                     }
                 section.copy(cells = ordered)
@@ -72,11 +86,14 @@ internal fun projectShelf(layout: ShelfLayout, games: List<Game>, query: ShelfQu
         if (missing.isEmpty()) {
             sections
         } else {
-            val cells = missing.map { (key, game) ->
-                ShelfCell(
-                    id = "projection:${game.cartridgeId}", gameKey = key, titleHint = game.displayName(),
-                )
-            }
+            val cells =
+                missing.map { (key, game) ->
+                    ShelfCell(
+                        id = "projection:${game.cartridgeId}",
+                        gameKey = key,
+                        titleHint = game.displayName(),
+                    )
+                }
             val existing = sections.firstOrNull { it.id == ShelfLayout.UNSORTED }
             if (existing == null) {
                 sections + ShelfSection(ShelfLayout.UNSORTED, "Unsorted", cells)

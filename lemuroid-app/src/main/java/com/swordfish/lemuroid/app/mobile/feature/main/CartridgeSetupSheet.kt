@@ -110,10 +110,11 @@ internal fun CartridgeSetupSheet(
                         TextButton(
                             onClick = {
                                 val query = "${game.title} ${game.systemId} game box art"
-                                val url = Uri.parse("https://www.google.com/search").buildUpon()
-                                    .appendQueryParameter("tbm", "isch")
-                                    .appendQueryParameter("q", query)
-                                    .build()
+                                val url =
+                                    Uri.parse("https://www.google.com/search").buildUpon()
+                                        .appendQueryParameter("tbm", "isch")
+                                        .appendQueryParameter("q", query)
+                                        .build()
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, url))
                                 } catch (_: android.content.ActivityNotFoundException) {

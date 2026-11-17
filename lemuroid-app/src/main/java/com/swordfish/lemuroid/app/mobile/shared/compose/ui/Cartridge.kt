@@ -400,10 +400,11 @@ fun CartridgeFront(
         // Manufactured nameplate text follows the asset's geometry. The
         // complete accessible title remains in the enclosing cartridge and detail view.
         val textScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
-        val plateStyle = MaterialTheme.typography.labelSmall.copy(
-            fontSize = (unit.value * 15f / textScale).sp,
-            lineHeight = (unit.value * 18f / textScale).sp,
-        )
+        val plateStyle =
+            MaterialTheme.typography.labelSmall.copy(
+                fontSize = (unit.value * 15f / textScale).sp,
+                lineHeight = (unit.value * 18f / textScale).sp,
+            )
         Box(
             Modifier.offset(unit * 40, unit * 315).size(unit * 240, unit * 18).clipToBounds(),
             contentAlignment = Alignment.CenterStart,

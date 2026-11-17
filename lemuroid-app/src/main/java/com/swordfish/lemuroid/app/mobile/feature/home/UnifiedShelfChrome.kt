@@ -56,6 +56,7 @@ internal fun UnifiedShelfChrome(
     val savedQuery = ShelfQuery(text, favourites, systems.toSet(), recent, ShelfSort.valueOf(sortName))
     val query = if (arrange) ShelfQuery() else savedQuery
     val focus = LocalFocusManager.current
+
     fun clear() {
         text = ""
         favourites = false

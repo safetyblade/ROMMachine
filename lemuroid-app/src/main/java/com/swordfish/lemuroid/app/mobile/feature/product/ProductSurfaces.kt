@@ -173,20 +173,21 @@ internal fun JuniorPlayroomSurface(
             } else {
                 CartridgeFront(
                     selected,
-                    modifier = Modifier.width(artWidth).pointerInput(canNavigate, selected.cartridgeId) {
-                        detectHorizontalDragGestures(
-                            onDragStart = { drag = 0f },
-                            onDragCancel = { drag = 0f },
-                            onDragEnd = {
-                                if (canNavigate && drag > 48.dp.toPx()) onPrevious()
-                                if (canNavigate && drag < -48.dp.toPx()) onNext()
-                                drag = 0f
-                            },
-                        ) { change, delta ->
-                            change.consume()
-                            drag += delta
-                        }
-                    },
+                    modifier =
+                        Modifier.width(artWidth).pointerInput(canNavigate, selected.cartridgeId) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { drag = 0f },
+                                onDragCancel = { drag = 0f },
+                                onDragEnd = {
+                                    if (canNavigate && drag > 48.dp.toPx()) onPrevious()
+                                    if (canNavigate && drag < -48.dp.toPx()) onNext()
+                                    drag = 0f
+                                },
+                            ) { change, delta ->
+                                change.consume()
+                                drag += delta
+                            }
+                        },
                 )
                 Text(selected.displayName(), maxLines = 2)
                 if (canNavigate) {
