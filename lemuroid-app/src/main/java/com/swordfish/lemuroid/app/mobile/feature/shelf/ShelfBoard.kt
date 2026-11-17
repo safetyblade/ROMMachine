@@ -48,7 +48,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -261,7 +260,9 @@ fun ShelfBoard(
                 if (item.row == null) {
                     DropSurface("header:${item.section.id}", DropPosition(item.section.id, null), positions) {
                         Row(
-                            Modifier.fillMaxWidth().background(colors.roomBackdrop.copy(alpha = 0.88f)).padding(vertical = 12.dp),
+                            Modifier.fillMaxWidth()
+                                .background(colors.roomBackdrop.copy(alpha = 0.88f))
+                                .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(

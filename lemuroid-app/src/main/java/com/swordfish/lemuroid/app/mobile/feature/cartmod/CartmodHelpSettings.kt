@@ -102,9 +102,10 @@ internal fun CartmodFaq() {
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
-                    val matches = faqArticles.filter { (q, a) ->
-                        q.contains(query, ignoreCase = true) || a.contains(query, ignoreCase = true)
-                    }
+                    val matches =
+                        faqArticles.filter { (q, a) ->
+                            q.contains(query, ignoreCase = true) || a.contains(query, ignoreCase = true)
+                        }
                     if (matches.isEmpty()) Text("No matching articles")
                     matches.forEach { (q, a) ->
                         Text(q, style = MaterialTheme.typography.titleMedium)

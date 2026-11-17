@@ -694,7 +694,8 @@ fun ShelfAppearanceEditor(
                         "CARTDECK-designed finishes. Choose one, or save a personal variation below.",
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    CartdeckCuratedDesigns.designs.filterNot { it.id == CartdeckCuratedDesigns.LIGHT_ID }.forEach { design ->
+                    val customDesigns = CartdeckCuratedDesigns.designs.filterNot { it.id == CartdeckCuratedDesigns.LIGHT_ID }
+                    customDesigns.forEach { design ->
                         CuratedDesignOption(
                             design = design,
                             checked = selectedDesignId == design.id && !modified,

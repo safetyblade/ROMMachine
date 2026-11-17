@@ -52,7 +52,10 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    fun open(source: GemWebsiteSource, term: String) {
+    fun open(
+        source: GemWebsiteSource,
+        term: String,
+    ) {
         val url = source.searchUri(term)
         if (url == null) {
             message = "Enter a search term or correct the website address."
@@ -164,11 +167,12 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
             onCancel = { editorOpen = false },
             onTest = { open(it, "example game") },
             onSave = { source ->
-                val duplicate = sources.any {
-                    it.id != source.id &&
-                        (it.name.equals(source.name, ignoreCase = true) ||
-                            (it.home.equals(source.home, ignoreCase = true) && it.template == source.template))
-                }
+                val duplicate =
+                    sources.any {
+                        val sameName = it.name.equals(source.name, ignoreCase = true)
+                        val sameAddress = it.home.equals(source.home, ignoreCase = true) && it.template == source.template
+                        it.id != source.id && (sameName || sameAddress)
+                    }
                 if (duplicate) {
                     "A website with this name or address already exists."
                 } else {
@@ -218,7 +222,12 @@ private fun GemWebsiteEditor(
     var error by rememberSaveable(draftId) { mutableStateOf("") }
     val draft =
         GemWebsiteSource(
-            draftId, name.trim(), home.trim(), category.trim(), template.trim(), existing?.enabled ?: true,
+            draftId,
+            name.trim(),
+            home.trim(),
+            category.trim(),
+            template.trim(),
+            existing?.enabled ?: true,
         )
     AlertDialog(
         onDismissRequest = onCancel,
