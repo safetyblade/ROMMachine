@@ -4,7 +4,10 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -12,9 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
-import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.library.pc.PcWindowsLaunchRecipe
@@ -35,8 +38,9 @@ internal fun PcImportSettings(
     var windows by remember { mutableStateOf<Uri?>(null) }
     var executable by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var options by remember { mutableStateOf(false) }
     var message by remember {
-        mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.")
+        mutableStateOf("")
     }
 
     fun name(uri: Uri): String =
@@ -52,39 +56,41 @@ internal fun PcImportSettings(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) windows = uri
         }
-    LemuroidCardSettingsGroup(title = { Text("Setup PC game · DOSBox Pure") }) {
+    WorkshopPanel("01 · Set up a PC game", "DOSBox Pure · choose your own game media") {
         LemuroidSettingsMenuLink(
-            title = { Text("Choose PC game ISO") },
+            title = { Text("Select game ISO") },
             subtitle = { Text(if (game == null) "No game selected" else "Game selected") },
             enabled = enabled && !busy,
             onClick = { gamePicker.launch(arrayOf("*/*")) },
         )
-        LemuroidSettingsMenuLink(
-            title = { Text("Choose Windows installation ISO (optional)") },
-            subtitle = { Text(if (windows == null) "No OS media selected" else "Windows media selected") },
-            enabled = enabled && !busy,
-            onClick = { windowsPicker.launch(arrayOf("*/*")) },
-        )
-        if (windows != null) {
+        TextButton(onClick = { options = !options }, enabled = !busy) {
+            Text(if (options) "Hide installation options" else "Windows media & EXE · optional")
+        }
+        if (options) {
             LemuroidSettingsMenuLink(
-                title = { Text("Clear Windows selection") },
+                title = { Text("Choose Windows installation ISO (optional)") },
+                subtitle = { Text(if (windows == null) "No OS media selected" else "Windows media selected") },
+                enabled = enabled && !busy,
+                onClick = { windowsPicker.launch(arrayOf("*/*")) },
+            )
+            if (windows != null) {
+                LemuroidSettingsMenuLink(
+                    title = { Text("Clear Windows selection") },
+                    enabled = !busy,
+                    onClick = { windows = null },
+                )
+            }
+            OutlinedTextField(
+                value = executable,
+                onValueChange = { executable = it },
+                label = { Text("Installed Windows EXE (optional)") },
+                supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
                 enabled = !busy,
-                onClick = { windows = null },
+                singleLine = true,
             )
         }
-        OutlinedTextField(
-            value = executable,
-            onValueChange = { executable = it },
-            label = { Text("Installed Windows EXE (optional)") },
-            supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
-            enabled = !busy,
-            singleLine = true,
-        )
-        LemuroidSettingsMenuLink(
-            title = { Text("Import as PC cartridge") },
-            subtitle = {
-                Text("Copies selected media read-only. Original files and console cartridges remain unchanged.")
-            },
+        Button(
+            modifier = Modifier.fillMaxWidth(),
             enabled = enabled && !busy && game != null,
             onClick = {
                 val gameUri = game
@@ -134,8 +140,10 @@ internal fun PcImportSettings(
                     }
                 }
             },
-        )
-        Text(message)
-        Text("Import creates a cartridge, not a verified installation. Open guest setup to continue.")
+        ) {
+            Text(if (busy) "Importing…" else "Create PC cartridge")
+        }
+        Text("Original media is unchanged. Installation is verified separately.")
+        if (message.isNotBlank()) Text(message)
     }
 }
