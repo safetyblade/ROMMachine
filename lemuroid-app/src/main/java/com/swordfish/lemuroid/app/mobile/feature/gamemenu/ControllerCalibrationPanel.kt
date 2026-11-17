@@ -76,8 +76,10 @@ internal fun ControllerCalibrationPanel(
             save { it.copy(centres = neutral, calibrated = true) }
         }
     }
+    val deadzonePercent =
+        (PhysicalControllerInput.effectiveDeadzone(profile ?: ControllerProfileStore.Profile()) * 100).toInt()
     GameMenuLink(
-        "Deadzone: ${(PhysicalControllerInput.effectiveDeadzone(profile ?: ControllerProfileStore.Profile()) * 100).toInt()}% — adjust",
+        "Deadzone: $deadzonePercent% — adjust",
         enabled = sticks.isNotEmpty(),
     ) {
         save {
