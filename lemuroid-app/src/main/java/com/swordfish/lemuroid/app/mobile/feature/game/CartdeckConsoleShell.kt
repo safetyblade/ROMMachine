@@ -181,15 +181,16 @@ internal fun CartdeckConsoleShell(
                     val railTop = maxOf(rim.top, edge + chamfer)
                     val railBottom = minOf(rim.bottom, size.height - edge - chamfer)
                     if (railBottom > railTop) {
-                        val rails = listOf(
-                            Rect(railInset, railTop, rim.left, railBottom),
-                            Rect(rim.right, railTop, size.width - railInset, railBottom),
-                        )
-                        rails
-                            .filter { it.width > 0f && controls.none { c -> CartdeckHardwareGeometry.intersects(c, it) } }
-                            .forEach { rail ->
+                        val rails =
+                            listOf(
+                                Rect(railInset, railTop, rim.left, railBottom),
+                                Rect(rim.right, railTop, size.width - railInset, railBottom),
+                            )
+                        for (rail in rails) {
+                            if (rail.width > 0f && controls.none { CartdeckHardwareGeometry.intersects(it, rail) }) {
                                 drawRect(tokens.secondary, topLeft = rail.topLeft, size = rail.size)
                             }
+                        }
                     }
                 }
                 drawPath(bezel, tokens.bezel)

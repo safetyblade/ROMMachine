@@ -24,16 +24,26 @@ def elf_abi(data: bytes):
     phcount = struct.unpack_from("<H", data, 56)[0]
     if phsize < 56 or phcount > 8192 or phoff + phsize * phcount > len(data):
         return {"valid": False, "reason": "invalid program headers"}
-    alignment = [
-        struct.unpack_from("<Q", data, phoff + i * phsize + 48)[0]
+    segments = [
+        struct.unpack_from("<IIQQQQQQ", data, phoff + i * phsize)
         for i in range(phcount)
         if struct.unpack_from("<I", data, phoff + i * phsize)[0] == 1
     ]
+    alignment = [segment[7] for segment in segments]
+    # Android's 16 KB loader also needs congruent file offsets and virtual addresses.
+    congruent = bool(segments) and all(
+        segment[2] % 16384 == segment[3] % 16384
+        and segment[2] + segment[5] <= len(data)
+        and segment[5] <= segment[6]
+        and segment[7] >= 16384
+        and segment[7] & (segment[7] - 1) == 0
+        for segment in segments
+    )
     return {
         "valid": machine == 183,
         "aarch64_machine": machine,
         "load_segment_alignments": alignment,
-        "all_load_segments_aligned_16kb": bool(alignment) and all(a >= 16384 for a in alignment),
+        "all_load_segments_aligned_16kb": congruent,
     }
 
 
@@ -70,7 +80,12 @@ def inspect(strict_binary=False):
     if not checks["submodule_baseline_matches"]:
         warnings.append("Submodule gitlink does not match recorded source baseline")
     valid_source = checks["core_id_registered"] and checks["dos_system_routes_to_core"]
-    ok = valid_source and (not strict_binary or native["present"] and native.get("valid", False))
+    ok = valid_source and (
+        not strict_binary or (
+            checks["submodule_baseline_matches"] and native["present"]
+            and native.get("valid", False) and native.get("all_load_segments_aligned_16kb", False)
+        )
+    )
     return {
         "status": "FAIL" if not ok else "NATIVE_AUDIT_ONLY" if native["present"] else "SOURCE_AUDIT_ONLY",
         "gitlink": gitlink, "source_checks": checks, "native": native,

@@ -29,7 +29,10 @@ internal fun PcImportSettings(enabled: Boolean) {
     var game by remember { mutableStateOf<Uri?>(null) }
     var windows by remember { mutableStateOf<Uri?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.") }
+    var message by remember {
+        mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.")
+    }
+
     fun name(uri: Uri): String =
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null
@@ -65,7 +68,9 @@ internal fun PcImportSettings(enabled: Boolean) {
         }
         LemuroidSettingsMenuLink(
             title = { Text("Import as PC cartridge") },
-            subtitle = { Text("Copies selected media read-only. Original files and console cartridges remain unchanged.") },
+            subtitle = {
+                Text("Copies selected media read-only. Original files and console cartridges remain unchanged.")
+            },
             enabled = enabled && !busy && game != null,
             onClick = {
                 val gameUri = game
@@ -80,12 +85,13 @@ internal fun PcImportSettings(enabled: Boolean) {
                                 val resolver = context.contentResolver
                                 require(osUri != gameUri) { "Select different game and Windows media" }
                                 val title = name(gameUri).substringBeforeLast('.')
+                                val store = PcCartridgeStore(context.filesDir)
                                 checkNotNull(resolver.openInputStream(gameUri)).use { source ->
                                     if (osUri == null) {
-                                        PcCartridgeStore(context.filesDir).importIso(title, source, checkCancellation = checkCancellation)
+                                        store.importIso(title, source, checkCancellation = checkCancellation)
                                     } else {
                                         checkNotNull(resolver.openInputStream(osUri)).use { os ->
-                                            PcCartridgeStore(context.filesDir).importIso(title, source, os, checkCancellation)
+                                            store.importIso(title, source, os, checkCancellation)
                                         }
                                     }
                                 }
@@ -97,7 +103,8 @@ internal fun PcImportSettings(enabled: Boolean) {
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            message = "PC import failed. Check ISO format, storage space and file access. Original media is unchanged."
+                            message =
+                                "PC import failed. Check ISO format, storage space and file access. Original media is unchanged."
                         } finally {
                             busy = false
                         }

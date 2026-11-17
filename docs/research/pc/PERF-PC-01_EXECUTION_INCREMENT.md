@@ -21,3 +21,8 @@ commercial media or license bypass. CUE/BIN, VHD and modern Windows imports rema
 The current DOS card appearance/classification is reused, not a finished PC-specific visual design.
 Only explicit imports create a PC cartridge; generic ISO scanner rules are untouched.
 No APK or source-test PASS until current-head CI completes. Keep release clearance and owner physical gates open.
+
+## Native/reference verification
+- Winlator root commit fb66541b93a4eb3ee585a433b4c7b20544d58e40 pins app c2f4ad4534f4637b543a9a3b085e28f50cf6d01c. Its GuestProgramLauncherComponent starts Box64 with guest executable, root filesystem Wine path, library path, and process lifecycle; this is architecture evidence, not a usable Android Wine component within CARTDECK. No unverified Winlator binaries are copied into CARTDECK.
+- Strict DOSBox native audit now requires the recorded submodule, ARM64 and 16KB load offset/alignment checks. CI executes synthetic tests and separately collects the actual binary audit. An audit failure is a PC runtime blocker, not evidence of broken console gameplay.
+- Included shared DS lint correction identified by #313 CI; the PC branch is based on the cleanup checkpoint, not an older master.

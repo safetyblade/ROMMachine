@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.lib.library.pc
 
 import java.io.File
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.UUID
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -27,14 +28,17 @@ class PcCartridgeStore(private val filesRoot: File) {
 
     fun entries(): List<Entry> {
         if (!root.exists()) return emptyList()
-        return checkNotNull(root.listFiles()).filterNot { it.name.startsWith(".") }.mapNotNull(::readEntry)
+        return checkNotNull(root.listFiles())
+            .filter { runCatching { UUID.fromString(it.name) }.isSuccess }
+            .map { checkNotNull(readEntry(it)) { "Managed PC cartridge is incomplete" } }
     }
 
     fun resolve(content: File): Entry? {
         val parent = content.parentFile ?: return null
         if (parent.parentFile?.canonicalFile != root.canonicalFile) return null
-        val entry = readEntry(parent) ?: return null
-        return entry.takeIf { it.content.canonicalFile == content.canonicalFile }
+        val entry = checkNotNull(readEntry(parent)) { "Managed PC cartridge is incomplete" }
+        check(entry.content.canonicalFile == content.canonicalFile) { "Unexpected PC cartridge content" }
+        return entry
     }
 
     fun workspace(entry: Entry): PcWorkspace = PcWorkspace(filesRoot, LOCAL_PLAYER, entry.id)
@@ -59,7 +63,9 @@ class PcCartridgeStore(private val filesRoot: File) {
             val gameDisc = copyIso(stage, "01-game.iso", game, checkCancellation)
             val osDisc = windows?.let { copyIso(stage, "00-windows.iso", it, checkCancellation) }
             val discs = listOfNotNull(osDisc, gameDisc)
-            check(stage.usableSpace > discs.sumOf { it.file.length() } + RESERVE) { "Not enough storage for PC cartridge" }
+            val totalSize = discs.sumOf { it.file.length() }
+            require(totalSize <= MAX_ISO) { "Combined PC media exceeds the current 2 GiB limit" }
+            check(stage.usableSpace > totalSize + RESERVE) { "Not enough storage for PC cartridge" }
             val archive = File(stage, "$id.dosz")
             archive.outputStream().use { output ->
                 ZipOutputStream(output).use { zip ->
@@ -116,7 +122,7 @@ class PcCartridgeStore(private val filesRoot: File) {
 
     private fun copyBounded(
         input: InputStream,
-        output: java.io.OutputStream,
+        output: OutputStream,
         checkCancellation: () -> Unit,
         onChunk: (ByteArray, Int) -> Unit = { _, _ -> },
     ) {
@@ -140,7 +146,11 @@ class PcCartridgeStore(private val filesRoot: File) {
         val archive = File(directory, "$id.dosz")
         val titleFile = File(directory, "title.txt")
         if (!archive.isFile || !titleFile.isFile || titleFile.length() !in 1..512) return null
-        if (archive.canonicalFile != archive.absoluteFile || titleFile.canonicalFile != titleFile.absoluteFile) return null
+        if (archive.canonicalFile != File(directory.canonicalFile, archive.name) ||
+            titleFile.canonicalFile != File(directory.canonicalFile, titleFile.name)
+        ) {
+            return null
+        }
         val title = titleFile.readText(Charsets.UTF_8)
         if (title.isBlank() || title.length > 120 || title.any { it.isISOControl() }) return null
         return Entry(id, title, archive)

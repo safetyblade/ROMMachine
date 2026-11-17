@@ -66,8 +66,10 @@ class LocalStorageProvider(
             }
         }
 
-    fun managedPcCartridge(file: BaseStorageFile): PcCartridgeStore.Entry? =
-        file.uri.path?.let { pcStore.resolve(File(it)) }.takeIf { file.uri.scheme == "file" }
+    fun managedPcCartridge(file: BaseStorageFile): PcCartridgeStore.Entry? {
+        if (file.uri.scheme != "file") return null
+        return file.uri.path?.let { pcStore.resolve(File(it)) }
+    }
 
     override fun getStorageFile(baseStorageFile: BaseStorageFile): StorageFile? {
         return DocumentFileParser.parseDocumentFile(context, baseStorageFile)
