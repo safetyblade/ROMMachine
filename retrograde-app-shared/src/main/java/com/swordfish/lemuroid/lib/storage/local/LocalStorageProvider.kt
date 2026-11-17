@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.lib.R
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
@@ -35,6 +36,7 @@ import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import java.io.File
 import java.io.InputStream
@@ -53,8 +55,19 @@ class LocalStorageProvider(
 
     override val enabledByDefault = true
 
+    private val pcStore = PcCartridgeStore(context.filesDir)
+
     override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> =
-        walkDirectory(getExternalFolder() ?: directoriesManager.getInternalRomsDirectory())
+        flow {
+            walkDirectory(getExternalFolder() ?: directoriesManager.getInternalRomsDirectory()).collect { emit(it) }
+            pcStore.entries().forEach { entry ->
+                val file = entry.content
+                emit(listOf(BaseStorageFile(file.name, file.length(), file.toUri(), file.path)))
+            }
+        }
+
+    fun managedPcCartridge(file: BaseStorageFile): PcCartridgeStore.Entry? =
+        file.uri.path?.let { pcStore.resolve(File(it)) }.takeIf { file.uri.scheme == "file" }
 
     override fun getStorageFile(baseStorageFile: BaseStorageFile): StorageFile? {
         return DocumentFileParser.parseDocumentFile(context, baseStorageFile)

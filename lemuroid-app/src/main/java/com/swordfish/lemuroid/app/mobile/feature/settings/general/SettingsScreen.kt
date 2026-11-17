@@ -56,6 +56,7 @@ fun SettingsScreen(
         LemuroidSettingsMenuLink(title = {
             Text("Display")
         }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
+        PcImportSettings(enabled = !indexingInProgress && !scanInProgress)
         GeneralSettings()
         InputSettings(navController = navController)
         MiscSettings(

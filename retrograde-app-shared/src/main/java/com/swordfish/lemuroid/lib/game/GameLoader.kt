@@ -35,6 +35,7 @@ import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.saves.EmulatorMigrationBackup
 import com.swordfish.lemuroid.lib.saves.SaveState
@@ -196,8 +197,23 @@ class GameLoader(
                     coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
                         .toTypedArray()
 
+                // Only explicitly imported private PC cartridges use the new guest directories.
+                // Existing DOS and every other console retain their original paths.
+                val pcWorkspace =
+                    if (systemCoreConfig.coreID == CoreID.DOSBOX_PURE && gameFiles is RomFiles.Standard) {
+                        val store = PcCartridgeStore(appContext.filesDir)
+                        val entry = gameFiles.files.singleOrNull()?.let(store::resolve)
+                        entry?.let {
+                            check(it.id.toString() == game.cartridgeId) { "PC cartridge identity mismatch" }
+                            store.workspace(it).apply { prepareWritableDirectories() }
+                        }
+                    } else {
+                        null
+                    }
                 var systemDirectory =
-                    if (systemCoreConfig.coreID == CoreID.PPSSPP_MODERN) {
+                    if (pcWorkspace != null) {
+                        pcWorkspace.guest
+                    } else if (systemCoreConfig.coreID == CoreID.PPSSPP_MODERN) {
                         // Modern PPSSPP assets are version-matched and isolated from 1.15.
                         File(appContext.filesDir, "system-engines/ppsspp_modern").apply { mkdirs() }
                     } else if (isNativeExpansion(systemCoreConfig.coreID)) {
@@ -212,7 +228,9 @@ class GameLoader(
                     check(File(systemDirectory, "dc").run { isDirectory || mkdirs() })
                 }
                 val savesDirectory =
-                    if (isIsolatedCandidate(systemCoreConfig.coreID)) {
+                    if (pcWorkspace != null) {
+                        pcWorkspace.progress
+                    } else if (isIsolatedCandidate(systemCoreConfig.coreID)) {
                         File(directoriesManager.getSavesDirectory(), "engines/${systemCoreConfig.coreID.coreName}")
                             .apply { mkdirs() }
                     } else if (isNativeExpansion(systemCoreConfig.coreID)) {
