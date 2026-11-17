@@ -323,7 +323,8 @@ jobs:
                 const pcHost = engine === 'libretrodroid' && run.event === 'pull_request' &&
                   run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                   run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
-                  new RegExp('^' + prefix + '[0-9a-f]{40}
+                  new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                if (run.conclusion !== 'success' || !(dispatched || recovered || pcHost) ||
                     run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
                 chosen = {run_id: run.id, name: artifact.name};
                 break;
