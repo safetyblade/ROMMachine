@@ -34,8 +34,16 @@ object ControllerHardwareProfile {
                     KeyEvent.KEYCODE_BUTTON_Y,
                 ).count { it }
             }.getOrDefault(0)
+        val numbered =
+            runCatching {
+                device.hasKeys(*(KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_16).toList().toIntArray())
+                    .count { it }
+            }.getOrDefault(0)
         // A TV remote with just D-pad/OK/Back never qualifies as a gameplay controller.
-        return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, faces, device.motionRanges.isNotEmpty())
+        val joystickAxes = device.motionRanges.any {
+            it.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        }
+        return qualifies(device.isVirtual, hasGamepadSource, hasJoystickSource, maxOf(faces, numbered), joystickAxes)
     }
 
     fun qualifies(
