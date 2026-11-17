@@ -605,6 +605,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     lighting = appearance.lighting,
                     highContrast = appearance.highContrast,
                     feedbackStrength = reactiveLightStrength,
+                    isDualScreen = viewModel.systemId == SystemID.NDS,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
@@ -679,6 +680,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         customColours = appearance.custom.isNotEmpty(),
                         pivotArc = pivotPlacement != null,
                         drawPivotModule = jointPlacement == null,
+                        useFlushSideRails = viewModel.systemId == SystemID.NDS && !isLandscape,
                     )
                 }
             }

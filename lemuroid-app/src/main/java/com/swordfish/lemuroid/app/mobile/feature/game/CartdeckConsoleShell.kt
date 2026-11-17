@@ -54,6 +54,7 @@ internal fun CartdeckConsoleShell(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    isDualScreen: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -158,7 +159,8 @@ internal fun CartdeckConsoleShell(
                 }
             }
             hole?.let { display ->
-                val border = 7.dp.toPx()
+                val dsPortrait = isDualScreen && !isLandscape
+                val border = if (dsPortrait) 3.dp.toPx() else 7.dp.toPx()
                 val rim =
                     Rect(
                         display.left - border,
@@ -172,6 +174,22 @@ internal fun CartdeckConsoleShell(
                         addRoundRect(RoundRect(rim, CornerRadius(10.dp.toPx())))
                         addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
                     }
+                if (dsPortrait) {
+                    // Flush side rails: fill only exposed chassis between the
+                    // screen rim and outer shell, never the measured video.
+                    val railInset = 9.dp.toPx()
+                    val railTop = maxOf(rim.top, edge + chamfer)
+                    val railBottom = minOf(rim.bottom, size.height - edge - chamfer)
+                    if (railBottom > railTop) {
+                        val rails = listOf(
+                            Rect(railInset, railTop, rim.left, railBottom),
+                            Rect(rim.right, railTop, size.width - railInset, railBottom),
+                        )
+                        rails.filter { it.width > 0f && controls.none { c -> CartdeckHardwareGeometry.intersects(c, it) } }.forEach { rail ->
+                            drawRect(tokens.secondary, topLeft = rail.topLeft, size = rail.size)
+                        }
+                    }
+                }
                 drawPath(bezel, tokens.bezel)
                 // A black-glass lip outside (not on top of) actual video pixels.
                 val glassLip =
@@ -192,7 +210,7 @@ internal fun CartdeckConsoleShell(
                     }
                 drawPath(glassLip, tokens.glass)
                 drawRoundRect(
-                    color = tokens.accent.copy(alpha = 0.50f),
+                    color = tokens.accent.copy(alpha = if (dsPortrait) 0.20f else 0.50f),
                     topLeft = rim.topLeft,
                     size = rim.size,
                     cornerRadius = CornerRadius(10.dp.toPx()),
