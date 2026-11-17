@@ -117,7 +117,11 @@ internal fun CartridgeSetupSheet(
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, url))
                                 } catch (_: android.content.ActivityNotFoundException) {
-                                    Toast.makeText(context, "No browser available. Choose a local image.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "No browser available. Choose a local image.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                 }
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
