@@ -155,3 +155,72 @@ its own producer job must have passed and its complete receipt must match. This
 prevents unrelated application/test edits from forcing Cemu/Xenia recompilation.
 Historical recovery outputs qualify for normal reuse only after their full
 workflow succeeds. No all-engine recovery is implicitly enabled.
+
+## Delivered engineering candidate — 17 November 2026 (Sydney)
+
+PR [#298](https://github.com/safetyblade/ROMMachine/pull/298) remains unmerged.
+Branch source `d0ef26a2d013fc7f5aa97a2836d15039ce91c568`; actual PR integration
+checkout `3977c0c71f15db8dec9ed75b06bd9486e59fc966` merges that source into the
+protected accepted baseline `b81400035d30502a09442225c71a27816d4737f2`.
+These identities are intentionally distinguished from installed owner builds.
+
+[Recovery run 43947615252](https://github.com/safetyblade/ROMMachine/actions/runs/43947615252)
+PASS: source formatting, native receipt contracts, atomic64 sanitizer regression,
+Xenia contracts/performance regression, both selected native producers, whole-app
+unit tests and assembly, native inventory/connected APK verification. The separate
+Room migration, PS2, PS3 source, GC source, Wii U source and X360 engineering
+workflows on the same branch head also passed. No physical install was performed.
+
+Install candidate [artifact 14268751754](https://github.com/safetyblade/ROMMachine/actions/runs/43947615252/artifacts/14268751754):
+`CARTDECK_CONNECTED_PS2_WIIU_X360_ARM64_DEBUG`, versionCode **90804540**,
+`dev.prestwich.cartdeck.debug`, versionName `1.17.0-DEBUG`, 196727024 APK bytes.
+APK SHA-256 `d7290d2b0ebdc999d3bb91c0e4030e290d5b2da7bfe8ec033fdb1afb94ee8701`.
+CI signing certificate SHA-256
+`ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8`;
+package/signing configuration unchanged. Upgrade requires that the installed
+debug APK uses this certificate; the owner's installed certificate is not supplied.
+All 42 packaged native libraries are ARM64 with >=16 KB PT_LOAD alignment.
+This is package/source verification, not a 16 KB device or gameplay acceptance.
+The artifact includes inventory, hashes and verification reports. PS3 is explicitly
+excluded and remains **BLOCKED**, never advertised as delivered in this candidate.
+
+| Engine | Exact upstream pin | Delivered core SHA-256 | ELF Build ID |
+|---|---|---|---|
+| Cemu | `444c585202302a7f4b319bafb4cf72156a8cac8b` + recorded atomic64 repair | `18911ab654df005c7142ff67b3b34e43c1adfe4733c5bba5cc97d09b58a2c48c` | `ceed2b7dd2291941a10ce38eb5d99339ed751896` |
+| Xenia | `779680ade075d2d2a4c589c6a8d57a8e26c116c0` + recorded CARTDECK adapters/telemetry | `6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937` | `fafc8f7f9c449d26f55c4c4c87a2fa4b5d9850bf` |
+
+Cemu host SHA-256 `8c48f4ea83ae59c3fca59aabd5c32bfa77d435a5d90d3bcfd0c9ee1583c6d801`,
+Build ID `8c81e87714475a6aae9ae8d90f7a81d092ec83f2`.
+Xenia SPIRV dependency SHA-256 `1cfaf1345e1da5e58af24f695486ca96a371681cce4a5964a3078ab7544585f8`,
+Build ID `fadbaad7f6fcaee41c33d594453777596fc69a40`.
+Matching native evidence/receipts/source and crash symbols retained in run artifacts
+14265749150 (Cemu), 14267658103 (Xenia), 14268936742 (combined crash symbols).
+Downloaded Cemu producer bytes independently pass the current atomic64 proof;
+they differ from both old pre-fix cores and the earlier local corrected build.
+The interrupted local Xenia build is superseded by the successful exact-source CI
+build, not represented as a completed local artifact. No duplicate rebuild needed.
+
+Latest owner X360 evidence remains APK **90747632**, core `25143bdb...`, Build ID
+`1fc50886db14b97c1a109e712c9094896bad6fd1`: 9815 JIT blocks, 32214 guest swaps,
+32218 host presents, native_error=0, available RAM 1234681856 bytes. Present result
+1000001003 is **VK_SUBOPTIMAL_KHR**, not a device-loss error. Surface dimensions
+1856x1044 match the request. The dark-scene screenshot shows rendered scene content
+but does not establish gamma, depth, shader or texture failure. Counters establish
+neither unique-frame FPS nor correctly rendered images; no speculative lighting
+patch is applied. Repeat that exact scene using the delivered telemetry, alongside
+the FIFA Street 3 procedure above. Graphical-fidelity root cause remains **BLOCKED
+on reproducible matching before/after evidence**, performance acceptance **PENDING**.
+
+Bayonetta 2: stale pre-fix reuse is corrected and tested; the new binary must show
+the full SHA above in Copy engine report. Boot, play 15 minutes, save, Return to
+Shelf, reopen and load the save; repeat Sonic/controller hotplug/portrait-landscape
+checks. Any further crash needs the exact new engine report and matching native
+trace; do not infer it is the earlier SIGBUS. Physical acceptance **PENDING**.
+
+Rollback: retain owner APK **90747632** with original Xenia `25143bdb...` and its
+existing profile/saves, and the reference APK artifact **14197824895** with its
+recorded inventory. Use existing engine rollback; do not delete app data or move
+save roots. Android version downgrade may require an authorised downgrade-capable
+installer; do not uninstall to force rollback. GC #294 remains separate. Library
+identities, save paths, controller mappings and presentation logic were not changed;
+their source/package gates pass, comprehensive 32-system gameplay remains untested.
