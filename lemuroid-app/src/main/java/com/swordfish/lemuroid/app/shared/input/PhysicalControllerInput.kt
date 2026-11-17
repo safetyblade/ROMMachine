@@ -242,3 +242,29 @@ object PhysicalControllerInput {
         }
     }
 }
+
+/** A configuration-flow emission must never replay an already consumed Android event. */
+internal class ControllerFrameGate {
+    private var last = Long.MIN_VALUE
+
+    fun accepts(sequence: Long, generation: Long, currentGeneration: Long): Boolean {
+        if (generation != currentGeneration || sequence <= last) return false
+        last = sequence
+        return true
+    }
+}
+
+/** Digital motion axes have a separate held-output set per guest port. */
+internal class ControllerDigitalAxisState {
+    data class Edge(val code: Int, val down: Boolean)
+
+    private val pressed = mutableMapOf<Int, Set<Int>>()
+
+    fun update(port: Int, next: Set<Int>): List<Edge> {
+        val previous = pressed[port].orEmpty()
+        pressed[port] = next.toSet()
+        return (previous - next).map { Edge(it, false) } + (next - previous).map { Edge(it, true) }
+    }
+
+    fun clear() = pressed.clear()
+}
