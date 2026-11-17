@@ -57,8 +57,8 @@ fun SettingsScreen(
             Text("Display")
         }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
         LemuroidSettingsMenuLink(
-            title = { Text(stringResource(R.string.cartdeck_cartmod_title)) },
-            subtitle = { Text(stringResource(R.string.cartdeck_cartmod_settings_redirect)) },
+            title = { Text("CARTMOD") },
+            subtitle = { Text("PC game setup and cartridge preparation") },
             onClick = { navController.navigateToRoute(MainRoute.CARTMOD) },
         )
         GeneralSettings()

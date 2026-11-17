@@ -33,15 +33,6 @@ class CartdeckChromeTest {
         assertFalse(showShelfEditDock(MainRoute.SETTINGS, true))
     }
 
-    @Test fun productDockOnlyShowsRealDestinationsAndYieldsToArrange() {
-        assertFalse(showProductDock(MainRoute.HOME, false, false))
-        assertTrue(showProductDock(MainRoute.HOME, false, true))
-        assertTrue(showProductDock(MainRoute.CARTMOD, false, true))
-        assertFalse(showProductDock(MainRoute.HOME, true, true))
-        assertFalse(showProductDock(MainRoute.SETTINGS, false, true))
-        assertFalse(showProductDock(MainRoute.CARTMOD_INSTALLATION, false, true))
-    }
-
     @Test fun homeHasOneBrandTitleAndHiddenShelfOptions() {
         var arrangeRequested = 0
         var appearanceRequested = 0
@@ -99,5 +90,9 @@ class CartdeckChromeTest {
         compose.onNodeWithText("Systems").assertDoesNotExist()
         compose.onNodeWithText("Search").assertDoesNotExist()
         compose.onNodeWithText("Done").assertDoesNotExist()
+        compose.onNodeWithText("Shelf").assertExists()
+        compose.onNodeWithText("CARTMOD").assertExists()
+        compose.onNodeWithText("GEM").assertDoesNotExist()
+        compose.onNodeWithText("SafeSave").assertDoesNotExist()
     }
 }

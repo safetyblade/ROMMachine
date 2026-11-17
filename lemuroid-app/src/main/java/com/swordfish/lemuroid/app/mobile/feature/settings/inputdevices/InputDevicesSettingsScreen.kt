@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,10 +40,12 @@ fun InputDevicesSettingsScreen(
             .collectAsState(InputDevicesSettingsViewModel.State())
             .value
 
+    var advanced by rememberSaveable { mutableStateOf(false) }
     LemuroidSettingsPage(modifier = modifier.fillMaxSize()) {
         val context = LocalContext.current
         LemuroidSettingsMenuLink(
-            title = { Text("Controllers — editor, calibration and live test") },
+            title = { Text("Set up and map controllers") },
+            subtitle = { Text("Choose a controller, assign a player, map buttons and test inputs") },
             onClick = {
                 context.startActivity(
                     Intent(
@@ -50,10 +56,17 @@ fun InputDevicesSettingsScreen(
             },
         )
         EnabledDeviceCategory(state)
-        state.bindings.forEach { (device, bindings) ->
-            DeviceBindingCategory(device, bindings)
+        LemuroidSettingsMenuLink(
+            title = { Text(if (advanced) "Hide advanced setup" else "Advanced setup") },
+            subtitle = { Text("Legacy bindings, shortcuts and reset all") },
+            onClick = { advanced = !advanced },
+        )
+        if (advanced) {
+            state.bindings.forEach { (device, bindings) ->
+                DeviceBindingCategory(device, bindings)
+            }
+            GeneralOptionsCategory(viewModel)
         }
-        GeneralOptionsCategory(viewModel)
     }
 }
 

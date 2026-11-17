@@ -2,6 +2,9 @@ package com.swordfish.lemuroid.app.mobile.feature.main
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,6 +62,7 @@ internal fun CartridgeSetupSheet(
 ) {
     var section by rememberSaveable(game.id) { mutableStateOf<String?>(null) }
     val system = GameSystem.findById(game.systemId)
+    val context = LocalContext.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -102,8 +106,28 @@ internal fun CartridgeSetupSheet(
                     "Controls" -> CartridgeControlChoices(game, system)
                     "Manage Saves / PS3 users" -> com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
                     "Cartridge artwork" -> {
+                        Text("Find cover art in your browser, or choose an image you have permission to use.")
+                        TextButton(
+                            onClick = {
+                                val query = "${game.title} ${game.systemId} game box art"
+                                val url = Uri.parse("https://www.google.com/search").buildUpon()
+                                    .appendQueryParameter("tbm", "isch")
+                                    .appendQueryParameter("q", query)
+                                    .build()
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, url))
+                                } catch (_: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(
+                                        context,
+                                        "No browser available. Choose a local image.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Get Artwork · search browser") }
                         TextButton(onClick = onChangeCover, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Text(stringResource(R.string.cartdeck_change_cover))
+                            Text("Upload / replace image")
                         }
                         TextButton(
                             onClick = onResetCover,

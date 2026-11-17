@@ -39,7 +39,6 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen
 import com.swordfish.lemuroid.app.mobile.feature.favorites.FavoritesScreen
 import com.swordfish.lemuroid.app.mobile.feature.favorites.FavoritesViewModel
 import com.swordfish.lemuroid.app.mobile.feature.games.GamesScreen
@@ -330,7 +329,6 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         onDoneArrange = { arrangingShelf.value = false },
                         onEditTools = { shelfEditTools.value = true },
                         onUndoShelf = shelfViewModel::undo,
-                        cartmodAvailable = true,
                     )
                 },
             ) { padding ->
@@ -360,23 +358,28 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                     composable(MainRoute.CARTMOD) {
-                        val games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value
-                        CartmodScreen(
+                        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
                             modifier = Modifier.padding(padding),
                             enabled = !mainUIState.operationInProgress,
-                            games = games,
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
                             onOpenGuest = { gameInteractor.onGamePlay(it) },
+                            onOpenShelf = {
+                                navController.popBackStack(MainRoute.HOME.route, false)
+                            },
                         )
                     }
                     composable(MainRoute.CARTMOD_INSTALLATION) { entry ->
                         val cartridgeId = entry.arguments?.getString("cartridgeId").orEmpty()
                         val games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value
-                        CartmodScreen(
+                        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
                             modifier = Modifier.padding(padding),
                             enabled = !mainUIState.operationInProgress,
-                            cartridgeId = cartridgeId,
                             games = games,
                             onOpenGuest = { gameInteractor.onGamePlay(it) },
+                            onOpenShelf = {
+                                navController.popBackStack(MainRoute.HOME.route, false)
+                            },
+                            cartridgeId = cartridgeId,
                         )
                     }
                     composable(MainRoute.FAVORITES) {

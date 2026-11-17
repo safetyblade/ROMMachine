@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,16 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
-
-/** Product dock is available only for real destinations. Arrangement has priority. */
-internal fun showProductDock(
-    currentRoute: MainRoute?,
-    arrangingShelf: Boolean,
-    cartmodAvailable: Boolean,
-): Boolean = cartmodAvailable && !arrangingShelf && currentRoute in setOf(MainRoute.HOME, MainRoute.CARTMOD)
 
 /** Editing replaces the library's navigation dock; non-Home routes never inherit it. */
 internal fun showShelfEditDock(
@@ -45,12 +46,9 @@ fun MainNavigationBar(
     onDoneArrange: () -> Unit = {},
     onEditTools: () -> Unit = {},
     onUndoShelf: () -> Unit = {},
-    cartmodAvailable: Boolean = false,
 ) {
     AnimatedVisibility(
-        visible =
-            showShelfEditDock(currentRoute, arrangingShelf) ||
-                showProductDock(currentRoute, arrangingShelf, cartmodAvailable),
+        visible = currentRoute == MainRoute.HOME || currentRoute == MainRoute.CARTMOD,
         enter = expandVertically(),
         exit = shrinkVertically(),
     ) {
@@ -96,34 +94,45 @@ fun MainNavigationBar(
                     }
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 56.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        enabled = currentRoute != MainRoute.HOME,
-                        onClick = {
-                            if (!navController.popBackStack(MainRoute.HOME.route, false)) {
-                                navController.navigate(MainRoute.HOME.route) { launchSingleTop = true }
-                            }
-                        },
-                    ) {
-                        Text(stringResource(R.string.cartdeck_product_shelf))
-                    }
-                    TextButton(
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        enabled = currentRoute != MainRoute.CARTMOD,
-                        onClick = {
-                            navController.navigate(MainRoute.CARTMOD.route) { launchSingleTop = true }
-                        },
-                    ) {
-                        Text(stringResource(R.string.cartdeck_cartmod_title))
-                    }
-                }
+                ProductDock(currentRoute, navController)
             }
         }
     }
 }
 
+
+/** GEM and SafeSave join only when their actual routes are ready. */
+@Composable
+private fun ProductDock(currentRoute: MainRoute?, navController: NavHostController) {
+    val materials = LocalShelfMaterials.current
+    NavigationBar(containerColor = materials.shelfBackboard, tonalElevation = 0.dp) {
+        listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD").forEach { (route, title) ->
+            NavigationBarItem(
+                selected = currentRoute == route,
+                onClick = {
+                    if (currentRoute != route) {
+                        navController.navigate(route.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                icon = {
+                    Icon(
+                        if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
+                        contentDescription = null,
+                    )
+                },
+                label = { Text(title) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = materials.interactionAccent,
+                    selectedTextColor = materials.sectionText,
+                    unselectedIconColor = materials.sectionText,
+                    unselectedTextColor = materials.sectionText,
+                    indicatorColor = materials.roomBackdrop,
+                ),
+            )
+        }
+    }
+}
