@@ -13,3 +13,7 @@ SafeSave C approved and promoted; A/B archived for comparison. CARTMOD A/B/C rem
 - CARTMOD-F — CM maker's mark: A custom C and M pair, drawn as one coherent compact maker's stamp. Abstract brand identity rather than literal settings icon.
 
 Sienna recommendation: CARTMOD F. Final selection pending. Generate consistent canonical mark, lockup, empty-state art and manifest only after selection. Verify actual device legibility; structural checks are not trademark clearance or runtime QA.
+
+## Final decision — 18 November 2026
+
+Owner approved CARTMOD F, Maker's mark. Canonical product mark, lockup and empty state updated. A–E retained for history. Settings approved in full as fifth destination.
