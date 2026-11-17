@@ -418,7 +418,9 @@ class GameViewModelInput(
     }
 
     private fun currentPorts(mapper: (InputDevice?) -> Int?): Map<Int, Int> =
-        InputDevice.getDeviceIds().mapNotNull { id -> mapper(InputDevice.getDevice(id))?.let { id to it } }.toMap()
+        InputDevice.getDeviceIds().asSequence()
+            .mapNotNull { id -> mapper(InputDevice.getDevice(id))?.let { id to it } }
+            .toMap()
 
     private fun MotionFrame.isCurrent(): Boolean =
         generation == inputGeneration && InputDevice.getDevice(device.id)?.descriptor == device.descriptor
