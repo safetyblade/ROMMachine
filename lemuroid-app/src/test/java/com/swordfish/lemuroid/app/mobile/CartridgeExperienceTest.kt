@@ -327,6 +327,23 @@ class CartridgeExperienceTest {
         assertEquals(game, selected)
     }
 
+    @Test
+    @Config(qualifiers = "w720dp-h360dp-land")
+    fun shortLandscapeKeepsImportAndResumeWithoutPermanentSearch() {
+        var selected: Game? = null
+        home(
+            HomeViewModel.UIState(indexInProgress = true, recentGames = listOf(game)),
+            onSelect = { selected = it },
+        )
+        compose.onNodeWithText("Add Cartridges").assertIsNotEnabled()
+        compose.onNodeWithText("Search collection").assertDoesNotExist()
+        compose.onNodeWithText("Continue", substring = true).performClick()
+        assertEquals(game, selected)
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+        compose.onNodeWithText("Filters").performClick()
+        compose.onNodeWithText("Search collection").assertExists()
+    }
+
     @Test fun narrowLandscapeDetailStillScrollsToActions() {
         compose.setContent {
             CartridgeLibraryTheme {

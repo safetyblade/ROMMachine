@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -22,7 +23,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -139,7 +139,6 @@ internal fun HomeScreen(
             },
         )
     val shelfStates = rememberSaveableStateHolder()
-    val shortScreen = LocalConfiguration.current.screenHeightDp < 480
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
         PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
@@ -159,15 +158,38 @@ internal fun HomeScreen(
                     bottomContentPadding = if (arrange) 8.dp else 68.dp,
                     header = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val firstCollection =
+                                pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
                             if (state.showNoGamesCard) {
                                 Button(
                                     onClick = onSetDirectoryClicked,
                                     enabled = !state.indexInProgress,
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                 ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else if (pageKey == "all" && !query.active && !shortScreen) {
-                                TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
-                                    Text(stringResource(R.string.cartdeck_add_cartridges))
+                            } else if (!query.active && (pageKey == "all" || firstCollection)) {
+                                // Keep both actions available even in compact landscape windows.
+                                // They scroll with the collection, rather than reserving fixed chrome.
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                        Text(stringResource(R.string.cartdeck_add_cartridges))
+                                    }
+                                    if (!arrange) {
+                                        state.recentGames.firstOrNull()?.let { recent ->
+                                            TextButton(
+                                                onClick = { onGameClicked(recent) },
+                                                modifier = Modifier.weight(1f),
+                                            ) {
+                                                Text(
+                                                    stringResource(R.string.cartdeck_continue) + " · " +
+                                                        recent.displayName(),
+                                                    maxLines = 1,
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             if (state.indexInProgress) {
@@ -201,25 +223,12 @@ internal fun HomeScreen(
                                     onAction = onOpenCoreSelection,
                                 )
                             }
-                            val firstCollection =
-                                pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
-                            if (!query.active && !arrange && !shortScreen && (pageKey == "all" || firstCollection)) {
-                                state.recentGames.firstOrNull()?.let { recent ->
-                                    TextButton(
-                                        onClick = { onGameClicked(recent) },
-                                        modifier = Modifier.padding(horizontal = 16.dp),
-                                    ) {
-                                        Text(
-                                            stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
-                                            maxLines = 1,
-                                        )
-                                    }
-                                }
-                            }
                             if (query.active && projection.games.isEmpty()) {
                                 Text("No matching cartridges", modifier = Modifier.padding(16.dp))
                             }
-                            if (!query.active && !arrange && pageLayout.sections.all { it.cells.isEmpty() }) {
+                            if (!state.showNoGamesCard && !query.active && !arrange &&
+                                pageKey != "all" && !firstCollection && pageLayout.sections.all { it.cells.isEmpty() }
+                            ) {
                                 TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
                                     Text("Empty collection · Add cartridges")
                                 }
