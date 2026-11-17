@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -70,23 +71,6 @@ internal fun UnifiedShelfChrome(
     }
     Column(modifier.fillMaxSize()) {
         if (!arrange) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                singleLine = true,
-                placeholder = { Text("Search collection") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (text.isNotEmpty()) {
-                        IconButton(onClick = { text = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
-            )
             if (query.active) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp),
@@ -108,17 +92,15 @@ internal fun UnifiedShelfChrome(
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            content(
-                query,
-                Modifier.fillMaxSize().then(if (arrange) Modifier else Modifier.padding(bottom = 60.dp)),
-            )
+            content(query, Modifier.fillMaxSize())
             if (!arrange) {
                 FilledTonalButton(
                     onClick = {
                         focus.clearFocus()
                         filters = true
                     },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 6.dp)
+                        .heightIn(min = 48.dp),
                 ) {
                     Text(if (query.active) "Filters •" else "Filters")
                 }
@@ -134,6 +116,23 @@ internal fun UnifiedShelfChrome(
                     Modifier.widthIn(max = 420.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Search collection") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (text.isNotEmpty()) {
+                                IconButton(onClick = { text = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = favourites, onCheckedChange = { favourites = it })
                         Text("Favourites only")
@@ -163,7 +162,12 @@ internal fun UnifiedShelfChrome(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { filters = false }) { Text("Done") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    focus.clearFocus()
+                    filters = false
+                }) { Text("Done") }
+            },
             dismissButton = { TextButton(onClick = ::clear) { Text("Clear all") } },
         )
     }
