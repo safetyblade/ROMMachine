@@ -263,7 +263,7 @@ private fun CuratedDesignOption(
 private fun ColourPicker(
     role: String,
     current: Color,
-    defaults: List<Color>,
+    defaults: List<NamedColour>,
     onChoose: (Color) -> Unit,
     onDismiss: () -> Unit,
     warning: String? = null,
@@ -279,7 +279,7 @@ private fun ColourPicker(
     var brightness by remember(role, current) { mutableStateOf(initial[2]) }
     val mixed = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, brightness)))
     val valid = typed.matches(Regex("#[0-9a-fA-F]{6}"))
-    val recommended = (listOf(current) + defaults).distinctBy { it.toArgb() }
+    val recommended = (listOf(NamedColour("Current", current)) + defaults).distinctBy { it.colour.toArgb() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -291,9 +291,7 @@ private fun ColourPicker(
             ) {
                 Text("Suggested finishes", style = MaterialTheme.typography.titleSmall)
                 ColourSwatchRows(
-                    recommended.mapIndexed { index, colour ->
-                        NamedColour(if (index == 0) "Current" else colourName(colour), colour)
-                    },
+                    recommended,
                     current,
                     onChoose,
                 )
@@ -1129,8 +1127,13 @@ fun ShelfAppearanceEditor(
         ColourPicker(
             role,
             overrides[role]?.let { Color(it.toInt()) } ?: base.getValue(role),
-            listOf(original.getValue(role), pink.getValue(role), green.getValue(role)) +
-                CartdeckCuratedDesigns.designs.mapNotNull { it.colours[role]?.let { value -> Color(value.toInt()) } },
+            listOf(
+                NamedColour("Original", original.getValue(role)),
+                NamedColour("Pink", pink.getValue(role)),
+                NamedColour("Green", green.getValue(role)),
+            ) + CartdeckCuratedDesigns.designs.mapNotNull { design ->
+                design.colours[role]?.let { NamedColour(design.title, Color(it.toInt())) }
+            },
             onChoose = { changeColour(role, it) },
             onDismiss = { picker = null },
             warning = warning,
@@ -1142,11 +1145,11 @@ fun ShelfAppearanceEditor(
             current = lighting.colour?.let { Color(it.toInt()) } ?: base.getValue("accent"),
             defaults =
                 listOf(
-                    base.getValue("accent"),
-                    Color(0xFF9BC74A),
-                    Color(0xFF4ED8C4),
-                    Color(0xFFFFC06A),
-                    Color(0xFFF2A9C9),
+                    NamedColour("Edition accent", base.getValue("accent")),
+                    NamedColour("Acid green", Color(0xFF9BC74A)),
+                    NamedColour("Aqua", Color(0xFF4ED8C4)),
+                    NamedColour("Amber", Color(0xFFFFC06A)),
+                    NamedColour("Rose", Color(0xFFF2A9C9)),
                 ),
             onChoose = { chosen ->
                 lighting = lighting.copy(colour = longColour(chosen))
