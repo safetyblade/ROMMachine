@@ -16,7 +16,6 @@ PATCHES=(
     "$ROOT/scripts/ci/patches/libretrodroid-graphics-error.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-core-frame-signal.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-play-vm-bridge.patch"
-    "$ROOT/scripts/ci/patches/libretrodroid-pc-input.patch"
 )
 for patch in "${PATCHES[@]}"; do
     [[ -f "$patch" ]] || { echo "Missing required host patch: $patch" >&2; exit 1; }
@@ -70,6 +69,9 @@ git -C "$SOURCE" submodule update --init --recursive
 # A clean parent Git link does not establish that dependency source is clean.
 git -C "$SOURCE" submodule foreach --recursive 'test -z "$(git status --porcelain)"'
 [[ "$(git -C "$SOURCE" rev-parse HEAD)" == "$REVISION" ]]
+# Exercise patched native input and established host contracts before publication.
+ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" LIBRETRODROID_SOURCE_DIR="$SOURCE" \
+    HOST_INPUT_TEST_DIR="$WORK/input-tests" bash "$ROOT/scripts/ci/test_libretrodroid_input.sh"
 # Use the installed app SDK while preserving upstream Kotlin/JNI/native source.
 cat > "$WORK/local-publication.gradle" <<GRADLE
 allprojects {
