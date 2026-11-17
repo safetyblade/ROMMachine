@@ -16,6 +16,7 @@ PATCHES=(
     "$ROOT/scripts/ci/patches/libretrodroid-graphics-error.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-core-frame-signal.patch"
     "$ROOT/scripts/ci/patches/libretrodroid-play-vm-bridge.patch"
+    "$ROOT/scripts/ci/patches/libretrodroid-pc-input.patch"
 )
 for patch in "${PATCHES[@]}"; do
     [[ -f "$patch" ]] || { echo "Missing required host patch: $patch" >&2; exit 1; }
