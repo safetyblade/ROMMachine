@@ -44,6 +44,10 @@ enum class MainRoute(
         route = "home",
         titleId = R.string.title_home,
     ),
+    GEM(
+        route = "gem",
+        titleId = R.string.cartdeck_gem_title,
+    ),
     CARTMOD(
         route = "cartmod",
         titleId = R.string.cartdeck_cartmod_title,
@@ -76,7 +80,6 @@ enum class MainRoute(
     SETTINGS(
         route = "settings/home",
         titleId = R.string.title_settings,
-        showBottomNavigation = false,
     ),
     SETTINGS_SUPPORTED_GAMES(
         route = "settings/supported-games",

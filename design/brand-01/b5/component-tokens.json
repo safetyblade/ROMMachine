@@ -1,0 +1,275 @@
+{
+  "schema": "cartdeck.shared-components/1",
+  "status": "design-ready; visual approval pending",
+  "foundation": "../b1/foundation-tokens.json",
+  "products": "../b2/product-identities.json",
+  "junior": "../b3/junior-identity.json",
+  "iconLibrary": "../b4/feature-icons.json",
+  "taglines": false,
+  "tokens": {
+    "spacingDp": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32
+    ],
+    "cardRadiusDp": 12,
+    "controlRadiusDp": 8,
+    "lineDp": 1,
+    "minHitDp": 48,
+    "standardIconDp": 24,
+    "compactIconDp": 20,
+    "metadataIconDp": 16,
+    "menuRowMinDp": 48,
+    "primaryButtonMinDp": 48,
+    "juniorPrimaryMinDp": 56,
+    "standardDockMinDp": 64,
+    "shortDockMinDp": 48,
+    "headerMinDp": 48,
+    "focusRingDp": 2,
+    "focusGapDp": 2,
+    "screenPaddingDp": 16,
+    "compactScreenPaddingDp": 8
+  },
+  "semanticRoles": {
+    "normalText": "ink",
+    "secondaryText": "secondaryInk",
+    "background": "room",
+    "card": "surface",
+    "raised": "raised",
+    "border": "outline",
+    "primaryAction": "accent",
+    "primaryLabel": "onAccent",
+    "focus": "contrast-safe focus independent of selection",
+    "warning": "semantic warning ink + label/glyph",
+    "error": "semantic error ink + label/glyph",
+    "success": "actual verified result + label/glyph",
+    "disabled": "readable unavailable label; distinct non-action",
+    "customPolicy": "one appearance adapter, never override personal theme, verify contrast on actual adjacent surface, fallback semantic monochrome"
+  },
+  "components": [
+    {
+      "id": "product-header",
+      "parts": [
+        "approved mark",
+        "live title or approved lockup with accessible name",
+        "context actions"
+      ],
+      "states": [
+        "root",
+        "nested Back",
+        "compact",
+        "loading"
+      ],
+      "constraints": "no tagline; no duplicate label; nested retains parent return, no persistent extra navigation"
+    },
+    {
+      "id": "product-dock",
+      "parts": [
+        "available destinations only",
+        "24dp symbol",
+        "live label",
+        "selected indicator"
+      ],
+      "states": [
+        "default",
+        "selected",
+        "focused",
+        "pressed",
+        "compact",
+        "arrange replacement"
+      ],
+      "constraints": "Shelf/GEM/SafeSave/CARTMOD/Settings; stable IDs; no Modern/Vault tab; preserve 48dp targets"
+    },
+    {
+      "id": "action-card",
+      "parts": [
+        "optional icon",
+        "title",
+        "factual summary or real status",
+        "one explicit primary action"
+      ],
+      "states": [
+        "available",
+        "focused",
+        "pressed",
+        "disabled reason",
+        "busy",
+        "error"
+      ],
+      "constraints": "one click owner; not entire clickable card plus competing identical child button"
+    },
+    {
+      "id": "menu-row",
+      "parts": [
+        "optional icon",
+        "label",
+        "secondary detail when needed",
+        "chevron/control"
+      ],
+      "states": [
+        "normal",
+        "focused",
+        "pressed",
+        "selected",
+        "disabled",
+        "expanded"
+      ],
+      "constraints": "48dp min, grow for font scaling; preserve route/action and menu scope"
+    },
+    {
+      "id": "button",
+      "parts": [
+        "label",
+        "optional icon"
+      ],
+      "variants": [
+        "primary filled",
+        "secondary outline",
+        "tertiary text",
+        "destructive explicit"
+      ],
+      "states": [
+        "normal",
+        "focused",
+        "pressed",
+        "disabled",
+        "busy"
+      ],
+      "constraints": "one primary per decision group; no color-only intent or double invocation"
+    },
+    {
+      "id": "setting-control",
+      "parts": [
+        "label",
+        "current value",
+        "switch/radio/selector/slider",
+        "optional factual detail"
+      ],
+      "states": [
+        "draft",
+        "saved",
+        "selected",
+        "invalid",
+        "unavailable",
+        "busy"
+      ],
+      "constraints": "respect existing immediate/deferred semantics, explicit scope and save/cancel"
+    },
+    {
+      "id": "state-panel",
+      "parts": [
+        "icon or illustration when useful",
+        "plain title",
+        "reason",
+        "real recovery action"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "no matches",
+        "unavailable",
+        "error",
+        "verified"
+      ],
+      "constraints": "no infinite spinner without cancel/timeout where supported, no fake success"
+    },
+    {
+      "id": "confirm-sheet",
+      "parts": [
+        "operation",
+        "scope",
+        "impact",
+        "primary confirmation",
+        "cancel"
+      ],
+      "states": [
+        "review",
+        "validation error",
+        "busy",
+        "success receipt",
+        "failure"
+      ],
+      "constraints": "safe default; no destructive preselection; actual verified count"
+    },
+    {
+      "id": "status-row",
+      "parts": [
+        "status text",
+        "optional semantic icon",
+        "detail"
+      ],
+      "states": [
+        "verified",
+        "detected",
+        "excluded",
+        "setup needed",
+        "active/locked",
+        "failed",
+        "unknown"
+      ],
+      "constraints": "truthful capability data, not decorative product mark"
+    },
+    {
+      "id": "search-field",
+      "parts": [
+        "query",
+        "clear",
+        "submit when external"
+      ],
+      "states": [
+        "idle",
+        "focused",
+        "nonempty",
+        "invalid",
+        "no results"
+      ],
+      "constraints": "Shelf in Filters, GEM explicit external browser, FAQ local query, cover context only"
+    },
+    {
+      "id": "appearance-preview",
+      "parts": [
+        "actual selected appearance",
+        "preview",
+        "edit"
+      ],
+      "states": [
+        "current",
+        "draft",
+        "invalid contrast",
+        "saved"
+      ],
+      "constraints": "one existing editor/store; Light selectable; no new per-cart storage"
+    },
+    {
+      "id": "nested-product",
+      "parts": [
+        "Modern or Vault mark/wordmark",
+        "actual scope/status",
+        "context-specific primary action"
+      ],
+      "states": [
+        "available",
+        "unavailable with verified reason if context already exists",
+        "busy",
+        "error"
+      ],
+      "constraints": "no independent dock or fake provider; Vault not shown before backend approval; no marketing line"
+    }
+  ],
+  "responsive": {
+    "portrait": "five physical spine slots when normal font width permits; full-height scroll; compact header; 64dp dock min (content can grow); Filters floating above bottom inset, Add/Continue reachable",
+    "shortLandscape": "48dp dock min; horizontal compact label+icon where fit; 48dp header min; scrollable content; never force fixed decorative rows; if five labels do not fit retain reachable compact scrolling dock or stacked icons/text, no shrink targets",
+    "tablet": "two columns for ordinary tasks when measured space permits; single-column focused flows and Junior one cover",
+    "tv": "existing controller-first NavHost/focus path; visible focus, safe area, readable 1.25–1.5x roles, no touch-only or independent navigation engine",
+    "fontScaling": "1x/1.3x/2x; grow row heights/wrap, no clipping or reduced targets"
+  },
+  "release": {
+    "runtimeChanges": false,
+    "exactTreeRequired": true,
+    "preserveExistingTests": true,
+    "deviceVerificationRequired": true
+  }
+}

@@ -5,7 +5,7 @@ Owner: Sienna Vale (Visual Design). Roxy: curation. Daniel: architecture review.
 Canonical tracking: Issue #288. Do not merge implementation into active GC-01/CI-01 gate.
 
 ## 0. Identity and intent
-Product: CARTDECK Junior. Child-facing destination: My Playroom. Main shelf: My Games / My Deck. Parent-only space: Grown-Ups. Tagline: Their games. Their little world.
+Product: CARTDECK Junior. Child-facing destination: My Playroom. Main shelf: My Games / My Deck. Parent-only space: Grown-Ups. No tagline (BRAND-01 B3 owner approval supersedes earlier tagline direction).
 Hybrid: retains CARTDECK cartridge identity, game artwork, launch machinery, universal pause/menu and save bindings. Offers optional Junior-specific visual themes. Not a separate executable, ROM source, emulation core or automatic family-safety classification.
 Primary target: early/non-readers around six years; inclusive of ages and tastes. Inclusive palette (not gender-stereotyped).
 

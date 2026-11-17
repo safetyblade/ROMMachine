@@ -15,12 +15,43 @@ data class CartdeckCuratedDesign(
 )
 
 object CartdeckCuratedDesigns {
+    const val LIGHT_ID = "light-004"
     const val STEALTH_ACID_ID = "stealth-acid-001"
     const val ARCANA_GILDED_ID = "arcana-gilded-002"
     const val WILDBOUND_FORGE_ID = "wildbound-forge-003"
 
     val designs: List<CartdeckCuratedDesign> =
         listOf(
+            CartdeckCuratedDesign(
+                id = LIGHT_ID,
+                title = "Light",
+                description = "Warm ivory, slate lettering and teal accents",
+                baseEdition = "original",
+                colours =
+                    mapOf(
+                        "chassis" to 0xFFF4F2EDL,
+                        "secondary" to 0xFFE8E5DFL,
+                        "bezel" to 0xFF303B49L,
+                        "glass" to 0xFF0D1721L,
+                        "button" to 0xFF4D5965L,
+                        "accent" to 0xFF146E66L,
+                        "onChassis" to 0xFF202630L,
+                        "onButton" to 0xFFFFFFFFL,
+                        "focus" to 0xFF146E66L,
+                        "roomBackdrop" to 0xFFF4F2EDL,
+                        "shelfBackboard" to 0xFFFFFFFFL,
+                        "shelfDeck" to 0xFFE8E5DFL,
+                        "shelfLip" to 0xFF788189L,
+                        "shelfGroove" to 0xFFD4D1CBL,
+                        "edgeHighlight" to 0xFF788189L,
+                        "shelfShadow" to 0xFFC6C6C0L,
+                        "sectionDivider" to 0xFF788189L,
+                        "vacantCell" to 0xFFE8E5DFL,
+                        "sectionText" to 0xFF202630L,
+                        "focusOutline" to 0xFF146E66L,
+                        "interactionAccent" to 0xFF146E66L,
+                    ),
+            ),
             CartdeckCuratedDesign(
                 id = STEALTH_ACID_ID,
                 title = "Stealth / Acid",

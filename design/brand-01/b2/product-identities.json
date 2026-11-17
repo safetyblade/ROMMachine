@@ -1,0 +1,188 @@
+{
+  "schema": "cartdeck.product-identities/1",
+  "status": "design-candidate",
+  "foundation": "../b1/foundation-tokens.json",
+  "masterLogoUnchanged": true,
+  "dockOrder": [
+    "Shelf",
+    "GEM",
+    "SafeSave",
+    "CARTMOD",
+    "Settings"
+  ],
+  "availabilitySource": "existing capability gates",
+  "products": [
+    {
+      "id": "gem",
+      "name": "GEM",
+      "purpose": "Discovery and ratings",
+      "description": "A softly faceted gemstone. Acknowledges discovery without implying that every game is a recommendation.",
+      "dark": "#C6A6D9",
+      "light": "#725281",
+      "empty": {
+        "title": "Find games worth playing",
+        "body": "Browse games or rate titles you have played.",
+        "action": "Browse games",
+        "gate": "Only when catalogue browsing exists. Cold start is not personalised."
+      },
+      "assets": {
+        "mark": "gem/mark.svg",
+        "dockGlyph": "gem/mark.svg",
+        "wordmark": "gem/wordmark.svg",
+        "lockup": "gem/lockup.svg",
+        "monochrome": "gem/lockup.svg",
+        "emptyState": "gem/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "unchanged",
+      "ownership": [
+        "For You",
+        "Browse",
+        "My Ratings",
+        "Search websites",
+        "My Sources"
+      ]
+    },
+    {
+      "id": "safesave",
+      "name": "SafeSave",
+      "purpose": "Saves and recovery",
+      "description": "A cartridge with an integrated bookmark representing a return to saved progress, not a verified backup.",
+      "dark": "#ADC6E1",
+      "light": "#365D82",
+      "empty": {
+        "title": "No verified saves to display",
+        "body": "Saved progress will appear here when its location can be verified.",
+        "action": null,
+        "gate": "Do not imply a backup exists; expose real import/export only when available."
+      },
+      "assets": {
+        "mark": "safesave/mark.svg",
+        "dockGlyph": "safesave/mark.svg",
+        "wordmark": "safesave/wordmark.svg",
+        "lockup": "safesave/lockup.svg",
+        "monochrome": "safesave/lockup.svg",
+        "emptyState": "safesave/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "owner-approved Checkpoint (C)",
+      "selectedMark": "safesave-c"
+    },
+    {
+      "id": "cartmod",
+      "name": "CARTMOD",
+      "purpose": "Cartridge preparation",
+      "description": "A custom CM maker's mark representing game preparation and modification.",
+      "dark": "#D9B18D",
+      "light": "#865735",
+      "empty": {
+        "title": "No PC installations yet",
+        "body": "Set up a cartridge using game media you provide.",
+        "action": "Set up a PC game",
+        "gate": "Only available operations; imported media is not a verified installation."
+      },
+      "assets": {
+        "mark": "cartmod/mark.svg",
+        "dockGlyph": "cartmod/mark.svg",
+        "wordmark": "cartmod/wordmark.svg",
+        "lockup": "cartmod/lockup.svg",
+        "monochrome": "cartmod/lockup.svg",
+        "emptyState": "cartmod/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
+      "markReview": "owner-approved Maker's mark (F)",
+      "selectedMark": "cartmod-f"
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "purpose": "Appearance and system configuration",
+      "markReview": "owner-approved functional Settings destination",
+      "assets": {
+        "mark": "settings/mark.svg",
+        "dockGlyph": "settings/mark.svg"
+      },
+      "colourPolicy": "active appearance contrast-safe foreground/accent",
+      "ownership": [
+        "Appearance",
+        "Controllers",
+        "Display & gameplay",
+        "Shelf & library",
+        "Profiles & family",
+        "Help & guides",
+        "System & advanced"
+      ]
+    }
+  ],
+  "sizes": {
+    "dockGlyphDp": 24,
+    "compactDp": 20,
+    "minTouchDp": 48,
+    "lockupMarkDp": 24,
+    "clearSpaceMarkFraction": 0.5,
+    "emptyIllustrationMaxDp": 120
+  },
+  "constraints": {
+    "externalFonts": false,
+    "appearanceOverrides": false,
+    "personas": false,
+    "decorativeIllustrationsAccessible": false,
+    "markRequiresLabelInNavigation": true,
+    "appImplementation": false,
+    "taglinesAllowed": false
+  },
+  "contrastEvidence": [
+    {
+      "id": "gem",
+      "dark": [
+        8.21,
+        7.06,
+        5.91
+      ],
+      "light": [
+        5.79,
+        6.48,
+        5.16
+      ]
+    },
+    {
+      "id": "safesave",
+      "dark": [
+        9.95,
+        8.55,
+        7.16
+      ],
+      "light": [
+        6.16,
+        6.9,
+        5.49
+      ]
+    },
+    {
+      "id": "cartmod",
+      "dark": [
+        8.85,
+        7.61,
+        6.37
+      ],
+      "light": [
+        5.48,
+        6.13,
+        4.87
+      ]
+    }
+  ],
+  "appearanceReactiveApproved": true,
+  "lightAppearanceApproved": true,
+  "navigationReview": {
+    "status": "owner-approved",
+    "dockOrder": [
+      "Shelf",
+      "GEM",
+      "SafeSave",
+      "CARTMOD",
+      "Settings"
+    ],
+    "spec": "settings/SETTINGS_EXPERIENCE.md"
+  }
+}

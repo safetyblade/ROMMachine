@@ -56,7 +56,7 @@ internal fun PcImportSettings(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) windows = uri
         }
-    WorkshopPanel("01 · Set up a PC game", "DOSBox Pure · choose your own game media") {
+    WorkshopPanel("Set up a PC game", "DOSBox Pure · choose your own game media") {
         LemuroidSettingsMenuLink(
             title = { Text("Select game ISO") },
             subtitle = { Text(if (game == null) "No game selected" else "Game selected") },
