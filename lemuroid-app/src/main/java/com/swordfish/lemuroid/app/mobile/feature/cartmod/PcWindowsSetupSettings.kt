@@ -1,5 +1,6 @@
-package com.swordfish.lemuroid.app.mobile.feature.settings.general
+package com.swordfish.lemuroid.app.mobile.feature.cartmod
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Text
@@ -14,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.library.pc.PcGuestDiskStore
 import kotlinx.coroutines.CancellationException
@@ -26,6 +28,9 @@ import kotlinx.coroutines.withContext
 internal fun PcWindowsSetupSettings(
     enabled: Boolean,
     revision: Int,
+    cartridgeId: String?,
+    games: List<Game>,
+    onOpenGuest: (Game) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -36,11 +41,13 @@ internal fun PcWindowsSetupSettings(
     var refresh by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("") }
 
-    LaunchedEffect(revision, refresh) {
+    LaunchedEffect(revision, refresh, cartridgeId) {
         try {
             entries =
                 withContext(Dispatchers.IO) {
-                    store.entries().map { it to PcGuestDiskStore(store.workspace(it)).disks().size }
+                    store.entries()
+                        .filter { cartridgeId == null || it.id.toString() == cartridgeId }
+                        .map { it to PcGuestDiskStore(store.workspace(it)).disks().size }
                 }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -74,7 +81,7 @@ internal fun PcWindowsSetupSettings(
                 }
             }
         }
-    LemuroidCardSettingsGroup(title = { Text("PC Windows setup") }) {
+    LemuroidCardSettingsGroup(title = { Text("Manage PC installations") }) {
         Text("1. Open a PC cartridge. Boot and install Windows from your own installation media.")
         Text("2. Run the installed operating system, install the game and shut Windows down normally.")
         Text("3. In Windows, create a Startup shortcut to the installed EXE with the game folder as Start in.")
@@ -86,12 +93,27 @@ internal fun PcWindowsSetupSettings(
             enabled = !busy,
             onClick = { refresh++ },
         )
+        if (entries.isEmpty()) {
+            Text(if (cartridgeId == null) "No managed PC cartridges yet." else "Installation not found.")
+        }
         for ((entry, count) in entries) {
+            val canonical =
+                games.singleOrNull {
+                    it.cartridgeId == entry.id.toString() && it.fileUri == Uri.fromFile(entry.content).toString()
+                }
+            Text(entry.title)
+            Text(if (count == 0) "Setup needed" else "Guest disk present · boot not verified")
             LemuroidSettingsMenuLink(
-                title = { Text(entry.title) },
+                title = { Text("Open guest setup") },
+                subtitle = { Text("Start the same cartridge used by Shelf") },
+                enabled = enabled && !busy && canonical != null,
+                onClick = { canonical?.let(onOpenGuest) },
+            )
+            LemuroidSettingsMenuLink(
+                title = { Text("Import prepared Windows IMG") },
                 subtitle = {
                     Text(
-                        if (count == 0) "Import a prepared Windows IMG" else "Guest disk present; boot unverified",
+                        if (count == 0) "Optional: copy an existing guest disk" else "Existing guest disk is protected",
                     )
                 },
                 enabled = enabled && !busy && count == 0,

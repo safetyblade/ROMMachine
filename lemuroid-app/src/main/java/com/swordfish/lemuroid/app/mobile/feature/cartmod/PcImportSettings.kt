@@ -1,4 +1,4 @@
-package com.swordfish.lemuroid.app.mobile.feature.settings.general
+package com.swordfish.lemuroid.app.mobile.feature.cartmod
 
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -25,13 +25,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun PcImportSettings(enabled: Boolean) {
+internal fun PcImportSettings(
+    enabled: Boolean,
+    onImported: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var game by remember { mutableStateOf<Uri?>(null) }
     var windows by remember { mutableStateOf<Uri?>(null) }
     var executable by remember { mutableStateOf("") }
-    var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var message by remember {
         mutableStateOf("Select your own PC game ISO. Optional: a licensed Windows installer ISO.")
@@ -50,7 +52,7 @@ internal fun PcImportSettings(enabled: Boolean) {
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) windows = uri
         }
-    LemuroidCardSettingsGroup(title = { Text("PC Classics · Experimental") }) {
+    LemuroidCardSettingsGroup(title = { Text("Setup PC game · DOSBox Pure") }) {
         LemuroidSettingsMenuLink(
             title = { Text("Choose PC game ISO") },
             subtitle = { Text(if (game == null) "No game selected" else "Game selected") },
@@ -119,7 +121,7 @@ internal fun PcImportSettings(enabled: Boolean) {
                             game = null
                             windows = null
                             executable = ""
-                            revision++
+                            onImported()
                             message = "PC cartridge imported. Refresh the shelf if it is not yet visible."
                         } catch (cancelled: CancellationException) {
                             throw cancelled
@@ -134,7 +136,6 @@ internal fun PcImportSettings(enabled: Boolean) {
             },
         )
         Text(message)
-        Text("Open the cartridge from the shelf. Guest boot and installed Windows games are experimental.")
+        Text("Import creates a cartridge, not a verified installation. Open guest setup to continue.")
     }
-    PcWindowsSetupSettings(enabled = enabled && !busy, revision = revision)
 }

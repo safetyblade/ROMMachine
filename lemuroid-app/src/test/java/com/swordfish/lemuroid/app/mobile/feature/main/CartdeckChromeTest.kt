@@ -33,6 +33,15 @@ class CartdeckChromeTest {
         assertFalse(showShelfEditDock(MainRoute.SETTINGS, true))
     }
 
+    @Test fun productDockOnlyShowsRealDestinationsAndYieldsToArrange() {
+        assertFalse(showProductDock(MainRoute.HOME, false, false))
+        assertTrue(showProductDock(MainRoute.HOME, false, true))
+        assertTrue(showProductDock(MainRoute.CARTMOD, false, true))
+        assertFalse(showProductDock(MainRoute.HOME, true, true))
+        assertFalse(showProductDock(MainRoute.SETTINGS, false, true))
+        assertFalse(showProductDock(MainRoute.CARTMOD_INSTALLATION, false, true))
+    }
+
     @Test fun homeHasOneBrandTitleAndHiddenShelfOptions() {
         var arrangeRequested = 0
         var appearanceRequested = 0
@@ -62,7 +71,7 @@ class CartdeckChromeTest {
         assertTrue(appearanceRequested == 1)
     }
 
-    @Test fun contextualDockExitsToExistingNavigationWithoutDiscardingChanges() {
+    @Test fun contextualDockClosesWithoutReintroducingLegacyTabs() {
         var arranging by mutableStateOf(true)
         var editToolsCalls = 0
         var undoCalls = 0
@@ -85,9 +94,10 @@ class CartdeckChromeTest {
         assertTrue(undoCalls == 0)
         compose.onNodeWithText("Home").assertDoesNotExist()
         compose.onNodeWithText("Done").performClick()
-        compose.onNodeWithText("Home").assertExists()
-        compose.onNodeWithText("Favorites").assertExists()
-        compose.onNodeWithText("Systems").assertExists()
-        compose.onNodeWithText("Search").assertExists()
+        compose.onNodeWithText("Home").assertDoesNotExist()
+        compose.onNodeWithText("Favorites").assertDoesNotExist()
+        compose.onNodeWithText("Systems").assertDoesNotExist()
+        compose.onNodeWithText("Search").assertDoesNotExist()
+        compose.onNodeWithText("Done").assertDoesNotExist()
     }
 }

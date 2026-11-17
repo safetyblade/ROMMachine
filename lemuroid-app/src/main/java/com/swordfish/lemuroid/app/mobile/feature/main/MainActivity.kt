@@ -39,6 +39,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen
 import com.swordfish.lemuroid.app.mobile.feature.favorites.FavoritesScreen
 import com.swordfish.lemuroid.app.mobile.feature.favorites.FavoritesViewModel
 import com.swordfish.lemuroid.app.mobile.feature.games.GamesScreen
@@ -329,6 +330,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         onDoneArrange = { arrangingShelf.value = false },
                         onEditTools = { shelfEditTools.value = true },
                         onUndoShelf = shelfViewModel::undo,
+                        cartmodAvailable = true,
                     )
                 },
             ) { padding ->
@@ -355,6 +357,26 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
                             arrange = arrangingShelf.value,
                             onSectionEdit = { editingSection.value = it },
+                        )
+                    }
+                    composable(MainRoute.CARTMOD) {
+                        val games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value
+                        CartmodScreen(
+                            modifier = Modifier.padding(padding),
+                            enabled = !mainUIState.operationInProgress,
+                            games = games,
+                            onOpenGuest = { gameInteractor.onGamePlay(it) },
+                        )
+                    }
+                    composable(MainRoute.CARTMOD_INSTALLATION) { entry ->
+                        val cartridgeId = entry.arguments?.getString("cartridgeId").orEmpty()
+                        val games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value
+                        CartmodScreen(
+                            modifier = Modifier.padding(padding),
+                            enabled = !mainUIState.operationInProgress,
+                            cartridgeId = cartridgeId,
+                            games = games,
+                            onOpenGuest = { gameInteractor.onGamePlay(it) },
                         )
                     }
                     composable(MainRoute.FAVORITES) {
@@ -580,6 +602,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 onClearCustomName = { game -> gameInteractor.onClearCustomName(game) },
                 onSetCustomCoverUri = { game, uri -> gameInteractor.onSetCustomCoverUri(game, uri) },
                 onClearCustomCoverUri = { game -> gameInteractor.onClearCustomCoverUri(game) },
+                onManagePcInstallation = { game ->
+                    navController.navigate("cartmod/install/${game.cartridgeId}")
+                },
             )
 
             if (infoDialogDisplayed.value) {

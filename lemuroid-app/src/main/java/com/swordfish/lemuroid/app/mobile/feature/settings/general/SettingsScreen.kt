@@ -56,7 +56,11 @@ fun SettingsScreen(
         LemuroidSettingsMenuLink(title = {
             Text("Display")
         }, onClick = { navController.navigateToRoute(MainRoute.SETTINGS_DISPLAY) })
-        PcImportSettings(enabled = !indexingInProgress && !scanInProgress)
+        LemuroidSettingsMenuLink(
+            title = { Text(stringResource(R.string.cartdeck_cartmod_title)) },
+            subtitle = { Text(stringResource(R.string.cartdeck_cartmod_settings_redirect)) },
+            onClick = { navController.navigateToRoute(MainRoute.CARTMOD) },
+        )
         GeneralSettings()
         InputSettings(navController = navController)
         MiscSettings(

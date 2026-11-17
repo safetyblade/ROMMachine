@@ -261,4 +261,9 @@
 
     <string name="game_save_write_failed">Save failed. Check free space and storage access before leaving the game.</string>
     <string name="cartdeck_copy_refresh_report">Copy Report</string>
+    <string name="cartdeck_product_shelf">Shelf</string>
+    <string name="cartdeck_cartmod_title">CARTMOD</string>
+    <string name="cartdeck_cartmod_installation">Manage installation</string>
+    <string name="cartdeck_cartmod_settings_redirect">PC setup and advanced cartridge tools</string>
+    <string name="cartdeck_manage_pc_installation">Manage installation in CARTMOD</string>
 </resources>

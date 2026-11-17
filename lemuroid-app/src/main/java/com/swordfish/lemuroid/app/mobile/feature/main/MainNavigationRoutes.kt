@@ -44,6 +44,17 @@ enum class MainRoute(
         route = "home",
         titleId = R.string.title_home,
     ),
+    CARTMOD(
+        route = "cartmod",
+        titleId = R.string.cartdeck_cartmod_title,
+    ),
+    CARTMOD_INSTALLATION(
+        route = "cartmod/install/{cartridgeId}",
+        titleId = R.string.cartdeck_cartmod_installation,
+        parent = CARTMOD,
+        arguments = listOf(navArgument("cartridgeId") { type = NavType.StringType }),
+        showBottomNavigation = false,
+    ),
     FAVORITES(
         route = "favorites",
         titleId = R.string.favorites,

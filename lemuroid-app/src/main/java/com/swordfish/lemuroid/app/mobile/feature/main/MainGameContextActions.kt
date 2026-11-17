@@ -63,7 +63,9 @@ import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidSmallGameImage
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import timber.log.Timber
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +80,7 @@ fun MainGameContextActions(
     onClearCustomName: (Game) -> Unit,
     onSetCustomCoverUri: (Game, String) -> Unit,
     onClearCustomCoverUri: (Game) -> Unit,
+    onManagePcInstallation: ((Game) -> Unit)? = null,
 ) {
     val modalSheetState = rememberModalBottomSheetState(true)
     val selectedGame = selectedGameState.value
@@ -107,6 +110,7 @@ fun MainGameContextActions(
                 onClearCustomName = onClearCustomName,
                 onSetCustomCoverUri = onSetCustomCoverUri,
                 onClearCustomCoverUri = onClearCustomCoverUri,
+                onManagePcInstallation = onManagePcInstallation,
             )
         }
     }
@@ -125,8 +129,22 @@ private fun ContextActionContent(
     onClearCustomName: (Game) -> Unit,
     onSetCustomCoverUri: (Game, String) -> Unit,
     onClearCustomCoverUri: (Game) -> Unit,
+    onManagePcInstallation: ((Game) -> Unit)?,
 ) {
     val context = LocalContext.current
+    val managedPc =
+        remember(selectedGame.fileUri, selectedGame.cartridgeId) {
+            runCatching {
+                val uri = Uri.parse(selectedGame.fileUri)
+                if (uri.scheme != "file") {
+                    false
+                } else {
+                    val file = uri.path?.let(::File)
+                    val managed = file?.let { PcCartridgeStore(context.filesDir).resolve(it) }
+                    managed?.id?.toString() == selectedGame.cartridgeId
+                }
+            }.getOrDefault(false)
+        }
     var showCustomNameDialog by remember { mutableStateOf(false) }
     var showHoldControlsDialog by remember(selectedGame.fileUri) { mutableStateOf(false) }
     val arcStore = remember(context) { GripArcProfileStore(context) }
@@ -181,6 +199,17 @@ private fun ContextActionContent(
             icon = Icons.Default.AppShortcut,
             onClick = { showHoldControlsDialog = true },
         )
+
+        if (managedPc && onManagePcInstallation != null) {
+            ContextActionEntry(
+                label = stringResource(R.string.cartdeck_manage_pc_installation),
+                icon = Icons.Default.AppShortcut,
+                onClick = {
+                    selectedGameState.value = null
+                    onManagePcInstallation(selectedGame)
+                },
+            )
+        }
 
         if (selectedGame.isFavorite) {
             ContextActionEntry(
