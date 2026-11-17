@@ -45,14 +45,15 @@ class ProductSurfacesTest {
         compose.setContent {
             CartridgeLibraryTheme {
                 SaveOperationReview(
-                    preview = SaveOperationPreview(
-                        operation = "Import",
-                        scope = "Player",
-                        verifiedItems = 1,
-                        exclusions = emptyList(),
-                        conflicts = listOf("Destination exists"),
-                        canProceed = true,
-                    ),
+                    preview =
+                        SaveOperationPreview(
+                            operation = "Import",
+                            scope = "Player",
+                            verifiedItems = 1,
+                            exclusions = emptyList(),
+                            conflicts = listOf("Destination exists"),
+                            canProceed = true,
+                        ),
                     onConfirm = {},
                     onCancel = {},
                 )

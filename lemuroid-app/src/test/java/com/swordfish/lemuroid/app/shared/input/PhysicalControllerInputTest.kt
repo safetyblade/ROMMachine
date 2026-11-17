@@ -57,8 +57,12 @@ class PhysicalControllerInputTest {
                 MotionEvent.AXIS_RZ to PhysicalControllerInput.Range(0f, 1f),
             )
         listOf(
-            MotionEvent.AXIS_X, MotionEvent.AXIS_Y, MotionEvent.AXIS_Z,
-            MotionEvent.AXIS_RZ, MotionEvent.AXIS_HAT_Y, MotionEvent.AXIS_BRAKE,
+            MotionEvent.AXIS_X,
+            MotionEvent.AXIS_Y,
+            MotionEvent.AXIS_Z,
+            MotionEvent.AXIS_RZ,
+            MotionEvent.AXIS_HAT_Y,
+            MotionEvent.AXIS_BRAKE,
         ).forEach { code ->
             assertEquals(0f, PhysicalControllerInput.sampleAxis({ 0f }, ranges, code, profile), 0f)
         }
@@ -67,8 +71,9 @@ class PhysicalControllerInputTest {
     @Test fun neutralDeadzoneAndFullTravelRemainCorrect() {
         val ranges = mapOf(MotionEvent.AXIS_Y to PhysicalControllerInput.Range(-1f, 1f))
         val profile = ControllerProfileStore.Profile()
-        fun sample(value: Float) =
-            PhysicalControllerInput.sampleAxis({ value }, ranges, MotionEvent.AXIS_Y, profile)
+
+        fun sample(value: Float) = PhysicalControllerInput.sampleAxis({ value }, ranges, MotionEvent.AXIS_Y, profile)
+
         assertEquals(0f, sample(-0.08f), 0f)
         assertEquals(-1f, sample(-1f), 0f)
         assertEquals(1f, sample(1f), 0f)
@@ -94,8 +99,9 @@ class PhysicalControllerInputTest {
     @Test fun explicitOffsetCalibrationRetainsUnipolarStickSupport() {
         val range = mapOf(MotionEvent.AXIS_Y to PhysicalControllerInput.Range(0f, 1f))
         val profile = ControllerProfileStore.Profile(centres = mapOf(MotionEvent.AXIS_Y to 0.5f), calibrated = true)
-        fun sample(value: Float) =
-            PhysicalControllerInput.sampleAxis({ value }, range, MotionEvent.AXIS_Y, profile)
+
+        fun sample(value: Float) = PhysicalControllerInput.sampleAxis({ value }, range, MotionEvent.AXIS_Y, profile)
+
         assertEquals(0f, sample(0.5f), 0f)
         assertEquals(-1f, sample(0f), 0f)
         assertEquals(1f, sample(1f), 0f)
