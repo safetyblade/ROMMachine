@@ -1,0 +1,144 @@
+{
+  "schema": "cartdeck.product-identities/1",
+  "status": "design-candidate",
+  "foundation": "../b1/foundation-tokens.json",
+  "masterLogoUnchanged": true,
+  "dockOrder": [
+    "Shelf",
+    "GEM",
+    "SafeSave",
+    "CARTMOD"
+  ],
+  "availabilitySource": "existing capability gates",
+  "products": [
+    {
+      "id": "gem",
+      "name": "GEM",
+      "purpose": "Discovery and ratings",
+      "line": "Discover something worth playing.",
+      "description": "A softly faceted gemstone. Acknowledges discovery without implying that every game is a recommendation.",
+      "dark": "#C6A6D9",
+      "light": "#725281",
+      "empty": {
+        "title": "Find games worth playing",
+        "body": "Browse games or rate titles you have played.",
+        "action": "Browse games",
+        "gate": "Only when catalogue browsing exists. Cold start is not personalised."
+      },
+      "assets": {
+        "mark": "gem/mark.svg",
+        "dockGlyph": "gem/mark.svg",
+        "wordmark": "gem/wordmark.svg",
+        "lockup": "gem/lockup.svg",
+        "monochrome": "gem/lockup.svg",
+        "emptyState": "gem/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+    },
+    {
+      "id": "safesave",
+      "name": "SafeSave",
+      "purpose": "Saves and recovery",
+      "line": "Your progress. Your collection.",
+      "description": "A cartridge resting inside a protective enclosure. No checkmark, lock or cloud claim.",
+      "dark": "#ADC6E1",
+      "light": "#365D82",
+      "empty": {
+        "title": "No verified saves to display",
+        "body": "Saved progress will appear here when its location can be verified.",
+        "action": null,
+        "gate": "Do not imply a backup exists; expose real import/export only when available."
+      },
+      "assets": {
+        "mark": "safesave/mark.svg",
+        "dockGlyph": "safesave/mark.svg",
+        "wordmark": "safesave/wordmark.svg",
+        "lockup": "safesave/lockup.svg",
+        "monochrome": "safesave/lockup.svg",
+        "emptyState": "safesave/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+    },
+    {
+      "id": "cartmod",
+      "name": "CARTMOD",
+      "purpose": "Cartridge preparation",
+      "line": "Make more of your games.",
+      "description": "A modular cartridge with a fitted attachment. Represents preparation, not game execution or an installed-game state.",
+      "dark": "#D9B18D",
+      "light": "#865735",
+      "empty": {
+        "title": "No PC installations yet",
+        "body": "Set up a cartridge using game media you provide.",
+        "action": "Set up a PC game",
+        "gate": "Only available operations; imported media is not a verified installation."
+      },
+      "assets": {
+        "mark": "cartmod/mark.svg",
+        "dockGlyph": "cartmod/mark.svg",
+        "wordmark": "cartmod/wordmark.svg",
+        "lockup": "cartmod/lockup.svg",
+        "monochrome": "cartmod/lockup.svg",
+        "emptyState": "cartmod/empty-state.svg"
+      },
+      "colourPolicy": "currentColor; optional accent in Original; personal appearance semantic foreground wins"
+    }
+  ],
+  "sizes": {
+    "dockGlyphDp": 24,
+    "compactDp": 20,
+    "minTouchDp": 48,
+    "lockupMarkDp": 24,
+    "clearSpaceMarkFraction": 0.5,
+    "emptyIllustrationMaxDp": 120
+  },
+  "constraints": {
+    "externalFonts": false,
+    "appearanceOverrides": false,
+    "personas": false,
+    "decorativeIllustrationsAccessible": false,
+    "markRequiresLabelInNavigation": true,
+    "appImplementation": false
+  },
+  "contrastEvidence": [
+    {
+      "id": "gem",
+      "dark": [
+        8.21,
+        7.06,
+        5.91
+      ],
+      "light": [
+        5.79,
+        6.48,
+        5.16
+      ]
+    },
+    {
+      "id": "safesave",
+      "dark": [
+        9.95,
+        8.55,
+        7.16
+      ],
+      "light": [
+        6.16,
+        6.9,
+        5.49
+      ]
+    },
+    {
+      "id": "cartmod",
+      "dark": [
+        8.85,
+        7.61,
+        6.37
+      ],
+      "light": [
+        5.48,
+        6.13,
+        4.87
+      ]
+    }
+  ]
+}
