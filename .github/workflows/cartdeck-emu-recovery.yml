@@ -38,6 +38,7 @@ jobs:
           "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
       - run: |
           python3 -m unittest discover -s scripts/ci -p 'test_cemu_atomic_attestation.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_wiiu*.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_native.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_x360_interpreter_constants.py' -v
