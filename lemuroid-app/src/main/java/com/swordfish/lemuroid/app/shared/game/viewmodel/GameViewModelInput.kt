@@ -10,6 +10,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.input.ControllerChordGate
+import com.swordfish.lemuroid.app.shared.input.ControllerDigitalAxisState
+import com.swordfish.lemuroid.app.shared.input.ControllerFrameGate
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
@@ -65,11 +67,17 @@ class GameViewModelInput(
 ) : DefaultLifecycleObserver {
     private val menuChord = ControllerChordGate()
 
-    private data class KeyFrame(val event: KeyEvent, val generation: Long)
+    private data class KeyFrame(
+        val event: KeyEvent,
+        val sequence: Long,
+        val generation: Long,
+        val descriptor: String?,
+    )
 
     private class MotionFrame(
         val device: InputDevice,
         val source: Int,
+        val sequence: Long,
         val generation: Long,
         val axes: Map<Int, Float>,
         val ranges: Map<Int, PhysicalControllerInput.Range>,
@@ -77,6 +85,7 @@ class GameViewModelInput(
         fun axis(code: Int): Float = axes[code] ?: 0f
     }
 
+    private var frameSequence = 0L
     private var inputGeneration = 0L
     private var activePhysicalPorts = emptyMap<Int, Int>()
 
@@ -197,8 +206,8 @@ class GameViewModelInput(
     ) {
         retroGameView.retroGameView?.sendMotionEvent(
             source,
-            event.axis(xAxis),
-            event.axis(yAxis),
+            calibratedAxis(event, xAxis),
+            calibratedAxis(event, yAxis),
             port,
         )
     }
@@ -251,7 +260,7 @@ class GameViewModelInput(
         event: KeyEvent,
     ): Boolean {
         if (keyCode == KeyEvent.KEYCODE_MENU || InputKey(keyCode) in event.device.getInputClass().getInputKeys()) {
-            val frame = KeyFrame(KeyEvent(event), inputGeneration)
+            val frame = KeyFrame(KeyEvent(event), ++frameSequence, inputGeneration, event.device?.descriptor)
             scope.launch {
                 keyEventsFlow.emit(frame)
             }
@@ -270,7 +279,7 @@ class GameViewModelInput(
         // Android owns MotionEvent lifetime. Snapshot before handing off to the asynchronous flows.
         val frame =
             MotionFrame(
-                device, event.source, inputGeneration,
+                device, event.source, ++frameSequence, inputGeneration,
                 ranges.keys.associateWith { event.getAxisValue(it) }, ranges,
             )
         scope.launch {
@@ -407,7 +416,7 @@ class GameViewModelInput(
         val menuEdge = ControllerMenuEdge()
         val forwarded = mutableMapOf<Pair<Int, Int>, Pair<Int, Int>>()
         var lastPorts = emptyMap<Int, Int>()
-        var lastFrame: KeyFrame? = null
+        val frameGate = ControllerFrameGate()
         var generation = inputGeneration
 
         fun releaseHeld() {
@@ -458,9 +467,9 @@ class GameViewModelInput(
                     if (lastPorts.isNotEmpty()) releaseHeld()
                     lastPorts = currentPorts
                 }
-                if (lastFrame === frame || frame.generation != inputGeneration) return@safeCollect
-                lastFrame = frame
+                if (!frameGate.accepts(frame.sequence, frame.generation, inputGeneration)) return@safeCollect
                 val event = frame.event
+                if (frame.descriptor != event.device?.descriptor) return@safeCollect
                 val activeIds = currentPorts.keys
                 menuEdge.retainDevices(activeIds)
                 menuChord.retainDevices(activeIds)
@@ -579,9 +588,9 @@ class GameViewModelInput(
     }
 
     private suspend fun initializeVirtualGamePadMotionsFlow() {
-        var lastFrame: MotionFrame? = null
+        val frameGate = ControllerFrameGate()
         var generation = inputGeneration
-        val pressedByPort = mutableMapOf<Int, Set<Int>>()
+        val digital = ControllerDigitalAxisState()
         combine(
             inputDeviceManager.getGamePadsPortMapperObservable(),
             motionEventsFlow,
@@ -589,11 +598,12 @@ class GameViewModelInput(
         ) { ports, event, bindings -> Triple(ports, event, bindings) }
             .safeCollect { (ports, event, bindingLookup) ->
                 if (generation != inputGeneration) {
-                    pressedByPort.clear()
+                    digital.clear()
                     generation = inputGeneration
                 }
-                if (lastFrame === event || !event.isCurrent()) return@safeCollect
-                lastFrame = event
+                if (!event.isCurrent() || !frameGate.accepts(event.sequence, event.generation, inputGeneration)) {
+                    return@safeCollect
+                }
                 val port = ports(event.device) ?: return@safeCollect
                 val bindings = bindingLookup(event.device)
                 val axes =
@@ -609,7 +619,6 @@ class GameViewModelInput(
                         .map { (_, button) ->
                             bindings[InputKey(button)]?.keyCode?.takeUnless { it == KeyEvent.KEYCODE_UNKNOWN } ?: button
                         }.toSet()
-                val previous = pressedByPort[port].orEmpty()
                 val view = retroGameView.retroGameView ?: return@safeCollect
                 fun forward(code: Int, action: Int) {
                     view.sendKeyEvent(action, code, port)
@@ -617,21 +626,22 @@ class GameViewModelInput(
                         source = "axis:$port:$code", mappedKey = code, action = action,
                     )
                 }
-                (previous - next).forEach { forward(it, KeyEvent.ACTION_UP) }
-                (next - previous).forEach { forward(it, KeyEvent.ACTION_DOWN) }
-                pressedByPort[port] = next
+                digital.update(port, next).forEach { edge ->
+                    forward(edge.code, if (edge.down) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP)
+                }
             }
     }
 
     private suspend fun initializeGamePadMotionsFlow() {
-        var lastFrame: MotionFrame? = null
+        val frameGate = ControllerFrameGate()
         combine(
             inputDeviceManager.getGamePadsPortMapperObservable(),
             motionEventsFlow,
             ::NTuple2,
         ).safeCollect { (ports, event) ->
-            if (lastFrame === event || !event.isCurrent()) return@safeCollect
-            lastFrame = event
+            if (!event.isCurrent() || !frameGate.accepts(event.sequence, event.generation, inputGeneration)) {
+                return@safeCollect
+            }
             ports(event.device)?.let { sendStickMotions(event, it) }
         }
     }
