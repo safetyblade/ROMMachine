@@ -18,6 +18,9 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     primed_ = false;
     played_once_ = false;
     error_.store(0);
+    WiiuMetrics::audio_recovery_attempts.store(0);
+    WiiuMetrics::audio_recoveries.store(0);
+    WiiuMetrics::audio_recovery_result.store(0);
     WiiuMetrics::audio_accepted.store(0);
     WiiuMetrics::audio_callbacks.store(0);
     WiiuMetrics::audio_played.store(0);
@@ -28,6 +31,15 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     WiiuMetrics::audio_rate.store(sampleRate);
     if (sampleRate < 8000 || sampleRate > 192000)
         return failed(error, "SAMPLE_RATE", AAUDIO_ERROR_ILLEGAL_ARGUMENT);
+    sample_rate_ = sampleRate;
+    enabled_ = true;
+    return openStream(error);
+}
+
+bool WiiuAudio::openStream(std::string* error) {
+    const auto sampleRate = sample_rate_;
+    primed_ = false;
+    played_once_ = false;
     AAudioStreamBuilder* builder = nullptr;
     auto result = AAudio_createStreamBuilder(&builder);
     if (result != AAUDIO_OK) return failed(error, "BUILDER", result);
@@ -42,7 +54,7 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     result = AAudioStreamBuilder_openStream(builder, &stream_);
     AAudioStreamBuilder_delete(builder);
     if (result != AAUDIO_OK) {
-        stop();
+        closeStream();
         return failed(error, "OPEN", result);
     }
     // Libretro delivers interleaved signed stereo. Never reinterpret a negotiated
@@ -50,7 +62,7 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     if (AAudioStream_getFormat(stream_) != AAUDIO_FORMAT_PCM_I16 ||
         AAudioStream_getChannelCount(stream_) != 2 ||
         AAudioStream_getSampleRate(stream_) != sampleRate) {
-        stop();
+        closeStream();
         return failed(error, "FORMAT", AAUDIO_ERROR_INVALID_FORMAT);
     }
     const auto burst = std::max(1, AAudioStream_getFramesPerBurst(stream_));
@@ -58,7 +70,7 @@ bool WiiuAudio::start(int32_t sampleRate, std::string* error) {
     AAudioStream_setBufferSizeInFrames(stream_, burst * 2);
     result = AAudioStream_requestStart(stream_);
     if (result != AAUDIO_OK) {
-        stop();
+        closeStream();
         return failed(error, "START", result);
     }
     return true;
@@ -68,6 +80,8 @@ size_t WiiuAudio::write(const int16_t* stereo, size_t frames, std::string* error
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!stream_ || !stereo) return 0;
     const auto result = error_.load();
+    // A route disconnection is recoverable. The control loop owns close/reopen.
+    if (result == AAUDIO_ERROR_DISCONNECTED) return 0;
     if (result < 0) { failed(error, "CALLBACK", result); return 0; }
     const auto consumed = fifo_.push(stereo, frames);
     submitted_ += consumed;
@@ -109,10 +123,39 @@ void WiiuAudio::disconnected(AAudioStream*, void* user, aaudio_result_t error) {
     WiiuMetrics::audio_error.store(error);
 }
 
-void WiiuAudio::stop() {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+void WiiuAudio::closeStream() {
     if (!stream_) return;
     AAudioStream_requestStop(stream_);
     AAudioStream_close(stream_);
     stream_ = nullptr;
+}
+
+void WiiuAudio::service() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!enabled_ || (stream_ && error_.load() != AAUDIO_ERROR_DISCONNECTED)) return;
+    const auto now = WiiuMetrics::nowUs();
+    if (now < retry_at_us_) return;
+    WiiuMetrics::audio_recovery_attempts.fetch_add(1);
+    closeStream(); // returns only after callbacks are quiescent
+    fifo_.reset();
+    WiiuMetrics::audio_buffered.store(0);
+    error_.store(0);
+    std::string error;
+    if (openStream(&error)) {
+        retry_at_us_ = 0;
+        WiiuMetrics::audio_recoveries.fetch_add(1);
+        WiiuMetrics::audio_recovery_result.store(AAUDIO_OK);
+    } else {
+        // A missing output route must not tear down Cemu. Bounded timed retries
+        // run even while the menu is open; callback never waits or closes.
+        WiiuMetrics::audio_recovery_result.store(AAUDIO_ERROR_DISCONNECTED);
+        retry_at_us_ = now + 1000000;
+    }
+}
+
+void WiiuAudio::stop() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    enabled_ = false;
+    retry_at_us_ = 0;
+    closeStream();
 }

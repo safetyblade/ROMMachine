@@ -9,6 +9,8 @@ on:
       - 'scripts/ci/wiiu_cemu_contract.py'
       - 'scripts/ci/stage_wiiu_vulkan_lab.py'
       - 'native/wiiu/**'
+      - 'spikes/wiiu/vulkan-host/**'
+      - 'lemuroid-app/src/debug/java/com/swordfish/lemuroid/app/debug/WiiuVulkanRuntimeProbeActivity.kt'
 permissions:
   contents: read
   actions: write

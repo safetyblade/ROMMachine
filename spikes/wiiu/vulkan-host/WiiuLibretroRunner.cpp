@@ -7,6 +7,7 @@
 #include "WiiuRuntimeMetrics.h"
 #include "FramePacer.h"
 #include "SurfaceMailbox.h"
+#include "SessionControl.h"
 #include "ProcessCoreLibrary.h"
 #include <android/native_window_jni.h>
 #include <android/log.h>
@@ -29,6 +30,7 @@
 
 namespace {
 std::atomic<bool> stop_requested{false};
+SessionControl session_control;
 std::atomic<uint32_t> pressed_buttons{0};
 std::atomic<unsigned> frame_count{0};
 std::atomic<unsigned> image_width{0}, image_height{0};
@@ -254,6 +256,7 @@ bool environment(unsigned command, void* data) {
     }
 }
 void video(const void* data, unsigned width, unsigned height, size_t) {
+    WiiuMetrics::CallbackTimer timing{WiiuMetrics::video_callback_us};
     auto* s = active;
     if (!s || stop_requested.load()) return;
     if (data != RETRO_HW_FRAME_BUFFER_VALID) {
@@ -271,12 +274,14 @@ void video(const void* data, unsigned width, unsigned height, size_t) {
         frame_count.fetch_add(s->presenter.presentedFrames() - previous);
 }
 size_t audioBatch(const int16_t* data, size_t frames) {
+    WiiuMetrics::CallbackTimer timing{WiiuMetrics::audio_callback_us};
     if (!active || stop_requested.load() || frontend_paused.load()) return 0;
     std::string error;
     auto consumed = active->audio.write(data, frames, &error);
     submitted_audio.fetch_add(consumed);
     if (!error.empty()) {
         __android_log_print(ANDROID_LOG_ERROR, "CARTDECK_WIIU_AUDIO", "%s", error.c_str());
+        active->error = error;
         active->audio_failed.store(true);
         stop_requested.store(true);
     }
@@ -405,6 +410,11 @@ std::string run(ANativeWindow* window, const std::string& root,
         FramePacer pacer;
         pacer.reset(WiiuMetrics::nowUs());
         for (unsigned i = 0; (!frames || i < frames) && !stop_requested.load(); ++i) {
+            session.audio.service();
+            if (!session_control.boundary()) {
+                pacer.reset(WiiuMetrics::nowUs());
+                continue;
+            }
             auto nextSurface = surfaces.snapshot(handled_surface_generation);
             if (nextSurface.generation != handled_surface_generation && !nextSurface.window) {
                 // Android destroyed the window during rotation/layout change.
@@ -417,11 +427,6 @@ std::string run(ANativeWindow* window, const std::string& root,
             if (nextSurface.window) {
                 if (!session.presenter.replaceSurface(nextSurface.window.get(), &session.error)) break;
                 handled_surface_generation = nextSurface.generation;
-            }
-            if (frontend_paused.load()) {
-                pacer.reset(WiiuMetrics::nowUs());
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                continue;
             }
             const auto device = requested_controller.load();
             if (device != applied_controller.load()) {
@@ -444,10 +449,16 @@ std::string run(ANativeWindow* window, const std::string& root,
             WiiuMetrics::run_calls.fetch_add(1);
             const auto runStart = WiiuMetrics::nowUs();
             WiiuMetrics::run_started_us.store(runStart);
+            const auto videoBefore = WiiuMetrics::video_callback_us.load();
+            const auto audioBefore = WiiuMetrics::audio_callback_us.load();
             session.core.run();
             const auto elapsed = WiiuMetrics::nowUs() - runStart;
             WiiuMetrics::last_run_us.store(elapsed);
-            WiiuMetrics::maximum(WiiuMetrics::max_run_us, elapsed);
+            if (elapsed > WiiuMetrics::max_run_us.load()) {
+                WiiuMetrics::max_run_video_us.store(WiiuMetrics::video_callback_us.load() - videoBefore);
+                WiiuMetrics::max_run_audio_us.store(WiiuMetrics::audio_callback_us.load() - audioBefore);
+                WiiuMetrics::max_run_us.store(elapsed);
+            }
             WiiuMetrics::run_returns.fetch_add(1);
             WiiuMetrics::run_started_us.store(0);
             // Cemu may still be booting without any video callback. Consume the
@@ -464,6 +475,7 @@ std::string run(ANativeWindow* window, const std::string& root,
         std::lock_guard<std::mutex> lock(diagnostics_mutex);
         native_error = session.error;
     }
+    session_control.stop();
     stage("shutdown: stop title and flush persistent saves");
     if (session.loaded) session.core.unload_game();
     stage("shutdown: stop frontend audio");
@@ -480,6 +492,7 @@ std::string run(ANativeWindow* window, const std::string& root,
     stage("shutdown complete; awaiting isolated process exit");
     active = nullptr;
     host_stage.store(4);
+    session_control.finish();
     clearPendingSurface();
     if (session.error.empty() && session.audio_failed.load())
         session.error = "WIIU_AUDIO_WRITE_FAILED_SEE_NATIVE_LOG";
@@ -511,6 +524,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeStop(
     JNIEnv*, jobject) {
     stop_requested.store(true);
+    session_control.stop();
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeButton(
@@ -541,6 +555,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     JNIEnv*, jobject) {
     // UI prepares before starting the VM thread. A subsequent stop must never
     // be erased by a late-starting nativeRun after Surface destruction/pause.
+    session_control.prepare();
     stop_requested.store(false);
     frontend_paused.store(false);
     WiiuMetrics::audio_paused.store(false);
@@ -552,6 +567,12 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
     WiiuMetrics::last_run_us.store(0);
     WiiuMetrics::max_run_us.store(0);
     WiiuMetrics::max_fence_us.store(0);
+    WiiuMetrics::max_run_video_us.store(0);
+    WiiuMetrics::max_run_audio_us.store(0);
+    WiiuMetrics::video_callback_us.store(0);
+    WiiuMetrics::audio_callback_us.store(0);
+    WiiuMetrics::shutdown_idle_us.store(0);
+    WiiuMetrics::shutdown_idle_result.store(0);
     WiiuMetrics::gpu(0);
     { std::lock_guard<std::mutex> lock(diagnostics_mutex); native_error.clear(); }
     host_stage.store(0);
@@ -563,6 +584,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePrepa
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativePause(
     JNIEnv*, jobject, jboolean paused) {
+        session_control.pause(paused);
         frontend_paused.store(paused);
         WiiuMetrics::audio_paused.store(paused);
     }
@@ -590,7 +612,7 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeRepor
         "\naudio_submitted_frames=" + std::to_string(submitted_audio.load()) +
         "\ncontroller_device_requested=" + std::to_string(applied_controller.load()) +
         "\nhost_paused=" + std::to_string(frontend_paused.load()) +
-        "\nnative_error=" + native_error + WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
+        "\nnative_error=" + native_error + session_control.report() + WiiuMetrics::report() + "\n" + gpu_diagnostics + "\ngameplay=UNVERIFIED";
     return env->NewStringUTF(out.c_str());
 }
 
@@ -599,8 +621,5 @@ Java_com_swordfish_lemuroid_app_debug_WiiuVulkanRuntimeProbeActivity_nativeSurfa
     JNIEnv* env, jobject, jobject surface) {
     ANativeWindow* next = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
     surfaces.update(next);
-    if (!next) {
-        frontend_paused.store(true);
-        WiiuMetrics::audio_paused.store(true);
-    }
+    session_control.surface(next != nullptr);
 }

@@ -162,8 +162,11 @@ jobs:
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Rebuild changed Wii U host with attested unchanged core
+        if: inputs.engine == 'cemu' && steps.reuse.outputs.valid != 'true'
+        run: python3 spikes/wiiu/vulkan-host/reuse_core.py work/verified-reuse
       - name: Compile selected pinned native source only
-        if: steps.reuse.outputs.valid != 'true'
+        if: inputs.engine != 'cemu' && steps.reuse.outputs.valid != 'true'
         shell: bash
         run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
       - name: Verify five-core source identity, core and assets; issue immutable receipt
