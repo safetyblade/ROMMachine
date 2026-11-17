@@ -21,6 +21,7 @@ import com.swordfish.lemuroid.app.shared.ImmersiveActivity
 import com.swordfish.lemuroid.app.shared.coreoptions.CoreOption
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.pc.PcHardwareInput
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSideEffects
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.handle
@@ -286,6 +287,41 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         baseGameScreenViewModel.toggleFastForward()
     }
 
+    private val pcHardwareInput = PcHardwareInput()
+
+    private fun pcInputView() =
+        if (::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
+            systemCoreConfig.coreID == CoreID.DOSBOX_PURE &&
+            !baseGameScreenViewModel.isPreparingLaunch() && hasWindowFocus()
+        ) {
+            baseGameScreenViewModel.retroGameView.retroGameView
+        } else {
+            null
+        }
+
+    private fun clearPcInput() {
+        if (::baseGameScreenViewModel.isInitialized && ::systemCoreConfig.isInitialized &&
+            systemCoreConfig.coreID == CoreID.DOSBOX_PURE
+        ) {
+            pcHardwareInput.release(baseGameScreenViewModel.retroGameView.retroGameView)
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        if (!hasFocus) clearPcInput()
+        super.onWindowFocusChanged(hasFocus)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        pcInputView()?.let { if (pcHardwareInput.mouse(event, it)) return true }
+        return super.dispatchGenericMotionEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        pcInputView()?.let { if (pcHardwareInput.mouse(event, it)) return true }
+        return super.dispatchTouchEvent(event)
+    }
+
     private val loadingEscape = com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -299,6 +335,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
             if (loadingEscape.handle(event)) baseGameScreenViewModel.cancelLoading()
             return true
         }
+        pcInputView()?.let { if (pcHardwareInput.key(event, it)) return true }
         return super.dispatchKeyEvent(event)
     }
 
@@ -402,6 +439,11 @@ abstract class BaseGameActivity : ImmersiveActivity() {
 
     open fun onFinishTriggered() {
         finishTriggered = true
+    }
+
+    override fun onPause() {
+        clearPcInput()
+        super.onPause()
     }
 
     override fun onStop() {

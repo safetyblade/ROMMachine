@@ -104,7 +104,7 @@ internal fun PcImportSettings(enabled: Boolean) {
                             throw cancelled
                         } catch (_: Exception) {
                             message =
-                                "PC import failed. Check ISO format, storage space and file access. Original media is unchanged."
+                                "PC import failed. Check format, space and access. Original media is unchanged."
                         } finally {
                             busy = false
                         }
