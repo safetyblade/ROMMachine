@@ -8,7 +8,7 @@ Design candidate, 18 November 2026. Continues B1 on the same design-only branch.
 |---|---|---|---|
 | GEM | Rounded faceted gemstone | GEM | Discovery, recommendations, ratings |
 | SafeSave | Cartridge checkpoint bookmark | SafeSave | Verified save inventory, export, import and recovery |
-| CARTMOD | Modular cartridge with fitted module | CARTMOD | Preparation, modifications, PC setup and installation management |
+| CARTMOD | CM maker's mark | CARTMOD | Preparation, modifications, PC setup and installation management |
 
 Shelf retains existing CARTDECK identity. Junior is B3, not an adult dock destination. PivotArc and GripArc remain italic signature features; full feature icon/mark work is B4. Roxy and team names remain internal, no mascot or persona assets. All B2 shapes and custom stroke wordmarks are original vector construction for review; external legal/trademark clearance is pending. No font binaries or external artwork.
 
@@ -20,7 +20,7 @@ Each product has four independent SVG assets: mark (24-unit viewBox), path-built
 - Header: mark + wordmark once, approximately 24dp mark; if width constrained use mark and live title at B1 page role. Do not stack a second large product name, subtitle and logo on compact gameplay or shelf pages. Provide a single accessible product name; avoid duplicate announcements.
 - Clearspace: at least half rendered mark height around standalone lockups where practical; compact dock uses target spacing not a full marketing lockup. Keep glyph strokes visible at actual render scale. No mark on game artwork.
 - Empty-state illustration: maximum 120dp wide, optional on compact landscape/TV if it steals interaction space. Decorative, excluded from accessibility; state title and real actions remain live text. Avoid repeating the illustration alongside an identical header mark. Never display unsupported actions or fake content.
-- Selected, focus, loading, error and disabled states use shared B1 tokens and text, not brand geometry or colour alone. SafeSave's bookmark is not a backup-success icon. CARTMOD's module is not proof of an installed game. GEM's gemstone is not a rating score or verified eligibility indicator. No mark for destructive confirmation; use shared semantic warnings.
+- Selected, focus, loading, error and disabled states use shared B1 tokens and text, not brand geometry or colour alone. SafeSave's bookmark is not a backup-success icon. CARTMOD's maker's mark is not proof of an installed game. GEM's gemstone is not a rating score or verified eligibility indicator. No mark for destructive confirmation; use shared semantic warnings.
 
 ## Colour
 
@@ -28,14 +28,14 @@ Original default UI: GEM muted amethyst #C6A6D9; SafeSave mist blue #ADC6E1; CAR
 
 ## Product presentation and boundaries
 
-GEM: For You / Browse / My Ratings. Discovery is inviting but precise. Cold start offers unpersonalised browse; never fake recommendations, user scores, ownership or legal availability. GEMRating, GemFinder and DeckFit are subordinate features; do not imply scores are interchangeable. 
+GEM: For You / Browse / My Ratings / Search. Search websites and My Sources are GEM-owned. Discovery is inviting but precise. Cold start offers unpersonalised browse; never fake recommendations, user scores, ownership or legal availability. GEMRating, GemFinder and DeckFit are subordinate features; do not imply scores are interchangeable. 
 SafeSave: save inventory, verified status, import/export and recovery. Emphasise the actual scope, source and state. Explicit confirmations where necessary; no cloud claim. SafeSave Vault is an optional future feature only. 
-CARTMOD: workshop action cards; PC media setup, managed installations, future Patch Studio/My Sources only when available. Hide detailed instructions until requested; imported media does not equal verified install. Keep canonical shared Shelf cartridges and existing storage protections.
+CARTMOD: workshop action cards; PC media setup, managed installations, future Patch Studio when available; FAQs at the bottom. My Sources and customizable website search belong in GEM. Hide detailed instructions until requested; imported media does not equal verified install. Keep canonical shared Shelf cartridges and existing storage protections.
 Product copy proposals in the manifest/specimen are for visual review, not runtime strings or release claims.
 
 ## Owner review — 18 November 2026
 
-Light and appearance-reactive logo tint are approved for eventual integration. GEM geometry remains unchanged. SafeSave C (Checkpoint) is owner-approved and promoted to the canonical B2 assets; historical A/B retained for reference. CARTMOD remains unapproved; compare new alternatives in `options/REVIEW.md`. Settings as a fifth adult destination is proposed in `settings/SETTINGS_EXPERIENCE.md`; earlier four-destination contract remains controlling pending owner approval.
+Light and appearance-reactive logo tint are approved for eventual integration. GEM geometry remains unchanged. SafeSave C (Checkpoint) is owner-approved and promoted to the canonical B2 assets; historical A/B retained for reference. CARTMOD F (Maker's mark) is owner-approved and promoted; A–E retained as historical alternatives. Settings is approved as the fifth adult destination. See `settings/SETTINGS_EXPERIENCE.md` and `B2_FINAL_HANDOFF.md` for final route and ownership amendments.
 
 ## Integration and verification
 
