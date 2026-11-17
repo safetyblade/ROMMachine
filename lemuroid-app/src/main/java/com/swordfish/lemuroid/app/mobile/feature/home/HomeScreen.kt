@@ -138,10 +138,23 @@ internal fun HomeScreen(
             },
         )
     val shelfStates = rememberSaveableStateHolder()
-    UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
+    UnifiedShelfChrome(
+        modifier = modifier,
+        games = games,
+        arrange = arrange,
+        onAddCartridges = onSetDirectoryClicked,
+        canAddCartridges = !state.indexInProgress,
+        recentGame = state.recentGames.firstOrNull(),
+        onContinue = onGameClicked,
+    ) { query, shelfModifier, filters ->
         val projection = projectShelf(layout, games, query)
-        PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
-                pageLayout, pageModifier, pageKey ->
+        PagedShelfSections(
+            layout = projection.layout,
+            modifier = shelfModifier,
+            enabled = !arrange && !query.active,
+            showFilters = !arrange,
+            filters = filters,
+        ) { pageLayout, pageModifier, pageKey ->
             shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
                 ShelfBoard(
                     pageLayout,
@@ -153,6 +166,7 @@ internal fun HomeScreen(
                     onEdit,
                     onSectionEdit,
                     artworkRevision = state.artworkRevision,
+                    showSectionHeaders = arrange || query.active,
                     header = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (state.showNoGamesCard) {
@@ -161,10 +175,6 @@ internal fun HomeScreen(
                                     enabled = !state.indexInProgress,
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                 ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else {
-                                TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
-                                    Text(stringResource(R.string.cartdeck_add_cartridges))
-                                }
                             }
                             if (state.indexInProgress) {
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
@@ -196,17 +206,6 @@ internal fun HomeScreen(
                                     actionId = R.string.home_notification_desmume_deprecated_action,
                                     onAction = onOpenCoreSelection,
                                 )
-                            }
-                            state.recentGames.firstOrNull()?.takeUnless { query.active }?.let { recent ->
-                                TextButton(
-                                    onClick = { onGameClicked(recent) },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                ) {
-                                    Text(
-                                        stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
-                                        maxLines = 2,
-                                    )
-                                }
                             }
                             if (query.active && projection.games.isEmpty()) {
                                 Text("No matching cartridges", modifier = Modifier.padding(16.dp))
