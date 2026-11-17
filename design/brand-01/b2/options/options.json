@@ -1,10 +1,10 @@
 {
   "schema": "cartdeck.product-mark-review/1",
-  "status": "SafeSave approved; CARTMOD second review",
+  "status": "owner-selected",
   "approval": {
     "lightAppearance": true,
     "appearanceReactiveLogoTint": true,
-    "geometryChange": "SafeSave C approved; CARTMOD pending",
+    "geometryChange": "SafeSave C and CARTMOD F approved",
     "gem": "unchanged"
   },
   "options": [
@@ -19,7 +19,7 @@
       "id": "cartmod-a",
       "product": "CARTMOD",
       "name": "Fitted module",
-      "asset": "../cartmod/mark.svg",
+      "asset": "cartmod-a.svg",
       "description": "Original B2 candidate."
     },
     {
@@ -75,7 +75,7 @@
   "wordmarks": "Existing B2 path lettering unchanged for comparison; optional heavier stroke in specimen only, not a new master.",
   "selection": {
     "safesave": "safesave-c",
-    "cartmod": null
+    "cartmod": "cartmod-f"
   },
   "recommendation": {
     "safesave": "safesave-c",
