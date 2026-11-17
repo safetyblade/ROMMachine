@@ -270,9 +270,12 @@ class GameViewModelInput(
     }
 
     fun sendMotionEvent(event: MotionEvent): Boolean {
-        if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK) || event.actionMasked != MotionEvent.ACTION_MOVE) {
-            return false
+        if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return false
+        if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            releasePhysicalInputs()
+            return true
         }
+        if (event.actionMasked != MotionEvent.ACTION_MOVE) return false
         val device = event.device ?: return false
         val ranges = PhysicalControllerInput.eventRanges(event)
         if (ranges.isEmpty()) return false
@@ -424,9 +427,10 @@ class GameViewModelInput(
                 retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_UP, code, port)
             }
             (lastPorts.values.toSet() + forwarded.values.map { it.first }).forEach { port ->
-                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT, 4).forEach { source ->
+                listOf(MOTION_SOURCE_DPAD, MOTION_SOURCE_ANALOG_LEFT, MOTION_SOURCE_ANALOG_RIGHT).forEach { source ->
                     retroGameView.retroGameView?.sendMotionEvent(source, 0f, 0f, port)
                 }
+                if (hasNativeTriggers) retroGameView.retroGameView?.sendMotionEvent(4, 0f, 0f, port)
             }
             forwarded.clear()
             pressedByDevice.clear()
