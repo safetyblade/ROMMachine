@@ -30,6 +30,7 @@ fun SettingsScreen(
     navController: NavController,
     onOpenRecovery: () -> Unit = {},
     onOpenAppearance: (() -> Unit)? = null,
+    onOpenHelp: () -> Unit = {},
 ) {
     val state =
         viewModel.uiState
@@ -71,6 +72,7 @@ fun SettingsScreen(
         )
         GeneralSettings()
         InputSettings(navController = navController)
+        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodHelpSettings(onOpenHelp)
         MiscSettings(
             indexingInProgress = indexingInProgress,
             onOpenRecovery = onOpenRecovery,

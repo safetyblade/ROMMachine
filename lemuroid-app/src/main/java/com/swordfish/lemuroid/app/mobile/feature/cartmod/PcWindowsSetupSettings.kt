@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +47,6 @@ internal fun PcWindowsSetupSettings(
     var busy by remember { mutableStateOf(false) }
     var refresh by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("") }
-    var help by remember { mutableStateOf(false) }
 
     LaunchedEffect(revision, refresh, cartridgeId) {
         try {
@@ -91,17 +89,6 @@ internal fun PcWindowsSetupSettings(
             }
         }
     WorkshopPanel("02 · My installations", "Manage guest disks and launch setup") {
-        TextButton(onClick = { help = !help }) {
-            Text(if (help) "Hide setup guide" else "How to install Windows & games")
-        }
-        if (help) {
-            Text("1. Open a PC cartridge. Boot and install Windows from your own installation media.")
-            Text("2. Run the installed operating system, install the game and shut Windows down normally.")
-            Text("3. In Windows, create a Startup shortcut to the installed EXE with the game folder as Start in.")
-            Text("For new imports with an EXE path, copy the CARTPLAY shortcut from the content drive to Startup.")
-            Text("4. Set the installed OS as auto-start in the core menu. The shelf keeps opening the same guest.")
-            Text("To recover setup, remove the guest startup shortcut and reopen the core menu.")
-        }
         LemuroidSettingsMenuLink(
             title = { Text("Refresh guest disk status") },
             enabled = !busy,

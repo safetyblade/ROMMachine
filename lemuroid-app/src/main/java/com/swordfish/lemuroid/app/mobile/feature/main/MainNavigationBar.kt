@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -51,7 +49,7 @@ fun MainNavigationBar(
     onUndoShelf: () -> Unit = {},
 ) {
     AnimatedVisibility(
-        visible = currentRoute == MainRoute.HOME || currentRoute == MainRoute.CARTMOD,
+        visible = currentRoute in listOf(MainRoute.HOME, MainRoute.CARTMOD, MainRoute.SETTINGS),
         enter = expandVertically(),
         exit = shrinkVertically(),
     ) {
@@ -110,7 +108,12 @@ private fun ProductDock(
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
-    val destinations = listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD")
+    val destinations =
+        listOf(
+            Triple(MainRoute.HOME, "Shelf", R.drawable.cartdeck_brand_shelf),
+            Triple(MainRoute.CARTMOD, "CARTMOD", R.drawable.cartdeck_brand_cartmod),
+            Triple(MainRoute.SETTINGS, "Settings", R.drawable.cartdeck_brand_settings),
+        )
 
     fun navigate(route: MainRoute) {
         if (currentRoute != route) {
@@ -127,14 +130,14 @@ private fun ProductDock(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            destinations.forEach { (route, title) ->
+            destinations.forEach { (route, title, mark) ->
                 TextButton(
                     onClick = { navigate(route) },
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) {
                     val color = if (currentRoute == route) materials.interactionAccent else materials.sectionText
                     Icon(
-                        if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
+                        painterResource(mark),
                         contentDescription = null,
                         tint = color,
                         modifier = Modifier.size(20.dp),
@@ -146,13 +149,13 @@ private fun ProductDock(
         return
     }
     NavigationBar(containerColor = materials.shelfBackboard, tonalElevation = 0.dp) {
-        destinations.forEach { (route, title) ->
+        destinations.forEach { (route, title, mark) ->
             NavigationBarItem(
                 selected = currentRoute == route,
                 onClick = { navigate(route) },
                 icon = {
                     Icon(
-                        if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
+                        painterResource(mark),
                         contentDescription = null,
                     )
                 },

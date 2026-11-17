@@ -1,10 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.main
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,12 +45,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfMaterials
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 
@@ -63,29 +56,15 @@ import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 fun MainTopBar(
     currentRoute: MainRoute,
     navController: NavHostController,
-    onHelpPressed: () -> Unit,
     onUpdateQueryString: (String) -> Unit,
     mainUIState: MainViewModel.UiState,
-    arrangingShelf: Boolean = false,
-    shelfAvailable: Boolean = false,
-    onToggleArrangeShelf: () -> Unit = {},
-    onShelfAppearance: () -> Unit = {},
-    onRefreshLibrary: () -> Unit = {},
-    onAddCartridges: () -> Unit = {},
 ) {
     Column {
         LemuroidTopAppBar(
             route = currentRoute,
             navController = navController,
             mainUIState = mainUIState,
-            onHelpPressed = onHelpPressed,
             onUpdateQueryString = onUpdateQueryString,
-            arrangingShelf = arrangingShelf,
-            shelfAvailable = shelfAvailable,
-            onToggleArrangeShelf = onToggleArrangeShelf,
-            onShelfAppearance = onShelfAppearance,
-            onRefreshLibrary = onRefreshLibrary,
-            onAddCartridges = onAddCartridges,
         )
 
         AnimatedVisibility(mainUIState.operationInProgress) {
@@ -100,16 +79,8 @@ fun LemuroidTopAppBar(
     route: MainRoute,
     navController: NavController,
     mainUIState: MainViewModel.UiState,
-    onHelpPressed: () -> Unit,
     onUpdateQueryString: (String) -> Unit,
-    arrangingShelf: Boolean = false,
-    shelfAvailable: Boolean = false,
-    onToggleArrangeShelf: () -> Unit = {},
-    onShelfAppearance: () -> Unit = {},
-    onRefreshLibrary: () -> Unit = {},
-    onAddCartridges: () -> Unit = {},
 ) {
-    val context = LocalContext.current
     val materials = LocalShelfMaterials.current
     val topBarColor = materials.roomBackdrop
 
@@ -121,8 +92,9 @@ fun LemuroidTopAppBar(
                         mainUIState = mainUIState,
                         onUpdateQueryString = onUpdateQueryString,
                     )
-                MainRoute.HOME -> CartdeckHomeTitle()
-                MainRoute.CARTMOD -> Text("CARTMOD")
+                MainRoute.HOME -> BrandHeader("CARTDECK", R.drawable.cartdeck_brand_shelf)
+                MainRoute.CARTMOD -> BrandHeader("CARTMOD", R.drawable.cartdeck_brand_cartmod)
+                MainRoute.SETTINGS -> BrandHeader("Settings", R.drawable.cartdeck_brand_settings)
                 else -> Text(text = stringResource(route.titleId))
             }
         },
@@ -148,164 +120,105 @@ fun LemuroidTopAppBar(
                 }
             }
         },
-        actions = {
-            LemuroidTopBarActions(
-                route = route,
-                navController = navController,
-                context = context,
-                saveSyncEnabled = mainUIState.saveSyncEnabled,
-                onHelpPressed = onHelpPressed,
-                operationsInProgress = mainUIState.operationInProgress,
-                arrangingShelf = arrangingShelf,
-                shelfAvailable = shelfAvailable,
-                onToggleArrangeShelf = onToggleArrangeShelf,
-                onShelfAppearance = onShelfAppearance,
-                onRefreshLibrary = onRefreshLibrary,
-                onAddCartridges = onAddCartridges,
-            )
-        },
     )
 }
 
 @Composable
-private fun CartdeckHomeTitle() {
-    val pink = LocalShelfAppearance.current.edition == "pink"
+private fun BrandHeader(
+    title: String,
+    icon: Int,
+) {
     val materials = LocalShelfMaterials.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Image(
-            painter =
-                painterResource(
-                    if (pink) R.drawable.cartdeck_pink_cslot_master else R.drawable.cartdeck_original_cslot_master,
-                ),
+        Icon(
+            painterResource(icon),
             contentDescription = null,
+            tint = materials.interactionAccent,
             modifier = Modifier.size(30.dp),
         )
-        Column {
-            Text(
-                text = stringResource(R.string.cartdeck_header_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = materials.sectionText,
-                maxLines = 1,
-            )
-            Text(
-                text = stringResource(R.string.cartdeck_header_library),
-                style = MaterialTheme.typography.labelSmall,
-                color = materials.interactionAccent,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = materials.sectionText,
+            maxLines = 1,
+        )
     }
 }
 
 @Composable
-fun LemuroidTopBarActions(
-    route: MainRoute,
-    navController: NavController,
-    context: Context,
+internal fun ShelfActions(
     saveSyncEnabled: Boolean,
     operationsInProgress: Boolean,
-    onHelpPressed: () -> Unit,
-    arrangingShelf: Boolean = false,
-    shelfAvailable: Boolean = false,
-    onToggleArrangeShelf: () -> Unit = {},
-    onShelfAppearance: () -> Unit = {},
-    onRefreshLibrary: () -> Unit = {},
-    onAddCartridges: () -> Unit = {},
+    arrangingShelf: Boolean,
+    shelfAvailable: Boolean,
+    onToggleArrangeShelf: () -> Unit,
+    onShelfAppearance: () -> Unit,
+    onRefreshLibrary: () -> Unit,
+    onAddCartridges: () -> Unit,
 ) {
+    val context = LocalContext.current
     var libraryOptionsExpanded by remember { mutableStateOf(false) }
-    Row {
-        IconButton(
-            onClick = { onHelpPressed() },
+    Box {
+        androidx.compose.material3.TextButton(onClick = { libraryOptionsExpanded = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = null)
+            Text("Shelf tools")
+        }
+        DropdownMenu(
+            expanded = libraryOptionsExpanded,
+            onDismissRequest = { libraryOptionsExpanded = false },
         ) {
-            Icon(
-                Icons.Outlined.Info,
-                stringResource(R.string.mobile_settings_help),
-            )
-        }
-        if (saveSyncEnabled && route != MainRoute.HOME) {
-            IconButton(
-                onClick = { SaveSyncWork.enqueueManualWork(context.applicationContext) },
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.cartdeck_add_cartridges)) },
                 enabled = !operationsInProgress,
-            ) {
-                Icon(
-                    Icons.Outlined.CloudSync,
-                    stringResource(R.string.save_sync),
+                onClick = {
+                    libraryOptionsExpanded = false
+                    onAddCartridges()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.cartdeck_refresh_library)) },
+                enabled = !operationsInProgress,
+                onClick = {
+                    libraryOptionsExpanded = false
+                    onRefreshLibrary()
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    val titleRes =
+                        if (arrangingShelf) {
+                            R.string.cartdeck_done_arranging
+                        } else {
+                            R.string.cartdeck_arrange_shelf
+                        }
+                    Text(stringResource(titleRes))
+                },
+                enabled = shelfAvailable,
+                onClick = {
+                    libraryOptionsExpanded = false
+                    onToggleArrangeShelf()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.cartdeck_shelf_appearance)) },
+                enabled = shelfAvailable,
+                onClick = {
+                    libraryOptionsExpanded = false
+                    onShelfAppearance()
+                },
+            )
+            if (saveSyncEnabled) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.save_sync)) },
+                    enabled = !operationsInProgress,
+                    onClick = {
+                        libraryOptionsExpanded = false
+                        SaveSyncWork.enqueueManualWork(context.applicationContext)
+                    },
                 )
-            }
-        }
-        if (route.showBottomNavigation) {
-            IconButton(
-                onClick = { navController.navigate(MainRoute.SETTINGS.route) },
-            ) {
-                Icon(
-                    Icons.Outlined.Settings,
-                    stringResource(R.string.settings),
-                )
-            }
-        }
-        if (route == MainRoute.HOME) {
-            Box {
-                IconButton(onClick = { libraryOptionsExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, stringResource(R.string.cartdeck_library_options))
-                }
-                DropdownMenu(
-                    expanded = libraryOptionsExpanded,
-                    onDismissRequest = { libraryOptionsExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.cartdeck_add_cartridges)) },
-                        enabled = !operationsInProgress,
-                        onClick = {
-                            libraryOptionsExpanded = false
-                            onAddCartridges()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.cartdeck_refresh_library)) },
-                        enabled = !operationsInProgress,
-                        onClick = {
-                            libraryOptionsExpanded = false
-                            onRefreshLibrary()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            val titleRes =
-                                if (arrangingShelf) {
-                                    R.string.cartdeck_done_arranging
-                                } else {
-                                    R.string.cartdeck_arrange_shelf
-                                }
-                            Text(stringResource(titleRes))
-                        },
-                        enabled = shelfAvailable,
-                        onClick = {
-                            libraryOptionsExpanded = false
-                            onToggleArrangeShelf()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.cartdeck_shelf_appearance)) },
-                        enabled = shelfAvailable,
-                        onClick = {
-                            libraryOptionsExpanded = false
-                            onShelfAppearance()
-                        },
-                    )
-                    if (saveSyncEnabled) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.save_sync)) },
-                            enabled = !operationsInProgress,
-                            onClick = {
-                                libraryOptionsExpanded = false
-                                SaveSyncWork.enqueueManualWork(context.applicationContext)
-                            },
-                        )
-                    }
-                }
             }
         }
     }

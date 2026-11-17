@@ -259,6 +259,52 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     .collectAsState(MainViewModel.UiState())
                     .value
 
+            val onRefreshLibrary: () -> Unit = {
+                val requestId = LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
+                refreshScope.launch {
+                    try {
+                        val outcome =
+                            WorkManager.getInstance(applicationContext)
+                                .getWorkInfoByIdFlow(requestId)
+                                .filterNotNull()
+                                .first { it.state.isFinished }
+                        if (outcome.state == WorkInfo.State.SUCCEEDED) {
+                            shelfViewModel.reload(clearUndo = true)
+                            refreshMessages.showSnackbar(
+                                getString(
+                                    R.string.cartdeck_refresh_result,
+                                    outcome.outputData.getInt("added", 0),
+                                    outcome.outputData.getInt("removed", 0),
+                                    outcome.outputData.getInt("skipped", 0),
+                                ) +
+                                    if (outcome.outputData.getInt("discProblems", 0) > 0) {
+                                        " Some discs were skipped. Restore the descriptor and tracks " +
+                                            "in one folder; ambiguous discs need a console folder."
+                                    } else {
+                                        ""
+                                    },
+                            )
+                        } else {
+                            val result =
+                                refreshMessages.showSnackbar(
+                                    outcome.outputData.getString("error")
+                                        ?: getString(R.string.cartdeck_refresh_failed),
+                                    actionLabel = getString(R.string.cartdeck_copy_refresh_report),
+                                )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                val report =
+                                    outcome.outputData.getString("report")
+                                        ?: "CARTDECK refresh: no worker report available."
+                                getSystemService(ClipboardManager::class.java)
+                                    .setPrimaryClip(ClipData.newPlainText("CARTDECK refresh", report))
+                            }
+                        }
+                    } catch (error: Exception) {
+                        refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
+                    }
+                }
+            }
+
             Scaffold(
                 modifier = if (coverGameId.value != null) Modifier.clearAndSetSemantics {} else Modifier,
                 snackbarHost = { SnackbarHost(refreshMessages) },
@@ -266,59 +312,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     MainTopBar(
                         currentRoute = currentRoute,
                         navController = navController,
-                        onHelpPressed = onHelpPressed,
                         mainUIState = mainUIState,
                         onUpdateQueryString = { mainViewModel.changeQueryString(it) },
-                        arrangingShelf = arrangingShelf.value,
-                        shelfAvailable = shelfReady,
-                        onToggleArrangeShelf = { arrangingShelf.value = !arrangingShelf.value },
-                        onShelfAppearance = { editingAppearance.value = true },
-                        onAddCartridges = { settingsInteractor.changeLocalStorageFolder() },
-                        onRefreshLibrary = {
-                            val requestId = LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
-                            refreshScope.launch {
-                                try {
-                                    val outcome =
-                                        WorkManager.getInstance(applicationContext)
-                                            .getWorkInfoByIdFlow(requestId)
-                                            .filterNotNull()
-                                            .first { it.state.isFinished }
-                                    if (outcome.state == WorkInfo.State.SUCCEEDED) {
-                                        shelfViewModel.reload(clearUndo = true)
-                                        refreshMessages.showSnackbar(
-                                            getString(
-                                                R.string.cartdeck_refresh_result,
-                                                outcome.outputData.getInt("added", 0),
-                                                outcome.outputData.getInt("removed", 0),
-                                                outcome.outputData.getInt("skipped", 0),
-                                            ) +
-                                                if (outcome.outputData.getInt("discProblems", 0) > 0) {
-                                                    " Some discs were skipped. Restore the descriptor and tracks " +
-                                                        "in one folder; ambiguous discs need a console folder."
-                                                } else {
-                                                    ""
-                                                },
-                                        )
-                                    } else {
-                                        val result =
-                                            refreshMessages.showSnackbar(
-                                                outcome.outputData.getString("error")
-                                                    ?: getString(R.string.cartdeck_refresh_failed),
-                                                actionLabel = getString(R.string.cartdeck_copy_refresh_report),
-                                            )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            val report =
-                                                outcome.outputData.getString("report")
-                                                    ?: "CARTDECK refresh: no worker report available."
-                                            getSystemService(ClipboardManager::class.java)
-                                                .setPrimaryClip(ClipData.newPlainText("CARTDECK refresh", report))
-                                        }
-                                    }
-                                } catch (error: Exception) {
-                                    refreshMessages.showSnackbar(getString(R.string.cartdeck_refresh_failed))
-                                }
-                            }
-                        },
                     )
                 },
                 bottomBar = {
@@ -356,6 +351,18 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
                             arrange = arrangingShelf.value,
                             onSectionEdit = { editingSection.value = it },
+                            shelfActions = {
+                                ShelfActions(
+                                    saveSyncEnabled = mainUIState.saveSyncEnabled,
+                                    operationsInProgress = mainUIState.operationInProgress,
+                                    arrangingShelf = arrangingShelf.value,
+                                    shelfAvailable = shelfReady,
+                                    onToggleArrangeShelf = { arrangingShelf.value = !arrangingShelf.value },
+                                    onShelfAppearance = { editingAppearance.value = true },
+                                    onRefreshLibrary = onRefreshLibrary,
+                                    onAddCartridges = { settingsInteractor.changeLocalStorageFolder() },
+                                )
+                            },
                         )
                     }
                     composable(MainRoute.CARTMOD) {
@@ -459,6 +466,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             navController = navController,
                             onOpenRecovery = { recoveryOpen.value = true },
                             onOpenAppearance = if (shelfReady) ({ editingAppearance.value = true }) else null,
+                            onOpenHelp = onHelpPressed,
                         )
                     }
                     composable(MainRoute.SETTINGS_SUPPORTED_GAMES) {
