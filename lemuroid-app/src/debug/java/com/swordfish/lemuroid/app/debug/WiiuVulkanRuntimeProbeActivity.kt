@@ -409,6 +409,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 while (!leaving) {
                     if (loaded && started) {
                         report = engineReport(nativeReport())
+                        if (menuOpen && report.contains("session_state=paused") &&
+                            report.contains("pause_acknowledged=1")
+                        ) {
+                            menuPauseFeedback = "Game paused."
+                        }
                         val width = Regex("image_width=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         val height = Regex("image_height=(\\d+)").find(report)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                         if (width > 0 && height > 0) {
@@ -485,7 +490,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                         )
                     }.getOrElse { "WIIU_NATIVE_FAILED:${it.javaClass.simpleName}" }
                 runOnUiThread {
-                    report = engineReport(result)
+                    report = engineReport(nativeReport()) + "\nnative_run_result=$result"
                     if (!leaving) {
                         failed = true
                         message = "Wii U session ended. Copy the engine report or return to the shelf."
@@ -698,6 +703,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun copyReport() {
+        if (loaded && started) report = engineReport(nativeReport())
         (
             getSystemService(
                 CLIPBOARD_SERVICE,
@@ -727,6 +733,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 failed = true
                 report += "\nWIIU_SHUTDOWN_TIMED_OUT"
             }
+            if (loaded && started) report = engineReport(nativeReport())
             withContext(Dispatchers.IO) {
                 sandbox?.let { File(it, "last-report.txt").writeText(report.take(16384)) }
             }

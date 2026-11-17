@@ -30,6 +30,7 @@ subprocess.run(["c++", "-std=c++17", "-I", str(headers), "-I", str(portable),
     "-o", str(test)], check=True)
 subprocess.run([str(test.resolve())], check=True)
 for name, sources, includes in (
+    ("session-control", ["tests/SessionControlTest.cpp"], []),
     ("timing", ["tests/TimingTest.cpp"], [str(portable)]),
     ("audio", ["tests/AudioTest.cpp", "WiiuAudio.cpp"], ["spikes/wiiu/vulkan-host/tests/fake"]),
 ):

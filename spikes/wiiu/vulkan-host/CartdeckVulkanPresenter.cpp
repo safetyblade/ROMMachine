@@ -657,8 +657,14 @@ bool CartdeckVulkanPresenter::replaceSurface(ANativeWindow* window, std::string*
 }
 
 void CartdeckVulkanPresenter::stop() {
-    WiiuMetrics::gpu(6);
-    if (device_) vkDeviceWaitIdle(device_);
+    if (device_) {
+        WiiuMetrics::gpu(6);
+        const auto begin = WiiuMetrics::nowUs();
+        const auto result = vkDeviceWaitIdle(device_);
+        WiiuMetrics::shutdown_idle_us.store(WiiuMetrics::nowUs() - begin);
+        WiiuMetrics::shutdown_idle_result.store(result);
+        WiiuMetrics::gpu(0);
+    }
     destroySwapchain();
     for (const auto& old : retired_) {
         if (old.acquired) vkDestroySemaphore(device_, old.acquired, nullptr);

@@ -1,0 +1,61 @@
+{
+  "branch_source": "36edad7549bf474deae8810b3cfa60123a03b5e8",
+  "ci_checkout": "3d627b811b1a644754d3ef76cfdebdcd1b5a73d8",
+  "baseline": "4b46aa82dfc1ab15b27a69f1bc9171501b6b2501",
+  "run_id": 44030747663,
+  "apk_artifact_id": 14305587283,
+  "apk_sha256": "89caa4f57375b243667dddf13079c800a302cbcb7012d90f38ea94be05af2e21",
+  "apk_bytes": 196960215,
+  "application_id": "dev.prestwich.cartdeck.debug",
+  "version_code": 90839697,
+  "version_name": "1.17.0-DEBUG",
+  "signing_certificate_sha256": "ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8",
+  "native_library_count": 42,
+  "all_native_abi": "arm64-v8a",
+  "elf_alignment_gate": "ELF_16KB_PASS",
+  "app_tests": {
+    "tests": 546,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "artifact": 14305632300
+  },
+  "engines": {
+    "cemu": {
+      "revision": "444c585202302a7f4b319bafb4cf72156a8cac8b",
+      "sha256": "18911ab654df005c7142ff67b3b34e43c1adfe4733c5bba5cc97d09b58a2c48c",
+      "build_id": "ceed2b7dd2291941a10ce38eb5d99339ed751896",
+      "action": "reused_atomic64_fixed_core"
+    },
+    "wiiu_host": {
+      "sha256": "88c2292b83c86929105b8bd9ebe66cc1f2f9dc5d118574e825764e63a379ee67",
+      "build_id": "c4a3323e54ad588363516cd5b2e4347c4ce6083b",
+      "action": "rebuilt",
+      "artifact": 14305201980
+    },
+    "xenia": {
+      "revision": "779680ade075d2d2a4c589c6a8d57a8e26c116c0",
+      "sha256": "6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937",
+      "build_id": "fafc8f7f9c449d26f55c4c4c87a2fa4b5d9850bf",
+      "action": "reused_verified_accepted_engine",
+      "artifact": 14305775578
+    }
+  },
+  "symbols_artifact": 14305397885,
+  "physical_install_tested": false,
+  "physical_gameplay_acceptance": "PENDING",
+  "wiiu_battle_fidelity": "UNRESOLVED",
+  "x360_deformation_root_cause": "UNRESOLVED",
+  "ps3_included": false,
+  "distribution_control": "UNCHANGED",
+  "rollback_apks": [
+    {
+      "version_code": 90804540,
+      "artifact_id": 14268751754
+    },
+    {
+      "version_code": 90829006,
+      "artifact_id": 14296792285
+    }
+  ]
+}

@@ -17,6 +17,7 @@ using aaudio_result_t = int32_t;
 using aaudio_data_callback_result_t = int32_t;
 struct AAudioStream {};
 struct AAudioStreamBuilder {};
+constexpr int AAUDIO_ERROR_DISCONNECTED=-899;
 constexpr int AAUDIO_OK=0, AAUDIO_ERROR_ILLEGAL_ARGUMENT=-1,
  AAUDIO_ERROR_INVALID_FORMAT=-2, AAUDIO_DIRECTION_OUTPUT=0,
  AAUDIO_FORMAT_PCM_I16=1, AAUDIO_SHARING_MODE_SHARED=0,
