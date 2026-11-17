@@ -14,6 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -30,11 +36,18 @@ internal fun PagedShelfSections(
     content: @Composable (ShelfLayout, Modifier, String) -> Unit,
 ) {
     val sections = layout.sections
+    var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     if (!enabled || sections.isEmpty()) {
         content(layout, modifier, "all")
         return
     }
-    val pager = rememberPagerState(pageCount = { sections.size })
+    val initialPage = sections.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+    val pager = rememberPagerState(initialPage = initialPage, pageCount = { sections.size })
+    LaunchedEffect(pager, sections) {
+        snapshotFlow { pager.settledPage }.collect { index ->
+            selectedId = sections.getOrNull(index)?.id
+        }
+    }
     val scope = rememberCoroutineScope()
     Column(modifier) {
         if (sections.size > 1) {
