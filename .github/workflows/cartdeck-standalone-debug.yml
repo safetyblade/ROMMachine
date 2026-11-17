@@ -53,58 +53,7 @@ jobs:
               const pc = run.event === 'pull_request' &&
                 run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                 run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
-                new RegExp('^' + prefix + '[0-9a-f]{40}
-    name: Complete CARTDECK ARM64 APK
-    needs: [host-preflight, host-refresh]
-    if: >-
-      always() && !cancelled() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
-      !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
-      (github.ref != 'refs/heads/master' ||
-        (needs.host-preflight.result == 'success' &&
-          (needs.host-refresh.result == 'success' ||
-            (needs.host-refresh.result == 'skipped' && needs.host-preflight.outputs.valid == 'true'))))
-    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
-    with:
-      include_ps3: false
-      use_ci01_all_native: true
-      pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
-      pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
-      pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}
-      publish_apk: true
-    secrets: inherit
-
-  griparc-engineering-review:
-    name: Mark GripArc PR ready after source and APK gates
-    needs: engineering
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.number == 152 &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'fix/pivotarc-griparc-joint'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Mark this verified head ready for engineering review
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          current_head=$(gh api "repos/$GH_REPO/pulls/152" --jq '.head.sha')
-          if [[ "$current_head" != "$VERIFIED_HEAD" ]]; then
-            echo 'A newer head needs its own gates; leaving review state unchanged.'
-            exit 0
-          fi
-          is_draft=$(gh api "repos/$GH_REPO/pulls/152" --jq '.draft')
-          if [[ "$is_draft" == true ]]; then
-            gh pr ready 152 --repo "$GH_REPO"
-          fi
-).test(artifact.name);
+                new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
               let trusted = run.conclusion === 'success' && (dispatched || pc);
               if (!trusted && run.status === 'completed' && run.head_branch === 'master' &&
                   run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
@@ -157,14 +106,23 @@ jobs:
 
   engineering:
     name: Complete CARTDECK ARM64 APK
+    needs: [host-preflight, host-refresh]
     if: >-
+      always() && !cancelled() &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
-      !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-')
+      !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
+      (github.ref != 'refs/heads/master' ||
+        (needs.host-preflight.result == 'success' &&
+          (needs.host-refresh.result == 'success' ||
+            (needs.host-refresh.result == 'skipped' && needs.host-preflight.outputs.valid == 'true'))))
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
       include_ps3: false
       use_ci01_all_native: true
+      pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
+      pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
+      pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}
       publish_apk: true
     secrets: inherit
 
