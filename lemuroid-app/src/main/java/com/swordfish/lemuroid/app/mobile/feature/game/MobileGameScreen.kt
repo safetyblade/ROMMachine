@@ -680,6 +680,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         customColours = appearance.custom.isNotEmpty(),
                         pivotArc = pivotPlacement != null,
                         drawPivotModule = jointPlacement == null,
+                        useFlushSideRails = viewModel.systemId == SystemID.NDS && !isLandscape,
                     )
                 }
             }
