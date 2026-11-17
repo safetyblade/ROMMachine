@@ -7,7 +7,8 @@
     "Shelf",
     "GEM",
     "SafeSave",
-    "CARTMOD"
+    "CARTMOD",
+    "Settings"
   ],
   "availabilitySource": "existing capability gates",
   "products": [
@@ -34,7 +35,14 @@
         "emptyState": "gem/empty-state.svg"
       },
       "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
-      "markReview": "unchanged"
+      "markReview": "unchanged",
+      "ownership": [
+        "For You",
+        "Browse",
+        "My Ratings",
+        "Search websites",
+        "My Sources"
+      ]
     },
     {
       "id": "safesave",
@@ -67,7 +75,7 @@
       "name": "CARTMOD",
       "purpose": "Cartridge preparation",
       "line": "Make more of your games.",
-      "description": "A modular cartridge with a fitted attachment. Represents preparation, not game execution or an installed-game state.",
+      "description": "A custom CM maker's mark representing game preparation and modification.",
       "dark": "#D9B18D",
       "light": "#865735",
       "empty": {
@@ -85,7 +93,28 @@
         "emptyState": "cartmod/empty-state.svg"
       },
       "colourPolicy": "currentColor; Original/Light optional product accent; active personal appearance contrast-safe foreground/accent wins",
-      "markReview": "options review pending"
+      "markReview": "owner-approved Maker's mark (F)",
+      "selectedMark": "cartmod-f"
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "purpose": "Appearance and system configuration",
+      "markReview": "owner-approved functional Settings destination",
+      "assets": {
+        "mark": "settings/mark.svg",
+        "dockGlyph": "settings/mark.svg"
+      },
+      "colourPolicy": "active appearance contrast-safe foreground/accent",
+      "ownership": [
+        "Appearance",
+        "Controllers",
+        "Display & gameplay",
+        "Shelf & library",
+        "Profiles & family",
+        "Help & guides",
+        "System & advanced"
+      ]
     }
   ],
   "sizes": {
@@ -148,7 +177,7 @@
   "appearanceReactiveApproved": true,
   "lightAppearanceApproved": true,
   "navigationReview": {
-    "status": "proposal",
+    "status": "owner-approved",
     "dockOrder": [
       "Shelf",
       "GEM",
