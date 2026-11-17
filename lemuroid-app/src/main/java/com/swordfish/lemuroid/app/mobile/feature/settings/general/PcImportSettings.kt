@@ -74,7 +74,7 @@ internal fun PcImportSettings(enabled: Boolean) {
             value = executable,
             onValueChange = { executable = it },
             label = { Text("Installed Windows EXE (optional)") },
-            supportingText = { Text("Use the guest path, e.g. C:\\MAGIC\\MAGIC.EXE. Can be set inside Windows later.") },
+            supportingText = { Text("Use a short guest path, e.g. C:\\MAGIC\\MAGIC.EXE.") },
             enabled = !busy,
             singleLine = true,
         )
@@ -103,7 +103,10 @@ internal fun PcImportSettings(enabled: Boolean) {
                                 checkNotNull(resolver.openInputStream(gameUri)).use { source ->
                                     if (osUri == null) {
                                         store.importIso(
-                                            title, source, launchRecipe = recipe, checkCancellation = checkCancellation,
+                                            title,
+                                            source,
+                                            launchRecipe = recipe,
+                                            checkCancellation = checkCancellation,
                                         )
                                     } else {
                                         checkNotNull(resolver.openInputStream(osUri)).use { os ->

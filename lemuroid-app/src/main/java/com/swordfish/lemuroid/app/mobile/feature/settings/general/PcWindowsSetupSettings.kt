@@ -90,7 +90,9 @@ internal fun PcWindowsSetupSettings(
             LemuroidSettingsMenuLink(
                 title = { Text(entry.title) },
                 subtitle = {
-                    Text(if (count == 0) "Import a prepared Windows IMG (optional)" else "Guest disk present; boot unverified")
+                    Text(
+                        if (count == 0) "Import a prepared Windows IMG" else "Guest disk present; boot unverified",
+                    )
                 },
                 enabled = enabled && !busy && count == 0,
                 onClick = {

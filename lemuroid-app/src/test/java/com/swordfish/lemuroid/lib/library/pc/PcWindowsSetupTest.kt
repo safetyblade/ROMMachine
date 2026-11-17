@@ -11,7 +11,7 @@ class PcWindowsSetupTest {
     fun startupRecipeUsesGuestWorkingDirectoryAndRejectsCommandInjection() {
         val recipe = PcWindowsLaunchRecipe("c:\\magic\\magic.exe")
         assertEquals(
-            "@ECHO OFF\r\nC:\r\nCD \\MAGIC\r\nIF EXIST MAGIC.EXE MAGIC.EXE\r\n",
+            "@ECHO OFF\r\nC:\r\nCD \\MAGIC\r\nIF EXIST C:\\MAGIC\\MAGIC.EXE C:\\MAGIC\\MAGIC.EXE\r\n",
             recipe.startupBatch().toString(Charsets.US_ASCII),
         )
         for (path in listOf("C:\\..\\X.EXE", "C:\\A&DIR.EXE", "Z:\\X.EXE", "C:\\A.BAT")) {

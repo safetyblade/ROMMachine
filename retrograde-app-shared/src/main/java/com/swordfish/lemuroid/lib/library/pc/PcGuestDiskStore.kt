@@ -11,8 +11,10 @@ class PcGuestDiskStore(private val workspace: PcWorkspace) {
     fun disks(): List<File> {
         if (!workspace.guest.exists()) return emptyList()
         return checkNotNull(workspace.guest.listFiles()).filter {
-            it.isFile && it.extension.lowercase(Locale.ROOT) == "img" && it.length() >= MIN_BYTES &&
-                it.length() % 512 == 0L && it.canonicalFile == File(workspace.guest.canonicalFile, it.name)
+            !it.name.startsWith(".") && it.isFile &&
+                it.extension.lowercase(Locale.ROOT) in setOf("img", "ima", "vhd") &&
+                it.length() >= MIN_BYTES && it.length() % 512 == 0L &&
+                it.canonicalFile == File(workspace.guest.canonicalFile, it.name)
         }.sortedBy { it.name }
     }
 
@@ -42,7 +44,9 @@ class PcGuestDiskStore(private val workspace: PcWorkspace) {
                 }
                 output.fd.sync()
             }
-            require(stage.length() >= MIN_BYTES && PcMediaInspector.inspect(stage) == PcMediaInspector.Kind.DISK_IMAGE) {
+            require(
+                stage.length() >= MIN_BYTES && PcMediaInspector.inspect(stage) == PcMediaInspector.Kind.DISK_IMAGE,
+            ) {
                 "Select a raw sector-aligned hard disk image"
             }
             checkCancellation()
