@@ -170,5 +170,6 @@
       "geometryInvariant": true,
       "monochromeFallback": true
     }
-  }
+  },
+  "taglinesAllowed": false
 }
