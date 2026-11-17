@@ -24,6 +24,8 @@ jobs:
       - run: python3 -m unittest discover -s scripts/ci -p 'test_ps201_device_probe.py' -v
 
   play-libretro-android-arm64:
+    # Recovery owns selective production; do not duplicate native compilation.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'engineering/emu-recovery-')
     runs-on: ubuntu-latest
     timeout-minutes: 105
     env:

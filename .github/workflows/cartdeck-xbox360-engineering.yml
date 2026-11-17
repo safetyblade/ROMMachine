@@ -44,6 +44,8 @@ jobs:
       - run: '"$GRADLE_BIN" -p scripts/ci/xbox360-tests test --no-daemon --max-workers=2'
       - run: python3 -m unittest discover -s scripts/ci -p 'test_xbox360*.py' -v
   native-xbox360:
+    # Recovery owns selective production; do not duplicate native compilation.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'engineering/emu-recovery-')
     needs: source-preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 120
