@@ -16,7 +16,6 @@
       "id": "gem",
       "name": "GEM",
       "purpose": "Discovery and ratings",
-      "line": "Discover something worth playing.",
       "description": "A softly faceted gemstone. Acknowledges discovery without implying that every game is a recommendation.",
       "dark": "#C6A6D9",
       "light": "#725281",
@@ -48,7 +47,6 @@
       "id": "safesave",
       "name": "SafeSave",
       "purpose": "Saves and recovery",
-      "line": "Your progress. Your collection.",
       "description": "A cartridge with an integrated bookmark representing a return to saved progress, not a verified backup.",
       "dark": "#ADC6E1",
       "light": "#365D82",
@@ -74,7 +72,6 @@
       "id": "cartmod",
       "name": "CARTMOD",
       "purpose": "Cartridge preparation",
-      "line": "Make more of your games.",
       "description": "A custom CM maker's mark representing game preparation and modification.",
       "dark": "#D9B18D",
       "light": "#865735",
@@ -131,7 +128,8 @@
     "personas": false,
     "decorativeIllustrationsAccessible": false,
     "markRequiresLabelInNavigation": true,
-    "appImplementation": false
+    "appImplementation": false,
+    "taglinesAllowed": false
   },
   "contrastEvidence": [
     {
