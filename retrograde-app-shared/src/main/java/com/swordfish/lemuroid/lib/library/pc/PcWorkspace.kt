@@ -19,7 +19,20 @@ class PcWorkspace(root: File, profile: UUID, cartridge: UUID) {
         check(media.mkdirs() || media.isDirectory)
         val temporary = File.createTempFile("import-", ".$extension", media)
         try {
-            temporary.outputStream().use { output -> source.copyTo(output) }
+            val maximum = minOf(8L * 1024 * 1024 * 1024, media.usableSpace - 128L * 1024 * 1024)
+            require(maximum > 0) { "Insufficient PC media storage" }
+            temporary.outputStream().use { output ->
+                val buffer = ByteArray(64 * 1024)
+                var written = 0L
+                while (true) {
+                    val count = source.read(buffer)
+                    if (count < 0) break
+                    if (count == 0) continue
+                    written += count
+                    require(written <= maximum) { "PC media exceeds safe import limit" }
+                    output.write(buffer, 0, count)
+                }
+            }
             require(PcMediaInspector.inspect(temporary) != PcMediaInspector.Kind.UNSUPPORTED)
             check(temporary.setReadOnly())
             val target = File(media, "${UUID.randomUUID()}.$extension")
