@@ -14,7 +14,10 @@ class PcWorkspace(root: File, profile: UUID, cartridge: UUID) {
 
     /** Copies a user-selected stream; never opens the original for writing. */
     @Synchronized
-    fun importMedia(extension: String, source: InputStream): File {
+    fun importMedia(
+        extension: String,
+        source: InputStream,
+    ): File {
         require(extension in setOf("iso", "bin", "img"))
         check(media.mkdirs() || media.isDirectory)
         val temporary = File.createTempFile("import-", ".$extension", media)
