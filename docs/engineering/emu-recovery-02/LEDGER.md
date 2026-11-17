@@ -91,3 +91,65 @@ Existing timing windows, skipped-draw counter, RSS/thermal/audio metrics retaine
 Physical comparison: identical match, multiple players,15-minute play, restart and
 rematch, cold/warm cache, Advanced reports/video at onset, save/reopen. Do not infer
 correct geometry/FPS from host presents. Stock Vulkan baseline.
+
+## Verified delivery — 17 November 2026 (Sydney)
+
+[PR309](https://github.com/safetyblade/ROMMachine/pull/309) remains unmerged.
+[Run44030747663](https://github.com/safetyblade/ROMMachine/actions/runs/44030747663)
+PASS; tested branch source `36edad7549bf474deae8810b3cfa60123a03b5e8`, actual
+PR integration checkout `3d627b811b1a644754d3ef76cfdebdcd1b5a73d8`.
+The delivery-record follow-up changes documentation only; it is not the APK source.
+
+[APK artifact14305587283](https://github.com/safetyblade/ROMMachine/actions/runs/44030747663/artifacts/14305587283),
+versionCode **90839697**, versionName1.17.0-DEBUG, package
+`dev.prestwich.cartdeck.debug`, **196960215 bytes**.
+APK SHA256 `89caa4f57375b243667dddf13079c800a302cbcb7012d90f38ea94be05af2e21`.
+Signing certificate SHA256
+`ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8`
+matches the accepted GC upgrade baseline; versionCode increases. This proves
+package/signing upgrade compatibility, not a performed Android installation.
+
+Only the final changed Wii U host was compiled for this candidate:
+SHA256 `88c2292b83c86929105b8bd9ebe66cc1f2f9dc5d118574e825764e63a379ee67`,
+BuildID `c4a3323e54ad588363516cd5b2e4347c4ce6083b`.
+Its core remains18911ab6 / BuildIDceed2b7d above. Producer14305201980 was downloaded
+and independently receipt/hash/ELF/atomic64-verified locally. The new host preserves
+all11 JNI entry points. Xenia remains accepted SHA256
+`6881bb62ae01cf522935f5d2b768412cae5b2d71306e2f4368358f07edbd4937`,
+BuildID `fafc8f7f9c449d26f55c4c4c87a2fa4b5d9850bf`, source779680ad.
+Final producer explicitly reused artifact14267658103, now retained as14305775578;
+no rejected interpreter override is packaged. Final combined symbols14305397885.
+Full native inventories/notices/source receipts accompany the APK/native artifacts.
+Machine-readable exact delivery facts: [DELIVERY.json](DELIVERY.json).
+
+CI: formatting, all receipt/source gates, new sustained constants regression,
+existing Wii U tests, atomic64 sanitizer test, host lifecycle/audio tests, native
+ELF/JNI verification, combined inventory/upgrade APK verification PASS. Downloaded
+unit/UI artifact14305632300 independently sums **546 tests,0 failures/errors/skips**
+across128 XML suites. All42 packaged native libraries are ARM64 and pass16KB ELF
+alignment. No physical16KB-device or gameplay claim.
+
+The first intermediate host run lacked pinned CMake; provisioning is corrected.
+Initial broad legacy workflow filters also launched unrelated experimental builds;
+recovery native jobs are now excluded there (source tests retained). Intermediate
+speculative Xenia work was withdrawn; the obsolete run was superseded. Final
+producer receipts demonstrate unchanged-engine reuse, not unnecessary compilation.
+
+### Remaining owner acceptance (both issues OPEN)
+
+1. Install90839697 over the existing signed debug build; keep app data/ROMs/saves.
+2. Bayonetta2: ten menu pause/resume cycles in cutscene and opening battle; verify
+   same progress, audio and controls; play15 minutes, save, quit/reopen/load save.
+3. Repeat Sonic; rotate/recreate surface, hotplug controller and disconnect/reconnect
+   audio route. Check advanced session/pause acknowledgements and audio recoveries.
+4. FIFA Street3: capture exact Xenia SHA/BuildID, identical match and time-to-onset,
+   multiple characters, sustained15-minute segment, restart/rematch, warm/cold cache
+   comparison where controlled. Capture video/screenshot and Advanced reports at
+   boot/match/onset/end; compare frame-time/queue/audio/RSS/thermal deltas.
+5. Rendering artefacts remain UNRESOLVED. Supply matching scene/trace after testing;
+   do not call more presents or passing source tests rendering acceptance.
+
+GC/source/save baseline remains protected; no schema, package identity, signing,
+controller mapping, shared-menu/presentation or storage changes. Preserve previous
+APK/symbol artifacts and existing engine rollback; never uninstall/clear data to
+force downgrade. PS3 remains excluded with unchanged distribution controls.
