@@ -357,6 +357,15 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onSectionEdit = { editingSection.value = it },
                         )
                     }
+                    composable(MainRoute.CARTMOD) {
+                        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
+                            modifier = Modifier.padding(padding),
+                            enabled = !mainUIState.operationInProgress,
+                            onOpenShelf = {
+                                navController.popBackStack(MainRoute.HOME.route, false)
+                            },
+                        )
+                    }
                     composable(MainRoute.FAVORITES) {
                         FavoritesScreen(
                             modifier = Modifier.padding(padding),
