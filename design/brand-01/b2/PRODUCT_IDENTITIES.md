@@ -7,7 +7,7 @@ Design candidate, 18 November 2026. Continues B1 on the same design-only branch.
 | Product | Symbol | Wordmark | Use |
 |---|---|---|---|
 | GEM | Rounded faceted gemstone | GEM | Discovery, recommendations, ratings |
-| SafeSave | Cartridge in a protective enclosure | SafeSave | Verified save inventory, export, import and recovery |
+| SafeSave | Cartridge checkpoint bookmark | SafeSave | Verified save inventory, export, import and recovery |
 | CARTMOD | Modular cartridge with fitted module | CARTMOD | Preparation, modifications, PC setup and installation management |
 
 Shelf retains existing CARTDECK identity. Junior is B3, not an adult dock destination. PivotArc and GripArc remain italic signature features; full feature icon/mark work is B4. Roxy and team names remain internal, no mascot or persona assets. All B2 shapes and custom stroke wordmarks are original vector construction for review; external legal/trademark clearance is pending. No font binaries or external artwork.
@@ -20,7 +20,7 @@ Each product has four independent SVG assets: mark (24-unit viewBox), path-built
 - Header: mark + wordmark once, approximately 24dp mark; if width constrained use mark and live title at B1 page role. Do not stack a second large product name, subtitle and logo on compact gameplay or shelf pages. Provide a single accessible product name; avoid duplicate announcements.
 - Clearspace: at least half rendered mark height around standalone lockups where practical; compact dock uses target spacing not a full marketing lockup. Keep glyph strokes visible at actual render scale. No mark on game artwork.
 - Empty-state illustration: maximum 120dp wide, optional on compact landscape/TV if it steals interaction space. Decorative, excluded from accessibility; state title and real actions remain live text. Avoid repeating the illustration alongside an identical header mark. Never display unsupported actions or fake content.
-- Selected, focus, loading, error and disabled states use shared B1 tokens and text, not brand geometry or colour alone. SafeSave's enclosure is not a backup-success icon. CARTMOD's module is not proof of an installed game. GEM's gemstone is not a rating score or verified eligibility indicator. No mark for destructive confirmation; use shared semantic warnings.
+- Selected, focus, loading, error and disabled states use shared B1 tokens and text, not brand geometry or colour alone. SafeSave's bookmark is not a backup-success icon. CARTMOD's module is not proof of an installed game. GEM's gemstone is not a rating score or verified eligibility indicator. No mark for destructive confirmation; use shared semantic warnings.
 
 ## Colour
 
@@ -35,7 +35,7 @@ Product copy proposals in the manifest/specimen are for visual review, not runti
 
 ## Owner review — 18 November 2026
 
-Light and appearance-reactive logo tint are approved for eventual integration. GEM geometry remains unchanged. SafeSave and CARTMOD original marks are retained as option A, not locked; compare alternatives in `options/REVIEW.md` before selecting the final marks. No new product assets are promoted by default.
+Light and appearance-reactive logo tint are approved for eventual integration. GEM geometry remains unchanged. SafeSave C (Checkpoint) is owner-approved and promoted to the canonical B2 assets; historical A/B retained for reference. CARTMOD remains unapproved; compare new alternatives in `options/REVIEW.md`. Settings as a fifth adult destination is proposed in `settings/SETTINGS_EXPERIENCE.md`; earlier four-destination contract remains controlling pending owner approval.
 
 ## Integration and verification
 
