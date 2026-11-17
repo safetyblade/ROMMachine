@@ -71,6 +71,7 @@ fun MainTopBar(
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
     onRefreshLibrary: () -> Unit = {},
+    onAddCartridges: () -> Unit = {},
 ) {
     Column {
         LemuroidTopAppBar(
@@ -84,6 +85,7 @@ fun MainTopBar(
             onToggleArrangeShelf = onToggleArrangeShelf,
             onShelfAppearance = onShelfAppearance,
             onRefreshLibrary = onRefreshLibrary,
+            onAddCartridges = onAddCartridges,
         )
 
         AnimatedVisibility(mainUIState.operationInProgress) {
@@ -105,6 +107,7 @@ fun LemuroidTopAppBar(
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
     onRefreshLibrary: () -> Unit = {},
+    onAddCartridges: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val materials = LocalShelfMaterials.current
@@ -158,6 +161,7 @@ fun LemuroidTopAppBar(
                 onToggleArrangeShelf = onToggleArrangeShelf,
                 onShelfAppearance = onShelfAppearance,
                 onRefreshLibrary = onRefreshLibrary,
+                onAddCartridges = onAddCartridges,
             )
         },
     )
@@ -209,6 +213,7 @@ fun LemuroidTopBarActions(
     onToggleArrangeShelf: () -> Unit = {},
     onShelfAppearance: () -> Unit = {},
     onRefreshLibrary: () -> Unit = {},
+    onAddCartridges: () -> Unit = {},
 ) {
     var libraryOptionsExpanded by remember { mutableStateOf(false) }
     Row {
@@ -250,6 +255,14 @@ fun LemuroidTopBarActions(
                     expanded = libraryOptionsExpanded,
                     onDismissRequest = { libraryOptionsExpanded = false },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.cartdeck_add_cartridges)) },
+                        enabled = !operationsInProgress,
+                        onClick = {
+                            libraryOptionsExpanded = false
+                            onAddCartridges()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.cartdeck_refresh_library)) },
                         enabled = !operationsInProgress,

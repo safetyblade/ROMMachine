@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.VideogameAsset
@@ -24,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -69,7 +72,7 @@ fun MainNavigationBar(
                         Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .heightIn(min = 72.dp),
+                            .heightIn(min = if (LocalConfiguration.current.screenHeightDp < 480) 48.dp else 72.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -107,19 +110,46 @@ private fun ProductDock(
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
+    val destinations = listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD")
+
+    fun navigate(route: MainRoute) {
+        if (currentRoute != route) {
+            navController.navigate(route.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+    if (LocalConfiguration.current.screenHeightDp < 480) {
+        Row(
+            Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            destinations.forEach { (route, title) ->
+                TextButton(
+                    onClick = { navigate(route) },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
+                    val color = if (currentRoute == route) materials.interactionAccent else materials.sectionText
+                    Icon(
+                        if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(title, Modifier.padding(start = 8.dp), color = color)
+                }
+            }
+        }
+        return
+    }
     NavigationBar(containerColor = materials.shelfBackboard, tonalElevation = 0.dp) {
-        listOf(MainRoute.HOME to "Shelf", MainRoute.CARTMOD to "CARTMOD").forEach { (route, title) ->
+        destinations.forEach { (route, title) ->
             NavigationBarItem(
                 selected = currentRoute == route,
-                onClick = {
-                    if (currentRoute != route) {
-                        navController.navigate(route.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
+                onClick = { navigate(route) },
                 icon = {
                     Icon(
                         if (route == MainRoute.HOME) Icons.Filled.Home else Icons.Filled.VideogameAsset,

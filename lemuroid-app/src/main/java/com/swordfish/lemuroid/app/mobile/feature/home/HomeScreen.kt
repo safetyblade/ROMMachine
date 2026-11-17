@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -138,6 +139,7 @@ internal fun HomeScreen(
             },
         )
     val shelfStates = rememberSaveableStateHolder()
+    val shortScreen = LocalConfiguration.current.screenHeightDp < 480
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
         PagedShelfSections(projection.layout, shelfModifier, enabled = !arrange && !query.active) {
@@ -153,6 +155,8 @@ internal fun HomeScreen(
                     onEdit,
                     onSectionEdit,
                     artworkRevision = state.artworkRevision,
+                    showSectionHeadings = pageKey == "all" || query.active,
+                    bottomContentPadding = if (arrange) 8.dp else 68.dp,
                     header = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (state.showNoGamesCard) {
@@ -161,7 +165,7 @@ internal fun HomeScreen(
                                     enabled = !state.indexInProgress,
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                 ) { Text(stringResource(R.string.cartdeck_add_cartridges)) }
-                            } else {
+                            } else if (pageKey == "all" && !query.active && !shortScreen) {
                                 TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
                                     Text(stringResource(R.string.cartdeck_add_cartridges))
                                 }
@@ -197,19 +201,28 @@ internal fun HomeScreen(
                                     onAction = onOpenCoreSelection,
                                 )
                             }
-                            state.recentGames.firstOrNull()?.takeUnless { query.active }?.let { recent ->
-                                TextButton(
-                                    onClick = { onGameClicked(recent) },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                ) {
-                                    Text(
-                                        stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
-                                        maxLines = 2,
-                                    )
+                            val firstCollection =
+                                pageLayout.sections.firstOrNull()?.id == layout.sections.firstOrNull()?.id
+                            if (!query.active && !arrange && !shortScreen && (pageKey == "all" || firstCollection)) {
+                                state.recentGames.firstOrNull()?.let { recent ->
+                                    TextButton(
+                                        onClick = { onGameClicked(recent) },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.cartdeck_continue) + " · " + recent.displayName(),
+                                            maxLines = 1,
+                                        )
+                                    }
                                 }
                             }
                             if (query.active && projection.games.isEmpty()) {
                                 Text("No matching cartridges", modifier = Modifier.padding(16.dp))
+                            }
+                            if (!query.active && !arrange && pageLayout.sections.all { it.cells.isEmpty() }) {
+                                TextButton(onClick = onSetDirectoryClicked, enabled = !state.indexInProgress) {
+                                    Text("Empty collection · Add cartridges")
+                                }
                             }
                             tools()
                         }

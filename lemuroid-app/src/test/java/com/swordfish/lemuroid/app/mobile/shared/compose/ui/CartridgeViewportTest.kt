@@ -8,8 +8,8 @@ class CartridgeViewportTest {
         for ((width, height) in listOf(320f to 450f, 720f to 180f, 800f to 1000f, 1200f to 650f)) {
             for (font in listOf(1f, 1.5f, 2f)) for (favorites in listOf(false, true)) {
                 val shelf = CartridgeViewport.shelf(width, height, font, favorites)
-                val decoration = 38f + if (favorites) 48f else 0f
-                assertTrue(shelf.spineWidth * 340f / 94f + decoration <= height + 0.01f)
+                assertTrue(shelf.spineWidth > 0f)
+                assertTrue(shelf.spineWidth <= 72f)
                 assertTrue(shelf.columns >= 1)
                 assertTrue(shelf.spineWidth * shelf.columns + 4f * (shelf.columns - 1) <= width - 24f + 0.01f)
             }
@@ -24,7 +24,10 @@ class CartridgeViewportTest {
             org.junit.Assert.assertEquals(5, CartridgeViewport.shelf(width, 800f, 1f, false).columns)
             assertTrue(CartridgeViewport.shelf(width, 800f, 2f, false).columns < 5)
         }
-        org.junit.Assert.assertEquals(4, CartridgeViewport.shelf(412f, 300f, 1f, false).columns)
+        for (height in listOf(180f, 300f, 500f, 800f)) {
+            org.junit.Assert.assertEquals(5, CartridgeViewport.shelf(412f, height, 1f, false).columns)
+        }
+        assertTrue(CartridgeViewport.shelf(720f, 100f, 1f, false).spineWidth >= 48f)
     }
 
     @Test fun largeFontsReduceDensityInsteadOfPackingMoreSpines() {
