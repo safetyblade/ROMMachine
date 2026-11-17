@@ -24,6 +24,9 @@ on:
       ps3_development_integration:
         type: boolean
         default: false
+      ps3_owner_test:
+        type: boolean
+        default: false
       include_ps3:
         type: boolean
         default: false
@@ -39,6 +42,9 @@ on:
       use_ci01_all_native:
         type: boolean
         default: false
+    secrets:
+      CARTDECK_OWNER_TEST_PASSPHRASE:
+        required: false
   workflow_dispatch:
     inputs:
       measure_apk_reuse:
@@ -87,6 +93,22 @@ jobs:
         run: |
           echo '::error::PS3: use explicitly authorised compile-only development mode without APK publication, or record actual distribution clearance.'
           exit 1
+      - name: Check owner-only PS3 delivery prerequisites
+        if: inputs.ps3_owner_test
+        env:
+          OWNER_TEST_PASSPHRASE: ${{ secrets.CARTDECK_OWNER_TEST_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test "${{ github.event_name }}" = workflow_dispatch
+          test "${{ github.ref }}" = refs/heads/master
+          test "${{ inputs.include_ps3 }}" = true
+          test "${{ inputs.ps3_development_integration }}" = true
+          test "${{ inputs.publish_apk }}" = false
+          if (( ${#OWNER_TEST_PASSPHRASE} < 24 )); then
+            echo '::error::Set repository secret CARTDECK_OWNER_TEST_PASSPHRASE (at least 24 characters) before starting an owner test.'
+            exit 1
+          fi
+          command -v 7z >/dev/null || { sudo apt-get update -qq; sudo apt-get install -y p7zip-full; }
       - name: Native resolver source tests (before native downloads)
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_ci01_legacy_engines.py' -v
@@ -629,6 +651,33 @@ jobs:
           path: dist/connected/
           if-no-files-found: error
           retention-days: 30
+      - name: Encrypt verified PS3 owner-test APK and evidence
+        if: inputs.ps3_owner_test && inputs.include_ps3 && inputs.ps3_development_integration && !inputs.publish_apk
+        env:
+          OWNER_TEST_PASSPHRASE: ${{ secrets.CARTDECK_OWNER_TEST_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          set +x
+          test "${#OWNER_TEST_PASSPHRASE}" -ge 24
+          test -s dist/connected/evidence/ps3-native-apk.json
+          mkdir -p dist/owner-test
+          archive="$GITHUB_WORKSPACE/dist/owner-test/CARTDECK_PS3_OWNER_TEST.7z"
+          cd dist/connected
+          7z a -t7z -mhe=on -mx=0 "-p$OWNER_TEST_PASSPHRASE" "$archive" CARTDECK_STANDALONE_ARM64_DEBUG.apk evidence >/dev/null
+          7z t "-p$OWNER_TEST_PASSPHRASE" "$archive" >/dev/null
+          if 7z l -pwrong-password "$archive" >/dev/null 2>&1; then
+            echo '::error::Owner test archive failed encrypted header verification.'
+            exit 1
+          fi
+          test -s "$archive"
+      - name: Retain encrypted PS3 owner-test package only
+        if: inputs.ps3_owner_test && inputs.include_ps3 && inputs.ps3_development_integration && !inputs.publish_apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: CARTDECK_PS3_OWNER_TEST_ENCRYPTED
+          path: dist/owner-test/CARTDECK_PS3_OWNER_TEST.7z
+          if-no-files-found: error
+          retention-days: 7
       - name: Retain exact ARMSX2 and Xenia crash symbols
         uses: actions/upload-artifact@v4
         with:

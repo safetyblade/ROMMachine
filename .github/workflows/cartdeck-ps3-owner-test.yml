@@ -1,0 +1,61 @@
+name: CARTDECK PS3 owner testing APK
+
+# Explicit owner testing only. Does not run on normal pushes or PRs.
+on:
+  workflow_dispatch:
+    inputs:
+      ps3_source_run_id:
+        description: 'Successful PS3 source workflow run with both unexpired engine artifacts'
+        type: string
+        default: '44012020331'
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cartdeck-ps3-owner-test
+  cancel-in-progress: false
+
+jobs:
+  verify-source:
+    name: Check approved source artifacts
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check source run and both native artifacts
+        uses: actions/github-script@v7
+        env:
+          PS3_SOURCE_RUN_ID: ${{ inputs.ps3_source_run_id }}
+        with:
+          script: |
+            const id = process.env.PS3_SOURCE_RUN_ID;
+            if (!/^\d+$/.test(id)) throw new Error('Invalid PS3 run ID');
+            const run = (await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(id)})).data;
+            if (run.conclusion !== 'success' || !run.path.startsWith('.github/workflows/cartdeck-ps3-source.yml')) {
+              throw new Error('PS3 inputs must come from a successful source verification workflow');
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo,run_id:Number(id),per_page:100
+            });
+            for (const name of ['PS3_ENGINE_armsx3','PS3_ENGINE_rpcs3-libretro']) {
+              if (artifacts.filter(a => a.name === name && !a.expired).length !== 1) {
+                throw new Error('Exactly one unexpired verified input required: ' + name);
+              }
+            }
+            // Staging also validates both embedded receipts and source pins.
+  owner-apk:
+    if: github.ref == 'refs/heads/master'
+    needs: verify-source
+    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
+    with:
+      include_ps3: true
+      ps3_run_id: ${{ inputs.ps3_source_run_id }}
+      use_ci01_all_native: true
+      ps3_development_integration: true
+      ps3_owner_test: true
+      distribution_licensing_cleared: false
+      publish_apk: false
+    secrets:
+      CARTDECK_OWNER_TEST_PASSPHRASE: ${{ secrets.CARTDECK_OWNER_TEST_PASSPHRASE }}
