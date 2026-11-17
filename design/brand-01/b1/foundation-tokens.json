@@ -146,7 +146,8 @@
     "Shelf",
     "GEM",
     "SafeSave",
-    "CARTMOD"
+    "CARTMOD",
+    "Settings"
   ],
   "alternateExperience": "CARTDECK Junior",
   "signatureFeatures": [
