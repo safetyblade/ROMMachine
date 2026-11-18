@@ -32,9 +32,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
@@ -75,9 +75,9 @@ import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
