@@ -418,6 +418,22 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Upload / replace image").performScrollTo().assertIsEnabled()
     }
 
+    @Test fun invalidLocalArtworkDoesNotDeletePreviousCover() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val manager = CustomCoverManager(context)
+        val invalid = File(context.cacheDir, "invalid-local-art.png").apply { writeText("not an image") }
+        val old = manager.stageReplacement(915301) { it.writeBytes(byteArrayOf(1, 2, 3)) }
+        val previous = File(requireNotNull(Uri.parse(old).path))
+        try {
+            assertTrue(runCatching { manager.stageLocalCover(915301, Uri.fromFile(invalid)) }.isFailure)
+            assertTrue(previous.exists())
+            assertTrue(previous.readBytes().contentEquals(byteArrayOf(1, 2, 3)))
+        } finally {
+            manager.discardOwnedCover(915301, old)
+            invalid.delete()
+        }
+    }
+
     @Test fun customCoverManagerPersistsAndResetsOnlyTheSelectedCover() =
         runBlocking {
             val context = ApplicationProvider.getApplicationContext<Application>()

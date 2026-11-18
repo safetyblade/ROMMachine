@@ -89,11 +89,16 @@ internal fun UnifiedShelfChrome(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     placeholder = { Text("Search collection") },
-                    leadingIcon = { Icon(painterResource(R.drawable.cartdeck_action_search), contentDescription = null) },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.cartdeck_action_search), contentDescription = null)
+                    },
                     trailingIcon = {
                         if (text.isNotEmpty()) {
                             IconButton(onClick = { text = "" }) {
-                                Icon(painterResource(R.drawable.cartdeck_action_close), contentDescription = "Clear search")
+                                Icon(
+                                    painterResource(R.drawable.cartdeck_action_close),
+                                    contentDescription = "Clear search",
+                                )
                             }
                         }
                     },

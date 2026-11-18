@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
@@ -82,63 +83,79 @@ class GameInteractor(
         }
     }
 
-    /**
-     * Copies the image at [sourceUri] into app-private storage, then stores
-     * the local file URI in the database.  This ensures the cover survives
-     * app restarts regardless of where the user picked the file from.
-     */
+    /** Copy and validate local artwork before committing the cover field only. */
     fun onSetCustomCoverUri(
         game: Game,
         sourceUri: String,
     ) {
-        GlobalScope.launch {
-            val localUri = customCoverManager.importCover(game.id, Uri.parse(sourceUri))
-            retrogradeDb.gameDao().update(game.copy(customCoverUri = localUri))
+        GlobalScope.launch(Dispatchers.Main) {
+            val changed =
+                replaceArtwork(game) {
+                    customCoverManager.stageLocalCover(game.id, Uri.parse(sourceUri))
+                }
+            if (!changed) showCoverFailure()
         }
     }
 
-    /**
-     * Removes the custom cover: deletes the file from private storage and
-     * clears the database field.
-     */
+    /** Reset the database reference first; remove only the old owned artwork after success. */
     fun onClearCustomCoverUri(game: Game) {
-        GlobalScope.launch {
-            customCoverManager.deleteCover(game.id)
-            retrogradeDb.gameDao().update(game.copy(customCoverUri = null))
+        GlobalScope.launch(Dispatchers.Main) {
+            if (!replaceArtwork(game) { null }) showCoverFailure()
         }
     }
 
-    /** A selected network image is committed only to the same canonical cartridge. */
     suspend fun useOnlineCover(
         game: Game,
         bitmap: Bitmap,
     ): Boolean =
+        replaceArtwork(game) {
+            customCoverManager.stageReplacement(game.id) { file ->
+                file.outputStream().use {
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+                    it.fd.sync()
+                }
+            }
+        }
+
+    /** All artwork changes share the canonical identity and compare-and-set commit boundary. */
+    private suspend fun replaceArtwork(
+        game: Game,
+        stage: () -> String?,
+    ): Boolean =
         withContext(Dispatchers.IO + NonCancellable) {
             if (game.cartridgeId.isBlank()) return@withContext false
-            val current = retrogradeDb.gameDao().selectById(game.id) ?: return@withContext false
-            if (current.cartridgeId != game.cartridgeId) return@withContext false
+            val dao = retrogradeDb.gameDao()
+            val current = runCatching { dao.selectById(game.id) }.getOrNull() ?: return@withContext false
+            if (current.cartridgeId != game.cartridgeId || current.customCoverUri != game.customCoverUri) {
+                return@withContext false
+            }
             val staged =
-                runCatching {
-                    customCoverManager.stageReplacement(game.id) { file ->
-                        file.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
-                    }
-                }.getOrNull() ?: return@withContext false
+                try {
+                    stage()
+                } catch (_: Exception) {
+                    return@withContext false
+                }
             val changed =
                 runCatching {
-                    retrogradeDb.gameDao().replaceCoverIfCurrent(
-                        game.id,
-                        game.cartridgeId,
-                        current.customCoverUri,
-                        staged,
-                    ) == 1
+                    dao.replaceCoverIfCurrent(game.id, game.cartridgeId, current.customCoverUri, staged) == 1
                 }.getOrDefault(false)
             if (changed) {
-                runCatching { customCoverManager.discardOwnedCover(game.id, current.customCoverUri) }
+                if (current.customCoverUri != staged) {
+                    runCatching { customCoverManager.discardOwnedCover(game.id, current.customCoverUri) }
+                }
             } else {
                 runCatching { customCoverManager.discardOwnedCover(game.id, staged) }
             }
             changed
         }
+
+    private fun showCoverFailure() {
+        Toast.makeText(
+            activity.activity(),
+            "Artwork could not be changed. Existing cover retained.",
+            Toast.LENGTH_LONG,
+        ).show()
+    }
 
     private fun ensureNotificationsPermissionAvailable(): Boolean {
         if (useLeanback || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
