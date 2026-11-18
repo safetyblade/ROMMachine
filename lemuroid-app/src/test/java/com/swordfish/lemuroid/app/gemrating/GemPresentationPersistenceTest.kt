@@ -43,6 +43,24 @@ class GemPresentationPersistenceTest {
     }
 
     @Test
+    fun existingDiscoveryPreferencesMigrateWithoutLosingRatings() {
+        val store = GemRatingLocalStore.open(context)
+        val owner = store.session.profileId
+        val discovery = context.getSharedPreferences("gem_discovery_v1", Context.MODE_PRIVATE)
+        assertTrue(
+            discovery.edit().putInt("$owner:wildcard", 45).putString("$owner:recent", "old-release").commit(),
+        )
+        val shelf = context.getSharedPreferences("gem_shelf_presentation_v1", Context.MODE_PRIVATE)
+        assertTrue(shelf.edit().putBoolean("$owner:showRatings", true).commit())
+        store.repository.set(store.session, game.cartridgeId, 8)
+        val snapshot = GemRatingLocalStore.open(context).repository.snapshot(store.session)
+        assertEquals(8, snapshot.records.single().score)
+        assertEquals(GemRatingRepository.Preferences(45, listOf("old-release"), true), snapshot.preferences)
+        assertTrue(discovery.edit().putInt("$owner:wildcard", 20).commit())
+        assertEquals(45, GemRatingLocalStore.open(context).repository.snapshot(store.session).preferences?.wildcardPercent)
+    }
+
+    @Test
     fun customInformationIsLocalAndResettableWithoutChangingCartridgeIdentity() {
         val corrections = GemLocalCorrections(context)
         val saveAlias = game.saveFileName()
