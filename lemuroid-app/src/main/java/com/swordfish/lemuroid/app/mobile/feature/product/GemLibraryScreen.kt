@@ -8,11 +8,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,8 +34,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueIndex
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
+import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,6 +47,9 @@ import kotlinx.coroutines.withContext
 internal fun GemLibraryScreen(
     games: List<Game>,
     modifier: Modifier = Modifier,
+    onOpenCartridge: (Game) -> Unit = {},
+    initialCartridgeId: String? = null,
+    onCartridgeIdConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val corrections = remember(context) { GemLocalCorrections(context) }
@@ -48,6 +58,10 @@ internal fun GemLibraryScreen(
     var page by rememberSaveable { mutableStateOf("For You") }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var inspectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var customEditing by remember { mutableStateOf(false) }
+    var customTitle by rememberSaveable { mutableStateOf("") }
+    var customGenre by rememberSaveable { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var pending by remember { mutableStateOf<GemCataloguePackage.Release?>(null) }
     var revision by remember { mutableStateOf(0) }
@@ -59,6 +73,16 @@ internal fun GemLibraryScreen(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             restoreUri = uri
         }
+
+    LaunchedEffect(initialCartridgeId) {
+        if (initialCartridgeId != null) {
+            page = "Browse"
+            selectedId = initialCartridgeId
+            inspectedId = null
+            query = ""
+            onCartridgeIdConsumed()
+        }
+    }
 
     LaunchedEffect(context, reloading) {
         val loaded = withContext(Dispatchers.IO) { runCatching { GemProductionCatalogue.load(context) } }
@@ -93,12 +117,12 @@ internal fun GemLibraryScreen(
         val saved =
             withContext(Dispatchers.IO) {
                 runCatching {
-                    if (active == null || game == null) {
-                        false
-                    } else if (action.releaseId == null) {
-                        corrections.clear(game)
-                    } else {
-                        active.index.find(action.releaseId)?.let { corrections.select(game, it, active) } == true
+                    when {
+                        game == null -> false
+                        action.customTitle != null -> corrections.saveCustom(game, action.customTitle, action.customGenre)
+                        action.releaseId == null -> corrections.clear(game)
+                        active == null -> false
+                        else -> active.index.find(action.releaseId)?.let { corrections.select(game, it, active) } == true
                     }
                 }.getOrDefault(false)
             }
@@ -111,6 +135,8 @@ internal fun GemLibraryScreen(
     val current = catalogue
     val selected = games.firstOrNull { it.cartridgeId == selectedId }
     val savedId = remember(selected, revision) { selected?.let { corrections.read(it) } }
+    val custom = remember(selected, revision) { selected?.let { corrections.custom(it) } }
+    val inspected = current?.manifest?.releases?.firstOrNull { it.releaseId == inspectedId }
     val match =
         remember(current, selected) {
             if (current != null && selected != null) current.match(selected) else null
@@ -118,12 +144,12 @@ internal fun GemLibraryScreen(
     val candidateIds =
         remember(match) { (match as? GemCatalogueIndex.Match.Review)?.candidates?.map { it.releaseId }.orEmpty() }
     val results =
-        remember(current, query, selected, candidateIds) {
+        remember(current, query, selected, candidateIds, savedId) {
             current?.manifest?.releases.orEmpty().asSequence()
                 .filter { selected == null || it.systemId == selected.systemId }
                 .filter {
                     if (query.isBlank()) {
-                        selected != null && it.releaseId in candidateIds
+                        selected != null && (it.releaseId in candidateIds || it.releaseId == savedId)
                     } else {
                         it.title.contains(query.trim(), ignoreCase = true)
                     }
@@ -131,89 +157,197 @@ internal fun GemLibraryScreen(
                 .take(100)
                 .toList()
         }
-    Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+    Column(modifier = modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             listOf("For You", "Browse", "My Ratings", "Search websites").forEach { destination ->
-                TextButton(onClick = { page = destination }, enabled = page != destination) { Text(destination) }
+                FilterChip(
+                    selected = page == destination,
+                    onClick = { page = destination },
+                    label = { Text(destination) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
             }
         }
-        if (page == "Search websites") {
-            GemWebsiteSearchScreen()
-        } else if (page == "My Ratings") {
-            GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
-        } else if (page == "For You") {
-            if (error) {
-                Text("Catalogue verification failed. Your ratings and saves remain unchanged.")
-            } else if (current == null) {
-                Text("Loading offline catalogue…")
-            } else {
-                GemFinderScreen(catalogue = current, games = games, modifier = Modifier.weight(1f))
-            }
-        } else {
-            Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
-            TextButton(
-                onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
-                enabled = restoreUri == null && !writing && request == null,
-            ) { Text("Restore approved catalogue package") }
-            if (message.isNotBlank()) Text(message)
-            if (error) {
-                Text("Catalogue verification failed. Your cartridges and saves remain unchanged.")
-            } else if (current == null) {
-                Text("Loading offline catalogue…")
-            } else {
-                Text("${current.manifest.releaseCount} historical entries · Source coverage varies")
-                Text("Title matches require confirmation. Records are not compatibility or ownership evidence.")
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it.take(160) },
-                    label = { Text("Find a game") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                if (selected != null) {
-                    Text("Link to: ${selected.displayName()}")
-                    Text(
-                        current.index.find(savedId.orEmpty())?.title?.let { "Linked: $it" }
-                            ?: if (savedId != null) "Previous link is unavailable; retained." else "No confirmed link.",
+        when (page) {
+            "Search websites" -> GemWebsiteSearchScreen()
+            "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
+            "For You" -> {
+                if (error) {
+                    Text("Catalogue verification failed. Your ratings and saves remain unchanged.")
+                } else if (current == null) {
+                    Text("Loading offline catalogue…")
+                } else {
+                    GemFinderScreen(
+                        catalogue = current,
+                        games = games,
+                        modifier = Modifier.weight(1f),
+                        onOpenCartridge = onOpenCartridge,
+                        onInspectRelease = { id ->
+                            selectedId = null
+                            query = ""
+                            inspectedId = id
+                            page = "Browse"
+                        },
                     )
-                    Row {
-                        TextButton(onClick = { selectedId = null }, enabled = !writing) { Text("Cancel link") }
-                        TextButton(
-                            onClick = { request = CorrectionRequest(selected.cartridgeId, null) },
-                            enabled = savedId != null && !writing && request == null,
-                        ) { Text("Clear link") }
-                    }
                 }
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+            }
+            else -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(320.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (selected == null && query.isBlank()) {
-                        item { Text("My cartridges", style = MaterialTheme.typography.titleMedium) }
-                        items(games, key = { it.cartridgeId }) { game ->
-                            TextButton(onClick = { selectedId = game.cartridgeId }) {
-                                Text("${game.displayName()} · ${game.systemId}")
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
+                            if (message.isNotBlank()) Text(message)
+                            if (error) {
+                                Text("Catalogue verification failed. Your cartridges and saves remain unchanged.")
+                            } else if (current == null) {
+                                Text("Loading offline catalogue…")
+                            } else {
+                                Text("${current.manifest.releaseCount} historical entries · Source coverage varies")
+                                OutlinedTextField(
+                                    value = query,
+                                    onValueChange = {
+                                        query = it.take(160)
+                                        inspectedId = null
+                                    },
+                                    label = { Text("Find a game") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                )
+                            }
+                            if (selected != null) {
+                                Text(selected.displayName(), style = MaterialTheme.typography.titleMedium)
+                                val status =
+                                    when {
+                                        custom != null -> "Custom information · not a verified catalogue match"
+                                        savedId != null && current?.index?.find(savedId) != null -> "Confirmed local link"
+                                        savedId != null -> "Previous link unavailable; retained"
+                                        else -> "Unmatched · suggestions require confirmation"
+                                    }
+                                Text(status)
+                                custom?.let { Text(it.title + " · " + (it.genre ?: "Genre unknown")) }
+                                savedId?.let { id -> current?.index?.find(id)?.let { Text(it.title) } }
+                                Row(
+                                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            selectedId = null
+                                            inspectedId = null
+                                            query = ""
+                                        },
+                                        enabled = !writing,
+                                    ) { Text("Back to cartridges") }
+                                    TextButton(
+                                        onClick = {
+                                            customTitle = custom?.title ?: selected.displayName()
+                                            customGenre = custom?.genre.orEmpty()
+                                            customEditing = true
+                                        },
+                                        enabled = !writing && request == null,
+                                    ) { Text("Custom information") }
+                                    TextButton(
+                                        onClick = { request = CorrectionRequest(selected.cartridgeId, null) },
+                                        enabled = (savedId != null || custom != null) && !writing && request == null,
+                                    ) { Text("Reset") }
+                                }
+                            }
+                            if (inspected != null) {
+                                TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
+                                GemIntelligenceRecord(inspected)
                             }
                         }
-                    } else {
-                        if (results.isEmpty()) item { Text("No matching records. Try another title.") }
-                        items(results, key = { it.releaseId }) { release ->
-                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text(release.title, style = MaterialTheme.typography.titleMedium)
-                                Text("${release.systemId} · ${release.primaryGenre ?: "Genre unknown"}")
-                                Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
-                                if (selected != null) {
-                                    TextButton(
-                                        onClick = { pending = release },
-                                        enabled = !writing && request == null,
-                                    ) { Text("Select this entry") }
+                    }
+                    if (current != null && inspected == null) {
+                        if (selected == null && query.isBlank()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Text("My cartridges", style = MaterialTheme.typography.titleMedium)
+                            }
+                            items(games, key = { it.cartridgeId }) { game ->
+                                com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow(
+                                    title = { Text(game.displayName()) },
+                                    supporting = { Text(cartridgeSystemLabel(game.systemId)) },
+                                    onClick = {
+                                        selectedId = game.cartridgeId
+                                        query = ""
+                                    },
+                                )
+                            }
+                        } else {
+                            if (results.isEmpty()) {
+                                item(span = { GridItemSpan(maxLineSpan) }) {
+                                    Text("No matching records. Try another title or enter custom information.")
+                                }
+                            }
+                            items(results, key = { it.releaseId }) { release ->
+                                Column(Modifier.fillMaxWidth().padding(4.dp)) {
+                                    GemIntelligenceRecord(release)
+                                    if (selected != null) {
+                                        TextButton(
+                                            onClick = { pending = release },
+                                            enabled = !writing && request == null,
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                        ) { Text("Confirm this entry") }
+                                    }
                                 }
                             }
                         }
                     }
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        TextButton(
+                            onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
+                            enabled = restoreUri == null && !writing && request == null,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Restore approved catalogue package") }
+                    }
                 }
             }
         }
+    }
+    if (customEditing && selected != null) {
+        AlertDialog(
+            onDismissRequest = { customEditing = false },
+            title = { Text("Custom game information") },
+            text = {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Only GEM information changes. No ROM, save or cartridge identity is modified.")
+                    OutlinedTextField(
+                        value = customTitle,
+                        onValueChange = { customTitle = it.take(512) },
+                        label = { Text("Title") },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = customGenre,
+                        onValueChange = { customGenre = it.take(128) },
+                        label = { Text("Genre (optional)") },
+                        singleLine = true,
+                    )
+                    Text("Custom information is not used as a verified release link for recommendations.")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        request = CorrectionRequest(selected.cartridgeId, null, customTitle, customGenre)
+                        customEditing = false
+                    },
+                    enabled = customTitle.isNotBlank() && !writing && request == null,
+                ) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { customEditing = false }) { Text("Cancel") } },
+        )
     }
     val choice = pending
     if (choice != null && selected != null) {
@@ -234,4 +368,27 @@ internal fun GemLibraryScreen(
     }
 }
 
-private data class CorrectionRequest(val cartridgeId: String, val releaseId: String?)
+@Composable
+private fun GemIntelligenceRecord(release: GemCataloguePackage.Release) {
+    val feature = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
+    androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(release.title, style = MaterialTheme.typography.titleMedium)
+            Text(cartridgeSystemLabel(release.systemId) + " · " + (release.primaryGenre ?: "Genre unknown"))
+            feature?.let {
+                Text(listOfNotNull(it.crossover, it.playstyle).joinToString(" · "))
+                if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
+                Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+            Text("Historical metadata · compatibility not verified", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+private data class CorrectionRequest(
+    val cartridgeId: String,
+    val releaseId: String?,
+    val customTitle: String? = null,
+    val customGenre: String = "",
+)
