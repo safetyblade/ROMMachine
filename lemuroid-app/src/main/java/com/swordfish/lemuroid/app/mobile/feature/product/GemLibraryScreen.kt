@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.mobile.feature.product
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,7 +45,7 @@ internal fun GemLibraryScreen(
     val corrections = remember(context) { GemLocalCorrections(context) }
     var catalogue by remember { mutableStateOf<GemCataloguePackage.Loaded?>(null) }
     var error by remember { mutableStateOf(false) }
-    var websites by rememberSaveable { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf("Browse") }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("") }
@@ -130,12 +132,15 @@ internal fun GemLibraryScreen(
                 .toList()
         }
     Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            TextButton(onClick = { websites = false }, enabled = websites) { Text("Offline catalogue") }
-            TextButton(onClick = { websites = true }, enabled = !websites) { Text("Websites") }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            listOf("Browse", "My Ratings", "Search websites").forEach { destination ->
+                TextButton(onClick = { page = destination }, enabled = page != destination) { Text(destination) }
+            }
         }
-        if (websites) {
+        if (page == "Search websites") {
             GemWebsiteSearchScreen()
+        } else if (page == "My Ratings") {
+            GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
         } else {
             Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
             TextButton(
