@@ -58,8 +58,10 @@ object GemCataloguePackage {
         val manifest: Manifest,
         val index: GemCatalogueIndex,
     ) {
-        fun match(game: Game, evidence: GemCatalogueIndex.Evidence = GemCatalogueIndex.Evidence()): GemCatalogueIndex.Match =
-            index.match(game, evidence)
+        fun match(
+            game: Game,
+            evidence: GemCatalogueIndex.Evidence = GemCatalogueIndex.Evidence(),
+        ): GemCatalogueIndex.Match = index.match(game, evidence)
     }
 
     private val json = Json { ignoreUnknownKeys = false }
@@ -69,33 +71,50 @@ object GemCataloguePackage {
         val bytes = input.readNBytesCompat(MAX_BYTES + 1)
         require(bytes.size <= MAX_BYTES) { "Catalogue exceeds size limit" }
         require(approval.sha256.matches(Regex("[a-f0-9]{64}"))) { "Invalid trusted digest" }
-        val digest = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+        val digest =
+            MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") {
+                "%02x".format(it.toInt() and 255)
+            }
         require(digest == approval.sha256) { "Catalogue digest is not approved" }
         val manifest = json.decodeFromString(Manifest.serializer(), bytes.decodeToString(throwOnInvalidSequence = true))
         require(manifest.schemaVersion == 1) { "Unsupported schema" }
         require(manifest.catalogueVersion == approval.version && manifest.catalogueVersion.isNotBlank())
         require(manifest.releaseCount == manifest.releases.size && manifest.releaseCount in 0..MAX_RELEASES)
         require(manifest.sources.map { it.id }.distinct().size == manifest.sources.size)
-        require(manifest.sources.sortedBy { it.id } == approval.sources.sortedBy { it.id }) { "Unapproved source declaration" }
-        require(manifest.sources.all {
-            it.id.isNotBlank() && it.name.isNotBlank() && it.url.startsWith("https://") &&
-                it.licence.isNotBlank() && it.attribution.isNotBlank() && it.revision.isNotBlank()
-        })
-        val sourceIds = manifest.sources.map { it.id }.toSet()
-        require(manifest.releases.all {
-            it.sourceId in sourceIds && it.sourceRecordId.isNotBlank() &&
-                it.systemId in systems && it.title.length in 1..512 && it.releaseId.length in 1..256 &&
-                (it.primaryGenre?.length ?: 0) <= 128 &&
-                it.verifiedSerials.size <= 32 && it.verifiedSha256.size <= 32 &&
-                it.verifiedSerials.all { serial -> serial.length in 1..128 }
-        }) { "Invalid release or source" }
-        require(manifest.releases.map { it.sourceId to it.sourceRecordId }.distinct().size == manifest.releaseCount)
-        val index = GemCatalogueIndex(
-            manifest.catalogueVersion,
-            manifest.releases.map {
-                GemCatalogueIndex.Release(it.releaseId, it.systemId, it.title, it.verifiedSha256, it.verifiedSerials, it.primaryGenre)
+        require(manifest.sources.sortedBy { it.id } == approval.sources.sortedBy { it.id }) {
+            "Unapproved source declaration"
+        }
+        require(
+            manifest.sources.all {
+                it.id.isNotBlank() && it.name.isNotBlank() && it.url.startsWith("https://") &&
+                    it.licence.isNotBlank() && it.attribution.isNotBlank() && it.revision.isNotBlank()
             },
         )
+        val sourceIds = manifest.sources.map { it.id }.toSet()
+        require(
+            manifest.releases.all {
+                it.sourceId in sourceIds && it.sourceRecordId.isNotBlank() &&
+                    it.systemId in systems && it.title.length in 1..512 && it.releaseId.length in 1..256 &&
+                    (it.primaryGenre?.length ?: 0) <= 128 &&
+                    it.verifiedSerials.size <= 32 && it.verifiedSha256.size <= 32 &&
+                    it.verifiedSerials.all { serial -> serial.length in 1..128 }
+            },
+        ) { "Invalid release or source" }
+        require(manifest.releases.map { it.sourceId to it.sourceRecordId }.distinct().size == manifest.releaseCount)
+        val index =
+            GemCatalogueIndex(
+                manifest.catalogueVersion,
+                manifest.releases.map {
+                    GemCatalogueIndex.Release(
+                        it.releaseId,
+                        it.systemId,
+                        it.title,
+                        it.verifiedSha256,
+                        it.verifiedSerials,
+                        it.primaryGenre,
+                    )
+                },
+            )
         return Loaded(manifest, index)
     }
 
