@@ -33,17 +33,17 @@ class GemCatalogueIndex(
         data object Unmatched : Match
     }
 
-    private fun normalized(value: String): String =
-        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
+    private fun normalized(value: String): String = value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
 
     private fun validHash(value: String): Boolean = value.matches(Regex("[a-fA-F0-9]{64}"))
 
-    private val records = releases.map {
-        it.copy(
-            verifiedSha256 = it.verifiedSha256.map { hash -> hash.lowercase(Locale.ROOT) }.toSet(),
-            verifiedSerials = it.verifiedSerials.map(::normalized).toSet(),
-        )
-    }
+    private val records =
+        releases.map {
+            it.copy(
+                verifiedSha256 = it.verifiedSha256.map { hash -> hash.lowercase(Locale.ROOT) }.toSet(),
+                verifiedSerials = it.verifiedSerials.map(::normalized).toSet(),
+            )
+        }
 
     init {
         require(version.isNotBlank())
@@ -76,8 +76,10 @@ class GemCatalogueIndex(
         // Where both evidence types are supplied, an unresolved or contradictory one
         // cannot silently be ignored. A known candidate remains reviewable.
         if (strong.isNotEmpty()) {
-            val conflict = hash != null && serial != null &&
-                (hashes.size != 1 || serials.size != 1 || hashes.single().releaseId != serials.single().releaseId)
+            val conflict =
+                (evidence.sha256 != null && hash == null) ||
+                    (hash != null && serial != null &&
+                        (hashes.size != 1 || serials.size != 1 || hashes.single().releaseId != serials.single().releaseId))
             return if (strong.size == 1 && !conflict) {
                 Match.Confirmed(strong.single())
             } else {
