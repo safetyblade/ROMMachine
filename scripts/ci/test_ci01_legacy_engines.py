@@ -33,6 +33,21 @@ class LegacyEngineContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 contract("made-up-engine", Path(tmp))
 
+    def test_dreamcast_rejects_unpatched_binary_receipt(self):
+        revision, api, script, props, lib, notice, version, patches, flags = SPECS["dc"]
+        self.assertEqual(patches, ["scripts/ci/patches/flycast-rtt-scratch.patch"])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            binary = root / lib
+            binary.write_bytes(b"fixture only")
+            (root / notice).write_text("test notice")
+            (root / props).write_text(
+                "revision=" + revision + "\ncore.sha256=" +
+                hashlib.sha256(binary.read_bytes()).hexdigest() + "\n"
+            )
+            with self.assertRaisesRegex(ValueError, "RTT patch hash mismatch"):
+                contract("dc", root)
+
     def test_missing_assets_are_not_silently_ignored(self):
         for engine in ("psp", "gc"):
             revision, api, script, props, lib, notice, version, patches, flags = SPECS[engine]

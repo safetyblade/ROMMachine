@@ -25,7 +25,7 @@ SPECS = {
     "dc": ("1b7c7d63b73ea6987fb23f9334a7d597401a50f8", 28,
            "build_dreamcast_upstream_core.sh", "flycast.properties",
            "libflycast_libretro_android.so", "FLYCAST_LICENSE",
-           "flycast", [], "GLES3;Vulkan=OFF;android-28;16KB"),
+           "flycast", ["scripts/ci/patches/flycast-rtt-scratch.patch"], "GLES3;Vulkan=OFF;android-28;16KB"),
     "gc": ("32c61f9d0e933331bb7087ba57e96883241b4960", 28,
            "build_gamecube_upstream_core.sh", "dolphin-modern.properties",
            "libdolphin_modern_libretro_android.so", "DOLPHIN_COPYING",
@@ -62,6 +62,10 @@ def validate_package(engine, directory):
     actual = hashlib.sha256((directory / library).read_bytes()).hexdigest()
     if props.get("core.sha256") != actual:
         raise ValueError(engine + ": source-produced core hash mismatch")
+    if engine == "dc":
+        expected_patch = hashlib.sha256(Path(patches[0]).read_bytes()).hexdigest()
+        if props.get("patch.sha256") != expected_patch:
+            raise ValueError("dc: source-produced RTT patch hash mismatch")
     if engine in ("psp", "gc"):
         asset = "ppsspp-modern-assets.zip" if engine == "psp" else "dolphin-modern-assets.zip"
         if props.get("assets.sha256") != hashlib.sha256((directory / asset).read_bytes()).hexdigest():

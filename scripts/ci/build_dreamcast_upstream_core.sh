@@ -3,6 +3,9 @@
 set -euo pipefail
 source_url=https://github.com/flyinghead/flycast.git
 source_sha=1b7c7d63b73ea6987fb23f9334a7d597401a50f8
+ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+patch_file="$ROOT/scripts/ci/patches/flycast-rtt-scratch.patch"
+test -f "$patch_file"
 : "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to an Android NDK}"
 out="${1:?Output directory required}"
 mkdir -p "$out"
@@ -16,8 +19,25 @@ src="$build_root/upstream"
 if [[ ! -d "$src/.git" ]]; then git clone --no-checkout "$source_url" "$src"; fi
 git -C "$src" checkout --detach "$source_sha"
 test "$(git -C "$src" rev-parse HEAD)" = "$source_sha"
-git -C "$src" diff --quiet --ignore-submodules=all
+# Accept only the exact pinned checkout or the exact already-applied owned patch.
 git -C "$src" diff --cached --quiet --ignore-submodules=all
+if git -C "$src" diff --quiet --ignore-submodules=all; then
+    git -C "$src" apply --check "$patch_file"
+    git -C "$src" apply "$patch_file"
+else
+    index=$(mktemp "$build_root/.flycast-index.XXXXXX")
+    rm "$index"
+    (
+        trap 'rm -f "$index" "$index.lock"' EXIT
+        export GIT_INDEX_FILE="$index"
+        git -C "$src" read-tree "$source_sha"
+        git -C "$src" apply --cached "$patch_file"
+        expected=$(git -C "$src" write-tree)
+        git -C "$src" read-tree "$source_sha"
+        git -C "$src" add -u -- .
+        test "$(git -C "$src" write-tree)" = "$expected"
+    )
+fi
 # Android libretro GLES does not use desktop GUI, SDL, Freetype, Vulkan, or Oboe.
 # Avoid fetching unused platform SDKs, while retaining exact upstream gitlinks.
 git -C "$src" submodule update --init --recursive --depth 1 --jobs 2 -- \
@@ -68,6 +88,7 @@ git -C "$src" submodule status --recursive -- core/deps/libchdr core/deps/rcheev
 {
     echo "upstream=$source_url"
     echo "commit=$source_sha"
+    echo "patch.sha256=$(sha256sum "$patch_file" | cut -d ' ' -f1)"
     echo "core_file=libflycast_libretro_android.so"
     echo 'abi=arm64-v8a'
     echo 'graphics=opengles3;vulkan=off'
@@ -77,6 +98,7 @@ git -C "$src" submodule status --recursive -- core/deps/libchdr core/deps/rcheev
 (cd "$out" && sha256sum libflycast_libretro_android.so > sha256.txt)
 {
     echo "revision=$source_sha"
+    echo "patch.sha256=$(sha256sum "$patch_file" | cut -d ' ' -f1)"
     echo "core.file=libflycast_libretro_android.so"
     echo "core.sha256=$(cut -d ' ' -f1 "$out/sha256.txt")"
     echo 'core.abi=arm64-v8a'

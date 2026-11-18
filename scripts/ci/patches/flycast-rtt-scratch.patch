@@ -1,0 +1,36 @@
+diff --git a/core/rend/gles/gltex.cpp b/core/rend/gles/gltex.cpp
+--- a/core/rend/gles/gltex.cpp
++++ b/core/rend/gles/gltex.cpp
+@@ -250,8 +250,28 @@
+ 		else
+ 		{
+-			PixelBuffer<u32> tmp_buf;
+-			tmp_buf.init(w, h);
+-
+-			u8 *p = (u8 *)tmp_buf.data();
++			// Keep the required synchronous readback and all VRAM packing semantics.
++			// Reuse bounded scratch storage on the owning renderer thread instead
++			// of allocating/freeing a full RGBA image for every RTT submission.
++			constexpr size_t maxCachedPixels = 1024 * 1024;
++			const size_t pixels = static_cast<size_t>(w) * h;
++			static thread_local std::unique_ptr<u32[]> cached;
++			static thread_local size_t capacity = 0;
++			PixelBuffer<u32> temporary;
++			u32 *scratch;
++			if (pixels > 0 && pixels <= maxCachedPixels)
++			{
++				if (pixels > capacity)
++				{
++					cached.reset(new u32[pixels]);
++					capacity = pixels;
++				}
++				scratch = cached.get();
++			}
++			else
++			{
++				temporary.init(w, h);
++				scratch = temporary.data();
++			}
++			u8 *p = reinterpret_cast<u8 *>(scratch);
+ 			glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, p);
+ 
