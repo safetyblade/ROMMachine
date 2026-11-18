@@ -75,5 +75,22 @@ class LibretroEngineReportTest {
         assertTrue(result.contains("selected_core_file_sha256=unavailable"))
         assertTrue(result.contains("core_video_callback_observed=false"))
         assertTrue(result.contains("performance_counters=not collected"))
+        val measured =
+            LibretroEngineReport.render(
+                appVersion = "test",
+                system = "dc",
+                title = "Fixture",
+                core = "flycast",
+                hostVersion = "test",
+                mediaFormat = "gdi",
+                session = session.copy(performanceSnapshot = "runs=42;fifo_dropped=3;private=/secret"),
+                digest = null,
+                revision = null,
+                androidSdk = 35,
+                device = "test",
+            )
+        assertTrue(measured.contains("runs=42"))
+        assertTrue(measured.contains("fifo_dropped=3"))
+        assertFalse(measured.contains("/secret"))
     }
 }
