@@ -13,30 +13,26 @@ internal object GemShelfPresentation {
         synchronized(changes) { changes.value++ }
     }
 
-    private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences("gem_shelf_presentation_v1", Context.MODE_PRIVATE)
-
-    private fun key(session: GemRatingRepository.Session): String = "${session.profileId}:showRatings"
-
     fun enabled(context: Context): Boolean {
-        val session = GemRatingLocalStore.open(context).session
-        return prefs(context).getBoolean(key(session), false)
+        val store = GemRatingLocalStore.open(context)
+        return store.repository.snapshot(store.session).preferences?.showShelfRatings == true
     }
 
     fun setEnabled(
         context: Context,
         enabled: Boolean,
     ): Boolean {
-        val session = GemRatingLocalStore.open(context).session
-        val saved = prefs(context).edit().putBoolean(key(session), enabled).commit()
-        if (saved) changed()
-        return saved
+        val store = GemRatingLocalStore.open(context)
+        return runCatching {
+            store.repository.updatePreferences(store.session) { it.copy(showShelfRatings = enabled) }
+        }.isSuccess
     }
 
     fun ratings(context: Context): Map<String, Int> {
         val store = GemRatingLocalStore.open(context)
-        if (!prefs(context).getBoolean(key(store.session), false)) return emptyMap()
-        return store.repository.snapshot(store.session).records.mapNotNull { rating ->
+        val snapshot = store.repository.snapshot(store.session)
+        if (snapshot.preferences?.showShelfRatings != true) return emptyMap()
+        return snapshot.records.mapNotNull { rating ->
             rating.score?.let { rating.cartridgeId to it }
         }.toMap()
     }
