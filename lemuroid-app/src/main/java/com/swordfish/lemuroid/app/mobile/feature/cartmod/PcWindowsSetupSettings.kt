@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +27,7 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLin
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.library.pc.PcGuestDiskStore
+import com.swordfish.lemuroid.lib.library.pc.PcWindowsLaunchRecipe
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -44,6 +47,8 @@ internal fun PcWindowsSetupSettings(
     val store = remember(context) { PcCartridgeStore(context.filesDir) }
     var entries by remember { mutableStateOf<List<Pair<PcCartridgeStore.Entry, Int>>>(emptyList()) }
     var selected by remember { mutableStateOf<PcCartridgeStore.Entry?>(null) }
+    var recipeEntry by remember { mutableStateOf<PcCartridgeStore.Entry?>(null) }
+    var recipePath by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var refresh by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("") }
@@ -116,6 +121,54 @@ internal fun PcWindowsSetupSettings(
                         enabled = enabled && !busy && canonical != null,
                         onClick = { canonical?.let(onOpenGuest) },
                     )
+                    LemuroidSettingsMenuLink(
+                        title = { Text("Configure installed executable") },
+                        subtitle = { Text("Persist the guest EXE path without modifying installation media") },
+                        enabled = enabled && !busy,
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    recipePath = withContext(Dispatchers.IO) { store.launchRecipe(entry)?.executable.orEmpty() }
+                                    recipeEntry = entry
+                                } catch (_: Exception) {
+                                    message = "Existing launch recipe could not be read."
+                                }
+                            }
+                        },
+                    )
+                    if (recipeEntry?.id == entry.id) {
+                        OutlinedTextField(
+                            value = recipePath,
+                            onValueChange = { recipePath = it },
+                            label = { Text("Windows executable path") },
+                            singleLine = true,
+                            enabled = !busy,
+                        )
+                        TextButton(
+                            enabled = !busy,
+                            onClick = {
+                                busy = true
+                                scope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            check(!GameProcessLock.isHeldByAnotherProcess(context))
+                                            store.setLaunchRecipe(entry, PcWindowsLaunchRecipe(recipePath))
+                                        }
+                                        message = "Executable path saved. Launch from the PC session after Windows boots."
+                                        recipeEntry = null
+                                    } catch (cancelled: CancellationException) {
+                                        throw cancelled
+                                    } catch (_: Exception) {
+                                        message = "Could not save executable path. Close games and check the path."
+                                    } finally {
+                                        busy = false
+                                    }
+                                }
+                            },
+                        ) {
+                            Text("Save executable")
+                        }
+                    }
                     LemuroidSettingsMenuLink(
                         title = { Text("Import prepared Windows IMG") },
                         subtitle = {

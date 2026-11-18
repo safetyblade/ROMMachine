@@ -88,6 +88,23 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                if (system.id == SystemID.DOS && com.swordfish.lemuroid.BuildConfig.PC_INTEGRATION_ENABLED) {
+                    val managed =
+                        withContext(Dispatchers.IO) {
+                            com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession.resolve(activity, game)
+                        }
+                    if (managed != null) {
+                        val target =
+                            Intent().setClassName(
+                                activity,
+                                "com.swordfish.lemuroid.app.pc.PcIntegratedActivity",
+                            ).putExtra("cartdeck.game", game)
+                                .putExtra("cartdeck.leanback", leanback)
+                        activity.startActivityForResult(target, BaseGameActivity.REQUEST_PLAY_GAME)
+                        gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                        return@launch
+                    }
+                }
                 // The Wii U catalogue is independently searchable before Cemu's
                 // Vulkan host passes physical gameplay QA. Never try to launch
                 // a catalogue-only cartridge via the existing GLES frontend.

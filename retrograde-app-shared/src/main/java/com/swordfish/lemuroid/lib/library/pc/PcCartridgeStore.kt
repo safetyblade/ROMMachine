@@ -43,6 +43,39 @@ class PcCartridgeStore(private val filesRoot: File) {
 
     fun workspace(entry: Entry): PcWorkspace = PcWorkspace(filesRoot, LOCAL_PLAYER, entry.id)
 
+    fun workspace(entry: Entry, profile: UUID): PcWorkspace = PcWorkspace(filesRoot, profile, entry.id)
+
+    fun launchRecipe(entry: Entry): PcWindowsLaunchRecipe? {
+        val file = File(entry.content.parentFile, "launch-exe.txt")
+        if (!file.exists()) return null
+        check(file.canonicalFile == File(entry.content.parentFile.canonicalFile, file.name))
+        check(file.length() in 1..240)
+        return PcWindowsLaunchRecipe(file.readText(Charsets.US_ASCII))
+    }
+
+    /** Explicit recipe update does not modify the immutable optical archive or any guest disk. */
+    @Synchronized
+    fun setLaunchRecipe(entry: Entry, recipe: PcWindowsLaunchRecipe) {
+        check(resolve(entry.content)?.id == entry.id)
+        val directory = entry.content.parentFile
+        val target = File(directory, "launch-exe.txt")
+        val temporary = File.createTempFile(".launch-", ".tmp", directory)
+        try {
+            temporary.outputStream().use {
+                it.write(recipe.executable.toByteArray(Charsets.US_ASCII))
+                it.fd.sync()
+            }
+            java.nio.file.Files.move(
+                temporary.toPath(),
+                target.toPath(),
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+            )
+        } finally {
+            temporary.delete()
+        }
+    }
+
     /**
      * The caller selects and opens streams read-only, and owns them. Nothing is
      * published to the library until the whole archive has been validated and synced.
@@ -96,6 +129,12 @@ class PcCartridgeStore(private val filesRoot: File) {
             File(stage, "title.txt").outputStream().use {
                 it.write(cleanTitle.toByteArray(Charsets.UTF_8))
                 it.fd.sync()
+            }
+            if (launchRecipe != null) {
+                File(stage, "launch-exe.txt").outputStream().use {
+                    it.write(launchRecipe.executable.toByteArray(Charsets.US_ASCII))
+                    it.fd.sync()
+                }
             }
             check(archive.setReadOnly())
             checkCancellation()

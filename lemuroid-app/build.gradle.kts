@@ -18,8 +18,14 @@ if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == tr
     }
 }
 
+val pcIntegration = providers.gradleProperty("cartdeckPcIntegrationDir").orNull
+
 android {
     defaultConfig {
+        buildConfigField("boolean", "PC_INTEGRATION_ENABLED", (pcIntegration != null).toString())
+        if (pcIntegration != null) {
+            require(providers.gradleProperty("cartdeck.pc.integrationLab").orNull == "true")
+        }
         buildConfigField(
             "boolean",
             "P1_EMU_ENABLED",
@@ -42,6 +48,10 @@ android {
         }
         if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck.wiiulab"
+        }
+
+        if (pcIntegration != null) {
+            applicationId = "dev.prestwich.cartdeck.pclab"
         }
 
         // P0 test-only overrides. No override means the original production configuration.
@@ -116,6 +126,14 @@ android {
         sourceSets.getByName("main") {
             jniLibs.srcDir("$bundle/jniLibs")
             assets.srcDir("$bundle/assets")
+        }
+    }
+
+    if (pcIntegration != null) {
+        sourceSets.getByName("debug") {
+            java.srcDir("src/pcIntegration/java")
+            manifest.srcFile("src/pcIntegration/AndroidManifest.xml")
+            jniLibs.srcDir("$pcIntegration/jniLibs")
         }
     }
 
@@ -264,6 +282,9 @@ dependencies {
     testImplementation("androidx.test:core:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    if (pcIntegration != null) {
+        debugImplementation(files("$pcIntegration/PcLibretroHost.aar"))
+    }
     implementation(project(":retrograde-util"))
     implementation(project(":retrograde-app-shared"))
     implementation(project(":lemuroid-metadata-libretro-db"))
