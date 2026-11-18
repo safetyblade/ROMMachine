@@ -16,17 +16,16 @@ class GemDiscoveryTest {
         mechanics: Set<String> = setOf("Deckbuilding"),
         work: String? = null,
         eligibility: Eligibility = Eligibility.GAME,
-    ) =
-        Game(
-            releaseId = id,
-            title = id,
-            platform = "gba",
-            primaryGenre = genre,
-            mechanics = mechanics,
-            verifiedWorkId = work,
-            eligibility = eligibility,
-            evidence = Evidence.SOURCE_BACKED,
-        )
+    ) = Game(
+        releaseId = id,
+        title = id,
+        platform = "gba",
+        primaryGenre = genre,
+        mechanics = mechanics,
+        verifiedWorkId = work,
+        eligibility = eligibility,
+        evidence = Evidence.SOURCE_BACKED,
+    )
 
     @Test
     fun wildcardQuotaNeverSpillsIntoStandardSlots() {
