@@ -14,8 +14,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 LEGACY = {
     "stella": ["atari2600"], "prosystem": ["atari7800"], "handy": ["lynx"],
     "fceumm": ["nes"], "snes9x": ["snes"], "gambatte": ["gb", "gbc"],
-    "mgba": ["gba"], "genesis_plus_gx": ["sms", "genesis", "segacd", "gg"],
-    "mednafen_pce_fast": ["pc_engine"], "mednafen_ngp": ["ngp", "ngc"],
+    "mgba": ["gba"], "genesis_plus_gx": ["sms", "md", "scd", "gg"],
+    "mednafen_pce_fast": ["pce"], "mednafen_ngp": ["ngp", "ngc"],
     "mednafen_wswan": ["ws", "wsc"], "mupen64plus_next_gles3": ["n64"],
     "pcsx_rearmed": ["psx"], "ppsspp": ["psp"], "desmume": ["nds"],
     "melonds": ["nds"], "citra": ["3ds"], "fbneo": ["fbneo"],
@@ -24,8 +24,8 @@ LEGACY = {
 MODERN = {
     "pcsx_rearmed_modern": (["psx"], "cartdeck/pcsx-rearmed-modern.properties"),
     "ppsspp_modern": (["psp"], "cartdeck/ppsspp-modern.properties"),
-    "flycast": (["dreamcast"], "cartdeck/flycast.properties"),
-    "dolphin_modern": (["gamecube", "wii"], "cartdeck/dolphin-modern.properties"),
+    "flycast": (["dc"], "cartdeck/flycast.properties"),
+    "dolphin_modern": (["gc", "wii"], "cartdeck/dolphin-modern.properties"),
     "play_modern": (["ps2"], "cartdeck/play-modern.properties"),
 }
 NATIVE = {

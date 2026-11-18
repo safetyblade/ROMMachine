@@ -26,7 +26,26 @@ new file mode 100644
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
-@@ -271,6 +271,8 @@
+@@ -182,7 +182,8 @@
+ }
+ 
+ void LibretroDroid::onSurfaceChanged(unsigned int width, unsigned int height) {
+     LOGD("Performing libretrodroid onSurfaceChanged");
++    if (!video || !cartdeck::validDimensions(width, height)) return;
+     video->updateScreenSize(width, height);
+ }
+ 
+@@ -194,6 +195,9 @@
+     struct retro_system_av_info system_av_info {};
+     core->retro_get_system_av_info(&system_av_info);
+ 
++    if (!cartdeck::validDimensions(system_av_info.geometry.base_width, system_av_info.geometry.base_height)) {
++        throw std::runtime_error("Invalid core surface geometry");
++    }
+     video = nullptr;
+ 
+     Video::RenderingOptions renderingOptions {
+@@ -271,6 +275,8 @@
      LOGD("Performing libretrodroid create");
  
      resetGlobalVariables();
@@ -35,7 +54,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      Environment::getInstance().initialize(systemDir, savesDir, &callback_get_current_framebuffer);
      Environment::getInstance().setLanguage(language);
-@@ -429,6 +431,8 @@
+@@ -429,6 +435,8 @@
  void LibretroDroid::resume() {
 +    std::lock_guard<std::mutex> lock(coreLock);
 +    if (!fpsSync || !audio || !video) return;
@@ -44,7 +63,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
      input = std::make_unique<Input>();
  
      fpsSync->reset();
-@@ -439,6 +443,8 @@
+@@ -439,6 +447,8 @@
  void LibretroDroid::pause() {
 +    std::lock_guard<std::mutex> lock(coreLock);
 +    if (!audio) return;
@@ -53,7 +72,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      input = nullptr;
  }
-@@ -466,6 +472,9 @@
+@@ -466,6 +476,9 @@
      if (fpsSync) {
          fpsSync->wait();
      }
@@ -63,7 +82,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      if (rumble && rumbleEnabled) {
          rumble->fetchFromEnvironment();
-@@ -541,6 +550,7 @@
+@@ -541,6 +554,7 @@
          if (video->rendersInVideoCallback()) {
              video->renderFrame();
          }
@@ -71,7 +90,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
      }
  }
  
-@@ -605,9 +615,18 @@
+@@ -605,9 +619,18 @@
      struct retro_system_av_info system_av_info {};
      core->retro_get_system_av_info(&system_av_info);
  
@@ -93,7 +112,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      audio = std::make_unique<Audio>(
          (int32_t) std::lround(inputSampleRate),
-@@ -620,7 +639,25 @@
+@@ -620,7 +643,25 @@
      defaultAspectRatio = findDefaultAspectRatio(system_av_info);
  }
  
@@ -532,11 +551,12 @@ diff --git a/libretrodroid/src/main/cpp/fpssync.cpp b/libretrodroid/src/main/cpp
 +        throw std::invalid_argument("Invalid content refresh rate");
 +    }
 +    if (!std::isfinite(screenRefreshRate) || screenRefreshRate <= 0.0) {
-+        screenRefreshRate = contentRefreshRate;
++        screenRefreshRate = 0.0; // Unknown display cadence: use software pacing.
 +    }
      this->contentRefreshRate = contentRefreshRate;
      this->screenRefreshRate = screenRefreshRate;
-     this->useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
+-    this->useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
++    this->useVSync = screenRefreshRate > 0.0 && std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
      this->sampleInterval = std::chrono::microseconds((long) ((1000000L / contentRefreshRate)));
 @@ -43,6 +54,16 @@
      reset();
@@ -545,7 +565,7 @@ diff --git a/libretrodroid/src/main/cpp/fpssync.cpp b/libretrodroid/src/main/cpp
 +void FPSSync::updateContentRate(double rate) {
 +    if (!std::isfinite(rate) || rate < 1.0 || rate > 240.0) return;
 +    contentRefreshRate = rate;
-+    useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
++    useVSync = screenRefreshRate > 0.0 && std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
 +    sampleInterval = std::chrono::microseconds(static_cast<long>(1000000.0 / rate));
 +    // A live cadence transition starts at the present monotonic clock, never
 +    // at the uninitialised sentinel used during cold construction.

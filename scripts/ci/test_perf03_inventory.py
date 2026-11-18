@@ -14,6 +14,12 @@ class InventoryTest(unittest.TestCase):
         configured = set(re.findall(r'"lib([^"]+)_libretro_android\.so"', coreid.read_text()))
         self.assertEqual(configured, set(LEGACY) | set(MODERN))
         self.assertEqual(len(LEGACY) + len(MODERN) + len(NATIVE), 31)
+        system_id = coreid.with_name("SystemID.kt")
+        configured_systems = set(re.findall(r'\b[A-Z0-9_]+\("([^"]+)"\)', system_id.read_text()))
+        systems = set().union(*LEGACY.values(), *(row[0] for row in MODERN.values()),
+                              *(row[0] for row in NATIVE.values()))
+        self.assertEqual(configured_systems, systems)
+        self.assertEqual(len(systems), 33)
 
     def test_packaging_is_not_acceptance_and_manifest_requires_digest(self):
         blob = io.BytesIO()
