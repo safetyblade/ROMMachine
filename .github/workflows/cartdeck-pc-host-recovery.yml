@@ -1,56 +1,13 @@
-name: CARTDECK PC host recovery candidate
+name: CARTDECK deprecated PC host recovery
+# Intentionally no PR trigger. The production console host is not a PC lab.
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - '.github/workflows/cartdeck-pc-host-recovery.yml'
-      - 'scripts/ci/build_libretrodroid_host.sh'
-      - 'scripts/ci/patches/libretrodroid-play-vm-bridge.patch'
-      - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/pc/**'
-      - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/settings/general/Pc*'
-      - '**/library/pc/**'
-      - '.github/workflows/cartdeck-connected-engines-apk.yml'
+  workflow_dispatch:
 permissions:
   contents: read
-  actions: write
-concurrency:
-  group: pc-host-recovery-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  gates:
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-')
+  retired:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          persist-credentials: false
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Reject formatting failures before native production
-        run: |
-          bash scripts/ci/bootstrap_gradle.sh
-          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
-          "$gradle_bin" ktlintCheck --no-daemon --no-configuration-cache --max-workers=2
-          bash -n scripts/ci/build_libretrodroid_host.sh
-  pc-host:
-    needs: gates
-    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
-    with:
-      engine: libretrodroid
-    secrets: inherit
-  candidate-apk:
-    needs: pc-host
-    uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
-    with:
-      use_ci01_all_native: true
-      pc_host_native_run_id: ${{ format('{0}', github.run_id) }}
-      include_ps3: false
-      distribution_licensing_cleared: false
-      publish_apk: true
-    secrets: inherit
+      - run: |
+          echo 'Retired. Use cartdeck-pc-native-lab.yml instead.'
+          exit 1
