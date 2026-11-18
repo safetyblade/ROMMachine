@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -36,6 +39,9 @@ import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CatalogueCartridgeFront
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,10 +53,13 @@ internal fun GemFinderScreen(
     catalogue: GemCataloguePackage.Loaded,
     games: List<Game>,
     modifier: Modifier = Modifier,
+    onOpenCartridge: (Game) -> Unit = {},
+    onInspectRelease: (String) -> Unit = {},
 ) {
     val context = LocalContext.current.applicationContext
     val coroutineScope = rememberCoroutineScope()
     var input by remember(catalogue, games) { mutableStateOf<GemDiscovery.Input?>(null) }
+    var installedByRelease by remember(catalogue, games) { mutableStateOf(emptyMap<String, Game>()) }
     var preferences by remember { mutableStateOf<GemDiscoveryPreferences?>(null) }
     var failed by remember(catalogue, games) { mutableStateOf(false) }
     var scope by remember { mutableStateOf(GemDiscovery.Scope.FOR_YOU) }
@@ -71,12 +80,20 @@ internal fun GemFinderScreen(
                     val ids = (games.map { it.cartridgeId } + records.map { it.cartridgeId }).distinct()
                     val links = ids.mapNotNull { id -> corrections.read(id)?.let { id to it } }.toMap()
                     val shelf = games.map { GemDiscovery.ShelfEntry(it.cartridgeId, it.systemId, it.title) }
-                    GemDiscovery.prepare(catalogue.manifest.releases, records, links, shelf) to prefs
+                    val prepared = GemDiscovery.prepare(catalogue.manifest.releases, records, links, shelf)
+                    val installed =
+                        games.mapNotNull { game ->
+                            links[game.cartridgeId]?.takeIf { it in prepared.ownedIds }?.let { it to game }
+                        }.groupBy({ it.first }, { it.second }).mapNotNull { (id, matches) ->
+                            matches.singleOrNull()?.let { id to it }
+                        }.toMap()
+                    Triple(prepared, prefs, installed)
                 }
             }
         result.onSuccess {
             input = it.first
             preferences = it.second
+            installedByRelease = it.third
             share = it.second.wildcardPercent()
         }.onFailure { failed = true }
     }
@@ -103,129 +120,154 @@ internal fun GemFinderScreen(
 
     val data = input
     val currentFeed = feed
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.cartdeck_feature_gemfinder),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-            Text("GemFinder", style = MaterialTheme.typography.titleLarge)
-        }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            val scopes =
-                listOf(
-                    GemDiscovery.Scope.FOR_YOU to "For you",
-                    GemDiscovery.Scope.MY_SHELF to "My shelf",
-                    GemDiscovery.Scope.DISCOVER to "Discover",
-                )
-            for ((value, label) in scopes) {
-                TextButton(
-                    onClick = { scope = value },
-                    enabled = scope != value && !surprising,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text(label) }
-            }
-        }
-        if (failed) {
-            Text("Discovery unavailable. Existing ratings are retained.", color = MaterialTheme.colorScheme.error)
-        } else if (data == null) {
-            Text("Loading personal preferences…")
-        } else {
-            if (data.ratings.isEmpty()) {
-                Text("Rate a game and confirm its catalogue link in Browse to start personalised discovery.")
-            } else if (data.ratings.size < 3) {
-                Text("Early recommendations · based on ${data.ratings.size} linked ratings")
-            } else {
-                Text("Based on ${data.ratings.size} linked ratings. All calculations are offline.")
-            }
-            if (data.unlinkedRatings > 0) {
-                Text(
-                    "${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.",
-                )
-            }
-            Text("Wildcard target: $share%")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(
-                    onClick = {
-                        val value = share - 5
-                        if (preferences?.saveWildcardPercent(value) == true) share = value
-                    },
-                    enabled = share > 20 && !surprising,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Less") }
-                TextButton(
-                    onClick = {
-                        val value = share + 5
-                        if (preferences?.saveWildcardPercent(value) == true) share = value
-                    },
-                    enabled = share < 50 && !surprising,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("More") }
-                TextButton(
-                    onClick = {
-                        val prefs = preferences ?: return@TextButton
-                        val candidates = data.candidates(scope)
-                        surprising = true
-                        surprise = null
-                        message = ""
-                        coroutineScope.launch {
-                            val result =
-                                runCatching {
-                                    val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
-                                    val pick =
-                                        withContext(Dispatchers.Default) {
-                                            GemRatingRecommender.surprise(
-                                                data.catalogue,
-                                                data.ratings,
-                                                recent,
-                                                candidates,
-                                            )
-                                        }
-                                    if (pick != null) {
-                                        withContext(Dispatchers.IO) {
-                                            check(prefs.rememberSurprise(pick.game.releaseId))
-                                        }
-                                    }
-                                    pick
-                                }
-                            result.onSuccess {
-                                surprise = it
-                                message = if (it == null) "No fresh meaningful surprise in this selection." else ""
-                            }.onFailure { message = "Could not prepare a surprise." }
-                            surprising = false
-                        }
-                    },
-                    enabled = !surprising && preferences != null && data.ratings.isNotEmpty(),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Surprise Me") }
-            }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (message.isNotBlank()) item { Text(message) }
-                surprise?.let { pick ->
-                    item {
-                        Text("Surprise Me", style = MaterialTheme.typography.titleMedium)
-                        GemRecommendationCard(pick, pick.game.releaseId in data.ownedIds)
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(320.dp),
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.cartdeck_feature_gemfinder),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Text("GemFinder", style = MaterialTheme.typography.titleLarge)
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    val scopes =
+                        listOf(
+                            GemDiscovery.Scope.FOR_YOU to "For you",
+                            GemDiscovery.Scope.MY_SHELF to "My shelf",
+                            GemDiscovery.Scope.DISCOVER to "Discover",
+                        )
+                    for ((value, label) in scopes) {
+                        TextButton(
+                            onClick = { scope = value },
+                            enabled = scope != value && !surprising,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text(label) }
                     }
                 }
-                if (currentFeed == null) {
-                    item { Text("Calculating recommendations…") }
+                if (failed) {
+                    Text("Discovery unavailable. Existing ratings are retained.", color = MaterialTheme.colorScheme.error)
+                } else if (data == null) {
+                    Text("Loading personal preferences…")
                 } else {
-                    item {
+                    if (data.ratings.isEmpty()) {
+                        Text("Rate a game and confirm its catalogue link in Browse to start personalised discovery.")
+                    } else if (data.ratings.size < 3) {
+                        Text("Early recommendations · based on ${data.ratings.size} linked ratings")
+                    } else {
+                        Text("Based on ${data.ratings.size} linked ratings. All calculations are offline.")
+                    }
+                    if (data.unlinkedRatings > 0) {
                         Text(
-                            "${currentFeed.count { it.wildcard }} wildcards · ${currentFeed.size} suggestions",
-                            style = MaterialTheme.typography.bodySmall,
+                            "${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.",
                         )
                     }
-                    if (currentFeed.isEmpty()) {
-                        item { Text("No eligible matches in this view yet. Browse the catalogue to explore.") }
+                    Text("Wildcard target: $share%")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(
+                            onClick = {
+                                val value = share - 5
+                                if (preferences?.saveWildcardPercent(value) == true) share = value
+                            },
+                            enabled = share > 20 && !surprising,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Less") }
+                        TextButton(
+                            onClick = {
+                                val value = share + 5
+                                if (preferences?.saveWildcardPercent(value) == true) share = value
+                            },
+                            enabled = share < 50 && !surprising,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("More") }
+                        TextButton(
+                            onClick = {
+                                val prefs = preferences ?: return@TextButton
+                                val candidates = data.candidates(scope)
+                                surprising = true
+                                surprise = null
+                                message = ""
+                                coroutineScope.launch {
+                                    val result =
+                                        runCatching {
+                                            val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
+                                            val pick =
+                                                withContext(Dispatchers.Default) {
+                                                    GemRatingRecommender.surprise(
+                                                        data.catalogue,
+                                                        data.ratings,
+                                                        recent,
+                                                        candidates,
+                                                    )
+                                                }
+                                            if (pick != null) {
+                                                withContext(Dispatchers.IO) {
+                                                    check(prefs.rememberSurprise(pick.game.releaseId))
+                                                }
+                                            }
+                                            pick
+                                        }
+                                    result.onSuccess {
+                                        surprise = it
+                                        message = if (it == null) "No fresh meaningful surprise in this selection." else ""
+                                    }.onFailure { message = "Could not prepare a surprise." }
+                                    surprising = false
+                                }
+                            },
+                            enabled = !surprising && preferences != null && data.ratings.isNotEmpty(),
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Surprise Me") }
                     }
-                    items(currentFeed, key = { it.game.releaseId }) { recommendation ->
-                        GemRecommendationCard(recommendation, recommendation.game.releaseId in data.ownedIds)
+                }
+            }
+        }
+        if (!failed && data != null) {
+            if (message.isNotBlank()) item(span = { GridItemSpan(maxLineSpan) }) { Text(message) }
+            surprise?.let { pick ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Surprise Me", style = MaterialTheme.typography.titleMedium)
+                        GemRecommendationCard(
+                            pick,
+                            pick.game.releaseId in data.ownedIds,
+                            installedByRelease[pick.game.releaseId],
+                            onOpenCartridge,
+                            onInspectRelease,
+                        )
                     }
+                }
+            }
+            if (currentFeed == null) {
+                item(span = { GridItemSpan(maxLineSpan) }) { Text("Calculating recommendations…") }
+            } else {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "${currentFeed.count { it.wildcard }} wildcards · ${currentFeed.size} suggestions",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (currentFeed.isEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text("No eligible matches in this view yet. Browse the catalogue to explore.")
+                    }
+                }
+                items(currentFeed, key = { it.game.releaseId }) { recommendation ->
+                    GemRecommendationCard(
+                        recommendation,
+                        recommendation.game.releaseId in data.ownedIds,
+                        installedByRelease[recommendation.game.releaseId],
+                        onOpenCartridge,
+                        onInspectRelease,
+                    )
                 }
             }
         }
@@ -236,20 +278,44 @@ internal fun GemFinderScreen(
 private fun GemRecommendationCard(
     recommendation: GemRatingRecommender.Recommendation,
     owned: Boolean,
+    installedGame: Game?,
+    onOpenCartridge: (Game) -> Unit,
+    onInspectRelease: (String) -> Unit,
 ) {
     val game = recommendation.game
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(game.title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                game.platform + if (owned) " · On my shelf" else " · Not linked to shelf",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(recommendation.reason)
-            val kind = if (recommendation.wildcard) "Wildcard · " else ""
-            val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
-            Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
-            Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
+        Row(
+            Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            if (installedGame != null) {
+                CartridgeFront(installedGame, modifier = Modifier.width(92.dp), offline = true)
+            } else {
+                CatalogueCartridgeFront(game.title, game.platform, Modifier.width(92.dp))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(game.title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    cartridgeSystemLabel(game.platform) + if (owned) " · On my shelf" else " · Not linked to shelf",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(recommendation.reason)
+                val kind = if (recommendation.wildcard) "Wildcard · " else ""
+                val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
+                Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
+                Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
+                if (installedGame != null) {
+                    TextButton(
+                        onClick = { onOpenCartridge(installedGame) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Open cartridge") }
+                }
+                TextButton(
+                    onClick = { onInspectRelease(game.releaseId) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Game Intelligence") }
+            }
         }
     }
 }
