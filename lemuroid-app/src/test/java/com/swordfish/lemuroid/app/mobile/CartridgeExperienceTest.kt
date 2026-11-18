@@ -395,12 +395,14 @@ class CartridgeExperienceTest {
         }
         val first = compose.onNodeWithContentDescription("Atlas, GB, spine facing")
         first.assertIsDisplayed()
-        val width = first.getUnclippedBoundsInRoot().width
+        val firstBounds = first.getUnclippedBoundsInRoot()
+        val width = firstBounds.right - firstBounds.left
         compose.onNodeWithText("Second shelf").performClick()
         compose.mainClock.advanceTimeBy(1000)
         val next = compose.onNodeWithContentDescription("Orbit, GBA, spine facing")
         next.assertIsDisplayed()
-        assertEquals(width, next.getUnclippedBoundsInRoot().width)
+        val nextBounds = next.getUnclippedBoundsInRoot()
+        assertEquals(width, nextBounds.right - nextBounds.left)
     }
 
     @Test fun narrowLandscapeDetailStillScrollsToActions() {
