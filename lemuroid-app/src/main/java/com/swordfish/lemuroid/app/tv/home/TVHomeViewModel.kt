@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.systems.MetaSystemInfo
 import com.swordfish.lemuroid.lib.library.GameSystem
@@ -45,6 +46,12 @@ class TVHomeViewModel(retrogradeDb: RetrogradeDatabase, appContext: Context) : V
     )
 
     private val viewStates = MutableStateFlow(HomeViewState())
+    private val shelfStore = ShelfStore(appContext.applicationContext)
+    internal val shelfSections =
+        retrogradeDb.gameDao().selectShelfGames().map { games ->
+            val layout = runCatching { shelfStore.read() }.getOrNull()
+            if (layout == null) emptyList() else tvShelfSections(layout, games)
+        }.flowOn(Dispatchers.IO)
 
     fun getViewStates(): Flow<HomeViewState> {
         return viewStates
