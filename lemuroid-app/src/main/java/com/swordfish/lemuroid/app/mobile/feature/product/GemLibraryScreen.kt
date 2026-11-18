@@ -85,7 +85,8 @@ internal fun GemLibraryScreen(
         remember(current, selected) {
             if (current != null && selected != null) current.match(selected) else null
         }
-    val candidateIds = remember(match) { (match as? GemCatalogueIndex.Match.Review)?.candidates?.map { it.releaseId }.orEmpty() }
+    val candidateIds =
+        remember(match) { (match as? GemCatalogueIndex.Match.Review)?.candidates?.map { it.releaseId }.orEmpty() }
     val results =
         remember(current, query, selected, candidateIds) {
             current?.manifest?.releases.orEmpty().asSequence()
@@ -171,7 +172,9 @@ internal fun GemLibraryScreen(
         AlertDialog(
             onDismissRequest = { pending = null },
             title = { Text("Confirm catalogue link") },
-            text = { Text("Link ${selected.displayName()} to ${choice.title}? Saves and cartridge identity stay unchanged.") },
+            text = {
+                Text("Link ${selected.displayName()} to ${choice.title}? Saves and cartridge identity stay unchanged.")
+            },
             confirmButton = {
                 TextButton(onClick = {
                     request = CorrectionRequest(selected.cartridgeId, choice.releaseId)
