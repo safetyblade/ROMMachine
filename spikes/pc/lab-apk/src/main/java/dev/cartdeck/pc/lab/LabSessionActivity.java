@@ -14,6 +14,12 @@ public final class LabSessionActivity extends ComponentActivity {
     private boolean active, mouseTracking;
     private float lastX, lastY;
     private int mouseButtons;
+    private long inputGeneration;
+    private final android.hardware.input.InputManager.InputDeviceListener deviceListener = new android.hardware.input.InputManager.InputDeviceListener() {
+        public void onInputDeviceAdded(int id) { release(); }
+        public void onInputDeviceChanged(int id) { release(); }
+        public void onInputDeviceRemoved(int id) { release(); }
+    };
     private final int KEY = 10000, BUTTON = 10600, CLEAR = 10610;
 
     @Override public void onCreate(Bundle state) {
@@ -40,9 +46,7 @@ public final class LabSessionActivity extends ComponentActivity {
             button(controls, "Discs", () -> disk(false));
             button(controls, "Next disc", () -> disk(true));
             button(controls, "Keys", this::keyboard);
-            button(controls, "Exit", () -> new android.app.AlertDialog.Builder(this)
-                .setMessage("Exit only after guest shutdown or writes are complete. Forced exit is not a verified clean shutdown.")
-                .setNegativeButton("Cancel", null).setPositiveButton("Exit lab", (d,w) -> finish()).show());
+            button(controls, "Exit", this::confirmExit);
             page.addView(controls);
             LinearLayout mouse = new LinearLayout(this);
             button(mouse, "Left click", () -> click(0));
@@ -51,6 +55,7 @@ public final class LabSessionActivity extends ComponentActivity {
             page.addView(mouse);
             view.setOnTouchListener((v,e) -> {
                 if (!active) return true;
+                if (e.isFromSource(InputDevice.SOURCE_MOUSE)) return handleMouse(e);
                 int a=e.getActionMasked();
                 if (a==MotionEvent.ACTION_DOWN) { lastX=e.getX(); lastY=e.getY(); mouseTracking=true; }
                 else if (a==MotionEvent.ACTION_MOVE && mouseTracking) {
@@ -85,21 +90,39 @@ public final class LabSessionActivity extends ComponentActivity {
     }
     private void click(int index) {
         if(!active||view==null)return;
+        if (!hasWindowFocus()) return;
+        final long generation=inputGeneration;
         view.sendKeyEvent(KeyEvent.ACTION_DOWN,BUTTON+index,0);
-        view.postDelayed(()->{if(active)view.sendKeyEvent(KeyEvent.ACTION_UP,BUTTON+index,0);},100);
+        view.postDelayed(()->{if(active && generation==inputGeneration)view.sendKeyEvent(KeyEvent.ACTION_UP,BUTTON+index,0);},100);
     }
+    private void confirmExit(){
+        new android.app.AlertDialog.Builder(this)
+            .setMessage("Exit only after guest shutdown or writes are complete. Forced exit is not a verified clean shutdown.")
+            .setNegativeButton("Cancel",null).setPositiveButton("Exit lab",(d,w)->{release();finish();}).show();
+    }
+    @Override public void onBackPressed(){confirmExit();}
     private void keyboard(){
         if(!active)return;
         EditText field=new EditText(this); field.setSingleLine(true);
-        new android.app.AlertDialog.Builder(this).setTitle("Send ASCII text to guest").setView(field)
+        new android.app.AlertDialog.Builder(this).setTitle("Send basic ASCII to guest").setView(field)
             .setNegativeButton("Cancel",null).setPositiveButton("Send",(d,w)->{
                 String text=field.getText().toString().toLowerCase(java.util.Locale.ROOT);
-                for(int i=0;i<Math.min(text.length(),128);i++){
-                    char c=text.charAt(i);if(c<32||c>126)continue;
-                    final int code=c;
-                    view.postDelayed(()->{if(active){view.sendKeyEvent(0,KEY+code,0);view.postDelayed(()->{if(active)view.sendKeyEvent(1,KEY+code,0);},70);}},i*120L);
+                scheduleKeys(text);
+            }).setNeutralButton("Enter",(d,w)->scheduleKeys("\n")).show();
+    }
+    private void scheduleKeys(String text){
+        final long generation=inputGeneration;
+        for(int i=0;i<Math.min(text.length(),128);i++){
+            char c=text.charAt(i);
+            if(!(c>='a'&&c<='z')&&!(c>='0'&&c<='9')&&c!=' '&&c!='\n')continue;
+            final int code=c=='\n'?13:c;
+            view.postDelayed(()->{
+                if(active&&hasWindowFocus()&&generation==inputGeneration){
+                    view.sendKeyEvent(0,KEY+code,0);
+                    view.postDelayed(()->{if(active&&generation==inputGeneration)view.sendKeyEvent(1,KEY+code,0);},70);
                 }
-            }).setNeutralButton("Enter",(d,w)->{if(active){view.sendKeyEvent(0,KEY+13,0);view.postDelayed(()->{if(active)view.sendKeyEvent(1,KEY+13,0);},100);}}).show();
+            },250+i*140L);
+        }
     }
     private static int retroKey(int code){
         if(code>=KeyEvent.KEYCODE_A&&code<=KeyEvent.KEYCODE_Z)return 'a'+code-KeyEvent.KEYCODE_A;
@@ -124,22 +147,30 @@ public final class LabSessionActivity extends ComponentActivity {
         return super.dispatchKeyEvent(e);
     }
     @Override public boolean dispatchGenericMotionEvent(MotionEvent e){
-        if(active&&view!=null&&e.isFromSource(InputDevice.SOURCE_MOUSE)){
-            if(mouseTracking)relative(e.getX()-lastX,e.getY()-lastY);
-            lastX=e.getX();lastY=e.getY();mouseTracking=e.getActionMasked()!=MotionEvent.ACTION_HOVER_EXIT;
-            int mask=e.getButtonState(), delta=mask^mouseButtons;
-            int[] buttons={MotionEvent.BUTTON_PRIMARY,MotionEvent.BUTTON_SECONDARY,MotionEvent.BUTTON_TERTIARY};
-            for(int i=0;i<buttons.length;i++)if((delta&buttons[i])!=0)view.sendKeyEvent((mask&buttons[i])!=0?0:1,BUTTON+i,0);
-            mouseButtons=mask;return true;
-        }
+        if(active&&view!=null&&e.isFromSource(InputDevice.SOURCE_MOUSE))return handleMouse(e);
         if(active&&view!=null&&e.isFromSource(InputDevice.SOURCE_JOYSTICK)&&e.getActionMasked()==MotionEvent.ACTION_MOVE){
             float x=e.getAxisValue(MotionEvent.AXIS_X),y=e.getAxisValue(MotionEvent.AXIS_Y);
             relative(Math.abs(x)>.15?x*10:0,Math.abs(y)>.15?y*10:0);return true;
         }
         return super.dispatchGenericMotionEvent(e);
     }
-    private void release(){if(view!=null&&active)view.sendKeyEvent(0,CLEAR,0);mouseButtons=0;mouseTracking=false;}
-    @Override protected void onResume(){super.onResume();active=true;}
-    @Override protected void onPause(){release();active=false;super.onPause();}
+    private boolean handleMouse(MotionEvent e){
+            if(e.getActionMasked()==MotionEvent.ACTION_CANCEL){release();return true;}
+            if(mouseTracking && e.getActionMasked()!=MotionEvent.ACTION_HOVER_ENTER)relative(e.getX()-lastX,e.getY()-lastY);
+            lastX=e.getX();lastY=e.getY();mouseTracking=e.getActionMasked()!=MotionEvent.ACTION_HOVER_EXIT;
+            int mask=e.getButtonState(), delta=mask^mouseButtons;
+            int[] buttons={MotionEvent.BUTTON_PRIMARY,MotionEvent.BUTTON_SECONDARY,MotionEvent.BUTTON_TERTIARY};
+            for(int i=0;i<buttons.length;i++)if((delta&buttons[i])!=0)view.sendKeyEvent((mask&buttons[i])!=0?0:1,BUTTON+i,0);
+            mouseButtons=mask;return true;
+    }
+    private void release(){inputGeneration++;if(view!=null&&active)view.sendKeyEvent(0,CLEAR,0);mouseButtons=0;mouseTracking=false;}
+    @Override protected void onResume(){
+        super.onResume();active=view!=null;
+        ((android.hardware.input.InputManager)getSystemService(INPUT_SERVICE)).registerInputDeviceListener(deviceListener,new android.os.Handler(android.os.Looper.getMainLooper()));
+    }
+    @Override protected void onPause(){
+        ((android.hardware.input.InputManager)getSystemService(INPUT_SERVICE)).unregisterInputDeviceListener(deviceListener);
+        release();active=false;super.onPause();
+    }
     @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(!focused)release();}
 }
