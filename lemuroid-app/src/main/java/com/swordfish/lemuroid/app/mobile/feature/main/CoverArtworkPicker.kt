@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.main
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.CancellationException
@@ -40,10 +43,12 @@ internal fun CoverArtworkPicker(
     var results by remember { mutableStateOf(emptyList<Pair<CoverArtworkSearch.Result, Bitmap>>()) }
     var selected by remember { mutableStateOf<Pair<CoverArtworkSearch.Result, Bitmap>?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Get artwork") },
         text = {
             Column(
@@ -67,12 +72,14 @@ internal fun CoverArtworkPicker(
                             message = "Searching…"
                             scope.launch {
                                 try {
-                                    results =
-                                        withContext(Dispatchers.IO) {
-                                            CoverArtworkSearch.find(query.trim()).mapNotNull { result ->
-                                                runCatching { result to CoverArtworkSearch.load(result) }.getOrNull()
+                                    val matches = withContext(Dispatchers.IO) { CoverArtworkSearch.find(query.trim()) }
+                                    for (result in matches) {
+                                        val bitmap =
+                                            withContext(Dispatchers.IO) {
+                                                runCatching { CoverArtworkSearch.load(result) }.getOrNull()
                                             }
-                                        }
+                                        if (bitmap != null) results = results + (result to bitmap)
+                                    }
                                     message = if (results.isEmpty()) "No images found. Try another title." else ""
                                 } catch (e: CancellationException) {
                                     throw e
@@ -96,6 +103,18 @@ internal fun CoverArtworkPicker(
                             Text("Select · " + candidate.first.title)
                         }
                     }
+                    TextButton(
+                        enabled = !busy,
+                        onClick = {
+                            val url =
+                                Uri.parse("https://www.google.com/search").buildUpon()
+                                    .appendQueryParameter("tbm", "isch")
+                                    .appendQueryParameter("q", query + " cover art")
+                                    .build()
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url)) }
+                                .onFailure { message = "No browser available." }
+                        },
+                    ) { Text("More results in browser") }
                     TextButton(enabled = !busy, onClick = onLocal) { Text("Upload / replace image") }
                 } else {
                     selected?.let { candidate ->
@@ -106,6 +125,14 @@ internal fun CoverArtworkPicker(
                             contentScale = ContentScale.Fit,
                         )
                         Text(candidate.first.title + " · Wikipedia")
+                        TextButton(onClick = {
+                            val url =
+                                Uri.parse("https://en.wikipedia.org/").buildUpon()
+                                    .appendQueryParameter("curid", candidate.first.pageId.toString())
+                                    .build()
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url)) }
+                                .onFailure { message = "No browser available." }
+                        }) { Text("View image source") }
                         Text("Use only artwork you have permission to use.")
                     }
                     TextButton(enabled = !busy, onClick = { selected = null }) { Text("Other results") }
@@ -119,6 +146,7 @@ internal fun CoverArtworkPicker(
                 onClick = {
                     val candidate = selected ?: return@TextButton
                     busy = true
+                    saving = true
                     scope.launch {
                         try {
                             if (onUse(game, candidate.second)) {
@@ -132,11 +160,12 @@ internal fun CoverArtworkPicker(
                             message = "Could not save artwork. Previous cover retained."
                         } finally {
                             busy = false
+                            saving = false
                         }
                     }
                 },
             ) { Text("Use cover") }
         },
-        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
