@@ -107,7 +107,13 @@ fun CartridgeDetailHost(
             }
         } else {
             CartridgeDetail(
-                game, close, onOpen, onChangeCover, onResetCover, record.value.first, front,
+                game,
+                close,
+                onOpen,
+                onChangeCover,
+                onResetCover,
+                record.value.first,
+                front,
                 onUseOnlineCover = onUseOnlineCover,
             )
         }
