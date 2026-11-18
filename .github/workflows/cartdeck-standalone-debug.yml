@@ -54,7 +54,11 @@ jobs:
                 run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                 run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
                 new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
-              let trusted = run.conclusion === 'success' && (dispatched || pc);
+              const br001 = run.event === 'pull_request' &&
+                run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                run.head_branch === 'engineering/perf-br001-dreamcast-response' &&
+                new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+              let trusted = run.conclusion === 'success' && (dispatched || pc || br001);
               if (!trusted && run.status === 'completed' && run.head_branch === 'master' &&
                   run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
                   artifact.name === prefix + run.head_sha) {
@@ -92,10 +96,40 @@ jobs:
             echo "Only LibretroDroid requires a source rebuild; all other engine receipts remain mandatory."
           fi
 
+  br001-source:
+    name: BR-001 native source preflight
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'engineering/perf-br001-dreamcast-response'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Timing fixture and native recipe tests
+        run: |
+          bash scripts/ci/test_libretrodroid_runtime_av.sh
+          bash -n scripts/ci/build_dreamcast_upstream_core.sh
+          bash -n scripts/ci/build_libretrodroid_host.sh
+          python3 -m unittest discover -s scripts/ci -p 'test_ci01_*.py' -v
+
+  br001-dreamcast:
+    name: BR-001 refresh Dreamcast only
+    needs: br001-source
+    if: needs.br001-source.result == 'success'
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: dc
+    secrets: inherit
+
   host-refresh:
     name: Refresh LibretroDroid only
-    needs: host-preflight
-    if: needs.host-preflight.outputs.valid == 'false'
+    needs: [host-preflight, br001-source]
+    if: always() && !cancelled() && (needs.host-preflight.outputs.valid == 'false' || needs.br001-source.result == 'success')
     permissions:
       contents: read
       actions: write
@@ -106,12 +140,15 @@ jobs:
 
   engineering:
     name: Complete CARTDECK ARM64 APK
-    needs: [host-preflight, host-refresh]
+    needs: [host-preflight, host-refresh, br001-source, br001-dreamcast]
     if: >-
       always() && !cancelled() &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
       !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
+      (github.head_ref != 'engineering/perf-br001-dreamcast-response' ||
+        (needs.br001-source.result == 'success' && needs.br001-dreamcast.result == 'success' &&
+          needs.host-refresh.result == 'success')) &&
       (github.ref != 'refs/heads/master' ||
         (needs.host-preflight.result == 'success' &&
           (needs.host-refresh.result == 'success' ||
@@ -120,6 +157,7 @@ jobs:
     with:
       include_ps3: false
       use_ci01_all_native: true
+      dreamcast_native_run_id: ${{ needs.br001-dreamcast.result == 'success' && format('{0}', github.run_id) || '' }}
       pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
       pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
       pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}

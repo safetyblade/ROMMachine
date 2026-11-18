@@ -19,7 +19,7 @@ class HostMetadataTests(unittest.TestCase):
         pom = folder / (NAME + ".pom")
         pom.write_text('<project xmlns="http://maven.apache.org/POM/4.0.0">'
                        '<groupId>com.github.Swordfish90</groupId><artifactId>LibretroDroid</artifactId>'
-                       '<version>0.14.0-cartdeck3</version><packaging>aar</packaging></project>')
+                       '<version>0.14.0-cartdeck4</version><packaging>aar</packaging></project>')
         return root, folder, pom
 
     def test_generated_pom_coordinates_and_packaging(self):
@@ -34,14 +34,14 @@ class HostMetadataTests(unittest.TestCase):
 
     def test_wrong_version_cannot_redirect_host_resolution(self):
         root, _, pom = self.fixture()
-        pom.write_text(pom.read_text().replace("0.14.0-cartdeck3", "0.14.0"))
+        pom.write_text(pom.read_text().replace("0.14.0-cartdeck4", "0.14.0"))
         with self.assertRaisesRegex(ValueError, "coordinate mismatch"):
             check(root)
 
     def test_module_metadata_must_describe_same_aar(self):
         root, folder, _ = self.fixture()
         data = dict(component=dict(group="com.github.Swordfish90", module="LibretroDroid",
-                                   version="0.14.0-cartdeck3"),
+                                   version="0.14.0-cartdeck4"),
                     variants=[dict(files=[dict(name=NAME + ".aar", sha256="0" * 64)])])
         module = folder / (NAME + ".module")
         module.write_text(json.dumps(data))
@@ -55,7 +55,7 @@ class HostMetadataTests(unittest.TestCase):
         root, folder, _ = self.fixture()
         name = NAME + "-sources.jar"
         data = dict(component=dict(group="com.github.Swordfish90", module="LibretroDroid",
-                                   version="0.14.0-cartdeck3"),
+                                   version="0.14.0-cartdeck4"),
                     variants=[dict(files=[dict(name=name, sha256=hashlib.sha256(b"sources fixture").hexdigest())])])
         (folder / (NAME + ".module")).write_text(json.dumps(data))
         with self.assertRaisesRegex(ValueError, "Missing host publication file"):

@@ -66,7 +66,7 @@ class RemainingNativeTests(unittest.TestCase):
             (source / "source").mkdir()
             (source / "source/LICENSE").write_text("test fixture notice")
             aar = (source / "maven/com/github/Swordfish90/LibretroDroid/"
-                   "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar")
+                   "0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar")
             aar.parent.mkdir(parents=True)
             with zipfile.ZipFile(aar, "w") as archive:
                 archive.writestr("jni/arm64-v8a/libretrodroid.so", b"fixture native payload")
@@ -79,11 +79,11 @@ class RemainingNativeTests(unittest.TestCase):
             self.assertIn("receipt.json", {p.name for p in output.iterdir()})
             self.assertIn(
                 "maven/com/github/Swordfish90/LibretroDroid/"
-                "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar",
+                "0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar",
                 verify("libretrodroid", output),
             )
             (output / "maven/com/github/Swordfish90/LibretroDroid/"
-             "0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar").write_bytes(b"tampered")
+             "0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar").write_bytes(b"tampered")
             with self.assertRaises(ValueError):
                 verify("libretrodroid", output)
 

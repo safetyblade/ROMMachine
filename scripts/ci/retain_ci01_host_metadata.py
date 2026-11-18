@@ -9,8 +9,8 @@ from pathlib import Path
 
 from ci01_remaining_engines import verify
 
-RELATIVE = Path("maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3")
-NAME = "LibretroDroid-0.14.0-cartdeck3"
+RELATIVE = Path("maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck4")
+NAME = "LibretroDroid-0.14.0-cartdeck4"
 
 
 def publication_files(root):
@@ -37,7 +37,7 @@ def check(directory):
     document = ET.parse(pom).getroot()
     namespace = "{http://maven.apache.org/POM/4.0.0}"
     for field, expected in (("groupId", "com.github.Swordfish90"),
-                            ("artifactId", "LibretroDroid"), ("version", "0.14.0-cartdeck3"),
+                            ("artifactId", "LibretroDroid"), ("version", "0.14.0-cartdeck4"),
                             ("packaging", "aar")):
         if document.findtext(namespace + field) != expected:
             raise ValueError("LibretroDroid Maven coordinate mismatch: " + field)
@@ -48,7 +48,7 @@ def check(directory):
         data = json.loads(module.read_text())
         component = data["component"]
         if (component["group"], component["module"], component["version"]) != (
-                "com.github.Swordfish90", "LibretroDroid", "0.14.0-cartdeck3"):
+                "com.github.Swordfish90", "LibretroDroid", "0.14.0-cartdeck4"):
             raise ValueError("LibretroDroid module coordinate mismatch")
         for output in publication_files(root):
             artifact = root / output["name"]

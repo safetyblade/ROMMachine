@@ -20,7 +20,7 @@ SPECS = {
     "xenia": dict(sha="779680ade075d2d2a4c589c6a8d57a8e26c116c0", script="build_xbox360_native.py", api=29, version="xenia-arm64-vulkan"),
     "armsx2": dict(sha="7a999782377e61fb96eca65e476b5ec0d182058e", script="ps2_next_armsx2.py", api=28, version="armsx2-dual-page"),
     "cemu": dict(sha="444c585202302a7f4b319bafb4cf72156a8cac8b", script="build_wiiu_cemu_arm64.sh", api=28, version="cemu-vulkan"),
-    "libretrodroid": dict(sha="8835c3098514390a271e36983957f7bb5f40abf1", script="build_libretrodroid_host.sh", api=21, version="0.14.0-cartdeck3"),
+    "libretrodroid": dict(sha="8835c3098514390a271e36983957f7bb5f40abf1", script="build_libretrodroid_host.sh", api=21, version="0.14.0-cartdeck4"),
 }
 EXTRA_SCRIPTS = {
     "hakux": ["scripts/ci/build_hakux_native.sh", "scripts/ci/verify_hakux_native.py"],
@@ -29,7 +29,8 @@ EXTRA_SCRIPTS = {
                "scripts/ci/ps2_rust_notices.py", "scripts/ci/ps2_sdl_contract.py"],
     "cemu": ["scripts/ci/wiiu_notices.py", "scripts/ci/wiiu_cemu_contract.py",
              "scripts/ci/wiiu_cemu_contract.py", "scripts/ci/rebuild_wiiu_host.py"],
-    "libretrodroid": ["scripts/ci/native_symbols.py"],
+    "libretrodroid": ["scripts/ci/native_symbols.py", "scripts/ci/test_libretrodroid_runtime_av.sh",
+                     "scripts/ci/fixtures/libretrodroid_runtime_av_timing_test.cpp"],
 }
 
 
@@ -172,7 +173,7 @@ def prepare(engine, source, dest):
         if sha(source / "cemu-licenses.zip") != proof.get("notices_sha256"):
             raise ValueError("Cemu source notices checksum mismatch")
     else:
-        relative = "maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar"
+        relative = "maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar"
         entries = [relative, "provenance.txt"]
         src = source / "source"
         notice = next((p for p in ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING")
@@ -230,7 +231,7 @@ def verify(engine, directory):
                    "verified/page-16384/libemucore_16k.so"],
         "cemu": ["cemu_libretro_android_arm64.so", "cartdeck_wiiu_vulkan_host_arm64.so",
                  "native-evidence.json", "cemu-licenses.zip"],
-        "libretrodroid": ["maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar",
+        "libretrodroid": ["maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar",
                          "provenance.txt"],
     }[engine]
     if any(item not in files for item in required):
