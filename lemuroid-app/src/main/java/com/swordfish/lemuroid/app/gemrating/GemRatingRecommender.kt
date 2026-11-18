@@ -75,7 +75,7 @@ object GemRatingRecommender {
     /**
      * Only explicit player ratings are training signals. Roxy/critic/DeckFit do not enter this API.
      * A verified work identity is used only for deduplication, never inferred from a shared title.
-     * Wildcards are eligible positive matches with a genre not present among positively rated games.
+     * Wildcards are eligible positive matches with meaningful feature overlap and greater novelty.
      */
     fun recommend(
         catalogue: List<Game>,
@@ -88,7 +88,10 @@ object GemRatingRecommender {
         require(wildcardShare in 0.0..0.5)
         if (limit == 0) return emptyList()
         val candidates = rank(catalogue, ratings, candidateIds)
-        val wildcardSlots = (limit * wildcardShare).toInt()
+        val standardCount =
+            candidates.filterNot { it.wildcard }.distinctBy { it.game.verifiedWorkId ?: it.game.releaseId }.size
+        val wildcardSlots =
+            minOf((limit * wildcardShare).toInt(), (standardCount * wildcardShare / (1.0 - wildcardShare)).toInt())
         val selected = mutableListOf<Recommendation>()
         val seenWorks = mutableSetOf<String>()
         fun add(candidate: Recommendation): Boolean {
@@ -103,7 +106,12 @@ object GemRatingRecommender {
         candidates.filterNot { it.wildcard }.forEach {
             if (selected.size < limit) add(it)
         }
-        return selected.sortedWith(compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId })
+        // A verified work shared by a wildcard and standard must not cause a quota spill.
+        val standardSelected = selected.count { !it.wildcard }
+        val allowedWildcards = (standardSelected * wildcardShare / (1.0 - wildcardShare)).toInt()
+        val final =
+            selected.filterNot { it.wildcard } + selected.filter { it.wildcard }.take(allowedWildcards)
+        return final.sortedWith(compareByDescending<Recommendation> { it.score }.thenBy { it.game.releaseId })
     }
 
     /** Stronger novelty than the mixed feed, but never random or based solely on a broad genre. */
@@ -125,7 +133,7 @@ object GemRatingRecommender {
         ratings: List<Rating>,
         candidateIds: Set<String>?,
     ): List<Recommendation> {
-         require(ratings.all { it.score.isFinite() && it.score in 1.0..10.0 }) { "Ratings must be 1–10" }
+        require(ratings.all { it.score.isFinite() && it.score in 1.0..10.0 }) { "Ratings must be 1–10" }
         val indexed = catalogue.associateBy { it.releaseId }
         require(indexed.size == catalogue.size) { "Duplicate release ID" }
         require(ratings.map { it.releaseId }.distinct().size == ratings.size) { "Duplicate user rating" }
