@@ -24,7 +24,6 @@ data class LibretroReportSession(
     val coreFrameObserved: Boolean = false,
     val graphics: String? = null,
     val reportedOptions: ArrayList<String> = arrayListOf(),
-    val performanceSnapshot: String? = null,
 ) : Serializable
 
 object LibretroEngineReport {
@@ -145,21 +144,7 @@ object LibretroEngineReport {
             appendLine("core_video_callback_observed=${session?.coreFrameObserved?.toString() ?: UNAVAILABLE}")
             appendLine("low_latency_audio_requested=${session?.lowLatencyAudioRequested?.toString() ?: UNAVAILABLE}")
             appendLine("skip_duplicate_frames=${session?.skipDuplicateFrames?.toString() ?: UNAVAILABLE}")
-            val performance = session?.performanceSnapshot?.takeIf { it.isNotBlank() }
-            if (performance == null) {
-                appendLine("performance_counters=not collected")
-            } else {
-                appendLine("performance_counters=bounded Dreamcast QA capture (first 4096 core runs)")
-                appendLine("run_us_bins_upper=4000,8000,12000,17000,25000,34000,50000,overflow")
-                performance.split(';')
-                    .filter { it.matches(Regex("[a-z_]+=[0-9,]+")) }
-                    .take(12)
-                    .forEach { appendLine(safeField(it)) }
-                appendLine("last_fps_milli and last_sample_rate zero means no runtime timing change observed")
-                appendLine("timing_scope=core run duration, not Android display presentation")
-                appendLine("audio_scope=frontend FIFO stereo frames, not hardware underruns")
-                appendLine("rtt_and_media_timing=not collected")
-            }
+            appendLine("performance_counters=not collected")
             appendLine("gameplay_acceptance=not established by this report")
             appendLine("frontend_reported_core_options (internal game-specific overrides may differ):")
             val options = session?.reportedOptions.orEmpty()
