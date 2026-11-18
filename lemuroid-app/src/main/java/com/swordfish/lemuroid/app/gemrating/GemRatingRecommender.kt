@@ -122,7 +122,7 @@ object GemRatingRecommender {
         candidateIds: Set<String>? = null,
     ): Recommendation? =
         rank(catalogue, ratings, candidateIds)
-            .filter { it.meaningfulBridge && it.novelty >= 0.25 && it.game.releaseId !in recentIds }
+            .filter { it.meaningfulBridge && it.novelty >= 0.40 && it.game.releaseId !in recentIds }
             .sortedWith(
                 compareByDescending<Recommendation> { it.score * (0.25 + 1.75 * it.novelty) }
                     .thenByDescending { it.novelty }.thenBy { it.game.releaseId },
@@ -192,17 +192,36 @@ object GemRatingRecommender {
                     val sourceCross = clean(best.first.crossoverGenre)
                     val targetCross = clean(game.crossoverGenre)
                     val crossoverDifference = sourceCross != null && targetCross != null && sourceCross != targetCross
+                    val sourceMechanics = best.first.mechanics.mapNotNull(::clean).toSet()
+                    val targetMechanics = game.mechanics.mapNotNull(::clean).toSet()
+                    val mechanicNovelty =
+                        if (sourceMechanics.isNotEmpty() && targetMechanics.isNotEmpty()) {
+                            val overlap =
+                                sourceMechanics.intersect(targetMechanics).size.toDouble() /
+                                    sourceMechanics.union(targetMechanics).size
+                            0.35 * (1.0 - overlap)
+                        } else {
+                            0.0
+                        }
                     val novelty =
                         ((if (genreDifference) 0.45 else 0.0) +
                             (if (styleDifference) 0.25 else 0.0) +
-                            (if (crossoverDifference) 0.30 else 0.0)).coerceAtMost(1.0)
+                            (if (crossoverDifference) 0.30 else 0.0) + mechanicNovelty).coerceAtMost(1.0)
+                    val differences =
+                        listOfNotNull(
+                            targetGenre?.takeIf { genreDifference },
+                            targetStyle?.takeIf { styleDifference },
+                            targetCross?.takeIf { crossoverDifference },
+                        ).distinct()
+                    val explanation =
+                        "Similar to ${best.first.title}: " +
+                            common.map { it.substringAfter(':') }.distinct().joinToString(", ") +
+                            (if (differences.isEmpty()) "" else ". Explore: ${differences.joinToString(", ")}")
                     val wildcard = meaningfulBridge && novelty >= 0.25
                     Recommendation(
                         game = game,
                         score = score,
-                        reason = "Similar to ${best.first.title}: ${common.joinToString(
-                            ", ",
-                        ) { it.substringAfter(':') }}",
+                        reason = explanation,
                         wildcard = wildcard,
                         novelty = novelty,
                         meaningfulBridge = meaningfulBridge,
