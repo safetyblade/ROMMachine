@@ -52,7 +52,10 @@ internal fun GemMyRatingsScreen(
     var error by remember { mutableStateOf(false) }
 
     LaunchedEffect(context, revision) {
-        overlay = withContext(Dispatchers.IO) { GemShelfPresentation.enabled(context) }
+        overlay =
+            withContext(Dispatchers.IO) {
+                runCatching { GemShelfPresentation.enabled(context) }.getOrDefault(false)
+            }
         val result =
             withContext(Dispatchers.IO) {
                 runCatching {
@@ -94,7 +97,7 @@ internal fun GemMyRatingsScreen(
                                     }.getOrDefault(false)
                                 }
                             overlayError = !saved
-                            if (saved) overlay = GemShelfPresentation.enabled(context)
+                            if (saved) overlay = !overlay
                             savingOverlay = false
                         }
                     },
