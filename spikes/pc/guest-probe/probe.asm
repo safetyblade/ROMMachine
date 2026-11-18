@@ -52,6 +52,18 @@ int 21h
 xor ah, ah
 int 16h
 mov [key], al
+cmp byte [mouse_installed], 0
+je write_results
+mov dx, click_prompt
+mov ah, 9
+int 21h
+wait_click:
+mov ax, 3
+int 33h
+test bx, 1
+jz wait_click
+mov byte [clicked], 1
+write_results:
 mov dx, results
 xor cx, cx
 mov ah, 3ch
@@ -59,7 +71,7 @@ int 21h
 jc fail
 mov bx, ax
 mov dx, key
-mov cx, 3
+mov cx, 4
 mov ah, 40h
 int 21h
 mov ah, 3eh
@@ -79,6 +91,9 @@ value db 0
 key db 0
 mouse_installed db 0
 cdvalue db 0
+clicked db 0
 greeting db 'CARTDECK PC probe',13,10,'$'
 prompt db 'Press a key to retain the result.',13,10,'$'
+click_prompt db 'Click the left mouse button.',13,10,' 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
+
 done db 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
