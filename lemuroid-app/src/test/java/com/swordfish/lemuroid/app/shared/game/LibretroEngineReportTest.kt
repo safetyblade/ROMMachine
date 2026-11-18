@@ -77,9 +77,17 @@ class LibretroEngineReportTest {
         assertTrue(result.contains("performance_counters=not collected"))
         val measured =
             LibretroEngineReport.render(
-                "test", "dc", "Fixture", "flycast", "test", "gdi",
-                session.copy(performanceSnapshot = "runs=42;fifo_dropped=3;private=/secret"),
-                null, null, 35, "test",
+                appVersion = "test",
+                system = "dc",
+                title = "Fixture",
+                core = "flycast",
+                hostVersion = "test",
+                mediaFormat = "gdi",
+                session = session.copy(performanceSnapshot = "runs=42;fifo_dropped=3;private=/secret"),
+                digest = null,
+                revision = null,
+                androidSdk = 35,
+                device = "test",
             )
         assertTrue(measured.contains("runs=42"))
         assertTrue(measured.contains("fifo_dropped=3"))
