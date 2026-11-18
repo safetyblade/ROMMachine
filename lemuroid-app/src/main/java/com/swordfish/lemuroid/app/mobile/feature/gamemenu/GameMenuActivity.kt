@@ -264,7 +264,8 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     intent.serializable<Array<TiltConfiguration>>(GameMenuContract.EXTRA_TILT_ALL_CONFIGS)
                         ?.toList()
                         ?: emptyList(),
-                engineReportSession = intent.serializable<LibretroReportSession>(GameMenuContract.EXTRA_ENGINE_REPORT_SESSION),
+                engineReportSession =
+                    intent.serializable<LibretroReportSession>(GameMenuContract.EXTRA_ENGINE_REPORT_SESSION),
             )
 
         mappingCartridge = gameMenuRequest.game.cartridgeId

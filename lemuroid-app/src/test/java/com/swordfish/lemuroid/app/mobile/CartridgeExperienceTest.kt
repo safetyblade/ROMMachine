@@ -347,9 +347,11 @@ class CartridgeExperienceTest {
     fun shortLandscapeFilterSearchRemainsAvailable() {
         home(HomeViewModel.UIState(indexInProgress = false, recentGames = listOf(game)))
         compose.onNodeWithText("Search collection").assertDoesNotExist()
-        compose.onNodeWithText("Filters").performClick()
-        settleSheet()
+        compose.onNodeWithText("Filters").assertIsDisplayed().performClick()
         compose.onNodeWithText("Search collection").assertExists()
+        compose.onNodeWithText("Done").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Search collection").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
     }
 
     @Test fun narrowLandscapeDetailStillScrollsToActions() {

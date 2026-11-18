@@ -29,7 +29,8 @@ data class LibretroReportSession(
 object LibretroEngineReport {
     private const val UNAVAILABLE = "unavailable"
     private val optionKey = Regex("[A-Za-z0-9_.-]{1,100}")
-    private val confidentialKey = Regex("password|secret|token|key_file|key_path|directory|path", RegexOption.IGNORE_CASE)
+    private val confidentialKey =
+        Regex("password|secret|token|key_file|key_path|directory|path", RegexOption.IGNORE_CASE)
     private val digestPattern = Regex("[a-fA-F0-9]{64}")
     private val revisionPattern = Regex("[a-fA-F0-9]{40}")
 
@@ -132,7 +133,9 @@ object LibretroEngineReport {
             appendLine("host=LibretroDroid")
             appendLine("host_build=${safeField(hostVersion)}")
             appendLine("selected_core_file_sha256=${digest?.takeIf { digestPattern.matches(it) } ?: UNAVAILABLE}")
-            appendLine("source_revision_verified_by_digest=${revision?.takeIf { revisionPattern.matches(it) } ?: UNAVAILABLE}")
+            appendLine(
+                "source_revision_verified_by_digest=${revision?.takeIf { revisionPattern.matches(it) } ?: UNAVAILABLE}",
+            )
             appendLine("android_sdk=$androidSdk")
             appendLine("device=${safeField(device)}")
             appendLine("media_format=${safeField(mediaFormat)}")

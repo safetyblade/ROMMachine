@@ -49,7 +49,7 @@ fun MainNavigationBar(
     onUndoShelf: () -> Unit = {},
 ) {
     AnimatedVisibility(
-        visible = currentRoute in listOf(MainRoute.HOME, MainRoute.GEM, MainRoute.CARTMOD, MainRoute.SETTINGS),
+        visible = ProductDestination.isMountedRoot(currentRoute),
         enter = expandVertically(),
         exit = shrinkVertically(),
     ) {
@@ -101,20 +101,14 @@ fun MainNavigationBar(
     }
 }
 
-/** GEM and SafeSave join only when their actual routes are ready. */
+/** Only products with mounted destinations enter the dock. */
 @Composable
 private fun ProductDock(
     currentRoute: MainRoute?,
     navController: NavHostController,
 ) {
     val materials = LocalShelfMaterials.current
-    val destinations =
-        listOf(
-            Triple(MainRoute.HOME, "Shelf", R.drawable.cartdeck_brand_shelf),
-            Triple(MainRoute.GEM, "GEM", R.drawable.cartdeck_brand_gem),
-            Triple(MainRoute.CARTMOD, "CARTMOD", R.drawable.cartdeck_brand_cartmod),
-            Triple(MainRoute.SETTINGS, "Settings", R.drawable.cartdeck_brand_settings),
-        )
+    val destinations = ProductDestination.mountedDock()
 
     fun navigate(route: MainRoute) {
         if (currentRoute != route) {

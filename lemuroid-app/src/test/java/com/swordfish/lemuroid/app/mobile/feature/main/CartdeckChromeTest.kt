@@ -33,7 +33,7 @@ class CartdeckChromeTest {
         assertFalse(showShelfEditDock(MainRoute.SETTINGS, true))
     }
 
-    @Test fun homeHasOneBrandTitleAndHiddenShelfOptions() {
+    @Test fun homeHasOneBrandTitleAndShelfToolsRemainReachable() {
         var arrangeRequested = 0
         var appearanceRequested = 0
         compose.setContent {
@@ -41,23 +41,29 @@ class CartdeckChromeTest {
                 MainTopBar(
                     currentRoute = MainRoute.HOME,
                     navController = rememberNavController(),
-                    onHelpPressed = {},
                     onUpdateQueryString = {},
                     mainUIState = MainViewModel.UiState(),
+                )
+                ShelfActions(
+                    saveSyncEnabled = false,
+                    operationsInProgress = false,
+                    arrangingShelf = false,
                     shelfAvailable = true,
                     onToggleArrangeShelf = { arrangeRequested++ },
                     onShelfAppearance = { appearanceRequested++ },
+                    onRefreshLibrary = {},
+                    onAddCartridges = {},
                 )
             }
         }
-        compose.onNodeWithText("CARTDECK").assertExists()
-        compose.onNodeWithText("LIBRARY").assertExists()
+        compose.onNodeWithContentDescription("CARTDECK").assertExists()
+        compose.onNodeWithText("LIBRARY").assertDoesNotExist()
         compose.onNodeWithText("Home").assertDoesNotExist()
         compose.onNodeWithText("Arrange shelf").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Library options").performClick()
+        compose.onNodeWithText("Shelf tools").performClick()
         compose.onNodeWithText("Arrange shelf").performClick()
         assertTrue(arrangeRequested == 1)
-        compose.onNodeWithContentDescription("Library options").performClick()
+        compose.onNodeWithText("Shelf tools").performClick()
         compose.onNodeWithText("Shelf appearance").performClick()
         assertTrue(appearanceRequested == 1)
     }
@@ -92,7 +98,8 @@ class CartdeckChromeTest {
         compose.onNodeWithText("Done").assertDoesNotExist()
         compose.onNodeWithText("Shelf").assertExists()
         compose.onNodeWithText("CARTMOD").assertExists()
-        compose.onNodeWithText("GEM").assertDoesNotExist()
+        compose.onNodeWithText("GEM").assertExists()
+        compose.onNodeWithText("Settings").assertExists()
         compose.onNodeWithText("SafeSave").assertDoesNotExist()
     }
 }

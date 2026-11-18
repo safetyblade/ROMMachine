@@ -170,7 +170,8 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
                 val duplicate =
                     sources.any {
                         val sameName = it.name.equals(source.name, ignoreCase = true)
-                        val sameAddress = it.home.equals(source.home, ignoreCase = true) && it.template == source.template
+                        val sameAddress =
+                            it.home.equals(source.home, ignoreCase = true) && it.template == source.template
                         it.id != source.id && (sameName || sameAddress)
                     }
                 if (duplicate) {

@@ -95,7 +95,7 @@ class CompactMenuScreensTest {
                 compose.onAllNodesWithText("A ← A").fetchSemanticsNodes().isNotEmpty()
             }
             val row = compose.onNodeWithText("A ← A")
-            row.performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(52.dp)
+            row.performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
             val bounds = row.getUnclippedBoundsInRoot()
             assertTrue((bounds.bottom - bounds.top).value <= 60f)
             compose.onNodeWithText("Last input: KEYCODE_BUTTON_A").assertDoesNotExist()

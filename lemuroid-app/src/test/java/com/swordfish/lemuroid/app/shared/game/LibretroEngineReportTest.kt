@@ -33,7 +33,11 @@ class LibretroEngineReportTest {
                 ),
             )
         assertEquals(
-            listOf("ordinary_option=[redacted]", "reicast_internal_resolution=640x480", "reicast_vblank_pacing=enabled"),
+            listOf(
+                "ordinary_option=[redacted]",
+                "reicast_internal_resolution=640x480",
+                "reicast_vblank_pacing=enabled",
+            ),
             options,
         )
     }
