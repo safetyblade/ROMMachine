@@ -21,7 +21,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
+import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
@@ -36,7 +38,9 @@ import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import dagger.android.support.AndroidSupportInjection
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class TVHomeFragment : BrowseSupportFragment() {
@@ -50,6 +54,7 @@ class TVHomeFragment : BrowseSupportFragment() {
     lateinit var saveSyncManager: SaveSyncManager
 
     private var shelfSections = emptyList<TVShelfSection>()
+    private var gemRatings = emptyMap<String, Int>()
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -84,6 +89,11 @@ class TVHomeFragment : BrowseSupportFragment() {
                                 )
                             TVSettingType.CHOOSE_DIRECTORY -> launchFolderPicker()
                             TVSettingType.SETTINGS -> launchTVSettings()
+                            TVSettingType.GEM ->
+                                startActivity(
+                                    Intent(requireContext(), MainActivity::class.java)
+                                        .putExtra("cartdeck.open_gem", true),
+                                )
                             TVSettingType.CONTROLLERS ->
                                 startActivity(Intent(requireContext(), ControllerSettingsActivity::class.java))
                             TVSettingType.SHOW_ALL_FAVORITES -> launchFavorites()
@@ -126,6 +136,23 @@ class TVHomeFragment : BrowseSupportFragment() {
             homeViewModel.getViewStates()
                 .combine(homeViewModel.shelfSections) { state, sections -> state to sections }
                 .collect { (state, sections) -> update(state, sections) }
+        }
+        launchOnState(Lifecycle.State.RESUMED) {
+            GemShelfPresentation.revision.collect {
+                val context = requireContext().applicationContext
+                val ratings =
+                    withContext(Dispatchers.IO) {
+                        runCatching { GemShelfPresentation.ratings(context) }.getOrDefault(emptyMap())
+                    }
+                if (gemRatings != ratings) {
+                    gemRatings = ratings
+                    (listOf(FAVORITES_ADAPTER, RECENTS_ADAPTER) + shelfSections.indices.map(::shelfRowId)).forEach { id ->
+                        findAdapterById<ArrayObjectAdapter>(id)?.let { row ->
+                            row.notifyArrayItemRangeChanged(0, row.size())
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -207,7 +234,7 @@ class TVHomeFragment : BrowseSupportFragment() {
 
         if (includeFavorites) {
             val presenter = ClassPresenterSelector()
-            presenter.addClassPresenter(Game::class.java, GamePresenter(cardSize, gameInteractor))
+            presenter.addClassPresenter(Game::class.java, GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
             presenter.addClassPresenter(TVSetting::class.java, SettingPresenter(cardSize, settingsCardPadding))
             val favouritesItems = ArrayObjectAdapter(presenter)
             val title = resources.getString(R.string.tv_home_section_favorites)
@@ -215,7 +242,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         }
 
         if (includeRecentGames) {
-            val recentItems = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor))
+            val recentItems = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
             val title = resources.getString(R.string.tv_home_section_recents)
             result.add(ListRow(HeaderItem(RECENTS_ADAPTER, title), recentItems))
         }
@@ -227,10 +254,14 @@ class TVHomeFragment : BrowseSupportFragment() {
         }
 
         shelfSections.forEachIndexed { index, section ->
-            val items = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor))
+            val items = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
             items.setItems(section.games, LEANBACK_GAME_DIFF_CALLBACK)
             result.add(ListRow(HeaderItem(shelfRowId(index), section.title), items))
         }
+
+        val gemItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
+        gemItems.add(TVSetting(TVSettingType.GEM))
+        result.add(ListRow(HeaderItem(GEM_ADAPTER, "GEM"), gemItems))
 
         val settingsItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
         settingsItems.setItems(
@@ -283,6 +314,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         const val RECENTS_ADAPTER = 1L
         const val SYSTEM_ADAPTER = 2L
         const val SETTINGS_ADAPTER = 3L
+        const val GEM_ADAPTER = 5L
         const val FAVORITES_ADAPTER = 4L
 
         private fun shelfRowId(index: Int) = -1L - index
