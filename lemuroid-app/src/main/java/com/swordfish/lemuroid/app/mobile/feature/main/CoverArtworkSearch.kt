@@ -24,7 +24,7 @@ internal object CoverArtworkSearch {
         OkHttpClient.Builder()
             .followRedirects(false)
             .followSslRedirects(false)
-            .callTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(12, TimeUnit.SECONDS)
             .build()
 
     fun find(query: String): List<Result> {
@@ -37,12 +37,12 @@ internal object CoverArtworkSearch {
                 .addQueryParameter("generator", "search")
                 .addQueryParameter("gsrsearch", query)
                 .addQueryParameter("gsrnamespace", "0")
-                .addQueryParameter("gsrlimit", "10")
+                .addQueryParameter("gsrlimit", "8")
                 .addQueryParameter("prop", "pageimages")
                 .addQueryParameter("piprop", "thumbnail")
                 .addQueryParameter("pithumbsize", "640")
                 .addQueryParameter("pilicense", "any")
-                .addQueryParameter("pilimit", "10")
+                .addQueryParameter("pilimit", "8")
                 .build()
         val json = JSONObject(String(read(url.toString()), Charsets.UTF_8))
         require(!json.has("error")) { "Image search unavailable" }
@@ -66,7 +66,7 @@ internal object CoverArtworkSearch {
         val bytes = read(result.imageUrl)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        require(bounds.outWidth in 1..2048 && bounds.outHeight in 1..2048) { "Unsupported image dimensions" }
+        require(bounds.outWidth in 1..1024 && bounds.outHeight in 1..1024) { "Unsupported image dimensions" }
         return requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size)) { "Invalid image" }
     }
 
