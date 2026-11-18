@@ -1,0 +1,16 @@
+# GEM-B2 — Personal rating implementation checkpoint
+
+## Controlling design
+Owner-approved GEM-P03–P08; BRAND-01 B2, B4, B5, B6 and B7 design/implementation records. The later brand design keeps website search/My Sources inside GEM, explicitly separate from offline catalogue queries. Preserve existing GEM dock and cartridge front/Open/Setup, use B4 GEMRating path and shared 48dp-min action row, semantic appearance tint, Source Sans 3 via current theme, no forced shelf ratings, no fake For You route. GEMRating is whole-number 1–10, distinct from favourites, DeckFit, critic and RoxyRating; RoxyRating is not application data.
+
+## Implementation
+- GemRatingRepository: versioned per-profile ledger keyed by immutable cartridge UUID. Null = unrated/clear tombstone, revision and timestamp retained. Invalid scores/UUIDs, invalid snapshots, stale sessions and Junior denied. Titles/platforms are presentation metadata, never identity.
+- GemRatingLocalStore: installation-local, randomly generated legacy-manager UUID, private no-backup AtomicFile storage; verified writes. Missing owner with existing rating files fails closed. Current single-player bridge does not create a profile switcher, grant access to Junior or integrate with emulator saves.
+- CartridgeDetail uses shared CartdeckMenuRow with exact B4 approved GEMRating vector; explicit integer selection/save, cancel and clear. My Ratings lists retained scores and indicates not installed. Browse and website search remain separate.
+- No scanner, ROM, save binding, engine, Room migration, network service or appearance-store changes. B1 exact source-gate issues corrected.
+
+## Dependency and acceptance boundaries
+PROF-01 #289 remains design-only on inspected baseline. Before enabling profile switching or Junior, adopt the persisted legacy manager UUID into the authoritative Manager session (or explicit atomic verified migration), replace legacy bridge with profile policy and shared session guard, enforce visibility and role restrictions in every GEM route/service and test real session switches. Never silently copy adult ratings into another profile. Uninstalled catalogue-only voluntary ratings, recommendation projection, wildcard/Surprise Me, optional shelf overlay, TV parity, independent GEM export and SafeSave export/restore are not claimed. Versioned ledger and clear revisions support future transfer; live sync is not implemented/authorised.
+
+## Evidence
+Isolated Kotlin compiler run: 9/9 tests passed, exact source Git blob 7a477096904fde705a255cd5000a94e3ab85b83d and test Git blob 90f14437592e7cfa945a68be18e1370364b5b7d8, using annotation/assertion shims. Not real Gradle/JUnit/serializer/Android storage/device verification. Prior B1 integrity passes retained. New Kotlin formatting finding from run 44387639833 addressed in commit 19fe9a28bc8fd7b64064208f3667c03cc1884500. Require green exact current merge-tree source, Room, catalogue and connected APK gates; physical tests include explicit save/edit/clear, restart, refresh, remove/reimport with same UUID, landscape/controller focus, install-over and existing gameplay/save continuity. Base master advanced across PERF recovery; do not use old-head APK or merge until verified prospective tree is based on recovered master. Keep PR #343 draft.
