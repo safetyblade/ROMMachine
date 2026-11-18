@@ -43,7 +43,9 @@ class GemRatingRepository(
 
         fun write(snapshot: Snapshot)
 
-        fun backup(snapshot: Snapshot) { }
+        fun backup(snapshot: Snapshot) {
+            error("Recovery storage unavailable")
+        }
     }
 
     fun snapshot(expected: Session): Snapshot =
