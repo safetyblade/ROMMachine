@@ -14,7 +14,11 @@ import java.security.spec.X509EncodedKeySpec
 import javax.net.ssl.HttpsURLConnection
 
 /** Version-level activation, independent of all personal and emulator storage. */
-internal class GemCatalogueVersions(context: Context) {
+internal class GemCatalogueVersions(
+    context: Context,
+    private val trustedKey: PublicKey? = null,
+    private val bundledCatalogue: (() -> GemCataloguePackage.Loaded)? = null,
+) {
     private val app = context.applicationContext
     private val root = File(app.noBackupFilesDir, "gem-catalogue-versions")
     private val pointer = AtomicFile(File(root, "state.json"))
@@ -56,7 +60,7 @@ internal class GemCatalogueVersions(context: Context) {
         }
 
     private fun signingKey(): PublicKey? =
-        asset("gem/update-public-key.der")?.let {
+        trustedKey ?: asset("gem/update-public-key.der")?.let {
             KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(it))
         }
 
@@ -90,8 +94,10 @@ internal class GemCatalogueVersions(context: Context) {
         return File(root, ref.digest + ".gemcatalogue")
     }
 
+    private fun bundled(): GemCataloguePackage.Loaded = bundledCatalogue?.invoke() ?: GemProductionCatalogue.load(app)
+
     private fun loadRef(ref: Ref): GemCataloguePackage.Loaded {
-        if (ref == BASELINE) return GemProductionCatalogue.load(app)
+        if (ref == BASELINE) return bundled()
         val bytes = file(ref).inputStream().use(GemSignedCatalogue::read)
         require(GemProfileBackup.digest(bytes) == ref.digest)
         val verified = GemSignedCatalogue.verify(bytes, requireNotNull(signingKey()))
@@ -108,7 +114,7 @@ internal class GemCatalogueVersions(context: Context) {
                     runCatching { loadRef(it) }.getOrNull()?.let { loaded -> return@synchronized loaded }
                 }
             }
-            GemProductionCatalogue.load(app)
+            bundled()
         }
 
     fun status(): Status =
