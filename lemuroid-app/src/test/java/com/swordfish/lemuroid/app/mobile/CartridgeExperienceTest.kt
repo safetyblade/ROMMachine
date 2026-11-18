@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -47,6 +48,10 @@ import com.swordfish.lemuroid.app.mobile.feature.home.HomeViewModel
 import com.swordfish.lemuroid.app.mobile.feature.main.CartridgeDetail
 import com.swordfish.lemuroid.app.mobile.feature.search.SearchScreen
 import com.swordfish.lemuroid.app.mobile.feature.search.SearchViewModel
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfCell
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfLayout
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
+import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
@@ -352,6 +357,50 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Done").assertIsDisplayed().performClick()
         compose.onNodeWithText("Search collection").assertDoesNotExist()
         compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w720dp-h360dp-land")
+    fun namedLandscapeSectionsUseTheSameCartridgeDensity() {
+        val second = cartridge(2, "Orbit", "gba")
+        val layout =
+            ShelfLayout(
+                sections =
+                    listOf(
+                        ShelfSection(
+                            ShelfLayout.UNSORTED,
+                            "First shelf",
+                            listOf(ShelfCell(gameKey = shelfGameKey(game.systemId, game.fileUri))),
+                        ),
+                        ShelfSection(
+                            "second",
+                            "Second shelf",
+                            listOf(ShelfCell(gameKey = shelfGameKey(second.systemId, second.fileUri))),
+                        ),
+                    ),
+            )
+        compose.setContent {
+            CartridgeLibraryTheme {
+                HomeScreen(
+                    state = HomeViewModel.UIState(indexInProgress = false, discoveryGames = listOf(game, second)),
+                    onGameClicked = {},
+                    onGameLongClick = {},
+                    onOpenCoreSelection = {},
+                    onEnableNotificationsClicked = {},
+                    onEnableMicrophoneClicked = {},
+                    onSetDirectoryClicked = {},
+                    shelfLayout = layout,
+                )
+            }
+        }
+        val first = compose.onNodeWithContentDescription("Atlas, GB, spine facing")
+        first.assertIsDisplayed()
+        val width = first.getUnclippedBoundsInRoot().width
+        compose.onNodeWithText("Second shelf").performClick()
+        compose.mainClock.advanceTimeBy(1000)
+        val next = compose.onNodeWithContentDescription("Orbit, GBA, spine facing")
+        next.assertIsDisplayed()
+        assertEquals(width, next.getUnclippedBoundsInRoot().width)
     }
 
     @Test fun narrowLandscapeDetailStillScrollsToActions() {

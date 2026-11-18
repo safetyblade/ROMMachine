@@ -45,7 +45,6 @@ fun InputDevicesSettingsScreen(
         val context = LocalContext.current
         LemuroidSettingsMenuLink(
             title = { Text("Set up and map controllers") },
-            subtitle = { Text("Choose a controller, assign a player, map buttons and test inputs") },
             onClick = {
                 context.startActivity(
                     Intent(
@@ -58,7 +57,6 @@ fun InputDevicesSettingsScreen(
         EnabledDeviceCategory(state)
         LemuroidSettingsMenuLink(
             title = { Text(if (advanced) "Hide advanced setup" else "Advanced setup") },
-            subtitle = { Text("Legacy bindings, shortcuts and reset all") },
             onClick = { advanced = !advanced },
         )
         if (advanced) {

@@ -50,6 +50,7 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
     val store = remember(context) { PivotArcSettingsStore(context) }
     val current = rememberPivotArcSettings().value
     var adjusting by remember { mutableStateOf(false) }
+    var helpOpen by remember { mutableStateOf(false) }
     val baseline = remember(context) { runCatching { PivotArcLayoutProfile.load(context) }.getOrNull() }
 
     Column(
@@ -57,15 +58,20 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Layout", style = MaterialTheme.typography.headlineSmall)
-        Text("One global control layout across cartridges.", style = MaterialTheme.typography.bodyMedium)
+        TextButton(onClick = { helpOpen = !helpOpen }) { Text(if (helpOpen) "Hide layout help" else "Layout help") }
+        if (helpOpen) {
+            Text("One global control layout across cartridges.")
+            Text("GB, GBC, GBA and SNES use PivotArc. Other systems retain Standard controls and your preference.")
+            Text("Left Hand mirrors positions without changing game or input identities.")
+        }
         LayoutChoice(
             "Standard",
-            "Original controls, positions and button mappings",
+            "Original controls",
             current.mode == CartdeckLayoutMode.STANDARD,
         ) { store.save(current.copy(mode = CartdeckLayoutMode.STANDARD)) }
         LayoutChoice(
             "One Hand Mode",
-            "PivotArc · Candidate C",
+            "PivotArc",
             current.mode == CartdeckLayoutMode.ONE_HAND,
         ) { store.save(current.copy(mode = CartdeckLayoutMode.ONE_HAND)) }
         if (current.mode == CartdeckLayoutMode.ONE_HAND) {
@@ -74,23 +80,18 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
                 ink = MaterialTheme.colorScheme.onSurface,
                 accent = MaterialTheme.colorScheme.primary,
             )
-            LayoutChoice("Right Hand", "Owner-approved Candidate C arrangement", current.hand == PivotArcHand.RIGHT) {
+            LayoutChoice("Right Hand", "Default position", current.hand == PivotArcHand.RIGHT) {
                 store.save(current.copy(hand = PivotArcHand.RIGHT))
             }
             LayoutChoice(
                 "Left Hand",
-                "Mirror positions; keep game and input identities unchanged",
+                "Mirrored position",
                 current.hand == PivotArcHand.LEFT,
             ) {
                 store.save(current.copy(hand = PivotArcHand.LEFT))
             }
             Button(onClick = { adjusting = true }, enabled = baseline != null) { Text("Adjust Position") }
             TextButton(onClick = { store.resetPosition() }) { Text("Reset Position") }
-            Text(
-                "GB, GBC, GBA and SNES are the initial profiles. Other systems use existing Standard " +
-                    "controls with an explanation. Your PivotArc preference is retained.",
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
     }
     if (adjusting && baseline != null) {
