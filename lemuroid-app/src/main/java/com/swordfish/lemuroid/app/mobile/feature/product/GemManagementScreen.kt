@@ -275,7 +275,7 @@ internal fun GemManagementScreen(
                     Text("Replace conflicting ratings, including cleared ratings.")
                     Checkbox(checked = preferences, onCheckedChange = { preferences = it })
                     Text("Restore discovery and shelf preferences.")
-                    Text("A recovery copy is stored before changes. Restore merges records; it never deletes local entries.")
+                    Text("A recovery copy is stored first. Restore merges records and never deletes local entries.")
                 }
             },
             confirmButton = {
