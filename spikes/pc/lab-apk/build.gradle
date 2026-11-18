@@ -4,19 +4,20 @@ android {
     compileSdk 35
     defaultConfig {
         applicationId 'dev.cartdeck.pc.lab'
-        minSdk 23
+        minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName 'PC-R01-R02-lab1'
+        versionCode 2
+        versionName 'PC-R03-lab2'
         ndk { abiFilters 'arm64-v8a' }
     }
+    sourceSets.main.assets.srcDirs = [providers.gradleProperty("pcLabAssets").get()]
     sourceSets.main.jniLibs.srcDirs = [providers.gradleProperty("pcLabCoreDir").get()]
     // GLRetroView opens an actual file path, so the loader must extract the core.
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += ['**/*.so'] } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
-    implementation 'dev.cartdeck.pc.lab:PcLibretroHost:0.14.0-pc-lab1'
+    implementation 'dev.cartdeck.pc.lab:PcLibretroHost:0.14.0-pc-lab2'
     implementation 'androidx.activity:activity:1.8.2'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
 }
