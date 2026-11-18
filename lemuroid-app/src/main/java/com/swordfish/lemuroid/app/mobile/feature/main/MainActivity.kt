@@ -604,6 +604,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     },
                     onChangeCover = gameInteractor::onSetCustomCoverUri,
                     onResetCover = gameInteractor::onClearCustomCoverUri,
+                    onUseOnlineCover = gameInteractor::useOnlineCover,
                 )
             }
 
@@ -620,6 +621,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 onClearCustomName = { game -> gameInteractor.onClearCustomName(game) },
                 onSetCustomCoverUri = { game, uri -> gameInteractor.onSetCustomCoverUri(game, uri) },
                 onClearCustomCoverUri = { game -> gameInteractor.onClearCustomCoverUri(game) },
+                onUseOnlineCover = gameInteractor::useOnlineCover,
                 onManagePcInstallation = { game ->
                     navController.navigate("cartmod/install/${game.cartridgeId}")
                 },
