@@ -186,8 +186,9 @@ internal fun PhysicalControllerMappingPanel(
                         Text("Choose a supported port. Assignment does not change save ownership.")
                         repeat(portCapacity.coerceIn(1, 16)) { port ->
                             val occupant = devices.firstOrNull { ports(it) == port }
-                            val label = occupant?.let { " · ${it.name}" }.orEmpty() +
-                                if (actualPort == port) " · Current" else ""
+                            val occupantLabel = occupant?.let { " · ${it.name}" }.orEmpty()
+                            val currentLabel = if (actualPort == port) " · Current" else ""
+                            val label = occupantLabel + currentLabel
                             GameMenuLink("Player ${port + 1}$label") {
                                 pendingPort = port
                                 choosePort = false
