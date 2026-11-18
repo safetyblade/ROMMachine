@@ -70,6 +70,8 @@ internal fun GemFinderScreen(
     var feed by remember { mutableStateOf<List<GemRatingRecommender.Recommendation>?>(null) }
     var surprising by remember { mutableStateOf(false) }
     var changingShare by remember { mutableStateOf(false) }
+    var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
+    var message by remember { mutableStateOf("") }
 
     fun changeShare(value: Int) {
         val prefs = preferences ?: return
@@ -81,8 +83,6 @@ internal fun GemFinderScreen(
             changingShare = false
         }
     }
-    var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
-    var message by remember { mutableStateOf("") }
 
     LaunchedEffect(catalogue, games, ratingRevision) {
         val result =
