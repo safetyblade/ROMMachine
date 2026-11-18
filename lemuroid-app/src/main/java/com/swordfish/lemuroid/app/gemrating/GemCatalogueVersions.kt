@@ -80,6 +80,7 @@ internal class GemCatalogueVersions(context: Context) {
         require(result.active.sequence in 0..result.highestSequence)
         require(result.previous == null || result.previous.sequence in 0..result.highestSequence)
         require(result.identities.size <= 200_000)
+        require(result.identities.keys.all { it.length in 1..256 })
         require(result.identities.values.all { it.matches(HEX) })
         return result
     }
@@ -176,7 +177,7 @@ internal class GemCatalogueVersions(context: Context) {
                     identities = nextHistory,
                 ),
             )
-            prune(next, current.active)
+            runCatching { prune(next, current.active) }
             next.version
         }
 
