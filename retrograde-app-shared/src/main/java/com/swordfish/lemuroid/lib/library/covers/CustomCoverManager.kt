@@ -72,7 +72,7 @@ class CustomCoverManager(private val appContext: Context) {
         gameId: Int,
         write: (File) -> Unit,
     ): String {
-        val file = File(getCoversDirectory(), "cover_${gameId}.${UUID.randomUUID()}.png")
+        val file = File(getCoversDirectory(), "cover_$gameId.${UUID.randomUUID()}.png")
         try {
             write(file)
             check(file.length() > 0)
