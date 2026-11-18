@@ -26,6 +26,8 @@ internal class GemRatingLocalStore private constructor(
                 val owner = readExisting(ownerFile)
                 val id =
                     if (owner == null) {
+                        val retained = if (root.exists()) requireNotNull(root.listFiles()) else emptyArray()
+                        check(retained.none { it.name.contains(".json") }) { "Legacy rating owner identity missing" }
                         UUID.randomUUID().toString().also { writeVerified(ownerFile, it) }
                     } else {
                         owner
