@@ -21,3 +21,17 @@ This limits plaintext artifact exposure; it is not legal clearance or a licence
 compatibility finding. Do not share the password or decrypted APK. Public release
 and any distribution requiring clearance remain controlled by REL-ENG-01 #307.
 The source/receipt checks and stable console workflow remain mandatory.
+
+## Automatic master build integration
+
+Every successful standard master APK build now automatically selects a trusted
+successful PS3 source workflow with both nonexpired native inputs, then builds
+the PS3-inclusive owner candidate at the same app revision and console-host
+recipe. Standard unencrypted APK remains a separate verified fallback; it
+does not contain PS3 and is not the owner-test candidate. Pull requests do not
+automatically package PS3. Download CARTDECK_PS3_OWNER_TEST_ENCRYPTED from
+the same master Actions run after that job succeeds. The password secret
+remains necessary for delivery; absence fails the PS3 job explicitly instead
+of presenting a PS3-less APK as a PS3 build. Native artifact expiration needs
+a fresh PS3 source producer, not a full console rebuild. The standalone
+owner-test workflow remains available as a manual retry.

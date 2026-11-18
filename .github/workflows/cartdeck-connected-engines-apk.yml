@@ -99,8 +99,11 @@ jobs:
           OWNER_TEST_PASSPHRASE: ${{ secrets.CARTDECK_OWNER_TEST_PASSPHRASE }}
         run: |
           set -euo pipefail
-          test "${{ github.event_name }}" = workflow_dispatch
-          test "${{ github.ref }}" = refs/heads/master
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) echo 'Owner-test packaging requires a trusted master build.' >&2; exit 1 ;;
+          esac
+          test "$GITHUB_REF" = refs/heads/master
           test "${{ inputs.include_ps3 }}" = true
           test "${{ inputs.ps3_development_integration }}" = true
           test "${{ inputs.publish_apk }}" = false
@@ -637,7 +640,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gc01-abc-unit-ui-evidence
+          name: ${{ inputs.ps3_owner_test && 'ps3-owner-unit-ui-evidence' || 'gc01-abc-unit-ui-evidence' }}
           path: |
             lemuroid-app/build/test-results/testFreeBundleDebugUnitTest/
             lemuroid-app/build/reports/gc01-menu-screens/
@@ -681,7 +684,7 @@ jobs:
       - name: Retain exact ARMSX2 and Xenia crash symbols
         uses: actions/upload-artifact@v4
         with:
-          name: connected-emulator-native-symbols
+          name: ${{ inputs.ps3_owner_test && 'ps3-owner-connected-native-symbols' || 'connected-emulator-native-symbols' }}
           path: |
             work/connected/armsx2/verified/page-4096/libemucore_4k.so
             work/connected/armsx2/verified/page-16384/libemucore_16k.so
@@ -695,7 +698,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: connected-apk-failure
+          name: ${{ inputs.ps3_owner_test && 'ps3-owner-apk-failure' || 'connected-apk-failure' }}
           path: |
             lemuroid-app/build/reports/ktlint/
             lemuroid-app/build/test-results/
