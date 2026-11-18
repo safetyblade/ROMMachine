@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.product
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -35,21 +36,35 @@ import kotlinx.coroutines.withContext
 /** Uses the shared BR component system; never writes to Game or SaveBinding. */
 @Composable
 internal fun GemRatingRow(game: Game) {
+    GemRatingRow(
+        cartridgeId = game.cartridgeId,
+        displayTitle = game.displayName(),
+        platformId = game.systemId,
+    )
+}
+
+@Composable
+internal fun GemRatingRow(
+    cartridgeId: String,
+    displayTitle: String,
+    platformId: String?,
+    onRatingChanged: () -> Unit = {},
+) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
-    var store by remember(game.cartridgeId) { mutableStateOf<GemRatingLocalStore?>(null) }
-    var score by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
-    var draft by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
-    var editing by remember(game.cartridgeId) { mutableStateOf(false) }
-    var busy by remember(game.cartridgeId) { mutableStateOf(false) }
-    var error by remember(game.cartridgeId) { mutableStateOf<String?>(null) }
+    var store by remember(cartridgeId) { mutableStateOf<GemRatingLocalStore?>(null) }
+    var score by remember(cartridgeId) { mutableStateOf<Int?>(null) }
+    var draft by remember(cartridgeId) { mutableStateOf<Int?>(null) }
+    var editing by remember(cartridgeId) { mutableStateOf(false) }
+    var busy by remember(cartridgeId) { mutableStateOf(false) }
+    var error by remember(cartridgeId) { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(game.cartridgeId) {
+    LaunchedEffect(cartridgeId) {
         val result =
             withContext(Dispatchers.IO) {
                 runCatching {
                     val local = GemRatingLocalStore.open(context)
-                    local to local.repository.score(local.session, game.cartridgeId)
+                    local to local.repository.score(local.session, cartridgeId)
                 }
             }
         result.onSuccess {
@@ -65,12 +80,21 @@ internal fun GemRatingRow(game: Game) {
         scope.launch {
             val result =
                 withContext(Dispatchers.IO) {
-                    runCatching { local.repository.set(local.session, game.cartridgeId, value) }
+                    runCatching {
+                        local.repository.set(
+                            expected = local.session,
+                            cartridgeId = cartridgeId,
+                            score = value,
+                            displayTitle = displayTitle.take(512).ifBlank { null },
+                            platformId = platformId?.take(64)?.ifBlank { null },
+                        )
+                    }
                 }
             if (result.isSuccess) {
                 score = value
                 error = null
                 editing = false
+                onRatingChanged()
             } else {
                 error = "Could not save rating. Reopen to check the stored value."
             }
@@ -106,7 +130,7 @@ internal fun GemRatingRow(game: Game) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(game.displayName(), style = MaterialTheme.typography.titleMedium)
+                    Text(displayTitle, style = MaterialTheme.typography.titleMedium)
                     Text("How much do you enjoy this game?")
                     for (start in listOf(1, 6)) {
                         Row(Modifier.fillMaxWidth()) {
@@ -115,7 +139,7 @@ internal fun GemRatingRow(game: Game) {
                                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                                     enabled = !busy,
                                     onClick = { draft = value },
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                                    contentPadding = PaddingValues(0.dp),
                                 ) {
                                     Text(
                                         if (draft == value) "[$value]" else value.toString(),
