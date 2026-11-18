@@ -70,7 +70,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
          if (video->rendersInVideoCallback()) {
              video->renderFrame();
 +            if (sample) {
-+                const auto& layout = video->getLayout();
++                auto& layout = video->getLayout();
 +                probe.recordOutput(openglESVersion >= 3
 +                    ? cartdeck::sampleFramebuffer(0, layout.getScreenWidth(), layout.getScreenHeight()) : 4);
 +            }

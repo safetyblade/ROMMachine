@@ -535,8 +535,9 @@ class GameViewModelRetroGameView(
     }
 
     private fun updateCoreVariables(options: List<CoreVariable>) {
+        val launchOptions = citraLaunchMode?.applyOptions(options) ?: options
         val updatedVariables =
-            options.map { Variable(it.key, it.value) }
+            launchOptions.map { Variable(it.key, it.value) }
                 .toTypedArray()
 
         updatedVariables.forEach {
