@@ -11,7 +11,7 @@ class AvTimingPatchTest(unittest.TestCase):
     def test_timing_mailbox_and_stereo_bounds(self):
         section = PATCH.read_text().split(
             "diff --git a/libretrodroid/src/main/cpp/cartdeck_av_timing.h "
-        )[1]
+        )[1].split("\ndiff --git ", 1)[0]
         header = "\n".join(line[1:] for line in section.splitlines()
                            if line.startswith("+") and not line.startswith("+++")) + "\n"
         fixture = r'''

@@ -26,16 +26,17 @@ new file mode 100644
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
-@@ -271,6 +271,8 @@
+@@ -271,6 +271,9 @@
      LOGD("Performing libretrodroid create");
  
      resetGlobalVariables();
 +    coreFrameSignal.reset();
 +    cartdeck::PerfCounters::instance().reset(soFilePath.find("flycast") != std::string::npos);
++    cartdeck::RenderProbe::instance().reset(soFilePath.find("libcitra_libretro_android.so") != std::string::npos);
  
      Environment::getInstance().initialize(systemDir, savesDir, &callback_get_current_framebuffer);
      Environment::getInstance().setLanguage(language);
-@@ -456,8 +458,16 @@
+@@ -456,8 +459,16 @@
          frames = std::min(requestedFrames, 2u);
      }
  
@@ -54,16 +55,32 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      if (video && !video->rendersInVideoCallback()) {
          video->renderFrame();
-@@ -541,6 +551,8 @@
+@@ -531,10 +542,24 @@
+ ) {
+     if (video) {
++        auto& probe = cartdeck::RenderProbe::instance();
++        const bool sample = probe.begin(data == RETRO_HW_FRAME_BUFFER_VALID, data == nullptr, width, height);
++        if (sample) {
++            const auto framebuffer = video->getCurrentFramebuffer();
++            probe.recordGuest(openglESVersion >= 3 && framebuffer
++                ? cartdeck::sampleFramebuffer(framebuffer, width, height) : 4);
++        }
+         video->onNewFrame(data, width, height, pitch);
+ 
          if (video->rendersInVideoCallback()) {
              video->renderFrame();
++            if (sample) {
++                const auto& layout = video->getLayout();
++                probe.recordOutput(openglESVersion >= 3
++                    ? cartdeck::sampleFramebuffer(0, layout.getScreenWidth(), layout.getScreenHeight()) : 4);
++            }
          }
 +        coreFrameSignal.record(data, width, height);
 +        cartdeck::PerfCounters::instance().recordVideo(data == nullptr);
      }
  }
  
-@@ -605,9 +617,12 @@
+@@ -605,9 +630,12 @@
      struct retro_system_av_info system_av_info {};
      core->retro_get_system_av_info(&system_av_info);
  
@@ -79,7 +96,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      audio = std::make_unique<Audio>(
          (int32_t) std::lround(inputSampleRate),
-@@ -620,7 +635,26 @@
+@@ -620,7 +648,26 @@
      defaultAspectRatio = findDefaultAspectRatio(system_av_info);
  }
  
@@ -110,15 +127,16 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
 --- a/libretrodroid/src/main/cpp/libretrodroid.h
 +++ b/libretrodroid/src/main/cpp/libretrodroid.h
-@@ -19,6 +19,7 @@
+@@ -19,6 +19,8 @@
  #define LIBRETRODROID_LIBRETRODROID_H
  
  #include <jni.h>
 +#include "coreframesignal.h"
++#include "cartdeck_render_probe_gl.h"
  
  #include <EGL/egl.h>
  
-@@ -93,6 +94,7 @@
+@@ -93,6 +95,7 @@
      );
      void resume();
      void step();
@@ -126,7 +144,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
      void pause();
      void destroy();
  
-@@ -145,7 +147,8 @@
+@@ -145,7 +148,8 @@
  private:
      void updateAudioSampleRateMultiplier();
      float findDefaultAspectRatio(const retro_system_av_info &system_av_info);
@@ -136,7 +154,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
  
  protected:
      static void callback_hw_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch);
-@@ -156,6 +159,7 @@
+@@ -156,6 +160,7 @@
      static void callback_retro_set_input_poll();
  
  private:
@@ -144,7 +162,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
      unsigned int frameSpeed = 1;
      bool audioEnabled = true;
      bool preferLowLatencyAudio = false;
-@@ -173,7 +177,10 @@
+@@ -173,7 +178,10 @@
      bool immersiveModeEnabled = false;
      ImmersiveMode::Config immersiveModeConfig {};
  
@@ -159,7 +177,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
 diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 --- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-@@ -629,3 +629,17 @@
+@@ -629,3 +629,24 @@
  }
  
  }
@@ -175,6 +193,13 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src
 +    JNIEnv* env, jclass obj
 +) {
 +    const auto report = cartdeck::PerfCounters::instance().report();
++    return env->NewStringUTF(report.c_str());
++}
++
++extern "C" JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_br002RenderingReport(
++    JNIEnv* env, jclass obj
++) {
++    const auto report = cartdeck::RenderProbe::instance().report();
 +    return env->NewStringUTF(report.c_str());
 +}
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
@@ -213,12 +238,13 @@ diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 +++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
-@@ -107,6 +107,9 @@
+@@ -107,6 +107,10 @@
  
      public static native void step(GLRetroView retroView);
  
 +    public static native long coreFrameCount();
 +    public static native String br001PerformanceReport();
++    public static native String br002RenderingReport();
 +
      public static native void reset();
  
@@ -532,3 +558,135 @@ new file mode 100644
 +}
 +}
 +#endif
+diff --git a/libretrodroid/src/main/cpp/cartdeck_render_probe.h b/libretrodroid/src/main/cpp/cartdeck_render_probe.h
+new file mode 100644
+--- /dev/null
++++ b/libretrodroid/src/main/cpp/cartdeck_render_probe.h
+@@ -0,0 +1,70 @@
++#pragma once
++#include <atomic>
++#include <array>
++#include <string>
++namespace cartdeck {
++class RenderProbe {
++public:
++    static RenderProbe& instance() { static RenderProbe value; return value; }
++    void reset(bool capture) {
++        enabled.store(false);
++        callbacks.store(0); hardware.store(0); duplicates.store(0); software.store(0);
++        width.store(0); height.store(0); slot.store(-1);
++        for (auto& v : guest) v.store(0);
++        for (auto& v : output) v.store(0);
++        enabled.store(capture);
++    }
++    bool begin(bool isHardware, bool isDuplicate, unsigned w, unsigned h) {
++        if (!enabled.load(std::memory_order_relaxed)) return false;
++        slot.store(-1, std::memory_order_relaxed);
++        if (callbacks.load(std::memory_order_relaxed) >= 4096) return false;
++        callbacks.fetch_add(1, std::memory_order_relaxed);
++        if (isDuplicate) {
++            duplicates.fetch_add(1, std::memory_order_relaxed);
++            return false;
++        }
++        width.store(w, std::memory_order_relaxed);
++        height.store(h, std::memory_order_relaxed);
++        if (!isHardware) {
++            software.fetch_add(1, std::memory_order_relaxed);
++            return false;
++        }
++        const auto n = hardware.fetch_add(1, std::memory_order_relaxed) + 1;
++        const int index = n == 1 ? 0 : n == 60 ? 1 : n == 300 ? 2 : -1;
++        slot.store(index, std::memory_order_relaxed);
++        return index >= 0;
++    }
++    void recordGuest(unsigned state) {
++        const int i = slot.load(std::memory_order_relaxed);
++        if (i >= 0) guest[i].store(state, std::memory_order_relaxed);
++    }
++    void recordOutput(unsigned state) {
++        const int i = slot.exchange(-1, std::memory_order_relaxed);
++        if (i >= 0) output[i].store(state, std::memory_order_relaxed);
++    }
++    std::string report() const {
++        if (!enabled.load()) return "";
++        std::string result = "video_callbacks=" + std::to_string(callbacks.load()) +
++            ";hardware_callbacks=" + std::to_string(hardware.load()) +
++            ";duplicate_callbacks=" + std::to_string(duplicates.load()) +
++            ";software_callbacks=" + std::to_string(software.load()) +
++            ";last_width=" + std::to_string(width.load()) +
++            ";last_height=" + std::to_string(height.load()) + ";guest_samples=";
++        for (unsigned i = 0; i < guest.size(); ++i) {
++            if (i) result += ",";
++            result += std::to_string(guest[i].load());
++        }
++        result += ";frontend_samples=";
++        for (unsigned i = 0; i < output.size(); ++i) {
++            if (i) result += ",";
++            result += std::to_string(output[i].load());
++        }
++        return result;
++    }
++private:
++    std::atomic<bool> enabled{false};
++    std::atomic<unsigned> callbacks{0}, hardware{0}, duplicates{0}, software{0}, width{0}, height{0};
++    std::atomic<int> slot{-1};
++    std::array<std::atomic<unsigned>, 3> guest{}, output{};
++};
++}
+diff --git a/libretrodroid/src/main/cpp/cartdeck_render_probe_gl.h b/libretrodroid/src/main/cpp/cartdeck_render_probe_gl.h
+new file mode 100644
+--- /dev/null
++++ b/libretrodroid/src/main/cpp/cartdeck_render_probe_gl.h
+@@ -0,0 +1,52 @@
++#pragma once
++#include "cartdeck_render_probe.h"
++#include <GLES3/gl3.h>
++#include <algorithm>
++namespace cartdeck {
++// QA only. Preserve read FBO and pack state, no retained images or glGetError.
++inline unsigned sampleFramebuffer(GLuint framebuffer, unsigned width, unsigned height) {
++    if (!width || !height || width > 16384 || height > 16384) return 4;
++    GLint previousRead = 0, pbo = 0, alignment = 4, row = 0, skipPixels = 0, skipRows = 0;
++    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead);
++    glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &pbo);
++    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
++    glGetIntegerv(GL_PACK_ROW_LENGTH, &row);
++    glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels);
++    glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows);
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
++    unsigned result = 4;
++    if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
++        result = 3;
++    } else {
++        GLint readBuffer = GL_NONE;
++        glGetIntegerv(GL_READ_BUFFER, &readBuffer);
++        if (readBuffer != GL_NONE) {
++            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
++            glPixelStorei(GL_PACK_ALIGNMENT, 1);
++            glPixelStorei(GL_PACK_ROW_LENGTH, 0);
++            glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
++            glPixelStorei(GL_PACK_SKIP_ROWS, 0);
++            const unsigned xs[] = {1, 3, 1, 3, 2};
++            const unsigned ys[] = {1, 1, 3, 3, 2};
++            bool readable = false, colour = false;
++            for (unsigned i = 0; i < 5; ++i) {
++                GLubyte pixel[] = {17, 29, 43, 71};
++                glReadPixels(std::min(width - 1, width * xs[i] / 4),
++                    std::min(height - 1, height * ys[i] / 4), 1, 1,
++                    GL_RGBA, GL_UNSIGNED_BYTE, pixel);
++                if (pixel[0] == 17 && pixel[1] == 29 && pixel[2] == 43 && pixel[3] == 71) continue;
++                readable = true;
++                colour = colour || pixel[0] > 8 || pixel[1] > 8 || pixel[2] > 8;
++            }
++            if (readable) result = colour ? 2 : 1;
++            glPixelStorei(GL_PACK_ALIGNMENT, alignment);
++            glPixelStorei(GL_PACK_ROW_LENGTH, row);
++            glPixelStorei(GL_PACK_SKIP_PIXELS, skipPixels);
++            glPixelStorei(GL_PACK_SKIP_ROWS, skipRows);
++            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
++        }
++    }
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, previousRead);
++    return result;
++}
++}
