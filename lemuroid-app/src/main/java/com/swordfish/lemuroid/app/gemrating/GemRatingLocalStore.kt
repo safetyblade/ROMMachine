@@ -34,7 +34,7 @@ internal class GemRatingLocalStore private constructor(
                     }
                 GemRatingRepository.requireUuid(id)
                 val session = GemRatingRepository.Session(id, GemRatingRepository.Role.MANAGER)
-                val repository = GemRatingRepository({ session }, FileStorage(root))
+                val repository = GemRatingRepository({ session }, FileStorage(root, context.applicationContext))
                 GemRatingLocalStore(session, repository)
             }
 
@@ -64,21 +64,52 @@ internal class GemRatingLocalStore private constructor(
             check(readExisting(file) == content) { "Rating storage verification failed" }
         }
 
-        private class FileStorage(private val root: File) : GemRatingRepository.Storage {
+        private class FileStorage(
+            private val root: File,
+            private val context: Context,
+        ) : GemRatingRepository.Storage {
             private fun file(profileId: String): AtomicFile {
                 GemRatingRepository.requireUuid(profileId)
                 return AtomicFile(File(root, "$profileId.json"))
             }
 
             override fun read(profileId: String): GemRatingRepository.Snapshot {
-                val data = readExisting(file(profileId)) ?: return GemRatingRepository.Snapshot(profileId)
-                return Json.decodeFromString(GemRatingRepository.Snapshot.serializer(), data)
+                val data = readExisting(file(profileId))
+                val snapshot =
+                    data?.let { Json.decodeFromString(GemRatingRepository.Snapshot.serializer(), it) }
+                        ?: GemRatingRepository.Snapshot(profileId)
+                if (snapshot.preferences != null) return snapshot
+                val discovery = context.getSharedPreferences("gem_discovery_v1", Context.MODE_PRIVATE)
+                val shelf = context.getSharedPreferences("gem_shelf_presentation_v1", Context.MODE_PRIVATE)
+                val recent =
+                    discovery.getString("$profileId:recent", "").orEmpty().split('\n')
+                        .filter { it.length in 1..256 && it.none(Char::isISOControl) }.distinct().takeLast(20)
+                return snapshot.copy(
+                    preferences =
+                        GemRatingRepository.Preferences(
+                            wildcardPercent = discovery.getInt("$profileId:wildcard", 30).coerceIn(20, 50),
+                            recentSurprises = recent,
+                            showShelfRatings = shelf.getBoolean("$profileId:showRatings", false),
+                        ),
+                )
             }
 
             override fun write(snapshot: GemRatingRepository.Snapshot) {
+                val previous = read(snapshot.profileId)
                 val data = Json.encodeToString(GemRatingRepository.Snapshot.serializer(), snapshot)
                 writeVerified(file(snapshot.profileId), data)
-                GemShelfPresentation.changed()
+                if (
+                    previous.records != snapshot.records ||
+                    previous.preferences?.showShelfRatings != snapshot.preferences?.showShelfRatings
+                ) {
+                    GemShelfPresentation.changed()
+                }
+            }
+
+            override fun backup(snapshot: GemRatingRepository.Snapshot) {
+                GemRatingRepository.requireUuid(snapshot.profileId)
+                val target = AtomicFile(File(root, "${snapshot.profileId}.pre-restore.json"))
+                writeVerified(target, GemProfileBackup.encode(snapshot).decodeToString())
             }
         }
     }
