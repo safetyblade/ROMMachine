@@ -129,6 +129,53 @@ class CartridgeExperienceTest {
         }
     }
 
+    @Test
+    @Config(qualifiers = "w720dp-h360dp-land")
+    fun shelfGemEntryOpensProductWithoutSelectingOrRearrangingCartridge() {
+        var opened = 0
+        var selected = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                HomeScreen(
+                    state = HomeViewModel.UIState(indexInProgress = false, discoveryGames = listOf(game)),
+                    onGameClicked = { selected++ },
+                    onGameLongClick = {},
+                    onOpenCoreSelection = {},
+                    onEnableNotificationsClicked = {},
+                    onEnableMicrophoneClicked = {},
+                    onSetDirectoryClicked = {},
+                    onOpenGem = { opened++ },
+                )
+            }
+        }
+        compose.onNodeWithText("GEM").assertIsDisplayed().performClick()
+        assertEquals(1, opened)
+        assertEquals(0, selected)
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+    }
+
+    @Test
+    fun cartridgeIntelligenceUsesExistingRecordWithoutLaunching() {
+        var inspected: Game? = null
+        var launches = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                CartridgeDetail(
+                    game,
+                    {},
+                    { launches++ },
+                    { _, _ -> },
+                    {},
+                    onOpenIntelligence = { inspected = it },
+                )
+            }
+        }
+        compose.onNodeWithText("Game Intelligence").assertExists()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(game, inspected)
+        assertEquals(0, launches)
+    }
+
     @Test fun emptyLibraryAddsCartridgesThroughCallback() {
         var imports = 0
         home(HomeViewModel.UIState(indexInProgress = false, showNoGamesCard = true), onAdd = { imports++ })
