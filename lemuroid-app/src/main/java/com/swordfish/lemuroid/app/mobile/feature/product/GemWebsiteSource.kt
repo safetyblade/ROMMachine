@@ -13,6 +13,8 @@ internal data class GemWebsiteSource(
     val template: String,
     val enabled: Boolean = true,
 ) {
+    fun normalized(): GemWebsiteSource = copy(home = normalizeAddress(home), template = normalizeAddress(template))
+
     fun validationError(): String? =
         when {
             name.isBlank() || name.length > 80 -> "Enter a name of up to 80 characters."
@@ -45,11 +47,19 @@ internal data class GemWebsiteSource(
     fun hostname(): String = validWebsite(home)?.host.orEmpty()
 
     companion object {
+        private fun normalizeAddress(value: String): String {
+            val trimmed = value.trim()
+            if (trimmed.isEmpty() || trimmed.contains("://")) return trimmed
+            if (trimmed.startsWith("//")) return "https:$trimmed"
+            return "https://$trimmed"
+        }
+
         private fun effectivePort(uri: URI) = if (uri.port == -1) 443 else uri.port
 
         private fun validWebsite(value: String): URI? {
-            if (value.length !in 1..2000 || value.any { it.isISOControl() || it.isWhitespace() }) return null
-            val uri = runCatching { URI(value) }.getOrNull() ?: return null
+            val address = normalizeAddress(value)
+            if (address.length !in 1..2000 || address.any { it.isISOControl() || it.isWhitespace() }) return null
+            val uri = runCatching { URI(address) }.getOrNull() ?: return null
             if (!uri.scheme.equals("https", ignoreCase = true) || uri.rawUserInfo != null || uri.fragment != null) {
                 return null
             }

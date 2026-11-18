@@ -13,6 +13,17 @@ class GemWebsiteSourceTest {
         assertEquals("https://example.com", source.searchUri("")?.toASCIIString())
     }
 
+    @Test fun bareAddressesNormalizeToHttps() {
+        val bare = source.copy(home = " example.com/vault ", template = "example.com/search?q={query}")
+        assertNull(bare.validationError())
+        assertEquals("https://example.com/vault", bare.normalized().home)
+        assertEquals("https://example.com/search?q=game", bare.searchUri("game")?.toASCIIString())
+        assertEquals("", source.normalized().template)
+        assertNotNull(source.copy(home = "http://example.com").validationError())
+        assertNotNull(source.copy(home = "127.0.0.1").validationError())
+        assertNotNull(source.copy(home = "example.local").validationError())
+    }
+
     @Test fun searchEncodesReservedCharactersAndUnicode() {
         val configured = source.copy(template = "https://example.com/search?q={query}")
         assertNull(configured.validationError())

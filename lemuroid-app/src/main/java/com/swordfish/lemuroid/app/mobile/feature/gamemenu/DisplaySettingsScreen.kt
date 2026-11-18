@@ -2,11 +2,14 @@ package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,6 +18,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -57,6 +61,7 @@ fun DisplaySettingsScreen(
     val snapshot = rememberDisplaySettings(cartridge)
     val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf<String?>(null) }
+    var helpOpen by remember { mutableStateOf(false) }
     val libretro =
         libretroHost ?: remember(game?.systemId, cartridge) {
             game == null ||
@@ -102,17 +107,14 @@ fun DisplaySettingsScreen(
         (if (scrollable) modifier.verticalScroll(rememberScrollState()) else modifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            if (game == null) "Display defaults" else "Display · ${game.displayName()}",
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            if (game == null) {
-                "Defaults apply to games without an override."
-            } else {
-                "This game uses global defaults unless you choose an override."
-            },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (game == null) "Display defaults" else "Display · ${game.displayName()}",
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            TextButton(onClick = { helpOpen = true }) { Text("Help") }
+        }
         snapshot.error?.let { Text(it) }
         if (game != null && cartridge == null) {
             Text(
@@ -134,15 +136,6 @@ fun DisplaySettingsScreen(
             }
         }
         Text("Screen aspect: Auto / Original", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "The renderer preserves source proportions. Border Off never stretches or crops gameplay.",
-        )
-        if (engineOptions.none { "widescreen" in it.key || "aspect_ratio" in it.key }) {
-            GameMenuLink("Widescreen — unavailable for this engine", enabled = false) {}
-        }
-        Text(
-            "Additional display choices appear when supported by the selected engine.",
-        )
         for ((landscape, field) in listOf(true to "landscapeBorder", false to "portraitBorder")) {
             Text(if (landscape) "Landscape border" else "Portrait border", style = MaterialTheme.typography.titleMedium)
             for (border in DisplaySettingsStore.Border.entries) {
@@ -227,15 +220,27 @@ fun DisplaySettingsScreen(
                     alignments[(alignments.indexOf(snapshot.effective.alignment).coerceAtLeast(0) + 1) % 3],
                 )
             }
-        } else {
-            Text(
-                "Scaling and positioning are controlled by this native renderer. " +
-                    "Screen and touch arrangements remain unchanged.",
-            )
         }
-        Text(
-            "No game is restarted automatically. Exit safely and reopen when a renderer option requires a new session.",
-        )
         message?.let { Text(it) }
+    }
+    if (helpOpen) {
+        AlertDialog(
+            onDismissRequest = { helpOpen = false },
+            title = { Text("Display help") },
+            text = {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Global defaults apply unless a game has an override.")
+                    Text("Original aspect preserves proportions. Border Off does not stretch or crop.")
+                    Text("Widescreen and other engine options appear only when supported.")
+                    Text("Native renderers control their own scaling and positioning.")
+                    Text("Border changes apply immediately. Renderer changes may require reopening the game.")
+                    Text("Games never restart automatically.")
+                }
+            },
+            confirmButton = { TextButton(onClick = { helpOpen = false }) { Text("Done") } },
+        )
     }
 }

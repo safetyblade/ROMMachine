@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.main
 
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +70,7 @@ fun CartridgeDetailHost(
     onChangeCover: (Game, String) -> Unit,
     onResetCover: (Game) -> Unit,
     sourceBounds: androidx.compose.ui.geometry.Rect? = null,
+    onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
 ) {
     val record =
         remember(gameId, database) {
@@ -104,7 +106,16 @@ fun CartridgeDetailHost(
                 TextButton(onClick = close) { Text(stringResource(R.string.cartdeck_back_to_shelf)) }
             }
         } else {
-            CartridgeDetail(game, close, onOpen, onChangeCover, onResetCover, record.value.first, front)
+            CartridgeDetail(
+                game,
+                close,
+                onOpen,
+                onChangeCover,
+                onResetCover,
+                record.value.first,
+                front,
+                onUseOnlineCover = onUseOnlineCover,
+            )
         }
     }
 }
@@ -118,6 +129,7 @@ fun CartridgeDetail(
     onResetCover: (Game) -> Unit,
     artworkRevision: Int = 0,
     frontModifier: Modifier = Modifier,
+    onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
 ) {
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -209,6 +221,7 @@ fun CartridgeDetail(
             onChangeCover = { picker.launch("image/*") },
             onResetCover = { onResetCover(game) },
             emulator = { CartridgeEmulatorChoice(game) },
+            onUseOnlineCover = onUseOnlineCover,
         )
     }
 }

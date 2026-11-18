@@ -36,6 +36,17 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE id = :id")
     suspend fun selectById(id: Int): Game?
 
+    @Query(
+        "UPDATE games SET customCoverUri = :replacement " +
+            "WHERE id = :id AND cartridgeId = :cartridgeId AND customCoverUri IS :expected",
+    )
+    suspend fun replaceCoverIfCurrent(
+        id: Int,
+        cartridgeId: String,
+        expected: String?,
+        replacement: String?,
+    ): Int
+
     @Query("SELECT * FROM games WHERE fileUri = :fileUri")
     fun selectByFileUri(fileUri: String): Game?
 

@@ -53,6 +53,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -261,7 +262,6 @@ fun ShelfBoard(
                     DropSurface("header:${item.section.id}", DropPosition(item.section.id, null), positions) {
                         Row(
                             Modifier.fillMaxWidth()
-                                .background(colors.roomBackdrop.copy(alpha = 0.88f))
                                 .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -277,13 +277,7 @@ fun ShelfBoard(
                     }
                 } else {
                     val row = item.row
-                    Column(
-                        Modifier.fillMaxWidth().background(
-                            Brush.verticalGradient(
-                                listOf(colors.shelfShadow, colors.shelfBackboard, colors.shelfBackboard),
-                            ),
-                        ),
-                    ) {
+                    Column(Modifier.fillMaxWidth()) {
                         Row(
                             Modifier.fillMaxWidth().padding(top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -495,9 +489,13 @@ fun ShelfBoard(
                                                     Modifier.fillMaxSize().padding(
                                                         horizontal = 4.dp,
                                                     ).background(
-                                                        if (reserved) colors.vacantCell else colors.shelfBackboard,
+                                                        if (reserved && arrange) {
+                                                            colors.vacantCell
+                                                        } else {
+                                                            Color.Transparent
+                                                        },
                                                     ).border(
-                                                        if (reserved) 1.dp else 0.dp,
+                                                        if (reserved && arrange) 1.dp else 0.dp,
                                                         colors.sectionDivider,
                                                     ).semantics {
                                                         contentDescription =
@@ -535,7 +533,7 @@ fun ShelfBoard(
                                                                             if (reserved) {
                                                                                 colors.vacantCell
                                                                             } else {
-                                                                                colors.shelfBackboard
+                                                                                colors.roomBackdrop
                                                                             },
                                                                         ),
                                                                         4.5f,

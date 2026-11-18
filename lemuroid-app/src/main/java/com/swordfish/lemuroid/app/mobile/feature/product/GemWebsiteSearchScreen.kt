@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.mobile.feature.product
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,9 +11,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -23,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -70,89 +77,110 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
         modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Search websites", style = MaterialTheme.typography.titleLarge)
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it.take(500) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Search for a game, mod or guide") },
-            singleLine = true,
-        )
-        Text("Search opens the selected site in your browser. Do not enter private information.")
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Search websites", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+            TextButton(
+                onClick = {
+                    editId = null
+                    editorOpen = true
+                },
+                enabled = initial.isSuccess && sources.size < 100,
+            ) { Text("Add website") }
+        }
+        if (sources.any { it.enabled && it.template.isNotBlank() }) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it.take(500) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search websites") },
+                singleLine = true,
+                supportingText = { Text("Opens in browser. Do not enter private information.") },
+            )
+        }
         if (initial.isFailure) {
             Text(
                 "Saved websites could not be read. Existing data is retained.",
                 color = MaterialTheme.colorScheme.error,
             )
         } else {
-            sources.filter { it.enabled }.groupBy { it.category.ifBlank { "Websites" } }.forEach { (category, list) ->
+            if (sources.isEmpty()) Text("Add a website to get started.")
+            sources.groupBy { it.category.ifBlank { "Websites" } }.forEach { (category, list) ->
                 Text(category, style = MaterialTheme.typography.titleMedium)
                 list.forEach { source ->
+                    val index = sources.indexOfFirst { it.id == source.id }
+                    var menuOpen by remember(source.id) { mutableStateOf(false) }
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(source.name, style = MaterialTheme.typography.titleMedium)
-                            Text(source.hostname(), style = MaterialTheme.typography.bodySmall)
-                            Button(
-                                onClick = { open(source, query) },
-                                enabled = source.template.isBlank() || query.isNotBlank(),
-                                modifier = Modifier.heightIn(min = 48.dp),
-                            ) {
-                                Text(if (source.template.isBlank()) "Open website" else "Search website")
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(source.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    source.hostname() + if (source.enabled) "" else " · Disabled",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
-                        }
-                    }
-                }
-            }
-            Text("My Sources", style = MaterialTheme.typography.titleLarge)
-            Button(
-                onClick = {
-                    editId = null
-                    editorOpen = true
-                },
-                enabled = sources.size < 100,
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                Text(if (sources.isEmpty()) "Add your first website" else "Add a website")
-            }
-            sources.forEachIndexed { index, source ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(source.name, style = MaterialTheme.typography.titleMedium)
-                        Text(source.hostname() + if (source.enabled) " · Enabled" else " · Disabled")
-                        Row(Modifier.fillMaxWidth()) {
                             TextButton(
-                                onClick = {
-                                    editId = source.id
-                                    editorOpen = true
-                                },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            ) { Text("Edit") }
-                            TextButton(
-                                onClick = {
-                                    save(sources.map { if (it.id == source.id) it.copy(enabled = !it.enabled) else it })
-                                },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            ) { Text(if (source.enabled) "Disable" else "Enable") }
-                        }
-                        Row(Modifier.fillMaxWidth()) {
-                            TextButton(
-                                enabled = index > 0,
-                                onClick = {
-                                    save(sources.toMutableList().apply { add(index - 1, removeAt(index)) })
-                                },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            ) { Text("Up") }
-                            TextButton(
-                                enabled = index < sources.lastIndex,
-                                onClick = {
-                                    save(sources.toMutableList().apply { add(index + 1, removeAt(index)) })
-                                },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            ) { Text("Down") }
-                            TextButton(
-                                onClick = { deleteId = source.id },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            ) { Text("Remove") }
+                                onClick = { open(source, query) },
+                                enabled = source.enabled && (source.template.isBlank() || query.isNotBlank()),
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) { Text(if (source.template.isBlank()) "Open" else "Search") }
+                            Box {
+                                IconButton(onClick = { menuOpen = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Manage ${source.name}")
+                                }
+                                DropdownMenu(
+                                    expanded = menuOpen,
+                                    onDismissRequest = { menuOpen = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        onClick = {
+                                            menuOpen = false
+                                            editId = source.id
+                                            editorOpen = true
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(if (source.enabled) "Disable" else "Enable") },
+                                        onClick = {
+                                            menuOpen = false
+                                            save(
+                                                sources.map {
+                                                    if (it.id == source.id) it.copy(enabled = !it.enabled) else it
+                                                },
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Move up") },
+                                        enabled = index > 0,
+                                        onClick = {
+                                            menuOpen = false
+                                            save(sources.toMutableList().apply { add(index - 1, removeAt(index)) })
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Move down") },
+                                        enabled = index < sources.lastIndex,
+                                        onClick = {
+                                            menuOpen = false
+                                            save(sources.toMutableList().apply { add(index + 1, removeAt(index)) })
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Remove") },
+                                        onClick = {
+                                            menuOpen = false
+                                            deleteId = source.id
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -170,8 +198,9 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
                 val duplicate =
                     sources.any {
                         val sameName = it.name.equals(source.name, ignoreCase = true)
+                        val saved = it.normalized()
                         val sameAddress =
-                            it.home.equals(source.home, ignoreCase = true) && it.template == source.template
+                            saved.home.equals(source.home, ignoreCase = true) && saved.template == source.template
                         it.id != source.id && (sameName || sameAddress)
                     }
                 if (duplicate) {
@@ -229,7 +258,7 @@ private fun GemWebsiteEditor(
             category.trim(),
             template.trim(),
             existing?.enabled ?: true,
-        )
+        ).normalized()
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text(if (existing == null) "Add website" else "Edit website") },
@@ -239,7 +268,12 @@ private fun GemWebsiteEditor(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedTextField(name, { name = it.take(80) }, label = { Text("Name") }, singleLine = true)
-                OutlinedTextField(home, { home = it.take(2000) }, label = { Text("HTTPS website") }, singleLine = true)
+                OutlinedTextField(
+                    home,
+                    { home = it.take(2000) },
+                    label = { Text("Website address") },
+                    singleLine = true,
+                )
                 OutlinedTextField(category, { category = it.take(60) }, label = { Text("Category") }, singleLine = true)
                 OutlinedTextField(
                     template,
