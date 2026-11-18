@@ -43,7 +43,10 @@ class PcCartridgeStore(private val filesRoot: File) {
 
     fun workspace(entry: Entry): PcWorkspace = PcWorkspace(filesRoot, LOCAL_PLAYER, entry.id)
 
-    fun workspace(entry: Entry, profile: UUID): PcWorkspace = PcWorkspace(filesRoot, profile, entry.id)
+    fun workspace(
+        entry: Entry,
+        profile: UUID,
+    ): PcWorkspace = PcWorkspace(filesRoot, profile, entry.id)
 
     fun launchRecipe(entry: Entry): PcWindowsLaunchRecipe? {
         val file = File(entry.content.parentFile, "launch-exe.txt")
@@ -55,7 +58,10 @@ class PcCartridgeStore(private val filesRoot: File) {
 
     /** Explicit recipe update does not modify the immutable optical archive or any guest disk. */
     @Synchronized
-    fun setLaunchRecipe(entry: Entry, recipe: PcWindowsLaunchRecipe) {
+    fun setLaunchRecipe(
+        entry: Entry,
+        recipe: PcWindowsLaunchRecipe,
+    ) {
         check(resolve(entry.content)?.id == entry.id)
         val directory = entry.content.parentFile
         val target = File(directory, "launch-exe.txt")

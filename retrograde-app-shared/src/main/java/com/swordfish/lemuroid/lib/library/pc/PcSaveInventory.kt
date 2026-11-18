@@ -9,8 +9,13 @@ object PcSaveInventory {
         UNCLASSIFIED_PC_PROGRESS,
     }
 
-    data class Artifact(val file: File, val bytes: Long, val kind: Kind) {
-        val autoExportAllowed: Boolean get() = false
+    data class Artifact(
+        val file: File,
+        val bytes: Long,
+        val kind: Kind,
+    ) {
+        val autoExportAllowed: Boolean
+            get() = false
     }
 
     fun inspect(workspace: PcWorkspace): List<Artifact> {
@@ -19,10 +24,12 @@ object PcSaveInventory {
                 Artifact(it, it.length(), Kind.GUEST_DISK_RECOVERY_ONLY)
             }
         val progress =
-            workspace.progress.listFiles().orEmpty().filter {
-                it.isFile && !it.name.startsWith(".") &&
-                    it.canonicalFile == File(workspace.progress.canonicalFile, it.name)
-            }.map { Artifact(it, it.length(), Kind.UNCLASSIFIED_PC_PROGRESS) }
+            workspace.progress.listFiles().orEmpty()
+                .filter {
+                    it.isFile && !it.name.startsWith(".") &&
+                        it.canonicalFile == File(workspace.progress.canonicalFile, it.name)
+                }
+                .map { Artifact(it, it.length(), Kind.UNCLASSIFIED_PC_PROGRESS) }
         return disks + progress
     }
 }

@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -128,8 +128,13 @@ internal fun PcWindowsSetupSettings(
                         onClick = {
                             scope.launch {
                                 try {
-                                    recipePath = withContext(Dispatchers.IO) { store.launchRecipe(entry)?.executable.orEmpty() }
+                                    recipePath =
+                                        withContext(Dispatchers.IO) {
+                                            store.launchRecipe(entry)?.executable.orEmpty()
+                                        }
                                     recipeEntry = entry
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
                                 } catch (_: Exception) {
                                     message = "Existing launch recipe could not be read."
                                 }
@@ -154,7 +159,7 @@ internal fun PcWindowsSetupSettings(
                                             check(!GameProcessLock.isHeldByAnotherProcess(context))
                                             store.setLaunchRecipe(entry, PcWindowsLaunchRecipe(recipePath))
                                         }
-                                        message = "Executable path saved. Launch from the PC session after Windows boots."
+                                        message = "Executable path saved. Launch it after Windows boots."
                                         recipeEntry = null
                                     } catch (cancelled: CancellationException) {
                                         throw cancelled

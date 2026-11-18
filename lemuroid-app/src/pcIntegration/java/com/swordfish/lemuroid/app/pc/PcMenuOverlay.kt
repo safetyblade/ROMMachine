@@ -49,13 +49,17 @@ object PcMenuOverlay {
                                 GameMenuLink("Next optical disc") { nextDisc.run() }
                                 GameMenuLink("Launch configured EXE") { launch.run() }
                             }
-                            "Save & Load" -> Text(
-                                "Progress is written to the private guest disk. Save in game and shut down Windows before returning to Shelf. " +
-                                    "Save states are not supported.",
-                            )
-                            "Advanced" -> Text(
-                                "Experimental isolated PC host. No console host substitutions. Windows launch and shutdown require guest confirmation.",
-                            )
+                            "Save & Load" ->
+                                Text(
+                                    "Progress is written to the private guest disk. " +
+                                        "Save in game and shut down Windows before returning to Shelf. " +
+                                        "Save states are not supported.",
+                                )
+                            "Advanced" ->
+                                Text(
+                                    "Experimental isolated PC host. No console host substitutions. " +
+                                        "Windows launch and shutdown require guest confirmation.",
+                                )
                             else ->
                                 SharedGameMenuHome(
                                     GameMenuCapabilities(
