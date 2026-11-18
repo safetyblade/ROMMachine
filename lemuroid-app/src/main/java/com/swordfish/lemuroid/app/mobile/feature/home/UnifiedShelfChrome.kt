@@ -84,50 +84,50 @@ internal fun UnifiedShelfChrome(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Search collection") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (text.isNotEmpty()) {
-                        IconButton(onClick = { text = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Search collection") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (text.isNotEmpty()) {
+                            IconButton(onClick = { text = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            }
                         }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = favourites, onCheckedChange = { favourites = it })
+                    Text("Favourites only")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = recent, onCheckedChange = { recent = it })
+                    Text("Previously played")
+                }
+                Text("Consoles")
+                games.groupingBy { it.systemId }.eachCount().toSortedMap().forEach { (id, count) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = id in systems,
+                            onCheckedChange = { checked ->
+                                systems = ArrayList(if (checked) systems + id else systems - id)
+                            },
+                        )
+                        Text("${cartridgeSystemLabel(id)} ($count)")
                     }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = favourites, onCheckedChange = { favourites = it })
-                Text("Favourites only")
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = recent, onCheckedChange = { recent = it })
-                Text("Previously played")
-            }
-            Text("Consoles")
-            games.groupingBy { it.systemId }.eachCount().toSortedMap().forEach { (id, count) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = id in systems,
-                        onCheckedChange = { checked ->
-                            systems = ArrayList(if (checked) systems + id else systems - id)
-                        },
-                    )
-                    Text("${cartridgeSystemLabel(id)} ($count)")
                 }
-            }
-            Text("Sort by")
-            ShelfSort.values().forEach { sort ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = sortName == sort.name, onClick = { sortName = sort.name })
-                    Text(sortLabel(sort))
+                Text("Sort by")
+                ShelfSort.values().forEach { sort ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = sortName == sort.name, onClick = { sortName = sort.name })
+                        Text(sortLabel(sort))
+                    }
                 }
-            }
             }
             Row(
                 Modifier.fillMaxWidth(),
