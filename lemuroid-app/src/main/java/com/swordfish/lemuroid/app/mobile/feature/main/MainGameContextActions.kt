@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
@@ -24,15 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AppShortcut
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Divider
@@ -55,8 +47,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
@@ -186,7 +178,7 @@ private fun ContextActionContent(
         Divider()
         ContextActionEntry(
             label = stringResource(id = R.string.game_context_menu_resume),
-            icon = Icons.Default.PlayArrow,
+            icon = R.drawable.cartdeck_action_play,
             onClick = {
                 onGamePlay(selectedGame)
                 selectedGameState.value = null
@@ -194,7 +186,7 @@ private fun ContextActionContent(
         )
         ContextActionEntry(
             label = stringResource(id = R.string.game_context_menu_restart),
-            icon = Icons.Default.RestartAlt,
+            icon = R.drawable.cartdeck_action_refresh,
             onClick = {
                 onGameRestart(selectedGame)
                 selectedGameState.value = null
@@ -202,14 +194,14 @@ private fun ContextActionContent(
         )
         ContextActionEntry(
             label = "Hold Controls · " + selectedArcMode.label,
-            icon = Icons.Default.AppShortcut,
+            icon = R.drawable.cartdeck_action_controller,
             onClick = { showHoldControlsDialog = true },
         )
 
         if (managedPc && onManagePcInstallation != null) {
             ContextActionEntry(
                 label = stringResource(R.string.cartdeck_manage_pc_installation),
-                icon = Icons.Default.AppShortcut,
+                icon = R.drawable.cartdeck_action_controller,
                 onClick = {
                     selectedGameState.value = null
                     onManagePcInstallation(selectedGame)
@@ -220,7 +212,7 @@ private fun ContextActionContent(
         if (selectedGame.isFavorite) {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_remove_from_favorites),
-                icon = Icons.Default.FavoriteBorder,
+                icon = R.drawable.cartdeck_action_favourite,
                 onClick = {
                     onFavoriteToggle(selectedGame, false)
                     selectedGameState.value = null
@@ -229,7 +221,7 @@ private fun ContextActionContent(
         } else {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_add_to_favorites),
-                icon = Icons.Default.Favorite,
+                icon = R.drawable.cartdeck_action_favourite_selected,
                 onClick = {
                     onFavoriteToggle(selectedGame, true)
                     selectedGameState.value = null
@@ -240,7 +232,7 @@ private fun ContextActionContent(
         if (shortcutSupported) {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_create_shortcut),
-                icon = Icons.Default.AppShortcut,
+                icon = R.drawable.cartdeck_action_controller,
                 onClick = {
                     onCreateShortcut(selectedGame)
                     selectedGameState.value = null
@@ -251,7 +243,7 @@ private fun ContextActionContent(
         if (selectedGame.customName != null) {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_remove_custom_name),
-                icon = Icons.Default.Clear,
+                icon = R.drawable.cartdeck_action_close,
                 onClick = {
                     onClearCustomName(selectedGame)
                     selectedGameState.value = null
@@ -260,7 +252,7 @@ private fun ContextActionContent(
         } else {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_add_custom_name),
-                icon = Icons.Default.Edit,
+                icon = R.drawable.cartdeck_action_edit,
                 onClick = {
                     showCustomNameDialog = true
                 },
@@ -269,7 +261,7 @@ private fun ContextActionContent(
 
         ContextActionEntry(
             label = "Search for covers",
-            icon = Icons.Default.Image,
+            icon = R.drawable.cartdeck_action_cover,
             onClick = {
                 if (onUseOnlineCover != null) searchingCovers = true else imagePickerLauncher.launch("image/*")
             },
@@ -277,12 +269,12 @@ private fun ContextActionContent(
         if (selectedGame.customCoverUri != null) {
             ContextActionEntry(
                 label = "Upload / replace image",
-                icon = Icons.Default.Image,
+                icon = R.drawable.cartdeck_action_cover,
                 onClick = { imagePickerLauncher.launch("image/*") },
             )
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_remove_custom_artwork),
-                icon = Icons.Default.Clear,
+                icon = R.drawable.cartdeck_action_close,
                 onClick = {
                     onClearCustomCoverUri(selectedGame)
                     selectedGameState.value = null
@@ -291,7 +283,7 @@ private fun ContextActionContent(
         } else {
             ContextActionEntry(
                 label = stringResource(id = R.string.game_context_menu_add_custom_artwork),
-                icon = Icons.Default.Image,
+                icon = R.drawable.cartdeck_action_cover,
                 onClick = {
                     imagePickerLauncher.launch("image/*")
                 },
@@ -398,7 +390,7 @@ private fun ContextActionHeader(game: Game) {
 private fun ContextActionEntry(
     modifier: Modifier = Modifier,
     label: String,
-    icon: ImageVector,
+    icon: Int,
     onClick: () -> Unit,
 ) {
     Row(
@@ -406,13 +398,13 @@ private fun ContextActionEntry(
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .height(56.dp),
+                .heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             modifier = Modifier.padding(start = 16.dp),
-            imageVector = icon,
-            contentDescription = label,
+            painter = painterResource(icon),
+            contentDescription = null,
         )
         Text(
             modifier = Modifier.padding(start = 16.dp),

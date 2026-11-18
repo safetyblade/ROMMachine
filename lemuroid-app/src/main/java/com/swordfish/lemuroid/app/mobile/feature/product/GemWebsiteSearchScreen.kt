@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.R
 
 /** GEM's actual website search; recommendations remain separately capability-gated. */
 @Composable
@@ -111,7 +113,7 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
                 list.forEach { source ->
                     val index = sources.indexOfFirst { it.id == source.id }
                     var menuOpen by remember(source.id) { mutableStateOf(false) }
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -299,5 +301,4 @@ private fun GemWebsiteEditor(
         },
         dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
     )
-}import com.swordfish.lemuroid.R
-
+}
