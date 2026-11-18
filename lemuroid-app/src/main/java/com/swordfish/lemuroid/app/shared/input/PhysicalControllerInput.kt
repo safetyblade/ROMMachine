@@ -86,6 +86,7 @@ object PhysicalControllerInput {
         trigger: Boolean,
         deadzone: Float = 0f,
         centre: Float? = null,
+        preserveMagnitude: Boolean = false,
     ): Float {
         if (!value.isFinite()) return 0f
         val min = range?.minimum ?: if (trigger) 0f else -1f
@@ -101,6 +102,8 @@ object PhysicalControllerInput {
         if (!flat.isFinite()) return 0f
         return if (abs(normalized) <= flat) {
             0f
+        } else if (preserveMagnitude) {
+            normalized
         } else {
             ((abs(normalized) - flat) / (1f - flat)) * if (normalized < 0f) -1f else 1f
         }
@@ -159,6 +162,7 @@ object PhysicalControllerInput {
         ranges: Map<Int, Range>,
         requested: Int,
         profile: ControllerProfileStore.Profile,
+        coreOwnsAutomaticResponse: Boolean = false,
     ): Float {
         val actual =
             when (requested) {
@@ -183,7 +187,19 @@ object PhysicalControllerInput {
                     MotionEvent.AXIS_THROTTLE,
                 )
         if (!trigger && !stickSupported(actual, ranges, profile)) return 0f
-        return axis(value, range, trigger, effectiveDeadzone(profile), profile.centres[actual])
+        // Flycast has a second radial response curve. With an automatic profile,
+        // retain the neutral guard but do not also rescale the surviving values.
+        // Explicit player calibration remains authoritative; other cores unchanged.
+        val preserveMagnitude =
+            coreOwnsAutomaticResponse && !profile.calibrated && profile.deadzone == 0f
+        return axis(
+            value,
+            range,
+            trigger,
+            effectiveDeadzone(profile),
+            profile.centres[actual],
+            preserveMagnitude,
+        )
     }
 
     fun sample(

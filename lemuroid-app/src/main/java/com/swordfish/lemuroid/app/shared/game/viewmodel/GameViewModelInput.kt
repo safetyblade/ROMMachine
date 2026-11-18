@@ -259,6 +259,7 @@ class GameViewModelInput(
             event.ranges,
             code,
             inputDeviceManager.calibration(event.device),
+            coreOwnsAutomaticResponse = systemCoreConfig.coreID == CoreID.FLYCAST_MODERN,
         )
 
     fun sendKeyEvent(

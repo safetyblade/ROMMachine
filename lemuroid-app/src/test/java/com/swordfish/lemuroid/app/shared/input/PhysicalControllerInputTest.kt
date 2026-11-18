@@ -82,6 +82,42 @@ class PhysicalControllerInputTest {
         assertEquals(0f, PhysicalControllerInput.effectiveDeadzone(profile.copy(calibrated = true)), 0f)
     }
 
+    @Test fun flycastAutomaticNeutralGuardDoesNotRescaleTheCoreResponseTwice() {
+        val ranges =
+            mapOf(
+                MotionEvent.AXIS_X to PhysicalControllerInput.Range(-1f, 1f, 0.04f),
+                MotionEvent.AXIS_Y to PhysicalControllerInput.Range(-1f, 1f, 0.04f),
+            )
+        val profile = ControllerProfileStore.Profile()
+        fun sample(value: Float, code: Int = MotionEvent.AXIS_X) =
+            PhysicalControllerInput.sampleAxis({ value }, ranges, code, profile, coreOwnsAutomaticResponse = true)
+
+        assertEquals(0f, sample(0.08f), 0f)
+        assertEquals(0f, sample(-0.10f), 0f)
+        assertEquals(0.20f, sample(0.20f), 0.0001f)
+        assertEquals(-0.20f, sample(-0.20f, MotionEvent.AXIS_Y), 0.0001f)
+        assertEquals(1f, sample(1f), 0f)
+        assertEquals(-1f, sample(-1f), 0f)
+        assertEquals(0f, sample(1f, MotionEvent.AXIS_Z), 0f)
+        assertEquals(0f, sample(Float.NaN), 0f)
+        assertEquals(
+            (0.20f - 0.10f) / 0.90f,
+            PhysicalControllerInput.sampleAxis({ 0.20f }, ranges, MotionEvent.AXIS_X, profile),
+            0.0001f,
+        )
+        assertEquals(
+            (0.20f - 0.05f) / 0.95f,
+            PhysicalControllerInput.sampleAxis(
+                { 0.20f },
+                ranges,
+                MotionEvent.AXIS_X,
+                profile.copy(deadzone = 0.05f),
+                coreOwnsAutomaticResponse = true,
+            ),
+            0.0001f,
+        )
+    }
+
     @Test fun signedRightStickPreferredOverTriggerLikeAxes() {
         val ranges =
             mapOf(
