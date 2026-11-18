@@ -8,8 +8,7 @@ class GemLocalCorrections(context: Context) {
     private val preferences =
         context.applicationContext.getSharedPreferences("gem_catalogue_corrections_v1", Context.MODE_PRIVATE)
 
-    fun read(game: Game): String? =
-        game.cartridgeId.takeIf { it.isNotBlank() }?.let { preferences.getString(it, null) }
+    fun read(game: Game): String? = game.cartridgeId.takeIf { it.isNotBlank() }?.let { preferences.getString(it, null) }
 
     fun select(
         game: Game,
