@@ -12,7 +12,12 @@ class CartdeckSurfaceDesignTest {
     @Test
     fun specialEditionsPreserveCompleteMaterialRolesAndSafeDefaults() {
         val baseline = requireNotNull(CartdeckCuratedDesigns.byId(CartdeckCuratedDesigns.STEALTH_ACID_ID))
-        val ids = listOf(CartdeckCuratedDesigns.ARCANA_GILDED_ID, CartdeckCuratedDesigns.WILDBOUND_FORGE_ID)
+        val ids =
+            listOf(
+                CartdeckCuratedDesigns.LIGHT_ID,
+                CartdeckCuratedDesigns.ARCANA_GILDED_ID,
+                CartdeckCuratedDesigns.WILDBOUND_FORGE_ID,
+            )
         for (id in ids) {
             val design = requireNotNull(CartdeckCuratedDesigns.byId(id))
             assertEquals(baseline.colours.keys, design.colours.keys)
@@ -23,7 +28,7 @@ class CartdeckSurfaceDesignTest {
             assertEquals(design.colours, applied.custom)
             assertEquals(CartdeckLighting(), applied.lighting)
         }
-        assertEquals(3, CartdeckCuratedDesigns.designs.map { it.id }.distinct().size)
+        assertEquals(4, CartdeckCuratedDesigns.designs.map { it.id }.distinct().size)
     }
 
     @Test
