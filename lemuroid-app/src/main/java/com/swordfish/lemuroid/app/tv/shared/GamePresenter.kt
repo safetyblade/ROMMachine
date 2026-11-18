@@ -16,6 +16,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 class GamePresenter(
     private val cardSize: Int,
     private val gameInteractor: GameInteractor,
+    private val rating: (Game) -> Int? = { null },
 ) : Presenter() {
     override fun onBindViewHolder(
         viewHolder: Presenter.ViewHolder?,
@@ -24,7 +25,9 @@ class GamePresenter(
         if (item == null || viewHolder !is ViewHolder) return
         val game = item as Game
         viewHolder.mCardView.titleText = game.displayName()
-        viewHolder.mCardView.contentText = GameUtils.getGameSubtitle(viewHolder.mCardView.context, game)
+        val subtitle = GameUtils.getGameSubtitle(viewHolder.mCardView.context, game)
+        viewHolder.mCardView.contentText =
+            rating(game)?.let { "$subtitle · My GEMRating $it/10" } ?: subtitle
         viewHolder.mCardView.setMainImageDimensions(cardSize, cardSize)
         viewHolder.mCardView.setMainImageScaleType(ImageView.ScaleType.FIT_CENTER)
         viewHolder.updateCardViewImage(game)
