@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
@@ -132,11 +134,13 @@ internal fun GemRatingRow(
                 ) {
                     Text(displayTitle, style = MaterialTheme.typography.titleMedium)
                     Text("How much do you enjoy this game?")
-                    for (start in listOf(1, 6)) {
+                    for (range in listOf(1..3, 4..6, 7..10)) {
                         Row(Modifier.fillMaxWidth()) {
-                            for (value in start until start + 5) {
+                            for (value in range) {
                                 TextButton(
-                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                    modifier =
+                                        Modifier.weight(1f).heightIn(min = 48.dp)
+                                            .semantics { selected = draft == value },
                                     enabled = !busy,
                                     onClick = { draft = value },
                                     contentPadding = PaddingValues(0.dp),
