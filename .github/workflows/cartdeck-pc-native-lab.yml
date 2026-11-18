@@ -1,65 +1,137 @@
-name: CARTDECK isolated PC native host lab
-
+name: CARTDECK isolated PC runtime laboratory
 on:
   workflow_dispatch:
   pull_request:
     branches: [master]
     paths:
-      - 'spikes/pc/native-host/**'
+      - 'spikes/pc/**'
       - '.github/workflows/cartdeck-pc-native-lab.yml'
-
 permissions:
   contents: read
-
 concurrency:
-  group: pc-native-lab-${{ github.ref }}
+  group: pc-lab-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
-  pc-host-lab:
-    name: Prove experimental PC host separately
+  legacy-audit:
+    name: Audit actual existing DOSBox Pure
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          submodules: recursive
+      - name: Verify synthetic ELF tests
+        run: python3 -m unittest discover -s spikes/pc/tests -v
+      - name: Check out the original core
+        run: git submodule update --init lemuroid-cores
+      - name: Audit original binary
+        run: |
+          mkdir -p evidence
+          python3 spikes/pc/verify_legacy_core.py > evidence/legacy-source.json
+          core=lemuroid-cores/lemuroid_core_dosbox_pure/src/main/jniLibs/arm64-v8a/libdosbox_pure_libretro_android.so
+          python3 spikes/pc/audit_core_binary.py "$core" --output evidence/legacy-binary.json
+          python3 spikes/pc/verify_legacy_core.py --strict-binary
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-lab-legacy-audit-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: warn
+  pc-lab-host:
+    name: Build independent PC host
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Validate the PC host patch against the pinned console source
+      - name: Prepare pinned Android tools
         run: |
-          set -euo pipefail
-          source="$RUNNER_TEMP/pc-host-patch-check"
-          git clone --no-checkout https://github.com/Swordfish90/LibretroDroid.git "$source"
-          git -C "$source" checkout --detach 8835c3098514390a271e36983957f7bb5f40abf1
-          for patch in libretrodroid-gles-context-validation.patch libretrodroid-frontend-gl-state.patch libretrodroid-graphics-error.patch libretrodroid-core-frame-signal.patch; do
-            git -C "$source" apply "$GITHUB_WORKSPACE/scripts/ci/patches/$patch"
-          done
-          git -C "$source" apply --check "$GITHUB_WORKSPACE/spikes/pc/native-host/libretrodroid-play-vm-bridge.patch"
-      - name: Apply PC lab overlay to disposable checkout only
-        run: |
-          set -euo pipefail
-          cp spikes/pc/native-host/build_libretrodroid_host.sh scripts/ci/build_libretrodroid_host.sh
-          cp spikes/pc/native-host/libretrodroid-play-vm-bridge.patch scripts/ci/patches/libretrodroid-play-vm-bridge.patch
-          cp spikes/pc/native-host/libretrodroid_input_test.cpp scripts/ci/fixtures/libretrodroid_input_test.cpp
-          bash -n scripts/ci/build_libretrodroid_host.sh
-      - name: Build PC laboratory native host only
-        run: |
-          set -euo pipefail
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'ndk;29.0.14206865' 'cmake;3.22.1'
-          export ANDROID_HOME="$sdk"
-          export HOST_BUILD_DIR="$RUNNER_TEMP/pc-lab-host"
-          bash scripts/ci/build_libretrodroid_host.sh
-      - name: Publish isolated PC lab only (not a console receipt or APK)
-        uses: actions/upload-artifact@v4
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Compile and exercise PC input host
+        run: |
+          bash -n spikes/pc/native-host/build_pc_lab_host.sh
+          PC_LAB_BUILD_DIR="$RUNNER_TEMP/pc-host" bash spikes/pc/native-host/build_pc_lab_host.sh
+      - uses: actions/upload-artifact@v4
         with:
           name: pc-lab-host-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/pc-lab-host/maven/
-            ${{ runner.temp }}/pc-lab-host/provenance.txt
+            ${{ runner.temp }}/pc-host/maven/
+            ${{ runner.temp }}/pc-host/provenance.txt
+            ${{ runner.temp }}/pc-host/applied-host.patch
           if-no-files-found: error
-          retention-days: 14
+  pc-lab-core:
+    name: Build pinned DOSBox Pure source candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare pinned Android NDK
+        run: |
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Build and verify only the candidate PC core
+        run: |
+          bash -n spikes/pc/build_pc_core.sh
+          PC_CORE_BUILD_DIR="$RUNNER_TEMP/pc-core" bash spikes/pc/build_pc_core.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-lab-core-${{ github.sha }}
+          path: ${{ runner.temp }}/pc-core/output/
+          if-no-files-found: error
+  pc-lab-apk:
+    name: Assemble separate synthetic PC Lab APK
+    needs: [pc-lab-host, pc-lab-core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-lab-host-${{ github.sha }}
+          path: work/pc-lab/host
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-lab-core-${{ github.sha }}
+          path: work/pc-lab/core
+      - name: Verify and assemble lab only
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'build-tools;35.0.0'
+          python3 spikes/pc/audit_core_binary.py work/pc-lab/core/libdosbox_pure_libretro_android.so --output work/pc-lab/core/recheck.json
+          mkdir -p work/pc-lab/jni/arm64-v8a
+          cp work/pc-lab/core/libdosbox_pure_libretro_android.so work/pc-lab/jni/arm64-v8a/
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          "$gradle_bin" -p spikes/pc/lab-apk assembleDebug --no-daemon \
+            -PpcLabMaven="$PWD/work/pc-lab/host/maven" -PpcLabCoreDir="$PWD/work/pc-lab/jni"
+          apk="$(find spikes/pc/lab-apk/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -print -quit)"
+          test -f "$apk"
+          "$sdk/build-tools/35.0.0/aapt" dump badging "$apk" | grep "^package: name='dev.cartdeck.pc.lab'"
+          "$sdk/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$apk"
+          mkdir -p work/pc-lab/delivery
+          cp "$apk" work/pc-lab/delivery/CARTDECK-PC-LAB.apk
+          unzip -p "$apk" lib/arm64-v8a/libdosbox_pure_libretro_android.so > work/pc-lab/delivery/packaged-core.so
+          cmp work/pc-lab/delivery/packaged-core.so work/pc-lab/core/libdosbox_pure_libretro_android.so
+          rm work/pc-lab/delivery/packaged-core.so
+          sha256sum work/pc-lab/delivery/CARTDECK-PC-LAB.apk > work/pc-lab/delivery/apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-lab-apk-${{ github.sha }}
+          path: work/pc-lab/delivery/
+          if-no-files-found: error
