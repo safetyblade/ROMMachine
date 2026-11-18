@@ -33,6 +33,7 @@ enum class GameMenuRoute(
     STATES("states", R.string.game_menu_title, HOME),
     ADVANCED("advanced", R.string.game_menu_settings, HOME),
     DIAGNOSTICS("diagnostics", R.string.game_menu_settings, ADVANCED),
+    ENGINE_REPORT("engine_report", R.string.game_menu_settings, DIAGNOSTICS),
     TROUBLESHOOTING("troubleshooting", R.string.game_menu_settings, ADVANCED),
     SAVE(
         route = "save",
