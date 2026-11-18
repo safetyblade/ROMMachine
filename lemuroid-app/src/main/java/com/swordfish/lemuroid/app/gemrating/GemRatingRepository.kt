@@ -19,6 +19,8 @@ class GemRatingRepository(
         val score: Int?,
         val revision: Long,
         val updatedAt: Long,
+        val displayTitle: String? = null,
+        val platformId: String? = null,
     )
 
     @Serializable
@@ -53,21 +55,35 @@ class GemRatingRepository(
         expected: Session,
         cartridgeId: String,
         score: Int?,
+        displayTitle: String? = null,
+        platformId: String? = null,
     ): Snapshot =
         synchronized(lock) {
             verifyAccess(expected)
             requireUuid(cartridgeId)
             require(score == null || score in 1..10)
+            require(displayTitle == null || displayTitle.length in 1..512)
+            require(platformId == null || platformId.length in 1..64)
             val existing = readValidated(expected.profileId)
             val previous = existing.records.firstOrNull { it.cartridgeId == cartridgeId }
             if (previous?.score == score) return@synchronized existing
             val revision = previous?.revision ?: 0L
             require(revision < Long.MAX_VALUE)
+            val timestamp = now()
+            require(timestamp >= 0)
+            val rating =
+                Rating(
+                    cartridgeId = cartridgeId,
+                    score = score,
+                    revision = revision + 1,
+                    updatedAt = timestamp,
+                    displayTitle = displayTitle ?: previous?.displayTitle,
+                    platformId = platformId ?: previous?.platformId,
+                )
             val next =
                 existing.copy(
-                    records =
-                        (existing.records.filterNot { it.cartridgeId == cartridgeId } +
-                            Rating(cartridgeId, score, revision + 1, now())).sortedBy { it.cartridgeId },
+                    records = (existing.records.filterNot { it.cartridgeId == cartridgeId } + rating)
+                        .sortedBy { it.cartridgeId },
                 )
             verifyAccess(expected)
             storage.write(next)
@@ -87,6 +103,8 @@ class GemRatingRepository(
             requireUuid(it.cartridgeId)
             require(it.score == null || it.score in 1..10)
             require(it.revision > 0 && it.updatedAt >= 0)
+            require(it.displayTitle == null || it.displayTitle.length in 1..512)
+            require(it.platformId == null || it.platformId.length in 1..64)
         }
         return snapshot
     }
