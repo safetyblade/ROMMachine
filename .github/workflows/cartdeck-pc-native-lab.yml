@@ -64,6 +64,7 @@ jobs:
             ${{ runner.temp }}/pc-host/maven/
             ${{ runner.temp }}/pc-host/provenance.txt
             ${{ runner.temp }}/pc-host/applied-host.patch
+            ${{ runner.temp }}/pc-host/host-base-source.tar.gz
           if-no-files-found: error
   pc-lab-core:
     name: Build pinned DOSBox Pure source candidate
