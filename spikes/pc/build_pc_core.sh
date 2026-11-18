@@ -12,7 +12,7 @@ git -C "$WORK/source" checkout --detach "$REVISION"
 git -C "$WORK/source" submodule update --init --recursive
 test "$(git -C "$WORK/source" rev-parse HEAD)" = "$REVISION"
 test -z "$(git -C "$WORK/source" status --porcelain)"
-"$NDK/ndk-build" -C "$WORK/source" APP_ABI=arm64-v8a APP_PLATFORM=android-23 -j4
+(cd "$WORK/source/jni" && "$NDK/ndk-build" APP_ABI=arm64-v8a APP_PLATFORM=android-23 -j4)
 mkdir -p "$WORK/output"
 cp "$WORK/source/libs/arm64-v8a/libretro.so" "$WORK/output/libdosbox_pure_libretro_android.so"
 cp "$WORK/source/LICENSE" "$WORK/output/DOSBox-Pure-LICENSE"
