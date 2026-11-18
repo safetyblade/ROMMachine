@@ -6,6 +6,9 @@ on:
       recovery_native_run_id:
         type: string
         default: ""
+      dreamcast_native_run_id:
+        type: string
+        default: ""
       pc_host_native_run_id:
         type: string
         default: ""
@@ -230,6 +233,19 @@ jobs:
             const runCache = new Map();
             for (const engine of engines) {
               const prefix = 'native-ci01-' + engine + '-';
+              const exactRun = engine === 'dc' ? '${{ inputs.dreamcast_native_run_id }}' : '';
+              if (exactRun) {
+                if (exactRun !== String(context.runId)) {
+                  core.setFailed('Dreamcast override must be the current dependency-ordered run'); return;
+                }
+                const exact = artifacts.find(a => !a.expired &&
+                  String(a.workflow_run?.id) === exactRun &&
+                  a.name === prefix + '${{ github.sha }}');
+                if (!exact) { core.setFailed('Current verified Dreamcast component missing'); return; }
+                core.setOutput(engine + '_run', exactRun);
+                core.setOutput(engine + '_name', exact.name);
+                continue;
+              }
               const candidates = artifacts.filter(a => !a.expired && a.name.startsWith(prefix))
                 .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
               let selected = null;
@@ -241,10 +257,15 @@ jobs:
                   runCache.set(id, response.data);
                 }
                 const run = runCache.get(id);
-                if (run.conclusion !== 'success' || run.event !== 'workflow_dispatch' ||
-                    run.path !== '.github/workflows/cartdeck-ci01-native-engine.yml' ||
-                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
-                    artifact.name !== prefix + run.head_sha) continue;
+                const dispatched = run.event === 'workflow_dispatch' &&
+                    run.path === '.github/workflows/cartdeck-ci01-native-engine.yml' &&
+                    artifact.name === prefix + run.head_sha;
+                const br001 = engine === 'dc' && run.event === 'pull_request' &&
+                    run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                    run.head_branch === 'engineering/perf-br001-dreamcast-response' &&
+                    new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                if (run.conclusion !== 'success' || (!dispatched && !br001) ||
+                    run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
                 selected = {run_id: run.id, name: artifact.name};
                 break;
               }
@@ -362,7 +383,11 @@ jobs:
                   run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
                   new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
                 if (run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
-                let trusted = run.conclusion === 'success' && (dispatched || recovered || pcHost);
+                const br001Host = engine === 'libretrodroid' && run.event === 'pull_request' &&
+                  run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                  run.head_branch === 'engineering/perf-br001-dreamcast-response' &&
+                  new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                let trusted = run.conclusion === 'success' && (dispatched || recovered || pcHost || br001Host);
                 // A completed master build can retain a valid host even when its later APK job fails.
                 if (!trusted && engine === 'libretrodroid' && run.status === 'completed' &&
                     run.head_branch === 'master' && run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
@@ -611,13 +636,13 @@ jobs:
             -PcartdeckNativeSystems="$(cat work/connected/bundle/native-systems.txt)" \
             -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/work/connected/bundle" \
             -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/connected/host/maven" \
-            -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+            -PcartdeckLibretroDroidVersion=0.14.0-cartdeck4 \
             -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 "${benchmark_args[@]}"
           bash scripts/ci/verify_standalone_apk.sh
           python3 scripts/ci/verify_native_bundle_apk.py \
             "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" work/connected/bundle \
             --require-five-engines --require-wii --require-xbox --require-xbox360 \
-            --host-aar work/connected/host/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
+            --host-aar work/connected/host/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck4/LibretroDroid-0.14.0-cartdeck4.aar \
             > "$CARTDECK_OUTPUT/evidence/preserved-engines.json"
           python3 scripts/ci/verify_connected_apk.py \
             --apk "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" --bundle work/connected/bundle \
