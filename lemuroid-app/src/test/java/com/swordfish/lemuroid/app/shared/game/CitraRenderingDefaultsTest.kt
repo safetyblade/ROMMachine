@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.shared.game
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,6 +15,7 @@ class CitraRenderingDefaultsTest {
             GameSystem.findById(SystemID.NINTENDO_3DS.dbname).systemCoreConfigs
                 .single { it.coreID == CoreID.CITRA }
         assertFalse(config.skipDuplicateFrames)
+        assertEquals("enabled", config.defaultSettings.single { it.key == "citra_use_acc_mul" }.value)
         assertFalse(config.statesSupported)
         assertTrue(config.supportsLibretroVFS)
         val keys = config.exposedSettings.map { it.key }

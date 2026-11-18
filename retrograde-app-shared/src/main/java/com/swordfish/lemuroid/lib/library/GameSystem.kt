@@ -1255,7 +1255,7 @@ data class GameSystem(
                                 ),
                             defaultSettings =
                                 listOf(
-                                    CoreVariable("citra_use_acc_mul", "disabled"),
+                                    CoreVariable("citra_use_acc_mul", "enabled"),
                                     CoreVariable("citra_touch_touchscreen", "enabled"),
                                     CoreVariable("citra_mouse_touchscreen", "disabled"),
                                     CoreVariable("citra_render_touchscreen", "disabled"),
