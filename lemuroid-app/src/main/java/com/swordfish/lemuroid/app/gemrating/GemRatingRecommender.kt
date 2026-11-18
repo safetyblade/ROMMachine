@@ -180,12 +180,23 @@ object GemRatingRecommender {
                             Evidence.EDITORIAL_PROVISIONAL -> 0.75
                             Evidence.WEAK_CONTEXT -> 0.40
                         }
-                    val genreOnly = common.all { it.startsWith("genre:") }
-                    val meaningfulBridge = !genreOnly
-                    val score = preference * best.second * confidence * (if (genreOnly) 0.35 else 1.0)
+                    val meaningfulBridge = common.any { it.startsWith("mechanic:") || it.startsWith("crossover:") }
+                    val score = preference * best.second * confidence * (if (meaningfulBridge) 1.0 else 0.35)
                     val novelGenre = clean(game.primaryGenre)?.let { it !in likedGenres } == true
-                    val novelty = 1.0 - best.second
-                    val wildcard = meaningfulBridge && (novelGenre || novelty >= 0.25)
+                    val sourceGenre = clean(best.first.primaryGenre)
+                    val targetGenre = clean(game.primaryGenre)
+                    val genreDifference = novelGenre && sourceGenre != null && targetGenre != null
+                    val sourceStyle = clean(best.first.playstyle)
+                    val targetStyle = clean(game.playstyle)
+                    val styleDifference = sourceStyle != null && targetStyle != null && sourceStyle != targetStyle
+                    val sourceCross = clean(best.first.crossoverGenre)
+                    val targetCross = clean(game.crossoverGenre)
+                    val crossoverDifference = sourceCross != null && targetCross != null && sourceCross != targetCross
+                    val novelty =
+                        ((if (genreDifference) 0.45 else 0.0) +
+                            (if (styleDifference) 0.25 else 0.0) +
+                            (if (crossoverDifference) 0.30 else 0.0)).coerceAtMost(1.0)
+                    val wildcard = meaningfulBridge && novelty >= 0.25
                     Recommendation(
                         game = game,
                         score = score,
