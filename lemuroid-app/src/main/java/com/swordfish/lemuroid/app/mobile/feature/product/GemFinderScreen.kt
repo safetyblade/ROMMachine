@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,12 +15,14 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender
+import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CatalogueCartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
@@ -58,7 +60,8 @@ internal fun GemFinderScreen(
 ) {
     val context = LocalContext.current.applicationContext
     val coroutineScope = rememberCoroutineScope()
-    var input by remember(catalogue, games) { mutableStateOf<GemDiscovery.Input?>(null) }
+    val ratingRevision = GemShelfPresentation.revision.collectAsState().value
+    var input by remember(catalogue, games, ratingRevision) { mutableStateOf<GemDiscovery.Input?>(null) }
     var installedByRelease by remember(catalogue, games) { mutableStateOf(emptyMap<String, Game>()) }
     var preferences by remember { mutableStateOf<GemDiscoveryPreferences?>(null) }
     var failed by remember(catalogue, games) { mutableStateOf(false) }
@@ -69,7 +72,7 @@ internal fun GemFinderScreen(
     var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
     var message by remember { mutableStateOf("") }
 
-    LaunchedEffect(catalogue, games) {
+    LaunchedEffect(catalogue, games, ratingRevision) {
         val result =
             withContext(Dispatchers.IO) {
                 runCatching {
@@ -149,11 +152,13 @@ internal fun GemFinderScreen(
                             GemDiscovery.Scope.DISCOVER to "Discover",
                         )
                     for ((value, label) in scopes) {
-                        TextButton(
+                        FilterChip(
+                            selected = scope == value,
                             onClick = { scope = value },
-                            enabled = scope != value && !surprising,
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text(label) }
+                            enabled = !surprising,
+                            modifier = Modifier.gemFocusTarget(),
+                            label = { Text(label) },
+                        )
                     }
                 }
                 if (failed) {
@@ -187,7 +192,7 @@ internal fun GemFinderScreen(
                                 if (preferences?.saveWildcardPercent(value) == true) share = value
                             },
                             enabled = share > 20 && !surprising,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.gemFocusTarget(),
                         ) { Text("Less") }
                         TextButton(
                             onClick = {
@@ -195,7 +200,7 @@ internal fun GemFinderScreen(
                                 if (preferences?.saveWildcardPercent(value) == true) share = value
                             },
                             enabled = share < 50 && !surprising,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.gemFocusTarget(),
                         ) { Text("More") }
                         TextButton(
                             onClick = {
@@ -232,7 +237,7 @@ internal fun GemFinderScreen(
                                 }
                             },
                             enabled = !surprising && preferences != null && data.ratings.isNotEmpty(),
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.gemFocusTarget(),
                         ) { Text("Surprise Me") }
                     }
                 }
@@ -317,12 +322,12 @@ private fun GemRecommendationCard(
                 if (installedGame != null) {
                     TextButton(
                         onClick = { onOpenCartridge(installedGame) },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                        modifier = Modifier.gemFocusTarget(),
                     ) { Text("Open cartridge") }
                 }
                 TextButton(
                     onClick = { onInspectRelease(game.releaseId) },
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.gemFocusTarget(),
                 ) { Text("Game Intelligence") }
             }
         }
