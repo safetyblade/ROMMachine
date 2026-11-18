@@ -83,7 +83,9 @@ internal fun GemFinderScreen(
                     val prepared = GemDiscovery.prepare(catalogue.manifest.releases, records, links, shelf)
                     val installed =
                         games.mapNotNull { game ->
-                            links[game.cartridgeId]?.takeIf { it in prepared.ownedIds }?.let { it to game }
+                            links[game.cartridgeId]?.takeIf {
+                                it in prepared.ownedIds && catalogue.index.find(it)?.systemId == game.systemId
+                            }?.let { it to game }
                         }.groupBy({ it.first }, { it.second }).mapNotNull { (id, matches) ->
                             matches.singleOrNull()?.let { id to it }
                         }.toMap()
@@ -155,7 +157,10 @@ internal fun GemFinderScreen(
                     }
                 }
                 if (failed) {
-                    Text("Discovery unavailable. Existing ratings are retained.", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        "Discovery unavailable. Existing ratings are retained.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 } else if (data == null) {
                     Text("Loading personal preferences…")
                 } else {
@@ -168,11 +173,14 @@ internal fun GemFinderScreen(
                     }
                     if (data.unlinkedRatings > 0) {
                         Text(
-                            "${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.",
+                            "${data.unlinkedRatings} ratings need a confirmed catalogue link before discovery.",
                         )
                     }
                     Text("Wildcard target: $share%")
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         TextButton(
                             onClick = {
                                 val value = share - 5
@@ -218,7 +226,7 @@ internal fun GemFinderScreen(
                                         }
                                     result.onSuccess {
                                         surprise = it
-                                        message = if (it == null) "No fresh meaningful surprise in this selection." else ""
+                                        message = if (it == null) "No fresh meaningful surprise." else ""
                                     }.onFailure { message = "Could not prepare a surprise." }
                                     surprising = false
                                 }
@@ -302,7 +310,8 @@ private fun GemRecommendationCard(
                 )
                 Text(recommendation.reason)
                 val kind = if (recommendation.wildcard) "Wildcard · " else ""
-                val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
+                val evidence =
+                    if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
                 Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
                 Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
                 if (installedGame != null) {
