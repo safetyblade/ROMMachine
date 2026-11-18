@@ -35,15 +35,21 @@ for n in (1, 2):
                             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=100)
     (output / f"guest-session-{n}.log").write_text(result.stdout)
     print(result.stdout[-6000:])
+    for diagnostic in ("MOUNT.LOG", "CDLIST.TXT"):
+        try:
+            print(diagnostic, read_guest_file(diagnostic).decode("cp437", errors="replace"))
+        except RuntimeError as exc:
+            print(str(exc))
     result.check_returncode()
     count = read_guest_file("PCSTATE.DAT")
     inputs = read_guest_file("PCINPUT.DAT")
+    print("guest result bytes:", inputs.hex())
     if count != bytes([n]):
         raise RuntimeError(f"Unexpected retained counter: {count.hex()}")
-    if len(inputs) != 4 or inputs[0] not in (ord("a"), ord("A")) or inputs[1] == 0 or inputs[2] not in (ord("1"), ord("2")) or inputs[3] != 1:
-        raise RuntimeError(f"Guest keyboard/mouse/optical result invalid: {inputs.hex()}")
-    evidence.append({"session": n, "counter": count[0], "keyboard": chr(inputs[0]),
-                     "mouse_driver_present": bool(inputs[1]), "optical_byte": chr(inputs[2]),
-                     "mouse_clicked": bool(inputs[3])})
+    if len(inputs) != 9 or inputs[0] != n or inputs[1] not in (ord("a"), ord("A")) or inputs[2] == 0 or inputs[3] != 1 or inputs[4] not in (ord("b"), ord("B")) or inputs[5:] != b"1\x002\x00":
+        raise RuntimeError(f"Guest input/optical result invalid: {inputs.hex()} (includes DOS errors after each disc byte)")
+    evidence.append({"session": n, "counter": count[0], "keyboard": chr(inputs[1]),
+                     "mouse_driver_present": bool(inputs[2]), "mouse_clicked": bool(inputs[3]),
+                     "first_optical_byte": chr(inputs[5]), "second_optical_byte": chr(inputs[7])})
 (output / "guest-proof.json").write_text(json.dumps({"platform": "Linux host build, not Android",
     "sessions": evidence, "raw_disk_boot": "NOT_TESTED", "windows": "NOT_TESTED"}, indent=2))

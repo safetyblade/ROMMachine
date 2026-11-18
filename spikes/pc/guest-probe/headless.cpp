@@ -12,6 +12,10 @@
 static std::string systemDir, saveDir;
 static retro_keyboard_event_t keyboard = nullptr;
 static retro_disk_control_callback disks{};
+static retro_disk_control_ext_callback extended{};
+static unsigned discFirst=0, discSecond=1;
+static unsigned heldKey=0;
+static bool firstMounted=false;
 static unsigned frames = 0, polls = 0, rendered = 0;
 static bool keyDown = false, mouseDown = false;
 static bool switched = false;
@@ -30,6 +34,11 @@ static bool env(unsigned cmd, void* data) {
     case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: return true;
     case RETRO_ENVIRONMENT_SET_VARIABLES: return true;
     case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK: keyboard=static_cast<retro_keyboard_callback*>(data)->callback; return true;
+    case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
+        extended=*static_cast<retro_disk_control_ext_callback*>(data);
+        disks={extended.set_eject_state,extended.get_eject_state,extended.get_image_index,
+            extended.set_image_index,extended.get_num_images,extended.replace_image_index,extended.add_image_index};
+        return true;
     case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE: disks=*static_cast<retro_disk_control_callback*>(data); return true;
     default: return false;
     }
@@ -40,7 +49,7 @@ static size_t batch(const int16_t*,size_t n){return n;}
 static void poll(){++polls;}
 static int16_t input(unsigned port,unsigned device,unsigned index,unsigned id){
     if(port!=0||index!=0)return 0;
-    if(device==RETRO_DEVICE_KEYBOARD&&id==RETROK_a)return keyDown;
+    if(device==RETRO_DEVICE_KEYBOARD&&id==heldKey)return keyDown;
     if(device==RETRO_DEVICE_MOUSE){
         if(id==RETRO_DEVICE_ID_MOUSE_LEFT)return mouseDown;
         if(id==RETRO_DEVICE_ID_MOUSE_X)return mouseDown?3:0;
@@ -67,20 +76,41 @@ int main(int argc,char**argv){
     retro_game_info game{};game.path=argv[2];
     if(!retro_load_game(&game)){fprintf(stderr,"retro_load_game rejected probe\n");retro_deinit();return 3;}
     retro_set_controller_port_device(0,RETRO_DEVICE_JOYPAD);
-    // Input stays active across multiple frames to exercise actual core polling.
+    auto mount=[&](unsigned which) {
+        if (!disks.get_num_images || !disks.set_eject_state || !disks.get_eject_state ||
+            !disks.set_image_index || !disks.get_image_index || which>=disks.get_num_images()) return false;
+        const bool ok=disks.set_eject_state(true)&&disks.get_eject_state()&&disks.set_image_index(which)&&
+            disks.set_eject_state(false)&&!disks.get_eject_state()&&disks.get_image_index()==which;
+        fprintf(stderr,"mount index=%u result=%d ejected=%d\n",which,ok,disks.get_eject_state());
+        return ok;
+    };
+    // Actual guest is blocked on A until the first disc is mounted. B follows a real switch.
     for(frames=0;frames<900;++frames){
-        if(frames%120==60){keyDown=true;if(keyboard)keyboard(true,RETROK_a,'a',0);}
-        if(frames%120==75){keyDown=false;if(keyboard)keyboard(false,RETROK_a,0,0);}
+        if(frames==30 && disks.get_num_images){
+            unsigned count=disks.get_num_images();
+            fprintf(stderr,"optical image count=%u\n",count);
+            for(unsigned i=0;i<count && extended.get_image_path;++i){
+                char path[4096]={}; if(!extended.get_image_path(i,path,sizeof(path)))continue;
+                fprintf(stderr,"optical image %u: %s\n",i,path);
+                std::string lower(path);for(char &c:lower)if(c>='A'&&c<='Z')c+=32;
+                if(lower.find("disc1.iso")!=std::string::npos)discFirst=i;
+                if(lower.find("disc2.iso")!=std::string::npos)discSecond=i;
+            }
+            firstMounted=mount(discFirst);
+        }
+        if(frames==500)switched=discFirst!=discSecond&&mount(discSecond);
+        if(frames==60 || frames==600 || frames==720){
+            heldKey=frames==60?RETROK_a:RETROK_b;
+            keyDown=true;if(keyboard)keyboard(true,heldKey,heldKey==RETROK_a?'a':'b',0);
+        }
+        if(frames==75 || frames==615 || frames==735){
+            if(keyDown&&keyboard)keyboard(false,heldKey,0,0);keyDown=false;
+        }
         mouseDown=(frames%120>=90 && frames%120<110);
         retro_run();
-        if(frames==500 && disks.get_num_images && disks.set_eject_state && disks.set_image_index && disks.get_image_index){
-            unsigned count=disks.get_num_images();
-            if(count>=2){unsigned old=disks.get_image_index();unsigned next=(old+1)%count;
-                switched=disks.set_eject_state(true)&&disks.set_image_index(next)&&disks.set_eject_state(false)&&disks.get_image_index()==next;}
-        }
     }
-    if(keyDown&&keyboard)keyboard(false,RETROK_a,0,0);
+    if(keyDown&&keyboard)keyboard(false,heldKey,0,0);
     retro_unload_game();retro_deinit();
     printf("frames=%u rendered=%u polls=%u keyboard_callback=%d optical_switch=%d\n",frames,rendered,polls,keyboard!=nullptr,switched);
-    return (rendered&&polls&&keyboard&&switched)?0:4;
+    return (rendered&&polls&&keyboard&&firstMounted&&switched)?0:4;
 }
