@@ -42,6 +42,8 @@ class GemRatingRepository(
         fun read(profileId: String): Snapshot
 
         fun write(snapshot: Snapshot)
+
+        fun backup(snapshot: Snapshot) { }
     }
 
     fun snapshot(expected: Session): Snapshot =
@@ -142,7 +144,10 @@ class GemRatingRepository(
             val next = GemProfileBackup.merge(current, preview.source, replaceConflicts, restorePreferences, now())
             validateSnapshot(next)
             verifyAccess(expected)
-            if (next != current) storage.write(next)
+            if (next != current) {
+                storage.backup(current)
+                storage.write(next)
+            }
             next
         }
 
