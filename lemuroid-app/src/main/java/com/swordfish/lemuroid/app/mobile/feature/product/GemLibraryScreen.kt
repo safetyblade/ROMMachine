@@ -119,10 +119,12 @@ internal fun GemLibraryScreen(
                 runCatching {
                     when {
                         game == null -> false
-                        action.customTitle != null -> corrections.saveCustom(game, action.customTitle, action.customGenre)
+                        action.customTitle != null ->
+                            corrections.saveCustom(game, action.customTitle, action.customGenre)
                         action.releaseId == null -> corrections.clear(game)
                         active == null -> false
-                        else -> active.index.find(action.releaseId)?.let { corrections.select(game, it, active) } == true
+                        else ->
+                            active.index.find(action.releaseId)?.let { corrections.select(game, it, active) } == true
                     }
                 }.getOrDefault(false)
             }
@@ -227,7 +229,8 @@ internal fun GemLibraryScreen(
                                 val status =
                                     when {
                                         custom != null -> "Custom information · not a verified catalogue match"
-                                        savedId != null && current?.index?.find(savedId) != null -> "Confirmed local link"
+                                        savedId != null && current?.index?.find(savedId) != null ->
+                                            "Confirmed local link"
                                         savedId != null -> "Previous link unavailable; retained"
                                         else -> "Unmatched · suggestions require confirmation"
                                     }
