@@ -89,7 +89,12 @@ GRADLE
 ARTIFACT="$MAVEN_REPO/dev/cartdeck/pc/lab/PcLibretroHost/$VERSION/PcLibretroHost-$VERSION.aar"
 [[ -f "$ARTIFACT" ]]
 git -C "$SOURCE" archive --format=tar.gz --output="$WORK/host-base-source.tar.gz" "$REVISION"
-python3 "$ROOT/scripts/ci/native_symbols.py" \
+SYMBOL_TOOL="$ROOT/scripts/ci/native_symbols.py"
+if [[ ${PC_INTEGRATED_NAMESPACE:-false} == true ]]; then
+    sed 's/liblibretrodroid\.so/libcartdeckpcruntime.so/g' "$SYMBOL_TOOL" > "$WORK/pc_native_symbols.py"
+    SYMBOL_TOOL="$WORK/pc_native_symbols.py"
+fi
+python3 "$SYMBOL_TOOL" \
     --readelf "$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
     retain-aar --aar "$ARTIFACT" --search "$SOURCE/libretrodroid" --output "$WORK/symbols"
 {
