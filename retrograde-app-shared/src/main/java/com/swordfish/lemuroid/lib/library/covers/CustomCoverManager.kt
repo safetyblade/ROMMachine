@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 
 /**
  * Manages custom cover artwork files stored in the app's private external storage.
@@ -65,6 +66,34 @@ class CustomCoverManager(private val appContext: Context) {
             } ?: throw IllegalStateException("Cannot open input stream for $sourceUri")
             Uri.fromFile(destFile).toString()
         }
+
+    /** Stage a uniquely named replacement; the caller commits the database pointer first. */
+    fun stageReplacement(
+        gameId: Int,
+        write: (File) -> Unit,
+    ): String {
+        val file = File(getCoversDirectory(), "cover_${gameId}.${UUID.randomUUID()}.png")
+        try {
+            write(file)
+            check(file.length() > 0)
+            return Uri.fromFile(file).toString()
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+    }
+
+    fun discardOwnedCover(
+        gameId: Int,
+        uri: String?,
+    ) {
+        if (uri == null) return
+        val parsed = Uri.parse(uri)
+        if (parsed.scheme != "file") return
+        val file = parsed.path?.let(::File) ?: return
+        if (file.parentFile?.canonicalFile != getCoversDirectory().canonicalFile) return
+        if (file.name.startsWith("cover_$gameId.")) file.delete()
+    }
 
     /** Deletes the locally-stored cover for [gameId], regardless of extension. */
     fun deleteCover(gameId: Int) {
