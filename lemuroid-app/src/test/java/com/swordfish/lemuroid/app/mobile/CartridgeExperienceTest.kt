@@ -347,9 +347,12 @@ class CartridgeExperienceTest {
     fun shortLandscapeFilterSearchRemainsAvailable() {
         home(HomeViewModel.UIState(indexInProgress = false, recentGames = listOf(game)))
         compose.onNodeWithText("Search collection").assertDoesNotExist()
-        compose.onNodeWithText("Filters").performClick()
-        settleSheet()
+        // The filter is an AlertDialog, not the animated cartridge setup sheet.
+        // Use its real accessibility action to avoid cross-window pointer injection.
+        compose.onNodeWithText("Filters").assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithText("Search collection").assertExists()
+        compose.onNodeWithText("Done").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText("Search collection").assertDoesNotExist()
     }
 
     @Test fun narrowLandscapeDetailStillScrollsToActions() {
