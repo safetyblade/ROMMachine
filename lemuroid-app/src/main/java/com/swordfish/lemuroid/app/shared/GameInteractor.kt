@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared
 
 import android.Manifest
+import android.graphics.Bitmap
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -13,8 +14,11 @@ import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GameInteractor(
     private val activity: BusyActivity,
@@ -103,6 +107,38 @@ class GameInteractor(
             retrogradeDb.gameDao().update(game.copy(customCoverUri = null))
         }
     }
+
+    /** A selected network image is committed only to the same canonical cartridge. */
+    suspend fun useOnlineCover(
+        game: Game,
+        bitmap: Bitmap,
+    ): Boolean =
+        withContext(Dispatchers.IO + NonCancellable) {
+            if (game.cartridgeId.isBlank()) return@withContext false
+            val current = retrogradeDb.gameDao().selectById(game.id) ?: return@withContext false
+            if (current.cartridgeId != game.cartridgeId) return@withContext false
+            val staged =
+                runCatching {
+                    customCoverManager.stageReplacement(game.id) { file ->
+                        file.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+                    }
+                }.getOrNull() ?: return@withContext false
+            val changed =
+                runCatching {
+                    retrogradeDb.gameDao().replaceCoverIfCurrent(
+                        game.id,
+                        game.cartridgeId,
+                        current.customCoverUri,
+                        staged,
+                    ) == 1
+                }.getOrDefault(false)
+            if (changed) {
+                runCatching { customCoverManager.discardOwnedCover(game.id, current.customCoverUri) }
+            } else {
+                runCatching { customCoverManager.discardOwnedCover(game.id, staged) }
+            }
+            changed
+        }
 
     private fun ensureNotificationsPermissionAvailable(): Boolean {
         if (useLeanback || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
