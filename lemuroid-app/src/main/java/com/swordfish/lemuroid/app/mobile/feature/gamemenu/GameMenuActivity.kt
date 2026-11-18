@@ -36,6 +36,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesS
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.states.GameMenuStatesViewModel
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.coreoptions.LemuroidCoreOption
+import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerHatEdges
 import com.swordfish.lemuroid.app.shared.input.ControllerInputProbe
@@ -214,6 +215,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
         val currentDisk: Int,
         val currentTiltConfiguration: TiltConfiguration,
         val allTiltConfigurations: List<TiltConfiguration>,
+        val engineReportSession: LibretroReportSession? = null,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -262,6 +264,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     intent.serializable<Array<TiltConfiguration>>(GameMenuContract.EXTRA_TILT_ALL_CONFIGS)
                         ?.toList()
                         ?: emptyList(),
+                engineReportSession = intent.serializable<LibretroReportSession>(GameMenuContract.EXTRA_ENGINE_REPORT_SESSION),
             )
 
         mappingCartridge = gameMenuRequest.game.cartridgeId
@@ -292,6 +295,7 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                     GameMenuRoute.OPTIONS -> "Game Settings"
                     GameMenuRoute.ADVANCED -> "Advanced"
                     GameMenuRoute.DIAGNOSTICS -> "Diagnostics"
+                    GameMenuRoute.ENGINE_REPORT -> "Engine Report"
                     GameMenuRoute.GRIPARC -> "GripArc"
                     GameMenuRoute.PIVOTARC -> "PivotArc"
                     else -> stringResource(route.titleId)
@@ -336,11 +340,17 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                         androidx.compose.foundation.layout.Column(
                             Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(12.dp),
                         ) {
+                            GameMenuLink("Engine Report") {
+                                navController.navigateToRoute(GameMenuRoute.ENGINE_REPORT)
+                            }
                             androidx.compose.material3.Text("Detailed engine settings")
                             androidx.compose.material3.Text("Pause acknowledgement is provided by the active engine.")
                             com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions
                                 .GameMenuTechnicalOptions(gameMenuRequest)
                         }
+                    }
+                    composable(GameMenuRoute.ENGINE_REPORT) {
+                        LibretroEngineReportScreen(gameMenuRequest)
                     }
                     composable(GameMenuRoute.PIVOTARC) {
                         com.swordfish.lemuroid.app.mobile.feature.settings.layout.PivotArcSettingsScreen()

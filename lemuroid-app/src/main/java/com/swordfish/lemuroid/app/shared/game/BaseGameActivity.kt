@@ -211,6 +211,10 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         val intent =
             Intent(this, getDialogClass()).apply {
                 this.putExtra(GameMenuContract.EXTRA_CORE_OPTIONS, options.toTypedArray())
+                this.putExtra(
+                    GameMenuContract.EXTRA_ENGINE_REPORT_SESSION,
+                    baseGameScreenViewModel.retroGameView.engineReportSession(coreOptions.map { it.variable }),
+                )
                 this.putExtra(GameMenuContract.EXTRA_ADVANCED_CORE_OPTIONS, advancedOptions.toTypedArray())
                 this.putExtra(
                     GameMenuContract.EXTRA_CURRENT_DISK,

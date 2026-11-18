@@ -11,6 +11,8 @@ import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
+import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -81,6 +83,21 @@ class GameViewModelRetroGameView(
     }
 
     private var launchedGame: Game? = null
+    private var reportSession: LibretroReportSession? = null
+
+    @Volatile
+    private var reportGraphics: String? = null
+
+    @Volatile
+    private var reportCoreFrameObserved = false
+
+    /** Snapshot only on menu invocation; no continuous performance polling or disk reads. */
+    fun engineReportSession(options: List<CoreVariable>): LibretroReportSession? =
+        reportSession?.copy(
+            coreFrameObserved = reportCoreFrameObserved,
+            graphics = reportGraphics,
+            reportedOptions = LibretroEngineReport.safeOptions(options.map { it.key to it.value }),
+        )
 
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)
 
@@ -232,6 +249,20 @@ class GameViewModelRetroGameView(
         val currentState = gameState.value
         if (currentState !is GameState.Loaded) throw IllegalStateException("Game is not loaded.")
 
+        reportGraphics = null
+        reportCoreFrameObserved = false
+        reportSession =
+            LibretroReportSession(
+                coreFilePath = currentState.gameData.coreLibrary,
+                mediaRoute =
+                    when (currentState.gameData.gameFiles) {
+                        is RomFiles.Standard -> "standard file path"
+                        is RomFiles.Virtual -> "virtual file descriptors"
+                    },
+                lowLatencyAudioRequested = currentState.retroViewData.preferLowLatencyAudio,
+                skipDuplicateFrames = systemCoreConfig.skipDuplicateFrames,
+            )
+
         if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
             PS2LaunchJournal(appContext).selectedCore(currentState.gameData.coreLibrary)
         }
@@ -276,6 +307,18 @@ class GameViewModelRetroGameView(
             result.getGLRetroEvents()
                 .filter { it.javaClass.simpleName == "CoreFrameRendered" }
                 .first()
+            reportCoreFrameObserved = true
+            // One GL-thread snapshot after the existing core-frame event. No per-frame sampling.
+            result.queueEvent {
+                reportGraphics =
+                    runCatching {
+                        listOf(
+                            GLES20.glGetString(GLES20.GL_VENDOR),
+                            GLES20.glGetString(GLES20.GL_RENDERER),
+                            GLES20.glGetString(GLES20.GL_VERSION),
+                        ).joinToString(" | ") { it ?: "unavailable" }
+                    }.getOrNull()
+            }
             if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
                 PS2LaunchJournal(appContext).stage(PS2LaunchJournal.Stage.CORE_FRAME)
             }
