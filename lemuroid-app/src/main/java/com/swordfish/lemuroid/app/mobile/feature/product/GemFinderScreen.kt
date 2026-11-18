@@ -128,7 +128,9 @@ internal fun GemFinderScreen(
                 Text("Based on ${data.ratings.size} linked ratings. All calculations are offline.")
             }
             if (data.unlinkedRatings > 0) {
-                Text("${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.")
+                Text(
+                    "${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.",
+                )
             }
             Text("Wildcard target: $share%")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -157,22 +159,18 @@ internal fun GemFinderScreen(
                         message = ""
                         coroutineScope.launch {
                             val result =
-                                withContext(Dispatchers.Default) {
-                                    runCatching {
-                                        val result =
-                                            GemRatingRecommender.surprise(
-                                                data.catalogue,
-                                                data.ratings,
-                                                prefs.recentIds().toSet(),
-                                                candidates,
-                                            )
-                                        if (result != null) {
-                                            withContext(Dispatchers.IO) {
-                                                check(prefs.rememberSurprise(result.game.releaseId))
-                                            }
+                                runCatching {
+                                    val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
+                                    val pick =
+                                        withContext(Dispatchers.Default) {
+                                            GemRatingRecommender.surprise(data.catalogue, data.ratings, recent, candidates)
                                         }
-                                        result
+                                    if (pick != null) {
+                                        withContext(Dispatchers.IO) {
+                                            check(prefs.rememberSurprise(pick.game.releaseId))
+                                        }
                                     }
+                                    pick
                                 }
                             result.onSuccess {
                                 surprise = it
