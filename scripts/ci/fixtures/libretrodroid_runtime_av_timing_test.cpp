@@ -1,6 +1,7 @@
 #include "runtimeavtiming.h"
 #include <cassert>
 #include <cmath>
+#include <initializer_list>
 #include <limits>
 using libretrodroid::RuntimeAvRate;
 using libretrodroid::RuntimeAvTiming;
