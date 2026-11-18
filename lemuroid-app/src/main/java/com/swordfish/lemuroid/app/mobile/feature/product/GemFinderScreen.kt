@@ -1,0 +1,237 @@
+package com.swordfish.lemuroid.app.mobile.feature.product
+
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
+import com.swordfish.lemuroid.app.gemrating.GemDiscovery
+import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
+import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
+import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
+import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender
+import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** Offline discovery, on the current legacy Manager bridge until PROF-01 is integrated. */
+@Composable
+internal fun GemFinderScreen(
+    catalogue: GemCataloguePackage.Loaded,
+    games: List<Game>,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current.applicationContext
+    val coroutineScope = rememberCoroutineScope()
+    var input by remember(catalogue, games) { mutableStateOf<GemDiscovery.Input?>(null) }
+    var preferences by remember { mutableStateOf<GemDiscoveryPreferences?>(null) }
+    var failed by remember(catalogue, games) { mutableStateOf(false) }
+    var scope by remember { mutableStateOf(GemDiscovery.Scope.FOR_YOU) }
+    var share by remember { mutableStateOf(30) }
+    var feed by remember { mutableStateOf<List<GemRatingRecommender.Recommendation>?>(null) }
+    var surprising by remember { mutableStateOf(false) }
+    var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
+    var message by remember { mutableStateOf("") }
+
+    LaunchedEffect(catalogue, games) {
+        val result =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val store = GemRatingLocalStore.open(context)
+                    val prefs = GemDiscoveryPreferences(context, store.session)
+                    val records = store.repository.snapshot(store.session).records
+                    val corrections = GemLocalCorrections(context)
+                    val ids = (games.map { it.cartridgeId } + records.map { it.cartridgeId }).distinct()
+                    val links = ids.mapNotNull { id -> corrections.read(id)?.let { id to it } }.toMap()
+                    val shelf = games.map { GemDiscovery.ShelfEntry(it.cartridgeId, it.systemId, it.title) }
+                    GemDiscovery.prepare(catalogue.manifest.releases, records, links, shelf) to prefs
+                }
+            }
+        result.onSuccess {
+            input = it.first
+            preferences = it.second
+            share = it.second.wildcardPercent()
+        }.onFailure { failed = true }
+    }
+
+    LaunchedEffect(input, scope, share) {
+        val data = input ?: return@LaunchedEffect
+        feed = null
+        surprise = null
+        message = ""
+        val result =
+            withContext(Dispatchers.Default) {
+                runCatching {
+                    GemRatingRecommender.recommend(
+                        data.catalogue,
+                        data.ratings,
+                        limit = 20,
+                        wildcardShare = share / 100.0,
+                        candidateIds = data.candidates(scope),
+                    )
+                }
+            }
+        result.onSuccess { feed = it }.onFailure { failed = true }
+    }
+
+    val data = input
+    val currentFeed = feed
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("GemFinder", style = MaterialTheme.typography.titleLarge)
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            val scopes =
+                listOf(
+                    GemDiscovery.Scope.FOR_YOU to "For you",
+                    GemDiscovery.Scope.MY_SHELF to "My shelf",
+                    GemDiscovery.Scope.DISCOVER to "Discover",
+                )
+            for ((value, label) in scopes) {
+                TextButton(
+                    onClick = { scope = value },
+                    enabled = scope != value && !surprising,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(label) }
+            }
+        }
+        if (failed) {
+            Text("Discovery unavailable. Existing ratings are retained.", color = MaterialTheme.colorScheme.error)
+        } else if (data == null) {
+            Text("Loading personal preferences…")
+        } else {
+            if (data.ratings.isEmpty()) {
+                Text("Rate a game and confirm its catalogue link in Browse to start personalised discovery.")
+            } else if (data.ratings.size < 3) {
+                Text("Early recommendations · based on ${data.ratings.size} linked ratings")
+            } else {
+                Text("Based on ${data.ratings.size} linked ratings. All calculations are offline.")
+            }
+            if (data.unlinkedRatings > 0) {
+                Text("${data.unlinkedRatings} ratings need a confirmed catalogue link before they can inform discovery.")
+            }
+            Text("Wildcard target: $share%")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(
+                    onClick = {
+                        val value = share - 5
+                        if (preferences?.saveWildcardPercent(value) == true) share = value
+                    },
+                    enabled = share > 20 && !surprising,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Less") }
+                TextButton(
+                    onClick = {
+                        val value = share + 5
+                        if (preferences?.saveWildcardPercent(value) == true) share = value
+                    },
+                    enabled = share < 50 && !surprising,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("More") }
+                TextButton(
+                    onClick = {
+                        val prefs = preferences ?: return@TextButton
+                        val candidates = data.candidates(scope)
+                        surprising = true
+                        surprise = null
+                        message = ""
+                        coroutineScope.launch {
+                            val result =
+                                withContext(Dispatchers.Default) {
+                                    runCatching {
+                                        val result =
+                                            GemRatingRecommender.surprise(
+                                                data.catalogue,
+                                                data.ratings,
+                                                prefs.recentIds().toSet(),
+                                                candidates,
+                                            )
+                                        if (result != null) {
+                                            withContext(Dispatchers.IO) {
+                                                check(prefs.rememberSurprise(result.game.releaseId))
+                                            }
+                                        }
+                                        result
+                                    }
+                                }
+                            result.onSuccess {
+                                surprise = it
+                                message = if (it == null) "No fresh meaningful surprise in this selection." else ""
+                            }.onFailure { message = "Could not prepare a surprise." }
+                            surprising = false
+                        }
+                    },
+                    enabled = !surprising && preferences != null && data.ratings.isNotEmpty(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Surprise Me") }
+            }
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (message.isNotBlank()) item { Text(message) }
+                surprise?.let { pick ->
+                    item {
+                        Text("Surprise Me", style = MaterialTheme.typography.titleMedium)
+                        GemRecommendationCard(pick, pick.game.releaseId in data.ownedIds)
+                    }
+                }
+                if (currentFeed == null) {
+                    item { Text("Calculating recommendations…") }
+                } else {
+                    item {
+                        Text(
+                            "${currentFeed.count { it.wildcard }} wildcards · ${currentFeed.size} suggestions",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    if (currentFeed.isEmpty()) {
+                        item { Text("No eligible matches in this view yet. Browse the catalogue to explore.") }
+                    }
+                    items(currentFeed, key = { it.game.releaseId }) { recommendation ->
+                        GemRecommendationCard(recommendation, recommendation.game.releaseId in data.ownedIds)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GemRecommendationCard(
+    recommendation: GemRatingRecommender.Recommendation,
+    owned: Boolean,
+) {
+    val game = recommendation.game
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(game.title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                game.platform + if (owned) " · On my shelf" else " · Not linked to shelf",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(recommendation.reason)
+            val kind = if (recommendation.wildcard) "Wildcard · " else ""
+            val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad genre match"
+            Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
+            Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
