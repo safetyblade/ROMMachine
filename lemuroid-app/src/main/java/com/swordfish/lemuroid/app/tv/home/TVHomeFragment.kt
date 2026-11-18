@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.leanback.app.BrowseSupportFragment
 import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.ClassPresenterSelector
@@ -20,6 +21,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
@@ -34,6 +36,7 @@ import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import dagger.android.support.AndroidSupportInjection
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 class TVHomeFragment : BrowseSupportFragment() {
@@ -45,6 +48,8 @@ class TVHomeFragment : BrowseSupportFragment() {
 
     @Inject
     lateinit var saveSyncManager: SaveSyncManager
+
+    private var shelfSections = emptyList<TVShelfSection>()
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -79,6 +84,8 @@ class TVHomeFragment : BrowseSupportFragment() {
                                 )
                             TVSettingType.CHOOSE_DIRECTORY -> launchFolderPicker()
                             TVSettingType.SETTINGS -> launchTVSettings()
+                            TVSettingType.CONTROLLERS ->
+                                startActivity(Intent(requireContext(), ControllerSettingsActivity::class.java))
                             TVSettingType.SHOW_ALL_FAVORITES -> launchFavorites()
                             TVSettingType.SAVE_SYNC ->
                                 SaveSyncWork.enqueueManualWork(
@@ -99,6 +106,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setTitle("CARTDECK")
+        setBadgeDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.cartdeck_wordmark_native))
         setBrandColor(Color.rgb(16, 28, 35))
         setSearchAffordanceColor(Color.rgb(80, 210, 194))
 
@@ -116,11 +124,17 @@ class TVHomeFragment : BrowseSupportFragment() {
 
         launchOnState(Lifecycle.State.RESUMED) {
             homeViewModel.getViewStates()
-                .collect { update(it) }
+                .combine(homeViewModel.shelfSections) { state, sections -> state to sections }
+                .collect { (state, sections) -> update(state, sections) }
         }
     }
 
-    private fun update(viewState: TVHomeViewModel.HomeViewState) {
+    private fun update(
+        viewState: TVHomeViewModel.HomeViewState,
+        sections: List<TVShelfSection>,
+    ) {
+        val sectionsChanged = shelfSections.map { it.id to it.title } != sections.map { it.id to it.title }
+        shelfSections = sections
         val adapterHasFavorites = findAdapterById<ObjectAdapter>(FAVORITES_ADAPTER) != null
         val adapterHasGames = findAdapterById<ObjectAdapter>(RECENTS_ADAPTER) != null
         val adapterHasSystems = findAdapterById<ObjectAdapter>(SYSTEM_ADAPTER) != null
@@ -129,7 +143,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         val recentsChanged = adapterHasGames != viewState.recentGames.isNotEmpty()
         val systemsChanged = adapterHasSystems != viewState.metaSystems.isNotEmpty()
 
-        if (favoritesChanged || recentsChanged || systemsChanged) {
+        if (favoritesChanged || recentsChanged || systemsChanged || sectionsChanged) {
             recreateAdapter(
                 viewState.favoritesGames.isNotEmpty(),
                 viewState.recentGames.isNotEmpty(),
@@ -153,6 +167,11 @@ class TVHomeFragment : BrowseSupportFragment() {
 
         findAdapterById<ArrayObjectAdapter>(SYSTEM_ADAPTER)
             ?.setItems(viewState.metaSystems, LEANBACK_SYSTEM_DIFF_CALLBACK)
+
+        shelfSections.forEachIndexed { index, section ->
+            findAdapterById<ArrayObjectAdapter>(shelfRowId(index))
+                ?.setItems(section.games, LEANBACK_GAME_DIFF_CALLBACK)
+        }
 
         findAdapterById<ArrayObjectAdapter>(SETTINGS_ADAPTER)?.setItems(
             buildSettingsRowItems(viewState.indexInProgress, viewState.scanInProgress),
@@ -207,6 +226,12 @@ class TVHomeFragment : BrowseSupportFragment() {
             result.add(ListRow(HeaderItem(SYSTEM_ADAPTER, title), systemItems))
         }
 
+        shelfSections.forEachIndexed { index, section ->
+            val items = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor))
+            items.setItems(section.games, LEANBACK_GAME_DIFF_CALLBACK)
+            result.add(ListRow(HeaderItem(shelfRowId(index), section.title), items))
+        }
+
         val settingsItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
         settingsItems.setItems(
             buildSettingsRowItems(indexInProgress = false, scanInProgress = false),
@@ -233,6 +258,7 @@ class TVHomeFragment : BrowseSupportFragment() {
             }
 
             add(TVSetting(TVSettingType.CHOOSE_DIRECTORY, !indexInProgress))
+            add(TVSetting(TVSettingType.CONTROLLERS))
             add(TVSetting(TVSettingType.SETTINGS, !indexInProgress))
         }
     }
@@ -258,6 +284,8 @@ class TVHomeFragment : BrowseSupportFragment() {
         const val SYSTEM_ADAPTER = 2L
         const val SETTINGS_ADAPTER = 3L
         const val FAVORITES_ADAPTER = 4L
+
+        private fun shelfRowId(index: Int) = -1L - index
 
         val LEANBACK_MULTI_DIFF_CALLBACK =
             object : DiffCallback<Any>() {

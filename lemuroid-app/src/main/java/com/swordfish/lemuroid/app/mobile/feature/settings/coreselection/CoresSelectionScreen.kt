@@ -59,21 +59,25 @@ fun CoresSelectionScreen(
                 }
             }
         }
-        ElevatedCard(
-            colors =
-                CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                ),
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp),
-        ) {
-            Text(
-                modifier = Modifier.padding(16.dp),
-                text = stringResource(R.string.settings_core_selection_ds_info),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+        var dsHelp by remember { mutableStateOf(false) }
+        TextButton(onClick = { dsHelp = !dsHelp }) { Text(if (dsHelp) "Hide DS help" else "DS help") }
+        if (dsHelp) {
+            ElevatedCard(
+                colors =
+                    CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp),
+            ) {
+                Text(
+                    modifier = Modifier.padding(16.dp),
+                    text = stringResource(R.string.settings_core_selection_ds_info),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
         LemuroidCardSettingsGroup {
             cores.forEach { (system, core) ->

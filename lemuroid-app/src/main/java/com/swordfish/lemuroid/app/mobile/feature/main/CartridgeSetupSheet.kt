@@ -160,14 +160,21 @@ private fun CartridgeControlChoices(
     val store = remember(context) { GripArcProfileStore(context) }
     var mode by remember(game.fileUri) { mutableStateOf(store.read(game).mode) }
     var message by remember(game.fileUri) { mutableStateOf<String?>(null) }
-    if (system.id == SystemID.WII) {
-        Text(
-            "Choose Sideways Wii Remote, Classic, Remote + Nunchuk or GameCube Controller below. " +
-                "GameCube input only works in Wii software that supports a GameCube pad. " +
-                "Touch the game picture to point with Wii Remote profiles; pointer settings also offer " +
-                "the right stick. Press the right stick for Wii Home. Shake buttons emulate motion. " +
-                "Phone motion sensors and physical Wii Remotes are unavailable.",
-        )
+    var showHelp by remember(game.fileUri) { mutableStateOf(false) }
+    TextButton(onClick = { showHelp = !showHelp }) {
+        Text(if (showHelp) "Hide control help" else "Control help")
+    }
+    if (showHelp) {
+        if (system.id == SystemID.WII) {
+            Text(
+                "Choose Sideways Wii Remote, Classic, Remote + Nunchuk or GameCube Controller below. " +
+                    "GameCube input only works in Wii software that supports a GameCube pad. " +
+                    "Touch the game picture to point with Wii Remote profiles; pointer settings also offer " +
+                    "the right stick. Press the right stick for Wii Home. Shake buttons emulate motion. " +
+                    "Phone motion sensors and physical Wii Remotes are unavailable.",
+            )
+        }
+        Text("Device fit may use Standard. Button mappings remain available in the in-game Controls menu.")
     }
     Text("Control layout preference")
     ArcControlMode.values().forEach { option ->
@@ -183,7 +190,6 @@ private fun CartridgeControlChoices(
             }
         }) { Text(option.label + if (mode == option) " · selected" else "") }
     }
-    Text("Device fit may use Standard. Button mappings remain available in the in-game Controls menu.")
     val manager =
         remember(
             context,

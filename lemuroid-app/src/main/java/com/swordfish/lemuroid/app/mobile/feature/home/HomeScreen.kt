@@ -6,7 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -36,6 +37,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfRoomBackdrop
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfSection
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
 import com.swordfish.lemuroid.common.displayDetailsSettingsScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -147,7 +149,8 @@ internal fun HomeScreen(
     val shelfStates = rememberSaveableStateHolder()
     UnifiedShelfChrome(modifier, games, arrange) { query, shelfModifier ->
         val projection = projectShelf(layout, games, query)
-        Box(shelfModifier) {
+        BoxWithConstraints(shelfModifier) {
+            val sizing = CartridgeViewport.shelf(maxWidth.value, maxHeight.value, LocalDensity.current.fontScale, false)
             ShelfRoomBackdrop(layout.appearance)
             PagedShelfSections(projection.layout, Modifier.fillMaxSize(), enabled = !arrange && !query.active) {
                     pageLayout, pageModifier, pageKey ->
@@ -163,6 +166,7 @@ internal fun HomeScreen(
                         onSectionEdit,
                         artworkRevision = state.artworkRevision,
                         drawRoomBackdrop = false,
+                        viewportSizing = sizing,
                         showSectionHeadings = pageKey == "all" || query.active,
                         bottomContentPadding = if (arrange) 8.dp else 68.dp,
                         header = {

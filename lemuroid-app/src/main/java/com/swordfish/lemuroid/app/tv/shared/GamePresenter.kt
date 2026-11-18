@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.tv.shared
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.leanback.widget.ImageCardView
 import androidx.leanback.widget.Presenter
@@ -25,6 +26,7 @@ class GamePresenter(
         viewHolder.mCardView.titleText = game.displayName()
         viewHolder.mCardView.contentText = GameUtils.getGameSubtitle(viewHolder.mCardView.context, game)
         viewHolder.mCardView.setMainImageDimensions(cardSize, cardSize)
+        viewHolder.mCardView.setMainImageScaleType(ImageView.ScaleType.FIT_CENTER)
         viewHolder.updateCardViewImage(game)
         viewHolder.view.setOnCreateContextMenuListener(GameContextMenuListener(gameInteractor, game))
     }

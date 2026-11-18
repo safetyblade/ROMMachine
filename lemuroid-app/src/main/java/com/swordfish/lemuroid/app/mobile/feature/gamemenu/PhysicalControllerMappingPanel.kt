@@ -90,6 +90,8 @@ internal fun PhysicalControllerMappingPanel(
     var chooseDevice by remember { mutableStateOf(false) }
     var choosePort by remember { mutableStateOf(false) }
     var pendingPort by remember(selected?.id) { mutableStateOf<Int?>(null) }
+    var helpOpen by remember(selected?.id) { mutableStateOf(false) }
+    var guidedIndex by remember(selected?.id, perCartridge) { mutableStateOf<Int?>(null) }
 
     fun physicalName(code: Int): String =
         com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(
@@ -146,9 +148,8 @@ internal fun PhysicalControllerMappingPanel(
         val actualPort = if (runtimePort != null) runtimePort(selected) else ports(selected)
         val portLabel = actualPort?.let { "Player ${it + 1}" } ?: "Unassigned player port"
         val editing = draft?.dirty == true || draft?.conflict != null || captureTarget != null
-        Text("Connected controller", style = MaterialTheme.typography.labelLarge)
         Text(selected.name, style = MaterialTheme.typography.titleMedium)
-        Text(portLabel)
+        Text("$portLabel · ${devices.size} connected", style = MaterialTheme.typography.bodySmall)
         GameMenuLink("Choose controller (${devices.size} connected)", enabled = !editing) {
             chooseDevice = true
         }
@@ -185,7 +186,9 @@ internal fun PhysicalControllerMappingPanel(
                         Text("Choose a supported port. Assignment does not change save ownership.")
                         repeat(portCapacity.coerceIn(1, 16)) { port ->
                             val occupant = devices.firstOrNull { ports(it) == port }
-                            val label = occupant?.let { " · ${it.name}" }.orEmpty()
+                            val occupantLabel = occupant?.let { " · ${it.name}" }.orEmpty()
+                            val currentLabel = if (actualPort == port) " · Current" else ""
+                            val label = occupantLabel + currentLabel
                             GameMenuLink("Player ${port + 1}$label") {
                                 pendingPort = port
                                 choosePort = false
@@ -305,10 +308,15 @@ internal fun PhysicalControllerMappingPanel(
                     .putExtra(ShortcutBindingUpdater.REQUEST_SHORTCUT_TYPE, GameShortcutType.MENU.name),
             )
         }
-        Text(
-            "Default: L3 + R3, or Select + Start on pads without stick presses. " +
-                "Use two stick, shoulder, Start or Select buttons. Guide delivery depends on Android.",
-        )
+        GameMenuLink(if (helpOpen) "Hide mapping help" else "Mapping help") { helpOpen = !helpOpen }
+        if (helpOpen) {
+            Text(
+                "Default: L3 + R3, or Select + Start on pads without stick presses. " +
+                    "Use two stick, shoulder, Start or Select buttons. Guide delivery depends on Android.",
+            )
+            Text("Console Authentic preserves the original console controls.")
+            Text("Choose a console button, then press and release the physical button you want to use.")
+        }
         if (testing) {
             ControllerCalibrationPanel(inputDeviceManager, selected, probe)
             val longHeld by produceState(emptySet<Int>(), selected.id) {
@@ -360,7 +368,6 @@ internal fun PhysicalControllerMappingPanel(
             }
             GameMenuLink("Use device default for this cartridge", enabled = !editing, onClick = onUseDevice)
         }
-        Text("Console Authentic preserves the original console controls.")
         if (testing) {
             Text("Input test: ${probe.lastEvent}")
             Text("Held / simultaneous chord: ${held.joinToString(" + ") { physicalName(it) }.ifEmpty { "None" }}")
@@ -400,11 +407,37 @@ internal fun PhysicalControllerMappingPanel(
         }
         message?.let { Text(it) }
         Text("Map buttons", style = MaterialTheme.typography.titleMedium)
-        Text("Console button ← Your controller button. Choose a row, then press and release the desired button.")
-        InputDeviceManager.OUTPUT_KEYS.filter {
-            it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
-                (targets == null || it.keyCode in targets)
-        }.forEach { original ->
+        val mappingKeys =
+            InputDeviceManager.OUTPUT_KEYS.filter {
+                it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
+                    (targets == null || it.keyCode in targets)
+            }
+        val step = guidedIndex
+        if (step == null) {
+            GameMenuLink("Start guided mapping", enabled = !editing && mappingKeys.isNotEmpty()) {
+                guidedIndex = 0
+                onCapture(selected.id, mappingKeys.first().keyCode)
+            }
+        } else {
+            Text("Mapping ${step + 1} of ${mappingKeys.size}")
+            GameMenuLink(
+                if (step + 1 < mappingKeys.size) "Next button" else "Finish guided mapping",
+                enabled = captureTarget == null && draft?.conflict == null,
+            ) {
+                val next = mappingKeys.getOrNull(step + 1)
+                if (next == null) {
+                    guidedIndex = null
+                } else {
+                    guidedIndex = step + 1
+                    onCapture(selected.id, next.keyCode)
+                }
+            }
+            GameMenuLink("Exit guided mapping") {
+                onCancel()
+                guidedIndex = null
+            }
+        }
+        mappingKeys.forEach { original ->
             val source = bindings.entries.firstOrNull { it.value == original.keyCode }?.key
             GameMenuLink(
                 "${targetName(original.keyCode)} ← ${source?.let(::physicalName) ?: "Unassigned"}" +

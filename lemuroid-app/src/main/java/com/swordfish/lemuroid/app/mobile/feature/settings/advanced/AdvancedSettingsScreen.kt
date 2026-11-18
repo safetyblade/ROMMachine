@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.advanced
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -57,13 +58,11 @@ private fun InputSettings() {
         LemuroidSettingsSwitch(
             state = rumbleEnabled,
             title = { Text(text = stringResource(id = R.string.settings_title_enable_rumble)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_enable_rumble)) },
         )
         LemuroidSettingsSwitch(
             enabled = rumbleEnabled.value,
             state = booleanPreferenceState(R.string.pref_key_enable_device_rumble, false),
             title = { Text(text = stringResource(id = R.string.settings_title_enable_device_rumble)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_enable_device_rumble)) },
         )
         LemuroidSettingsSlider(
             state =
@@ -75,6 +74,13 @@ private fun InputSettings() {
             valueRange = 0f..10f,
             enabled = true,
             title = { Text(text = stringResource(R.string.settings_title_tilt_sensitivity)) },
+        )
+        AdvancedSettingHelp(
+            "Input help",
+            listOf(
+                stringResource(R.string.settings_description_enable_rumble),
+                stringResource(R.string.settings_description_enable_device_rumble),
+            ),
         )
     }
 }
@@ -93,7 +99,6 @@ private fun GeneralSettings(
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_low_latency_audio, false),
             title = { Text(text = stringResource(id = R.string.settings_title_low_latency_audio)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_low_latency_audio)) },
         )
         LemuroidSettingsList(
             title = { Text(text = stringResource(R.string.settings_title_maximum_cache_usage)) },
@@ -108,12 +113,18 @@ private fun GeneralSettings(
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
             title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_direct_game_load)) },
         )
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.settings_title_reset_settings)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_reset_settings)) },
             onClick = { factoryResetDialogState.value = true },
+        )
+        AdvancedSettingHelp(
+            "Advanced help",
+            listOf(
+                stringResource(R.string.settings_description_low_latency_audio),
+                stringResource(R.string.settings_description_direct_game_load),
+                stringResource(R.string.settings_description_reset_settings),
+            ),
         )
     }
 
@@ -151,4 +162,21 @@ private fun FactoryResetDialog(
             }
         },
     )
+}
+
+@Composable
+private fun AdvancedSettingHelp(
+    title: String,
+    descriptions: List<String>,
+) {
+    val open = remember { mutableStateOf(false) }
+    TextButton(onClick = { open.value = true }) { Text(title) }
+    if (open.value) {
+        AlertDialog(
+            onDismissRequest = { open.value = false },
+            title = { Text(title) },
+            text = { Column { descriptions.forEach { Text(it) } } },
+            confirmButton = { TextButton(onClick = { open.value = false }) { Text("Done") } },
+        )
+    }
 }
