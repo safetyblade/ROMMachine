@@ -259,9 +259,18 @@ jobs:
             -Pcartdeck.p0.phoneArm64Only=true \
             -PcartdeckHostMavenRepo="$PWD/work/pc-console-host/maven" -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
             -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2
-          apk="$(find lemuroid-app/build/outputs/apk/free/bundle/debug -name '*.apk' -print -quit)"
-          test -f "$apk"
-          "$sdk/build-tools/34.0.0/aapt" dump badging "$apk" | grep "^package: name='dev.prestwich.cartdeck.pclab.debug'"
+          mapfile -t apks < <(find lemuroid-app/build/outputs/apk -type f -name '*.apk' | sort)
+          [[ "${#apks[@]}" -eq 1 ]] || { echo 'Expected exactly one integration APK' >&2; exit 1; }
+          apk="${apks[0]}"
+          case "$apk" in
+            */freeBundle/debug/*.apk) ;;
+            *) echo 'Unexpected integration APK variant' >&2; exit 1 ;;
+          esac
+          mkdir -p work/pc-integration-delivery
+          "$sdk/build-tools/34.0.0/aapt" dump badging "$apk" > work/pc-integration-delivery/package.txt
+          grep -F "package: name='dev.prestwich.cartdeck.pclab.debug'" work/pc-integration-delivery/package.txt
+          "$sdk/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" > work/pc-integration-delivery/signing.txt
+          grep -Fi 'Signer #1 certificate SHA-256 digest: ce3ebf1d972c09583470e184d9b86edd20eb4679fedc632d31ac9f58e8741fc8' work/pc-integration-delivery/signing.txt
           mkdir -p work/pc-integration-delivery
           python3 spikes/pc/verify_integrated_apk.py "$apk" work/pc-integration/PcLibretroHost.aar \
             work/pc-console-host/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \

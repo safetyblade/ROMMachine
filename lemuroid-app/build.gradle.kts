@@ -153,11 +153,12 @@ android {
                 keepDebugSymbols += "**/*.so"
             }
             if (pcIntegration != null) {
-                keepDebugSymbols += setOf(
-                    "**/libcartdeckpcruntime.so",
-                    "**/libcartdeckpc_dosbox.so",
-                    "**/liblibretrodroid.so",
-                )
+                keepDebugSymbols +=
+                    setOf(
+                        "**/libcartdeckpcruntime.so",
+                        "**/libcartdeckpc_dosbox.so",
+                        "**/liblibretrodroid.so",
+                    )
             }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
