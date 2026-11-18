@@ -29,8 +29,7 @@ object BundledGemCatalogue {
         )
 
     /** Asset access only; does not require network or alter the installed library. */
-    fun load(context: Context): GemCataloguePackage.Loaded =
-        context.assets.open(ASSET_PATH).use { load(it) }
+    fun load(context: Context): GemCataloguePackage.Loaded = context.assets.open(ASSET_PATH).use { load(it) }
 
     fun load(input: InputStream): GemCataloguePackage.Loaded = GemCataloguePackage.load(input, approval)
 }
