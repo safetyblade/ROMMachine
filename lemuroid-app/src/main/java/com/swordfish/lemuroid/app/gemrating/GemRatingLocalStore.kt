@@ -15,7 +15,14 @@ import java.util.UUID
 internal class GemRatingLocalStore private constructor(
     val session: GemRatingRepository.Session,
     val repository: GemRatingRepository,
+    private val root: File,
 ) {
+    fun previousBackup(): GemRatingRepository.Snapshot? {
+        repository.snapshot(session)
+        val saved = readExisting(AtomicFile(File(root, "${session.profileId}.pre-restore.json"))) ?: return null
+        return GemProfileBackup.decode(saved.encodeToByteArray()).also { require(it.profileId == session.profileId) }
+    }
+
     companion object {
         private val lock = Any()
 
@@ -35,7 +42,7 @@ internal class GemRatingLocalStore private constructor(
                 GemRatingRepository.requireUuid(id)
                 val session = GemRatingRepository.Session(id, GemRatingRepository.Role.MANAGER)
                 val repository = GemRatingRepository({ session }, FileStorage(root, context.applicationContext))
-                GemRatingLocalStore(session, repository)
+                GemRatingLocalStore(session, repository, root)
             }
 
         private fun readExisting(file: AtomicFile): String? =
