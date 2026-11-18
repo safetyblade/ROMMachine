@@ -420,7 +420,8 @@ class GameViewModelRetroGameView(
             preferLowLatencyAudio = lowLatencyAudio
             rumbleEventsEnabled = requestRumble
             skipDuplicateFrames =
-                citraLaunchMode?.skipDuplicates(systemCoreConfig.skipDuplicateFrames) ?: systemCoreConfig.skipDuplicateFrames
+                citraLaunchMode?.skipDuplicates(systemCoreConfig.skipDuplicateFrames)
+                    ?: systemCoreConfig.skipDuplicateFrames
             enableMicrophone = requestMicrophone
             immersiveMode = buildImmersiveModeConfiguration(enableImmersiveMode)
         }

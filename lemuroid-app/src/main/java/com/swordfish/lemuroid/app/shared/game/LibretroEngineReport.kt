@@ -151,8 +151,8 @@ object LibretroEngineReport {
                 appendLine("citra_compatibility_mode=${safeField(session?.compatibilityMode)}")
                 appendLine("citra_package_pin=fee2e824525daa22bcf318f96127fe43fa8a15ad")
                 appendLine("citra_package_pin_is_not_upstream_source_revision=true")
-                appendLine("render_probe_codes=0 not attempted, 1 sampled dark, 2 sampled colour, 3 incomplete, 4 unreadable")
-                appendLine("render_probe_scope=five sample pixels per target at three checkpoints, not a full image or display swap")
+                appendLine("render_probe_codes=0 untested, 1 dark, 2 colour, 3 incomplete, 4 unreadable")
+                appendLine("render_probe_scope=5 pixels per target at 3 checkpoints, not a full image or display swap")
                 val rendering = session?.renderingSnapshot?.takeIf { it.isNotBlank() }
                 if (rendering == null) {
                     appendLine("render_probe=not collected")
