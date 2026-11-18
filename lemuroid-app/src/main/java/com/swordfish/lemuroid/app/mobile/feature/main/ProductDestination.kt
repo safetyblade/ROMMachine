@@ -26,8 +26,7 @@ internal enum class ProductDestination(
                 Triple(route, destination.title, mark)
             }
 
-        fun isMountedRoot(route: MainRoute?): Boolean =
-            route != null && mountedDock().any { it.first == route }
+        fun isMountedRoot(route: MainRoute?): Boolean = route != null && mountedDock().any { it.first == route }
     }
 }
 
