@@ -67,7 +67,10 @@ object GemCataloguePackage {
     private val json = Json { ignoreUnknownKeys = false }
     private val systems = SystemID.values().map { it.dbname }.toSet()
 
-    fun load(input: InputStream, approval: Approval): Loaded {
+    fun load(
+        input: InputStream,
+        approval: Approval,
+    ): Loaded {
         val bytes = input.readNBytesCompat(MAX_BYTES + 1)
         require(bytes.size <= MAX_BYTES) { "Catalogue exceeds size limit" }
         require(approval.sha256.matches(Regex("[a-f0-9]{64}"))) { "Invalid trusted digest" }
