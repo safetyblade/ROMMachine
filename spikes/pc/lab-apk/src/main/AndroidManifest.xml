@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:label="CARTDECK PC Lab" android:allowBackup="false" android:usesCleartextTraffic="false">
+        <activity android:name=".WindowsSetupActivity" android:exported="false"/>
         <activity android:name=".LabSessionActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden|keyboard|screenLayout|smallestScreenSize"/>
         <activity android:name=".LabActivity" android:exported="true">
             <intent-filter>

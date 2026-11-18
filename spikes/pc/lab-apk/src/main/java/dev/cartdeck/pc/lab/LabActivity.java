@@ -23,6 +23,7 @@ public final class LabActivity extends ComponentActivity {
         layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setText("PC R03 laboratory — synthetic or your own lawful images. No production data.");
         layout.addView(status);
+        button("Windows 95 / 98 and Shandalar setup", () -> startActivity(new Intent(this, WindowsSetupActivity.class)));
         button("Run synthetic probe", () -> work(() -> {
             LabWorkspace w = new LabWorkspace(getFilesDir(), "synthetic");
             File probe = new File(w.media,"probe.dosz");

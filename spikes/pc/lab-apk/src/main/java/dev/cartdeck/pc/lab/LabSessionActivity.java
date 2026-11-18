@@ -33,6 +33,13 @@ public final class LabSessionActivity extends ComponentActivity {
             data.setGameFilePath(content.getAbsolutePath());
             data.setSystemDirectory(workspace.system.getAbsolutePath());
             data.setSavesDirectory(workspace.saves.getAbsolutePath());
+            if (getIntent().getBooleanExtra("windows",false)) {
+                data.setVariables(new com.swordfish.libretrodroid.Variable[]{
+                    new com.swordfish.libretrodroid.Variable("dosbox_pure_memory_size","64",null),
+                    new com.swordfish.libretrodroid.Variable("dosbox_pure_bootos_ramdisk","false",null),
+                    new com.swordfish.libretrodroid.Variable("dosbox_pure_bootos_dfreespace","1024",null)
+                });
+            }
             view = new GLRetroView(this, data);
             getLifecycle().addObserver(view);
 
@@ -51,7 +58,7 @@ public final class LabSessionActivity extends ComponentActivity {
             LinearLayout mouse = new LinearLayout(this);
             button(mouse, "Left click", () -> click(0));
             button(mouse, "Right click", () -> click(1));
-            button(mouse, "Mouse pad", () -> status.setText("Drag on guest display to move mouse; use click buttons"));
+            button(mouse, "Special keys", this::specialKeys);
             page.addView(mouse);
             view.setOnTouchListener((v,e) -> {
                 if (!active) return true;
@@ -110,16 +117,30 @@ public final class LabSessionActivity extends ComponentActivity {
                 scheduleKeys(text);
             }).setNeutralButton("Enter",(d,w)->scheduleKeys("\n")).show();
     }
+    private void specialKeys(){
+        if(!active)return;
+        String[] names={"Enter","Escape","Tab","Backspace","Up","Down","Left","Right","Space","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"};
+        int[] keys={13,27,9,8,273,274,276,275,32,282,283,284,285,286,287,288,289,290,291,292,293};
+        new android.app.AlertDialog.Builder(this).setTitle("Guest key").setItems(names,(d,index)->{
+            final long generation=inputGeneration;
+            view.postDelayed(()->{if(active&&hasWindowFocus()&&generation==inputGeneration){
+                view.sendKeyEvent(0,KEY+keys[index],0);
+                view.postDelayed(()->{if(active&&generation==inputGeneration)view.sendKeyEvent(1,KEY+keys[index],0);},100);
+            }},300);
+        }).show();
+    }
     private void scheduleKeys(String text){
         final long generation=inputGeneration;
         for(int i=0;i<Math.min(text.length(),128);i++){
             char c=text.charAt(i);
-            if(!(c>='a'&&c<='z')&&!(c>='0'&&c<='9')&&c!=' '&&c!='\n')continue;
-            final int code=c=='\n'?13:c;
+            if(!(c>='a'&&c<='z')&&!(c>='0'&&c<='9')&&" .\\/-_:\n".indexOf(c)<0)continue;
+            final int code=c=='\n'?13:c==':'?';':c=='_'?'-':c;
+            final boolean shift=c==':'||c=='_';
             view.postDelayed(()->{
                 if(active&&hasWindowFocus()&&generation==inputGeneration){
+                    if(shift)view.sendKeyEvent(0,KEY+304,0);
                     view.sendKeyEvent(0,KEY+code,0);
-                    view.postDelayed(()->{if(active&&generation==inputGeneration)view.sendKeyEvent(1,KEY+code,0);},70);
+                    view.postDelayed(()->{if(active&&generation==inputGeneration){view.sendKeyEvent(1,KEY+code,0);if(shift)view.sendKeyEvent(1,KEY+304,0);}},70);
                 }
             },250+i*140L);
         }
@@ -127,7 +148,10 @@ public final class LabSessionActivity extends ComponentActivity {
     private static int retroKey(int code){
         if(code>=KeyEvent.KEYCODE_A&&code<=KeyEvent.KEYCODE_Z)return 'a'+code-KeyEvent.KEYCODE_A;
         if(code>=KeyEvent.KEYCODE_0&&code<=KeyEvent.KEYCODE_9)return '0'+code-KeyEvent.KEYCODE_0;
+        if(code>=KeyEvent.KEYCODE_F1&&code<=KeyEvent.KEYCODE_F12)return 282+code-KeyEvent.KEYCODE_F1;
         switch(code){case KeyEvent.KEYCODE_ENTER:return 13;case KeyEvent.KEYCODE_SPACE:return 32;case KeyEvent.KEYCODE_DEL:return 8;
+        case KeyEvent.KEYCODE_PERIOD:return '.';case KeyEvent.KEYCODE_SLASH:return '/';case KeyEvent.KEYCODE_BACKSLASH:return 92;case KeyEvent.KEYCODE_SEMICOLON:return ';';case KeyEvent.KEYCODE_MINUS:return '-';
+        case KeyEvent.KEYCODE_ALT_LEFT:return 308;case KeyEvent.KEYCODE_ALT_RIGHT:return 307;
         case KeyEvent.KEYCODE_ESCAPE:return 27;case KeyEvent.KEYCODE_TAB:return 9;case KeyEvent.KEYCODE_DPAD_UP:return 273;
         case KeyEvent.KEYCODE_DPAD_DOWN:return 274;case KeyEvent.KEYCODE_DPAD_RIGHT:return 275;case KeyEvent.KEYCODE_DPAD_LEFT:return 276;
         case KeyEvent.KEYCODE_SHIFT_LEFT:return 304;case KeyEvent.KEYCODE_SHIFT_RIGHT:return 303;
