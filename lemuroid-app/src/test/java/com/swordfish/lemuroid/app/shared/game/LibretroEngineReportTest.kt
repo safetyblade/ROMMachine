@@ -75,5 +75,14 @@ class LibretroEngineReportTest {
         assertTrue(result.contains("selected_core_file_sha256=unavailable"))
         assertTrue(result.contains("core_video_callback_observed=false"))
         assertTrue(result.contains("performance_counters=not collected"))
+        val measured =
+            LibretroEngineReport.render(
+                "test", "dc", "Fixture", "flycast", "test", "gdi",
+                session.copy(performanceSnapshot = "runs=42;fifo_dropped=3;private=/secret"),
+                null, null, 35, "test",
+            )
+        assertTrue(measured.contains("runs=42"))
+        assertTrue(measured.contains("fifo_dropped=3"))
+        assertFalse(measured.contains("/secret"))
     }
 }
