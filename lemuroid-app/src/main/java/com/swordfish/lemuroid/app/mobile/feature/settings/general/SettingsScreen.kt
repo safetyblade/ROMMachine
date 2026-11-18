@@ -1,10 +1,15 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.net.Uri
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -177,6 +182,7 @@ private fun InputSettings(navController: NavController) {
 @Composable
 private fun GeneralSettings(navController: NavController) {
     val immersiveMode = booleanPreferenceState(R.string.pref_key_enable_immersive_mode, false)
+    var helpOpen by remember { mutableStateOf(false) }
 
     LemuroidCardSettingsGroup(
         title = { Text("Display & gameplay") },
@@ -188,12 +194,24 @@ private fun GeneralSettings(navController: NavController) {
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_autosave, true),
             title = { Text(text = stringResource(id = R.string.settings_title_enable_autosave)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_enable_autosave)) },
         )
         LemuroidSettingsSwitch(
             state = immersiveMode,
             title = { Text(text = stringResource(id = R.string.settings_title_immersive_mode)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_immersive_mode)) },
+        )
+        TextButton(onClick = { helpOpen = true }) { Text("About display & gameplay") }
+    }
+    if (helpOpen) {
+        AlertDialog(
+            onDismissRequest = { helpOpen = false },
+            title = { Text("Display & gameplay") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text(stringResource(R.string.settings_description_enable_autosave))
+                    Text(stringResource(R.string.settings_description_immersive_mode))
+                }
+            },
+            confirmButton = { TextButton(onClick = { helpOpen = false }) { Text("Done") } },
         )
     }
 }
@@ -227,7 +245,6 @@ private fun RomsSettings(
         )
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.cartdeck_formats_title)) },
-            subtitle = { Text(text = stringResource(id = R.string.cartdeck_formats_settings_description)) },
             onClick = onSupportedGames,
         )
         if (scanInProgress) {
