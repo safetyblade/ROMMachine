@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
+import com.swordfish.lemuroid.app.mobile.feature.product.GemRatingRow
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls
@@ -173,6 +174,7 @@ fun CartridgeDetail(
                 onClick = { setup = true },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text("Setup") }
+            GemRatingRow(game)
         }
         if (landscape) {
             Row(
