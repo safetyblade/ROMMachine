@@ -69,6 +69,18 @@ internal fun GemFinderScreen(
     var share by remember { mutableStateOf(30) }
     var feed by remember { mutableStateOf<List<GemRatingRecommender.Recommendation>?>(null) }
     var surprising by remember { mutableStateOf(false) }
+    var changingShare by remember { mutableStateOf(false) }
+
+    fun changeShare(value: Int) {
+        val prefs = preferences ?: return
+        if (changingShare || surprising) return
+        changingShare = true
+        coroutineScope.launch {
+            val saved = withContext(Dispatchers.IO) { prefs.saveWildcardPercent(value) }
+            if (saved) share = value else message = "Wildcard preference could not be saved."
+            changingShare = false
+        }
+    }
     var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
     var message by remember { mutableStateOf("") }
 
@@ -92,14 +104,14 @@ internal fun GemFinderScreen(
                         }.groupBy({ it.first }, { it.second }).mapNotNull { (id, matches) ->
                             matches.singleOrNull()?.let { id to it }
                         }.toMap()
-                    Triple(prepared, prefs, installed)
+                    Triple(prepared, prefs to prefs.wildcardPercent(), installed)
                 }
             }
         result.onSuccess {
             input = it.first
-            preferences = it.second
+            preferences = it.second.first
             installedByRelease = it.third
-            share = it.second.wildcardPercent()
+            share = it.second.second
         }.onFailure { failed = true }
     }
 
@@ -187,19 +199,13 @@ internal fun GemFinderScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         TextButton(
-                            onClick = {
-                                val value = share - 5
-                                if (preferences?.saveWildcardPercent(value) == true) share = value
-                            },
-                            enabled = share > 20 && !surprising,
+                            onClick = { changeShare(share - 5) },
+                            enabled = share > 20 && !surprising && !changingShare,
                             modifier = Modifier.gemFocusTarget(),
                         ) { Text("Less") }
                         TextButton(
-                            onClick = {
-                                val value = share + 5
-                                if (preferences?.saveWildcardPercent(value) == true) share = value
-                            },
-                            enabled = share < 50 && !surprising,
+                            onClick = { changeShare(share + 5) },
+                            enabled = share < 50 && !surprising && !changingShare,
                             modifier = Modifier.gemFocusTarget(),
                         ) { Text("More") }
                         TextButton(
@@ -236,7 +242,7 @@ internal fun GemFinderScreen(
                                     surprising = false
                                 }
                             },
-                            enabled = !surprising && preferences != null && data.ratings.isNotEmpty(),
+                            enabled = !surprising && !changingShare && preferences != null && data.ratings.isNotEmpty(),
                             modifier = Modifier.gemFocusTarget(),
                         ) { Text("Surprise Me") }
                     }
