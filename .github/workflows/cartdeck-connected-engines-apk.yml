@@ -617,6 +617,9 @@ jobs:
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
             -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 "${benchmark_args[@]}"
           bash scripts/ci/verify_standalone_apk.sh
+          python3 scripts/ci/verify_citra_apk_provenance.py \
+            "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" \
+            > "$CARTDECK_OUTPUT/evidence/citra-provenance.json"
           python3 scripts/ci/verify_native_bundle_apk.py \
             "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" work/connected/bundle \
             --require-five-engines --require-wii --require-xbox --require-xbox360 \

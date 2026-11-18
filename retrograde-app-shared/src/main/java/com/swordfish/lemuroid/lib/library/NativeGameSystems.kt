@@ -94,6 +94,22 @@ object NativeGameSystems {
                                 CoreVariable("reicast_enable_dsp", "enabled"),
                                 CoreVariable("reicast_per_content_vmus", "All VMUs"),
                             ),
+                        exposedSettings =
+                            listOf(
+                                ExposedSetting(
+                                    "reicast_analog_stick_deadzone",
+                                    R.string.setting_dc_core_deadzone,
+                                    arrayListOf(
+                                        ExposedSetting.Value("0%", R.string.value_dc_deadzone_0),
+                                        ExposedSetting.Value("5%", R.string.value_dc_deadzone_5),
+                                        ExposedSetting.Value("10%", R.string.value_dc_deadzone_10),
+                                        ExposedSetting.Value("15%", R.string.value_dc_deadzone_15),
+                                        ExposedSetting.Value("20%", R.string.value_dc_deadzone_20),
+                                        ExposedSetting.Value("25%", R.string.value_dc_deadzone_25),
+                                        ExposedSetting.Value("30%", R.string.value_dc_deadzone_30),
+                                    ),
+                                ),
+                            ),
                         supportedOnlyArchitectures = setOf("arm64-v8a"),
                         skipDuplicateFrames = false,
                     ),

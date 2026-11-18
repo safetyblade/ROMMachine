@@ -145,6 +145,10 @@ object LibretroEngineReport {
             appendLine("low_latency_audio_requested=${session?.lowLatencyAudioRequested?.toString() ?: UNAVAILABLE}")
             appendLine("skip_duplicate_frames=${session?.skipDuplicateFrames?.toString() ?: UNAVAILABLE}")
             appendLine("performance_counters=not collected")
+            if (core.equals("citra", ignoreCase = true)) {
+                appendLine("legacy_package_revision=fee2e824525daa22bcf318f96127fe43fa8a15ad")
+                appendLine("legacy_package_revision_is_not_upstream_source=true")
+            }
             appendLine("gameplay_acceptance=not established by this report")
             appendLine("frontend_reported_core_options (internal game-specific overrides may differ):")
             val options = session?.reportedOptions.orEmpty()

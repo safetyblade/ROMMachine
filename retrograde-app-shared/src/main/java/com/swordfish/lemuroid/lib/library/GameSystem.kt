@@ -1289,7 +1289,14 @@ data class GameSystem(
                                         "citra_use_acc_geo_shaders",
                                         R.string.setting_citra_use_acc_geo_shaders,
                                     ),
+                                    ExposedSetting(
+                                        "citra_use_hw_shaders",
+                                        R.string.setting_citra_use_hw_shaders,
+                                    ),
                                 ),
+                            // Hardware frames use Android's rotating back buffers.
+                            // Retain and redraw the last frame on a duplicate submission.
+                            skipDuplicateFrames = false,
                             statesSupported = false,
                             supportsLibretroVFS = true,
                             supportedOnlyArchitectures = setOf("arm64-v8a"),

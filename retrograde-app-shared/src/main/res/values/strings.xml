@@ -66,6 +66,7 @@
     <string name="setting_citra_resolution_factor">Resolution scaling</string>
     <string name="setting_citra_use_acc_mul">Accurate shaders multiplication</string>
     <string name="setting_citra_use_acc_geo_shaders">Accurate geometry shaders</string>
+    <string name="setting_citra_use_hw_shaders">Hardware shaders</string>
 
     <!-- Core settings values. Duplicated here to ease the translation process. -->
     <string name="value_gambatte_mix_frames_disabled">Disabled</string>
@@ -151,6 +152,14 @@
     <string name="controller_wii_sideways">Wii Remote sideways</string>
     <string name="controller_wii_nunchuk">Wii Remote + Nunchuk</string>
     <string name="controller_wii_gamecube">GameCube Controller (supported Wii games)</string>
+    <string name="setting_dc_core_deadzone">Dreamcast engine stick deadzone</string>
+    <string name="value_dc_deadzone_0" formatted="false">0%</string>
+    <string name="value_dc_deadzone_5" formatted="false">5%</string>
+    <string name="value_dc_deadzone_10" formatted="false">10%</string>
+    <string name="value_dc_deadzone_15" formatted="false">15% (original)</string>
+    <string name="value_dc_deadzone_20" formatted="false">20%</string>
+    <string name="value_dc_deadzone_25" formatted="false">25%</string>
+    <string name="value_dc_deadzone_30" formatted="false">30%</string>
     <string name="setting_wii_pointer">Wii pointer input</string>
     <string name="value_wii_pointer_touch">Touch game viewport</string>
     <string name="value_wii_pointer_stick">Right stick (absolute)</string>
