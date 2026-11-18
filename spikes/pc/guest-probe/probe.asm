@@ -1,6 +1,6 @@
 bits 16
 org 100h
-; Original DOS workload: persistent marker, keyboard, mouse and optical read.
+; Original DOS workload: persistent marker, keyboard, mouse and two real optical reads.
 push cs
 pop ds
 mov dx, greeting
@@ -68,7 +68,6 @@ read_second:
 mov [key2], al
 mov si, cd_second
 call read_cd
-write_results:
 mov dx, results
 xor cx, cx
 mov ah, 3ch
@@ -125,17 +124,7 @@ key2 db 0
 cd_first db 0,0
 cd_second db 0,0
 greeting db 'CARTDECK PC probe',13,10,'$'
-prompt db 'Mount first disc, then press A.',13,10,'
+prompt db 'Mount first disc, then press A.',13,10,'$'
 click_prompt db 'Click the left mouse button.',13,10,'$'
-
-switch_prompt db 'Switch disc, then press B.',13,10,' Shut down or exit guest before reopening.',13,10,'$'
-
-click_prompt db 'Click the left mouse button.',13,10,'$'
-
-done db 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
-
-done db 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
-
-click_prompt db 'Click the left mouse button.',13,10,'$'
-
+switch_prompt db 'Switch disc, then press B.',13,10,'$'
 done db 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
