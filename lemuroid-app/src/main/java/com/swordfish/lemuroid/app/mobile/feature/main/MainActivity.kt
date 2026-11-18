@@ -331,7 +331,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 NavHost(
                     modifier = Modifier.fillMaxSize(),
                     navController = navController,
-                    startDestination = MainRoute.HOME.route,
+                    startDestination =
+                        if (intent.getBooleanExtra("cartdeck.open_gem", false)) MainRoute.GEM.route else MainRoute.HOME.route,
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -351,6 +352,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
                             arrange = arrangingShelf.value,
                             onSectionEdit = { editingSection.value = it },
+                            onOpenGem = { navController.navigateToRoute(MainRoute.GEM) },
                             shelfActions = {
                                 ShelfActions(
                                     saveSyncEnabled = mainUIState.saveSyncEnabled,
@@ -369,6 +371,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         com.swordfish.lemuroid.app.mobile.feature.product.GemLibraryScreen(
                             games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
                             modifier = Modifier.padding(padding),
+                            onOpenCartridge = onGameClick,
                         )
                     }
                     composable(MainRoute.CARTMOD) {
