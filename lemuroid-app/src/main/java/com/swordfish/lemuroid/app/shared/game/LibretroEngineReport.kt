@@ -25,6 +25,8 @@ data class LibretroReportSession(
     val graphics: String? = null,
     val reportedOptions: ArrayList<String> = arrayListOf(),
     val performanceSnapshot: String? = null,
+    val compatibilityMode: String? = null,
+    val renderingSnapshot: String? = null,
 ) : Serializable
 
 object LibretroEngineReport {
@@ -145,6 +147,22 @@ object LibretroEngineReport {
             appendLine("core_video_callback_observed=${session?.coreFrameObserved?.toString() ?: UNAVAILABLE}")
             appendLine("low_latency_audio_requested=${session?.lowLatencyAudioRequested?.toString() ?: UNAVAILABLE}")
             appendLine("skip_duplicate_frames=${session?.skipDuplicateFrames?.toString() ?: UNAVAILABLE}")
+            if (core.equals("citra", ignoreCase = true)) {
+                appendLine("citra_compatibility_mode=${safeField(session?.compatibilityMode)}")
+                appendLine("citra_package_pin=fee2e824525daa22bcf318f96127fe43fa8a15ad")
+                appendLine("citra_package_pin_is_not_upstream_source_revision")
+                appendLine("render_probe_codes=0 not attempted, 1 sampled dark, 2 sampled colour, 3 incomplete, 4 unreadable")
+                appendLine("render_probe_scope=five sample pixels per target at three checkpoints, not a full image or display swap")
+                val rendering = session?.renderingSnapshot?.takeIf { it.isNotBlank() }
+                if (rendering == null) {
+                    appendLine("render_probe=not collected")
+                } else {
+                    rendering.split(';')
+                        .filter { it.matches(Regex("[a-z_]+=[0-9,]+")) }
+                        .take(16)
+                        .forEach { appendLine(safeField(it)) }
+                }
+            }
             val performance = session?.performanceSnapshot?.takeIf { it.isNotBlank() }
             if (performance == null) {
                 appendLine("performance_counters=not collected")

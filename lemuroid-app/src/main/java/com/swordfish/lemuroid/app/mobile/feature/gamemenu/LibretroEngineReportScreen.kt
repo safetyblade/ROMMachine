@@ -17,7 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.shared.game.CitraCompatibilityMode
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
+import com.swordfish.lemuroid.lib.library.CoreID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -37,6 +39,19 @@ internal fun LibretroEngineReportScreen(request: GameMenuActivity.GameMenuReques
             report?.let { text ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("CARTDECK Engine Report", text))
+            }
+        }
+        if (request.coreConfig.coreID == CoreID.CITRA) {
+            var nextMode by remember(request.game.cartridgeId) {
+                mutableStateOf(CitraCompatibilityMode.read(context, request.game))
+            }
+            Text("3DS compatibility test (next launch): ${nextMode.label}")
+            Text("Choose one comparison, return to shelf, then reopen the game. Saves are unchanged.")
+            CitraCompatibilityMode.entries.forEach { mode ->
+                GameMenuLink(mode.label, enabled = nextMode != mode) {
+                    CitraCompatibilityMode.write(context, request.game, mode)
+                    nextMode = mode
+                }
             }
         }
         Text(report ?: "Preparing engine report…")

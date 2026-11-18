@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.CitraCompatibilityMode
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
 import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
@@ -84,6 +85,7 @@ class GameViewModelRetroGameView(
 
     private var launchedGame: Game? = null
     private var reportSession: LibretroReportSession? = null
+    private var citraLaunchMode: CitraCompatibilityMode? = null
 
     @Volatile
     private var reportGraphics: String? = null
@@ -104,6 +106,16 @@ class GameViewModelRetroGameView(
                         .getMethod("br001PerformanceReport")
                         .invoke(null) as? String
                 }.getOrNull(),
+            renderingSnapshot =
+                if (systemCoreConfig.coreID == CoreID.CITRA) {
+                    runCatching {
+                        Class.forName("com.swordfish.libretrodroid.LibretroDroid")
+                            .getMethod("br002RenderingReport")
+                            .invoke(null) as? String
+                    }.getOrNull()
+                } else {
+                    null
+                },
         )
 
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)
@@ -267,7 +279,8 @@ class GameViewModelRetroGameView(
                         is RomFiles.Virtual -> "virtual file descriptors"
                     },
                 lowLatencyAudioRequested = currentState.retroViewData.preferLowLatencyAudio,
-                skipDuplicateFrames = systemCoreConfig.skipDuplicateFrames,
+                skipDuplicateFrames = currentState.retroViewData.skipDuplicateFrames,
+                compatibilityMode = citraLaunchMode?.name,
             )
 
         if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
@@ -366,6 +379,12 @@ class GameViewModelRetroGameView(
         requestMicrophone: Boolean,
         enableImmersiveMode: Boolean,
     ): GLRetroViewData {
+        citraLaunchMode =
+            if (systemCoreConfig.coreID == CoreID.CITRA) {
+                CitraCompatibilityMode.read(appContext, gameData.game)
+            } else {
+                null
+            }
         return GLRetroViewData(appContext).apply {
             coreFilePath = gameData.coreLibrary
 
@@ -381,7 +400,8 @@ class GameViewModelRetroGameView(
 
             systemDirectory = gameData.systemDirectory.absolutePath
             savesDirectory = gameData.savesDirectory.absolutePath
-            variables = gameData.coreVariables.map { Variable(it.key, it.value) }.toTypedArray()
+            val launchOptions = citraLaunchMode?.applyOptions(gameData.coreVariables) ?: gameData.coreVariables
+            variables = launchOptions.map { Variable(it.key, it.value) }.toTypedArray()
             saveRAMState = gameData.saveRAMData
             shader =
                 ShaderChooser.getShaderForSystem(
@@ -399,7 +419,8 @@ class GameViewModelRetroGameView(
                 }
             preferLowLatencyAudio = lowLatencyAudio
             rumbleEventsEnabled = requestRumble
-            skipDuplicateFrames = systemCoreConfig.skipDuplicateFrames
+            skipDuplicateFrames =
+                citraLaunchMode?.skipDuplicates(systemCoreConfig.skipDuplicateFrames) ?: systemCoreConfig.skipDuplicateFrames
             enableMicrophone = requestMicrophone
             immersiveMode = buildImmersiveModeConfiguration(enableImmersiveMode)
         }
