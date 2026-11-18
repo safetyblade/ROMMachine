@@ -262,7 +262,6 @@ fun ShelfBoard(
                     DropSurface("header:${item.section.id}", DropPosition(item.section.id, null), positions) {
                         Row(
                             Modifier.fillMaxWidth()
-                                .background(colors.roomBackdrop.copy(alpha = 0.88f))
                                 .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -490,7 +489,11 @@ fun ShelfBoard(
                                                     Modifier.fillMaxSize().padding(
                                                         horizontal = 4.dp,
                                                     ).background(
-                                                        if (reserved && arrange) colors.vacantCell else Color.Transparent,
+                                                        if (reserved && arrange) {
+                                                            colors.vacantCell
+                                                        } else {
+                                                            Color.Transparent
+                                                        },
                                                     ).border(
                                                         if (reserved && arrange) 1.dp else 0.dp,
                                                         colors.sectionDivider,
