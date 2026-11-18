@@ -639,6 +639,11 @@ jobs:
           python3 scripts/ps3/verify_apk.py dist/connected/CARTDECK_STANDALONE_ARM64_DEBUG.apk \
             | tee dist/connected/evidence/ps3-native-apk.json
           cp work/connected/bundle/ps3-engineering-evidence.json dist/connected/evidence/
+      - name: Retain exact APK engine performance baseline
+        run: |
+          python3 scripts/ci/perf03_inventory.py \
+            --apk dist/connected/CARTDECK_STANDALONE_ARM64_DEBUG.apk \
+            --evidence dist/connected/evidence
       - name: Retain GC-01 unit results and rendered menu evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -69,6 +69,8 @@ git -C "$SOURCE" submodule update --init --recursive
 # A clean parent Git link does not establish that dependency source is clean.
 git -C "$SOURCE" submodule foreach --recursive 'test -z "$(git status --porcelain)"'
 [[ "$(git -C "$SOURCE" rev-parse HEAD)" == "$REVISION" ]]
+# Exercise the actual patched portable host implementations before NDK compilation.
+python3 "$ROOT/scripts/ci/test_perf03_host_contract.py" "$SOURCE"
 # Use the installed app SDK while preserving upstream Kotlin/JNI/native source.
 cat > "$WORK/local-publication.gradle" <<GRADLE
 allprojects {

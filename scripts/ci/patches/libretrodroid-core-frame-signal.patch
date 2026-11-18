@@ -71,13 +71,19 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
      }
  }
  
-@@ -605,9 +615,12 @@
+@@ -605,9 +615,18 @@
      struct retro_system_av_info system_av_info {};
      core->retro_get_system_av_info(&system_av_info);
  
 -    fpsSync = std::make_unique<FPSSync>(system_av_info.timing.fps, screenRefreshRate);
 -
 -    double inputSampleRate = system_av_info.timing.sample_rate * fpsSync->getTimeStretchFactor();
++    if (!cartdeck::validLaunchTiming(system_av_info.timing.fps, system_av_info.timing.sample_rate)) {
++        throw std::runtime_error("Invalid core startup AV timing");
++    }
++    if (!cartdeck::validDimensions(system_av_info.geometry.base_width, system_av_info.geometry.base_height)) {
++        throw std::runtime_error("Invalid core startup geometry");
++    }
 +    fpsSync = std::make_unique<FPSSync>(system_av_info.timing.fps, screenRefreshRate);
 +
 +    Environment::getInstance().clearAvTiming();
@@ -87,7 +93,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      audio = std::make_unique<Audio>(
          (int32_t) std::lround(inputSampleRate),
-@@ -620,7 +633,25 @@
+@@ -620,7 +639,25 @@
      defaultAspectRatio = findDefaultAspectRatio(system_av_info);
  }
  
@@ -111,7 +117,8 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
 +}
 +
 +float LibretroDroid::findDefaultAspectRatio(const retro_system_av_info& system_av_info) {
-     float result = system_av_info.geometry.aspect_ratio;
+-    float result = system_av_info.geometry.aspect_ratio;
++    float result = cartdeck::reportedAspect(system_av_info.geometry.aspect_ratio);
      if (result < 0) {
          result =
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
@@ -272,7 +279,7 @@ diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main
      gameGeometryHeight = 0;
      gameGeometryAspectRatio = -1.0f;
  
-@@ -303,9 +304,20 @@
+@@ -303,13 +304,26 @@
              LOGD("Called RETRO_ENVIRONMENT_GET_PERF_INTERFACE");
              return false;
  
@@ -282,20 +289,27 @@ diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main
 +        case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
 +            if (!data) return false;
 +            const auto* av = static_cast<const retro_system_av_info*>(data);
-+            const bool validTiming = avTiming.publish({av->timing.fps, av->timing.sample_rate});
 +            const auto& geometry = av->geometry;
++            if (!cartdeck::validDimensions(geometry.base_width, geometry.base_height)) return false;
++            const bool validTiming = avTiming.publish({av->timing.fps, av->timing.sample_rate});
 +            // Preserve the established geometry handoff even for a rejected rate.
 +            gameGeometryHeight = geometry.base_height;
 +            gameGeometryWidth = geometry.base_width;
-+            gameGeometryAspectRatio = geometry.aspect_ratio;
++            gameGeometryAspectRatio = cartdeck::reportedAspect(geometry.aspect_ratio);
 +            gameGeometryUpdated = true;
 +            (void)validTiming;
 +            return true;
 +        }
 +        case RETRO_ENVIRONMENT_SET_GEOMETRY: {
              struct retro_game_geometry *geometry = static_cast<struct retro_game_geometry *>(data);
++            if (!geometry || !cartdeck::validDimensions(geometry->base_width, geometry->base_height)) return false;
              gameGeometryHeight = geometry->base_height;
              gameGeometryWidth = geometry->base_width;
+-            gameGeometryAspectRatio = geometry->aspect_ratio;
++            gameGeometryAspectRatio = cartdeck::reportedAspect(geometry->aspect_ratio);
+             gameGeometryUpdated = true;
+             return true;
+         }
 diff --git a/libretrodroid/src/main/cpp/audio.h b/libretrodroid/src/main/cpp/audio.h
 --- a/libretrodroid/src/main/cpp/audio.h
 +++ b/libretrodroid/src/main/cpp/audio.h
@@ -411,7 +425,7 @@ diff --git a/libretrodroid/src/main/cpp/cartdeck_av_timing.h b/libretrodroid/src
 new file mode 100644
 --- /dev/null
 +++ b/libretrodroid/src/main/cpp/cartdeck_av_timing.h
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,65 @@
 +#ifndef CARTDECK_AV_TIMING_H
 +#define CARTDECK_AV_TIMING_H
 +#include <algorithm>
@@ -419,6 +433,18 @@ new file mode 100644
 +#include <mutex>
 +#include <atomic>
 +namespace cartdeck {
++// Broad startup bounds protect conversions and allocations, without imposing
++// the narrower negotiated runtime timing policy on legacy cores.
++inline bool validLaunchTiming(double fps, double sampleRate) {
++    return std::isfinite(fps) && fps >= 1.0 && fps <= 1000.0 &&
++           std::isfinite(sampleRate) && sampleRate >= 1000.0 && sampleRate <= 384000.0;
++}
++inline bool validDimensions(unsigned width, unsigned height) {
++    return width > 0 && height > 0 && width <= 2147483647u && height <= 2147483647u;
++}
++inline float reportedAspect(float aspect) {
++    return std::isfinite(aspect) && aspect > 0.0f ? aspect : -1.0f;
++}
 +struct AvTiming {
 +    double fps = 0;
 +    double sampleRate = 0;
@@ -479,7 +505,40 @@ diff --git a/libretrodroid/src/main/cpp/fpssync.h b/libretrodroid/src/main/cpp/f
 diff --git a/libretrodroid/src/main/cpp/fpssync.cpp b/libretrodroid/src/main/cpp/fpssync.cpp
 --- a/libretrodroid/src/main/cpp/fpssync.cpp
 +++ b/libretrodroid/src/main/cpp/fpssync.cpp
-@@ -43,6 +43,16 @@
+@@ -18,6 +18,9 @@
+ #include <cmath>
++#include <algorithm>
++#include <limits>
++#include <stdexcept>
+ #include "fpssync.h"
+ #include "log.h"
+ 
+ namespace libretrodroid {
+ 
+@@ -31,12 +34,20 @@
+     auto now = std::chrono::steady_clock::now();
+-    auto frames = std::max((now - lastFrame) / sampleInterval, (long long) 1);
++    const auto elapsed = (now - lastFrame) / sampleInterval;
++    const auto frames = std::max<decltype(elapsed)>(elapsed, 1);
+     lastFrame = lastFrame + sampleInterval * frames;
+ 
+-    return frames;
++    return static_cast<unsigned>(std::min<decltype(frames)>(
++        frames, std::numeric_limits<unsigned>::max()));
+ }
+ 
+ FPSSync::FPSSync(double contentRefreshRate, double screenRefreshRate) {
++    if (!std::isfinite(contentRefreshRate) || contentRefreshRate < 1.0 || contentRefreshRate > 1000.0) {
++        throw std::invalid_argument("Invalid content refresh rate");
++    }
++    if (!std::isfinite(screenRefreshRate) || screenRefreshRate <= 0.0) {
++        screenRefreshRate = contentRefreshRate;
++    }
+     this->contentRefreshRate = contentRefreshRate;
+     this->screenRefreshRate = screenRefreshRate;
+     this->useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
+     this->sampleInterval = std::chrono::microseconds((long) ((1000000L / contentRefreshRate)));
+@@ -43,6 +54,16 @@
      reset();
  }
  
@@ -496,7 +555,7 @@ diff --git a/libretrodroid/src/main/cpp/fpssync.cpp b/libretrodroid/src/main/cpp
  void FPSSync::start() {
      LOGI("Starting game with fps %f on a screen with refresh rate %f. Using vsync: %d", contentRefreshRate, screenRefreshRate, useVSync);
      lastFrame = std::chrono::steady_clock::now();
-@@ -57,7 +67,7 @@
+@@ -57,7 +78,7 @@
  }
  
  void FPSSync::wait() {
