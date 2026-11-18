@@ -45,7 +45,7 @@ internal fun GemLibraryScreen(
     val corrections = remember(context) { GemLocalCorrections(context) }
     var catalogue by remember { mutableStateOf<GemCataloguePackage.Loaded?>(null) }
     var error by remember { mutableStateOf(false) }
-    var page by rememberSaveable { mutableStateOf("Browse") }
+    var page by rememberSaveable { mutableStateOf("For You") }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("") }
@@ -133,7 +133,7 @@ internal fun GemLibraryScreen(
         }
     Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            listOf("Browse", "My Ratings", "Search websites").forEach { destination ->
+            listOf("For You", "Browse", "My Ratings", "Search websites").forEach { destination ->
                 TextButton(onClick = { page = destination }, enabled = page != destination) { Text(destination) }
             }
         }
@@ -141,6 +141,14 @@ internal fun GemLibraryScreen(
             GemWebsiteSearchScreen()
         } else if (page == "My Ratings") {
             GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
+        } else if (page == "For You") {
+            if (error) {
+                Text("Catalogue verification failed. Your ratings and saves remain unchanged.")
+            } else if (current == null) {
+                Text("Loading offline catalogue…")
+            } else {
+                GemFinderScreen(catalogue = current, games = games, modifier = Modifier.weight(1f))
+            }
         } else {
             Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
             TextButton(
