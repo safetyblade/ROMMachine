@@ -8,32 +8,53 @@ import org.junit.Test
 import java.security.MessageDigest
 
 class GemCataloguePackageTest {
-    private val source = GemCataloguePackage.Source("fixture", "Synthetic fixture", "https://example.invalid", "Test only", "Synthetic", "1")
-    private val release = GemCataloguePackage.Release("r1", "gba", "Fixture", source.id, "s1", verifiedSerials = setOf("ABC"))
+    private val source =
+        GemCataloguePackage.Source(
+            "fixture",
+            "Synthetic fixture",
+            "https://example.invalid",
+            "Test only",
+            "Synthetic",
+            "1",
+        )
+    private val release =
+        GemCataloguePackage.Release("r1", "gba", "Fixture", source.id, "s1", verifiedSerials = setOf("ABC"))
     private val manifest = GemCataloguePackage.Manifest(1, "fixture-1", 1, listOf(source), listOf(release))
     private fun bytes(value: GemCataloguePackage.Manifest) =
         Json.encodeToString(GemCataloguePackage.Manifest.serializer(), value).encodeToByteArray()
-    private fun approval(data: ByteArray) = GemCataloguePackage.Approval(
-        "fixture-1",
-        MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it.toInt() and 255) },
-        listOf(source),
-    )
+    private fun approval(data: ByteArray) =
+        GemCataloguePackage.Approval(
+            "fixture-1",
+            MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it.toInt() and 255) },
+            listOf(source),
+        )
 
     @Test
     fun validatedPackageConnectsToMatcher() {
         val data = bytes(manifest)
         val loaded = GemCataloguePackage.load(data.inputStream(), approval(data))
-        val game = Game(fileName = "fixture.gba", fileUri = "file:///fixture.gba", title = "Fixture",
-            systemId = "gba", developer = null, coverFrontUrl = null, lastIndexedAt = 0, cartridgeId = "stable")
+        val game =
+            Game(
+                fileName = "fixture.gba",
+                fileUri = "file:///fixture.gba",
+                title = "Fixture",
+                systemId = "gba",
+                developer = null,
+                coverFrontUrl = null,
+                lastIndexedAt = 0,
+                cartridgeId = "stable",
+            )
         assertTrue(loaded.match(game) is GemCatalogueIndex.Match.Review)
-        assertEquals("r1", (loaded.match(game, GemCatalogueIndex.Evidence(serial = "ABC")) as GemCatalogueIndex.Match.Confirmed).release.releaseId)
+        val result = loaded.match(game, GemCatalogueIndex.Evidence(serial = "ABC"))
+        assertEquals("r1", (result as GemCatalogueIndex.Match.Confirmed).release.releaseId)
         assertEquals("stable", game.cartridgeId)
     }
 
     @Test
     fun alteredBytesRejected() {
         val data = bytes(manifest)
-        assertTrue(runCatching { GemCataloguePackage.load((data + byteArrayOf(32)).inputStream(), approval(data)) }.isFailure)
+        val tampered = data + byteArrayOf(32)
+        assertTrue(runCatching { GemCataloguePackage.load(tampered.inputStream(), approval(data)) }.isFailure)
     }
 
     @Test
@@ -56,7 +77,8 @@ class GemCataloguePackageTest {
 
     @Test
     fun duplicateReleaseRejected() {
-        val data = bytes(manifest.copy(releaseCount = 2, releases = listOf(release, release.copy(sourceRecordId = "s2"))))
+        val duplicate = manifest.copy(releaseCount = 2, releases = listOf(release, release.copy(sourceRecordId = "s2")))
+        val data = bytes(duplicate)
         assertTrue(runCatching { GemCataloguePackage.load(data.inputStream(), approval(data)) }.isFailure)
     }
 }
