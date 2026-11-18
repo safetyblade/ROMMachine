@@ -268,7 +268,12 @@ private fun GemWebsiteEditor(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedTextField(name, { name = it.take(80) }, label = { Text("Name") }, singleLine = true)
-                OutlinedTextField(home, { home = it.take(2000) }, label = { Text("Website address") }, singleLine = true)
+                OutlinedTextField(
+                    home,
+                    { home = it.take(2000) },
+                    label = { Text("Website address") },
+                    singleLine = true,
+                )
                 OutlinedTextField(category, { category = it.take(60) }, label = { Text("Category") }, singleLine = true)
                 OutlinedTextField(
                     template,
