@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,9 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemDiscovery
 import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
@@ -99,7 +104,17 @@ internal fun GemFinderScreen(
     val data = input
     val currentFeed = feed
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("GemFinder", style = MaterialTheme.typography.titleLarge)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.cartdeck_feature_gemfinder),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
+            Text("GemFinder", style = MaterialTheme.typography.titleLarge)
+        }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             val scopes =
                 listOf(
@@ -163,7 +178,12 @@ internal fun GemFinderScreen(
                                     val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
                                     val pick =
                                         withContext(Dispatchers.Default) {
-                                            GemRatingRecommender.surprise(data.catalogue, data.ratings, recent, candidates)
+                                            GemRatingRecommender.surprise(
+                                                data.catalogue,
+                                                data.ratings,
+                                                recent,
+                                                candidates,
+                                            )
                                         }
                                     if (pick != null) {
                                         withContext(Dispatchers.IO) {
@@ -227,7 +247,7 @@ private fun GemRecommendationCard(
             )
             Text(recommendation.reason)
             val kind = if (recommendation.wildcard) "Wildcard · " else ""
-            val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad genre match"
+            val evidence = if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
             Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
             Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
         }
