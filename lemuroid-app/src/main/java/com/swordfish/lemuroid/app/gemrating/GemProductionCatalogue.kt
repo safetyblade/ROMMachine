@@ -32,9 +32,10 @@ object GemProductionCatalogue {
         synchronized(lock) {
             val openAsset: (String) -> InputStream = { context.assets.open(it) }
             combine(readPins(openAsset)) { pin ->
-                val restored = runCatching {
-                    localFile(context, pin).openRead().use { GemCataloguePackage.load(it, pin.approval()) }
-                }.getOrNull()
+                val restored =
+                    runCatching {
+                        localFile(context, pin).openRead().use { GemCataloguePackage.load(it, pin.approval()) }
+                    }.getOrNull()
                 restored ?: openAsset(pin.path).use { GemCataloguePackage.load(it, pin.approval()) }
             }
         }
