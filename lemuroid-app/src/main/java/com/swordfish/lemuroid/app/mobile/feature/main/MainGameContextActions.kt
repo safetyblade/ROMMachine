@@ -1,9 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.main
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -41,7 +39,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
@@ -67,7 +64,6 @@ import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidSmallGameImage
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import timber.log.Timber
@@ -87,6 +83,7 @@ fun MainGameContextActions(
     onSetCustomCoverUri: (Game, String) -> Unit,
     onClearCustomCoverUri: (Game) -> Unit,
     onManagePcInstallation: ((Game) -> Unit)? = null,
+    onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
 ) {
     val modalSheetState = rememberModalBottomSheetState(true)
     val selectedGame = selectedGameState.value
@@ -117,6 +114,7 @@ fun MainGameContextActions(
                 onSetCustomCoverUri = onSetCustomCoverUri,
                 onClearCustomCoverUri = onClearCustomCoverUri,
                 onManagePcInstallation = onManagePcInstallation,
+                onUseOnlineCover = onUseOnlineCover,
             )
         }
     }
@@ -136,6 +134,7 @@ private fun ContextActionContent(
     onSetCustomCoverUri: (Game, String) -> Unit,
     onClearCustomCoverUri: (Game) -> Unit,
     onManagePcInstallation: ((Game) -> Unit)?,
+    onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)?,
 ) {
     val context = LocalContext.current
     val managedPc =
@@ -153,9 +152,6 @@ private fun ContextActionContent(
         }
     var showCustomNameDialog by remember { mutableStateOf(false) }
     var searchingCovers by rememberSaveable(selectedGame.id) { mutableStateOf(false) }
-    var coverQuery by rememberSaveable(selectedGame.id) {
-        mutableStateOf("${selectedGame.displayName()} ${cartridgeSystemLabel(selectedGame.systemId)} game box art")
-    }
     var showHoldControlsDialog by remember(selectedGame.fileUri) { mutableStateOf(false) }
     val arcStore = remember(context) { GripArcProfileStore(context) }
     var selectedArcMode by remember(selectedGame.fileUri) { mutableStateOf(arcStore.read(selectedGame).mode) }
@@ -274,7 +270,9 @@ private fun ContextActionContent(
         ContextActionEntry(
             label = "Search for covers",
             icon = Icons.Default.Image,
-            onClick = { searchingCovers = true },
+            onClick = {
+                if (onUseOnlineCover != null) searchingCovers = true else imagePickerLauncher.launch("image/*")
+            },
         )
         if (selectedGame.customCoverUri != null) {
             ContextActionEntry(
@@ -301,44 +299,19 @@ private fun ContextActionContent(
         }
     }
 
-    if (searchingCovers) {
-        AlertDialog(
-            onDismissRequest = { searchingCovers = false },
-            title = { Text("Search for covers") },
-            text = {
-                Column {
-                    Text(selectedGame.displayName())
-                    OutlinedTextField(
-                        value = coverQuery,
-                        onValueChange = { coverQuery = it },
-                        label = { Text("Cover search") },
-                        singleLine = true,
-                    )
-                    Text("Google Images opens in your browser. Choose artwork you have permission to use.")
-                    TextButton(onClick = {
-                        searchingCovers = false
-                        imagePickerLauncher.launch("image/*")
-                    }) { Text("Upload / replace image") }
+    if (searchingCovers && onUseOnlineCover != null) {
+        CoverArtworkPicker(
+            game = selectedGame,
+            onUse = { game, image ->
+                onUseOnlineCover(game, image).also { saved ->
+                    if (saved) selectedGameState.value = null
                 }
             },
-            confirmButton = {
-                TextButton(
-                    enabled = coverQuery.isNotBlank(),
-                    onClick = {
-                        val url =
-                            Uri.parse("https://www.google.com/search").buildUpon()
-                                .appendQueryParameter("tbm", "isch")
-                                .appendQueryParameter("q", coverQuery)
-                                .build()
-                        try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url))
-                        } catch (_: ActivityNotFoundException) {
-                            Toast.makeText(context, "No browser available", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                ) { Text("Search covers") }
+            onDismiss = { searchingCovers = false },
+            onLocal = {
+                searchingCovers = false
+                imagePickerLauncher.launch("image/*")
             },
-            dismissButton = { TextButton(onClick = { searchingCovers = false }) { Text("Cancel") } },
         )
     }
 
