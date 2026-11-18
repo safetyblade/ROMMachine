@@ -1,5 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,11 +51,36 @@ internal fun GemLibraryScreen(
     var revision by remember { mutableStateOf(0) }
     var writing by remember { mutableStateOf(false) }
     var request by remember { mutableStateOf<CorrectionRequest?>(null) }
+    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var reloading by remember { mutableStateOf(0) }
+    val importPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            restoreUri = uri
+        }
 
-    LaunchedEffect(context) {
+    LaunchedEffect(context, reloading) {
         val loaded = withContext(Dispatchers.IO) { runCatching { GemProductionCatalogue.load(context) } }
         catalogue = loaded.getOrNull()
         error = loaded.isFailure
+    }
+
+    LaunchedEffect(restoreUri) {
+        val uri = restoreUri ?: return@LaunchedEffect
+        val result =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    requireNotNull(context.contentResolver.openInputStream(uri)).use {
+                        GemProductionCatalogue.importApproved(context, it)
+                    }
+                }
+            }
+        message =
+            result.fold(
+                { count -> "Restored approved package ($count records)." },
+                { "Package not approved or unreadable. Existing catalogue retained." },
+            )
+        restoreUri = null
+        if (result.isSuccess) reloading++
     }
 
     LaunchedEffect(request) {
@@ -107,6 +135,11 @@ internal fun GemLibraryScreen(
             GemWebsiteSearchScreen()
         } else {
             Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
+            TextButton(
+                onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
+                enabled = restoreUri == null && !writing && request == null,
+            ) { Text("Restore approved catalogue package") }
+            if (message.isNotBlank()) Text(message)
             if (error) {
                 Text("Catalogue verification failed. Your cartridges and saves remain unchanged.")
             } else if (current == null) {
@@ -135,7 +168,6 @@ internal fun GemLibraryScreen(
                         ) { Text("Clear link") }
                     }
                 }
-                if (message.isNotBlank()) Text(message)
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
