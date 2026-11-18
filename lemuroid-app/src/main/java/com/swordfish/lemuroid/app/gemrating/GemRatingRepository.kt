@@ -24,10 +24,18 @@ class GemRatingRepository(
     )
 
     @Serializable
+    data class Preferences(
+        val wildcardPercent: Int = 30,
+        val recentSurprises: List<String> = emptyList(),
+        val showShelfRatings: Boolean = false,
+    )
+
+    @Serializable
     data class Snapshot(
         val profileId: String,
         val schemaVersion: Int = 1,
         val records: List<Rating> = emptyList(),
+        val preferences: Preferences? = null,
     )
 
     interface Storage {
@@ -91,6 +99,53 @@ class GemRatingRepository(
             next
         }
 
+    fun updatePreferences(
+        expected: Session,
+        transform: (Preferences) -> Preferences,
+    ): Snapshot =
+        synchronized(lock) {
+            verifyAccess(expected)
+            val existing = readValidated(expected.profileId)
+            val updated = transform(existing.preferences ?: Preferences())
+            validatePreferences(updated)
+            val next = existing.copy(preferences = updated)
+            verifyAccess(expected)
+            if (next != existing) storage.write(next)
+            next
+        }
+
+    /** Immutable preview and conflict-safe apply under the same repository lock. */
+    fun previewRestore(
+        expected: Session,
+        source: Snapshot,
+    ): GemProfileBackup.Preview =
+        synchronized(lock) {
+            verifyAccess(expected)
+            validateSnapshot(source)
+            GemProfileBackup.preview(readValidated(expected.profileId), source)
+        }
+
+    fun restore(
+        expected: Session,
+        preview: GemProfileBackup.Preview,
+        replaceConflicts: Boolean,
+        restorePreferences: Boolean,
+        allowCopy: Boolean,
+    ): Snapshot =
+        synchronized(lock) {
+            verifyAccess(expected)
+            require(preview.local.profileId == expected.profileId)
+            require(preview.source.profileId == expected.profileId || allowCopy) { "Explicit player copy required" }
+            validateSnapshot(preview.source)
+            val current = readValidated(expected.profileId)
+            check(current == preview.local) { "Ratings changed; preview again" }
+            val next = GemProfileBackup.merge(current, preview.source, replaceConflicts, restorePreferences, now())
+            validateSnapshot(next)
+            verifyAccess(expected)
+            if (next != current) storage.write(next)
+            next
+        }
+
     private fun verifyAccess(expected: Session) {
         requireUuid(expected.profileId)
         check(expected.role != Role.JUNIOR && expected == activeSession()) { "GEM unavailable for this player" }
@@ -98,20 +153,34 @@ class GemRatingRepository(
 
     private fun readValidated(profileId: String): Snapshot {
         val snapshot = storage.read(profileId)
-        require(snapshot.profileId == profileId && snapshot.schemaVersion == 1)
-        require(snapshot.records.map { it.cartridgeId }.distinct().size == snapshot.records.size)
-        snapshot.records.forEach {
-            requireUuid(it.cartridgeId)
-            require(it.score == null || it.score in 1..10)
-            require(it.revision > 0 && it.updatedAt >= 0)
-            require(it.displayTitle == null || it.displayTitle.length in 1..512)
-            require(it.platformId == null || it.platformId.length in 1..64)
-        }
+        require(snapshot.profileId == profileId)
+        validateSnapshot(snapshot)
         return snapshot
     }
 
     companion object {
         private val lock = Any()
+
+        internal fun validatePreferences(preferences: Preferences) {
+            require(preferences.wildcardPercent in 20..50)
+            require(preferences.recentSurprises.size <= 20)
+            require(preferences.recentSurprises.distinct().size == preferences.recentSurprises.size)
+            require(preferences.recentSurprises.all { it.length in 1..256 && it.none(Char::isISOControl) })
+        }
+
+        internal fun validateSnapshot(snapshot: Snapshot) {
+            requireUuid(snapshot.profileId)
+            require(snapshot.schemaVersion == 1 && snapshot.records.size <= 100_000)
+            require(snapshot.records.map { it.cartridgeId }.distinct().size == snapshot.records.size)
+            snapshot.preferences?.let(::validatePreferences)
+            snapshot.records.forEach {
+                requireUuid(it.cartridgeId)
+                require(it.score == null || it.score in 1..10)
+                require(it.revision > 0 && it.updatedAt >= 0)
+                require(it.displayTitle == null || it.displayTitle.length in 1..512)
+                require(it.platformId == null || it.platformId.length in 1..64)
+            }
+        }
 
         internal fun requireUuid(value: String) {
             require(UUID.fromString(value).toString() == value) { "Expected canonical UUID" }
