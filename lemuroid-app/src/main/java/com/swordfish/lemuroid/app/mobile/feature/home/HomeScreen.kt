@@ -53,6 +53,7 @@ fun HomeScreen(
     arrange: Boolean = false,
     onSectionEdit: (ShelfSection) -> Unit = {},
     shelfActions: @Composable () -> Unit = {},
+    onOpenGem: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val applicationContext = context.applicationContext
@@ -110,6 +111,7 @@ fun HomeScreen(
         onEdit = { shelfViewModel.edit(transform = it) },
         onSectionEdit = onSectionEdit,
         shelfActions = shelfActions,
+        onOpenGem = onOpenGem,
         tools = {
             shelf.error?.let {
                 Text(it)
@@ -134,6 +136,7 @@ internal fun HomeScreen(
     onEdit: ((ShelfLayout) -> ShelfLayout) -> Unit = {},
     onSectionEdit: (ShelfSection) -> Unit = {},
     shelfActions: @Composable () -> Unit = {},
+    onOpenGem: (() -> Unit)? = null,
     tools: @Composable () -> Unit = {},
 ) {
     val games =
@@ -152,7 +155,12 @@ internal fun HomeScreen(
         BoxWithConstraints(shelfModifier) {
             val sizing = CartridgeViewport.shelf(maxWidth.value, maxHeight.value, LocalDensity.current.fontScale, false)
             ShelfRoomBackdrop(layout.appearance)
-            PagedShelfSections(projection.layout, Modifier.fillMaxSize(), enabled = !arrange && !query.active) {
+            PagedShelfSections(
+                projection.layout,
+                Modifier.fillMaxSize(),
+                enabled = !arrange && !query.active,
+                onOpenGem = onOpenGem,
+            ) {
                     pageLayout, pageModifier, pageKey ->
                 shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
                     ShelfBoard(
