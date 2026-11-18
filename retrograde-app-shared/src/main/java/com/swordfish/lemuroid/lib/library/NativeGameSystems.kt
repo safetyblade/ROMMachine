@@ -94,6 +94,10 @@ object NativeGameSystems {
                                 CoreVariable("reicast_enable_dsp", "enabled"),
                                 CoreVariable("reicast_per_content_vmus", "All VMUs"),
                             ),
+                        exposedAdvancedSettings =
+                            listOf(
+                                ExposedSetting("reicast_internal_resolution", R.string.setting_engine_resolution),
+                            ),
                         exposedSettings =
                             listOf(
                                 ExposedSetting(
@@ -138,6 +142,27 @@ object NativeGameSystems {
                                 CoreVariable("dolphin_renderer", "Hardware"),
                                 CoreVariable("dolphin_cpu_core", "4"),
                             ),
+                        exposedAdvancedSettings =
+                            listOf(
+                                ExposedSetting(
+                                    "dolphin_efb_scale",
+                                    R.string.setting_engine_resolution,
+                                    arrayListOf(
+                                        ExposedSetting.Value("1", R.string.value_engine_native),
+                                        ExposedSetting.Value("2", R.string.value_engine_double),
+                                        ExposedSetting.Value("3", R.string.value_engine_triple),
+                                    ),
+                                ),
+                                ExposedSetting(
+                                    "dolphin_shader_compilation_mode",
+                                    R.string.setting_dolphin_shader_compilation,
+                                    arrayListOf(
+                                        ExposedSetting.Value("0", R.string.value_dolphin_shader_sync),
+                                        ExposedSetting.Value("1", R.string.value_dolphin_shader_uber_sync),
+                                        ExposedSetting.Value("2", R.string.value_dolphin_shader_uber_async),
+                                    ),
+                                ),
+                            ),
                         supportedOnlyArchitectures = setOf("arm64-v8a"),
                         skipDuplicateFrames = false,
                     ),
@@ -181,6 +206,27 @@ object NativeGameSystems {
                                 CoreVariable("dolphin_cpu_core", "4"),
                                 CoreVariable("dolphin_ir_mode", "2"),
                             ),
+                        exposedAdvancedSettings =
+                            listOf(
+                                ExposedSetting(
+                                    "dolphin_efb_scale",
+                                    R.string.setting_engine_resolution,
+                                    arrayListOf(
+                                        ExposedSetting.Value("1", R.string.value_engine_native),
+                                        ExposedSetting.Value("2", R.string.value_engine_double),
+                                        ExposedSetting.Value("3", R.string.value_engine_triple),
+                                    ),
+                                ),
+                                ExposedSetting(
+                                    "dolphin_shader_compilation_mode",
+                                    R.string.setting_dolphin_shader_compilation,
+                                    arrayListOf(
+                                        ExposedSetting.Value("0", R.string.value_dolphin_shader_sync),
+                                        ExposedSetting.Value("1", R.string.value_dolphin_shader_uber_sync),
+                                        ExposedSetting.Value("2", R.string.value_dolphin_shader_uber_async),
+                                    ),
+                                ),
+                            ),
                         exposedSettings =
                             listOf(
                                 ExposedSetting(
@@ -223,6 +269,11 @@ object NativeGameSystems {
                                 CoreVariable("play_res_multi", "1x"),
                                 CoreVariable("play_presentation_mode", "Fit Screen"),
                                 CoreVariable("play_bilinear_filtering", "false"),
+                            ),
+                        exposedAdvancedSettings =
+                            listOf(
+                                ExposedSetting("play_res_multi", R.string.setting_engine_resolution),
+                                ExposedSetting("play_bilinear_filtering", R.string.setting_engine_bilinear),
                             ),
                     ),
                 ),

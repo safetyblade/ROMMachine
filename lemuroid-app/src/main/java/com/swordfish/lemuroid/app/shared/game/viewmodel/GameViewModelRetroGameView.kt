@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.CoreOptionRefresh
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
 import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
@@ -467,14 +468,18 @@ class GameViewModelRetroGameView(
                 withContext(Dispatchers.IO) {
                     DisplaySettingsStore(appContext).readSafely(launchedGame?.cartridgeId).effective
                 }
+            val current = variables.mapNotNull { variable ->
+                variable.key?.let { key -> variable.value?.let { key to it } }
+            }.toMap()
             val overrides =
                 reported.mapNotNull { option ->
-                    val existing = options.firstOrNull { it.key == option.key }?.value ?: option.values.first()
-                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing
-                    chosen.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
+                    val existing = options.firstOrNull { it.key == option.key }?.value
+                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing ?: current[option.key]
+                    chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            updateCoreVariables(options.filterNot { it.key in keys } + overrides)
+            val desired = options.filterNot { it.key in keys } + overrides
+            updateCoreVariables(CoreOptionRefresh.changed(desired, current))
         } catch (e: Exception) {
             Timber.e(e)
         }
@@ -507,6 +512,7 @@ class GameViewModelRetroGameView(
     }
 
     private fun updateCoreVariables(options: List<CoreVariable>) {
+        if (options.isEmpty()) return
         val updatedVariables =
             options.map { Variable(it.key, it.value) }
                 .toTypedArray()

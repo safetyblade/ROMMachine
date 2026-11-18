@@ -849,6 +849,9 @@ data class GameSystem(
                                     0 to arrayListOf(ControllerConfigs.PSP),
                                 ),
                             supportsLibretroVFS = true,
+                            // PPSSPP intentionally submits duplicate frames at guest cadence.
+                            // Present the retained texture rather than skipping the frontend draw.
+                            skipDuplicateFrames = false,
                         ),
                     ),
                     uniqueExtensions = listOf(),
