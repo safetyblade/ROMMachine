@@ -50,4 +50,15 @@ class GemProductionCatalogueTest {
             }
         assertTrue(result.isFailure)
     }
+
+    @Test
+    fun restoredFileMustMatchIndependentShippedApproval() {
+        val directory = assets()
+        val pins = GemProductionCatalogue.readPins { File(directory, it).inputStream() }
+        val bytes = File(directory, "gem/vdg/gba.json").readBytes()
+        val pin = GemProductionCatalogue.identifyApproved(pins, bytes)
+        assertEquals("gem/vdg/gba.json", pin.path)
+        val rejected = runCatching { GemProductionCatalogue.identifyApproved(pins, bytes + byteArrayOf(32)) }
+        assertTrue(rejected.isFailure)
+    }
 }
