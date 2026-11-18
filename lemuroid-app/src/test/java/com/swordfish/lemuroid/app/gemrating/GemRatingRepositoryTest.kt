@@ -85,6 +85,18 @@ class GemRatingRepositoryTest {
     }
 
     @Test
+    fun removedCartridgeRetainsScoreAndDisplayMetadata() {
+        repository().set(manager, cartridge, 8, "Example game", "gba")
+        val retained = repository().snapshot(manager).records.single()
+        assertEquals(cartridge, retained.cartridgeId)
+        assertEquals(8, retained.score)
+        assertEquals("Example game", retained.displayTitle)
+        assertEquals("gba", retained.platformId)
+        repository().set(manager, cartridge, 6)
+        assertEquals("Example game", repository().snapshot(manager).records.single().displayTitle)
+    }
+
+    @Test
     fun scoreBoundsAndNoSyntheticRating() {
         for (score in listOf(0, -1, 11)) {
             assertTrue(runCatching { repository().set(manager, cartridge, score) }.isFailure)
