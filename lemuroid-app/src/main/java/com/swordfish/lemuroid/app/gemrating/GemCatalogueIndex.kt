@@ -79,7 +79,8 @@ class GemCatalogueIndex(
             val conflict =
                 (evidence.sha256 != null && hash == null) ||
                     (hash != null && serial != null &&
-                        (hashes.size != 1 || serials.size != 1 || hashes.single().releaseId != serials.single().releaseId))
+                        (hashes.size != 1 || serials.size != 1 ||
+                            hashes.single().releaseId != serials.single().releaseId))
             return if (strong.size == 1 && !conflict) {
                 Match.Confirmed(strong.single())
             } else {
