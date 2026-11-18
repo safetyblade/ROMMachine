@@ -49,7 +49,7 @@ internal fun PagedShelfSections(
         }
     }
     val scope = rememberCoroutineScope()
-    Column(modifier) {
+    Column(modifier.fillMaxSize()) {
         if (sections.size > 1) {
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),

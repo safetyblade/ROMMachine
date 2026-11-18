@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
@@ -128,6 +129,7 @@ fun ShelfBoard(
     showSectionHeadings: Boolean = true,
     bottomContentPadding: androidx.compose.ui.unit.Dp = 8.dp,
     drawRoomBackdrop: Boolean = true,
+    viewportSizing: CartridgeViewport.Shelf? = null,
 ) {
     val colors = LocalShelfMaterials.current
     val byKey = remember(games) { games.associateBy { shelfGameKey(it.systemId, it.fileUri) } }
@@ -198,7 +200,7 @@ fun ShelfBoard(
     BoxWithConstraints(modifier.onGloballyPositioned { viewport = it.boundsInRoot() }) {
         if (drawRoomBackdrop) ShelfRoomBackdrop(layout.appearance)
         val sizing =
-            com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport.shelf(
+            viewportSizing ?: CartridgeViewport.shelf(
                 maxWidth.value,
                 maxHeight.value,
                 androidx.compose.ui.platform.LocalDensity.current.fontScale,
