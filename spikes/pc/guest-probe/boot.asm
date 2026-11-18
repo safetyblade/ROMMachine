@@ -1,6 +1,6 @@
 bits 16
 org 7c00h
-; Original synthetic BIOS workload. Writes sector 2 (no commercial OS).
+; Original BIOS program: require sector read, increment retained byte, write and halt.
 cli
 xor ax, ax
 mov ds, ax
@@ -9,10 +9,21 @@ mov ss, ax
 mov sp, 7c00h
 sti
 mov [drive], dl
-mov di, 7e00h
-mov cx, 256
-xor ax, ax
-rep stosw
+mov bx, 7e00h
+mov ax, 0201h
+xor ch, ch
+mov cl, 2
+xor dh, dh
+mov dl, [drive]
+int 13h
+jc failed
+cmp dword [7e00h], 'PCEM'
+je update
+cmp dword [7e00h], 'PCBO'
+jne failed
+update:
+inc byte [7e08h]
+cld
 mov si, marker
 mov di, 7e00h
 mov cx, 8
@@ -41,7 +52,7 @@ hlt
 jmp stop
 drive db 0
 marker db 'PCBOOTOK'
-success db 'PCBOOTOK: sector written. Reopen and inspect disk.',0
-failure db 'PC disk write failed.',0
+success db 'PCBOOTOK: persistent sector updated.',0
+failure db 'PC disk read/write failed.',0
 times 510-($-$$) db 0
 dw 0aa55h

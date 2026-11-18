@@ -108,6 +108,9 @@ jobs:
       - name: Assert guest-written results across two sessions
         run: |
           python3 spikes/pc/guest-probe/verify_guest.py "$RUNNER_TEMP/pc-guest-core/dosbox_pure_libretro.so" "$RUNNER_TEMP/pc-headless" "$RUNNER_TEMP/pc-fixtures/probe.dosz" "$RUNNER_TEMP/pc-guest-evidence"
+      - name: Assert installed-OS raw disk boot and persisted sector writes
+        run: |
+          python3 spikes/pc/guest-probe/verify_boot.py "$RUNNER_TEMP/pc-guest-core/dosbox_pure_libretro.so" "$RUNNER_TEMP/pc-headless" "$RUNNER_TEMP/pc-fixtures" "$RUNNER_TEMP/pc-guest-evidence/raw-boot"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

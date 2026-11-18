@@ -15,7 +15,7 @@ assert len(boot) == 512 and boot[-2:] == b"\x55\xaa"
 with (out / "probe.img").open("wb") as disk:
     disk.truncate(16 * 1024 * 1024)
     disk.write(boot)
-    disk.write(b"PCEMPTY!")
+    disk.write(b"PCEMPTY!\x00")
 for n in (1, 2):
     directory = out / ("disc" + str(n))
     directory.mkdir(exist_ok=True)

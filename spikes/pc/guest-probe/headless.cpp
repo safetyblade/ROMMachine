@@ -8,8 +8,36 @@
 #include <cstring>
 #include <string>
 #include <stdexcept>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static std::string systemDir, saveDir;
+static bool bootMode=false;
+struct retro_vfs_dir_handle { DIR* stream; std::string base; dirent* entry; bool hidden; };
+static retro_vfs_dir_handle* openDirectory(const char* path,bool hidden) {
+    DIR* d=opendir(path);if(!d)return nullptr;
+    return new retro_vfs_dir_handle{d,path,nullptr,hidden};
+}
+static bool nextDirectory(retro_vfs_dir_handle* d) {
+    while((d->entry=readdir(d->stream))) {
+        const char* n=d->entry->d_name;
+        if(!strcmp(n,".")||!strcmp(n,"..")||(!d->hidden&&n[0]=='.'))continue;
+        return true;
+    }
+    return false;
+}
+static const char* directoryName(retro_vfs_dir_handle* d){return d->entry?d->entry->d_name:nullptr;}
+static bool directoryIsDir(retro_vfs_dir_handle* d) {
+    if(!d->entry)return false;
+    struct stat st{};std::string path=d->base+"/"+d->entry->d_name;
+    return !lstat(path.c_str(),&st)&&S_ISDIR(st.st_mode);
+}
+static int closeDirectory(retro_vfs_dir_handle* d){int rc=closedir(d->stream);delete d;return rc;}
+// The pinned core uses these directory and remove functions in VFS v3 for system scanning.
+// Other slots remain unused in this headless fixture; this is not the Android VFS implementation.
+static retro_vfs_interface scanVfs{};
+
 static retro_keyboard_event_t keyboard = nullptr;
 static retro_disk_control_callback disks{};
 static retro_disk_control_ext_callback extended{};
@@ -24,6 +52,27 @@ static void logger(retro_log_level, const char* fmt, ...) {
 }
 static bool env(unsigned cmd, void* data) {
     switch(cmd) {
+    case RETRO_ENVIRONMENT_GET_VFS_INTERFACE:
+        if(bootMode){
+            auto* info=static_cast<retro_vfs_interface_info*>(data);
+            if(info->required_interface_version>3)return false;
+            scanVfs.opendir=openDirectory;scanVfs.readdir=nextDirectory;
+            scanVfs.dirent_get_name=directoryName;scanVfs.dirent_is_dir=directoryIsDir;
+            scanVfs.closedir=closeDirectory;scanVfs.remove=std::remove;
+            info->required_interface_version=3;info->iface=&scanVfs;return true;
+        }
+        return false;
+    case RETRO_ENVIRONMENT_GET_VARIABLE:
+        if(bootMode){
+            auto* v=static_cast<retro_variable*>(data);
+            if(!strcmp(v->key,"dosbox_pure_memory_size"))v->value="64";
+            else if(!strcmp(v->key,"dosbox_pure_bootos_ramdisk"))v->value="false";
+            else if(!strcmp(v->key,"dosbox_pure_bootos_dfreespace"))v->value="hide";
+            else return false;
+            return true;
+        }
+        return false;
+
     case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY: *static_cast<const char**>(data)=systemDir.c_str(); return true;
     case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY: *static_cast<const char**>(data)=saveDir.c_str(); return true;
     case RETRO_ENVIRONMENT_GET_LOG_INTERFACE: static_cast<retro_log_callback*>(data)->log=logger; return true;
@@ -60,7 +109,9 @@ template<class T> static T load(void* lib,const char* name) {
     auto p=dlsym(lib,name);if(!p)throw std::runtime_error(name);return reinterpret_cast<T>(p);
 }
 int main(int argc,char**argv){
-    if(argc!=5)return 2;
+    if(argc!=5&&argc!=6)return 2;
+    bootMode=argc==6&&std::string(argv[5])=="boot";
+    if(argc==6&&!bootMode)return 2;
     systemDir=argv[3];saveDir=argv[4];
     void* lib=dlopen(argv[1],RTLD_NOW|RTLD_LOCAL);
     if(!lib){fprintf(stderr,"%s\n",dlerror());return 2;}
@@ -76,6 +127,12 @@ int main(int argc,char**argv){
     retro_game_info game{};game.path=argv[2];
     if(!retro_load_game(&game)){fprintf(stderr,"retro_load_game rejected probe\n");retro_deinit();return 3;}
     retro_set_controller_port_device(0,RETRO_DEVICE_JOYPAD);
+    if(bootMode) {
+        for(frames=0;frames<600;++frames)retro_run();
+        retro_unload_game();retro_deinit();
+        printf("boot_frames=%u rendered=%u polls=%u\n",frames,rendered,polls);
+        return rendered&&polls?0:5;
+    }
     auto mount=[&](unsigned which) {
         if (!disks.get_num_images || !disks.set_eject_state || !disks.get_eject_state ||
             !disks.set_image_index || !disks.get_image_index || which>=disks.get_num_images()) return false;
