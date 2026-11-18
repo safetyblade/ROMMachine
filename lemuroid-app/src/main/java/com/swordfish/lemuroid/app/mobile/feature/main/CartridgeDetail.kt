@@ -72,6 +72,7 @@ fun CartridgeDetailHost(
     onResetCover: (Game) -> Unit,
     sourceBounds: androidx.compose.ui.geometry.Rect? = null,
     onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
+    onOpenIntelligence: ((Game) -> Unit)? = null,
 ) {
     val record =
         remember(gameId, database) {
@@ -116,6 +117,7 @@ fun CartridgeDetailHost(
                 record.value.first,
                 front,
                 onUseOnlineCover = onUseOnlineCover,
+                onOpenIntelligence = onOpenIntelligence,
             )
         }
     }
@@ -131,6 +133,7 @@ fun CartridgeDetail(
     artworkRevision: Int = 0,
     frontModifier: Modifier = Modifier,
     onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
+    onOpenIntelligence: ((Game) -> Unit)? = null,
 ) {
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -175,6 +178,12 @@ fun CartridgeDetail(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text("Setup") }
             GemRatingRow(game)
+            if (onOpenIntelligence != null) {
+                TextButton(
+                    onClick = { onOpenIntelligence(game) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) { Text("Game Intelligence") }
+            }
         }
         if (landscape) {
             Row(
