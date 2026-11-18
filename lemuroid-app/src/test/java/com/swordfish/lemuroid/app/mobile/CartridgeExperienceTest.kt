@@ -382,6 +382,35 @@ class CartridgeExperienceTest {
             assertTrue(source.exists())
         }
 
+    @Test fun onlineCoverCommitOnlyChangesMatchingCartridgeAndRetainsOldFileUntilCommit() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            val db =
+                Room.inMemoryDatabaseBuilder(context, RetrogradeDatabase::class.java)
+                    .addCallback(GameSearchDao.CALLBACK)
+                    .allowMainThreadQueries()
+                    .build()
+            val manager = CustomCoverManager(context)
+            val old = manager.stageReplacement(game.id) { it.writeBytes(byteArrayOf(1, 2)) }
+            val replacement = manager.stageReplacement(game.id) { it.writeBytes(byteArrayOf(3, 4)) }
+            try {
+                db.gameDao().insert(listOf(game.copy(customCoverUri = old, isFavorite = true)))
+                assertTrue(File(Uri.parse(old).path!!).exists())
+                assertEquals(0, db.gameDao().replaceCoverIfCurrent(game.id, "wrong-id", old, replacement))
+                assertEquals(old, db.gameDao().selectById(game.id)?.customCoverUri)
+                assertEquals(1, db.gameDao().replaceCoverIfCurrent(game.id, game.cartridgeId, old, replacement))
+                val updated = db.gameDao().selectById(game.id)
+                assertEquals(game.copy(customCoverUri = replacement, isFavorite = true), updated)
+                manager.discardOwnedCover(game.id, old)
+                assertFalse(File(Uri.parse(old).path!!).exists())
+                assertTrue(File(Uri.parse(replacement).path!!).exists())
+            } finally {
+                manager.discardOwnedCover(game.id, old)
+                manager.discardOwnedCover(game.id, replacement)
+                db.close()
+            }
+        }
+
     @Test
     fun shelfPositionSurvivesSavedStateRestoration() {
         val restoration = StateRestorationTester(compose)
