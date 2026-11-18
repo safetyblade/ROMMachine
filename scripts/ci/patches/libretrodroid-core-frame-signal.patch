@@ -345,7 +345,7 @@ diff --git a/libretrodroid/src/main/cpp/audio.cpp b/libretrodroid/src/main/cpp/a
  #include <memory>
  
  namespace libretrodroid {
-@@ -98,26 +100,43 @@
+@@ -98,30 +100,47 @@
  }
  
  void Audio::write(const int16_t *data, size_t frames) {
@@ -403,6 +403,10 @@ diff --git a/libretrodroid/src/main/cpp/audio.cpp b/libretrodroid/src/main/cpp/a
  
 -    latencyTuner->tune();
 +    if (latencyTuner) latencyTuner->tune();
+ 
+     return oboe::DataCallbackResult::Continue;
+ }
+ 
 diff --git a/libretrodroid/src/main/cpp/cartdeck_av_timing.h b/libretrodroid/src/main/cpp/cartdeck_av_timing.h
 new file mode 100644
 --- /dev/null
