@@ -471,6 +471,12 @@ class CartridgeExperienceTest {
                 manager.discardOwnedCover(game.id, old)
                 assertFalse(File(Uri.parse(old).path!!).exists())
                 assertTrue(File(Uri.parse(replacement).path!!).exists())
+                assertEquals(0, db.gameDao().replaceCoverIfCurrent(game.id, game.cartridgeId, old, null))
+                assertTrue(File(Uri.parse(replacement).path!!).exists())
+                assertEquals(1, db.gameDao().replaceCoverIfCurrent(game.id, game.cartridgeId, replacement, null))
+                assertEquals(game.copy(customCoverUri = null, isFavorite = true), db.gameDao().selectById(game.id))
+                manager.discardOwnedCover(game.id, replacement)
+                assertFalse(File(Uri.parse(replacement).path!!).exists())
             } finally {
                 manager.discardOwnedCover(game.id, old)
                 manager.discardOwnedCover(game.id, replacement)
