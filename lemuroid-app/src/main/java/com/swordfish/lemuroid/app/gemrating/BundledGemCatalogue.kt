@@ -21,7 +21,8 @@ object BundledGemCatalogue {
                     attribution =
                         "Data: Title Screen (https://titlescreen.org), CC BY 4.0 " +
                             "(https://creativecommons.org/licenses/by/4.0/). " +
-                            "Adapted: selected commercial release facts; identifiers retained; unverified fields omitted.",
+                            "Adapted: selected commercial release facts; " +
+                            "identifiers retained; unverified fields omitted.",
                     revision = "2026.10.10 (public release pages)",
                 ),
             ),
