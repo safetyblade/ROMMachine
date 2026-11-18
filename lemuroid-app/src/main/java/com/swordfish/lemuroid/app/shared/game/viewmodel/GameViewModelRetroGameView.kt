@@ -97,13 +97,6 @@ class GameViewModelRetroGameView(
             coreFrameObserved = reportCoreFrameObserved,
             graphics = reportGraphics,
             reportedOptions = LibretroEngineReport.safeOptions(options.map { it.key to it.value }),
-            performanceSnapshot =
-                runCatching {
-                    // Additive QA API; older rollback hosts legitimately do not expose it.
-                    Class.forName("com.swordfish.libretrodroid.LibretroDroid")
-                        .getMethod("br001PerformanceReport")
-                        .invoke(null) as? String
-                }.getOrNull(),
         )
 
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)

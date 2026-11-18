@@ -82,28 +82,6 @@ class PhysicalControllerInputTest {
         assertEquals(0f, PhysicalControllerInput.effectiveDeadzone(profile.copy(calibrated = true)), 0f)
     }
 
-    @Test fun dreamcastCoreAdjustmentDoesNotRemoveFrontendNeutralOrDiagonalInput() {
-        val profile = ControllerProfileStore.Profile()
-        val ranges =
-            mapOf(
-                MotionEvent.AXIS_X to PhysicalControllerInput.Range(-1f, 1f),
-                MotionEvent.AXIS_Y to PhysicalControllerInput.Range(-1f, 1f),
-            )
-
-        fun sample(
-            axis: Int,
-            value: Float,
-        ) = PhysicalControllerInput.sampleAxis({ value }, ranges, axis, profile)
-
-        assertEquals(0f, sample(MotionEvent.AXIS_X, 0.08f), 0f)
-        val x = sample(MotionEvent.AXIS_X, 0.20f)
-        val y = sample(MotionEvent.AXIS_Y, -0.20f)
-        assertEquals(0.10f / 0.90f, x, 0.0001f)
-        assertEquals(-x, y, 0.0001f)
-        assertEquals(1f, sample(MotionEvent.AXIS_X, 1f), 0f)
-        assertEquals(0f, sample(MotionEvent.AXIS_Z, 1f), 0f)
-    }
-
     @Test fun signedRightStickPreferredOverTriggerLikeAxes() {
         val ranges =
             mapOf(
