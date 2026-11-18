@@ -120,8 +120,11 @@ internal fun GemLibraryScreen(
             current?.manifest?.releases.orEmpty().asSequence()
                 .filter { selected == null || it.systemId == selected.systemId }
                 .filter {
-                    if (query.isBlank()) selected != null && it.releaseId in candidateIds
-                    else it.title.contains(query.trim(), ignoreCase = true)
+                    if (query.isBlank()) {
+                        selected != null && it.releaseId in candidateIds
+                    } else {
+                        it.title.contains(query.trim(), ignoreCase = true)
+                    }
                 }
                 .take(100)
                 .toList()
