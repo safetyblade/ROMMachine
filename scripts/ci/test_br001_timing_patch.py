@@ -11,7 +11,7 @@ class AvTimingPatchTest(unittest.TestCase):
     def test_timing_mailbox_and_stereo_bounds(self):
         section = PATCH.read_text().split(
             "diff --git a/libretrodroid/src/main/cpp/cartdeck_av_timing.h "
-        )[1]
+        )[1].split("\ndiff --git ", 1)[0]
         header = "\n".join(line[1:] for line in section.splitlines()
                            if line.startswith("+") and not line.startswith("+++")) + "\n"
         fixture = r'''
@@ -43,24 +43,8 @@ int main() {
     assert(mailbox.publish({20, 44100}));
     mailbox.clear();
     assert(!mailbox.take(value));
-    auto& stats = cartdeck::PerfCounters::instance();
-    stats.reset(false);
-    assert(stats.report().empty());
-    stats.reset(true);
-    stats.recordAudioWrite(100, 80);
-    stats.recordAudioRead(100, 90);
-    stats.recordVideo(true);
-    stats.recordTiming(59.945, 44100);
-    stats.recordRun(50000);
-    assert(stats.report().find("fifo_dropped=20") != std::string::npos);
-    assert(stats.report().find("fifo_missing=10") != std::string::npos);
-    assert(stats.report().find("last_fps_milli=59945") != std::string::npos);
-    for (int i = 1; i < 4096; ++i) stats.recordRun(8000);
-    assert(!stats.shouldSample());
-    stats.recordRun(1000);
-    assert(stats.report().find("runs=4096;") == 0);
-    stats.reset(true);
-    assert(stats.report().find("runs=0;") == 0);
+    assert((!AvTiming{1000.0, 44100.0}.valid()));
+    assert((!AvTiming{60.0, 1000.0}.valid()));
     assert(cartdeck::boundedStereoFrames(0, 2048) == 0);
     assert(cartdeck::boundedStereoFrames(200, 2048) == 200);
     assert(cartdeck::boundedStereoFrames(1000000, 2048) == 1024);

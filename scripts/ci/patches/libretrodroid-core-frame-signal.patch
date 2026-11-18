@@ -31,39 +31,47 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      resetGlobalVariables();
 +    coreFrameSignal.reset();
-+    cartdeck::PerfCounters::instance().reset(soFilePath.find("flycast") != std::string::npos);
++    runtimeAvEnabled = soFilePath.find("flycast") != std::string::npos;
  
      Environment::getInstance().initialize(systemDir, savesDir, &callback_get_current_framebuffer);
      Environment::getInstance().setLanguage(language);
-@@ -456,8 +458,16 @@
-         frames = std::min(requestedFrames, 2u);
+@@ -429,6 +431,8 @@
+ void LibretroDroid::resume() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    if (!fpsSync || !audio || !video) return;
+     LOGD("Performing libretrodroid resume");
+ 
+     input = std::make_unique<Input>();
+ 
+     fpsSync->reset();
+@@ -439,6 +443,8 @@
+ void LibretroDroid::pause() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    if (!audio) return;
+     LOGD("Performing libretrodroid pause");
+     audio->stop();
+ 
+     input = nullptr;
+ }
+@@ -466,6 +472,9 @@
+     if (fpsSync) {
+         fpsSync->wait();
      }
++    // Preserve the completed frame's deadline. Change cadence in place only
++    // after the existing wait and under the run-loop's existing core lock.
++    if (runtimeAvEnabled) applyPendingAvTiming();
  
--    for (size_t i = 0; i < frames * frameSpeed; i++)
--        core->retro_run();
-+    for (size_t i = 0; i < frames * frameSpeed; i++) {
-+        auto& perf = cartdeck::PerfCounters::instance();
-+        const bool sample = perf.shouldSample();
-+        const auto start = sample ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
-+        core->retro_run();
-+        if (sample) perf.recordRun(std::chrono::duration_cast<std::chrono::microseconds>(
-+            std::chrono::steady_clock::now() - start).count());
-+        // Apply changes at a core-run boundary, never from the callback.
-+        if (applyPendingAvTiming()) break;
-+    }
- 
-     if (video && !video->rendersInVideoCallback()) {
-         video->renderFrame();
-@@ -541,6 +551,8 @@
+     if (rumble && rumbleEnabled) {
+         rumble->fetchFromEnvironment();
+@@ -541,6 +550,7 @@
          if (video->rendersInVideoCallback()) {
              video->renderFrame();
          }
 +        coreFrameSignal.record(data, width, height);
-+        cartdeck::PerfCounters::instance().recordVideo(data == nullptr);
      }
  }
  
-@@ -605,9 +617,12 @@
+@@ -605,9 +615,12 @@
      struct retro_system_av_info system_av_info {};
      core->retro_get_system_av_info(&system_av_info);
  
@@ -79,7 +87,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
  
      audio = std::make_unique<Audio>(
          (int32_t) std::lround(inputSampleRate),
-@@ -620,7 +635,26 @@
+@@ -620,7 +633,25 @@
      defaultAspectRatio = findDefaultAspectRatio(system_av_info);
  }
  
@@ -89,16 +97,15 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/ma
 +    if (!Environment::getInstance().takeAvTiming(timing) || !fpsSync || !audio ||
 +        initialAudioRate <= 0) return false;
 +    const bool fpsChanged = !timing.sameFps(activeAvTiming);
-+    const bool rateChanged = !timing.sameRate(activeAvTiming);
-+    if (!fpsChanged && !rateChanged) return false;
++    // A new nominal audio format needs a separately verified stream transition.
++    if (!timing.sameRate(activeAvTiming) || !fpsChanged) return false;
 +    if (fpsChanged) {
-+        fpsSync = std::make_unique<FPSSync>(timing.fps, screenRefreshRate);
++        fpsSync->updateContentRate(timing.fps);
 +    }
 +    // Preserve the running stream; atomically update the guest-rate ratio.
 +    const double effectiveRate = std::round(timing.sampleRate * fpsSync->getTimeStretchFactor());
 +    audio->setTimingRatio(effectiveRate / initialAudioRate);
 +    activeAvTiming = timing;
-+    cartdeck::PerfCounters::instance().recordTiming(timing.fps, timing.sampleRate);
 +    LOGI("Runtime AV timing: fps=%f sample_rate=%f", timing.fps, timing.sampleRate);
 +    return fpsChanged;
 +}
@@ -144,13 +151,14 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
      unsigned int frameSpeed = 1;
      bool audioEnabled = true;
      bool preferLowLatencyAudio = false;
-@@ -173,7 +177,10 @@
+@@ -173,7 +177,11 @@
      bool immersiveModeEnabled = false;
      ImmersiveMode::Config immersiveModeConfig {};
  
 -    float defaultAspectRatio = 1.0;
 +    cartdeck::AvTiming activeAvTiming;
 +    double initialAudioRate = 0;
++    bool runtimeAvEnabled = false;
 +
 +    float defaultAspectRatio = 1.0;
      bool dirtyVideo = false;
@@ -159,7 +167,7 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main
 diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 --- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-@@ -629,3 +629,17 @@
+@@ -629,3 +629,10 @@
  }
  
  }
@@ -169,13 +177,6 @@ diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src
 +    jclass obj
 +) {
 +    return static_cast<jlong>(libretrodroid::LibretroDroid::getInstance().coreFrameCount());
-+}
-+
-+extern "C" JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_br001PerformanceReport(
-+    JNIEnv* env, jclass obj
-+) {
-+    const auto report = cartdeck::PerfCounters::instance().report();
-+    return env->NewStringUTF(report.c_str());
 +}
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
@@ -213,12 +214,11 @@ diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 +++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
-@@ -107,6 +107,9 @@
+@@ -107,6 +107,8 @@
  
      public static native void step(GLRetroView retroView);
  
 +    public static native long coreFrameCount();
-+    public static native String br001PerformanceReport();
 +
      public static native void reset();
  
@@ -272,7 +272,7 @@ diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main
      gameGeometryHeight = 0;
      gameGeometryAspectRatio = -1.0f;
  
-@@ -303,9 +304,22 @@
+@@ -303,9 +304,20 @@
              LOGD("Called RETRO_ENVIRONMENT_GET_PERF_INTERFACE");
              return false;
  
@@ -282,16 +282,14 @@ diff --git a/libretrodroid/src/main/cpp/environment.cpp b/libretrodroid/src/main
 +        case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
 +            if (!data) return false;
 +            const auto* av = static_cast<const retro_system_av_info*>(data);
-+            if (!avTiming.publish({av->timing.fps, av->timing.sample_rate})) return false;
++            const bool validTiming = avTiming.publish({av->timing.fps, av->timing.sample_rate});
 +            const auto& geometry = av->geometry;
-+            if (gameGeometryWidth != geometry.base_width ||
-+                gameGeometryHeight != geometry.base_height ||
-+                gameGeometryAspectRatio != geometry.aspect_ratio) {
-+                gameGeometryHeight = geometry.base_height;
-+                gameGeometryWidth = geometry.base_width;
-+                gameGeometryAspectRatio = geometry.aspect_ratio;
-+                gameGeometryUpdated = true;
-+            }
++            // Preserve the established geometry handoff even for a rejected rate.
++            gameGeometryHeight = geometry.base_height;
++            gameGeometryWidth = geometry.base_width;
++            gameGeometryAspectRatio = geometry.aspect_ratio;
++            gameGeometryUpdated = true;
++            (void)validTiming;
 +            return true;
 +        }
 +        case RETRO_ENVIRONMENT_SET_GEOMETRY: {
@@ -347,15 +345,14 @@ diff --git a/libretrodroid/src/main/cpp/audio.cpp b/libretrodroid/src/main/cpp/a
  #include <memory>
  
  namespace libretrodroid {
-@@ -98,26 +100,45 @@
+@@ -98,30 +100,47 @@
  }
  
  void Audio::write(const int16_t *data, size_t frames) {
 -    fifoBuffer->write(data, frames * 2);
 +    if (fifoBuffer && data) {
 +        const auto capacity = static_cast<size_t>(fifoBuffer->getBufferCapacityInFrames() / 2);
-+        const auto accepted = fifoBuffer->write(data, static_cast<int32_t>(std::min(frames, capacity) * 2));
-+        cartdeck::PerfCounters::instance().recordAudioWrite(frames, std::max(accepted, 0) / 2);
++        fifoBuffer->write(data, static_cast<int32_t>(std::min(frames, capacity) * 2));
 +    }
  }
  
@@ -401,33 +398,33 @@ diff --git a/libretrodroid/src/main/cpp/audio.cpp b/libretrodroid/src/main/cpp/a
 +        std::fill_n(outputArray, static_cast<size_t>(numFrames) * 2, 0);
 +        return oboe::DataCallbackResult::Continue;
 +    }
-+    const auto received = fifoBuffer->readNow(temporaryAudioBuffer.get(), currentFramesToSubmit * 2);
-+    cartdeck::PerfCounters::instance().recordAudioRead(currentFramesToSubmit, std::max(received, 0) / 2);
++    fifoBuffer->readNow(temporaryAudioBuffer.get(), currentFramesToSubmit * 2);
      resampler.resample(temporaryAudioBuffer.get(), currentFramesToSubmit, outputArray, numFrames);
  
-     latencyTuner->tune();
+-    latencyTuner->tune();
++    if (latencyTuner) latencyTuner->tune();
+ 
+     return oboe::DataCallbackResult::Continue;
+ }
+ 
 diff --git a/libretrodroid/src/main/cpp/cartdeck_av_timing.h b/libretrodroid/src/main/cpp/cartdeck_av_timing.h
 new file mode 100644
 --- /dev/null
 +++ b/libretrodroid/src/main/cpp/cartdeck_av_timing.h
-@@ -0,0 +1,121 @@
+@@ -0,0 +1,53 @@
 +#ifndef CARTDECK_AV_TIMING_H
 +#define CARTDECK_AV_TIMING_H
 +#include <algorithm>
 +#include <cmath>
 +#include <mutex>
 +#include <atomic>
-+#include <array>
-+#include <chrono>
-+#include <string>
-+#include <cstdint>
 +namespace cartdeck {
 +struct AvTiming {
 +    double fps = 0;
 +    double sampleRate = 0;
 +    bool valid() const {
-+        return std::isfinite(fps) && fps >= 1.0 && fps <= 1000.0 &&
-+               std::isfinite(sampleRate) && sampleRate >= 1000.0 && sampleRate <= 384000.0;
++        return std::isfinite(fps) && fps >= 1.0 && fps <= 240.0 &&
++               std::isfinite(sampleRate) && sampleRate >= 8000.0 && sampleRate <= 192000.0;
 +    }
 +    bool sameFps(const AvTiming& other) const {
 +        return std::abs(fps - other.fps) < 0.00001;
@@ -461,70 +458,6 @@ new file mode 100644
 +    AvTiming pending;
 +    bool available = false;
 +};
-+// Engineering candidate: first 4096 retro_run calls, no image or input data.
-+// Audio counters cover the same capture window (not Android hardware XRuns).
-+class PerfCounters {
-+public:
-+    static PerfCounters& instance() { static PerfCounters value; return value; }
-+    void reset(bool capture) {
-+        enabled.store(false);
-+        runs.store(0); video.store(0); duplicate.store(0);
-+        audioWritten.store(0); audioDropped.store(0); audioMissing.store(0);
-+        timingChanges.store(0); lastFpsMilli.store(0); lastRate.store(0);
-+        for (auto& count : histogram) count.store(0);
-+        enabled.store(capture);
-+    }
-+    bool shouldSample() const {
-+        return enabled.load(std::memory_order_relaxed) && runs.load(std::memory_order_relaxed) < 4096;
-+    }
-+    void recordRun(int64_t micros) {
-+        if (!shouldSample()) return;
-+        constexpr int limits[] = {4000, 8000, 12000, 17000, 25000, 34000, 50000};
-+        unsigned bucket = 0;
-+        while (bucket < 7 && micros > limits[bucket]) ++bucket;
-+        histogram[bucket].fetch_add(1, std::memory_order_relaxed);
-+        runs.fetch_add(1, std::memory_order_relaxed);
-+    }
-+    void recordVideo(bool isDuplicate) {
-+        if (shouldSample()) (isDuplicate ? duplicate : video).fetch_add(1, std::memory_order_relaxed);
-+    }
-+    void recordAudioWrite(uint64_t requested, uint64_t accepted) {
-+        if (!shouldSample()) return;
-+        audioWritten.fetch_add(accepted, std::memory_order_relaxed);
-+        audioDropped.fetch_add(requested - std::min(requested, accepted), std::memory_order_relaxed);
-+    }
-+    void recordAudioRead(uint64_t requested, uint64_t received) {
-+        if (shouldSample()) audioMissing.fetch_add(requested - std::min(requested, received), std::memory_order_relaxed);
-+    }
-+    void recordTiming(double fps, double rate) {
-+        if (!shouldSample()) return;
-+        timingChanges.fetch_add(1, std::memory_order_relaxed);
-+        lastFpsMilli.store(static_cast<uint64_t>(std::round(fps * 1000)), std::memory_order_relaxed);
-+        lastRate.store(static_cast<uint64_t>(std::round(rate)), std::memory_order_relaxed);
-+    }
-+    std::string report() const {
-+        if (!enabled.load()) return "";
-+        std::string result = "runs=" + std::to_string(runs.load()) +
-+            ";video=" + std::to_string(video.load()) +
-+            ";duplicates=" + std::to_string(duplicate.load()) +
-+            ";fifo_written=" + std::to_string(audioWritten.load()) +
-+            ";fifo_dropped=" + std::to_string(audioDropped.load()) +
-+            ";fifo_missing=" + std::to_string(audioMissing.load()) +
-+            ";av_changes=" + std::to_string(timingChanges.load()) +
-+            ";last_fps_milli=" + std::to_string(lastFpsMilli.load()) +
-+            ";last_sample_rate=" + std::to_string(lastRate.load()) + ";run_us_bins=";
-+        for (unsigned i = 0; i < histogram.size(); ++i) {
-+            if (i) result += ",";
-+            result += std::to_string(histogram[i].load());
-+        }
-+        return result;
-+    }
-+private:
-+    std::atomic<bool> enabled{false};
-+    std::atomic<uint64_t> runs{0}, video{0}, duplicate{0}, audioWritten{0}, audioDropped{0}, audioMissing{0};
-+    std::atomic<uint64_t> timingChanges{0}, lastFpsMilli{0}, lastRate{0};
-+    std::array<std::atomic<uint64_t>, 8> histogram{};
-+};
 +// The FIFO and scratch allocation are measured in int16_t samples.
 +inline int boundedStereoFrames(double requested, int sampleCapacity) {
 +    if (!std::isfinite(requested) || requested <= 0 || sampleCapacity < 2) return 0;
@@ -532,3 +465,65 @@ new file mode 100644
 +}
 +}
 +#endif
+diff --git a/libretrodroid/src/main/cpp/fpssync.h b/libretrodroid/src/main/cpp/fpssync.h
+--- a/libretrodroid/src/main/cpp/fpssync.h
++++ b/libretrodroid/src/main/cpp/fpssync.h
+@@ -31,6 +31,7 @@
+     FPSSync(double contentRefreshRate, double screenRefreshRate);
+     ~FPSSync() { }
+ 
++    void updateContentRate(double rate);
+     void reset();
+     unsigned advanceFrames();
+     void wait();
+diff --git a/libretrodroid/src/main/cpp/fpssync.cpp b/libretrodroid/src/main/cpp/fpssync.cpp
+--- a/libretrodroid/src/main/cpp/fpssync.cpp
++++ b/libretrodroid/src/main/cpp/fpssync.cpp
+@@ -43,6 +43,16 @@
+     reset();
+ }
+ 
++void FPSSync::updateContentRate(double rate) {
++    if (!std::isfinite(rate) || rate < 1.0 || rate > 240.0) return;
++    contentRefreshRate = rate;
++    useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
++    sampleInterval = std::chrono::microseconds(static_cast<long>(1000000.0 / rate));
++    // A live cadence transition starts at the present monotonic clock, never
++    // at the uninitialised sentinel used during cold construction.
++    lastFrame = std::chrono::steady_clock::now();
++}
++
+ void FPSSync::start() {
+     LOGI("Starting game with fps %f on a screen with refresh rate %f. Using vsync: %d", contentRefreshRate, screenRefreshRate, useVSync);
+     lastFrame = std::chrono::steady_clock::now();
+@@ -57,7 +67,7 @@
+ }
+ 
+ void FPSSync::wait() {
+-    if (useVSync) return;
++    if (useVSync || lastFrame == MIN_TIME) return;
+     std::this_thread::sleep_until(lastFrame);
+ }
+ 
+diff --git a/libretrodroid/src/main/cpp/resamplers/linearresampler.cpp b/libretrodroid/src/main/cpp/resamplers/linearresampler.cpp
+--- a/libretrodroid/src/main/cpp/resamplers/linearresampler.cpp
++++ b/libretrodroid/src/main/cpp/resamplers/linearresampler.cpp
+@@ -24,4 +24,9 @@
+ void LinearResampler::resample(const int16_t *source, int32_t inputFrames, int16_t *sink, int32_t sinkFrames) {
++    if (!sink || sinkFrames <= 0) return;
++    if (!source || inputFrames <= 0) {
++        std::fill_n(sink, static_cast<size_t>(sinkFrames) * 2, 0);
++        return;
++    }
+     double outputTime = 0;
+     double outputTimeStep = 1.0 / sinkFrames;
+ 
+@@ -30,7 +35,7 @@
+     while (sinkFrames > 0) {
+         floatingPart = std::modf(outputTime * inputFrames, &integerPart);
+ 
+-        int32_t floorFrame = integerPart;
++        int32_t floorFrame = std::clamp(static_cast<int32_t>(integerPart), 0, inputFrames - 1);
+         int32_t ceilFrame = std::min(floorFrame + 1, inputFrames - 1);
+ 
+         *sink++ = source[ceilFrame * 2] * (floatingPart) + source[floorFrame * 2] * (1.0 - floatingPart);

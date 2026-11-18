@@ -92,8 +92,6 @@ object NativeGameSystems {
                                 CoreVariable("reicast_vblank_pacing", "enabled"),
                                 CoreVariable("reicast_auto_skip_frame", "disabled"),
                                 CoreVariable("reicast_enable_dsp", "enabled"),
-                                // Keep the frontend hardware safety deadzone; reduce the second, core-level threshold.
-                                CoreVariable("reicast_analog_stick_deadzone", "5%"),
                                 CoreVariable("reicast_per_content_vmus", "All VMUs"),
                             ),
                         exposedSettings =
