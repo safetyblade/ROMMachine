@@ -277,13 +277,7 @@ fun ShelfBoard(
                     }
                 } else {
                     val row = item.row
-                    Column(
-                        Modifier.fillMaxWidth().background(
-                            Brush.verticalGradient(
-                                listOf(colors.shelfShadow, colors.shelfBackboard, colors.shelfBackboard),
-                            ),
-                        ),
-                    ) {
+                    Column(Modifier.fillMaxWidth()) {
                         Row(
                             Modifier.fillMaxWidth().padding(top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -495,9 +489,9 @@ fun ShelfBoard(
                                                     Modifier.fillMaxSize().padding(
                                                         horizontal = 4.dp,
                                                     ).background(
-                                                        if (reserved) colors.vacantCell else colors.shelfBackboard,
+                                                        if (reserved && arrange) colors.vacantCell else androidx.compose.ui.graphics.Color.Transparent,
                                                     ).border(
-                                                        if (reserved) 1.dp else 0.dp,
+                                                        if (reserved && arrange) 1.dp else 0.dp,
                                                         colors.sectionDivider,
                                                     ).semantics {
                                                         contentDescription =
@@ -535,7 +529,7 @@ fun ShelfBoard(
                                                                             if (reserved) {
                                                                                 colors.vacantCell
                                                                             } else {
-                                                                                colors.shelfBackboard
+                                                                                colors.roomBackdrop
                                                                             },
                                                                         ),
                                                                         4.5f,
