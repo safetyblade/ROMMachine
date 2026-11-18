@@ -69,7 +69,7 @@ PATCHES = {
     "libretrodroid": [
         "libretrodroid-gles-context-validation.patch", "libretrodroid-frontend-gl-state.patch",
         "libretrodroid-graphics-error.patch", "libretrodroid-core-frame-signal.patch",
-        "libretrodroid-play-vm-bridge.patch"
+        "libretrodroid-play-vm-bridge.patch", "libretrodroid-runtime-av-timing.patch"
     ],
 }
 
