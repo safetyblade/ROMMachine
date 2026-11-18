@@ -183,6 +183,25 @@ internal fun GemManagementScreen(
             enabled = !busy,
             onClick = { importPicker.launch(arrayOf("application/octet-stream", "application/json", "*/*")) },
         )
+        CartdeckMenuRow(
+            title = { Text("Review previous local recovery copy") },
+            enabled = !busy,
+            onClick = {
+                operation(
+                    "No valid previous recovery copy available.",
+                    {
+                        val store = GemRatingLocalStore.open(context)
+                        store.repository.previewRestore(store.session, requireNotNull(store.previousBackup()))
+                    },
+                    {
+                        replace = false
+                        preferences = false
+                        copy = false
+                        backup = it
+                    },
+                )
+            },
+        )
         Text("SafeSave: GEM metadata component ready; full game-save archive feature not yet connected.")
     }
 
@@ -195,7 +214,7 @@ internal fun GemManagementScreen(
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text(update.verified.catalogue.manifest.catalogueVersion)
                     Text("${update.added} added · ${update.retired} retired entries")
-                    Text("Previous version retained. Ratings, corrections, cartridge identities and saves stay unchanged.")
+                    Text("Previous version retained. Ratings, corrections, cartridge identity and saves stay unchanged.")
                 }
             },
             confirmButton = {
@@ -218,7 +237,9 @@ internal fun GemManagementScreen(
         AlertDialog(
             onDismissRequest = { rollback = false },
             title = { Text("Restore previous catalogue?") },
-            text = { Text("Only catalogue metadata changes. Your personal ratings, links and game saves stay intact.") },
+            text = {
+                Text("Only catalogue metadata changes. Your personal ratings, links and game saves stay intact.")
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
