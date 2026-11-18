@@ -43,7 +43,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/ci -p 'test_measure_apk_build.py' -v
   gc-f2-verified-apk:
     # Explicit GC acceptance/hotfix branches only; APK requires Kotlin and Python suites.
-    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral' || github.head_ref == 'engineering/br001-dreamcast-input')
     needs: gc-f1-full-suite
     uses: ./.github/workflows/cartdeck-connected-engines-apk.yml
     with:
@@ -62,7 +62,7 @@ jobs:
 
   gc-f1-full-suite:
     # Explicit GC preflight branches. No native download, APK or protected merge.
-    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'engineering/gc01-abc-completion-20261116' || github.head_ref == 'engineering/gc-hot-01-controller-neutral' || github.head_ref == 'engineering/br001-dreamcast-input')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
