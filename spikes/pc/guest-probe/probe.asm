@@ -94,6 +94,6 @@ cdvalue db 0
 clicked db 0
 greeting db 'CARTDECK PC probe',13,10,'$'
 prompt db 'Press a key to retain the result.',13,10,'$'
-click_prompt db 'Click the left mouse button.',13,10,' 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
+click_prompt db 'Click the left mouse button.',13,10,'$'
 
 done db 'Probe written. Shut down or exit guest before reopening.',13,10,'$'
