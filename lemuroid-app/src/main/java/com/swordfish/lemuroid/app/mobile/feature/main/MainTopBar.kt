@@ -14,10 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,7 +114,7 @@ fun LemuroidTopAppBar(
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
+                        painterResource(R.drawable.cartdeck_action_back),
                         stringResource(id = R.string.back),
                     )
                 }
@@ -184,7 +180,7 @@ internal fun ShelfActions(
     var libraryOptionsExpanded by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { libraryOptionsExpanded = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = null)
+            Icon(painterResource(R.drawable.cartdeck_action_more), contentDescription = null)
             Text("Shelf tools")
         }
         DropdownMenu(
@@ -279,7 +275,7 @@ private fun LemuroidSearchView(
                     .fillMaxSize()
                     .focusRequester(focusRequester),
             textStyle = MaterialTheme.typography.bodyMedium,
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(painterResource(R.drawable.cartdeck_action_search), contentDescription = null) },
             onValueChange = { onUpdateQueryString(it) },
             singleLine = true,
             keyboardActions =

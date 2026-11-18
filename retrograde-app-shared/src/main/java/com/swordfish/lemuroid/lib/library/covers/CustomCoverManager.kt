@@ -1,12 +1,15 @@
 package com.swordfish.lemuroid.lib.library.covers
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -66,6 +69,44 @@ class CustomCoverManager(private val appContext: Context) {
             } ?: throw IllegalStateException("Cannot open input stream for $sourceUri")
             Uri.fromFile(destFile).toString()
         }
+
+    /** Validate a user-selected image without modifying the existing cover or its database pointer. */
+    fun stageLocalCover(
+        gameId: Int,
+        sourceUri: Uri,
+    ): String {
+        val maxBytes = 16 * 1024 * 1024
+        require(sourceUri.scheme in setOf("content", "file")) { "Unsupported image source" }
+        val bytes =
+            checkNotNull(appContext.contentResolver.openInputStream(sourceUri)).use { input ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                var count = input.read(buffer)
+                while (count != -1) {
+                    require(output.size() + count <= maxBytes) { "Image exceeds size limit" }
+                    output.write(buffer, 0, count)
+                    count = input.read(buffer)
+                }
+                output.toByteArray()
+            }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        require(bounds.outWidth in 1..16384 && bounds.outHeight in 1..16384) { "Invalid image dimensions" }
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > 2048) sample *= 2
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bitmap = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options))
+        try {
+            return stageReplacement(gameId) { file ->
+                file.outputStream().use {
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+                    it.fd.sync()
+                }
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
 
     /** Stage a uniquely named replacement; the caller commits the database pointer first. */
     fun stageReplacement(

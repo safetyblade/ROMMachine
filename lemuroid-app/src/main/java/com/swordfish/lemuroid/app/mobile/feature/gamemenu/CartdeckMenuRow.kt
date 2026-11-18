@@ -21,6 +21,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
 internal val LocalCompactCartdeckMenu = staticCompositionLocalOf { false }
@@ -40,7 +41,7 @@ internal fun CartdeckMenuRow(
     Surface(
         modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
             .heightIn(min = 48.dp).onFocusChanged { focused = it.hasFocus }
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = if (focused) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.5f),
@@ -57,7 +58,7 @@ internal fun CartdeckMenuRow(
         ) {
             leading?.invoke()
             Column(Modifier.weight(1f)) {
-                ProvideTextStyle(MaterialTheme.typography.bodyMedium) { title() }
+                ProvideTextStyle(MaterialTheme.typography.labelLarge) { title() }
                 if (supporting != null) ProvideTextStyle(MaterialTheme.typography.labelSmall) { supporting() }
             }
             trailing?.invoke()

@@ -418,6 +418,54 @@ class CartridgeExperienceTest {
         compose.onNodeWithText("Upload / replace image").performScrollTo().assertIsEnabled()
     }
 
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun invalidLocalArtworkDoesNotDeletePreviousCover() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val manager = CustomCoverManager(context)
+        val invalid = File(context.cacheDir, "invalid-local-art.png").apply { writeText("not an image") }
+        val old = manager.stageReplacement(915301) { it.writeBytes(byteArrayOf(1, 2, 3)) }
+        val previous = File(requireNotNull(Uri.parse(old).path))
+        try {
+            val before = manager.getCoversDirectory().listFiles().orEmpty().map { it.name }.toSet()
+            assertTrue(runCatching { manager.stageLocalCover(915301, Uri.fromFile(invalid)) }.isFailure)
+            val after = manager.getCoversDirectory().listFiles().orEmpty().map { it.name }.toSet()
+            assertEquals(before, after)
+            assertTrue(previous.exists())
+            assertTrue(previous.readBytes().contentEquals(byteArrayOf(1, 2, 3)))
+        } finally {
+            manager.discardOwnedCover(915301, old)
+            invalid.delete()
+        }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun validLocalArtworkStagesWithoutRemovingPreviousCover() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val manager = CustomCoverManager(context)
+        val source = File(context.cacheDir, "valid-local-art.png")
+        val bitmap = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888)
+        try {
+            source.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        } finally {
+            bitmap.recycle()
+        }
+        val old = manager.stageReplacement(915302) { it.writeBytes(byteArrayOf(1, 2, 3)) }
+        var staged: String? = null
+        try {
+            staged = manager.stageLocalCover(915302, Uri.fromFile(source))
+            val replacement = File(requireNotNull(Uri.parse(staged).path))
+            assertTrue(replacement.length() > 0)
+            assertTrue(File(requireNotNull(Uri.parse(old).path)).readBytes().contentEquals(byteArrayOf(1, 2, 3)))
+            assertFalse(old == staged)
+        } finally {
+            manager.discardOwnedCover(915302, staged)
+            manager.discardOwnedCover(915302, old)
+            source.delete()
+        }
+    }
+
     @Test fun customCoverManagerPersistsAndResetsOnlyTheSelectedCover() =
         runBlocking {
             val context = ApplicationProvider.getApplicationContext<Application>()
@@ -455,6 +503,12 @@ class CartridgeExperienceTest {
                 manager.discardOwnedCover(game.id, old)
                 assertFalse(File(Uri.parse(old).path!!).exists())
                 assertTrue(File(Uri.parse(replacement).path!!).exists())
+                assertEquals(0, db.gameDao().replaceCoverIfCurrent(game.id, game.cartridgeId, old, null))
+                assertTrue(File(Uri.parse(replacement).path!!).exists())
+                assertEquals(1, db.gameDao().replaceCoverIfCurrent(game.id, game.cartridgeId, replacement, null))
+                assertEquals(game.copy(customCoverUri = null, isFavorite = true), db.gameDao().selectById(game.id))
+                manager.discardOwnedCover(game.id, replacement)
+                assertFalse(File(Uri.parse(replacement).path!!).exists())
             } finally {
                 manager.discardOwnedCover(game.id, old)
                 manager.discardOwnedCover(game.id, replacement)
