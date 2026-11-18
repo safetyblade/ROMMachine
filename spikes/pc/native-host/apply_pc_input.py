@@ -15,6 +15,8 @@ def apply(root):
     for name, edits in EDITS.items():
         path = cpp / name
         text = path.read_text()
+        if any(after in text for before, after in edits):
+            raise ValueError(f"PC overlay already present: {name}")
         for before, after in edits:
             if text.count(before) != 1:
                 raise ValueError(f"PC overlay anchor mismatch: {name}: {before[:80]}")
