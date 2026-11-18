@@ -176,8 +176,22 @@ internal class GemCatalogueVersions(context: Context) {
                     identities = nextHistory,
                 ),
             )
+            prune(next, current.active)
             next.version
         }
+
+    private fun prune(
+        active: Ref,
+        previous: Ref,
+    ) {
+        val retained = setOf(active.digest, previous.digest)
+        root.listFiles()?.forEach { file ->
+            val digest = file.name.removeSuffix(".gemcatalogue")
+            if (file.name.endsWith(".gemcatalogue") && digest.matches(HEX) && digest !in retained) {
+                file.delete()
+            }
+        }
+    }
 
     fun rollback(): String =
         synchronized(lock) {
