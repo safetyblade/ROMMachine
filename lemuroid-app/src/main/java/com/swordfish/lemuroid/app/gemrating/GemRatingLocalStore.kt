@@ -78,6 +78,7 @@ internal class GemRatingLocalStore private constructor(
             override fun write(snapshot: GemRatingRepository.Snapshot) {
                 val data = Json.encodeToString(GemRatingRepository.Snapshot.serializer(), snapshot)
                 writeVerified(file(snapshot.profileId), data)
+                GemShelfPresentation.changed()
             }
         }
     }
