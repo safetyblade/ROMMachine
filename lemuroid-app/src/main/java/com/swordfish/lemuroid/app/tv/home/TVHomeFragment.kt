@@ -146,7 +146,8 @@ class TVHomeFragment : BrowseSupportFragment() {
                     }
                 if (gemRatings != ratings) {
                     gemRatings = ratings
-                    (listOf(FAVORITES_ADAPTER, RECENTS_ADAPTER) + shelfSections.indices.map(::shelfRowId)).forEach { id ->
+                    val rowIds = listOf(FAVORITES_ADAPTER, RECENTS_ADAPTER) + shelfSections.indices.map(::shelfRowId)
+                    rowIds.forEach { id ->
                         findAdapterById<ArrayObjectAdapter>(id)?.let { row ->
                             row.notifyArrayItemRangeChanged(0, row.size())
                         }
@@ -216,6 +217,9 @@ class TVHomeFragment : BrowseSupportFragment() {
         return null
     }
 
+    private fun gemGamePresenter(cardSize: Int): GamePresenter =
+        GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] }
+
     private fun recreateAdapter(
         includeFavorites: Boolean,
         includeRecentGames: Boolean,
@@ -234,7 +238,7 @@ class TVHomeFragment : BrowseSupportFragment() {
 
         if (includeFavorites) {
             val presenter = ClassPresenterSelector()
-            presenter.addClassPresenter(Game::class.java, GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
+            presenter.addClassPresenter(Game::class.java, gemGamePresenter(cardSize))
             presenter.addClassPresenter(TVSetting::class.java, SettingPresenter(cardSize, settingsCardPadding))
             val favouritesItems = ArrayObjectAdapter(presenter)
             val title = resources.getString(R.string.tv_home_section_favorites)
@@ -242,7 +246,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         }
 
         if (includeRecentGames) {
-            val recentItems = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
+            val recentItems = ArrayObjectAdapter(gemGamePresenter(cardSize))
             val title = resources.getString(R.string.tv_home_section_recents)
             result.add(ListRow(HeaderItem(RECENTS_ADAPTER, title), recentItems))
         }
@@ -254,7 +258,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         }
 
         shelfSections.forEachIndexed { index, section ->
-            val items = ArrayObjectAdapter(GamePresenter(cardSize, gameInteractor) { game -> gemRatings[game.cartridgeId] })
+            val items = ArrayObjectAdapter(gemGamePresenter(cardSize))
             items.setItems(section.games, LEANBACK_GAME_DIFF_CALLBACK)
             result.add(ListRow(HeaderItem(shelfRowId(index), section.title), items))
         }
