@@ -214,7 +214,7 @@ internal fun GemManagementScreen(
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text(update.verified.catalogue.manifest.catalogueVersion)
                     Text("${update.added} added · ${update.retired} retired entries")
-                    Text("Previous version retained. Ratings, corrections, cartridge identity and saves stay unchanged.")
+                    Text("Previous version retained. Ratings, links, cartridge identity and saves stay unchanged.")
                 }
             },
             confirmButton = {
@@ -275,7 +275,7 @@ internal fun GemManagementScreen(
                     Text("Replace conflicting ratings, including cleared ratings.")
                     Checkbox(checked = preferences, onCheckedChange = { preferences = it })
                     Text("Restore discovery and shelf preferences.")
-                    Text("A local recovery copy is written before any replacement. Game saves are not touched.")
+                    Text("A recovery copy is stored before changes. Restore merges records; it never deletes local entries.")
                 }
             },
             confirmButton = {
