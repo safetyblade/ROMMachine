@@ -88,6 +88,32 @@ jobs:
           name: pc-lab-core-${{ github.sha }}
           path: ${{ runner.temp }}/pc-core/output/
           if-no-files-found: error
+  guest-probe:
+    name: Execute real synthetic DOS guest (Linux, not Android)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build pinned Linux core and original guest fixtures
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y nasm genisoimage
+          git clone --no-checkout https://github.com/schellingb/dosbox-pure.git "$RUNNER_TEMP/pc-guest-core"
+          git -C "$RUNNER_TEMP/pc-guest-core" checkout --detach a4a0bab7f8931433588f2fcad9045c85b277373d
+          make -C "$RUNNER_TEMP/pc-guest-core" -j4
+          c++ -std=c++17 -Wall -Wextra -I"$RUNNER_TEMP/pc-guest-core/libretro-common/include" spikes/pc/guest-probe/headless.cpp -ldl -o "$RUNNER_TEMP/pc-headless"
+          python3 spikes/pc/guest-probe/create_fixtures.py "$RUNNER_TEMP/pc-fixtures"
+      - name: Assert guest-written results across two sessions
+        run: |
+          python3 spikes/pc/guest-probe/verify_guest.py "$RUNNER_TEMP/pc-guest-core/dosbox_pure_libretro.so" "$RUNNER_TEMP/pc-headless" "$RUNNER_TEMP/pc-fixtures/probe.dosz" "$RUNNER_TEMP/pc-guest-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-lab-guest-evidence-${{ github.sha }}
+          path: ${{ runner.temp }}/pc-guest-evidence/
+          if-no-files-found: warn
   pc-lab-apk:
     name: Assemble separate synthetic PC Lab APK
     needs: [pc-lab-host, pc-lab-core]
@@ -117,10 +143,13 @@ jobs:
           python3 spikes/pc/audit_core_binary.py work/pc-lab/core/libdosbox_pure_libretro_android.so --output work/pc-lab/core/recheck.json
           mkdir -p work/pc-lab/jni/arm64-v8a
           cp work/pc-lab/core/libdosbox_pure_libretro_android.so work/pc-lab/jni/arm64-v8a/
+          sudo apt-get update -qq
+          sudo apt-get install -y nasm genisoimage
+          python3 spikes/pc/guest-probe/create_fixtures.py "$PWD/work/pc-lab/assets"
           bash scripts/ci/bootstrap_gradle.sh
           gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
           "$gradle_bin" -p spikes/pc/lab-apk assembleDebug --no-daemon \
-            -PpcLabMaven="$PWD/work/pc-lab/host/maven" -PpcLabCoreDir="$PWD/work/pc-lab/jni"
+            -PpcLabMaven="$PWD/work/pc-lab/host/maven" -PpcLabCoreDir="$PWD/work/pc-lab/jni" -PpcLabAssets="$PWD/work/pc-lab/assets"
           apk="$(find spikes/pc/lab-apk/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -print -quit)"
           test -f "$apk"
           "$sdk/build-tools/35.0.0/aapt" dump badging "$apk" | grep "^package: name='dev.cartdeck.pc.lab'"
