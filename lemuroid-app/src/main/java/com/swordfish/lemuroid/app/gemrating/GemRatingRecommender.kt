@@ -94,6 +94,7 @@ object GemRatingRecommender {
             minOf((limit * wildcardShare).toInt(), (standardCount * wildcardShare / (1.0 - wildcardShare)).toInt())
         val selected = mutableListOf<Recommendation>()
         val seenWorks = mutableSetOf<String>()
+
         fun add(candidate: Recommendation): Boolean {
             val work = candidate.game.verifiedWorkId
             if (work != null && !seenWorks.add(work)) return false
@@ -203,10 +204,10 @@ object GemRatingRecommender {
                         } else {
                             0.0
                         }
-                    val novelty =
-                        ((if (genreDifference) 0.45 else 0.0) +
-                            (if (styleDifference) 0.25 else 0.0) +
-                            (if (crossoverDifference) 0.30 else 0.0) + mechanicNovelty).coerceAtMost(1.0)
+                    val genreNovelty = if (genreDifference) 0.45 else 0.0
+                    val styleNovelty = if (styleDifference) 0.25 else 0.0
+                    val crossoverNovelty = if (crossoverDifference) 0.30 else 0.0
+                    val novelty = (genreNovelty + styleNovelty + crossoverNovelty + mechanicNovelty).coerceAtMost(1.0)
                     val differences =
                         listOfNotNull(
                             targetGenre?.takeIf { genreDifference },
