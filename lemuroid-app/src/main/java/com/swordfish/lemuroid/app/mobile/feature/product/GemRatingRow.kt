@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -139,7 +138,7 @@ internal fun GemRatingRow(
                             for (value in range) {
                                 TextButton(
                                     modifier =
-                                        Modifier.weight(1f).heightIn(min = 48.dp)
+                                        Modifier.weight(1f).gemFocusTarget()
                                             .semantics { selected = draft == value },
                                     enabled = !busy,
                                     onClick = { draft = value },
