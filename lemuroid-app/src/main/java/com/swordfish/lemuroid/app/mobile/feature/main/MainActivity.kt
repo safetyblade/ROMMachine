@@ -366,7 +366,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                     composable(MainRoute.GEM) {
-                        com.swordfish.lemuroid.app.mobile.feature.product.GemWebsiteSearchScreen(
+                        com.swordfish.lemuroid.app.mobile.feature.product.GemLibraryScreen(
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
                             modifier = Modifier.padding(padding),
                         )
                     }
