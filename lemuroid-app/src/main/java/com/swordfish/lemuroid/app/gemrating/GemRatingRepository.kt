@@ -82,8 +82,9 @@ class GemRatingRepository(
                 )
             val next =
                 existing.copy(
-                    records = (existing.records.filterNot { it.cartridgeId == cartridgeId } + rating)
-                        .sortedBy { it.cartridgeId },
+                    records =
+                        (existing.records.filterNot { it.cartridgeId == cartridgeId } + rating)
+                            .sortedBy { it.cartridgeId },
                 )
             verifyAccess(expected)
             storage.write(next)
