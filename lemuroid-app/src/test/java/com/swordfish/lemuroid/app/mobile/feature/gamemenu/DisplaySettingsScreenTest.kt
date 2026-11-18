@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -25,7 +24,7 @@ import org.robolectric.annotation.Config
 class DisplaySettingsScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun setupAndNativeMenuUseSameRomOverrideAndUnsupportedFeaturesStayDisabled() {
+    @Test fun setupAndNativeMenuUseSameRomOverrideAndUnsupportedFeaturesStayHidden() {
         val game =
             Game(
                 id = 4, title = "Fixture", fileName = "fixture.gb", fileUri = "content://rom/4",
@@ -42,7 +41,9 @@ class DisplaySettingsScreenTest {
         compose.onNodeWithText("Use Global Default").performClick()
         compose.waitUntil(5000) { store.read(game.cartridgeId).own.landscapeBorder == null }
         compose.runOnIdle { nativeRoute.value = true }
-        compose.onNodeWithText("Widescreen — unavailable for this engine").assertIsNotEnabled()
+        compose.onNodeWithText("Widescreen", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("HD scaling:", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Help").assertIsDisplayed()
         compose.onAllNodesWithText("Standard · selected")[0].assertIsDisplayed()
         compose.onNodeWithText("Use Global Default").performScrollTo().assertIsDisplayed()
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(game.cartridgeId).effective.border(true))
