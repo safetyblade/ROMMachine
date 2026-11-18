@@ -11,11 +11,11 @@ REVISION=8835c3098514390a271e36983957f7bb5f40abf1
 NDK_VERSION=${HOST_NDK_VERSION:-29.0.14206865}
 VERSION=0.14.0-pc-lab1
 PATCHES=(
-    "$ROOT/scripts/ci/patches/libretrodroid-gles-context-validation.patch"
-    "$ROOT/scripts/ci/patches/libretrodroid-frontend-gl-state.patch"
-    "$ROOT/scripts/ci/patches/libretrodroid-graphics-error.patch"
-    "$ROOT/scripts/ci/patches/libretrodroid-core-frame-signal.patch"
-    "$ROOT/scripts/ci/patches/libretrodroid-play-vm-bridge.patch"
+    "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-gles-context-validation.patch"
+    "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-frontend-gl-state.patch"
+    "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-graphics-error.patch"
+    "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-core-frame-signal.patch"
+    "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-play-vm-bridge.patch"
 )
 for patch in "${PATCHES[@]}"; do
     [[ -f "$patch" ]] || { echo "Missing required host patch: $patch" >&2; exit 1; }
@@ -36,6 +36,7 @@ for patch in "${PATCHES[@]}"; do
     git -C "$SOURCE" apply "$patch"
 done
 python3 "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$SOURCE"
+git -C "$SOURCE" add -N -- .
 git -C "$SOURCE" diff --binary > "$WORK/applied-host.patch"
 git -C "$SOURCE" submodule update --init --recursive
 # A clean parent Git link does not establish that dependency source is clean.
@@ -82,14 +83,15 @@ GRADLE
 )
 ARTIFACT="$MAVEN_REPO/dev/cartdeck/pc/lab/PcLibretroHost/$VERSION/PcLibretroHost-$VERSION.aar"
 [[ -f "$ARTIFACT" ]]
+git -C "$SOURCE" archive --format=tar.gz --output="$WORK/host-base-source.tar.gz" "$REVISION"
 python3 "$ROOT/scripts/ci/native_symbols.py" \
     --readelf "$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
     retain-aar --aar "$ARTIFACT" --search "$SOURCE/libretrodroid" --output "$WORK/symbols"
 {
     printf 'source=https://github.com/Swordfish90/LibretroDroid\nrevision=%s\n' "$REVISION"
     printf 'abi=arm64-v8a\nndk=%s\n' "$NDK_VERSION"
-    sha256sum "$ARTIFACT" "${PATCHES[@]}" "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$WORK/applied-host.patch"
+    sha256sum "$ARTIFACT" "$ROOT/spikes/pc/native-host/build_pc_lab_host.sh" "${PATCHES[@]}" "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$WORK/applied-host.patch" "$WORK/host-base-source.tar.gz"
     printf 'namespace=pc-lab\nprotocol=pc-input-1-experimental\nproduction_eligible=false\n'
     git -C "$SOURCE" submodule status --recursive
 } > "$WORK/provenance.txt"
-printf 'Built %s\nBuild CARTDECK with -Dmaven.repo.local=%s\n' "$ARTIFACT" "$MAVEN_REPO"
+printf 'Built PC lab host %s\nPC-only Maven repository: %s\n' "$ARTIFACT" "$MAVEN_REPO"
