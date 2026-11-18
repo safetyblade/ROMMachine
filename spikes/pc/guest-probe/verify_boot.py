@@ -6,7 +6,6 @@ import json
 import shutil
 import subprocess
 import sys
-import zipfile
 
 core, frontend, fixtures, output = (Path(p).resolve() for p in sys.argv[1:])
 output.mkdir(parents=True, exist_ok=True)
@@ -19,10 +18,7 @@ source = fixtures / "probe.img"
 shutil.copyfile(source, disk)
 source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
 content = output / "boot.dosz"
-with zipfile.ZipFile(content, "w", compression=zipfile.ZIP_STORED) as z:
-    # Exact format supported by pinned DBP_Run::ReadAutoBoot: O* + OS name without extension.
-    z.writestr("AUTOBOOT.DBP", b"O*probe\r\n0\r\n")
-    z.writestr("README.TXT", "Synthetic installed OS boot proof")
+shutil.copyfile(fixtures / "boot.dosz", content)
 evidence = []
 for n in (1, 2):
     result = subprocess.run([str(frontend), str(core), str(content), str(system), str(saves), "boot"],

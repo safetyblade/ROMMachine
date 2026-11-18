@@ -8,7 +8,8 @@ mov es, ax
 mov ss, ax
 mov sp, 7c00h
 sti
-mov [drive], dl
+; The pinned core BOOT command sets EDX=0 even for C:; this fixture is a known HDD.
+mov byte [drive], 80h
 mov bx, 7e00h
 mov ax, 0201h
 xor ch, ch

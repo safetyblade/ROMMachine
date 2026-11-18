@@ -35,6 +35,25 @@ public final class LabActivity extends ComponentActivity {
             if(!disk.exists())try(InputStream source=getAssets().open("probe.img")){LabWorkspace.copy(source,disk);}
             launch("synthetic",true);
         }));
+        button("Boot synthetic persistent hard disk (R04)", () -> work(() -> {
+            LabWorkspace w=new LabWorkspace(getFilesDir(),"synthetic-boot");
+            File bootMedia=new File(w.media,"guest.dosz");
+            if(!bootMedia.exists())try(InputStream in=getAssets().open("boot.dosz")){LabWorkspace.copy(in,bootMedia);if(!bootMedia.setReadOnly())throw new IOException("Cannot protect boot content");}
+            File disk=new File(w.system,"probe.img");
+            if(!disk.exists())try(InputStream in=getAssets().open("probe.img")){LabWorkspace.copy(in,disk);}
+            runOnUiThread(()->{if(!isFinishing()&&!isDestroyed()){
+                Intent i=new Intent(this,LabSessionActivity.class);i.putExtra("workspace","synthetic-boot");i.putExtra("windows",true);startActivity(i);
+            }});
+        }));
+        button("Inspect R04 persistent disk", () -> work(() -> {
+            LabWorkspace w=new LabWorkspace(getFilesDir(),"synthetic-boot");
+            File disk=new File(w.system,"probe.img");
+            if(!disk.isFile())throw new IOException("Boot the synthetic hard disk first");
+            byte[] marker=new byte[8];int counter;
+            try(RandomAccessFile f=new RandomAccessFile(disk,"r")){f.seek(512);f.readFully(marker);counter=f.readUnsignedByte();}
+            final String report="R04 disk: "+new String(marker,java.nio.charset.StandardCharsets.US_ASCII)+"; retained boot counter="+counter;
+            runOnUiThread(()->status.setText(report));
+        }));
         button("Import new PC ISO(s)", () -> choose(1,true));
         button("Add prepared raw guest IMG", () -> {if(selected==null)status.setText("Import a PC workspace first");else choose(2,false);});
         button("Reopen last PC workspace", () -> {if(selected==null)status.setText("No imported workspace");else launch(selected,false);});

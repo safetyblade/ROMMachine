@@ -10,7 +10,7 @@ final class LabWorkspace {
     static final long RESERVE = 128L * 1024 * 1024;
     final File root, system, saves, media;
     LabWorkspace(File files, String id) throws IOException {
-        if (!id.matches("synthetic|[0-9a-f-]{36}")) throw new IOException("Invalid workspace");
+        if (id == null || !id.matches("synthetic|synthetic-boot|[0-9a-f-]{36}")) throw new IOException("Invalid workspace");
         root = new File(files, "pc-r03/" + id);
         system = new File(root, "system");
         saves = new File(root, "saves");

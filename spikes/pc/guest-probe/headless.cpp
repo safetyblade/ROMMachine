@@ -161,7 +161,8 @@ int main(int argc,char**argv){
             keyDown=true;if(keyboard)keyboard(true,heldKey,heldKey==RETROK_a?'a':'b',0);
         }
         if(frames==75 || frames==615 || frames==735){
-            if(keyDown&&keyboard)keyboard(false,heldKey,0,0);keyDown=false;
+            if(keyDown&&keyboard)keyboard(false,heldKey,0,0);
+            keyDown=false;
         }
         mouseDown=(frames%120>=90 && frames%120<110);
         retro_run();

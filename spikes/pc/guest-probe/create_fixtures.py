@@ -26,6 +26,9 @@ with zipfile.ZipFile(out / "probe.dosz", "w", compression=zipfile.ZIP_STORED) as
     z.writestr("DOSBOX.BAT", "@ECHO OFF\r\nIMGMOUNT D C:\\DISC1.ISO C:\\DISC2.ISO -t iso > MOUNT.LOG\r\nDIR D:\\ > CDLIST.TXT\r\nPCPROBE.COM\r\n")
     for n in (1,2):
         z.write(out / f"disc{n}.iso", f"DISC{n}.ISO")
+with zipfile.ZipFile(out / "boot.dosz", "w", compression=zipfile.ZIP_STORED) as z:
+    z.writestr("AUTOBOOT.DBP", b"O*probe\r\n0\r\n")
+    z.writestr("README.TXT", "Synthetic installed OS boot proof")
 for name in ("PCPROBE.COM", "boot.bin", "disc1.iso", "disc2.iso"):
     (out / name).unlink()
 for n in (1,2):
