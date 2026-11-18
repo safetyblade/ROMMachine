@@ -28,6 +28,7 @@ public final class WindowsSetupActivity extends ComponentActivity {
         ScrollView scroll=new ScrollView(this);scroll.addView(panel);
         status=new TextView(this);panel.addView(status);
         button(panel,"New Windows workspace",this::newWorkspace);
+        button(panel,"Select existing Windows workspace",this::selectWorkspace);
         button(panel,"1. Select Windows 95 / 98 ISO",()->choose(WINDOWS));
         button(panel,"2. Select Shandalar / game ISO (optional)",()->choose(GAME));
         button(panel,"3. Select boot floppy IMG (if needed)",()->choose(FLOPPY));
@@ -37,19 +38,36 @@ public final class WindowsSetupActivity extends ComponentActivity {
         button(panel,"Installation and game launch guide",this::guide);
         setContentView(scroll);
         id=getPreferences(0).getString("windows-workspace",null);
-        if(id!=null)try{workspace=new LabWorkspace(getFilesDir(),id);}catch(IOException e){status.setText(e.getMessage());}
+        if(id!=null)try{select(id);}catch(IOException e){workspace=null;status.setText(e.getMessage());}
         refresh();
     }
     private void button(LinearLayout p,String text,Runnable action){
         Button b=new Button(this);b.setText(text);b.setOnClickListener(v->{if(!busy)action.run();});p.addView(b);
     }
     private void newWorkspace(){
-        new AlertDialog.Builder(this).setMessage("Create a fresh isolated Windows installation? Existing lab files remain intact; reopen the previous workspace using its saved ID is not yet supported here.")
+        new AlertDialog.Builder(this).setMessage("Create a fresh isolated Windows installation? Existing lab files remain intact; use Select existing Windows workspace to reopen them.")
             .setNegativeButton("Cancel",null).setPositiveButton("Create",(d,w)->{
-                try{id=UUID.randomUUID().toString();workspace=new LabWorkspace(getFilesDir(),id);
-                    if(!getPreferences(0).edit().putString("windows-workspace",id).commit())throw new IOException("Cannot persist workspace");refresh();
+                try{String created=UUID.randomUUID().toString();LabWorkspace next=new LabWorkspace(getFilesDir(),created);
+                    WindowsMedia.markWorkspace(next);
+                    select(created);
                 }catch(IOException e){status.setText(e.getMessage());}
             }).show();
+    }
+    private void select(String chosen)throws IOException{
+        LabWorkspace candidate=new LabWorkspace(getFilesDir(),chosen);
+        if(!WindowsMedia.isWorkspace(candidate.root))throw new IOException("Not a Windows workspace");
+        if(!getPreferences(0).edit().putString("windows-workspace",chosen).commit())throw new IOException("Cannot persist workspace");
+        id=chosen;workspace=candidate;refresh();
+    }
+    private void selectWorkspace(){
+        File base=new File(getFilesDir(),"pc-r03");
+        File[] dirs=base.listFiles(f->f.isDirectory()&&f.getName().matches("[0-9a-f-]{36}")&&WindowsMedia.isWorkspace(f));
+        if(dirs==null||dirs.length==0){status.setText("No marked Windows workspaces.");return;}
+        Arrays.sort(dirs,Comparator.comparingLong(File::lastModified).reversed());
+        String[] names=Arrays.stream(dirs).map(File::getName).toArray(String[]::new);
+        new AlertDialog.Builder(this).setTitle("Select existing Windows workspace").setItems(names,(d,index)->{
+            try{select(names[index]);}catch(IOException e){status.setText(e.getMessage());}
+        }).show();
     }
     private boolean ready(){if(workspace!=null)return true;status.setText("Create a Windows workspace first.");return false;}
     private boolean sealed(){return new File(workspace.media,"guest.dosz").isFile();}
@@ -108,34 +126,13 @@ public final class WindowsSetupActivity extends ComponentActivity {
         new AlertDialog.Builder(this).setMessage("Seal the selected media for this installation. Include the Shandalar ISO and any required boot floppy before first launch. Guest writes remain in this workspace.")
             .setNegativeButton("Cancel",null).setPositiveButton("Launch",(d,w)->work(()->{
                 seal();
-                runOnUiThread(()->{if(!isFinishing()){
+                runOnUiThread(()->{if(!isFinishing()&&!isDestroyed()){
                     Intent i=new Intent(this,LabSessionActivity.class);i.putExtra("workspace",id);i.putExtra("windows",true);startActivity(i);
                 }});
             })).show();
     }
     private void seal()throws IOException{
-        File archive=new File(workspace.media,"guest.dosz");
-        if(archive.isFile())return;
-        File temp=File.createTempFile("guest-", ".stage",workspace.media);
-        try{
-            try(FileOutputStream raw=new FileOutputStream(temp);ZipOutputStream zip=new ZipOutputStream(raw)){
-                long total=0;byte[] buffer=new byte[65536];
-                for(int request:new int[]{WINDOWS,GAME,FLOPPY}){
-                    File f=item(request);if(!f.isFile())continue;
-                    total+=f.length();if(total>LabWorkspace.MAX_MEDIA||temp.getUsableSpace()<f.length()+LabWorkspace.RESERVE)throw new IOException("Workspace storage limit");
-                    CRC32 crc=new CRC32();try(InputStream in=new FileInputStream(f)){int n;while((n=in.read(buffer))!=-1)crc.update(buffer,0,n);}
-                    String name=request==WINDOWS?"01WIN.ISO":request==GAME?"02GAME.ISO":"BOOT.IMG";
-                    ZipEntry entry=new ZipEntry(name);entry.setMethod(ZipEntry.STORED);entry.setSize(f.length());entry.setCompressedSize(f.length());entry.setCrc(crc.getValue());zip.putNextEntry(entry);
-                    try(InputStream in=new FileInputStream(f)){int n;while((n=in.read(buffer))!=-1){if(temp.getUsableSpace()<LabWorkspace.RESERVE)throw new IOException("Storage reserve");zip.write(buffer,0,n);}}
-                    zip.closeEntry();
-                }
-                // No DOSBOX.BAT: let the core present its OS installation/boot menu and mount media.
-                zip.putNextEntry(new ZipEntry("README.TXT"));zip.write("CARTDECK PC Lab. Use the core operating-system menu.".getBytes(java.nio.charset.StandardCharsets.US_ASCII));zip.closeEntry();
-                zip.finish();zip.flush();raw.getFD().sync();
-            }
-            if(!temp.setReadOnly())throw new IOException("Cannot seal archive");
-            Files.move(temp.toPath(),archive.toPath());
-        }finally{temp.delete();}
+        WindowsMedia.seal(workspace);
     }
     private void guide(){
         new AlertDialog.Builder(this).setTitle("Windows / Shandalar — owner acceptance").setMessage(

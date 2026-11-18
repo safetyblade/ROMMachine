@@ -138,6 +138,12 @@ jobs:
         with:
           name: pc-lab-core-${{ github.sha }}
           path: work/pc-lab/core
+      - name: Verify Windows workspace and immutable media on host JVM
+        run: |
+          base=spikes/pc/lab-apk/src/main/java/dev/cartdeck/pc/lab
+          mkdir -p "$RUNNER_TEMP/pc-java-tests"
+          javac -d "$RUNNER_TEMP/pc-java-tests" "$base/LabWorkspace.java" "$base/WindowsMedia.java" spikes/pc/guest-probe/WindowsMediaTest.java
+          java -cp "$RUNNER_TEMP/pc-java-tests" dev.cartdeck.pc.lab.WindowsMediaTest
       - name: Verify and assemble lab only
         run: |
           set -euo pipefail

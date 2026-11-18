@@ -36,3 +36,9 @@ Master base 0ffb5eb25be24c4327e72ed2d013136104a36230, after BR-001/UI integratio
 R02 audits actual original core (ELF, SHA256, libretro exported symbols). Candidate source-build only: GPLv2 upstream source tag 1.0-preview6, commit a4a0bab7f8931433588f2fcad9045c85b277373d, pinned Android NDK 29.0.14206865, no binary substitution. Upstream preview7 moved to Codeberg; its exact revision has not been independently resolved. Preview6 is an intentionally bounded reference, not the latest. Dynamic VHD and Windows 9x APM shutdown are documented upstream, not verified in our runtime. Origin of original binary remains unknown until matched; no redistribution clearance inferred.
 
 New independent workflow executes native audit, host/input tests, core build and isolated synthetic APK packaging. No owner media, actual guest boot, Windows or Shandalar acceptance at this checkpoint. Run results and artifact IDs must be attached before marking R01/R02 complete.
+
+## PC-R03A / R04 — 18 November 2026
+
+R03A successful laboratory workflow 44289543415: two Linux core sessions recorded guest bytes 0161ff016231003200 and 0261ff016231003200, proving counter persistence, keyboard, mouse click and both optical reads. Lab APK artifact 14421201047. Standard CARTDECK workflow 44289543571 also passed. Neither run proves Android guest execution.
+
+R04 extends only the PC laboratory: dedicated Windows media setup, marked and reopenable installation workspaces, immutable Windows/game/floppy source archive, writable isolated OS image, guest core settings and special keys. The native DOSBox Pure menu remains the install and reboot path. The raw disk gate exercises OS discovery and two boots of an original BIOS program; Windows and Shandalar remain owner-media acceptance, not bundled or claimed. Host direct-to-Windows-EXE launch remains outstanding. Do not promote the PC host, change production host recipes or merge #339 before verified full-test readiness.
