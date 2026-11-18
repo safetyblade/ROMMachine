@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueIndex
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
+import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
@@ -52,6 +53,7 @@ internal fun GemLibraryScreen(
 ) {
     val context = LocalContext.current
     val corrections = remember(context) { GemLocalCorrections(context) }
+    val versions = remember(context) { GemCatalogueVersions(context) }
     var catalogue by remember { mutableStateOf<GemCataloguePackage.Loaded?>(null) }
     var error by remember { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf("For You") }
@@ -84,7 +86,7 @@ internal fun GemLibraryScreen(
     }
 
     LaunchedEffect(context, reloading) {
-        val loaded = withContext(Dispatchers.IO) { runCatching { GemProductionCatalogue.load(context) } }
+        val loaded = withContext(Dispatchers.IO) { runCatching { versions.load() } }
         catalogue = loaded.getOrNull()
         error = loaded.isFailure
     }
@@ -164,7 +166,7 @@ internal fun GemLibraryScreen(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf("For You", "Browse", "My Ratings", "Search websites").forEach { destination ->
+            listOf("For You", "Browse", "My Ratings", "Search websites", "Manage").forEach { destination ->
                 FilterChip(
                     selected = page == destination,
                     onClick = { page = destination },
@@ -175,6 +177,10 @@ internal fun GemLibraryScreen(
         }
         when (page) {
             "Search websites" -> GemWebsiteSearchScreen()
+            "Manage" -> GemManagementScreen(
+                onCatalogueChanged = { reloading++ },
+                modifier = Modifier.weight(1f),
+            )
             "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
             "For You" -> {
                 if (error) {
@@ -309,7 +315,7 @@ internal fun GemLibraryScreen(
                             onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
                             enabled = restoreUri == null && !writing && request == null,
                             modifier = Modifier.gemFocusTarget(),
-                        ) { Text("Restore approved catalogue package") }
+                        ) { Text("Restore bundled baseline shard") }
                     }
                 }
             }
