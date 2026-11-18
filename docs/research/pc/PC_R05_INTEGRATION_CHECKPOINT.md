@@ -1,0 +1,9 @@
+# PC-R05 integration checkpoint
+
+The isolated PC host is relocated to dev.cartdeck.pc.runtime and libcartdeckpcruntime.so, in :pc_runtime. The original host dependency and native receipt are unchanged. The integration APK uses a separate application ID, includes the candidate PC core at libcartdeckpc_dosbox.so, and does not include the full connected console backend bundle. The normal connected build remains an independent regression. This is an engineering candidate, not a release.
+
+CARTMOD already indexes immutable UUID DOSZ media. PC integration resolves the selected Game to its canonical cartridge, acquires the game-process lock, reuses the existing local profile guest/progress paths and uses the shared menu. Recipe sidecars are atomic and separate from immutable optical archives; legacy shortcut imports can set the recipe explicitly. The launch command submits a validated path to an owner-confirmed ready Windows Run dialog via guest input. It is not unattended boot-to-EXE and must not be labelled guest-verified until tested.
+
+The profile service is not implemented. Local-owner-only seam; Junior/non-local policy must be wired to authenticated profile service before any multi-profile release. SafeSave inventory deliberately excludes media and marks OS images recovery-only, with unclassified progress also ineligible for automatic export. No schema migration, cloud export or new profile store.
+
+R04 synthetic Windows-like HDD boot passed in Linux; actual Windows installation, guest EXE execution, clean shutdown and Shandalar on Android remain acceptance blockers. Full PC integration and normal regression artifacts must pass before any promotion. Master advanced since R04; the PC integration workflow checks the console host receipt against the actual checkout and will reject stale or mismatched recipes.

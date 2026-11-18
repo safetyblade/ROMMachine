@@ -152,6 +152,9 @@ android {
                 // The connected bundle is already stripped and hash-bound to retained native symbols.
                 keepDebugSymbols += "**/*.so"
             }
+            if (pcIntegration != null) {
+                keepDebugSymbols += setOf("**/libcartdeckpcruntime.so", "**/libcartdeckpc_dosbox.so", "**/liblibretrodroid.so")
+            }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
                 // Private ARMSX2 APK verification binds every packaged ELF byte

@@ -5,9 +5,13 @@ on:
     branches: [master]
     paths:
       - 'spikes/pc/**'
+      - 'lemuroid-app/src/pcIntegration/**'
+      - 'lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/game/pc/**'
+      - 'retrograde-app-shared/src/main/java/com/swordfish/lemuroid/lib/library/pc/**'
       - '.github/workflows/cartdeck-pc-native-lab.yml'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: pc-lab-${{ github.ref }}
   cancel-in-progress: true
@@ -173,4 +177,99 @@ jobs:
         with:
           name: pc-lab-apk-${{ github.sha }}
           path: work/pc-lab/delivery/
+          if-no-files-found: error
+
+  pc-integrated-host:
+    name: Build relocated PC host (distinct JNI and ELF)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare pinned Android tools
+        run: |
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'ndk;29.0.14206865' 'cmake;3.22.1'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Build independently named host and verify JNI namespace
+        run: |
+          set -euo pipefail
+          PC_INTEGRATED_NAMESPACE=true PC_LAB_BUILD_DIR="$RUNNER_TEMP/pc-integrated-host" bash spikes/pc/native-host/build_pc_lab_host.sh
+          mkdir -p "$RUNNER_TEMP/pc-integration-delivery"
+          host="$RUNNER_TEMP/pc-integrated-host/maven/dev/cartdeck/pc/lab/PcLibretroHost/0.14.0-pc-integrated1/PcLibretroHost-0.14.0-pc-integrated1.aar"
+          cp "$host" "$RUNNER_TEMP/pc-integration-delivery/PcLibretroHost.aar"
+          cp "$RUNNER_TEMP/pc-integrated-host/"{provenance.txt,applied-host.patch,host-base-source.tar.gz} "$RUNNER_TEMP/pc-integration-delivery/"
+          python3 spikes/pc/verify_integrated_host.py "$host" "$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-integrated-host-${{ github.sha }}
+          path: ${{ runner.temp }}/pc-integration-delivery/
+          if-no-files-found: error
+  pc-integrated-apk:
+    name: Assemble opt-in CARTDECK PC integration APK
+    needs: [pc-integrated-host, pc-lab-core, guest-probe]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-integrated-host-${{ github.sha }}
+          path: work/pc-integration
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-lab-core-${{ github.sha }}
+          path: work/pc-integration-core
+      - name: Download pinned verified console host (never substitute PC host)
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44386451127
+          name: native-ci01-libretrodroid-fa6f2712d44cb4795771e3f72690090f2bcc2a6a
+          path: work/pc-console-host
+      - name: Verify unchanged console receipt and stage independent PC artifacts
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/ci01_remaining_engines.py --engine libretrodroid --directory work/pc-console-host
+          python3 scripts/ci/retain_ci01_host_metadata.py --directory work/pc-console-host
+          mkdir -p work/pc-integration/jniLibs/arm64-v8a
+          cp work/pc-integration-core/libdosbox_pure_libretro_android.so work/pc-integration/jniLibs/arm64-v8a/libcartdeckpc_dosbox.so
+          python3 spikes/pc/audit_core_binary.py work/pc-integration/jniLibs/arm64-v8a/libcartdeckpc_dosbox.so --output work/pc-integration/core-audit.json
+      - name: Compile separate integration build and focused tests
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'build-tools;34.0.0'
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          "$gradle_bin" :lemuroid-app:testFreeBundleDebugUnitTest :lemuroid-app:assembleFreeBundleDebug \
+            -Pcartdeck.pc.integrationLab=true -PcartdeckPcIntegrationDir="$PWD/work/pc-integration" \
+            -Pcartdeck.p0.phoneArm64Only=true \
+            -PcartdeckHostMavenRepo="$PWD/work/pc-console-host/maven" -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
+            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2
+          apk="$(find lemuroid-app/build/outputs/apk/free/bundle/debug -name '*.apk' -print -quit)"
+          test -f "$apk"
+          "$sdk/build-tools/34.0.0/aapt" dump badging "$apk" | grep "^package: name='dev.prestwich.cartdeck.pclab.debug'"
+          mkdir -p work/pc-integration-delivery
+          python3 spikes/pc/verify_integrated_apk.py "$apk" work/pc-integration/PcLibretroHost.aar \
+            work/pc-console-host/maven/com/github/Swordfish90/LibretroDroid/0.14.0-cartdeck3/LibretroDroid-0.14.0-cartdeck3.aar \
+            work/pc-integration/jniLibs/arm64-v8a/libcartdeckpc_dosbox.so
+          cp "$apk" work/pc-integration-delivery/CARTDECK-PC-INTEGRATION.apk
+          sha256sum work/pc-integration-delivery/CARTDECK-PC-INTEGRATION.apk > work/pc-integration-delivery/apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-integrated-apk-${{ github.sha }}
+          path: work/pc-integration-delivery/
           if-no-files-found: error
