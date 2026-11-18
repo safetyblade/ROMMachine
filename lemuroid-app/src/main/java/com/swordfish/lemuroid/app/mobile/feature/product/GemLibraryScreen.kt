@@ -138,6 +138,7 @@ internal fun GemLibraryScreen(
     val savedId = remember(selected, revision) { selected?.let { corrections.read(it) } }
     val custom = remember(selected, revision) { selected?.let { corrections.custom(it) } }
     val inspected = current?.manifest?.releases?.firstOrNull { it.releaseId == inspectedId }
+    val sources = remember(current) { current?.manifest?.sources.orEmpty().associateBy { it.id } }
     val match =
         remember(current, selected) {
             if (current != null && selected != null) current.match(selected) else null
@@ -264,7 +265,7 @@ internal fun GemLibraryScreen(
                             }
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
-                                GemIntelligenceRecord(inspected)
+                                GemIntelligenceRecord(inspected, sources[inspected.sourceId])
                             }
                         }
                     }
@@ -291,7 +292,7 @@ internal fun GemLibraryScreen(
                             }
                             items(results, key = { it.releaseId }) { release ->
                                 Column(Modifier.fillMaxWidth().padding(4.dp)) {
-                                    GemIntelligenceRecord(release)
+                                    GemIntelligenceRecord(release, sources[release.sourceId])
                                     if (selected != null) {
                                         TextButton(
                                             onClick = { pending = release },
@@ -371,7 +372,10 @@ internal fun GemLibraryScreen(
 }
 
 @Composable
-private fun GemIntelligenceRecord(release: GemCataloguePackage.Release) {
+private fun GemIntelligenceRecord(
+    release: GemCataloguePackage.Release,
+    source: GemCataloguePackage.Source?,
+) {
     val feature = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -383,6 +387,9 @@ private fun GemIntelligenceRecord(release: GemCataloguePackage.Release) {
                 Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
             }
             Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+            source?.let {
+                Text("${it.name} · ${it.licence}", style = MaterialTheme.typography.bodySmall)
+            }
             Text("Historical metadata · compatibility not verified", style = MaterialTheme.typography.bodySmall)
         }
     }
