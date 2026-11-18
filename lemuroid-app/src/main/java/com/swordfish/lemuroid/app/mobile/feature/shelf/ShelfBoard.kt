@@ -53,6 +53,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -489,7 +490,7 @@ fun ShelfBoard(
                                                     Modifier.fillMaxSize().padding(
                                                         horizontal = 4.dp,
                                                     ).background(
-                                                        if (reserved && arrange) colors.vacantCell else androidx.compose.ui.graphics.Color.Transparent,
+                                                        if (reserved && arrange) colors.vacantCell else Color.Transparent,
                                                     ).border(
                                                         if (reserved && arrange) 1.dp else 0.dp,
                                                         colors.sectionDivider,
