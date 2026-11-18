@@ -10,7 +10,10 @@ class GemLocalCorrections(context: Context) {
 
     fun read(game: Game): String? = read(game.cartridgeId)
 
-    fun read(cartridgeId: String): String? = cartridgeId.takeIf { it.isNotBlank() }?.let { preferences.getString(it, null) }
+    fun read(cartridgeId: String): String? {
+        if (cartridgeId.isBlank()) return null
+        return preferences.getString(cartridgeId, null)
+    }
 
     fun select(
         game: Game,
