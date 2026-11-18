@@ -20,8 +20,10 @@ class GemCataloguePackageTest {
     private val release =
         GemCataloguePackage.Release("r1", "gba", "Fixture", source.id, "s1", verifiedSerials = setOf("ABC"))
     private val manifest = GemCataloguePackage.Manifest(1, "fixture-1", 1, listOf(source), listOf(release))
+
     private fun bytes(value: GemCataloguePackage.Manifest) =
         Json.encodeToString(GemCataloguePackage.Manifest.serializer(), value).encodeToByteArray()
+
     private fun approval(data: ByteArray) =
         GemCataloguePackage.Approval(
             "fixture-1",
