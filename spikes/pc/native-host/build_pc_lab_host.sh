@@ -9,7 +9,7 @@ MAVEN_REPO="$WORK/maven"
 REVISION=8835c3098514390a271e36983957f7bb5f40abf1
 : "${ANDROID_HOME:?Set ANDROID_HOME to the Android SDK}"
 NDK_VERSION=${HOST_NDK_VERSION:-29.0.14206865}
-VERSION=0.14.0-pc-lab1
+VERSION=0.14.0-pc-lab2
 PATCHES=(
     "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-gles-context-validation.patch"
     "$ROOT/spikes/pc/native-host/base-patches/libretrodroid-frontend-gl-state.patch"
@@ -36,6 +36,7 @@ for patch in "${PATCHES[@]}"; do
     git -C "$SOURCE" apply "$patch"
 done
 python3 "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$SOURCE"
+python3 "$ROOT/spikes/pc/native-host/apply_pc_guest.py" "$SOURCE"
 git -C "$SOURCE" add -N -- .
 git -C "$SOURCE" diff --binary > "$WORK/applied-host.patch"
 git -C "$SOURCE" submodule update --init --recursive
@@ -90,8 +91,8 @@ python3 "$ROOT/scripts/ci/native_symbols.py" \
 {
     printf 'source=https://github.com/Swordfish90/LibretroDroid\nrevision=%s\n' "$REVISION"
     printf 'abi=arm64-v8a\nndk=%s\n' "$NDK_VERSION"
-    sha256sum "$ARTIFACT" "$ROOT/spikes/pc/native-host/build_pc_lab_host.sh" "${PATCHES[@]}" "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$WORK/applied-host.patch" "$WORK/host-base-source.tar.gz"
-    printf 'namespace=pc-lab\nprotocol=pc-input-1-experimental\nproduction_eligible=false\n'
+    sha256sum "$ARTIFACT" "$ROOT/spikes/pc/native-host/build_pc_lab_host.sh" "${PATCHES[@]}" "$ROOT/spikes/pc/native-host/apply_pc_input.py" "$ROOT/spikes/pc/native-host/apply_pc_guest.py" "$WORK/applied-host.patch" "$WORK/host-base-source.tar.gz"
+    printf 'namespace=pc-lab\nprotocol=pc-guest-2-experimental\nproduction_eligible=false\n'
     git -C "$SOURCE" submodule status --recursive
 } > "$WORK/provenance.txt"
 printf 'Built PC lab host %s\nPC-only Maven repository: %s\n' "$ARTIFACT" "$MAVEN_REPO"
