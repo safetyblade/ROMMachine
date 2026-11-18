@@ -7,7 +7,8 @@ import org.junit.Test
 import java.io.File
 
 class GemProductionCatalogueTest {
-    private fun assets(): File = listOf(File("src/main/assets"), File("lemuroid-app/src/main/assets")).first { it.isDirectory }
+    private fun assets(): File =
+        listOf(File("src/main/assets"), File("lemuroid-app/src/main/assets")).first { it.isDirectory }
 
     @Test
     fun allPinnedSourcePackagesLoadAndMatchWithoutReassigningIdentity() {
