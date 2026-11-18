@@ -76,11 +76,10 @@ class GemCatalogueIndex(
         // Where both evidence types are supplied, an unresolved or contradictory one
         // cannot silently be ignored. A known candidate remains reviewable.
         if (strong.isNotEmpty()) {
-            val conflict =
-                (evidence.sha256 != null && hash == null) ||
-                    (hash != null && serial != null &&
-                        (hashes.size != 1 || serials.size != 1 ||
-                            hashes.single().releaseId != serials.single().releaseId))
+            val bothProvided = hash != null && serial != null
+            val consistent =
+                hashes.size == 1 && serials.size == 1 && hashes.single().releaseId == serials.single().releaseId
+            val conflict = (evidence.sha256 != null && hash == null) || (bothProvided && !consistent)
             return if (strong.size == 1 && !conflict) {
                 Match.Confirmed(strong.single())
             } else {
