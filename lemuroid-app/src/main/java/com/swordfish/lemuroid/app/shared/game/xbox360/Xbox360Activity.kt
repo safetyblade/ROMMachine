@@ -45,6 +45,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
@@ -86,6 +87,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private var surfaceReady = false
     private var booted = false
     private var subsystemsReady = false
+    private val reportCheckpoint = NativeReportCheckpoint()
     private var foreground = false
     private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
@@ -117,7 +119,9 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                         syncPause()
                     }
                     if (flags and 8 != 0) message = ""
-                    saveReport(native)
+                    if (!failed && reportCheckpoint.due(android.os.SystemClock.elapsedRealtime(), flags.toString())) {
+                        saveReport(native)
+                    }
                 }.onFailure { fail("Xbox 360 diagnostic interface failed. Return to the shelf before retrying.") }
                 if (!leaving) main.postDelayed(this, 1000)
             }

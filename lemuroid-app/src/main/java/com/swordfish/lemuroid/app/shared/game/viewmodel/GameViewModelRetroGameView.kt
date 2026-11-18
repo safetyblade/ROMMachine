@@ -468,9 +468,10 @@ class GameViewModelRetroGameView(
                 withContext(Dispatchers.IO) {
                     DisplaySettingsStore(appContext).readSafely(launchedGame?.cartridgeId).effective
                 }
-            val current = variables.mapNotNull { variable ->
-                variable.key?.let { key -> variable.value?.let { key to it } }
-            }.toMap()
+            val current =
+                variables.mapNotNull { variable ->
+                    variable.key?.let { key -> variable.value?.let { key to it } }
+                }.toMap()
             val overrides =
                 reported.mapNotNull { option ->
                     val existing = options.firstOrNull { it.key == option.key }?.value
