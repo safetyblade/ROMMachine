@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,12 +35,20 @@ internal fun PagedShelfSections(
     layout: ShelfLayout,
     modifier: Modifier,
     enabled: Boolean,
+    onOpenGem: (() -> Unit)? = null,
     content: @Composable (ShelfLayout, Modifier, String) -> Unit,
 ) {
     val sections = layout.sections
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     if (!enabled || sections.size <= 1) {
-        content(layout, modifier, "all")
+        if (enabled && onOpenGem != null) {
+            Column(modifier.fillMaxSize()) {
+                TextButton(onClick = onOpenGem, modifier = Modifier.heightIn(min = 48.dp)) { Text("GEM") }
+                content(layout, Modifier.weight(1f).fillMaxWidth(), "all")
+            }
+        } else {
+            content(layout, modifier, "all")
+        }
         return
     }
     val initialPage = sections.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
@@ -61,6 +71,9 @@ internal fun PagedShelfSections(
                         onClick = { scope.launch { pager.animateScrollToPage(index) } },
                         label = { Text(section.title, maxLines = 1) },
                     )
+                }
+                if (onOpenGem != null) {
+                    TextButton(onClick = onOpenGem, modifier = Modifier.heightIn(min = 48.dp)) { Text("GEM") }
                 }
             }
         }
