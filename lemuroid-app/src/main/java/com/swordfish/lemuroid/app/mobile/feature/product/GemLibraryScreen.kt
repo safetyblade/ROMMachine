@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -169,7 +168,7 @@ internal fun GemLibraryScreen(
                     selected = page == destination,
                     onClick = { page = destination },
                     label = { Text(destination) },
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.gemFocusTarget(),
                 )
             }
         }
@@ -297,7 +296,7 @@ internal fun GemLibraryScreen(
                                         TextButton(
                                             onClick = { pending = release },
                                             enabled = !writing && request == null,
-                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            modifier = Modifier.gemFocusTarget(),
                                         ) { Text("Confirm this entry") }
                                     }
                                 }
@@ -308,7 +307,7 @@ internal fun GemLibraryScreen(
                         TextButton(
                             onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
                             enabled = restoreUri == null && !writing && request == null,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.gemFocusTarget(),
                         ) { Text("Restore approved catalogue package") }
                     }
                 }
