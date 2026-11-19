@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -29,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlinx.coroutines.flow.collect
 
@@ -42,9 +44,14 @@ internal fun GripArcAccessory(
     isLoading: Boolean,
     onPressed: (Int, Boolean, Set<Int>) -> Unit,
     drawHousing: Boolean = true,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     if (placement != null && !fullscreenWithGamepad && !isLoading) {
-        GripArcControlGroup(placement, profile, tokens, onPressed, drawHousing)
+        GripArcControlGroup(
+            placement, profile, tokens, onPressed, drawHousing, lighting, highContrast, feedbackStrength,
+        )
     }
 }
 
@@ -60,10 +67,15 @@ internal fun GripArcControlGroup(
     tokens: CartdeckEditionTokens,
     onPressed: (Int, Boolean, Set<Int>) -> Unit,
     drawHousing: Boolean = true,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
-        if (drawHousing) GripArcHousing(placement = placement, tokens = tokens)
+        if (drawHousing) {
+            GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength)
+        }
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
             val size = placement.visuals.getValue(slot)
@@ -117,6 +129,9 @@ internal fun GripArcControlGroup(
 internal fun GripArcHousing(
     placement: GripArcPlacement,
     tokens: CartdeckEditionTokens,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     val housing = placement.housing
     val left = placement.side == GripArcSide.LEFT
@@ -169,19 +184,23 @@ internal fun GripArcHousing(
             }) {
                 drawPath(outer, tokens.chassis)
                 drawPath(outer, tokens.secondary, style = Stroke(width = 2.2f))
-                drawPath(inner, tokens.bezel)
+                drawPath(inner, tokens.secondary)
                 drawPath(inner, tokens.secondary.copy(alpha = 0.42f), style = Stroke(width = 1.4f))
-                drawLine(
-                    tokens.accent.copy(alpha = 0.65f),
-                    Offset(153f, 22f),
-                    Offset(153f, 144f),
-                    strokeWidth = 3.5f,
+                drawMaterialTrack(
+                    Rect(151f, 22f, 155f, 144f),
+                    tokens,
+                    lighting,
+                    CartdeckLighting.SIDE_RAILS,
+                    highContrast,
+                    feedbackStrength,
                 )
-                drawLine(
-                    tokens.accent.copy(alpha = 0.65f),
-                    Offset(153f, 144f),
-                    Offset(22f, 153f),
-                    strokeWidth = 2.2f,
+                drawMaterialTrack(
+                    Rect(22f, 151f, 149f, 155f),
+                    tokens,
+                    lighting,
+                    CartdeckLighting.SIDE_RAILS,
+                    highContrast,
+                    feedbackStrength,
                 )
                 drawLine(
                     tokens.focus.copy(alpha = 0.45f),

@@ -261,7 +261,17 @@ fun XboxGameControls(
                 }
                 if (placement != null && arc != null && !physicalControllerConnected && !isTv) {
                     GripArcCombinedControls(placement)
-                    GripArcAccessory(placement.dock, arc, tokens, false, false, onGripPressed)
+                    GripArcAccessory(
+                        placement.dock,
+                        arc,
+                        tokens,
+                        false,
+                        false,
+                        onGripPressed,
+                        drawHousing = hardwareBorder,
+                        lighting = resolved.lighting,
+                        highContrast = appearance.highContrast,
+                    )
                 }
             }
         }

@@ -171,15 +171,7 @@ internal fun DrawScope.drawManufacturedChannels(
                 cornerRadius = CornerRadius(housing.height / 3f),
             )
         }
-        val rect = channel.bounds
-        val radius = minOf(rect.width, rect.height) / 2f
-        drawRoundRect(
-            color = tokens.bezel,
-            topLeft = rect.topLeft,
-            size = rect.size,
-            cornerRadius = CornerRadius(radius),
-        )
-        drawMaterialTrack(rect, tokens, lighting, channel.zone, highContrast, feedbackStrength)
+        drawMaterialTrack(channel.bounds, tokens, lighting, channel.zone, highContrast, feedbackStrength)
     }
 }
 

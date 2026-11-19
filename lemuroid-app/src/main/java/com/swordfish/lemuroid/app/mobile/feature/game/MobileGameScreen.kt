@@ -614,7 +614,13 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     individualInputs.toMap()
                 }
             if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
-                CompositeControlDeckHousing(jointPlacement, shellTokens)
+                CompositeControlDeckHousing(
+                    jointPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                )
             }
             if (
                 touchControlsVisibleState.value &&
@@ -792,6 +798,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLoading = isLoading,
                 onPressed = viewModel::pressGripArcSlot,
                 drawHousing = hardwareBorder && jointPlacement == null,
+                lighting = resolved.lighting,
+                highContrast = appearance.highContrast,
+                feedbackStrength = reactiveLightStrength,
             )
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable
