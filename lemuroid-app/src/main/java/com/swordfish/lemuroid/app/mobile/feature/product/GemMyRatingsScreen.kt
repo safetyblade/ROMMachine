@@ -60,7 +60,7 @@ internal fun GemMyRatingsScreen(
             withContext(Dispatchers.IO) {
                 runCatching {
                     val local = GemRatingLocalStore.open(context)
-                    local.repository.snapshot(local.session).records.filter { it.score != null }
+                    local.repository.snapshot(local.session).records.filter { it.score != null || it.deckFit != null }
                         .sortedByDescending { it.updatedAt }
                 }
             }
@@ -135,6 +135,12 @@ internal fun GemMyRatingsScreen(
                                 cartridgeId = rating.cartridgeId,
                                 displayTitle = title,
                                 platformId = platform,
+                            )
+                            GemRatingRow(
+                                cartridgeId = rating.cartridgeId,
+                                displayTitle = title,
+                                platformId = platform,
+                                deckFit = true,
                             )
                         }
                     }
