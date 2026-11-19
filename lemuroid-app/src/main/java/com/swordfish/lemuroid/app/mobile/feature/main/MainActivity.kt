@@ -357,7 +357,6 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
                             arrange = arrangingShelf.value,
                             onSectionEdit = { editingSection.value = it },
-                            onOpenGem = { navController.navigateToRoute(MainRoute.GEM) },
                             shelfActions = {
                                 ShelfActions(
                                     saveSyncEnabled = mainUIState.saveSyncEnabled,
@@ -379,6 +378,14 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onOpenCartridge = onGameClick,
                             initialCartridgeId = gemCartridgeId.value,
                             onCartridgeIdConsumed = { gemCartridgeId.value = null },
+                            onBackToShelf = {
+                                if (!navController.popBackStack(MainRoute.HOME.route, false)) {
+                                    navController.navigate(MainRoute.HOME.route) {
+                                        popUpTo(MainRoute.GEM.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
                         )
                     }
                     composable(MainRoute.CARTMOD) {
