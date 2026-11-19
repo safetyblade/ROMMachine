@@ -105,7 +105,8 @@ object GemProductionCatalogue {
                 if (path == TITLE_SCREEN_REGISTRY) {
                     require(digest(bytes) == TITLE_SCREEN_PIN_SHA) { "Unapproved Title Screen registry" }
                 }
-                Json.decodeFromString(ListSerializer(Pin.serializer()), bytes.decodeToString(throwOnInvalidSequence = true))
+                val registryJson = bytes.decodeToString(throwOnInvalidSequence = true)
+                Json.decodeFromString(ListSerializer(Pin.serializer()), registryJson)
             }
         val expectedShards = if (legacy) 23 else 53
         val expectedRecords = if (legacy) LEGACY_RELEASE_COUNT else RELEASE_COUNT
