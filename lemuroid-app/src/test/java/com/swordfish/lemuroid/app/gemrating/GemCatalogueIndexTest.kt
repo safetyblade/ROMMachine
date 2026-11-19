@@ -59,6 +59,17 @@ class GemCatalogueIndexTest {
     }
 
     @Test
+    fun blankProvidedSerialCannotConfirmExistingHash() {
+        assertTrue(index.match(game, GemCatalogueIndex.Evidence(hash, "  ")) is GemCatalogueIndex.Match.Review)
+    }
+
+    @Test
+    fun normalizedTitleIndexDoesNotCrossPlatforms() {
+        val result = index.match(game.copy(title = " EXAMPLE  ")) as GemCatalogueIndex.Match.Review
+        assertEquals(listOf("r1", "r2"), result.candidates.map { it.releaseId })
+    }
+
+    @Test
     fun duplicateStrongEvidenceRequiresReview() {
         val duplicate = b.copy(verifiedSha256 = setOf(hash))
         val result = GemCatalogueIndex("v", listOf(a, duplicate)).match(game, GemCatalogueIndex.Evidence(hash))
