@@ -49,7 +49,6 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
-import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
@@ -109,8 +108,6 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var connected by mutableStateOf(false)
     private var message by mutableStateOf("Preparing PS2 cartridge…")
     private var report = "ARMSX2_PREPARING; gameplay=UNVERIFIED"
-    private var presentationRecorded = false
-    private val reportCheckpoint = NativeReportCheckpoint()
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
     private val grip = XboxPadState()
@@ -420,26 +417,18 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
                 startIfReady()
                 while (!leaving) {
-                    if (ready && started && !failed) {
-                        val frames = NativeApp.getPresentedFrameCount()
+                    if (ready && started) {
                         report = "engine=${engine?.id}\ndriver_selection=STOCK\n" + NativeApp.getCustomDriverStatus() +
-                            "\npresented_frames=$frames\n" + NativeApp.getPerfSnapshot() +
+                            "\npresented_frames=${NativeApp.getPresentedFrameCount()}\n" + NativeApp.getPerfSnapshot() +
                             "\ngameplay=UNVERIFIED"
-                        val stage = if (frames > 0) "PRESENTED" else "STARTING"
-                        if (reportCheckpoint.due(android.os.SystemClock.elapsedRealtime(), stage)) {
-                            val snapshot = report.take(16384)
-                            withContext(Dispatchers.IO) {
-                                File(requireNotNull(paths).gameRoot, "last-report.txt").writeText(snapshot)
-                            }
-                        }
-                        if (frames > 0 && !presentationRecorded) {
+                        withContext(
+                            Dispatchers.IO,
+                        ) { File(requireNotNull(paths).gameRoot, "last-report.txt").writeText(report.take(16384)) }
+                        if (NativeApp.getPresentedFrameCount() > 0 && !failed) {
                             message = ""
-                            withContext(Dispatchers.IO) {
-                                EngineSelectionPreferences(
-                                    this@Armsx2RuntimeProbeActivity,
-                                ).recordPresentation(requireNotNull(current))
-                            }
-                            presentationRecorded = true
+                            EngineSelectionPreferences(
+                                this@Armsx2RuntimeProbeActivity,
+                            ).recordPresentation(requireNotNull(current))
                         }
                     }
                     delay(1000)

@@ -40,7 +40,6 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
-import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
@@ -81,7 +80,6 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var coreLibrary: File? = null
     private var activeRevision = ""
     private var report = "PS3_PREPARING; gameplay=UNVERIFIED"
-    private val reportCheckpoint = NativeReportCheckpoint()
     private val touchKeys = mutableSetOf<Int>()
     private val touchSticks = intArrayOf(128, 128, 128, 128)
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
@@ -342,11 +340,8 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
                 while (!leaving && loaded && !failure) {
                     delay(500)
-                    if (leaving || failure) break
-                    val (state, framePeriod) =
-                        withContext(Dispatchers.IO) {
-                            if (retro) -1 to 0L else Ps3Native.state() to Ps3Native.framePeriod()
-                        }
+                    val state = withContext(Dispatchers.IO) { if (retro) -1 else Ps3Native.state() }
+                    val framePeriod = withContext(Dispatchers.IO) { if (retro) 0L else Ps3Native.framePeriod() }
                     report =
                         buildString {
                             appendLine("engine=$engine")
@@ -361,13 +356,9 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                         report += withContext(Dispatchers.IO) { Ps3Libretro.nativeReport() }
                         withContext(Dispatchers.IO) { completeFirmwareInstall(report) }
                     }
+                    withContext(Dispatchers.IO) { File(storage.root, "last-report.txt").writeText(report) }
                     message = com.armsx3.core.ProgressRepository.message.ifBlank { "Compiling PS3 modules" }
                     val presented = retro && Regex("presented_image_callbacks=[1-9][0-9]*").containsMatchIn(report)
-                    val stage = "$state:${framePeriod > 0 || presented}"
-                    if (reportCheckpoint.due(android.os.SystemClock.elapsedRealtime(), stage)) {
-                        val snapshot = report.take(16384)
-                        withContext(Dispatchers.IO) { File(storage.root, "last-report.txt").writeText(snapshot) }
-                    }
                     if (framePeriod > 0 || presented) loading = false
                     if (booting && state == 5) error("PS3 guest entered a frozen state")
                 }
@@ -835,12 +826,6 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             val deadline = android.os.SystemClock.elapsedRealtime() + 15000
             while (!stopped.get() && android.os.SystemClock.elapsedRealtime() < deadline) delay(50)
             if (stopped.get()) {
-                if (::storage.isInitialized) {
-                    val snapshot = report.take(16384)
-                    withContext(Dispatchers.IO) {
-                        runCatching { File(storage.root, "last-report.txt").writeText(snapshot) }
-                    }
-                }
                 NativeSessionJournal.finish(this@Ps3RuntimeActivity)
             } else {
                 failure = true

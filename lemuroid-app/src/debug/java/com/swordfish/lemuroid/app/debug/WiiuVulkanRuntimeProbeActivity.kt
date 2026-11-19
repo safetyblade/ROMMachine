@@ -46,7 +46,6 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
-import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuContent
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuLaunchStatus
@@ -105,7 +104,6 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var presentationRecorded = false
     private var loadedCoreSha256 = "UNVERIFIED"
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
-    private val reportCheckpoint = NativeReportCheckpoint()
     private val touch = XboxPadState()
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
@@ -443,18 +441,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 presentationRecorded = true
                             }
                         }
-                        val stage =
-                            when {
-                                status.error.isNotEmpty() -> "ERROR:${status.error}"
-                                frames > 0 -> "PRESENTED"
-                                showLoadingScreen -> "LOADING"
-                                else -> "WAITING_FOR_PRESENTATION"
-                            }
-                        if (reportCheckpoint.due(android.os.SystemClock.elapsedRealtime(), stage)) {
-                            val snapshot = (report + "\n" + viewportAudit.summary()).take(16384)
-                            val dataRoot = requireNotNull(sandbox)
-                            withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
-                        }
+                        val snapshot = (report + "\n" + viewportAudit.summary()).take(16384)
+                        val dataRoot = requireNotNull(sandbox)
+                        withContext(Dispatchers.IO) { File(dataRoot, "last-report.txt").writeText(snapshot) }
                     }
                     // Release the opaque loader before the first bounded WSI acquire wait.
                     delay(if (showLoadingScreen) 50 else 1000)
