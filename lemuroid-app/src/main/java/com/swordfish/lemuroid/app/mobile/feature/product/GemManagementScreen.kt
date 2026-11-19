@@ -214,7 +214,6 @@ internal fun GemManagementScreen(
                 )
             },
         )
-
     }
 
     val update = candidate
