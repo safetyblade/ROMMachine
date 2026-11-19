@@ -27,8 +27,7 @@ object RomCachePruner {
         )
     }
 
-    private fun safe(file: File): Boolean =
-        runCatching { file.canonicalFile == file.absoluteFile }.getOrDefault(false)
+    private fun safe(file: File): Boolean = runCatching { file.canonicalFile == file.absoluteFile }.getOrDefault(false)
 
     private fun groups(
         root: Root,
@@ -56,6 +55,7 @@ object RomCachePruner {
         if (!safe(directory)) return null
         var bytes = 0L
         var newest = 0L
+
         fun visit(file: File): Boolean {
             checkCancelled()
             if (!safe(file)) return false

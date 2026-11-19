@@ -47,9 +47,10 @@ object CacheCleaner {
         withContext(Dispatchers.IO) {
             val coroutine = currentCoroutineContext()
             val limit = getSupportedCacheLimits().minByOrNull { abs(it - requestedLimit) } ?: 0L
-            val result = RomCachePruner.prune(appContext.cacheDir, appContext.filesDir, limit) {
-                coroutine.ensureActive()
-            }
+            val result =
+                RomCachePruner.prune(appContext.cacheDir, appContext.filesDir, limit) {
+                    coroutine.ensureActive()
+                }
             Timber.i(
                 "Staged ROM bytes: ${result.beforeBytes} -> ${result.remainingBytes}; " +
                     "removed ${result.removedGroups} groups",
