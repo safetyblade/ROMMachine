@@ -37,6 +37,7 @@ import kotlinx.coroutines.withContext
 internal fun GemManagementScreen(
     onCatalogueChanged: () -> Unit,
     modifier: Modifier = Modifier,
+    onRestoreBaseline: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val versions = remember(context) { GemCatalogueVersions(context) }
@@ -131,6 +132,7 @@ internal fun GemManagementScreen(
             }
         }
 
+    var advanced by remember { mutableStateOf(false) }
     val current = status
     Column(
         modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(4.dp),
@@ -139,40 +141,50 @@ internal fun GemManagementScreen(
         Text("GEM management", style = MaterialTheme.typography.titleLarge)
         if (message.isNotBlank()) Text(message)
         if (busy) Text("Operation in progress…")
-        Text("Catalogue", style = MaterialTheme.typography.titleMedium)
-        Text("Active: ${current?.active ?: "Unknown"}")
-        Text("Loaded: ${current?.loaded ?: "Checking"}")
-        Text("Previous: ${current?.previous ?: "None"}")
-        current?.warning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         CartdeckMenuRow(
-            title = { Text("Import approved catalogue update") },
-            supporting = {
-                Text(if (current?.signingConfigured == true) "Signed local package" else "Signing not configured")
-            },
-            enabled = !busy && current?.signingConfigured == true,
-            onClick = { updatePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+            title = { Text("Advanced catalogue options") },
+            onClick = { advanced = !advanced },
         )
-        CartdeckMenuRow(
-            title = { Text("Check online for catalogue update") },
-            supporting = {
-                Text(if (current?.onlineConfigured == true) "Manual check only" else "Update source not configured")
-            },
-            enabled = !busy && current?.onlineConfigured == true,
-            onClick = {
-                operation("No verified update available. Existing catalogue retained.", versions::fetchPreview) {
-                    candidate = it
-                }
-            },
-        )
-        CartdeckMenuRow(
-            title = { Text("Roll back to previous catalogue") },
-            supporting = { Text(current?.previous ?: "No previous version") },
-            enabled = !busy && current?.previous != null,
-            onClick = { rollback = true },
-        )
-        Text("Personal GEM backup", style = MaterialTheme.typography.titleMedium)
-        Text("Ratings, cleared ratings, Wildcards, Surprise Me history and shelf-rating preference.")
-        Text("A GEM backup is not a game-save archive. Local identification links stay on this installation.")
+        if (advanced) {
+            Text("Catalogue", style = MaterialTheme.typography.titleMedium)
+            Text("Active: ${current?.active ?: "Unknown"}")
+            Text("Loaded: ${current?.loaded ?: "Checking"}")
+            Text("Previous: ${current?.previous ?: "None"}")
+            current?.warning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            CartdeckMenuRow(
+                title = { Text("Import approved catalogue update") },
+                supporting = {
+                    Text(if (current?.signingConfigured == true) "Signed local package" else "Signing not configured")
+                },
+                enabled = !busy && current?.signingConfigured == true,
+                onClick = { updatePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+            )
+            CartdeckMenuRow(
+                title = { Text("Check online for catalogue update") },
+                supporting = {
+                    Text(if (current?.onlineConfigured == true) "Manual check only" else "Update source not configured")
+                },
+                enabled = !busy && current?.onlineConfigured == true,
+                onClick = {
+                    operation("No verified update available. Existing catalogue retained.", versions::fetchPreview) {
+                        candidate = it
+                    }
+                },
+            )
+            CartdeckMenuRow(
+                title = { Text("Roll back to previous catalogue") },
+                supporting = { Text(current?.previous ?: "No previous version") },
+                enabled = !busy && current?.previous != null,
+                onClick = { rollback = true },
+            )
+            CartdeckMenuRow(
+                title = { Text("Restore bundled catalogue file") },
+                enabled = !busy,
+                onClick = onRestoreBaseline,
+            )
+        }
+        Text("Personal backup", style = MaterialTheme.typography.titleMedium)
+        Text("Keep a copy of your ratings and preferences. Game saves are separate.")
         CartdeckMenuRow(
             title = { Text("Export GEM profile") },
             enabled = !busy,
@@ -202,7 +214,7 @@ internal fun GemManagementScreen(
                 )
             },
         )
-        Text("SafeSave: GEM metadata component ready; full game-save archive feature not yet connected.")
+
     }
 
     val update = candidate
