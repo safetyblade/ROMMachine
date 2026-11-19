@@ -40,6 +40,7 @@ import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /** First offline GEM surface. Existing website search remains an explicitly separate action. */
@@ -146,21 +147,36 @@ internal fun GemLibraryScreen(
             if (current != null && selected != null) current.match(selected) else null
         }
     val candidateIds =
-        remember(match) { (match as? GemCatalogueIndex.Match.Review)?.candidates?.map { it.releaseId }.orEmpty() }
-    val results =
-        remember(current, query, selected, candidateIds, savedId) {
-            current?.manifest?.releases.orEmpty().asSequence()
-                .filter { selected == null || it.systemId == selected.systemId }
-                .filter {
-                    if (query.isBlank()) {
-                        selected != null && (it.releaseId in candidateIds || it.releaseId == savedId)
-                    } else {
-                        it.title.contains(query.trim(), ignoreCase = true)
-                    }
-                }
-                .take(100)
-                .toList()
+        remember(match) {
+            when (match) {
+                is GemCatalogueIndex.Match.Confirmed -> setOf(match.release.releaseId)
+                is GemCatalogueIndex.Match.Review -> match.candidates.map { it.releaseId }.toSet()
+                else -> emptySet()
+            }
         }
+    var results by remember(current, query, selected, candidateIds, savedId) {
+        mutableStateOf<List<GemCataloguePackage.Release>>(emptyList())
+    }
+    var searching by remember(current, query, selected, candidateIds, savedId) { mutableStateOf(true) }
+    LaunchedEffect(current, query, selected, candidateIds, savedId) {
+        val term = query.trim()
+        if (term.isNotEmpty()) delay(120)
+        results =
+            withContext(Dispatchers.Default) {
+                current?.manifest?.releases.orEmpty().asSequence()
+                    .filter { selected == null || it.systemId == selected.systemId }
+                    .filter {
+                        if (term.isEmpty()) {
+                            selected != null && (it.releaseId in candidateIds || it.releaseId == savedId)
+                        } else {
+                            it.title.contains(term, ignoreCase = true)
+                        }
+                    }
+                    .take(100)
+                    .toList()
+            }
+        searching = false
+    }
     Column(modifier = modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -291,7 +307,9 @@ internal fun GemLibraryScreen(
                                 )
                             }
                         } else {
-                            if (results.isEmpty()) {
+                            if (searching) {
+                                item(span = { GridItemSpan(maxLineSpan) }) { Text("Searching catalogue…") }
+                            } else if (results.isEmpty()) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
                                     Text("No matching records. Try another title or enter custom information.")
                                 }
