@@ -35,6 +35,20 @@ class GemProfileBackupTest {
     ) = GemRatingRepository.Rating(cartridgeId, score, revision, 10L, "Fixture", "gba")
 
     @Test
+    fun deckFitIsIndependentAndIncludedInBackup() {
+        repository.set(session, game, 9)
+        repository.set(session, game, 4, deckFitOnly = true)
+        val both = repository.snapshot(session)
+        assertEquals(9, both.records.single().score)
+        assertEquals(4, both.records.single().deckFit)
+        assertEquals(both, GemProfileBackup.decode(GemProfileBackup.encode(both)))
+        repository.set(session, game, null, deckFitOnly = true)
+        assertEquals(9, repository.snapshot(session).records.single().score)
+        assertNull(repository.snapshot(session).records.single().deckFit)
+        assertTrue(runCatching { repository.set(session, game, 6, deckFitOnly = true) }.isFailure)
+    }
+
+    @Test
     fun roundTripIncludesPreferencesAndExplicitClear() {
         val snapshot =
             GemRatingRepository.Snapshot(
