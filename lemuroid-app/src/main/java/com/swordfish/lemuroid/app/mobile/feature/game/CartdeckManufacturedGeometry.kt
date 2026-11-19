@@ -195,8 +195,7 @@ internal fun DrawScope.drawManufacturedChannels(
 }
 
 /** Permanent accent material is independent of emitted light colour. */
-internal fun hardwareInlay(tokens: CartdeckEditionTokens): Color =
-    lerp(tokens.bezel, tokens.accent, 0.76f)
+internal fun hardwareInlay(tokens: CartdeckEditionTokens): Color = lerp(tokens.bezel, tokens.accent, 0.76f)
 
 /** Soft layered emission stays inside the validated hardware footprint. */
 internal fun DrawScope.drawMaterialTrack(

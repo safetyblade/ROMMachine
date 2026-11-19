@@ -50,7 +50,14 @@ internal fun GripArcAccessory(
 ) {
     if (placement != null && !fullscreenWithGamepad && !isLoading) {
         GripArcControlGroup(
-            placement, profile, tokens, onPressed, drawHousing, lighting, highContrast, feedbackStrength,
+            placement,
+            profile,
+            tokens,
+            onPressed,
+            drawHousing,
+            lighting,
+            highContrast,
+            feedbackStrength,
         )
     }
 }
