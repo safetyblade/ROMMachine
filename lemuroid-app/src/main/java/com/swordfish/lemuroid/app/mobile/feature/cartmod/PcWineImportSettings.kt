@@ -82,7 +82,7 @@ internal fun PcWineImportSettings(
     WorkshopPanel("Windows game · Wine", "Experimental native compatibility, no Windows ISO") {
         Text("Use only trusted, lawful local executables. This candidate is isolated from your normal CARTDECK app.")
         Text(
-            "Single PE32 file only. Multi-file installations, 16-bit installers and actual gameplay are not yet verified.",
+            "Single PE32 file only. Multi-file installations, 16-bit installers and gameplay are not yet verified.",
         )
         Button(
             modifier = Modifier.fillMaxWidth(),

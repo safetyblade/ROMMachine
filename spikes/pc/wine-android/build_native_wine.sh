@@ -69,7 +69,7 @@ test -f "$runtime/arm64-v8a/lib/wine/aarch64-unix/ntdll.so"
 install -m 644 "${dlls[0]}" "$runtime/arm64-v8a/lib/wine/aarch64-windows/wowbox64.dll"
 mkdir -p "$runtime/arm64-v8a/lib"
 cp -L "$work/ft-install/lib/libfreetype.so.6" "$runtime/arm64-v8a/lib/libfreetype.so.6"
-i686-w64-mingw32-clang -O2 "$root/spikes/pc/wine-probe/guest.c" -o "$work/delivery/probe32.exe" -lgdi32 -luser32 -ladvapi32
+i686-w64-mingw32-clang -O2 "$root/spikes/pc/wine-android/guest_interactive.c" -o "$work/delivery/probe32.exe" -lgdi32 -luser32 -lwinmm
 python3 "$root/spikes/pc/wine-android/package_runtime.py" "$runtime" "$work/delivery" "$toolchain/llvm-readelf"
 for spec in "wine:$wine_rev" "box64:$box_rev" "freetype:$ft_rev"; do
     name="${spec%:*}"; rev="${spec#*:}"

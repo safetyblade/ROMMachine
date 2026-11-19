@@ -58,7 +58,9 @@ class PcWineCartridgesTest {
             )
             assertTrue(
                 runCatching {
-                    PcWineCartridges.importExecutable(root, "cancel", executable(0x014c).inputStream()) { error("cancel") }
+                    PcWineCartridges.importExecutable(root, "cancel", executable(0x014c).inputStream()) {
+                        error("cancel")
+                    }
                 }.isFailure,
             )
             assertTrue(PcCartridgeStore(root).entries().isEmpty())
