@@ -38,8 +38,10 @@ object GemRatingRecommender {
             "compilation", "arcade", "vertical arcade", "none", "n/a",
         )
 
+    private val whitespace = Regex("\\s+")
+
     private fun clean(value: String?): String? {
-        val token = value?.trim()?.lowercase(java.util.Locale.ROOT)?.replace(Regex("\\s+"), " ")
+        val token = value?.trim()?.lowercase(java.util.Locale.ROOT)?.replace(whitespace, " ")
         if (token.isNullOrEmpty() || token in ignored) return null
         return when (token) {
             "fps", "first person", "first-person shooter" -> "first-person"
@@ -61,15 +63,29 @@ object GemRatingRecommender {
             mechanics.forEach { put("mechanic:$it", 0.50 / mechanics.size) }
         }
 
-    private fun similarity(
-        a: Map<String, Double>,
-        b: Map<String, Double>,
-    ): Double {
-        if (a.isEmpty() || b.isEmpty()) return 0.0
-        val overlap = a.keys.intersect(b.keys).sumOf { key -> a.getValue(key) * b.getValue(key) }
-        val magnitudeA = sqrt(a.values.sumOf { it * it })
-        val magnitudeB = sqrt(b.values.sumOf { it * it })
-        return if (magnitudeA == 0.0 || magnitudeB == 0.0) 0.0 else overlap / (magnitudeA * magnitudeB)
+    private data class Training(
+        val game: Game,
+        val vector: Map<String, Double>,
+        val magnitude: Double,
+        val preference: Double,
+    )
+
+    private data class FeaturePosting(val index: Int, val weight: Double)
+
+    private fun magnitude(vector: Map<String, Double>): Double = sqrt(vector.values.sumOf { it * it })
+
+    /** Exact sparse cosine: compare only training vectors sharing at least one feature. */
+    private fun matchingDots(
+        vector: Map<String, Double>,
+        postings: Map<String, List<FeaturePosting>>,
+    ): Map<Int, Double> {
+        val dots = mutableMapOf<Int, Double>()
+        for ((key, weight) in vector) {
+            for (posting in postings[key].orEmpty()) {
+                dots[posting.index] = (dots[posting.index] ?: 0.0) + weight * posting.weight
+            }
+        }
+        return dots
     }
 
     /**
@@ -135,10 +151,10 @@ object GemRatingRecommender {
         candidateIds: Set<String>?,
     ): List<Recommendation> {
         require(ratings.all { it.score.isFinite() && it.score in 1.0..10.0 }) { "Ratings must be 1–10" }
+        if (ratings.isEmpty()) return emptyList() // explicit cold start
         val indexed = catalogue.associateBy { it.releaseId }
         require(indexed.size == catalogue.size) { "Duplicate release ID" }
         require(ratings.map { it.releaseId }.distinct().size == ratings.size) { "Duplicate user rating" }
-        if (ratings.isEmpty()) return emptyList() // explicit cold start
 
         val known =
             ratings.sortedBy { it.releaseId }.mapNotNull { rating ->
@@ -150,9 +166,16 @@ object GemRatingRecommender {
         val likedGenres = known.filter { it.second > 5.5 }.mapNotNull { clean(it.first.primaryGenre) }.toSet()
         val training =
             known.mapNotNull { (game, rating) ->
-                features(game).takeIf { it.isNotEmpty() }?.let { Triple(game, it, (rating - 5.5) / 4.5) }
+                val vector = features(game)
+                if (vector.isEmpty()) null else Training(game, vector, magnitude(vector), (rating - 5.5) / 4.5)
             }
         if (training.isEmpty()) return emptyList()
+        val postings = mutableMapOf<String, MutableList<FeaturePosting>>()
+        training.forEachIndexed { index, item ->
+            item.vector.forEach { (feature, weight) ->
+                postings.getOrPut(feature) { mutableListOf() }.add(FeaturePosting(index, weight))
+            }
+        }
 
         val candidates =
             catalogue.asSequence()
@@ -162,19 +185,31 @@ object GemRatingRecommender {
                 .mapNotNull { game ->
                     val vector = features(game)
                     if (vector.isEmpty()) return@mapNotNull null
-                    val pairs =
-                        training.mapNotNull { (ratedGame, ratedFeatures, preference) ->
-                            val match = similarity(vector, ratedFeatures)
-                            if (match <= 0.0) null else Triple(ratedGame, match, preference)
+                    val dots = matchingDots(vector, postings)
+                    if (dots.isEmpty()) return@mapNotNull null
+                    val norm = magnitude(vector)
+                    var numerator = 0.0
+                    var denominator = 0.0
+                    var bestIndex = -1
+                    var bestMatch = 0.0
+                    var bestWeight = 0.0
+                    // Sorted indices preserve the original rating order and deterministic ties.
+                    for (index in dots.keys.sorted()) {
+                        val item = training[index]
+                        val match = dots.getValue(index) / (norm * item.magnitude)
+                        val weighted = match * item.preference
+                        numerator += weighted
+                        denominator += match
+                        if (weighted > bestWeight) {
+                            bestIndex = index
+                            bestMatch = match
+                            bestWeight = weighted
                         }
-                    if (pairs.isEmpty()) return@mapNotNull null
-                    // Dislikes contribute negative evidence without banning an entire genre.
-                    val preference = pairs.sumOf { it.second * it.third } / pairs.sumOf { it.second }
-                    if (preference <= 0.0) return@mapNotNull null
-                    val best =
-                        pairs.filter { it.third > 0.0 }.maxByOrNull { it.second * it.third }
-                            ?: return@mapNotNull null
-                    val common = vector.keys.intersect(features(best.first).keys).sorted()
+                    }
+                    if (numerator <= 0.0 || bestIndex < 0) return@mapNotNull null
+                    val preference = numerator / denominator
+                    val best = training[bestIndex]
+                    val common = vector.keys.intersect(best.vector.keys).sorted()
                     val confidence =
                         when (game.evidence) {
                             Evidence.SOURCE_BACKED -> 1.0
@@ -182,18 +217,18 @@ object GemRatingRecommender {
                             Evidence.WEAK_CONTEXT -> 0.40
                         }
                     val meaningfulBridge = common.any { it.startsWith("mechanic:") || it.startsWith("crossover:") }
-                    val score = preference * best.second * confidence * (if (meaningfulBridge) 1.0 else 0.35)
+                    val score = preference * bestMatch * confidence * (if (meaningfulBridge) 1.0 else 0.35)
                     val novelGenre = clean(game.primaryGenre)?.let { it !in likedGenres } == true
-                    val sourceGenre = clean(best.first.primaryGenre)
+                    val sourceGenre = clean(best.game.primaryGenre)
                     val targetGenre = clean(game.primaryGenre)
                     val genreDifference = novelGenre && sourceGenre != null && targetGenre != null
-                    val sourceStyle = clean(best.first.playstyle)
+                    val sourceStyle = clean(best.game.playstyle)
                     val targetStyle = clean(game.playstyle)
                     val styleDifference = sourceStyle != null && targetStyle != null && sourceStyle != targetStyle
-                    val sourceCross = clean(best.first.crossoverGenre)
+                    val sourceCross = clean(best.game.crossoverGenre)
                     val targetCross = clean(game.crossoverGenre)
                     val crossoverDifference = sourceCross != null && targetCross != null && sourceCross != targetCross
-                    val sourceMechanics = best.first.mechanics.mapNotNull(::clean).toSet()
+                    val sourceMechanics = best.game.mechanics.mapNotNull(::clean).toSet()
                     val targetMechanics = game.mechanics.mapNotNull(::clean).toSet()
                     val mechanicNovelty =
                         if (sourceMechanics.isNotEmpty() && targetMechanics.isNotEmpty()) {
@@ -215,7 +250,7 @@ object GemRatingRecommender {
                             targetCross?.takeIf { crossoverDifference },
                         ).distinct()
                     val explanation =
-                        "Similar to ${best.first.title}: " +
+                        "Similar to ${best.game.title}: " +
                             common.map { it.substringAfter(':') }.distinct().joinToString(", ") +
                             (if (differences.isEmpty()) "" else ". Explore: ${differences.joinToString(", ")}")
                     val wildcard = meaningfulBridge && novelty >= 0.25
