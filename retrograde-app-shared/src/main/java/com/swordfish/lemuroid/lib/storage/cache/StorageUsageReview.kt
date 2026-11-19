@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.lib.storage.cache
 
 import java.io.File
-import java.nio.file.Files
 
 /** Logical file bytes, not Android's allocated-storage accounting. Read-only and app-private. */
 object StorageUsageReview {
@@ -22,6 +21,7 @@ object StorageUsageReview {
     ): Report {
         val data = dataDir.canonicalFile
         val managed = RomCachePruner.roots(cacheDir, filesDir)
+        val nativeRoot = File(filesDir.canonicalFile, "native")
         val rows = mutableListOf<Row>()
         var incomplete = 0
 
@@ -31,9 +31,16 @@ object StorageUsageReview {
             return children.orEmpty().toList()
         }
 
+        fun safe(file: File): Boolean = runCatching { file.canonicalFile == file.absoluteFile }.getOrDefault(false)
+
+        fun within(
+            file: File,
+            directory: File,
+        ): Boolean = file == directory || file.path.startsWith(directory.path + File.separator)
+
         fun size(file: File): Long {
             checkCancelled()
-            if (Files.isSymbolicLink(file.toPath())) {
+            if (!safe(file)) {
                 incomplete++
                 return 0L
             }
@@ -54,7 +61,7 @@ object StorageUsageReview {
             depth: Int,
         ) {
             checkCancelled()
-            if (Files.isSymbolicLink(file.toPath())) {
+            if (!safe(file)) {
                 incomplete++
                 return
             }
@@ -65,9 +72,9 @@ object StorageUsageReview {
                 if (bytes > 0) rows += Row(media.label, bytes, reclaimable, internal)
                 return
             }
-            val containsManaged = managed.any { it.directory.toPath().startsWith(file.toPath()) }
+            val containsManaged = managed.any { within(it.directory, file) }
             // Break down native console data by engine or immediate storage purpose.
-            val native = file.toPath().startsWith(File(filesDir.canonicalFile, "native").toPath())
+            val native = within(file, nativeRoot)
             if (file.isDirectory && (containsManaged || depth < 2 || (native && depth < 5))) {
                 for (child in entries(file)) visit(child, "$label/${child.name}", internal, depth + 1)
             } else {
@@ -77,7 +84,7 @@ object StorageUsageReview {
         }
 
         visit(data, "Internal", true, 0)
-        externalDir?.canonicalFile?.takeUnless { it.toPath().startsWith(data.toPath()) }?.let {
+        externalDir?.canonicalFile?.takeUnless { within(it, data) }?.let {
             if (it.isDirectory) visit(it, "App-specific storage", false, 0)
         }
         return Report(rows.sortedByDescending { it.bytes }, incomplete)

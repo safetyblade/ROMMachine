@@ -21,6 +21,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class CacheCleanerWork(
@@ -75,7 +76,9 @@ class CacheCleanerWork(
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                 UNIQUE_WORK_ID,
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
-                OneTimeWorkRequestBuilder<CacheCleanerWork>().build(),
+                OneTimeWorkRequestBuilder<CacheCleanerWork>()
+                    .setInitialDelay(10, TimeUnit.SECONDS)
+                    .build(),
             )
         }
 

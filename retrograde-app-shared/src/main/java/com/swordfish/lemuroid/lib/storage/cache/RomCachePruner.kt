@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.lib.storage.cache
 
 import java.io.File
-import java.nio.file.Files
 
 /** Only explicit, reconstructible media roots are eligible. Caller holds the game-process lock. */
 object RomCachePruner {
@@ -59,7 +58,7 @@ object RomCachePruner {
         var newest = 0L
         fun visit(file: File): Boolean {
             checkCancelled()
-            if (Files.isSymbolicLink(file.toPath())) return false
+            if (!safe(file)) return false
             newest = maxOf(newest, file.lastModified())
             if (file.isDirectory) {
                 val children = file.listFiles() ?: return false
