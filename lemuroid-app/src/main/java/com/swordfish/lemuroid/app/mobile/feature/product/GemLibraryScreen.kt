@@ -218,7 +218,9 @@ internal fun GemLibraryScreen(
                 GemManagementScreen(
                     onCatalogueChanged = { reloading++ },
                     onRestoreBaseline = {
-                        importPicker.launch(arrayOf("application/json", "application/octet-stream"))
+                        if (restoreUri == null && !writing) {
+                            importPicker.launch(arrayOf("application/json", "application/octet-stream"))
+                        }
                     },
                     modifier = Modifier.weight(1f),
                 )
@@ -337,7 +339,10 @@ internal fun GemLibraryScreen(
                             }
                             items(games, key = { it.cartridgeId }) { game ->
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow(
-                                    title = { Text(game.displayName()) },
+                                    title = { Text(game.displayName(), maxLines = 2) },
+                                    leading = {
+                                        CartridgeFront(game, modifier = Modifier.width(88.dp), offline = true)
+                                    },
                                     supporting = { Text(cartridgeSystemLabel(game.systemId)) },
                                     onClick = {
                                         selectedId = game.cartridgeId
