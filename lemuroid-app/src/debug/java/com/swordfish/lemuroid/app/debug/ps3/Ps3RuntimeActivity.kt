@@ -40,8 +40,8 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
-import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
+import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
