@@ -79,7 +79,7 @@ fun XboxGameControls(
             )
         }
     val theme =
-        remember(tokens) {
+        remember(tokens, appearance.highContrast) {
             LemuroidPadTheme(
                 CartdeckPadPalette(
                     chassis = tokens.chassis,
@@ -204,11 +204,17 @@ fun XboxGameControls(
         ) {
             if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
                 CartdeckConsoleShell(
-                    tokens,
-                    video.value,
-                    root.value,
-                    landscape,
-                    bounds.values.toList(),
+                    tokens = tokens,
+                    videoBounds = video.value,
+                    rootBounds = root.value,
+                    isLandscape = landscape,
+                    controlBounds = bounds.values.toList(),
+                    patternId = if (appearance.highContrast) "none" else appearance.patternId,
+                    stampId = if (appearance.highContrast) "none" else appearance.stampId,
+                    decal = if (appearance.highContrast) null else appearance.decal,
+                    // Native hosts currently provide baseline lighting, not core-feedback events.
+                    lighting = appearance.lighting,
+                    highContrast = appearance.highContrast,
                 )
             }
             if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
