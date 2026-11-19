@@ -15,14 +15,28 @@ concurrency:
   cancel-in-progress: false
 jobs:
   wine-source:
-    name: Build pinned Wine 10.0 new WoW64 (Linux x86_64)
+    name: Resolve or build pinned Wine 10.0 new WoW64 (Linux x86_64)
+    outputs:
+      reuse: ${{ steps.recipe.outputs.reuse }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check exact source producer recipe
+        id: recipe
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" != workflow_dispatch ] && \
+            [ "$(git hash-object spikes/pc/wine-probe/build_wine_wow64.sh)" = 34a4ba3cf18e297ecb07f8f538b3a4e348ceb56e ]; then
+            echo 'reuse=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'reuse=false' >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Wine build prerequisites
+        if: steps.recipe.outputs.reuse != 'true'
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends build-essential bison flex gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix \
@@ -30,14 +44,16 @@ jobs:
             libfreetype-dev libfontconfig1-dev libgl-dev libasound2-dev libpulse-dev libvulkan-dev \
             libgnutls28-dev libdbus-1-dev libudev-dev libxcomposite-dev libxxf86vm-dev pkg-config
       - name: Compile both PE architectures from pinned source
+        if: steps.recipe.outputs.reuse != 'true'
         run: bash spikes/pc/wine-probe/build_wine_wow64.sh "$RUNNER_TEMP/wine-wow64"
       - uses: actions/upload-artifact@v4
+        if: steps.recipe.outputs.reuse != 'true'
         with:
           name: pc-wine-wow64-source-build-${{ github.sha }}
           path: ${{ runner.temp }}/wine-wow64/evidence/
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.recipe.outputs.reuse != 'true'
         with:
           name: pc-wine-wow64-build-logs-${{ github.sha }}
           path: ${{ runner.temp }}/wine-wow64/*.log
@@ -70,7 +86,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Reuse exact successful source build from 44463309465
+        if: needs.wine-source.outputs.reuse == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44463309465
+          name: pc-wine-wow64-source-build-97a09ec38f0e49d25e5083b40a0216a147645fc1
+          path: work/wine
       - uses: actions/download-artifact@v4
+        if: needs.wine-source.outputs.reuse != 'true'
         with:
           name: pc-wine-wow64-source-build-${{ github.sha }}
           path: work/wine
@@ -84,6 +109,8 @@ jobs:
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends build-essential cmake ninja-build python3 xvfb xauth x11-xserver-utils fonts-dejavu-core \
             libx11-6 libxext6 libxrender1 libxrandr2 libxcursor1 libxi6 libxinerama1 libfreetype6 libfontconfig1 \
             libgl1 libasound2t64 libpulse0 libvulkan1 libgnutls30t64 libdbus-1-3 libudev1 libxcomposite1 libxxf86vm1
+          grep -Fx 'revision=b073859675060c9211fcbccfd90e4e87520dc2c2' work/wine/provenance.txt
+          grep -Fx 'configure=--enable-archs=i386,x86_64 --disable-tests' work/wine/provenance.txt
           (cd work/wine && sha256sum -c sha256.txt)
           mkdir work/prefix work/evidence
           tar -xzf work/wine/wine-wow64-linux-x86_64.tar.gz -C work/prefix

@@ -27,6 +27,18 @@ mkdir "$work/host-tools"
     cd "$work/host-tools"
     "$work/wine/configure" --enable-win64 --disable-tests --without-x --without-wayland --without-freetype --without-mingw > "$work/logs/host-configure.log" 2>&1 || { tail -80 "$work/logs/host-configure.log"; exit 1; }
     make -j4 __tooldeps__ > "$work/logs/host-tools.log" 2>&1 || { tail -80 "$work/logs/host-tools.log"; exit 1; }
+    # wrc/wmc locate locale and codepage tables relative to their own host binary.
+    # The out-of-tree tools-only target does not populate nls/; use the exact pinned source data.
+    mkdir -p nls
+    for table in "$work/wine/nls/"*.nls; do
+        cp -L "$table" "nls/$(basename "$table")"
+        cmp "$table" "nls/$(basename "$table")"
+    done
+    test -s nls/locale.nls
+    test -s nls/c_1252.nls
+    printf 'LANGUAGE 9, 1\n1 RCDATA { 1 }\n' > "$work/host-resource-check.rc"
+    tools/wrc/wrc -I "$work/wine/include" -I include -o "$work/host-resource-check.res" "$work/host-resource-check.rc"
+    test -s "$work/host-resource-check.res"
 )
 python3 "$root/spikes/pc/wine-android/patch_native_wine.py" "$work/wine" "$work/delivery/java"
 cmake -S "$work/freetype" -B "$work/ft-build" -G Ninja \
