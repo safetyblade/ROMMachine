@@ -2,13 +2,13 @@ package com.swordfish.lemuroid.app.mobile.feature.product
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,11 +36,17 @@ import kotlinx.coroutines.withContext
 
 /** Uses the shared BR component system; never writes to Game or SaveBinding. */
 @Composable
-internal fun GemRatingRow(game: Game) {
+internal fun GemRatingRow(
+    game: Game,
+    deckFit: Boolean = false,
+    compact: Boolean = false,
+) {
     GemRatingRow(
         cartridgeId = game.cartridgeId,
         displayTitle = game.displayName(),
         platformId = game.systemId,
+        deckFit = deckFit,
+        compact = compact,
     )
 }
 
@@ -50,8 +56,12 @@ internal fun GemRatingRow(
     displayTitle: String,
     platformId: String?,
     onRatingChanged: () -> Unit = {},
+    deckFit: Boolean = false,
+    compact: Boolean = false,
 ) {
     val context = LocalContext.current.applicationContext
+    val label = if (deckFit) "DeckFit" else "My GEMRating"
+    val maximum = if (deckFit) 5 else 10
     val scope = rememberCoroutineScope()
     var store by remember(cartridgeId) { mutableStateOf<GemRatingLocalStore?>(null) }
     var score by remember(cartridgeId) { mutableStateOf<Int?>(null) }
@@ -65,7 +75,9 @@ internal fun GemRatingRow(
             withContext(Dispatchers.IO) {
                 runCatching {
                     val local = GemRatingLocalStore.open(context)
-                    local to local.repository.score(local.session, cartridgeId)
+                    val record =
+                        local.repository.snapshot(local.session).records.firstOrNull { it.cartridgeId == cartridgeId }
+                    local to if (deckFit) record?.deckFit else record?.score
                 }
             }
         result.onSuccess {
@@ -88,6 +100,7 @@ internal fun GemRatingRow(
                             score = value,
                             displayTitle = displayTitle.take(512).ifBlank { null },
                             platformId = platformId?.take(64)?.ifBlank { null },
+                            deckFitOnly = deckFit,
                         )
                     }
                 }
@@ -103,56 +116,61 @@ internal fun GemRatingRow(
         }
     }
 
-    CartdeckMenuRow(
-        title = { Text("My GEMRating") },
-        leading = {
-            Icon(
-                painter = painterResource(R.drawable.cartdeck_feature_gemrating),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-        },
-        supporting = { Text(error ?: if (store == null) "Loading…" else score?.let { "$it/10" } ?: "Unrated") },
-        trailing = { Text(if (score == null) "Rate" else "Edit") },
-        enabled = store != null && !busy,
-        onClick = {
-            draft = score
-            error = null
-            editing = true
-        },
-    )
+    val openEditor = {
+        draft = score
+        error = null
+        editing = true
+    }
+    if (compact) {
+        TextButton(
+            onClick = openEditor,
+            enabled = store != null && !busy,
+            modifier = Modifier.gemFocusTarget(),
+        ) { Text("$label · ${score?.let { "$it/$maximum" } ?: "Rate"}") }
+    } else {
+        CartdeckMenuRow(
+            title = { Text(label) },
+            leading = {
+                Icon(
+                    painter = painterResource(R.drawable.cartdeck_feature_gemrating),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            supporting = { Text(error ?: if (store == null) "Loading…" else score?.let { "$it/$maximum" } ?: "Unrated") },
+            trailing = { Text(if (score == null) "Rate" else "Edit") },
+            enabled = store != null && !busy,
+            onClick = openEditor,
+        )
+    }
 
     if (editing) {
         AlertDialog(
             onDismissRequest = { if (!busy) editing = false },
-            title = { Text("My GEMRating") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(label) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(displayTitle, style = MaterialTheme.typography.titleMedium)
-                    Text("How much do you enjoy this game?")
-                    for (range in listOf(1..3, 4..6, 7..10)) {
+                    Text(displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                    Text(if (deckFit) "How comfortable is this game to play handheld?" else "How much do you enjoy it?")
+                    for (range in (1..maximum).chunked(5)) {
                         Row(Modifier.fillMaxWidth()) {
                             for (value in range) {
-                                TextButton(
-                                    modifier =
-                                        Modifier.weight(1f).gemFocusTarget()
-                                            .semantics { selected = draft == value },
-                                    enabled = !busy,
+                                FilterChip(
+                                    selected = draft == value,
                                     onClick = { draft = value },
-                                    contentPadding = PaddingValues(0.dp),
-                                ) {
-                                    Text(
-                                        if (draft == value) "[$value]" else value.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                }
+                                    enabled = !busy,
+                                    modifier =
+                                        Modifier.weight(1f).gemFocusTarget().semantics { selected = draft == value },
+                                    label = { Text(value.toString()) },
+                                )
                             }
                         }
                     }
-                    Text(draft?.let { "Selected: $it/10" } ?: "Unrated")
+                    Text(draft?.let { "$it/$maximum" } ?: "Unrated")
                     if (score != null) {
                         TextButton(onClick = { commit(null) }, enabled = !busy) { Text("Clear rating") }
                     }
