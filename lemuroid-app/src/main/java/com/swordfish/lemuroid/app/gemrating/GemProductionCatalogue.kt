@@ -16,6 +16,7 @@ object GemProductionCatalogue {
     const val RELEASE_COUNT = 14216
     private val registries = listOf("gem/vdg-pins-a.json", "gem/vdg-pins-b.json")
     private val lock = Any()
+    private var cachedBaseline: GemCataloguePackage.Loaded? = null
 
     @Serializable
     data class Pin(
@@ -30,6 +31,7 @@ object GemProductionCatalogue {
 
     fun load(context: Context): GemCataloguePackage.Loaded =
         synchronized(lock) {
+            cachedBaseline?.let { return@synchronized it }
             val openAsset: (String) -> InputStream = { context.assets.open(it) }
             combine(readPins(openAsset)) { pin ->
                 val restored =
@@ -37,7 +39,7 @@ object GemProductionCatalogue {
                         localFile(context, pin).openRead().use { GemCataloguePackage.load(it, pin.approval()) }
                     }.getOrNull()
                 restored ?: openAsset(pin.path).use { GemCataloguePackage.load(it, pin.approval()) }
-            }
+            }.also { cachedBaseline = it }
         }
 
     /**
@@ -62,6 +64,7 @@ object GemProductionCatalogue {
                 destination.failWrite(stream)
                 throw failure
             }
+            cachedBaseline = null
             pin.count
         }
 
