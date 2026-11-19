@@ -77,7 +77,7 @@ internal fun GemRatingRow(
                     val local = GemRatingLocalStore.open(context)
                     val record =
                         local.repository.snapshot(local.session).records.firstOrNull { it.cartridgeId == cartridgeId }
-                    local to if (deckFit) record?.deckFit else record?.score
+                    local to (if (deckFit) record?.deckFit else record?.score)
                 }
             }
         result.onSuccess {
@@ -137,7 +137,9 @@ internal fun GemRatingRow(
                     modifier = Modifier.size(24.dp),
                 )
             },
-            supporting = { Text(error ?: if (store == null) "Loading…" else score?.let { "$it/$maximum" } ?: "Unrated") },
+            supporting = {
+                Text(error ?: if (store == null) "Loading…" else score?.let { "$it/$maximum" } ?: "Unrated")
+            },
             trailing = { Text(if (score == null) "Rate" else "Edit") },
             enabled = store != null && !busy,
             onClick = openEditor,
@@ -156,7 +158,7 @@ internal fun GemRatingRow(
                 ) {
                     Text(displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
                     Text(if (deckFit) "How comfortable is this game to play handheld?" else "How much do you enjoy it?")
-                    for (range in (1..maximum).chunked(5)) {
+                    for (range in (1..maximum).chunked(if (deckFit) 3 else 4)) {
                         Row(Modifier.fillMaxWidth()) {
                             for (value in range) {
                                 FilterChip(
