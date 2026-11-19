@@ -72,6 +72,8 @@ fun XboxGameControls(
                 presentationAspect,
                 isTv,
                 display.effective.border(true) == DisplaySettingsStore.Border.STANDARD,
+                lighting = resolved.lighting,
+                highContrast = appearance.highContrast,
             )
             return@BoxWithConstraints
         }
@@ -186,6 +188,8 @@ fun XboxGameControls(
                     edition = edition,
                     isDualScreen = false,
                     customColours = resolved.customColours,
+                    lighting = resolved.lighting,
+                    highContrast = appearance.highContrast,
                 )
             }
             CompositionLocalProvider(

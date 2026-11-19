@@ -626,7 +626,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
                         drawPivotModule = jointPlacement == null,
-                        useFlushSideRails = viewModel.systemId == SystemID.NDS && !isLandscape,
+                        lighting = resolved.lighting,
+                        highContrast = appearance.highContrast,
+                        feedbackStrength = reactiveLightStrength,
                     )
                 }
             }

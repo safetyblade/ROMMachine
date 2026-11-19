@@ -14,11 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import android.graphics.Rect as AndroidRect
 
@@ -34,6 +37,8 @@ internal fun CartdeckMaximisedFrame(
     presentationAspect: Float = 4f / 3f,
     isTv: Boolean = false,
     showBorder: Boolean = true,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
 ) {
     val trim = if (showBorder) 6.dp else 0.dp
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -62,7 +67,12 @@ internal fun CartdeckMaximisedFrame(
                     style = Stroke(edge),
                 )
                 drawRoundRect(
-                    color = tokens.accent.copy(alpha = 0.75f),
+                    color =
+                        when {
+                            highContrast -> Color.White
+                            lighting.active(CartdeckLighting.SCREEN) -> lighting.tint(tokens.accent)
+                            else -> lerp(tokens.bezel, tokens.secondary, 0.55f)
+                        },
                     topLeft = Offset(edge, edge),
                     size =
                         Size(

@@ -2,7 +2,7 @@
 
 Owner accepted UNI-A on device. UNI-B consolidates appearance resolution without changing engine or input geometry. Retain the accepted A checkpoint at 7007b177b289b6b713fbe66313b4f532aa77fac6.
 
-## UNI-C — design approved by owner, implementation not started
+## UNI-C — design approved by owner, implementation candidate
 
 - C01: replace separately drawn screen side rail assets with flush, recessed bezel accent channels.
 - C02: align left and right upper chassis accents with the central cartridge indicator, using shared mirrored geometry.
@@ -12,3 +12,7 @@ Owner accepted UNI-A on device. UNI-B consolidates appearance resolution without
 - C06: verify all editions and custom appearances; no per-engine artwork branches.
 
 Do not change aperture placement or control geometry in C; adaptive layout is UNI-D. Keep maximised, TV and borderless modes game-first and respect the existing renderer lifecycle. No native binaries, save data, or storage migrations for this UI lane.
+
+## Landscape acceptance (owner approved)
+
+With surround enabled, use recessed channels and shared materials in portrait and landscape. Add control housings only in measured residual chassis with actual touch inputs; compact branding must not displace the aperture. Maximised mode remains minimal and borderless remains undecorated. Reuse side-rail zone for crown and vertical channels, screen zone for horizontal channels and control-well zone for indicators. Native hosts use baseline lighting until genuine feedback is available. UNI-D owns positioning changes.
