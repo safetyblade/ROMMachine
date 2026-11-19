@@ -51,6 +51,19 @@ class CartdeckLightingTest {
     }
 
     @Test
+    fun lightingFinishPersistsAndLegacyDefaultsToGlow() {
+        val legacy = lightingToJson(CartdeckLighting()).apply { remove("finish") }
+        assertEquals(CartdeckLighting.FINISH_GLOW, lightingFromJson(legacy).finish)
+        for (finish in CartdeckLighting.finishes.keys) {
+            val lighting = CartdeckLighting(mode = CartdeckLighting.MODE_STATIC, finish = finish)
+            assertEquals(lighting, lightingFromJson(lightingToJson(lighting)))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            CartdeckLighting(finish = "unsupported").validate()
+        }
+    }
+
+    @Test
     fun offAndHighContrastNeverActivateLightTracks() {
         val off = CartdeckLighting()
         val static = off.copy(mode = CartdeckLighting.MODE_STATIC)

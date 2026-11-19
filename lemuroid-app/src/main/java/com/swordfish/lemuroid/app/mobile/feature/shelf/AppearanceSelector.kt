@@ -869,6 +869,15 @@ fun ShelfAppearanceEditor(
                             }
                         }
                         if (lighting.mode != CartdeckLighting.MODE_OFF) {
+                            Text("Lighting finish", style = MaterialTheme.typography.titleSmall)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CartdeckLighting.finishes.forEach { (id, title) ->
+                                    TextButton(onClick = {
+                                        lighting = lighting.copy(finish = id)
+                                        modified = true
+                                    }) { Text(if (lighting.finish == id) "✓ $title" else title) }
+                                }
+                            }
                             Text("Intensity: ${lighting.intensity}%")
                             Slider(
                                 value = lighting.intensity.toFloat(),

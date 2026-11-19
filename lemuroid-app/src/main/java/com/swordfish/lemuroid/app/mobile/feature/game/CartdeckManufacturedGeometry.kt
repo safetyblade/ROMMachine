@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawLightingFinish
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 internal data class CartdeckHardwareChannel(
@@ -223,22 +224,10 @@ internal fun DrawScope.drawMaterialTrack(
         )
     }
 
-    val active = lighting.active(zone, highContrast)
-    val light = lighting.tint(tokens.accent, feedbackStrength)
-    if (active && glowBounds != null) {
-        drawRoundRect(
-            color = light.copy(alpha = light.alpha * 0.09f),
-            topLeft = glowBounds.topLeft,
-            size = glowBounds.size,
-            cornerRadius = CornerRadius(minOf(glowBounds.width, glowBounds.height) / 2f),
-        )
-    }
     layer(0.08f, tokens.bezel)
     layer(0.48f, hardwareInlay(tokens))
-    if (active) {
-        layer(0.06f, light.copy(alpha = light.alpha * 0.16f))
-        layer(0.28f, light.copy(alpha = light.alpha * 0.34f))
-        layer(0.55f, light.copy(alpha = light.alpha * 0.82f))
+    if (lighting.active(zone, highContrast)) {
+        drawLightingFinish(rect, lighting.tint(tokens.accent, feedbackStrength), lighting.finish, glowBounds)
     }
 }
 
