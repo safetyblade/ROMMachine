@@ -1,0 +1,160 @@
+name: CARTDECK Wine combined runtime and Android translator probe
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'spikes/pc/wine-probe/**'
+      - 'spikes/pc/wine-lab/**'
+      - '.github/workflows/cartdeck-pc-wine-combined.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: pc-wine-combined-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  wine-source:
+    name: Build pinned Wine 10.0 new WoW64 (Linux x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Wine build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential bison flex gcc-mingw-w64-i686 gcc-mingw-w64-x86-64 \
+            libx11-dev libxext-dev libxrender-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev \
+            libfreetype-dev libfontconfig1-dev libgl-dev libasound2-dev libpulse-dev libvulkan-dev \
+            libgnutls28-dev libdbus-1-dev libudev-dev libxcomposite-dev libxxf86vm-dev pkg-config
+      - name: Compile both PE architectures from pinned source
+        run: bash spikes/pc/wine-probe/build_wine_wow64.sh "$RUNNER_TEMP/wine-wow64"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-wine-wow64-source-build-${{ github.sha }}
+          path: ${{ runner.temp }}/wine-wow64/evidence/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-wine-wow64-build-logs-${{ github.sha }}
+          path: ${{ runner.temp }}/wine-wow64/*.log
+          if-no-files-found: warn
+  fixture:
+    name: Build original Windows PE32 and PE64 fixtures
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gcc-mingw-w64-i686 gcc-mingw-w64-x86-64
+          mkdir fixture
+          i686-w64-mingw32-gcc -O2 -Wall -Wextra spikes/pc/wine-probe/guest.c -o fixture/probe32.exe -lgdi32 -luser32 -ladvapi32
+          x86_64-w64-mingw32-gcc -O2 -Wall -Wextra spikes/pc/wine-probe/guest.c -o fixture/probe64.exe -lgdi32 -luser32 -ladvapi32
+          file fixture/*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-wine-pe-fixtures-${{ github.sha }}
+          path: fixture/
+          if-no-files-found: error
+  arm-wine:
+    name: Execute combined Box64 and WoW64 on native ARM Linux
+    needs: [wine-source, fixture]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-wine-wow64-source-build-${{ github.sha }}
+          path: work/wine
+      - uses: actions/download-artifact@v4
+        with:
+          name: pc-wine-pe-fixtures-${{ github.sha }}
+          path: work/fixture
+      - name: Prepare native ARM user-space and verify exact Wine archive
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential cmake ninja-build python3 xvfb xauth x11-xserver-utils fonts-dejavu-core \
+            libx11-6 libxext6 libxrender1 libxrandr2 libxcursor1 libxi6 libxinerama1 libfreetype6 libfontconfig1 \
+            libgl1 libasound2t64 libpulse0 libvulkan1 libgnutls30t64 libdbus-1-3 libudev1 libxcomposite1 libxxf86vm1
+          (cd work/wine && sha256sum -c sha256.txt)
+          mkdir work/prefix work/evidence
+          tar -xzf work/wine/wine-wow64-linux-x86_64.tar.gz -C work/prefix
+      - name: Prove actual translated Win32 and Win64 GDI registry and save persistence
+        run: xvfb-run -a bash spikes/pc/wine-probe/arm_wine_control.sh "$PWD/work/evidence" "$PWD/work/prefix" "$PWD/work/fixture"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-wine-combined-arm-linux-evidence-${{ github.sha }}
+          path: |
+            work/evidence/*.log
+            work/evidence/result.txt
+            work/evidence/game*/progress.txt
+          if-no-files-found: warn
+  android-probe:
+    name: Package Android device translator proof APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download already verified Box64 candidate
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44454773356
+          name: pc-wine-android-translator-c03f5b6e8cb90e16e7a5e57d1392e6ab18ce024a
+          path: work/translator
+      - name: Verify translator, assemble original fixture and build isolated APK
+        run: |
+          set -euo pipefail
+          python3 spikes/pc/wine-probe/verify_translator.py work/translator/elf.txt
+          mkdir -p work/wine-lab/assets work/wine-lab/jni/arm64-v8a work/wine-lab/delivery
+          python3 - <<'PY'
+          import hashlib,pathlib
+          root=pathlib.Path('work/translator')
+          lines=(root/'provenance.txt').read_text().splitlines()
+          assert 'revision=2f130fab1d6e1a4ee8a71dc60cfdfcc839ad192a' in lines
+          for name in ('libcartdeck_box64.so','box64-source.tar.gz'):
+              expected=[line.split()[0] for line in lines if line.endswith('/'+name)]
+              assert len(expected)==1 and hashlib.sha256((root/name).read_bytes()).hexdigest()==expected[0], name
+          PY
+          cp work/translator/libcartdeck_box64.so work/wine-lab/jni/arm64-v8a/
+          as --64 spikes/pc/wine-probe/translator_fixture.S -o work/wine-lab/fixture.o
+          ld -m elf_x86_64 -static -nostdlib -e _start work/wine-lab/fixture.o -o work/wine-lab/assets/probe-x64.elf
+          mkdir work/wine-lab/host-check
+          (cd work/wine-lab/host-check; set +e; ../assets/probe-x64.elf; rc=$?; set -e; test "$rc" = 37; grep -Fx CARTDECK_BOX64_OK probe-progress.txt)
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'platforms;android-35' 'build-tools;35.0.0'
+          bash scripts/ci/bootstrap_gradle.sh
+          gradle_bin="$(sed -n 's/^GRADLE_BIN=//p' "$GITHUB_ENV" | tail -n 1)"
+          "$gradle_bin" -p spikes/pc/wine-lab assembleDebug --no-daemon \
+            -PwineLabAssets="$PWD/work/wine-lab/assets" -PwineLabNative="$PWD/work/wine-lab/jni"
+          apk="$(find spikes/pc/wine-lab/build/outputs/apk/debug -name '*.apk' -print -quit)"
+          test -f "$apk"
+          "$sdk/build-tools/35.0.0/aapt" dump badging "$apk" > work/wine-lab/delivery/package.txt
+          grep -F "package: name='dev.cartdeck.pc.winelab'" work/wine-lab/delivery/package.txt
+          "$sdk/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$apk"
+          "$sdk/build-tools/35.0.0/apksigner" verify "$apk"
+          unzip -p "$apk" lib/arm64-v8a/libcartdeck_box64.so | cmp - work/translator/libcartdeck_box64.so
+          unzip -p "$apk" assets/probe-x64.elf | cmp - work/wine-lab/assets/probe-x64.elf
+          cp "$apk" work/wine-lab/delivery/CARTDECK-WINE-LAB.apk
+          cp work/translator/BOX64-LICENSE work/translator/provenance.txt work/wine-lab/delivery/
+          sha256sum work/wine-lab/delivery/CARTDECK-WINE-LAB.apk > work/wine-lab/delivery/apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-wine-android-device-probe-${{ github.sha }}
+          path: work/wine-lab/delivery/
+          if-no-files-found: error
