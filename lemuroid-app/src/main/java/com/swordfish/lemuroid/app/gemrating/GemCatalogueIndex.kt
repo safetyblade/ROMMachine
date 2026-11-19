@@ -33,9 +33,12 @@ class GemCatalogueIndex(
         data object Unmatched : Match
     }
 
-    private fun normalized(value: String): String = value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
+    private val whitespace = Regex("\\s+")
+    private val hashPattern = Regex("[a-fA-F0-9]{64}")
 
-    private fun validHash(value: String): Boolean = value.matches(Regex("[a-fA-F0-9]{64}"))
+    private fun normalized(value: String): String = value.trim().lowercase(Locale.ROOT).replace(whitespace, " ")
+
+    private fun validHash(value: String): Boolean = value.matches(hashPattern)
 
     private val records =
         releases.map {
@@ -54,7 +57,13 @@ class GemCatalogueIndex(
     }
 
     private val byId = records.associateBy { it.releaseId }
-    private val bySystem = records.groupBy { it.systemId }
+    private val byTitle = records.groupBy { it.systemId to normalized(it.title) }
+    private val byHash =
+        records.flatMap { release -> release.verifiedSha256.map { (release.systemId to it) to release } }
+            .groupBy({ it.first }, { it.second })
+    private val bySerial =
+        records.flatMap { release -> release.verifiedSerials.map { (release.systemId to it) to release } }
+            .groupBy({ it.first }, { it.second })
 
     fun find(releaseId: String): Release? = byId[releaseId]
 
@@ -67,26 +76,26 @@ class GemCatalogueIndex(
         game: Game,
         evidence: Evidence = Evidence(),
     ): Match {
-        val pool = bySystem[game.systemId].orEmpty()
         val hash = evidence.sha256?.takeIf(::validHash)?.lowercase(Locale.ROOT)
         val serial = evidence.serial?.let(::normalized)?.takeIf { it.isNotEmpty() }
-        val hashes = if (hash == null) emptyList() else pool.filter { hash in it.verifiedSha256 }
-        val serials = if (serial == null) emptyList() else pool.filter { serial in it.verifiedSerials }
+        val hashes = hash?.let { byHash[game.systemId to it] }.orEmpty()
+        val serials = serial?.let { bySerial[game.systemId to it] }.orEmpty()
         val strong = (hashes + serials).distinctBy { it.releaseId }
         // Where both evidence types are supplied, an unresolved or contradictory one
         // cannot silently be ignored. A known candidate remains reviewable.
         if (strong.isNotEmpty()) {
-            val bothProvided = hash != null && serial != null
+            val bothProvided = evidence.sha256 != null && evidence.serial != null
             val consistent =
                 hashes.size == 1 && serials.size == 1 && hashes.single().releaseId == serials.single().releaseId
-            val conflict = (evidence.sha256 != null && hash == null) || (bothProvided && !consistent)
+            val invalid = (evidence.sha256 != null && hash == null) || (evidence.serial != null && serial == null)
+            val conflict = invalid || (bothProvided && !consistent)
             return if (strong.size == 1 && !conflict) {
                 Match.Confirmed(strong.single())
             } else {
                 Match.Review(strong.sortedBy { it.releaseId })
             }
         }
-        val titles = pool.filter { normalized(it.title) == normalized(game.title) }.sortedBy { it.releaseId }
+        val titles = byTitle[game.systemId to normalized(game.title)].orEmpty().sortedBy { it.releaseId }
         return if (titles.isEmpty()) Match.Unmatched else Match.Review(titles)
     }
 }
