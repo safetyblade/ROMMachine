@@ -47,8 +47,8 @@ class CartdeckAppearanceResolverTest {
             ShelfAppearance(
                 edition = "pink",
                 custom = mapOf("chassis" to 0xFF442266L, "accent" to 0xFFD9B477L),
-                patternId = "example-pattern",
-                stampId = "example-stamp",
+                patternId = CartdeckSurfaceDesign.PATTERN_ARCANA,
+                stampId = CartdeckSurfaceDesign.STAMP_ARCANA,
                 decal = decal,
                 lighting = lighting,
             )
@@ -69,8 +69,8 @@ class CartdeckAppearanceResolverTest {
         val source =
             ShelfAppearance(
                 custom = mapOf("onButton" to 0xFF000000L),
-                patternId = "example-pattern",
-                stampId = "example-stamp",
+                patternId = CartdeckSurfaceDesign.PATTERN_ARCANA,
+                stampId = CartdeckSurfaceDesign.STAMP_ARCANA,
                 decal = CartdeckPersonalDecal("78bb531a-8ef3-4390-9713-3e6dfb7852e1"),
                 highContrast = true,
                 reducedMotion = true,

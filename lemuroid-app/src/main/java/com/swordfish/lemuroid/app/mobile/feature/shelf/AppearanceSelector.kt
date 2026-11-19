@@ -379,7 +379,10 @@ private fun CartdeckConsoleHardwarePreview(
     val context = LocalContext.current
     val resolved =
         remember(context, appearance) {
-            resolveCartdeckAppearance(appearance, context.resolveCartdeckEdition(cartdeckEditionPreset(appearance.edition)))
+            resolveCartdeckAppearance(
+                appearance,
+                context.resolveCartdeckEdition(cartdeckEditionPreset(appearance.edition)),
+            )
         }
     val chassis = resolved.tokens.chassis
     val secondary = resolved.tokens.secondary

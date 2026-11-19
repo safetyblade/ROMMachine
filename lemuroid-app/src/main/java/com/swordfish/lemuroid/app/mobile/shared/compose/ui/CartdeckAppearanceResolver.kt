@@ -5,6 +5,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
@@ -31,11 +33,16 @@ internal data class ResolvedCartdeckAppearance(
     val tokens: CartdeckEditionTokens,
     val controllerPalette: CartdeckPadPalette,
 ) {
-    val patternId get() = if (source.highContrast) CartdeckSurfaceDesign.PATTERN_NONE else source.patternId
-    val stampId get() = if (source.highContrast) CartdeckSurfaceDesign.STAMP_NONE else source.stampId
-    val decal get() = if (source.highContrast) null else source.decal
-    val lighting get() = source.lighting
-    val customColours get() = source.custom.isNotEmpty()
+    val patternId: String
+        get() = if (source.highContrast) CartdeckSurfaceDesign.PATTERN_NONE else source.patternId
+    val stampId: String
+        get() = if (source.highContrast) CartdeckSurfaceDesign.STAMP_NONE else source.stampId
+    val decal: CartdeckPersonalDecal?
+        get() = if (source.highContrast) null else source.decal
+    val lighting: CartdeckLighting
+        get() = source.lighting
+    val customColours: Boolean
+        get() = source.custom.isNotEmpty()
 }
 
 /** Resolve explicit hardware roles identically for both gameplay paths and the preview. */
