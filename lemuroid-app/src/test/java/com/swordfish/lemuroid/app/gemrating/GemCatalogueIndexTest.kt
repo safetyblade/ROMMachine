@@ -59,6 +59,14 @@ class GemCatalogueIndexTest {
     }
 
     @Test
+    fun regionAndLanguageSuffixesRemainReviewOnly() {
+        val named = game.copy(title = "Example (USA) (En,Fr,Es,Pt)")
+        val result = index.match(named) as GemCatalogueIndex.Match.Review
+        assertEquals(listOf("r1", "r2"), result.candidates.map { it.releaseId })
+        assertEquals(GemCatalogueIndex.Match.Unmatched, index.match(game.copy(title = "Example (Rev 2)")))
+    }
+
+    @Test
     fun blankProvidedSerialCannotConfirmExistingHash() {
         assertTrue(index.match(game, GemCatalogueIndex.Evidence(hash, "  ")) is GemCatalogueIndex.Match.Review)
     }
