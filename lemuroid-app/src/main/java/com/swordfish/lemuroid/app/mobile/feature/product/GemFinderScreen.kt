@@ -243,7 +243,7 @@ internal fun GemFinderScreen(
                                         surprising = false
                                     }
                                 },
-                                enabled = !surprising && !changingShare && preferences != null && data.ratings.isNotEmpty(),
+                                enabled = !surprising && !changingShare && preferences != null,
                                 modifier = Modifier.gemFocusTarget(),
                             ) { Text("Surprise Me") }
                         }
