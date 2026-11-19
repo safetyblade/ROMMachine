@@ -36,6 +36,19 @@ class CartdeckManufacturedGeometryTest {
     }
 
     @Test
+    fun glowNeverEscapesSafeHardwareOrTouchesVideoAndControls() {
+        val frame = Rect(0f, 0f, 393f, 852f)
+        val video = Rect(22f, 84f, 371f, 346f)
+        val controls = listOf(Rect(30f, 400f, 180f, 700f))
+        val tracks = CartdeckManufacturedGeometry.channels(frame, video, controls, 1f, false)
+        val halos = tracks.mapNotNull { it.glowBounds }
+        assertTrue(halos.isNotEmpty())
+        assertTrue(halos.all { it.left >= 9f && it.top >= 9f && it.right <= 384f && it.bottom <= 843f })
+        assertFalse(halos.any { CartdeckHardwareGeometry.intersects(it, video) })
+        assertFalse(halos.any { halo -> controls.any { CartdeckHardwareGeometry.intersects(halo, it) } })
+    }
+
+    @Test
     fun landscapeHousingUsesOnlyAvailableSideSpaceAndNeverMovesTheAperture() {
         val frame = Rect(0f, 0f, 852f, 393f)
         val video = Rect(150f, 22f, 702f, 333f)

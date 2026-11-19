@@ -233,7 +233,20 @@ internal fun CartdeckConsoleShell(
                                 size.width - edge - 7.dp.toPx(),
                                 size.height - edge - 7.dp.toPx(),
                             ),
-                        exclusions = listOf(hole) + controls,
+                        exclusions =
+                            listOf(hole) + controls +
+                                if (footerSeat) {
+                                    listOf(
+                                        Rect(
+                                            size.width / 2f - 54.dp.toPx(),
+                                            size.height - 66.dp.toPx(),
+                                            size.width / 2f + 54.dp.toPx(),
+                                            size.height,
+                                        ),
+                                    )
+                                } else {
+                                    emptyList()
+                                },
                         lineColour = tokens.accent,
                         stampColour = tokens.onChassis,
                         cellSize = maxOf(19.dp.toPx(), minOf(size.width, size.height) / 18f),

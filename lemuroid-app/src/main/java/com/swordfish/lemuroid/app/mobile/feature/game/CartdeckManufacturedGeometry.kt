@@ -14,6 +14,7 @@ internal data class CartdeckHardwareChannel(
     val bounds: Rect,
     val zone: String,
     val housing: Rect? = null,
+    val glowBounds: Rect? = null,
 )
 
 /** Measured geometry. Decorative trim disappears rather than moving a game or input. */
@@ -45,12 +46,17 @@ internal object CartdeckManufacturedGeometry {
         val safe = Rect(frame.left + edge, frame.top + edge, frame.right - edge, frame.bottom - edge)
         val tracks = mutableListOf<CartdeckHardwareChannel>()
 
+        fun glowBounds(rect: Rect): Rect? =
+            CartdeckHardwareGeometry.expanded(rect, 1.2f * density).takeIf {
+                fits(it, safe, blocked, 0.5f * density)
+            }
+
         fun group(
             zone: String,
             rects: List<Rect>,
         ) {
             if (rects.all { fits(it, safe, blocked, 0.5f * density) }) {
-                tracks += rects.map { CartdeckHardwareChannel(it, zone) }
+                tracks += rects.map { CartdeckHardwareChannel(it, zone, glowBounds = glowBounds(it)) }
             }
         }
 
@@ -107,7 +113,12 @@ internal object CartdeckManufacturedGeometry {
             ) {
                 tracks +=
                     crown.mapIndexed { index, rect ->
-                        CartdeckHardwareChannel(rect, CartdeckLighting.SIDE_RAILS, housing.takeIf { index == 1 })
+                        CartdeckHardwareChannel(
+                            rect,
+                            CartdeckLighting.SIDE_RAILS,
+                            housing.takeIf { index == 1 },
+                            glowBounds(rect),
+                        )
                     }
             }
         }
@@ -171,7 +182,15 @@ internal fun DrawScope.drawManufacturedChannels(
                 cornerRadius = CornerRadius(housing.height / 3f),
             )
         }
-        drawMaterialTrack(channel.bounds, tokens, lighting, channel.zone, highContrast, feedbackStrength)
+        drawMaterialTrack(
+            channel.bounds,
+            tokens,
+            lighting,
+            channel.zone,
+            highContrast,
+            feedbackStrength,
+            channel.glowBounds,
+        )
     }
 }
 
@@ -187,6 +206,7 @@ internal fun DrawScope.drawMaterialTrack(
     zone: String,
     highContrast: Boolean,
     feedbackStrength: Float = 0f,
+    glowBounds: Rect? = null,
 ) {
     val radius = minOf(rect.width, rect.height) / 2f
     if (radius <= 0f) return
@@ -204,10 +224,19 @@ internal fun DrawScope.drawMaterialTrack(
         )
     }
 
+    val active = lighting.active(zone, highContrast)
+    val light = lighting.tint(tokens.accent, feedbackStrength)
+    if (active && glowBounds != null) {
+        drawRoundRect(
+            color = light.copy(alpha = light.alpha * 0.09f),
+            topLeft = glowBounds.topLeft,
+            size = glowBounds.size,
+            cornerRadius = CornerRadius(minOf(glowBounds.width, glowBounds.height) / 2f),
+        )
+    }
     layer(0.08f, tokens.bezel)
     layer(0.48f, hardwareInlay(tokens))
-    if (lighting.active(zone, highContrast)) {
-        val light = lighting.tint(tokens.accent, feedbackStrength)
+    if (active) {
         layer(0.06f, light.copy(alpha = light.alpha * 0.16f))
         layer(0.28f, light.copy(alpha = light.alpha * 0.34f))
         layer(0.55f, light.copy(alpha = light.alpha * 0.82f))
