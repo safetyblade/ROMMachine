@@ -234,6 +234,12 @@ internal fun GemLibraryScreen(
                         games = games,
                         modifier = Modifier.weight(1f),
                         onOpenCartridge = onOpenCartridge,
+                        onIdentifyCartridge = { game ->
+                            selectedId = game.cartridgeId
+                            query = ""
+                            inspectedId = null
+                            page = "Browse"
+                        },
                         onInspectRelease = { id ->
                             selectedId = null
                             query = ""
@@ -439,7 +445,7 @@ private fun GemIntelligenceRecord(
                     if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
                     Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
                 }
-                Text("DeckFit · Not rated", style = MaterialTheme.typography.bodySmall)
+                Text("DeckFit · Not assessed", style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
                 if (details) {
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
