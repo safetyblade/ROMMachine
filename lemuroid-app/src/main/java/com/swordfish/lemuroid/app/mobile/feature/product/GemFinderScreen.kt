@@ -190,63 +190,63 @@ internal fun GemFinderScreen(
                         Text("Early picks for you", style = MaterialTheme.typography.bodySmall)
                     }
                     if (data.ratings.isNotEmpty()) {
-                    TextButton(onClick = { showPreferences = !showPreferences }) {
-                        Text("Wildcards · $share%")
-                    }
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        if (showPreferences) {
-                        TextButton(
-                            onClick = { changeShare(share - 5) },
-                            enabled = share > 20 && !surprising && !changingShare,
-                            modifier = Modifier.gemFocusTarget(),
-                        ) { Text("Less") }
-                        TextButton(
-                            onClick = { changeShare(share + 5) },
-                            enabled = share < 50 && !surprising && !changingShare,
-                            modifier = Modifier.gemFocusTarget(),
-                        ) { Text("More") }
+                        TextButton(onClick = { showPreferences = !showPreferences }) {
+                            Text("Wildcards · $share%")
                         }
-                        TextButton(
-                            onClick = {
-                                val prefs = preferences ?: return@TextButton
-                                val candidates = data.candidates(scope)
-                                surprising = true
-                                surprise = null
-                                message = ""
-                                coroutineScope.launch {
-                                    val result =
-                                        runCatching {
-                                            val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
-                                            val pick =
-                                                withContext(Dispatchers.Default) {
-                                                    GemRatingRecommender.surprise(
-                                                        data.catalogue,
-                                                        data.ratings,
-                                                        recent,
-                                                        candidates,
-                                                    )
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            if (showPreferences) {
+                                TextButton(
+                                    onClick = { changeShare(share - 5) },
+                                    enabled = share > 20 && !surprising && !changingShare,
+                                    modifier = Modifier.gemFocusTarget(),
+                                ) { Text("Less") }
+                                TextButton(
+                                    onClick = { changeShare(share + 5) },
+                                    enabled = share < 50 && !surprising && !changingShare,
+                                    modifier = Modifier.gemFocusTarget(),
+                                ) { Text("More") }
+                            }
+                            TextButton(
+                                onClick = {
+                                    val prefs = preferences ?: return@TextButton
+                                    val candidates = data.candidates(scope)
+                                    surprising = true
+                                    surprise = null
+                                    message = ""
+                                    coroutineScope.launch {
+                                        val result =
+                                            runCatching {
+                                                val recent = withContext(Dispatchers.IO) { prefs.recentIds().toSet() }
+                                                val pick =
+                                                    withContext(Dispatchers.Default) {
+                                                        GemRatingRecommender.surprise(
+                                                            data.catalogue,
+                                                            data.ratings,
+                                                            recent,
+                                                            candidates,
+                                                        )
+                                                    }
+                                                if (pick != null) {
+                                                    withContext(Dispatchers.IO) {
+                                                        check(prefs.rememberSurprise(pick.game.releaseId))
+                                                    }
                                                 }
-                                            if (pick != null) {
-                                                withContext(Dispatchers.IO) {
-                                                    check(prefs.rememberSurprise(pick.game.releaseId))
-                                                }
+                                                pick
                                             }
-                                            pick
-                                        }
-                                    result.onSuccess {
-                                        surprise = it
-                                        message = if (it == null) "No fresh meaningful surprise." else ""
-                                    }.onFailure { message = "Could not prepare a surprise." }
-                                    surprising = false
-                                }
-                            },
-                            enabled = !surprising && !changingShare && preferences != null && data.ratings.isNotEmpty(),
-                            modifier = Modifier.gemFocusTarget(),
-                        ) { Text("Surprise Me") }
-                    }
+                                        result.onSuccess {
+                                            surprise = it
+                                            message = if (it == null) "No fresh meaningful surprise." else ""
+                                        }.onFailure { message = "Could not prepare a surprise." }
+                                        surprising = false
+                                    }
+                                },
+                                enabled = !surprising && !changingShare && preferences != null && data.ratings.isNotEmpty(),
+                                modifier = Modifier.gemFocusTarget(),
+                            ) { Text("Surprise Me") }
+                        }
                     }
                 }
             }
