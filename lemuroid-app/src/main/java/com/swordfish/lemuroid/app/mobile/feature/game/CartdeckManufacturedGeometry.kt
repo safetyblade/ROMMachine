@@ -105,9 +105,10 @@ internal object CartdeckManufacturedGeometry {
                 end - start >= 14f * density && fits(housing, safe, blocked, 0.5f * density) &&
                 crown.all { fits(it, safe, blocked, 0.5f * density) }
             ) {
-                tracks += crown.mapIndexed { index, rect ->
-                    CartdeckHardwareChannel(rect, CartdeckLighting.SIDE_RAILS, housing.takeIf { index == 1 })
-                }
+                tracks +=
+                    crown.mapIndexed { index, rect ->
+                        CartdeckHardwareChannel(rect, CartdeckLighting.SIDE_RAILS, housing.takeIf { index == 1 })
+                    }
             }
         }
         return tracks
