@@ -317,8 +317,20 @@ internal fun CartdeckHardwareSeats(
     // the selected semantic hue, as it does for the factory finishes.
     val tint = if (customColours) ColorFilter.tint(tokens.secondary, BlendMode.Color) else null
     val protectedBrand =
-        if (isDualScreen) {
-            val halfWidth = with(density) { 49.dp.toPx() }
+        if (
+            isDualScreen ||
+            (
+                rootBounds.width > rootBounds.height && video != null &&
+                    CartdeckManufacturedGeometry.footerFits(
+                        rootBounds.width,
+                        rootBounds.height,
+                        video,
+                        controls.values.toList(),
+                        density.density,
+                    )
+            )
+        ) {
+            val halfWidth = with(density) { 54.dp.toPx() }
             val height = with(density) { 54.dp.toPx() }
             Rect(
                 rootBounds.width / 2f - halfWidth,

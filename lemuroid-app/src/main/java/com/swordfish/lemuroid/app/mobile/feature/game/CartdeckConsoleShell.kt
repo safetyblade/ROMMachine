@@ -56,6 +56,7 @@ internal fun CartdeckConsoleShell(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     isDualScreen: Boolean = false,
+    minimal: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -101,7 +102,7 @@ internal fun CartdeckConsoleShell(
             // Responsive, noninteractive decoration; a valid measured aperture
             // is required before painting. Never paint into video, PadKit
             // bounds, or the protected CARTDECK brand seat.
-            if (hole != null) {
+            if (hole != null && !minimal) {
                 val reservedBrand =
                     when {
                         !isLandscape && seatFits ->
@@ -254,6 +255,7 @@ internal fun CartdeckConsoleShell(
                             controls + brand,
                             this.density,
                             isDualScreen && !isLandscape,
+                            includeCrown = !minimal,
                         ),
                     tokens = tokens,
                     lighting = lighting,
@@ -278,19 +280,21 @@ internal fun CartdeckConsoleShell(
                 } else {
                     emptyList()
                 }
-            CartdeckHardwareGeometry.seamSegments(
-                left = left,
-                right = size.width - left,
-                y = deckLineY,
-                exclusions = controls + compactBadge + listOfNotNull(hole),
-                clearance = 4.dp.toPx(),
-            ).forEach { (start, finish) ->
-                drawLine(
-                    color = tokens.secondary,
-                    start = Offset(start, deckLineY),
-                    end = Offset(finish, deckLineY),
-                    strokeWidth = 2.dp.toPx(),
-                )
+            if (!minimal) {
+                CartdeckHardwareGeometry.seamSegments(
+                    left = left,
+                    right = size.width - left,
+                    y = deckLineY,
+                    exclusions = controls + compactBadge + listOfNotNull(hole),
+                    clearance = 4.dp.toPx(),
+                ).forEach { (start, finish) ->
+                    drawLine(
+                        color = tokens.secondary,
+                        start = Offset(start, deckLineY),
+                        end = Offset(finish, deckLineY),
+                        strokeWidth = 2.dp.toPx(),
+                    )
+                }
             }
         }
 
@@ -328,7 +332,7 @@ internal fun CartdeckConsoleShell(
             }
         }
 
-        if (decal != null && hole != null) {
+        if (decal != null && hole != null && !minimal) {
             val w = with(density) { maxWidth.toPx() }
             val h = with(density) { maxHeight.toPx() }
             val protectedBrand =

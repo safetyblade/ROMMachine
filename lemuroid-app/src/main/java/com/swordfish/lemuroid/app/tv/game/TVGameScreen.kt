@@ -8,11 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.swordfish.lemuroid.app.mobile.feature.game.manufacturedFrameAccent
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
@@ -25,7 +25,7 @@ fun TVGameScreen(viewModel: BaseGameScreenViewModel) {
 
     val display = rememberDisplaySettings(viewModel.cartridgeId)
     val appearance = rememberGameplayAppearance()
-    val outline = if (appearance.source.highContrast) Color.White else appearance.tokens.accent
+    val outline = manufacturedFrameAccent(appearance.tokens, appearance.lighting, appearance.source.highContrast)
     val frame =
         if (display.effective.border(true) == DisplaySettingsStore.Border.STANDARD) {
             Modifier.border(2.dp, outline)

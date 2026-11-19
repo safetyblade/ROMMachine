@@ -14,9 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -67,12 +65,7 @@ internal fun CartdeckMaximisedFrame(
                     style = Stroke(edge),
                 )
                 drawRoundRect(
-                    color =
-                        when {
-                            highContrast -> Color.White
-                            lighting.active(CartdeckLighting.SCREEN) -> lighting.tint(tokens.accent)
-                            else -> lerp(tokens.bezel, tokens.secondary, 0.55f)
-                        },
+                    color = manufacturedFrameAccent(tokens, lighting, highContrast),
                     topLeft = Offset(edge, edge),
                     size =
                         Size(

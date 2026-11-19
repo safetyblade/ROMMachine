@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
@@ -12,6 +13,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 internal data class CartdeckHardwareChannel(
     val bounds: Rect,
     val zone: String,
+    val housing: Rect? = null,
 )
 
 /** Measured geometry. Decorative trim disappears rather than moving a game or input. */
@@ -35,6 +37,7 @@ internal object CartdeckManufacturedGeometry {
         controls: List<Rect>,
         density: Float,
         dualScreen: Boolean,
+        includeCrown: Boolean = true,
     ): List<CartdeckHardwareChannel> {
         if (!density.isFinite() || density <= 0f || frame.width <= 0f || frame.height <= 0f) return emptyList()
         val blocked = listOf(video) + controls
@@ -79,21 +82,32 @@ internal object CartdeckManufacturedGeometry {
 
         // A common horizontal datum, mirrored side tracks and centre indicator.
         // The 40dp horizontal inset clears the manufactured 30dp chamfer.
-        if (frame.width >= 270f * density && video.top >= frame.top + 25f * density) {
+        if (includeCrown && frame.width >= 270f * density && video.top >= frame.top + 25f * density) {
             val center = frame.center.x
             val y = frame.top + 16f * density
             val start = frame.left + 40f * density
             val end = minOf(frame.left + frame.width * 0.30f, center - 62f * density)
             val half = 1.5f * density
-            if (end - start >= 14f * density) {
-                group(
-                    CartdeckLighting.SIDE_RAILS,
-                    listOf(
-                        Rect(start, y - half, end, y + half),
-                        Rect(center - 15f * density, y - half, center + 15f * density, y + half),
-                        Rect(2f * center - end, y - half, 2f * center - start, y + half),
-                    ),
+            val housing =
+                Rect(
+                    center - 48f * density,
+                    y - 6f * density,
+                    center + 48f * density,
+                    y + 6f * density,
                 )
+            val crown =
+                listOf(
+                    Rect(start, y - half, end, y + half),
+                    Rect(center - 15f * density, y - half, center + 15f * density, y + half),
+                    Rect(2f * center - end, y - half, 2f * center - start, y + half),
+                )
+            if (
+                end - start >= 14f * density && fits(housing, safe, blocked, 0.5f * density) &&
+                crown.all { fits(it, safe, blocked, 0.5f * density) }
+            ) {
+                tracks += crown.mapIndexed { index, rect ->
+                    CartdeckHardwareChannel(rect, CartdeckLighting.SIDE_RAILS, housing.takeIf { index == 1 })
+                }
             }
         }
         return tracks
@@ -148,6 +162,14 @@ internal fun DrawScope.drawManufacturedChannels(
     feedbackStrength: Float,
 ) {
     channels.forEach { channel ->
+        channel.housing?.let { housing ->
+            drawRoundRect(
+                color = tokens.secondary,
+                topLeft = housing.topLeft,
+                size = housing.size,
+                cornerRadius = CornerRadius(housing.height / 3f),
+            )
+        }
         val rect = channel.bounds
         val radius = minOf(rect.width, rect.height) / 2f
         drawRoundRect(
@@ -171,3 +193,15 @@ internal fun DrawScope.drawManufacturedChannels(
         )
     }
 }
+
+/** Minimal surround retains a material finish when lighting is off. */
+internal fun manufacturedFrameAccent(
+    tokens: CartdeckEditionTokens,
+    lighting: CartdeckLighting,
+    highContrast: Boolean,
+): Color =
+    when {
+        highContrast -> Color.White
+        lighting.active(CartdeckLighting.SCREEN) -> lighting.tint(tokens.accent)
+        else -> lerp(tokens.bezel, tokens.secondary, 0.55f)
+    }
