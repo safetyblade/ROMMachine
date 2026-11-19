@@ -23,19 +23,13 @@ internal fun cartridgePainter(
     val source = ImageVector.vectorResource(resource)
     val appearance = LocalShelfAppearance.current
     val tokens =
-        LocalContext.current.resolveCartdeckEdition(
-            when (edition) {
-                "pink" -> CartdeckEditionPreset.PINK
-                "green" -> CartdeckEditionPreset.GREEN
-                else -> CartdeckEditionPreset.ORIGINAL
-            },
-        )
+        LocalContext.current.resolveCartdeckEdition(cartdeckEditionPreset(edition))
     val vector =
         remember(source, appearance, tokens) {
             fun role(
                 name: String,
                 base: Color,
-            ) = appearance.custom[name]?.let { Color(it.toInt()) } ?: base
+            ) = appearance.appearanceColour(name, base)
             val chassis = role("chassis", tokens.chassis)
             val accent = role("accent", tokens.accent)
             val edited =

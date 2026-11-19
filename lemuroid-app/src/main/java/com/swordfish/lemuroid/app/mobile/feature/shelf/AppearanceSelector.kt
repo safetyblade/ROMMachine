@@ -62,7 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckAppearancePreview
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -71,14 +72,7 @@ import java.util.UUID
 @Composable
 private fun presetRoles(id: String): Map<String, Color> {
     val ctx = LocalContext.current
-    val t =
-        ctx.resolveCartdeckEdition(
-            when (id) {
-                "pink" -> CartdeckEditionPreset.PINK
-                "green" -> CartdeckEditionPreset.GREEN
-                else -> CartdeckEditionPreset.ORIGINAL
-            },
-        )
+    val t = ctx.resolveCartdeckEdition(cartdeckEditionPreset(id))
     val s = canonicalShelfMaterials(id)
     return mapOf(
         "chassis" to t.chassis, "secondary" to t.secondary, "bezel" to t.bezel,
@@ -382,15 +376,20 @@ private fun CartdeckConsoleHardwarePreview(
     appearance: ShelfAppearance,
     height: Dp,
 ) {
-    val preset = presetRoles(appearance.edition)
-
-    fun role(id: String): Color = appearance.custom[id]?.let { Color(it.toInt()) } ?: preset.getValue(id)
-    val chassis = role("chassis")
-    val secondary = role("secondary")
-    val bezel = role("bezel")
-    val button = role("button")
-    val accent = role("accent")
-    val ink = role("onChassis")
+    val context = LocalContext.current
+    val resolved =
+        remember(context, appearance) {
+            resolveCartdeckAppearance(
+                appearance,
+                context.resolveCartdeckEdition(cartdeckEditionPreset(appearance.edition)),
+            )
+        }
+    val chassis = resolved.tokens.chassis
+    val secondary = resolved.tokens.secondary
+    val bezel = resolved.tokens.bezel
+    val button = resolved.tokens.button
+    val accent = resolved.tokens.accent
+    val ink = resolved.tokens.onChassis
     BoxWithConstraints(
         modifier =
             Modifier.fillMaxWidth().height(height)
@@ -402,8 +401,8 @@ private fun CartdeckConsoleHardwarePreview(
             val w = size.width
             val h = size.height
             drawCartdeckSurfaceDesign(
-                patternId = appearance.patternId,
-                stampId = appearance.stampId,
+                patternId = resolved.patternId,
+                stampId = resolved.stampId,
                 frame = Rect(0f, 0f, w, h),
                 exclusions =
                     listOf(
