@@ -19,11 +19,11 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -55,6 +55,7 @@ internal fun CartdeckConsoleShell(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     isDualScreen: Boolean = false,
+    minimal: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -68,6 +69,16 @@ internal fun CartdeckConsoleShell(
         val seatFits =
             availableAboveVideo >= with(density) { (badgeTop + badgeHeight + badgeClearance).toPx() }
         val compactSeat = !isLandscape && !seatFits
+        val landscapeSeat =
+            isLandscape && hole != null && controls.isNotEmpty() &&
+                CartdeckManufacturedGeometry.footerFits(
+                    with(density) { maxWidth.toPx() },
+                    with(density) { maxHeight.toPx() },
+                    hole,
+                    controls,
+                    density.density,
+                )
+        val footerSeat = compactSeat || landscapeSeat
         Canvas(Modifier.fillMaxSize()) {
             val edge = 8.dp.toPx()
             val chamfer = 30.dp.toPx()
@@ -90,7 +101,7 @@ internal fun CartdeckConsoleShell(
             // Responsive, noninteractive decoration; a valid measured aperture
             // is required before painting. Never paint into video, PadKit
             // bounds, or the protected CARTDECK brand seat.
-            if (hole != null) {
+            if (hole != null && !minimal) {
                 val reservedBrand =
                     when {
                         !isLandscape && seatFits ->
@@ -100,7 +111,7 @@ internal fun CartdeckConsoleShell(
                                 size.width / 2f + 120.dp.toPx(),
                                 80.dp.toPx(),
                             )
-                        compactSeat ->
+                        footerSeat ->
                             Rect(
                                 size.width / 2f - 50.dp.toPx(),
                                 size.height - 63.dp.toPx(),
@@ -158,6 +169,24 @@ internal fun CartdeckConsoleShell(
                     )
                 }
             }
+            if (isLandscape && hole != null && controls.isNotEmpty()) {
+                val frame = Rect(0f, 0f, size.width, size.height)
+                CartdeckManufacturedGeometry.sideHousings(frame, hole, controls, this.density).forEach { panel ->
+                    drawRoundRect(
+                        color = tokens.secondary,
+                        topLeft = panel.topLeft,
+                        size = panel.size,
+                        cornerRadius = CornerRadius(12.dp.toPx()),
+                    )
+                    drawRoundRect(
+                        color = tokens.bezel,
+                        topLeft = panel.topLeft,
+                        size = panel.size,
+                        cornerRadius = CornerRadius(12.dp.toPx()),
+                        style = Stroke(2.dp.toPx()),
+                    )
+                }
+            }
             hole?.let { display ->
                 val dsPortrait = isDualScreen && !isLandscape
                 val border = if (dsPortrait) 3.dp.toPx() else 7.dp.toPx()
@@ -174,25 +203,6 @@ internal fun CartdeckConsoleShell(
                         addRoundRect(RoundRect(rim, CornerRadius(10.dp.toPx())))
                         addRoundRect(RoundRect(display, CornerRadius(2.dp.toPx())))
                     }
-                if (dsPortrait) {
-                    // Flush side rails: fill only exposed chassis between the
-                    // screen rim and outer shell, never the measured video.
-                    val railInset = 9.dp.toPx()
-                    val railTop = maxOf(rim.top, edge + chamfer)
-                    val railBottom = minOf(rim.bottom, size.height - edge - chamfer)
-                    if (railBottom > railTop) {
-                        val rails =
-                            listOf(
-                                Rect(railInset, railTop, rim.left, railBottom),
-                                Rect(rim.right, railTop, size.width - railInset, railBottom),
-                            )
-                        for (rail in rails) {
-                            if (rail.width > 0f && controls.none { CartdeckHardwareGeometry.intersects(it, rail) }) {
-                                drawRect(tokens.secondary, topLeft = rail.topLeft, size = rail.size)
-                            }
-                        }
-                    }
-                }
                 drawPath(bezel, tokens.bezel)
                 // A black-glass lip outside (not on top of) actual video pixels.
                 val glassLip =
@@ -213,7 +223,7 @@ internal fun CartdeckConsoleShell(
                     }
                 drawPath(glassLip, tokens.glass)
                 drawRoundRect(
-                    color = tokens.accent.copy(alpha = if (dsPortrait) 0.20f else 0.50f),
+                    color = lerp(tokens.bezel, tokens.secondary, if (dsPortrait) 0.38f else 0.55f),
                     topLeft = rim.topLeft,
                     size = rim.size,
                     cornerRadius = CornerRadius(10.dp.toPx()),
@@ -221,89 +231,43 @@ internal fun CartdeckConsoleShell(
                 )
             }
             val left = 25.dp.toPx()
-            val end = size.width * 0.20f
-            val lightY = 19.dp.toPx()
-            // Never paint decorative shell lighting over a maximised viewport.
-            // The old fixed top clearance guaranteed room for this detail;
-            // screen-first layouts may intentionally remove that clearance.
-            if (hole == null || hole.top > lightY + 2.dp.toPx()) {
-                drawLine(
-                    color = tokens.accent.copy(alpha = 0.6f),
-                    start = Offset(left, lightY),
-                    end = Offset(end, lightY),
-                    strokeWidth = 2.dp.toPx(),
-                )
-                drawLine(
-                    color = tokens.accent.copy(alpha = 0.6f),
-                    start = Offset(size.width - end, lightY),
-                    end = Offset(size.width - left, lightY),
-                    strokeWidth = 2.dp.toPx(),
-                )
-            }
-            // Sienna V09 cartridge crown: common manufactured detail across
-            // Standard, DS (when there is genuine headroom), and PivotArc.
-            // All accents use palette tokens. Never put art over viewport pixels.
-            if (!isLandscape && seatFits && size.width >= 270.dp.toPx()) {
-                val crownY = 7.dp.toPx()
-                val crownH = 13.dp.toPx()
-                val crownHalf = minOf(94.dp.toPx(), size.width * 0.23f)
-                val center = size.width / 2f
-                val crown =
-                    Path().apply {
-                        moveTo(center - crownHalf + 10.dp.toPx(), crownY)
-                        lineTo(center + crownHalf - 10.dp.toPx(), crownY)
-                        lineTo(center + crownHalf, crownY + 8.dp.toPx())
-                        lineTo(center + crownHalf - 6.dp.toPx(), crownY + crownH)
-                        lineTo(center - crownHalf + 6.dp.toPx(), crownY + crownH)
-                        lineTo(center - crownHalf, crownY + 8.dp.toPx())
-                        close()
-                    }
-                drawPath(crown, tokens.secondary)
-                drawPath(crown, tokens.bezel, style = Stroke(width = 1.5.dp.toPx()))
-                // The cartridge-bay indicator is one intentional neon zone,
-                // not a permanent glowing outline around every control.
-                val bayWidth = 42.dp.toPx()
-                drawRoundRect(
-                    color = tokens.bezel,
-                    topLeft = Offset(center - bayWidth / 2f, crownY + 3.dp.toPx()),
-                    size = Size(bayWidth, 6.dp.toPx()),
-                    cornerRadius = CornerRadius(2.dp.toPx()),
-                )
-                drawLine(
-                    color = tokens.accent.copy(alpha = 0.8f),
-                    start = Offset(center - bayWidth * 0.31f, crownY + 6.dp.toPx()),
-                    end = Offset(center + bayWidth * 0.31f, crownY + 6.dp.toPx()),
-                    strokeWidth = 2.dp.toPx(),
-                )
-                for (side in listOf(-1f, 1f)) {
-                    val x = center + side * (crownHalf - 20.dp.toPx())
-                    for (slot in 0..2) {
-                        val sx = x + side * slot * 5.dp.toPx()
-                        drawLine(
-                            color = tokens.bezel,
-                            start = Offset(sx, crownY + 4.dp.toPx()),
-                            end = Offset(sx + 2.dp.toPx(), crownY + 9.dp.toPx()),
-                            strokeWidth = 1.5.dp.toPx(),
+            if (hole != null) {
+                val frame = Rect(0f, 0f, size.width, size.height)
+                val brand =
+                    if (footerSeat) {
+                        listOf(
+                            Rect(
+                                size.width / 2f - 54.dp.toPx(),
+                                size.height - 66.dp.toPx(),
+                                size.width / 2f + 54.dp.toPx(),
+                                size.height,
+                            ),
                         )
+                    } else {
+                        emptyList()
                     }
-                }
-                // A restrained under-logo accent, only where enough headroom
-                // exists for both the full badge and the actual video aperture.
-                if (hole == null || hole.top > 75.dp.toPx()) {
-                    drawLine(
-                        color = tokens.accent.copy(alpha = 0.45f),
-                        start = Offset(center - 22.dp.toPx(), 70.dp.toPx()),
-                        end = Offset(center + 22.dp.toPx(), 70.dp.toPx()),
-                        strokeWidth = 1.5.dp.toPx(),
-                    )
-                }
+                drawManufacturedChannels(
+                    channels =
+                        CartdeckManufacturedGeometry.channels(
+                            frame,
+                            hole,
+                            controls + brand,
+                            this.density,
+                            isDualScreen && !isLandscape,
+                            includeCrown = !minimal,
+                        ),
+                    tokens = tokens,
+                    lighting = lighting,
+                    highContrast = highContrast,
+                    feedbackStrength = feedbackStrength,
+                )
             }
 
             // Decorative lower seam uses live PadKit group bounds and the
             // protected compact badge. Neither Start nor Select is repositioned.
             val deckLineY = size.height - 30.dp.toPx()
             val compactBadge =
-                if (compactSeat) {
+                if (footerSeat) {
                     listOf(
                         Rect(
                             size.width / 2f - 40.dp.toPx(),
@@ -315,56 +279,20 @@ internal fun CartdeckConsoleShell(
                 } else {
                     emptyList()
                 }
-            CartdeckHardwareGeometry.seamSegments(
-                left = left,
-                right = size.width - left,
-                y = deckLineY,
-                exclusions = controls + compactBadge + listOfNotNull(hole),
-                clearance = 4.dp.toPx(),
-            ).forEach { (start, finish) ->
-                drawLine(
-                    color = tokens.secondary,
-                    start = Offset(start, deckLineY),
-                    end = Offset(finish, deckLineY),
-                    strokeWidth = 2.dp.toPx(),
-                )
-            }
-            // These speaker and indicator details use exposed manufactured
-            // chassis, not the renderer's letterboxing or PadKit hit regions.
-            if (!isLandscape && seatFits) {
-                hole?.let { display ->
-                    val detailY = display.bottom + 24.dp.toPx()
-                    val speakerClearance =
-                        Rect(
-                            size.width * 0.19f,
-                            detailY - 6.dp.toPx(),
-                            size.width * 0.81f,
-                            detailY + 6.dp.toPx(),
-                        )
-                    if (
-                        detailY < size.height * 0.67f &&
-                        controls.none { CartdeckHardwareGeometry.intersects(it, speakerClearance) }
-                    ) {
-                        for (index in 0 until 5) {
-                            val offset = index * 7.dp.toPx()
-                            drawCircle(
-                                color = tokens.secondary,
-                                radius = 1.8.dp.toPx(),
-                                center = Offset(size.width * 0.23f + offset, detailY),
-                            )
-                            drawCircle(
-                                color = tokens.secondary,
-                                radius = 1.8.dp.toPx(),
-                                center = Offset(size.width * 0.77f - offset, detailY),
-                            )
-                        }
-                        drawLine(
-                            color = tokens.accent.copy(alpha = 0.65f),
-                            start = Offset(size.width * 0.44f, detailY),
-                            end = Offset(size.width * 0.56f, detailY),
-                            strokeWidth = 2.dp.toPx(),
-                        )
-                    }
+            if (!minimal) {
+                CartdeckHardwareGeometry.seamSegments(
+                    left = left,
+                    right = size.width - left,
+                    y = deckLineY,
+                    exclusions = controls + compactBadge + listOfNotNull(hole),
+                    clearance = 4.dp.toPx(),
+                ).forEach { (start, finish) ->
+                    drawLine(
+                        color = tokens.secondary,
+                        start = Offset(start, deckLineY),
+                        end = Offset(finish, deckLineY),
+                        strokeWidth = 2.dp.toPx(),
+                    )
                 }
             }
         }
@@ -380,7 +308,7 @@ internal fun CartdeckConsoleShell(
                                 size.width / 2f + 120.dp.toPx(),
                                 84.dp.toPx(),
                             )
-                        compactSeat ->
+                        footerSeat ->
                             Rect(
                                 size.width / 2f - 54.dp.toPx(),
                                 size.height - 66.dp.toPx(),
@@ -390,7 +318,7 @@ internal fun CartdeckConsoleShell(
                         else -> null
                     }
                 drawCartdeckLighting(
-                    lighting = lighting,
+                    lighting = lighting.copy(zones = lighting.zones.intersect(setOf(CartdeckLighting.CONTROL_WELLS))),
                     accent = tokens.accent,
                     video = hole,
                     controls = controls,
@@ -403,7 +331,7 @@ internal fun CartdeckConsoleShell(
             }
         }
 
-        if (decal != null && hole != null) {
+        if (decal != null && hole != null && !minimal) {
             val w = with(density) { maxWidth.toPx() }
             val h = with(density) { maxHeight.toPx() }
             val protectedBrand =
@@ -411,7 +339,7 @@ internal fun CartdeckConsoleShell(
                     val half = with(density) { 120.dp.toPx() }
                     val bottom = with(density) { 84.dp.toPx() }
                     Rect(w / 2f - half, 0f, w / 2f + half, bottom)
-                } else if (compactSeat) {
+                } else if (footerSeat) {
                     val half = with(density) { 54.dp.toPx() }
                     val top = h - with(density) { 66.dp.toPx() }
                     Rect(w / 2f - half, top, w / 2f + half, h)
@@ -456,7 +384,7 @@ internal fun CartdeckConsoleShell(
                 }
             }
         }
-        if (compactSeat) {
+        if (footerSeat) {
             val inks = listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             val brandInk = inks.maxBy { colorContrast(it, tokens.secondary) }
             Row(

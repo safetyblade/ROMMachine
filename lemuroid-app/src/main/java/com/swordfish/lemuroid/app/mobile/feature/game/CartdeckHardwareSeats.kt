@@ -15,16 +15,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlin.math.roundToInt
@@ -298,7 +302,9 @@ internal fun CartdeckHardwareSeats(
     customColours: Boolean,
     pivotArc: Boolean = false,
     drawPivotModule: Boolean = true,
-    useFlushSideRails: Boolean = false,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     if (rootBounds == null || inputBounds.isEmpty()) return
     val density = LocalDensity.current
@@ -310,10 +316,21 @@ internal fun CartdeckHardwareSeats(
     // custom editions. Color blending retains source luminance while applying
     // the selected semantic hue, as it does for the factory finishes.
     val tint = if (customColours) ColorFilter.tint(tokens.secondary, BlendMode.Color) else null
-    val indicatorTint = if (customColours) ColorFilter.tint(tokens.accent, BlendMode.Color) else null
     val protectedBrand =
-        if (isDualScreen) {
-            val halfWidth = with(density) { 49.dp.toPx() }
+        if (
+            isDualScreen ||
+            (
+                rootBounds.width > rootBounds.height && video != null &&
+                    CartdeckManufacturedGeometry.footerFits(
+                        rootBounds.width,
+                        rootBounds.height,
+                        video,
+                        controls.values.toList(),
+                        density.density,
+                    )
+            )
+        ) {
+            val halfWidth = with(density) { 54.dp.toPx() }
             val height = with(density) { 54.dp.toPx() }
             Rect(
                 rootBounds.width / 2f - halfWidth,
@@ -339,53 +356,6 @@ internal fun CartdeckHardwareSeats(
             )
         }
 
-        // P1-C2A side-rail masters sized to the real external screen margin,
-        // never stretched across the game aperture or touch controls.
-        if (video != null && !useFlushSideRails) {
-            val inset = with(density) { 4.dp.toPx() }
-            val railWidth =
-                minOf(
-                    with(density) { 10.dp.toPx() },
-                    video.left - inset,
-                    rootBounds.width - video.right - inset,
-                )
-            val railTop = video.top + with(density) { 7.dp.toPx() }
-            val railHeight = video.height - with(density) { 14.dp.toPx() }
-            if (railWidth > with(density) { 3.dp.toPx() } && railHeight > 0f) {
-                val railRects =
-                    listOf(
-                        Rect(inset, railTop, inset + railWidth, railTop + railHeight),
-                        Rect(
-                            rootBounds.width - inset - railWidth,
-                            railTop,
-                            rootBounds.width - inset,
-                            railTop + railHeight,
-                        ),
-                    )
-                railRects.forEach { rectangle ->
-                    if (
-                        controls.values.none {
-                            CartdeckHardwareGeometry.intersects(
-                                rectangle,
-                                CartdeckHardwareGeometry.expanded(it, clearance),
-                            )
-                        }
-                    ) {
-                        Image(
-                            painter = painterResource(CartdeckHardwareResource.sideRail(edition)),
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .offset { IntOffset(rectangle.left.roundToInt(), rectangle.top.roundToInt()) }
-                                    .width(with(density) { rectangle.width.toDp() })
-                                    .height(with(density) { rectangle.height.toDp() }),
-                            contentScale = ContentScale.FillBounds,
-                            colorFilter = tint,
-                        )
-                    }
-                }
-            }
-        }
         if (isDualScreen) {
             val utility = listOfNotNull(controls["ds-mic"], controls["ds-layout"], controls["menu"])
             if (utility.size >= 2) {
@@ -506,18 +476,42 @@ internal fun CartdeckHardwareSeats(
                     } &&
                     (protectedBrand == null || !CartdeckHardwareGeometry.intersects(rect, protectedBrand))
             if (clear) {
-                Image(
-                    painter = painterResource(resource),
-                    contentDescription = null,
-                    modifier =
-                        Modifier
-                            .offset { IntOffset(rect.left.roundToInt(), rect.top.roundToInt()) }
-                            .width(with(density) { rect.width.toDp() })
-                            .height(with(density) { rect.height.toDp() }),
-                    contentScale = ContentScale.FillBounds,
-                    colorFilter =
-                        if (resource == CartdeckHardwareResource.indicator(edition)) indicatorTint else tint,
-                )
+                Canvas(
+                    Modifier
+                        .offset { IntOffset(rect.left.roundToInt(), rect.top.roundToInt()) }
+                        .width(with(density) { rect.width.toDp() })
+                        .height(with(density) { rect.height.toDp() }),
+                ) {
+                    val indicator = resource == CartdeckHardwareResource.indicator(edition)
+                    val count = if (indicator) 3 else 5
+                    val spacing = size.width / (count + 1)
+                    val width = minOf(spacing * 0.55f, if (indicator) 12.dp.toPx() else 7.dp.toPx())
+                    val height = if (indicator) 4.dp.toPx() else 2.5.dp.toPx()
+                    for (index in 1..count) {
+                        val origin = Offset(index * spacing - width / 2f, size.height / 2f - height / 2f)
+                        drawRoundRect(
+                            color = tokens.bezel,
+                            topLeft = origin,
+                            size = Size(width, height),
+                            cornerRadius = CornerRadius(height / 2f),
+                        )
+                        if (indicator && lighting.active(CartdeckLighting.CONTROL_WELLS, highContrast)) {
+                            drawRoundRect(
+                                color = lighting.tint(tokens.accent, feedbackStrength),
+                                topLeft = origin,
+                                size = Size(width, height),
+                                cornerRadius = CornerRadius(height / 2f),
+                            )
+                        } else if (!indicator) {
+                            drawLine(
+                                color = lerp(tokens.bezel, tokens.secondary, 0.55f),
+                                start = origin + Offset(1.dp.toPx(), height),
+                                end = origin + Offset(width - 1.dp.toPx(), height),
+                                strokeWidth = 0.75.dp.toPx(),
+                            )
+                        }
+                    }
+                }
             }
         }
 
