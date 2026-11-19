@@ -46,6 +46,7 @@ fun AdvancedSettingsScreen(
 
         InputSettings()
         GeneralSettings(uiState.cache, viewModel, navController)
+        StorageSettings(viewModel)
     }
 }
 
@@ -123,6 +124,8 @@ private fun GeneralSettings(
             listOf(
                 stringResource(R.string.settings_description_low_latency_audio),
                 stringResource(R.string.settings_description_direct_game_load),
+                "ROM copy limits apply after leaving a game. Reload every session retains no staged copies. " +
+                    "Saves, installed games and shader caches are retained.",
                 stringResource(R.string.settings_description_reset_settings),
             ),
         )

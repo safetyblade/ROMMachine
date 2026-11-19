@@ -30,6 +30,8 @@ object CachedRomStager {
             (expectedBytes == 0L || destination.length() == expectedBytes) &&
             runCatching { marker.readText() == fingerprint(destination.length()) }.getOrDefault(false)
         ) {
+            // Keep recency separate from the source file's modification timestamp.
+            marker.setLastModified(System.currentTimeMillis())
             return destination
         }
 
@@ -45,7 +47,7 @@ object CachedRomStager {
             val copiedBytes =
                 openSource().use { input ->
                     FileOutputStream(pending).use { output ->
-                        val copied = input.copyTo(output)
+                        val copied = input.copyTo(output, bufferSize = 256 * 1024)
                         output.fd.sync()
                         copied
                     }

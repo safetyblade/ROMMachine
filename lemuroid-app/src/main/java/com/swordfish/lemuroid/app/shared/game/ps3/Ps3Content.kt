@@ -28,6 +28,7 @@ object Ps3Content {
             var parentId = id.substringBeforeLast('/')
             if (parentId.substringAfterLast('/').equals("PS3_GAME", true)) parentId = parentId.substringBeforeLast('/')
             copyTree(context, uri, parentId, root)
+            root.setLastModified(System.currentTimeMillis())
             return root
         }
         val target = File(root, game.fileName)
@@ -39,6 +40,7 @@ object Ps3Content {
         if (target.isFile && marker.isFile && marker.readText() == stamp &&
             target.length() == original.length()
         ) {
+            root.setLastModified(System.currentTimeMillis())
             return target
         }
         val pending = File(root, ".media.pending")
@@ -47,6 +49,7 @@ object Ps3Content {
         require(original.length() <= 0 || pending.length() == original.length()) { "Incomplete PS3 media copy" }
         check(pending.renameTo(target))
         marker.writeText(stamp)
+        root.setLastModified(System.currentTimeMillis())
         return target
     }
 

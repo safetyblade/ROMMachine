@@ -289,6 +289,10 @@ class GameLoader(
         coreID: CoreID,
     ): File? {
         if (isNativeExpansion(coreID)) return NativeCoreProvisioner.select(context, coreID)
+        // Prefer the exact packaged core; avoid walking large guest disks on every launch.
+        File(context.applicationInfo.nativeLibraryDir, coreID.libretroFileName).takeIf { it.isFile }?.let {
+            return it
+        }
         val files =
             sequenceOf(
                 File(context.applicationInfo.nativeLibraryDir),

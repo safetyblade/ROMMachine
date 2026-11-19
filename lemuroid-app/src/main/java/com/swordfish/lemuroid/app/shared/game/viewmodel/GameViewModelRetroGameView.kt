@@ -10,7 +10,9 @@ import androidx.lifecycle.LifecycleOwner
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.CoreOptionRefresh
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
 import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
@@ -47,10 +49,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -179,13 +183,19 @@ class GameViewModelRetroGameView(
         val enableMicrophone = systemCoreConfig.supportsMicrophone && hasMicrophonePermission
 
         val loadingStatesFlow =
-            gameLoader.load(
-                applicationContext,
-                game,
-                requestLoadSave && autoSaveEnabled,
-                systemCoreConfig,
-                directLoad,
-            )
+            flow {
+                // Fail closed if a background cleanup acquired the launch lock first.
+                GameProcessLock.acquireExclusive(applicationContext)
+                emitAll(
+                    gameLoader.load(
+                        applicationContext,
+                        game,
+                        requestLoadSave && autoSaveEnabled,
+                        systemCoreConfig,
+                        directLoad,
+                    ),
+                )
+            }
 
         loadingStatesFlow
             .onEach { state ->
@@ -467,14 +477,19 @@ class GameViewModelRetroGameView(
                 withContext(Dispatchers.IO) {
                     DisplaySettingsStore(appContext).readSafely(launchedGame?.cartridgeId).effective
                 }
+            val current =
+                variables.mapNotNull { variable ->
+                    variable.key?.let { key -> variable.value?.let { key to it } }
+                }.toMap()
             val overrides =
                 reported.mapNotNull { option ->
-                    val existing = options.firstOrNull { it.key == option.key }?.value ?: option.values.first()
-                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing
-                    chosen.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
+                    val existing = options.firstOrNull { it.key == option.key }?.value
+                    val chosen = display.engineOptions["$namespace:${option.key}"] ?: existing ?: current[option.key]
+                    chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            updateCoreVariables(options.filterNot { it.key in keys } + overrides)
+            val desired = options.filterNot { it.key in keys } + overrides
+            updateCoreVariables(CoreOptionRefresh.changed(desired, current))
         } catch (e: Exception) {
             Timber.e(e)
         }
@@ -507,6 +522,7 @@ class GameViewModelRetroGameView(
     }
 
     private fun updateCoreVariables(options: List<CoreVariable>) {
+        if (options.isEmpty()) return
         val updatedVariables =
             options.map { Variable(it.key, it.value) }
                 .toTypedArray()

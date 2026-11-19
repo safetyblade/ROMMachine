@@ -67,6 +67,15 @@
     <string name="setting_citra_use_acc_mul">Accurate shaders multiplication</string>
     <string name="setting_citra_use_acc_geo_shaders">Accurate geometry shaders</string>
     <string name="setting_citra_use_hw_shaders">Hardware shaders</string>
+    <string name="setting_engine_resolution">Internal resolution</string>
+    <string name="setting_engine_bilinear">Bilinear filtering</string>
+    <string name="setting_dolphin_shader_compilation">Shader compilation</string>
+    <string name="value_engine_native">1x (native)</string>
+    <string name="value_engine_double">2x</string>
+    <string name="value_engine_triple">3x</string>
+    <string name="value_dolphin_shader_sync">Synchronous</string>
+    <string name="value_dolphin_shader_uber_sync">Synchronous (Ubershaders)</string>
+    <string name="value_dolphin_shader_uber_async">Asynchronous (Ubershaders)</string>
 
     <!-- Core settings values. Duplicated here to ease the translation process. -->
     <string name="value_gambatte_mix_frames_disabled">Disabled</string>

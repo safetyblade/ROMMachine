@@ -10,13 +10,18 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.lib.injection.AndroidWorkerInjection
 import com.swordfish.lemuroid.lib.injection.WorkerKey
 import com.swordfish.lemuroid.lib.storage.cache.CacheCleaner
 import dagger.Binds
 import dagger.android.AndroidInjector
 import dagger.multibindings.IntoMap
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class CacheCleanerWork(
@@ -29,13 +34,20 @@ class CacheCleanerWork(
     override suspend fun doWork(): Result {
         AndroidWorkerInjection.inject(this)
 
-        try {
-            performCleaning()
-        } catch (e: Throwable) {
-            Timber.e(e, "Error while clearing cache")
+        return try {
+            withContext(Dispatchers.IO) {
+                if (GameProcessLock.withIdleAccess(applicationContext) { performCleaning() }) {
+                    Result.success()
+                } else {
+                    Result.retry()
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
+            Timber.e(e, "Error while clearing staged ROMs")
+            Result.failure()
         }
-
-        return Result.success()
     }
 
     private suspend fun performCleaning() {
@@ -63,8 +75,10 @@ class CacheCleanerWork(
         fun enqueueCleanCacheLRU(applicationContext: Context) {
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                 UNIQUE_WORK_ID,
-                ExistingWorkPolicy.APPEND,
-                OneTimeWorkRequestBuilder<CacheCleanerWork>().build(),
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                OneTimeWorkRequestBuilder<CacheCleanerWork>()
+                    .setInitialDelay(10, TimeUnit.SECONDS)
+                    .build(),
             )
         }
 
@@ -77,7 +91,7 @@ class CacheCleanerWork(
 
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                 UNIQUE_WORK_ID,
-                ExistingWorkPolicy.APPEND,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 OneTimeWorkRequestBuilder<CacheCleanerWork>()
                     .setInputData(inputData)
                     .build(),
