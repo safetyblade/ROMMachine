@@ -57,7 +57,8 @@ class GemPresentationPersistenceTest {
         assertEquals(8, snapshot.records.single().score)
         assertEquals(GemRatingRepository.Preferences(45, listOf("old-release"), true), snapshot.preferences)
         assertTrue(discovery.edit().putInt("$owner:wildcard", 20).commit())
-        assertEquals(45, GemRatingLocalStore.open(context).repository.snapshot(store.session).preferences?.wildcardPercent)
+        val reopened = GemRatingLocalStore.open(context).repository.snapshot(store.session)
+        assertEquals(45, reopened.preferences?.wildcardPercent)
     }
 
     @Test
