@@ -207,7 +207,9 @@ internal fun GemLibraryScreen(
                         CartdeckMenuRow(title = { Text(title) }, onClick = { page = destination })
                     }
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        TextButton(onClick = onBackToShelf, modifier = Modifier.gemFocusTarget()) { Text("Back to shelf") }
+                        TextButton(onClick = onBackToShelf, modifier = Modifier.gemFocusTarget()) {
+                            Text("Back to shelf")
+                        }
                     }
                 }
             }
