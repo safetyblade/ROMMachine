@@ -1,0 +1,10 @@
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        maven { url = uri(providers.gradleProperty("pcLabMaven").get()); content { includeGroup("dev.cartdeck.pc.lab") } }
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "CartdeckPcLab"

@@ -11,7 +11,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -23,13 +22,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
-import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
@@ -53,46 +48,11 @@ fun XboxGameControls(
 ) {
     val context = LocalContext.current
     val display = rememberDisplaySettings(game?.cartridgeId)
-    val appearance =
-        produceState(ShelfAppearance(), context) {
-            value = ShelfStore(context).read().appearance
-        }.value
-    val edition =
-        when (appearance.edition.lowercase()) {
-            "pink" -> CartdeckEditionPreset.PINK
-            "green" -> CartdeckEditionPreset.GREEN
-            else -> CartdeckEditionPreset.ORIGINAL
-        }
-    val preset = remember(edition) { context.resolveCartdeckEdition(edition) }
-    val tokens =
-        remember(preset, appearance) {
-            fun role(
-                name: String,
-                fallback: androidx.compose.ui.graphics.Color,
-            ) = appearance.custom[name]?.let { androidx.compose.ui.graphics.Color(it.toInt()) } ?: fallback
-            preset.copy(
-                chassis = role("chassis", preset.chassis), secondary = role("secondary", preset.secondary),
-                bezel = role("bezel", preset.bezel), glass = role("glass", preset.glass),
-                button = role("button", preset.button), accent = role("accent", preset.accent),
-                onButton = role("onButton", preset.onButton), onChassis = role("onChassis", preset.onChassis),
-                focus = role("focus", preset.focus),
-            )
-        }
-    val theme =
-        remember(tokens) {
-            LemuroidPadTheme(
-                CartdeckPadPalette(
-                    chassis = tokens.chassis,
-                    trim = tokens.secondary,
-                    bezel = tokens.bezel,
-                    button = tokens.button,
-                    accent = tokens.accent,
-                    onButton = tokens.onButton,
-                    focus = tokens.focus,
-                    highContrast = appearance.highContrast,
-                ),
-            )
-        }
+    val resolved = rememberGameplayAppearance()
+    val appearance = resolved.source
+    val edition = resolved.edition
+    val tokens = resolved.tokens
+    val theme = remember(resolved.controllerPalette) { LemuroidPadTheme(resolved.controllerPalette) }
     val manager =
         settingsManager ?: remember {
             TouchControllerSettingsManager(SharedPreferencesHelper.getSharedPreferences(context))
@@ -204,11 +164,17 @@ fun XboxGameControls(
         ) {
             if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
                 CartdeckConsoleShell(
-                    tokens,
-                    video.value,
-                    root.value,
-                    landscape,
-                    bounds.values.toList(),
+                    tokens = tokens,
+                    videoBounds = video.value,
+                    rootBounds = root.value,
+                    isLandscape = landscape,
+                    controlBounds = bounds.values.toList(),
+                    patternId = resolved.patternId,
+                    stampId = resolved.stampId,
+                    decal = resolved.decal,
+                    // Native hosts currently provide baseline lighting, not core-feedback events.
+                    lighting = resolved.lighting,
+                    highContrast = appearance.highContrast,
                 )
             }
             if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
@@ -219,7 +185,7 @@ fun XboxGameControls(
                     tokens = tokens,
                     edition = edition,
                     isDualScreen = false,
-                    customColours = appearance.custom.isNotEmpty(),
+                    customColours = resolved.customColours,
                 )
             }
             CompositionLocalProvider(

@@ -42,6 +42,7 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_native.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_x360_interpreter_constants.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_x360_shared_memory.py' -v
           c++ -std=c++17 -pthread -fsanitize=undefined,address native/wiiu/GuestAtomic64Test.cpp -o /tmp/atomic64-test
           /tmp/atomic64-test
   corrected-cemu:
@@ -62,6 +63,8 @@ jobs:
     with:
       use_ci01_all_native: true
       recovery_native_run_id: ${{ format('{0}', github.run_id) }}
+      pc_host_reuse_run_id: ${{ github.head_ref == 'engineering/emu-recovery-xgfx01' && '44483195468' || '' }}
+      pc_host_reuse_artifact_name: ${{ github.head_ref == 'engineering/emu-recovery-xgfx01' && 'native-ci01-libretrodroid-597df350d938ea60505da935384edbdd7ed8a983' || '' }}
       include_ps3: false
       distribution_licensing_cleared: false
       publish_apk: true

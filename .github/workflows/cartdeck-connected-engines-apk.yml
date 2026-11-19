@@ -6,6 +6,9 @@ on:
       recovery_native_run_id:
         type: string
         default: ""
+      xenia_reuse_verified_xgfx01:
+        type: boolean
+        default: false
       pc_host_native_run_id:
         type: string
         default: ""
@@ -338,6 +341,27 @@ jobs:
                 core.setOutput(engine + '_name', exact.name);
                 continue;
               }
+              if (engine === 'xenia' && '${{ inputs.xenia_reuse_verified_xgfx01 }}' === 'true') {
+                const runId = 44490853726;
+                const run = (await github.rest.actions.getWorkflowRun({...context.repo, run_id: runId})).data;
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                  ...context.repo, run_id: runId, per_page: 100
+                });
+                const exact = all.find(a => !a.expired && a.id === 14514562558 &&
+                  a.workflow_run?.id === runId &&
+                  a.name === 'native-ci01-xenia-2b717910b9b1aabf27fcedf21b73de82783fae20');
+                if (!exact || run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                    run.head_sha !== 'cc04d8d6c300c010700287147ab6b4f106e34828' ||
+                    run.event !== 'pull_request' || run.path !== '.github/workflows/cartdeck-emu-recovery.yml' ||
+                    run.head_branch !== 'engineering/emu-recovery-xgfx01' ||
+                    !jobs.some(j => j.name === 'instrumented-xenia / Verify and retain one genuine native component' &&
+                      j.conclusion === 'success')) {
+                  core.setFailed('Verified XGFX-01 native producer unavailable; do not fall back to older Xenia'); return;
+                }
+                core.setOutput(engine + '_run', String(runId));
+                core.setOutput(engine + '_name', exact.name);
+                continue;
+              }
               const reuseRun = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_run_id }}' : '';
               const reuseName = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_artifact_name }}' : '';
               if (Boolean(reuseRun) !== Boolean(reuseName)) {
@@ -375,6 +399,24 @@ jobs:
                   });
                   trusted = jobs.some(j => j.name.startsWith('Refresh LibretroDroid only / ') &&
                     j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
+                }
+                // XGFX-01 stacks on the physically accepted PERF A–E tree.
+                // Reuse its exact host artifact instead of changing another engine.
+                if (!trusted && engine === 'libretrodroid' && reuseRun === '44483195468' &&
+                    reuseName === 'native-ci01-libretrodroid-597df350d938ea60505da935384edbdd7ed8a983' &&
+                    run.conclusion === 'success' && run.event === 'pull_request' &&
+                    run.head_sha === '54afc6f1efe9ddf0e6d10d0ff3e2fa35b71a25b2' &&
+                    run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                    run.head_branch === 'engineering/perf03-engine-config') {
+                  trusted = true;
+                }
+                // A native producer is independently verified even when later APK tests fail.
+                if (!trusted && engine === 'xenia' && recovered && run.status === 'completed') {
+                  const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                    ...context.repo, run_id: runId, per_page: 100
+                  });
+                  trusted = jobs.some(j => j.name === 'instrumented-xenia / Verify and retain one genuine native component' &&
+                    j.conclusion === 'success');
                 }
                 if (!trusted) continue;
                 chosen = {run_id: run.id, name: artifact.name};

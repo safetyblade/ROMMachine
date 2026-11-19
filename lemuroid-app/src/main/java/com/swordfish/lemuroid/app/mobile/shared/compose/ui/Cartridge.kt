@@ -338,9 +338,11 @@ fun cartridgeArtworkRequest(
     context: Context,
     game: Game,
     revision: Int,
+    offline: Boolean = false,
 ): ImageRequest =
     ImageRequest.Builder(context)
         .data(game.displayCoverUrl())
+        .networkCachePolicy(if (offline) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED)
         .memoryCacheKey("${game.id}:${game.displayCoverUrl()}:$revision")
         .memoryCachePolicy(
             if (game.customCoverUri != null) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED,
@@ -356,6 +358,34 @@ fun CartridgeFront(
     modifier: Modifier = Modifier,
     pink: Boolean = LocalShelfAppearance.current.edition == "pink",
     artworkRevision: Int = 0,
+    offline: Boolean = false,
+) {
+    CartridgeFrontArtwork(
+        title = game.displayName(),
+        systemId = game.systemId,
+        artwork = cartridgeArtworkRequest(LocalContext.current, game, artworkRevision, offline),
+        modifier = modifier,
+        pink = pink,
+    )
+}
+
+/** A catalogue preview is presentation-only, never a fabricated Game or an install record. */
+@Composable
+internal fun CatalogueCartridgeFront(
+    title: String,
+    systemId: String,
+    modifier: Modifier = Modifier,
+) {
+    CartridgeFrontArtwork(title, systemId, null, modifier, LocalShelfAppearance.current.edition == "pink")
+}
+
+@Composable
+private fun CartridgeFrontArtwork(
+    title: String,
+    systemId: String,
+    artwork: ImageRequest?,
+    modifier: Modifier,
+    pink: Boolean,
 ) {
     val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
     val cartridgeInk =
@@ -380,7 +410,7 @@ fun CartridgeFront(
             )
         // Preserve the existing custom > indexed > original fallback artwork contract.
         AsyncImage(
-            model = cartridgeArtworkRequest(LocalContext.current, game, artworkRevision),
+            model = artwork,
             contentDescription = null,
             fallback = fallback,
             error = fallback,
@@ -432,7 +462,7 @@ fun CartridgeFront(
             contentAlignment = Alignment.CenterStart,
         ) {
             Text(
-                shelfPresentationTitle(game.displayName()),
+                shelfPresentationTitle(title),
                 color = cartridgeInk,
                 style = plateStyle,
                 maxLines = 1,
@@ -445,7 +475,7 @@ fun CartridgeFront(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                cartridgeSystemLabel(game.systemId),
+                cartridgeSystemLabel(systemId),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = plateStyle,
                 maxLines = 1,

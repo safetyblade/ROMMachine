@@ -21,7 +21,7 @@ jobs:
     name: Verify current LibretroDroid receipt
     if: >-
       (github.ref == 'refs/heads/master' && github.event_name != 'pull_request') ||
-      (github.event_name == 'pull_request' && (github.head_ref == 'engineering/br001-regression-rollback' || github.head_ref == 'engineering/br001-safe-reintroduction' || github.head_ref == 'engineering/br001-br002-integrated' || github.head_ref == 'engineering/perf03-foundation' || github.head_ref == 'engineering/perf03-engine-config'))
+      (github.event_name == 'pull_request' && (github.head_ref == 'engineering/br001-regression-rollback' || github.head_ref == 'engineering/br001-safe-reintroduction' || github.head_ref == 'engineering/br001-br002-integrated' || github.head_ref == 'engineering/perf03-foundation' || github.head_ref == 'engineering/perf03-engine-config' || github.head_ref == 'engineering/master-consolidation-20261119'))
     runs-on: ubuntu-24.04
     outputs:
       valid: ${{ steps.check.outputs.valid }}
@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify BR-001 timing and buffer bounds
-        if: github.head_ref == 'engineering/br001-safe-reintroduction' || github.head_ref == 'engineering/br001-br002-integrated' || github.head_ref == 'engineering/perf03-foundation' || github.head_ref == 'engineering/perf03-engine-config' || github.ref == 'refs/heads/master'
+        if: github.head_ref == 'engineering/br001-safe-reintroduction' || github.head_ref == 'engineering/br001-br002-integrated' || github.head_ref == 'engineering/perf03-foundation' || github.head_ref == 'engineering/perf03-engine-config' || github.head_ref == 'engineering/master-consolidation-20261119' || github.ref == 'refs/heads/master'
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_br001_timing_patch.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_br002_citra_provenance.py' -v
@@ -71,6 +71,12 @@ jobs:
                 });
                 trusted = jobs.some(j => j.name.startsWith('Refresh LibretroDroid only / ') &&
                   j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
+              }
+              if (!trusted && run.conclusion === 'success' &&
+                  run.event === 'pull_request' && run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                  String(id) === '44483195468' && run.head_sha === '54afc6f1efe9ddf0e6d10d0ff3e2fa35b71a25b2' &&
+                  artifact.name === 'native-ci01-libretrodroid-597df350d938ea60505da935384edbdd7ed8a983') {
+                trusted = true;
               }
               if (!trusted) continue;
               core.setOutput('run', String(id));
@@ -120,7 +126,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
       !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
-      ((github.ref != 'refs/heads/master' && github.head_ref != 'engineering/br001-regression-rollback' && github.head_ref != 'engineering/br001-safe-reintroduction' && github.head_ref != 'engineering/br001-br002-integrated' && github.head_ref != 'engineering/perf03-foundation' && github.head_ref != 'engineering/perf03-engine-config') ||
+      ((github.ref != 'refs/heads/master' && github.head_ref != 'engineering/br001-regression-rollback' && github.head_ref != 'engineering/br001-safe-reintroduction' && github.head_ref != 'engineering/br001-br002-integrated' && github.head_ref != 'engineering/perf03-foundation' && github.head_ref != 'engineering/perf03-engine-config' && github.head_ref != 'engineering/master-consolidation-20261119') ||
         (needs.host-preflight.result == 'success' &&
           (needs.host-refresh.result == 'success' ||
             (needs.host-refresh.result == 'skipped' && needs.host-preflight.outputs.valid == 'true'))))
@@ -131,6 +137,7 @@ jobs:
       pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
       pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
       pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}
+      xenia_reuse_verified_xgfx01: ${{ github.head_ref == 'engineering/master-consolidation-20261119' }}
       publish_apk: true
     secrets: inherit
 

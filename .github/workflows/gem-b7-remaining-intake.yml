@@ -1,0 +1,110 @@
+name: GEM B7-A remaining catalogue source intake
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/gem-b7-remaining-intake.yml'
+      - 'scripts/gem_arcade_catalogue.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  arcade-candidates:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'engineering/master-consolidation-20261119'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test core-specific source parser
+        run: python3 -m unittest discover -s scripts -p 'test_gem_arcade_catalogue.py' -v
+      - name: Retrieve complete public upstream DAT snapshots for review
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/arcade-input" "$RUNNER_TEMP/arcade-review"
+          mame="$(git ls-remote https://github.com/libretro/mame2003-plus-libretro.git HEAD | cut -f1)"
+          fbneo="$(git ls-remote https://github.com/libretro/FBNeo.git HEAD | cut -f1)"
+          [[ "$mame" =~ ^[0-9a-f]{40}$ && "$fbneo" =~ ^[0-9a-f]{40}$ ]]
+          curl --fail --location --proto '=https' --proto-redir '=https' --max-time 180 --max-filesize 100000000 "https://raw.githubusercontent.com/libretro/mame2003-plus-libretro/$mame/metadata/mame2003-plus.xml" -o "$RUNNER_TEMP/arcade-input/mame.xml"
+          curl --fail --location --proto '=https' --proto-redir '=https' --max-time 180 --max-filesize 100000000 "https://raw.githubusercontent.com/libretro/FBNeo/$fbneo/dats/FinalBurn%20Neo%20%28ClrMame%20Pro%20XML%2C%20Arcade%20only%29.dat" -o "$RUNNER_TEMP/arcade-input/fbneo.xml"
+          printf 'MAME upstream commit=%s\nFBNeo upstream commit=%s\nNot confirmed as bundled core revisions. Research only.\n' "$mame" "$fbneo" > "$RUNNER_TEMP/arcade-review/source-revisions.txt"
+          python3 scripts/gem_arcade_catalogue.py --mame "$RUNNER_TEMP/arcade-input/mame.xml" --fbneo "$RUNNER_TEMP/arcade-input/fbneo.xml" --output "$RUNNER_TEMP/arcade-review"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = json.loads((Path(os.environ["RUNNER_TEMP"]) / "arcade-review/manifest.json").read_text())
+          for source in manifest["sources"].values():
+              assert source["machine_records"] > 1000, "Incomplete source"
+              assert source["parent_candidates"] > 100, "Incomplete source"
+          assert not manifest["release_or_app_distribution_approved"]
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-b7-arcade-metadata-review
+          path: ${{ runner.temp }}/arcade-review/
+          if-no-files-found: error
+          retention-days: 14
+  dos-candidates:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'engineering/master-consolidation-20261119'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve Wikidata CC0 DOS platform title candidates
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dos-review"
+          cat > "$RUNNER_TEMP/dos-review/query.rq" <<'SPARQL'
+          SELECT DISTINCT ?game ?label WHERE {
+            VALUES ?platform { wd:Q170434 wd:Q47604 }
+            ?game wdt:P400 ?platform ;
+                  rdfs:label ?label .
+            FILTER(LANG(?label) = "en")
+          }
+          ORDER BY ?game ?label
+          SPARQL
+          curl --fail --location --proto '=https' --proto-redir '=https' --max-time 120 --max-filesize 50000000 \
+            -A 'CARTDECK-GEM-Catalogue/1.0 (https://github.com/safetyblade/ROMMachine)' \
+            -H 'Accept: application/sparql-results+json' --get \
+            --data-urlencode "query@$RUNNER_TEMP/dos-review/query.rq" \
+            'https://query.wikidata.org/sparql' -o "$RUNNER_TEMP/dos-review/source.json"
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          from datetime import datetime, timezone
+          root = Path(os.environ["RUNNER_TEMP"]) / "dos-review"
+          raw = (root / "source.json").read_bytes()
+          seen = {}
+          for item in json.loads(raw)["results"]["bindings"]:
+              ident = item["game"]["value"].rsplit("/", 1)[-1]
+              title = item["label"]["value"].strip()
+              assert re.fullmatch(r"Q[1-9][0-9]*", ident)
+              if not title or len(title.encode("utf-16-le")) // 2 > 512 or any(ord(c) < 32 for c in title):
+                  continue
+              if ident in seen and seen[ident] != title:
+                  raise ValueError("Conflicting source label")
+              seen[ident] = title
+          assert len(seen) >= 100, "Incomplete DOS response"
+          rows = [dict(releaseId="WD:DOS:"+k, sourceId="wikidata-dos", sourceRecordId=k,
+                       systemId="dos", title=v) for k, v in sorted(seen.items())]
+          snapshot = dict(source="https://www.wikidata.org/", licence="CC0-1.0",
+                          retrieved=datetime.now(timezone.utc).isoformat(),
+                          sourceSha256=hashlib.sha256(raw).hexdigest(),
+                          candidateCount=len(rows), releaseApproved=False,
+                          note="Platform-linked work-level records, not verified DOS editions or compatibility; review eligibility before packaging.",
+                          releases=rows)
+          (root / "candidate.json").write_text(json.dumps(snapshot, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+          print("DOS source candidates:", len(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-b7-dos-metadata-review
+          path: ${{ runner.temp }}/dos-review/
+          if-no-files-found: error
+          retention-days: 14

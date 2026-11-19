@@ -4,11 +4,12 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import com.swordfish.lemuroid.app.mobile.feature.main.CartridgeDetail
 import com.swordfish.lemuroid.app.mobile.feature.main.CartridgePickup
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
@@ -71,10 +72,10 @@ class CartridgeMotionTest {
             }
         }
         assertEquals(0, opens)
-        compose.onNodeWithText("Open").performScrollTo().assertIsEnabled().performClick()
-        compose.onNodeWithText("Open").performClick()
+        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithText("Open").assertIsNotEnabled()
         assertEquals(1, opens)
-        compose.onNodeWithText("Back to shelf").performScrollTo().performClick()
+        compose.onNodeWithText("Back to shelf").assertIsDisplayed().performClick()
         compose.waitForIdle()
         assertEquals(1, closes)
     }

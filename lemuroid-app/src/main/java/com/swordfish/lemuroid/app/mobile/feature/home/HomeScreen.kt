@@ -152,7 +152,11 @@ internal fun HomeScreen(
         BoxWithConstraints(shelfModifier) {
             val sizing = CartridgeViewport.shelf(maxWidth.value, maxHeight.value, LocalDensity.current.fontScale, false)
             ShelfRoomBackdrop(layout.appearance)
-            PagedShelfSections(projection.layout, Modifier.fillMaxSize(), enabled = !arrange && !query.active) {
+            PagedShelfSections(
+                projection.layout,
+                Modifier.fillMaxSize(),
+                enabled = !arrange && !query.active,
+            ) {
                     pageLayout, pageModifier, pageKey ->
                 shelfStates.SaveableStateProvider(if (query.active) "filtered" else pageKey) {
                     ShelfBoard(

@@ -119,5 +119,7 @@ int register_xendroid_Emulator(JNIEnv* env)''')
         assert marker in jni.read_text(), marker
     assert 'cartdeck::GPU_READY' in host.read_text()
 
+    from repair_shared_memory import apply
+    apply(cpp)
     from instrument_performance import instrument
     instrument(cpp, support)

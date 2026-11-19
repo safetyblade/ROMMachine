@@ -21,3 +21,24 @@ Base master: 4b46aa82dfc1ab15b27a69f1bc9171501b6b2501. Closed unmerged #306 was 
 Install over current CARTDECK; verify existing games and saves. Explicitly import lawful Windows installation media or guest disk and original Shandalar disc. Create isolated guest, install Windows/game, choose executable and create cartridge. Test overworld, duel, deck editor, save, guest shutdown, return to shelf, relaunch and retained progress. Repeat mouse/touch/controller and TV. Record exact failure stage and version. No commercial media or keys submitted to repo. Do not export whole guest as verified game save.
 
 Status: source foundation only; not ready for owner testing. #195 #299 #300 #301 #302 #305 #307 remain open.
+
+## Recovery checkpoint — 17 Nov 2026
+
+- Failed native receipt check: run 44065484302. Failed PC native patch application: run 44066726783, input.cpp and environment.h on pinned LibretroDroid 8835c309.
+- Isolation commit f3e6ca2e restored the verified console recipe and retained the PC native experiment under spikes/pc/native-host. Host preflight passed on run 44068037585; app compilation subsequently failed independently on controller IntArray mapping, corrected by fdf070b8. No full APK or device acceptance inferred.
+- Later candidate source in PERF-PC-01_EXECUTION_INCREMENT.md replaces the initial checkpoint's source-only inventory: explicit PC import, CARTMOD, guest disks, launch recipe, PC input code and Wine adapter retained. No runnable PC guest or Wine proof.
+- PC-R01 independent runtime architecture and laboratory proof is the required next increment. PC-R02–PC-R07 follow the governing roadmap, with independent R06 feasibility permitted in parallel. No shared console host changes or PC dependency on the normal APK.
+
+## PC-R01/R02 execution — 18 Nov 2026
+
+Master base 0ffb5eb25be24c4327e72ed2d013136104a36230, after BR-001/UI integration. Independent PC lab host source recipe and patch snapshots, separate Maven coordinate dev.cartdeck.pc.lab:PcLibretroHost:0.14.0-pc-lab1, separate app ID dev.cartdeck.pc.lab and private storage. No production host, APK assembler, native receipt, PC availability flag, database or save root changed. Old PC host recovery workflow retired on this branch.
+
+R02 audits actual original core (ELF, SHA256, libretro exported symbols). Candidate source-build only: GPLv2 upstream source tag 1.0-preview6, commit a4a0bab7f8931433588f2fcad9045c85b277373d, pinned Android NDK 29.0.14206865, no binary substitution. Upstream preview7 moved to Codeberg; its exact revision has not been independently resolved. Preview6 is an intentionally bounded reference, not the latest. Dynamic VHD and Windows 9x APM shutdown are documented upstream, not verified in our runtime. Origin of original binary remains unknown until matched; no redistribution clearance inferred.
+
+New independent workflow executes native audit, host/input tests, core build and isolated synthetic APK packaging. No owner media, actual guest boot, Windows or Shandalar acceptance at this checkpoint. Run results and artifact IDs must be attached before marking R01/R02 complete.
+
+## PC-R03A / R04 — 18 November 2026
+
+R03A successful laboratory workflow 44289543415: two Linux core sessions recorded guest bytes 0161ff016231003200 and 0261ff016231003200, proving counter persistence, keyboard, mouse click and both optical reads. Lab APK artifact 14421201047. Standard CARTDECK workflow 44289543571 also passed. Neither run proves Android guest execution.
+
+R04 extends only the PC laboratory: dedicated Windows media setup, marked and reopenable installation workspaces, immutable Windows/game/floppy source archive, writable isolated OS image, guest core settings and special keys. The native DOSBox Pure menu remains the install and reboot path. The raw disk gate exercises OS discovery and two boots of an original BIOS program; Windows and Shandalar remain owner-media acceptance, not bundled or claimed. Host direct-to-Windows-EXE launch remains outstanding. Do not promote the PC host, change production host recipes or merge #339 before verified full-test readiness.

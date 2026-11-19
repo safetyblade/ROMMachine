@@ -231,6 +231,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 selectedGameState.value = game
             }
 
+            val gemCartridgeId = rememberSaveable { mutableStateOf<String?>(null) }
             val coverGameId = rememberSaveable { mutableStateOf<Int?>(null) }
             val geometry = LocalCartridgeGeometry.current
             val pickupSource = remember { mutableStateOf<Rect?>(null) }
@@ -331,7 +332,12 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 NavHost(
                     modifier = Modifier.fillMaxSize(),
                     navController = navController,
-                    startDestination = MainRoute.HOME.route,
+                    startDestination =
+                        if (intent.getBooleanExtra("cartdeck.open_gem", false)) {
+                            MainRoute.GEM.route
+                        } else {
+                            MainRoute.HOME.route
+                        },
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -366,8 +372,20 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         )
                     }
                     composable(MainRoute.GEM) {
-                        com.swordfish.lemuroid.app.mobile.feature.product.GemWebsiteSearchScreen(
+                        com.swordfish.lemuroid.app.mobile.feature.product.GemLibraryScreen(
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
                             modifier = Modifier.padding(padding),
+                            onOpenCartridge = onGameClick,
+                            initialCartridgeId = gemCartridgeId.value,
+                            onCartridgeIdConsumed = { gemCartridgeId.value = null },
+                            onBackToShelf = {
+                                if (!navController.popBackStack(MainRoute.HOME.route, false)) {
+                                    navController.navigate(MainRoute.HOME.route) {
+                                        popUpTo(MainRoute.GEM.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
                         )
                     }
                     composable(MainRoute.CARTMOD) {
@@ -604,6 +622,11 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     },
                     onChangeCover = gameInteractor::onSetCustomCoverUri,
                     onResetCover = gameInteractor::onClearCustomCoverUri,
+                    onOpenIntelligence = { game ->
+                        dismissCover()
+                        gemCartridgeId.value = game.cartridgeId
+                        if (currentRoute != MainRoute.GEM) navController.navigateToRoute(MainRoute.GEM)
+                    },
                     onUseOnlineCover = gameInteractor::useOnlineCover,
                 )
             }

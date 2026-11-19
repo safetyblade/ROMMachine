@@ -1,0 +1,119 @@
+{
+  "catalogueVersion": "gem-seed-2026.11.18.1",
+  "releases": [
+    {
+      "releaseId": "TS:r1q96z7y",
+      "systemId": "gba",
+      "title": "Advance Wars",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "r1q96z7y",
+      "primaryGenre": "Strategy"
+    },
+    {
+      "releaseId": "TS:rk3061vr",
+      "systemId": "gba",
+      "title": "Advance Wars",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rk3061vr",
+      "primaryGenre": "Strategy"
+    },
+    {
+      "releaseId": "TS:rqhne5aq",
+      "systemId": "gba",
+      "title": "Advance Wars 2 - Black Hole Rising",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rqhne5aq"
+    },
+    {
+      "releaseId": "TS:rty10510",
+      "systemId": "gba",
+      "title": "Advance Wars 2 - Black Hole Rising",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rty10510"
+    },
+    {
+      "releaseId": "TS:rtj2h5dd",
+      "systemId": "gba",
+      "title": "Aggressive Inline",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rtj2h5dd"
+    },
+    {
+      "releaseId": "TS:rm6vd0x4",
+      "systemId": "gba",
+      "title": "Aggressive Inline",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rm6vd0x4"
+    },
+    {
+      "releaseId": "TS:rcy0pnmp",
+      "systemId": "gba",
+      "title": "Advance Guardian Heroes",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rcy0pnmp"
+    },
+    {
+      "releaseId": "TS:rvzbtpqp",
+      "systemId": "gba",
+      "title": "Advance Guardian Heroes",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rvzbtpqp"
+    },
+    {
+      "releaseId": "TS:rcyb1st4",
+      "systemId": "gba",
+      "title": "A Sound of Thunder",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rcyb1st4"
+    },
+    {
+      "releaseId": "TS:rxc8j0ty",
+      "systemId": "gba",
+      "title": "Army Men Advance",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rxc8j0ty"
+    },
+    {
+      "releaseId": "TS:reft6ytm",
+      "systemId": "gba",
+      "title": "Arctic Tale",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "reft6ytm"
+    },
+    {
+      "releaseId": "TS:ra49nrcr",
+      "systemId": "gba",
+      "title": "Around the World in 80 Days",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "ra49nrcr"
+    },
+    {
+      "releaseId": "TS:rm3q94my",
+      "systemId": "gba",
+      "title": "All Grown Up! - Express Yourself",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rm3q94my"
+    },
+    {
+      "releaseId": "TS:rdmtjh2r",
+      "systemId": "gba",
+      "title": "AirForce Delta II",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rdmtjh2r"
+    },
+    {
+      "releaseId": "TS:r2vbm70g",
+      "systemId": "gba",
+      "title": "Ace Combat Advance",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "r2vbm70g"
+    },
+    {
+      "releaseId": "TS:rehsp63e",
+      "systemId": "gba",
+      "title": "Alienators - Evolution Continues",
+      "sourceId": "titlescreen",
+      "sourceRecordId": "rehsp63e"
+    }
+  ]
+}

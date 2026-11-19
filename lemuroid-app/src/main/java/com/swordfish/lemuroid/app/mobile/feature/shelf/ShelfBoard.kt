@@ -34,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
@@ -70,12 +71,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
@@ -142,6 +146,18 @@ fun ShelfBoard(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val gemRevision = GemShelfPresentation.revision.collectAsState().value
+    var gemRatings by remember { mutableStateOf(emptyMap<String, Int>()) }
+    LaunchedEffect(context, gemRevision, arrange) {
+        gemRatings =
+            if (arrange) {
+                emptyMap()
+            } else {
+                withContext(Dispatchers.IO) {
+                    runCatching { GemShelfPresentation.ratings(context) }.getOrDefault(emptyMap())
+                }
+            }
+    }
     val systemReduced =
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     val currentLayout by rememberUpdatedState(layout)
@@ -460,6 +476,23 @@ fun ShelfBoard(
                                                             }
                                                         },
                                                     )
+                                                    if (!arrange) {
+                                                        gemRatings[game.cartridgeId]?.let { score ->
+                                                            Text(
+                                                                "$score/10",
+                                                                modifier =
+                                                                    Modifier.align(Alignment.BottomCenter)
+                                                                        .background(colors.shelfBackboard)
+                                                                        .padding(horizontal = 3.dp, vertical = 1.dp)
+                                                                        .semantics {
+                                                                            contentDescription =
+                                                                                "My GEMRating $score out of 10"
+                                                                        },
+                                                                color = colors.sectionText,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                            )
+                                                        }
+                                                    }
                                                     if (game.isFavorite) {
                                                         Icon(
                                                             imageVector = Icons.Filled.Favorite,
