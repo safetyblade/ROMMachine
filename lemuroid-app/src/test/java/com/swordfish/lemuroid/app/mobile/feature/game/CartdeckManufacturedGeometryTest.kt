@@ -58,7 +58,11 @@ class CartdeckManufacturedGeometryTest {
         val controls = listOf(Rect(30f, 46f, 210f, 345f), Rect(642f, 46f, 822f, 345f))
         val decoration =
             CartdeckManufacturedGeometry.landscapeDecoration(
-                frame, video, controls, 1f, CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
+                frame,
+                video,
+                controls,
+                1f,
+                CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
             )
         assertEquals(4, decoration.bands.size)
         assertEquals(decoration.bands[0].width, decoration.bands[1].width)
