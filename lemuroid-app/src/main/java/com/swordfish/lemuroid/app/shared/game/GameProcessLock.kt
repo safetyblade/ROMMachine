@@ -5,19 +5,21 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
+import java.nio.channels.OverlappingFileLockException
 
 object GameProcessLock {
     private const val LOCK_FILE_NAME = "game_process.lock"
 
-    @Volatile
     private var channel: FileChannel? = null
-
-    @Volatile
     private var lock: FileLock? = null
+
+    // Avoid opening a second channel to the same lock file in this JVM while it
+    // owns a maintenance lock: closing another descriptor can release OS locks.
+    private var idleLock: FileLock? = null
 
     @Synchronized
     fun acquire(appContext: Context) {
-        if (lock?.isValid == true) return
+        if (lock?.isValid == true || idleLock != null) return
         val lockFile = File(appContext.filesDir, LOCK_FILE_NAME)
         val candidate = RandomAccessFile(lockFile, "rw").channel
         try {
@@ -26,48 +28,75 @@ object GameProcessLock {
                 channel = candidate
                 lock = acquired
             }
-        } catch (_: java.nio.channels.OverlappingFileLockException) {
-            // Retry at the actual game-loading boundary.
+        } catch (_: OverlappingFileLockException) {
+            // The actual game-loading boundary will fail closed if still unavailable.
         } finally {
             if (channel !== candidate) candidate.close()
         }
     }
 
-    /** Cleanup owns the same interprocess lock as game launch, not just a snapshot check. */
+    @Synchronized
+    private fun beginIdleAccess(lockFile: File): FileLock? {
+        if (lock?.isValid == true || idleLock != null) return null
+        val candidate = RandomAccessFile(lockFile, "rw").channel
+        try {
+            val acquired = candidate.tryLock()
+            idleLock = acquired
+            return acquired
+        } catch (_: OverlappingFileLockException) {
+            return null
+        } finally {
+            if (idleLock == null) candidate.close()
+        }
+    }
+
+    @Synchronized
+    private fun endIdleAccess(acquired: FileLock) {
+        try {
+            acquired.release()
+        } finally {
+            try {
+                acquired.channel().close()
+            } finally {
+                idleLock = null
+            }
+        }
+    }
+
+    /** Own the launch lock for the complete operation, including across coroutine suspension. */
     suspend fun withIdleAccess(
         appContext: Context,
         action: suspend () -> Unit,
+    ): Boolean = withIdleAccess(File(appContext.filesDir, LOCK_FILE_NAME), action)
+
+    internal suspend fun withIdleAccess(
+        lockFile: File,
+        action: suspend () -> Unit,
     ): Boolean {
-        val lockFile = File(appContext.filesDir, LOCK_FILE_NAME)
-        RandomAccessFile(lockFile, "rw").channel.use { candidate ->
-            val acquired =
-                try {
-                    candidate.tryLock()
-                } catch (_: java.nio.channels.OverlappingFileLockException) {
-                    null
-                } ?: return false
-            try {
-                action()
-                return true
-            } finally {
-                acquired.release()
-            }
+        val acquired = beginIdleAccess(lockFile) ?: return false
+        try {
+            action()
+            return true
+        } finally {
+            endIdleAccess(acquired)
         }
     }
 
     @Synchronized
     fun acquireExclusive(appContext: Context) {
         acquire(appContext)
-        check(lock?.isValid == true) { "Another CARTDECK game is already running" }
+        check(lock?.isValid == true) { "Another CARTDECK game or storage operation is active" }
     }
 
+    @Synchronized
     fun isHeldByAnotherProcess(appContext: Context): Boolean {
+        if (lock?.isValid == true || idleLock != null) return true
         val lockFile = File(appContext.filesDir, LOCK_FILE_NAME)
         RandomAccessFile(lockFile, "rw").channel.use { ch ->
             val testLock =
                 try {
                     ch.tryLock()
-                } catch (_: java.nio.channels.OverlappingFileLockException) {
+                } catch (_: OverlappingFileLockException) {
                     return true
                 }
             return if (testLock != null) {

@@ -179,7 +179,9 @@ private fun StorageSettings(viewModel: AdvancedSettingsViewModel) {
         AlertDialog(
             onDismissRequest = { confirmation.value = false },
             title = { Text("Clear staged game copies?") },
-            text = { Text("Games may take longer to reopen. Original media must still be accessible. Saves are retained.") },
+            text = {
+                Text("Games may take longer to reopen. Original media must still be accessible. Saves are retained.")
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

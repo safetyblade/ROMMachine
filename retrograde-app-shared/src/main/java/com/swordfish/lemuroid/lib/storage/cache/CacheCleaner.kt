@@ -19,14 +19,16 @@ object CacheCleaner {
     private val MAX_CACHE_LIMIT = 10L.gigaBytes()
 
     fun getSupportedCacheLimits(): List<Long> =
-        listOf(0L) + generateSequence(MIN_CACHE_LIMIT) { it * 2L }
-            .takeWhile { it <= MAX_CACHE_LIMIT }.toList()
+        listOf(0L) +
+            generateSequence(MIN_CACHE_LIMIT) { it * 2L }
+                .takeWhile { it <= MAX_CACHE_LIMIT }
+                .toList()
 
     fun getDefaultCacheLimit(): Long {
         val defaultCacheSize = (getInternalMemorySize() * 0.01f).roundToLong()
-        return getSupportedCacheLimits().filter { it > 0 }.minByOrNull {
-            abs(it - minOf(defaultCacheSize, 1L.gigaBytes()))
-        } ?: MIN_CACHE_LIMIT
+        return getSupportedCacheLimits()
+            .filter { it > 0 }
+            .minByOrNull { abs(it - minOf(defaultCacheSize, 1L.gigaBytes())) } ?: MIN_CACHE_LIMIT
     }
 
     private fun getInternalMemorySize(): Long {

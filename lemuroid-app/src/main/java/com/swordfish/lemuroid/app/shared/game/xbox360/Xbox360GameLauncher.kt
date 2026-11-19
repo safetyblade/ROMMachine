@@ -44,19 +44,16 @@ internal object Xbox360GameLauncher {
                         )
                     }
             // Lock across provisioning to prevent replacing a selected engine under a running guest.
-            java.io.RandomAccessFile(File(activity.filesDir, "game_process.lock"), "rw").channel.use { channel ->
-                val lock = channel.tryLock() ?: error("Another CARTDECK game is already running")
-                try {
+            val provisioned =
+                GameProcessLock.withIdleAccess(activity) {
                     Xbox360Engine.store(activity.filesDir).install(
                         File(activity.applicationInfo.nativeLibraryDir),
                         props,
                         activity.assets.open("cartdeck/xenia/xenia-licenses.zip").use { it.readBytes() },
                     )
                     Xbox360Engine.data(activity.filesDir)
-                } finally {
-                    lock.release()
                 }
-            }
+            check(provisioned) { "Another CARTDECK game or storage operation is active" }
         }
         activity.startActivityForResult(
             Intent(activity, Xbox360Activity::class.java).putExtra("cartdeck.game", game)

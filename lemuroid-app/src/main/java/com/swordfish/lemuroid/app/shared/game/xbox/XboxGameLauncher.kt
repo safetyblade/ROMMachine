@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,10 +37,8 @@ object XboxGameLauncher {
                     check(
                         !memory.lowMemory,
                     ) { "Android reports low available memory; close other apps before starting Xbox" }
-                    java.io.RandomAccessFile(File(activity.filesDir, "game_process.lock"), "rw").channel.use {
-                            channel ->
-                        val lock = channel.tryLock() ?: error("Another CARTDECK game is already running")
-                        try {
+                    val provisioned =
+                        GameProcessLock.withIdleAccess(activity) {
                             val props =
                                 Properties().apply {
                                     activity.assets.open(
@@ -54,10 +53,8 @@ object XboxGameLauncher {
                                     activity.assets.open("cartdeck/hakux/hakux-licenses.zip").use { it.readBytes() },
                                 )
                             XboxStorage.prepare(activity.filesDir, selection.id)
-                        } finally {
-                            lock.release()
                         }
-                    }
+                    check(provisioned) { "Another CARTDECK game or storage operation is active" }
                     val uri = android.net.Uri.parse(game.fileUri)
                     activity.contentResolver.openFileDescriptor(uri, "r")?.use {
                         val position =
