@@ -257,7 +257,7 @@ class NativeCoreActivity : SDLActivity() {
                         return
                     }
                 }
-                main.postDelayed(this, 400)
+                main.postDelayed(this, if (watchdog.presented) 1000 else 400)
             }
         }
 
