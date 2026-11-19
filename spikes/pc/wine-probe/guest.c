@@ -37,7 +37,8 @@ int main(void) {
     if(RegSetValueExA(key,"Counter",0,REG_SZ,(BYTE*)value,(DWORD)strlen(value)+1)!=ERROR_SUCCESS)return 20;
     if(RegFlushKey(key)!=ERROR_SUCCESS)return 21;
     RegCloseKey(key);
-    FILE *out=fopen("progress.txt","w");
+    /* Binary mode makes the persisted counter format identical on all hosts. */
+    FILE *out=fopen("progress.txt","wb");
     if(!out)return 22;
     if(fprintf(out,"%u\n",counter)<0||fclose(out)!=0)return 23;
     printf("PC_R06_WINDOWS_OK bits=%u counter=%u\n",(unsigned)(sizeof(void*)*8),counter);
