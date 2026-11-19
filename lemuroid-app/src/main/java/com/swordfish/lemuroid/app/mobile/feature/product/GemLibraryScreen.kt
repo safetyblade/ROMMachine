@@ -193,10 +193,11 @@ internal fun GemLibraryScreen(
         }
         when (page) {
             "Search websites" -> GemWebsiteSearchScreen()
-            "Manage" -> GemManagementScreen(
-                onCatalogueChanged = { reloading++ },
-                modifier = Modifier.weight(1f),
-            )
+            "Manage" ->
+                GemManagementScreen(
+                    onCatalogueChanged = { reloading++ },
+                    modifier = Modifier.weight(1f),
+                )
             "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
             "For You" -> {
                 if (error) {
