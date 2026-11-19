@@ -5,12 +5,14 @@ import androidx.startup.Initializer
 import androidx.work.WorkManagerInitializer
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
+import com.swordfish.lemuroid.app.shared.storage.cache.CacheCleanerWork
 import timber.log.Timber
 
 class MainProcessInitializer : Initializer<Unit> {
     override fun create(context: Context) {
         Timber.i("Requested initialization of main process tasks")
         SaveSyncWork.enqueueAutoWork(context, 0)
+        CacheCleanerWork.enqueueCleanCacheLRU(context)
         LibraryIndexScheduler.scheduleCoreUpdate(context)
     }
 

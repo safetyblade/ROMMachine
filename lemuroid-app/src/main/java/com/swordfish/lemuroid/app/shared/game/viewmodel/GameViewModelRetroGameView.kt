@@ -12,6 +12,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.CoreOptionRefresh
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
 import com.swordfish.lemuroid.app.shared.game.LibretroReportSession
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
@@ -48,10 +49,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -180,13 +183,19 @@ class GameViewModelRetroGameView(
         val enableMicrophone = systemCoreConfig.supportsMicrophone && hasMicrophonePermission
 
         val loadingStatesFlow =
-            gameLoader.load(
-                applicationContext,
-                game,
-                requestLoadSave && autoSaveEnabled,
-                systemCoreConfig,
-                directLoad,
-            )
+            flow {
+                // Fail closed if a background cleanup acquired the launch lock first.
+                GameProcessLock.acquireExclusive(applicationContext)
+                emitAll(
+                    gameLoader.load(
+                        applicationContext,
+                        game,
+                        requestLoadSave && autoSaveEnabled,
+                        systemCoreConfig,
+                        directLoad,
+                    ),
+                )
+            }
 
         loadingStatesFlow
             .onEach { state ->

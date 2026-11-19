@@ -15,11 +15,44 @@ object GameProcessLock {
     @Volatile
     private var lock: FileLock? = null
 
+    @Synchronized
     fun acquire(appContext: Context) {
-        if (lock != null) return
+        if (lock?.isValid == true) return
         val lockFile = File(appContext.filesDir, LOCK_FILE_NAME)
-        channel = RandomAccessFile(lockFile, "rw").channel
-        lock = channel?.tryLock()
+        val candidate = RandomAccessFile(lockFile, "rw").channel
+        try {
+            val acquired = candidate.tryLock()
+            if (acquired != null) {
+                channel = candidate
+                lock = acquired
+            }
+        } catch (_: java.nio.channels.OverlappingFileLockException) {
+            // Retry at the actual game-loading boundary.
+        } finally {
+            if (channel !== candidate) candidate.close()
+        }
+    }
+
+    /** Cleanup owns the same interprocess lock as game launch, not just a snapshot check. */
+    suspend fun withIdleAccess(
+        appContext: Context,
+        action: suspend () -> Unit,
+    ): Boolean {
+        val lockFile = File(appContext.filesDir, LOCK_FILE_NAME)
+        RandomAccessFile(lockFile, "rw").channel.use { candidate ->
+            val acquired =
+                try {
+                    candidate.tryLock()
+                } catch (_: java.nio.channels.OverlappingFileLockException) {
+                    null
+                } ?: return false
+            try {
+                action()
+                return true
+            } finally {
+                acquired.release()
+            }
+        }
     }
 
     @Synchronized
