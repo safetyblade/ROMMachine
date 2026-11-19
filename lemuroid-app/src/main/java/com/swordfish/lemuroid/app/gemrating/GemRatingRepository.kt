@@ -21,6 +21,7 @@ class GemRatingRepository(
         val updatedAt: Long,
         val displayTitle: String? = null,
         val platformId: String? = null,
+        val deckFit: Int? = null,
     )
 
     @Serializable
@@ -69,16 +70,18 @@ class GemRatingRepository(
         score: Int?,
         displayTitle: String? = null,
         platformId: String? = null,
+        deckFitOnly: Boolean = false,
     ): Snapshot =
         synchronized(lock) {
             verifyAccess(expected)
             requireUuid(cartridgeId)
-            require(score == null || score in 1..10)
+            require(score == null || score in 1..(if (deckFitOnly) 5 else 10))
             require(displayTitle == null || displayTitle.length in 1..512)
             require(platformId == null || platformId.length in 1..64)
             val existing = readValidated(expected.profileId)
             val previous = existing.records.firstOrNull { it.cartridgeId == cartridgeId }
-            if (previous?.score == score) return@synchronized existing
+            val priorScore = if (deckFitOnly) previous?.deckFit else previous?.score
+            if (priorScore == score) return@synchronized existing
             val revision = previous?.revision ?: 0L
             require(revision < Long.MAX_VALUE)
             val timestamp = now()
@@ -86,11 +89,12 @@ class GemRatingRepository(
             val rating =
                 Rating(
                     cartridgeId = cartridgeId,
-                    score = score,
+                    score = if (deckFitOnly) previous?.score else score,
                     revision = revision + 1,
                     updatedAt = timestamp,
                     displayTitle = displayTitle ?: previous?.displayTitle,
                     platformId = platformId ?: previous?.platformId,
+                    deckFit = if (deckFitOnly) score else previous?.deckFit,
                 )
             val next =
                 existing.copy(
@@ -183,6 +187,7 @@ class GemRatingRepository(
             snapshot.records.forEach {
                 requireUuid(it.cartridgeId)
                 require(it.score == null || it.score in 1..10)
+                require(it.deckFit == null || it.deckFit in 1..5)
                 require(it.revision > 0 && it.updatedAt >= 0)
                 require(it.displayTitle == null || it.displayTitle.length in 1..512)
                 require(it.platformId == null || it.platformId.length in 1..64)
