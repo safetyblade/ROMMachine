@@ -207,8 +207,9 @@ object GameScreenLayout {
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
                 val clearance = if (hardwareLandscape) 8.dp else 0.dp
-                absoluteLeft.linkTo(leftPad.absoluteRight, margin = clearance)
-                absoluteRight.linkTo(rightPad.absoluteLeft, margin = clearance)
+                val horizontalClearance = if (hardwareLandscape) 16.dp else 0.dp
+                absoluteLeft.linkTo(leftPad.absoluteRight, margin = horizontalClearance)
+                absoluteRight.linkTo(rightPad.absoluteLeft, margin = horizontalClearance)
                 top.linkTo(parent.top, margin = clearance)
                 bottom.linkTo(parent.bottom, margin = clearance)
                 width = Dimension.fillToConstraints // Expands between leftPad and rightPad

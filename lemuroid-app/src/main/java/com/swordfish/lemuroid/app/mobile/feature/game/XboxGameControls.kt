@@ -249,7 +249,10 @@ fun XboxGameControls(
                         val config = TouchControllerID.getConfig(controllerId)
                         val effectiveSettings =
                             if (dedicatedHardwareLayout) {
-                                GameScreenLayout.fitLandscapeHardwareSettings(settings, this@BoxWithConstraints.maxHeight)
+                                GameScreenLayout.fitLandscapeHardwareSettings(
+                                    settings,
+                                    this@BoxWithConstraints.maxHeight,
+                                )
                             } else {
                                 settings
                             }

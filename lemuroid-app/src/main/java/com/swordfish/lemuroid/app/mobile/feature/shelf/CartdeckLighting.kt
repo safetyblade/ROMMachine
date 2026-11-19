@@ -168,7 +168,18 @@ internal fun DrawScope.drawCartdeckLighting(
         )
     val colour = lighting.tint(accent, feedbackStrength)
     strips.forEach { strip ->
-        drawLightingFinish(strip, colour, lighting.finish)
+        val spread = minOf(clearance / 3f, thickness * 1.5f)
+        val halo = Rect(strip.left - spread, strip.top - spread, strip.right + spread, strip.bottom + spread)
+        val blocked = listOf(video) + controls + brand
+        val safeHalo =
+            halo.takeIf {
+                it.left >= frame.left && it.top >= frame.top && it.right <= frame.right && it.bottom <= frame.bottom &&
+                    blocked.none { obstacle ->
+                        it.left < obstacle.right && it.right > obstacle.left &&
+                            it.top < obstacle.bottom && it.bottom > obstacle.top
+                    }
+            }
+        drawLightingFinish(strip, colour, lighting.finish, safeHalo)
     }
 }
 

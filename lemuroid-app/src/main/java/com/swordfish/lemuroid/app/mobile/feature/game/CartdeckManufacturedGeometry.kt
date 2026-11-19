@@ -55,7 +55,7 @@ internal object CartdeckManufacturedGeometry {
         val tracks = mutableListOf<CartdeckHardwareChannel>()
 
         fun glowBounds(rect: Rect): Rect? =
-            CartdeckHardwareGeometry.expanded(rect, 1.2f * density).takeIf {
+            CartdeckHardwareGeometry.expanded(rect, 2f * density).takeIf {
                 fits(it, safe, blocked, 0.5f * density)
             }
 

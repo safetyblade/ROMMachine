@@ -65,9 +65,11 @@ class CartdeckManufacturedGeometryTest {
         val art = listOfNotNull(decoration.stampSeat, decoration.decalSeat)
         assertEquals(2, art.size)
         assertTrue((decoration.bands + art).none { CartdeckHardwareGeometry.intersects(it, video) })
-        assertTrue((decoration.bands + art).none { zone ->
-            controls.any { CartdeckHardwareGeometry.intersects(it, zone) }
-        })
+        assertTrue(
+            (decoration.bands + art).none { zone ->
+                controls.any { CartdeckHardwareGeometry.intersects(it, zone) }
+            },
+        )
         assertTrue(art.none { seat -> decoration.bands.any { CartdeckHardwareGeometry.intersects(it, seat) } })
     }
 
