@@ -4,6 +4,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.appearanceColour
 
 /** Generated canonical values: design/cartdeck-v06/bookshelf-palette.json (PR #44). */
 data class ShelfMaterials(
@@ -100,7 +101,7 @@ fun shelfMaterials(appearance: ShelfAppearance): ShelfMaterials {
     fun override(
         role: String,
         fallback: Color,
-    ) = appearance.custom[role]?.let { Color(it.toInt()) } ?: fallback
+    ) = appearance.appearanceColour(role, fallback)
     val hardwareChanged = appearance.custom.containsKey("chassis") || appearance.custom.containsKey("accent")
     val chassis = override("chassis", base.shelfDeck)
     val accent = override("accent", base.interactionAccent)

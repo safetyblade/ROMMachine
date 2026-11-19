@@ -42,13 +42,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
@@ -66,11 +64,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
-import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfStore
-import com.swordfish.lemuroid.app.mobile.feature.shelf.readableColor
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
 import com.swordfish.lemuroid.app.shared.game.BaseGameScreenViewModel
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls.Companion.MENU_LOADING_ANIMATION_MILLIS
@@ -78,7 +72,6 @@ import com.swordfish.lemuroid.app.shared.settings.HapticFeedbackMode
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.controller.R
-import com.swordfish.touchinput.radial.CartdeckPadPalette
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
@@ -97,58 +90,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val display = rememberDisplaySettings(viewModel.cartridgeId)
         val showBorder = display.effective.border(isLandscape) == DisplaySettingsStore.Border.STANDARD
         val appContext = LocalContext.current
-        // Read existing appearance atomically. No mutation of library, inputs,
-        // ROM files, emulator state or save data.
-        val appearance =
-            produceState(initialValue = ShelfAppearance(), key1 = appContext) {
-                value = runCatching { ShelfStore(appContext).read().appearance }.getOrDefault(ShelfAppearance())
-            }.value
-        val edition =
-            when (appearance.edition.lowercase()) {
-                "pink" -> CartdeckEditionPreset.PINK
-                "green" -> CartdeckEditionPreset.GREEN
-                else -> CartdeckEditionPreset.ORIGINAL
-            }
-        val editionTokens = remember(appContext, edition) { appContext.resolveCartdeckEdition(edition) }
-        val shellTokens =
-            remember(editionTokens, appearance) {
-                fun role(
-                    key: String,
-                    fallback: Color,
-                ): Color = appearance.custom[key]?.let { Color(it.toInt()) } ?: fallback
-
-                editionTokens.copy(
-                    chassis = role("chassis", editionTokens.chassis),
-                    secondary = role("secondary", editionTokens.secondary),
-                    bezel = role("bezel", editionTokens.bezel),
-                    glass = role("glass", editionTokens.glass),
-                    button = role("button", editionTokens.button),
-                    accent = role("accent", editionTokens.accent),
-                    onChassis = role("onChassis", editionTokens.onChassis),
-                    onButton = role("onButton", editionTokens.onButton),
-                    focus = role("focus", editionTokens.focus),
-                )
-            }
-        val controllerTheme =
-            remember(shellTokens, appearance.highContrast) {
-                LemuroidPadTheme(
-                    CartdeckPadPalette(
-                        chassis = shellTokens.chassis,
-                        trim = shellTokens.secondary,
-                        bezel = shellTokens.bezel,
-                        button = shellTokens.button,
-                        accent = shellTokens.accent,
-                        onButton =
-                            readableColor(
-                                shellTokens.onButton,
-                                listOf(shellTokens.button, shellTokens.bezel),
-                                4.5f,
-                            ),
-                        focus = shellTokens.focus,
-                        highContrast = appearance.highContrast,
-                    ),
-                )
-            }
+        val resolved = rememberGameplayAppearance()
+        val appearance = resolved.source
+        val edition = resolved.edition
+        val shellTokens = resolved.tokens
+        val controllerTheme = remember(resolved.controllerPalette) { LemuroidPadTheme(resolved.controllerPalette) }
 
         LaunchedEffect(isLandscape) {
             val orientation =
@@ -599,10 +545,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     videoBounds = viewPos,
                     rootBounds = fullPos,
                     isLandscape = isLandscape,
-                    patternId = if (appearance.highContrast) "none" else appearance.patternId,
-                    stampId = if (appearance.highContrast) "none" else appearance.stampId,
-                    decal = if (appearance.highContrast) null else appearance.decal,
-                    lighting = appearance.lighting,
+                    patternId = resolved.patternId,
+                    stampId = resolved.stampId,
+                    decal = resolved.decal,
+                    lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                     feedbackStrength = reactiveLightStrength,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
@@ -677,7 +623,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         inputBounds = hardwareInputBounds,
                         isDualScreen =
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
-                        customColours = appearance.custom.isNotEmpty(),
+                        customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
                         drawPivotModule = jointPlacement == null,
                         useFlushSideRails = viewModel.systemId == SystemID.NDS && !isLandscape,
