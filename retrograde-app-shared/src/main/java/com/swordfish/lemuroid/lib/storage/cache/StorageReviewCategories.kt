@@ -26,6 +26,19 @@ object StorageReviewCategories {
             "PS3 RPCS3 media",
         )
 
+    private val engineParts =
+        setOf(
+            "native-engines",
+            "native-engine-versions",
+            "native-engine-assets",
+            "system-engines",
+            "system",
+            "bios",
+            "cores",
+        )
+
+    private val cacheParts = setOf("cache", "hle")
+
     fun category(row: StorageUsageReview.Row): Category {
         val label = row.label
         val parts = label.split('/')
@@ -33,20 +46,8 @@ object StorageReviewCategories {
             label in mediaLabels -> Category.STAGED
             parts.any { it in setOf("backups", "emulator-baseline-backups") } -> Category.BACKUPS
             parts.any { it in setOf("saves", "states", "state-previews", "memcards") } -> Category.PROGRESS
-            parts.any {
-                it in setOf(
-                    "native-engines",
-                    "native-engine-versions",
-                    "native-engine-assets",
-                    "system-engines",
-                    "system",
-                    "bios",
-                    "cores",
-                )
-            } -> Category.ENGINE
-            label.startsWith("Internal/files/native/") && parts.any {
-                it in setOf("cache", "hle")
-            } -> Category.PERFORMANCE
+            parts.any { it in engineParts } -> Category.ENGINE
+            label.startsWith("Internal/files/native/") && parts.any { it in cacheParts } -> Category.PERFORMANCE
             label.startsWith("Internal/files/native/") -> Category.CONSOLE
             parts.any { it in setOf("databases", "custom-covers", "image_cache") } -> Category.LIBRARY
             else -> Category.OTHER
