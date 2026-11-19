@@ -161,10 +161,10 @@ internal object CartdeckManufacturedGeometry {
         controls: List<Rect>,
         density: Float,
         decalAnchor: String? = null,
-        protected: List<Rect> = emptyList(),
+        protectedRects: List<Rect> = emptyList(),
     ): LandscapeDecoration {
         if (density <= 0f || !density.isFinite()) return LandscapeDecoration()
-        val blocked = listOf(video) + controls + protected
+        val blocked = listOf(video) + controls + protectedRects
         val safe =
             Rect(
                 frame.left + 40f * density,
@@ -193,6 +193,7 @@ internal object CartdeckManufacturedGeometry {
                 )
             if (pair.all { fits(it, safe, blocked, 3f * density) }) bands += pair
         }
+
         fun artwork(
             left: Boolean,
             upper: Boolean,
@@ -202,6 +203,7 @@ internal object CartdeckManufacturedGeometry {
             val rect = Rect(x, y, x + seatSize, y + seatSize)
             return rect.takeIf { fits(it, safe, blocked + bands, 2f * density) }
         }
+
         val decalLeft = decalAnchor == CartdeckPersonalDecal.ANCHOR_LOWER_LEFT
         val decalUpper = decalAnchor == CartdeckPersonalDecal.ANCHOR_UPPER_RAIL
         val decal = if (decalAnchor == null) null else artwork(decalLeft, decalUpper)

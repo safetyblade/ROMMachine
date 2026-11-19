@@ -6,6 +6,7 @@ import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
@@ -30,6 +31,25 @@ object GameScreenLayout {
     ): Dp {
         if (systemId != SystemID.DREAMCAST || !standardMode || isLandscape) return 0.dp
         return if (availableHeight >= 680.dp) 24.dp else 12.dp
+    }
+
+    /**
+     * Preserve the saved radial constellation; cap the effective session scale
+     * against the side-deck height rather than moving individual controls.
+     */
+    internal fun fitLandscapeHardwareSettings(
+        settings: TouchControllerSettingsManager.Settings,
+        height: Dp,
+    ): TouchControllerSettingsManager.Settings {
+        val available = (height.value - 84f).coerceAtLeast(0f)
+        // BaseLayout uses 160dp × interpolated scale; allow the surrounding secondary dials.
+        val maximumDialScale = available / (160f * 1.9f)
+        val maximumSetting =
+            (
+                (maximumDialScale - TouchControllerSettingsManager.MIN_SCALE) /
+                    (TouchControllerSettingsManager.MAX_SCALE - TouchControllerSettingsManager.MIN_SCALE)
+            ).coerceIn(0f, 1f)
+        return settings.copy(scale = minOf(settings.scale, maximumSetting))
     }
 
     fun buildConstraintSet(
@@ -172,13 +192,15 @@ object GameScreenLayout {
             val leftContainer = createRefFor(CONSTRAINTS_LEFT_CONTAINER)
             val rightContainer = createRefFor(CONSTRAINTS_RIGHT_CONTAINER)
 
-            val padInset = if (hardwareLandscape) 8.dp else 0.dp
+            val padInset = if (hardwareLandscape) 42.dp else 0.dp
+            val sideInset = if (hardwareLandscape) 16.dp else 0.dp
             constrain(leftPad) {
-                absoluteLeft.linkTo(parent.absoluteLeft)
+                absoluteLeft.linkTo(parent.absoluteLeft, margin = sideInset)
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
-                verticalBias = if (hardwareLandscape) 0.45f else 0.5f
+                verticalBias = 0.5f
                 width = Dimension.wrapContent // Takes as much space as needed
+                if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
             constrain(gameView) {
@@ -193,11 +215,12 @@ object GameScreenLayout {
             }
 
             constrain(rightPad) {
-                absoluteRight.linkTo(parent.absoluteRight)
+                absoluteRight.linkTo(parent.absoluteRight, margin = sideInset)
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
-                verticalBias = if (hardwareLandscape) 0.45f else 0.5f
+                verticalBias = 0.5f
                 width = Dimension.wrapContent // Takes as much space as needed
+                if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
             constrain(gameContainer) {

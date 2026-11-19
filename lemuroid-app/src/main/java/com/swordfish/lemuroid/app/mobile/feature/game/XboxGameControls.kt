@@ -247,15 +247,21 @@ fun XboxGameControls(
                     )
                     if (placement == null && !physicalControllerConnected && !isTv) {
                         val config = TouchControllerID.getConfig(controllerId)
+                        val effectiveSettings =
+                            if (dedicatedHardwareLayout) {
+                                GameScreenLayout.fitLandscapeHardwareSettings(settings, this@BoxWithConstraints.maxHeight)
+                            } else {
+                                settings
+                            }
                         config.leftComposable(
                             this@PadKit,
                             Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD),
-                            settings,
+                            effectiveSettings,
                         )
                         config.rightComposable(
                             this@PadKit,
                             Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD),
-                            settings,
+                            effectiveSettings,
                         )
                     }
                 }

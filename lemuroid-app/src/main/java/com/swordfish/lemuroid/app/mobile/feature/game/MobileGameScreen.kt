@@ -743,19 +743,25 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD).size(1.dp))
                         } else {
+                            val effectiveSettings =
+                                if (dedicatedHardwareLayout) {
+                                    GameScreenLayout.fitLandscapeHardwareSettings(touchControllerSettings, maxHeight)
+                                } else {
+                                    touchControllerSettings
+                                }
                             leftGamePad?.invoke(
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
                                     .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
-                                touchControllerSettings,
+                                effectiveSettings,
                             )
                             rightGamePad?.invoke(
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
                                     .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
-                                touchControllerSettings,
+                                effectiveSettings,
                             )
                         }
                         GameScreenRunningCentralMenu(

@@ -26,3 +26,7 @@ GripArc final approved direction: close-fitting L around the selected native han
 ## C09–C13 owner-approved material follow-up
 
 Permanent accent inlays are separate from emitted light. Reuse palette roles for every appearance, never hardcode Arcana. Apply engraving after landscape housing fill with measured control exclusions. Retain screen and housing geometry; use small Standard landscape pad constraint clearances. GripArc and composite housing share the inlay/lighting renderer; the close-fitting four-control solver is still outstanding. Verify appearance, glow, control clearance and preservation of native inputs on device before acceptance.
+
+## C14 / C15 / D2 owner-approved follow-up
+
+Landscapes use paired geometric engraving bands and independent artwork seats. If clearance fails, omit the paired band rather than scatter tiles. Preserve the same appearance roles and keep controller surfaces clean. Lighting behaviour and finish are independent: Solid / Glow / Neon, with Glow the legacy default and intensity/colour/zones retained. Standard landscape controls use session-only radial scale capping and shared housing clearances, preserving native inputs, rotation and saved settings. This is a candidate fit, not device-verified. GripArc close-fit solver and other adaptive configurations remain D3/D4 work.

@@ -230,6 +230,18 @@ internal fun CartdeckConsoleShell(
                         controls,
                         this.density,
                         decal?.anchor,
+                        if (footerSeat) {
+                            listOf(
+                                Rect(
+                                    size.width / 2f - 54.dp.toPx(),
+                                    size.height - 66.dp.toPx(),
+                                    size.width / 2f + 54.dp.toPx(),
+                                    size.height,
+                                ),
+                            )
+                        } else {
+                            emptyList()
+                        },
                     )
                 clipPath(shellPath) {
                     decoration.bands.forEach { band ->

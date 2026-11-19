@@ -181,6 +181,7 @@ internal fun DrawScope.drawLightingFinish(
 ) {
     val radius = minOf(strip.width, strip.height) / 2f
     if (radius <= 0f || light.alpha <= 0f) return
+
     fun layer(
         fraction: Float,
         colour: Color,
@@ -202,14 +203,14 @@ internal fun DrawScope.drawLightingFinish(
     val neon = finish == CartdeckLighting.FINISH_NEON
     if (safeHalo != null) {
         drawRoundRect(
-            color = light.copy(alpha = light.alpha * if (neon) 0.24f else 0.10f),
+            color = light.copy(alpha = light.alpha * (if (neon) 0.24f else 0.10f)),
             topLeft = safeHalo.topLeft,
             size = safeHalo.size,
             cornerRadius = CornerRadius(minOf(safeHalo.width, safeHalo.height) / 2f),
         )
     }
-    layer(0.04f, light.copy(alpha = light.alpha * if (neon) 0.40f else 0.16f))
-    layer(0.28f, light.copy(alpha = light.alpha * if (neon) 0.65f else 0.34f))
-    layer(0.55f, light.copy(alpha = light.alpha * if (neon) 1f else 0.82f))
+    layer(0.04f, light.copy(alpha = light.alpha * (if (neon) 0.40f else 0.16f)))
+    layer(0.28f, light.copy(alpha = light.alpha * (if (neon) 0.65f else 0.34f)))
+    layer(0.55f, light.copy(alpha = light.alpha * (if (neon) 1f else 0.82f)))
     if (neon) layer(0.74f, androidx.compose.ui.graphics.lerp(light, Color.White, 0.45f).copy(alpha = light.alpha))
 }
