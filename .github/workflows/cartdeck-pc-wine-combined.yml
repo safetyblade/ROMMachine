@@ -12,7 +12,7 @@ permissions:
   actions: read
 concurrency:
   group: pc-wine-combined-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   wine-source:
     name: Build pinned Wine 10.0 new WoW64 (Linux x86_64)
@@ -24,8 +24,8 @@ jobs:
           persist-credentials: false
       - name: Install Wine build prerequisites
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y build-essential bison flex gcc-mingw-w64-i686 gcc-mingw-w64-x86-64 \
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends build-essential bison flex gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix \
             libx11-dev libxext-dev libxrender-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev \
             libfreetype-dev libfontconfig1-dev libgl-dev libasound2-dev libpulse-dev libvulkan-dev \
             libgnutls28-dev libdbus-1-dev libudev-dev libxcomposite-dev libxxf86vm-dev pkg-config
@@ -50,8 +50,8 @@ jobs:
         with:
           persist-credentials: false
       - run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y gcc-mingw-w64-i686 gcc-mingw-w64-x86-64
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix
           mkdir fixture
           i686-w64-mingw32-gcc -O2 -Wall -Wextra spikes/pc/wine-probe/guest.c -o fixture/probe32.exe -lgdi32 -luser32 -ladvapi32
           x86_64-w64-mingw32-gcc -O2 -Wall -Wextra spikes/pc/wine-probe/guest.c -o fixture/probe64.exe -lgdi32 -luser32 -ladvapi32
@@ -80,8 +80,8 @@ jobs:
           path: work/fixture
       - name: Prepare native ARM user-space and verify exact Wine archive
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y build-essential cmake ninja-build python3 xvfb xauth x11-xserver-utils fonts-dejavu-core \
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends build-essential cmake ninja-build python3 xvfb xauth x11-xserver-utils fonts-dejavu-core \
             libx11-6 libxext6 libxrender1 libxrandr2 libxcursor1 libxi6 libxinerama1 libfreetype6 libfontconfig1 \
             libgl1 libasound2t64 libpulse0 libvulkan1 libgnutls30t64 libdbus-1-3 libudev1 libxcomposite1 libxxf86vm1
           (cd work/wine && sha256sum -c sha256.txt)

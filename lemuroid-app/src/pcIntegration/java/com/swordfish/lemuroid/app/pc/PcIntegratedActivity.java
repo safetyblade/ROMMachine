@@ -7,10 +7,9 @@ import androidx.activity.ComponentActivity;
 import dev.cartdeck.pc.runtime.GLRetroView;
 import dev.cartdeck.pc.runtime.GLRetroViewData;
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
 import android.content.Intent;
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity;
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock;
 import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession;
 import com.swordfish.lemuroid.lib.library.db.entity.Game;
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore;
@@ -22,8 +21,6 @@ public final class PcIntegratedActivity extends ComponentActivity {
     private PcCartridgeStore.Entry entry;
     private PcCartridgeStore store;
     private PcWorkspace workspace;
-    private RandomAccessFile lockFile;
-    private FileLock gameLock;
     private FrameLayout frame;
     private View menu;
     private long startTime;
@@ -49,9 +46,7 @@ public final class PcIntegratedActivity extends ComponentActivity {
             if(!PcManagedSession.INSTANCE.permits(PcManagedSession.INSTANCE.getLocalOwner(),false))throw new IllegalStateException("Profile denied");
             entry=PcManagedSession.INSTANCE.resolve(this,game);
             if(entry==null)throw new IllegalStateException("Not managed PC media");
-            lockFile=new RandomAccessFile(new File(getFilesDir(),"game_process.lock"),"rw");
-            gameLock=lockFile.getChannel().tryLock();
-            if(gameLock==null)throw new IllegalStateException("Another game is running");
+            GameProcessLock.INSTANCE.acquireExclusive(getApplicationContext());
             store=new PcCartridgeStore(getFilesDir());
             workspace=store.workspace(entry);
             workspace.prepareWritableDirectories();
@@ -254,6 +249,7 @@ public final class PcIntegratedActivity extends ComponentActivity {
     @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(!focused)release();}
     @Override protected void onDestroy(){
         release();super.onDestroy();
-        try{if(gameLock!=null)gameLock.release();if(lockFile!=null)lockFile.close();}catch(java.io.IOException ignored){}
+        // This process owns the shared game lock via GameProcessInitializer.
+        android.os.Process.killProcess(android.os.Process.myPid());
     }
 }

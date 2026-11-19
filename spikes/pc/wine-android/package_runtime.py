@@ -35,7 +35,7 @@ for rel in required:
 rows = []
 seen = set()
 with zipfile.ZipFile(assets / "runtime.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-    for directory in ("arm64-v8a/bin", "arm64-v8a/lib/wine", "share/wine", "arm64-v8a/lib/libfreetype.so.6"):
+    for directory in ("arm64-v8a/bin", "arm64-v8a/lib/wine", "share/wine", "arm64-v8a/lib/libfreetype.so"):
         start = root / directory
         for path in sorted([start] if start.is_file() else start.rglob("*")):
             if not path.is_file():

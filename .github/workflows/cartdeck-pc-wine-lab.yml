@@ -10,7 +10,7 @@ permissions:
   contents: read
 concurrency:
   group: pc-wine-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   android-translator:
     name: Build independent Android ARM64 Box64 candidate
@@ -22,8 +22,8 @@ jobs:
           persist-credentials: false
       - name: Install pinned NDK and build dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ninja-build cmake python3
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends ninja-build cmake python3
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
@@ -45,8 +45,8 @@ jobs:
       - name: Install distribution Wine and fixture compilers (Linux control only)
         run: |
           sudo dpkg --add-architecture i386
-          sudo apt-get update -qq
-          sudo apt-get install -y wine wine64 wine32:i386 gcc-mingw-w64-i686 gcc-mingw-w64-x86-64 xvfb xauth
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends wine wine64 wine32:i386 gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix xvfb xauth fonts-dejavu-core
       - name: Prove GDI, per-prefix registry and working-directory save across restarts
         run: |
           mkdir -p "$RUNNER_TEMP/pc-wine-control"

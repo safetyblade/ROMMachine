@@ -12,6 +12,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity;
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock;
 import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession;
 import com.swordfish.lemuroid.lib.library.db.entity.Game;
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore;
@@ -19,7 +20,6 @@ import com.swordfish.lemuroid.lib.library.pc.PcWineCartridges;
 import com.swordfish.lemuroid.lib.library.pc.PcWorkspace;
 import org.winehq.wine.WineActivity;
 import java.io.*;
-import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -39,8 +39,6 @@ public final class WineNativeSession {
     private final Game game;
     private final File server, prefix, working;
     private final Map<String,String> environment;
-    private final RandomAccessFile lockFile;
-    private final FileLock lock;
     private final long start = SystemClock.elapsedRealtime();
     private volatile boolean closed;
     private View menu;
@@ -199,11 +197,8 @@ public final class WineNativeSession {
             throw new IOException("No permitted local cartridge");
         PcCartridgeStore.Entry entry=PcManagedSession.INSTANCE.resolve(activity,game);
         if(entry==null||!PcWineCartridges.INSTANCE.isWine(entry))throw new IOException("Not a managed Wine cartridge");
-        RandomAccessFile channel=new RandomAccessFile(new File(activity.getFilesDir(),"game_process.lock"),"rw");
-        FileLock lock=null;
-        try{
-            lock=channel.getChannel().tryLock();
-            if(lock==null)throw new IOException("Another game is running");
+        GameProcessLock.INSTANCE.acquireExclusive(activity.getApplicationContext());
+        {
             byte[] bytes=manifest(activity);
             Map<String,Item> items=parse(bytes);
             File runtime=installRuntime(activity,items,bytes);
@@ -233,18 +228,15 @@ public final class WineNativeSession {
             Os.chdir(working.getPath());
             String winPath="Z:"+executable.getAbsolutePath().replace('/','\\');
             String[] argv={loader.getPath(),"c:\\windows\\system32\\explorer.exe","/desktop=shell,,android",winPath};
-            return new WineNativeSession(game,ntdll,argv,env,server,prefix,working,channel,lock);
-        }catch(Exception e){
-            if(lock!=null)lock.release();
-            channel.close();throw e;
+            return new WineNativeSession(game,ntdll,argv,env,server,prefix,working);
         }
     }
     private WineNativeSession(Game game,File ntdll,String[] argv,Map<String,String> map,File server,File prefix,
-                              File working,RandomAccessFile file,FileLock lock){
+                              File working){
         this.game=game;this.ntdll=ntdll.getPath();this.argv=argv;this.environment=new LinkedHashMap<>(map);
         this.env=new String[map.size()*2];int i=0;
         for(Map.Entry<String,String> e:map.entrySet()){env[i++]=e.getKey();env[i++]=e.getValue();}
-        this.server=server;this.prefix=prefix;this.working=working;this.lockFile=file;this.lock=lock;
+        this.server=server;this.prefix=prefix;this.working=working;
     }
     public static void failure(Activity activity,Throwable error){
         if(activity.isFinishing())return;
@@ -294,7 +286,7 @@ public final class WineNativeSession {
     }
     private void serverCommand(String arg) throws Exception{
         ProcessBuilder pb=new ProcessBuilder(server.getPath(),arg);
-        pb.directory(working).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD);
+        pb.directory(working).redirectErrorStream(true).redirectOutput(new File(working,"wine-server-cleanup.log"));
         pb.environment().clear();pb.environment().putAll(environment);
         java.lang.Process process=pb.start();
         if(!process.waitFor(2,TimeUnit.SECONDS)){process.destroyForcibly();throw new IOException("Wine server did not stop");}
@@ -306,7 +298,6 @@ public final class WineNativeSession {
         if(prefix.isDirectory()){
             try{serverCommand("-k");serverCommand("-w");}catch(Exception ignored){}
         }
-        try{lock.release();}catch(IOException ignored){}
-        try{lockFile.close();}catch(IOException ignored){}
+        // The existing process initializer owns the lock, released on isolated process termination.
     }
 }

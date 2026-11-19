@@ -57,8 +57,10 @@ mkdir "$work/android-build"
     make install DESTDIR="$work/install" > "$work/logs/android-install.log" 2>&1 || { tail -80 "$work/logs/android-install.log"; exit 1; }
 )
 # Box64's built-in WoW64 PE target uses native ARM64 Wine, not the Linux Box64 executable.
-# A Linux ARM-target top-level configure supplies the source lists; PE build remains cross-compiled.
+# The Android ARM-target top-level configure supplies source lists; PE subproject uses LLVM-MinGW.
 cmake -S "$work/box64" -B "$work/box-build" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
+    -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 \
     -DARM64=ON -DARM_DYNAREC=ON -DWOW64=ON \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo -DNOLOADADDR=ON
 cmake --build "$work/box-build" --target wowbox64 --parallel 3 > "$work/logs/wowbox64-build.log" 2>&1 || { tail -80 "$work/logs/wowbox64-build.log"; exit 1; }
@@ -68,7 +70,7 @@ runtime="$work/install/opt/cartdeck-wine"
 test -f "$runtime/arm64-v8a/lib/wine/aarch64-unix/ntdll.so"
 install -m 644 "${dlls[0]}" "$runtime/arm64-v8a/lib/wine/aarch64-windows/wowbox64.dll"
 mkdir -p "$runtime/arm64-v8a/lib"
-cp -L "$work/ft-install/lib/libfreetype.so.6" "$runtime/arm64-v8a/lib/libfreetype.so.6"
+cp -L "$work/ft-install/lib/libfreetype.so" "$runtime/arm64-v8a/lib/libfreetype.so"
 i686-w64-mingw32-clang -O2 "$root/spikes/pc/wine-android/guest_interactive.c" -o "$work/delivery/probe32.exe" -lgdi32 -luser32 -lwinmm
 python3 "$root/spikes/pc/wine-android/package_runtime.py" "$runtime" "$work/delivery" "$toolchain/llvm-readelf"
 for spec in "wine:$wine_rev" "box64:$box_rev" "freetype:$ft_rev"; do
