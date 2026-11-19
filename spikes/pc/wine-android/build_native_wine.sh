@@ -25,8 +25,8 @@ export PATH="$work/mingw/bin:$toolchain:$PATH"
 mkdir "$work/host-tools"
 (
     cd "$work/host-tools"
-    "$work/wine/configure" --disable-tests --without-x --without-wayland --without-freetype --without-mingw > "$work/logs/host-configure.log" 2>&1
-    make -j4 __tooldeps__ > "$work/logs/host-tools.log" 2>&1
+    "$work/wine/configure" --enable-win64 --disable-tests --without-x --without-wayland --without-freetype --without-mingw > "$work/logs/host-configure.log" 2>&1 || { tail -80 "$work/logs/host-configure.log"; exit 1; }
+    make -j4 __tooldeps__ > "$work/logs/host-tools.log" 2>&1 || { tail -80 "$work/logs/host-tools.log"; exit 1; }
 )
 python3 "$root/spikes/pc/wine-android/patch_native_wine.py" "$work/wine" "$work/delivery/java"
 cmake -S "$work/freetype" -B "$work/ft-build" -G Ninja \
