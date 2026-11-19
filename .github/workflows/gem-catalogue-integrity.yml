@@ -25,3 +25,38 @@ jobs:
         run: python3 -m unittest discover -s scripts/gem -p 'test_export_catalogue.py' -v
       - name: Reproduce and verify full historical catalogue
         run: python3 scripts/gem/verify_production_catalogue.py
+
+  ingest-title-screen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test source projection
+        run: python3 -m unittest discover -s scripts/gem -p 'test_b7_catalogue_coverage.py' -v
+      - name: Download and verify pinned public source
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --max-time 240 \
+            'https://github.com/hmofet/titlescreen-data/releases/download/v2026.10.09/gamedb-2026.10.09.sqlite.gz' \
+            --output titlescreen.sqlite.gz
+          echo 'b352e559ba211d646f32dadd4f2e44798bc75e2a44021a7c57ee79f094bd1555  titlescreen.sqlite.gz' | sha256sum --check
+          gzip -dc titlescreen.sqlite.gz > titlescreen.sqlite
+      - name: Ingest full source and report actual coverage
+        run: |
+          set -euo pipefail
+          source_db="$RUNNER_TEMP/titlescreen.sqlite"
+          digest="$(sha256sum "$source_db" | cut -d ' ' -f 1)"
+          python3 scripts/gem/b7_catalogue_coverage.py --sqlite "$source_db" --sha256 "$digest" \
+            --expected-version 2026.10.09 --output "$RUNNER_TEMP/gem-b7-candidates"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-b7-unreviewed-catalogue-candidates
+          path: ${{ runner.temp }}/gem-b7-candidates/
+          if-no-files-found: error
+          retention-days: 14
