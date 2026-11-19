@@ -57,7 +57,8 @@ def project(db, systems):
         raise ValueError("Unknown Title Screen schema/version")
     platform_ids = dict(db.execute("SELECT id, name FROM platform"))
     mapping = {key: PLATFORMS[name] for key, name in platform_ids.items() if name in PLATFORMS}
-    if len(mapping) != len(PLATFORMS) or not set(mapping.values()) <= systems:
+    if (len(mapping) != len(PLATFORMS) or set(mapping.values()) != set(PLATFORMS.values())
+            or not set(mapping.values()) <= systems):
         raise ValueError("Platform map requires explicit review")
     rows = []
     seen = set()
@@ -70,7 +71,7 @@ def project(db, systems):
     ):
         if platform not in mapping:
             continue
-        title = (title or latin or "").strip()
+        title = (title or "").strip() or (latin or "").strip()
         if not title or len(title.encode("utf-16-le")) // 2 > 512:
             continue
         if not re.fullmatch(r"r[a-z0-9]{7}", ident) or ident in seen:
@@ -78,14 +79,15 @@ def project(db, systems):
         seen.add(ident)
         row = dict(releaseId="TS:" + ident, sourceId="titlescreen",
                    sourceRecordId=ident, systemId=mapping[platform], title=title)
-        if genre and len(genre) <= 100:
-            row["primaryGenre"] = genre
+        if genre and 0 < len(genre.strip().encode("utf-16-le")) // 2 <= 128:
+            row["primaryGenre"] = genre.strip()
         rows.append(row)
     return meta["version"], rows
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sqlite", type=Path)
+    parser.add_argument("--expected-version", help="Exact upstream meta version when pinned")
     parser.add_argument("--sha256", help="Independently obtained SHA256 of DECOMPRESSED SQLite")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -105,8 +107,14 @@ def main():
         with sqlite3.connect(args.sqlite.resolve().as_uri() + "?mode=ro&immutable=1", uri=True) as db:
             db.execute("PRAGMA trusted_schema=OFF")
             version, rows = project(db, systems)
+        if args.expected_version and version != args.expected_version:
+            raise ValueError("Source version mismatch")
+        if not re.fullmatch(r"[0-9]{4}\.[0-9]{2}\.[0-9]{2}", version):
+            raise ValueError("Unexpected source version")
         candidates = collections.Counter(r["systemId"] for r in rows)
-        args.output.mkdir(parents=True, exist_ok=True)
+        args.output.mkdir(parents=True, exist_ok=False)
+        if set(candidates) != set(PLATFORMS.values()):
+            raise ValueError("One or more mapped platforms have no eligible records")
         for system in sorted(candidates):
             payload = {"catalogueVersion": "gem-ts-" + version + "-" + system,
                        "releases": [r for r in rows if r["systemId"] == system]}
@@ -117,6 +125,7 @@ def main():
                       candidateBySystem={s: candidates[s] for s in sorted(systems)},
                       candidateRecords=len(rows), candidateMissing=sorted(systems - candidates.keys()),
                       approval="UNREVIEWED; no trusted assets or record approvals generated")
+        (args.output / "coverage.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
 
 if __name__ == "__main__":
