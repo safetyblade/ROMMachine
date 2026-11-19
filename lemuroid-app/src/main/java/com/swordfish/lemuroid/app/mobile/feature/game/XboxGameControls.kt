@@ -59,6 +59,8 @@ fun XboxGameControls(
         }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
+        val border = display.effective.border(landscape)
+        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
         // SDL owns the guest surface beneath this transparent Compose overlay.
         // The maximised path must not instantiate PadKit's virtual controller.
         val isTv =
@@ -71,7 +73,7 @@ fun XboxGameControls(
                 onViewport,
                 presentationAspect,
                 isTv,
-                display.effective.border(true) == DisplaySettingsStore.Border.STANDARD,
+                border != DisplaySettingsStore.Border.OFF,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
             )
@@ -164,7 +166,7 @@ fun XboxGameControls(
             Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
             onInputEvents = onInput,
         ) {
-            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+            if (border != DisplaySettingsStore.Border.OFF) {
                 CartdeckConsoleShell(
                     tokens = tokens,
                     videoBounds = video.value,
@@ -177,9 +179,10 @@ fun XboxGameControls(
                     // Native hosts currently provide baseline lighting, not core-feedback events.
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
+                    minimal = !hardwareBorder,
                 )
             }
-            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+            if (hardwareBorder) {
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
@@ -196,13 +199,16 @@ fun XboxGameControls(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,
             ) {
+                val dedicatedHardwareLayout =
+                    landscape && hardwareBorder && (arc == null || arc.mode == ArcControlMode.STANDARD)
                 ConstraintLayout(
                     modifier = Modifier.fillMaxSize(),
                     constraintSet =
                         GameScreenLayout.buildConstraintSet(
                             landscape,
-                            true,
+                            !dedicatedHardwareLayout,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
+                            hardwareLandscape = dedicatedHardwareLayout,
                             portraitApertureRatio =
                                 if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),

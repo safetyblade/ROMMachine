@@ -16,3 +16,9 @@ Do not change aperture placement or control geometry in C; adaptive layout is UN
 ## Landscape acceptance (owner approved)
 
 With surround enabled, use recessed channels and shared materials in portrait and landscape. Add control housings only in measured residual chassis with actual touch inputs; compact branding must not displace the aperture. Maximised mode remains minimal and borderless remains undecorated. Reuse side-rail zone for crown and vertical channels, screen zone for horizontal channels and control-well zone for indicators. Native hosts use baseline lighting until genuine feedback is available. UNI-D owns positioning changes.
+
+## Owner acceptance revision
+
+Standard portrait accepted. Landscape hardware, a selectable minimal surround, and GripArc alignment require correction. Approved: Hardware / Minimal / Off for each orientation, preserving saved STANDARD as Hardware, OFF as Off and inherited per-cartridge choices. Physical controllers retain game-first presentation. Standard landscape hardware reserves measured pad areas before fitting the viewport. Minimal deliberately keeps the existing overlay policy and paints only a measured thin surround. TV remains game-first.
+
+GripArc final approved direction: close-fitting L around the selected native hand group, preserving the Standard constellation with modest proportional scaling and shifts. All four programmable buttons G1–G4 are independently available on every supported controller; mirror for left-hand mode. Do not scatter controls with dock-first free-space packing, remove original inputs, shrink touch targets below their safe minimum, or silently change saved settings. Resolve a shared deck, controls, dock and viewport together, including native hosts. This is a separate solver implementation and owner acceptance gate, not delivered by the display-menu and standard landscape increment. PivotArc/combined modes and all engines remain explicit validation requirements.

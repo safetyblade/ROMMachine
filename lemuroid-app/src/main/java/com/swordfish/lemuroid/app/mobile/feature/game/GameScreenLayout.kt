@@ -38,12 +38,13 @@ object GameScreenLayout {
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         portraitBottomInset: Dp = 0.dp,
         portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
+        hardwareLandscape: Boolean = false,
     ): ConstraintSet {
         return when {
             !isLandscape ->
                 buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
             allowTouchOverlay -> buildConstraintSetLandscape()
-            else -> buildConstraintSetLandscapeNoOverlay()
+            else -> buildConstraintSetLandscapeNoOverlay(hardwareLandscape)
         }
     }
 
@@ -162,7 +163,7 @@ object GameScreenLayout {
         }
     }
 
-    private fun buildConstraintSetLandscapeNoOverlay(): ConstraintSet {
+    private fun buildConstraintSetLandscapeNoOverlay(hardwareLandscape: Boolean): ConstraintSet {
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -181,10 +182,11 @@ object GameScreenLayout {
             constrain(gameView) {
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
-                absoluteLeft.linkTo(leftPad.absoluteRight)
-                absoluteRight.linkTo(rightPad.absoluteLeft)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
+                val clearance = if (hardwareLandscape) 8.dp else 0.dp
+                absoluteLeft.linkTo(leftPad.absoluteRight, margin = clearance)
+                absoluteRight.linkTo(rightPad.absoluteLeft, margin = clearance)
+                top.linkTo(parent.top, margin = clearance)
+                bottom.linkTo(parent.bottom, margin = clearance)
                 width = Dimension.fillToConstraints // Expands between leftPad and rightPad
             }
 

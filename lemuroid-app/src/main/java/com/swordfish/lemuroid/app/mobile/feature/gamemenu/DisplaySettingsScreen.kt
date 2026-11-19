@@ -138,11 +138,20 @@ fun DisplaySettingsScreen(
         Text("Screen aspect: Auto / Original", style = MaterialTheme.typography.titleMedium)
         for ((landscape, field) in listOf(true to "landscapeBorder", false to "portraitBorder")) {
             Text(if (landscape) "Landscape border" else "Portrait border", style = MaterialTheme.typography.titleMedium)
-            for (border in DisplaySettingsStore.Border.entries) {
+            for (border in listOf(
+                DisplaySettingsStore.Border.STANDARD,
+                DisplaySettingsStore.Border.MINIMAL,
+                DisplaySettingsStore.Border.OFF,
+            )) {
                 val selected = snapshot.effective.border(landscape) == border
+                val label =
+                    when (border) {
+                        DisplaySettingsStore.Border.STANDARD -> "Hardware"
+                        DisplaySettingsStore.Border.MINIMAL -> "Minimal"
+                        DisplaySettingsStore.Border.OFF -> "Off"
+                    }
                 GameMenuLink(
-                    (if (border == DisplaySettingsStore.Border.OFF) "Off" else "Standard") +
-                        (if (selected) " · selected" else ""),
+                    label + (if (selected) " · selected" else ""),
                     enabled = editable,
                 ) {
                     save(field, border.name)

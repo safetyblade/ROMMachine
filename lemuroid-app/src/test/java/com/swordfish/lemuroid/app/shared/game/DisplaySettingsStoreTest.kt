@@ -33,6 +33,20 @@ class DisplaySettingsStoreTest {
         assertTrue(store.read("one").effective.hd == true)
     }
 
+    @Test fun minimalIsIndependentByOrientationAndPreservesExistingOverrides() {
+        val root = temporary.newFolder()
+        val store = DisplaySettingsStore(root)
+        store.set(null, "landscapeBorder", "STANDARD")
+        store.set("one", "portraitBorder", "OFF")
+        store.set("one", "landscapeBorder", "MINIMAL")
+        val reopened = DisplaySettingsStore(root)
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, reopened.read("one").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, reopened.read("one").effective.border(false))
+        assertEquals(DisplaySettingsStore.Border.STANDARD, reopened.read("two").effective.border(true))
+        reopened.useGlobal("one")
+        assertEquals(DisplaySettingsStore.Border.STANDARD, reopened.read("one").effective.border(true))
+    }
+
     @Test fun reportedEngineOptionsRespectNamespaceOverrideAndGlobalReset() {
         val store = DisplaySettingsStore(temporary.newFolder())
         val values = setOf("top/bottom", "left/right")

@@ -27,10 +27,10 @@ fun TVGameScreen(viewModel: BaseGameScreenViewModel) {
     val appearance = rememberGameplayAppearance()
     val outline = manufacturedFrameAccent(appearance.tokens, appearance.lighting, appearance.source.highContrast)
     val frame =
-        if (display.effective.border(true) == DisplaySettingsStore.Border.STANDARD) {
-            Modifier.border(2.dp, outline)
-        } else {
-            Modifier
+        when (display.effective.border(true)) {
+            DisplaySettingsStore.Border.STANDARD -> Modifier.border(2.dp, outline)
+            DisplaySettingsStore.Border.MINIMAL -> Modifier.border(1.dp, outline)
+            DisplaySettingsStore.Border.OFF -> Modifier
         }
 
     AndroidView(

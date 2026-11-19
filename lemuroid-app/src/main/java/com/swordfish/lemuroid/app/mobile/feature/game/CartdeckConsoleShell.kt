@@ -62,6 +62,28 @@ internal fun CartdeckConsoleShell(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
+        if (minimal) {
+            Canvas(Modifier.fillMaxSize()) {
+                if (hole != null) {
+                    val trim = 3.dp.toPx()
+                    val outer =
+                        Rect(
+                            (hole.left - trim).coerceAtLeast(0f),
+                            (hole.top - trim).coerceAtLeast(0f),
+                            (hole.right + trim).coerceAtMost(size.width),
+                            (hole.bottom + trim).coerceAtMost(size.height),
+                        )
+                    val frame =
+                        Path().apply {
+                            fillType = PathFillType.EvenOdd
+                            addRect(outer)
+                            addRect(hole)
+                        }
+                    drawPath(frame, manufacturedFrameAccent(tokens, lighting, highContrast))
+                }
+            }
+            return@BoxWithConstraints
+        }
         val badgeTop = 25.dp
         val badgeHeight = 39.dp
         val badgeClearance = 9.dp
