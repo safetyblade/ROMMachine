@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -37,6 +39,9 @@ import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CatalogueCartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
@@ -51,13 +56,14 @@ internal fun GemLibraryScreen(
     onOpenCartridge: (Game) -> Unit = {},
     initialCartridgeId: String? = null,
     onCartridgeIdConsumed: () -> Unit = {},
+    onBackToShelf: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val corrections = remember(context) { GemLocalCorrections(context) }
     val versions = remember(context) { GemCatalogueVersions(context) }
     var catalogue by remember { mutableStateOf<GemCataloguePackage.Loaded?>(null) }
     var error by remember { mutableStateOf(false) }
-    var page by rememberSaveable { mutableStateOf("For You") }
+    var page by rememberSaveable { mutableStateOf("Menu") }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var inspectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -177,25 +183,41 @@ internal fun GemLibraryScreen(
             }
         searching = false
     }
-    Column(modifier = modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf("For You", "Browse", "My Ratings", "Search websites", "Manage").forEach { destination ->
-                FilterChip(
-                    selected = page == destination,
-                    onClick = { page = destination },
-                    label = { Text(destination) },
-                    modifier = Modifier.gemFocusTarget(),
-                )
-            }
+    BackHandler(enabled = page != "Menu") { page = "Menu" }
+    Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (page != "Menu") {
+            TextButton(onClick = { page = "Menu" }, modifier = Modifier.gemFocusTarget()) { Text("‹ GEM menu") }
         }
         when (page) {
+            "Menu" -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(300.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(listOf("For You", "Browse", "My Ratings", "Search websites", "Manage")) { destination ->
+                        val title =
+                            when (destination) {
+                                "For You" -> "GemFinder"
+                                "Browse" -> "Game Intelligence"
+                                "Manage" -> "GEM settings"
+                                else -> destination
+                            }
+                        CartdeckMenuRow(title = { Text(title) }, onClick = { page = destination })
+                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        TextButton(onClick = onBackToShelf, modifier = Modifier.gemFocusTarget()) { Text("Back to shelf") }
+                    }
+                }
+            }
             "Search websites" -> GemWebsiteSearchScreen()
             "Manage" ->
                 GemManagementScreen(
                     onCatalogueChanged = { reloading++ },
+                    onRestoreBaseline = {
+                        importPicker.launch(arrayOf("application/json", "application/octet-stream"))
+                    },
                     modifier = Modifier.weight(1f),
                 )
             "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
@@ -235,7 +257,6 @@ internal fun GemLibraryScreen(
                             } else if (current == null) {
                                 Text("Loading offline catalogue…")
                             } else {
-                                Text("${current.manifest.releaseCount} historical entries · Source coverage varies")
                                 OutlinedTextField(
                                     value = query,
                                     onValueChange = {
@@ -248,14 +269,23 @@ internal fun GemLibraryScreen(
                                 )
                             }
                             if (selected != null) {
-                                Text(selected.displayName(), style = MaterialTheme.typography.titleMedium)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    CartridgeFront(selected, modifier = Modifier.width(112.dp), offline = true)
+                                    Column(Modifier.weight(1f)) {
+                                        Text(selected.displayName(), style = MaterialTheme.typography.titleMedium)
+                                        Text(cartridgeSystemLabel(selected.systemId))
+                                    }
+                                }
                                 val status =
                                     when {
-                                        custom != null -> "Custom information · not a verified catalogue match"
+                                        custom != null -> "Custom game information"
                                         savedId != null && current?.index?.find(savedId) != null ->
-                                            "Confirmed local link"
-                                        savedId != null -> "Previous link unavailable; retained"
-                                        else -> "Unmatched · suggestions require confirmation"
+                                            "Game identified"
+                                        savedId != null -> "Game information unavailable"
+                                        else -> "Choose a matching game"
                                     }
                                 Text(status)
                                 custom?.let { Text(it.title + " · " + (it.genre ?: "Genre unknown")) }
@@ -312,7 +342,7 @@ internal fun GemLibraryScreen(
                                 item(span = { GridItemSpan(maxLineSpan) }) { Text("Searching catalogue…") }
                             } else if (results.isEmpty()) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
-                                    Text("No matching records. Try another title or enter custom information.")
+                                    Text("No match found. Try a shorter title or add game information.")
                                 }
                             }
                             items(results, key = { it.releaseId }) { release ->
@@ -328,13 +358,6 @@ internal fun GemLibraryScreen(
                                 }
                             }
                         }
-                    }
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        TextButton(
-                            onClick = { importPicker.launch(arrayOf("application/json", "application/octet-stream")) },
-                            enabled = restoreUri == null && !writing && request == null,
-                            modifier = Modifier.gemFocusTarget(),
-                        ) { Text("Restore bundled baseline shard") }
                     }
                 }
             }
@@ -402,20 +425,27 @@ private fun GemIntelligenceRecord(
     source: GemCataloguePackage.Source?,
 ) {
     val feature = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
+    var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(release.title, style = MaterialTheme.typography.titleMedium)
-            Text(cartridgeSystemLabel(release.systemId) + " · " + (release.primaryGenre ?: "Genre unknown"))
-            feature?.let {
-                Text(listOfNotNull(it.crossover, it.playstyle).joinToString(" · "))
-                if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
-                Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
+        Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(release.title, style = MaterialTheme.typography.titleMedium)
+                Text(cartridgeSystemLabel(release.systemId) + " · " + (release.primaryGenre ?: "Genre unknown"))
+                feature?.let {
+                    Text(listOfNotNull(it.crossover, it.playstyle).joinToString(" · "))
+                    if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
+                    Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
+                }
+                Text("DeckFit · Not rated", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
+                if (details) {
+                    Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                    Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                    Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+                    Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
+                }
             }
-            Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
-            source?.let {
-                Text("${it.name} · ${it.licence}", style = MaterialTheme.typography.bodySmall)
-            }
-            Text("Historical metadata · compatibility not verified", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
