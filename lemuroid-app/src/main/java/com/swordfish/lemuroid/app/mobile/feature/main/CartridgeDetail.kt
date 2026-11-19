@@ -33,10 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
+import com.swordfish.lemuroid.app.mobile.feature.product.GemRatingRow
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls
@@ -71,6 +72,7 @@ fun CartridgeDetailHost(
     onResetCover: (Game) -> Unit,
     sourceBounds: androidx.compose.ui.geometry.Rect? = null,
     onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
+    onOpenIntelligence: ((Game) -> Unit)? = null,
 ) {
     val record =
         remember(gameId, database) {
@@ -115,6 +117,7 @@ fun CartridgeDetailHost(
                 record.value.first,
                 front,
                 onUseOnlineCover = onUseOnlineCover,
+                onOpenIntelligence = onOpenIntelligence,
             )
         }
     }
@@ -130,6 +133,7 @@ fun CartridgeDetail(
     artworkRevision: Int = 0,
     frontModifier: Modifier = Modifier,
     onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
+    onOpenIntelligence: ((Game) -> Unit)? = null,
 ) {
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -145,18 +149,19 @@ fun CartridgeDetail(
         val artWidth =
             CartridgeViewport.detailArtWidth(
                 if (landscape) maxWidth.value * 0.44f else maxWidth.value,
-                if (landscape) maxHeight.value else (maxHeight.value - 180f).coerceAtLeast(100f),
+                if (landscape) maxHeight.value else (maxHeight.value - 220f).coerceAtLeast(0f),
             ).dp
         val heading: @Composable () -> Unit = {
             TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.cartdeck_back_to_shelf))
             }
-            Text(game.displayName(), style = MaterialTheme.typography.headlineSmall)
-            Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
-            val profile = rememberGripArcProfile(game).value
-            if (profile.mode.hasGrip || profile.mode.hasPivot) {
-                Text("ARC · ${profile.mode.label}", style = MaterialTheme.typography.labelSmall)
-            }
+            Text(
+                game.displayName(),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.labelMedium)
         }
         val actions: @Composable () -> Unit = {
             Button(
@@ -169,10 +174,19 @@ fun CartridgeDetail(
                 enabled = !opening,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(R.string.cartdeck_open)) }
-            OutlinedButton(
-                onClick = { setup = true },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text("Setup") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { setup = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Setup") }
+                if (onOpenIntelligence != null) {
+                    TextButton(
+                        onClick = { onOpenIntelligence(game) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Game Intelligence") }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                GemRatingRow(game, compact = true)
+                GemRatingRow(game, deckFit = true, compact = true)
+            }
         }
         if (landscape) {
             Row(
@@ -199,14 +213,15 @@ fun CartridgeDetail(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(
-                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                heading()
+                BoxWithConstraints(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    heading()
+                    val fit = CartridgeViewport.detailArtWidth(maxWidth.value, maxHeight.value).dp
                     CartridgeFront(
                         game,
-                        modifier = frontModifier.then(Modifier.width(artWidth)),
+                        modifier = frontModifier.then(Modifier.width(fit)),
                         artworkRevision = artworkRevision,
                     )
                 }

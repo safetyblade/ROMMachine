@@ -1,0 +1,63 @@
+name: CARTDECK independent Wine runtime feasibility
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'spikes/pc/wine-probe/**'
+      - '.github/workflows/cartdeck-pc-wine-lab.yml'
+permissions:
+  contents: read
+concurrency:
+  group: pc-wine-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  android-translator:
+    name: Build independent Android ARM64 Box64 candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned NDK and build dependencies
+        run: |
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends ninja-build cmake python3
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+      - name: Build and audit the independent translator
+        run: PC_WINE_WORK="$RUNNER_TEMP/pc-wine" bash spikes/pc/wine-probe/build_box64_android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-wine-android-translator-${{ github.sha }}
+          path: ${{ runner.temp }}/pc-wine/evidence/
+          if-no-files-found: error
+  wine-control:
+    name: Execute real Windows 32-bit and 64-bit PE fixtures using Linux Wine
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install distribution Wine and fixture compilers (Linux control only)
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 update -qq
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=35 install -y --no-install-recommends wine wine64 wine32:i386 gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix xvfb xauth fonts-dejavu-core
+      - name: Prove GDI, per-prefix registry and working-directory save across restarts
+        run: |
+          mkdir -p "$RUNNER_TEMP/pc-wine-control"
+          xvfb-run -a bash spikes/pc/wine-probe/linux_wine_control.sh "$RUNNER_TEMP/pc-wine-control"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pc-wine-linux-control-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/pc-wine-control/*.txt
+            ${{ runner.temp }}/pc-wine-control/*.log
+            ${{ runner.temp }}/pc-wine-control/fixture/
+            ${{ runner.temp }}/pc-wine-control/game*/progress.txt
+          if-no-files-found: warn

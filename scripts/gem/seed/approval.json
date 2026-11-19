@@ -1,0 +1,95 @@
+{
+  "catalogueVersion": "gem-seed-2026.11.18.1",
+  "sources": [
+    {
+      "id": "titlescreen",
+      "name": "Title Screen",
+      "url": "https://titlescreen.org/downloads",
+      "licence": "CC-BY-4.0",
+      "attribution": "Data: Title Screen (https://titlescreen.org), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Adapted: selected commercial release facts; identifiers retained; unverified fields omitted.",
+      "revision": "2026.10.10 (public release pages)"
+    }
+  ],
+  "approvedRecords": [
+    [
+      "titlescreen",
+      "r1q96z7y",
+      "TS:r1q96z7y"
+    ],
+    [
+      "titlescreen",
+      "rk3061vr",
+      "TS:rk3061vr"
+    ],
+    [
+      "titlescreen",
+      "rqhne5aq",
+      "TS:rqhne5aq"
+    ],
+    [
+      "titlescreen",
+      "rty10510",
+      "TS:rty10510"
+    ],
+    [
+      "titlescreen",
+      "rtj2h5dd",
+      "TS:rtj2h5dd"
+    ],
+    [
+      "titlescreen",
+      "rm6vd0x4",
+      "TS:rm6vd0x4"
+    ],
+    [
+      "titlescreen",
+      "rcy0pnmp",
+      "TS:rcy0pnmp"
+    ],
+    [
+      "titlescreen",
+      "rvzbtpqp",
+      "TS:rvzbtpqp"
+    ],
+    [
+      "titlescreen",
+      "rcyb1st4",
+      "TS:rcyb1st4"
+    ],
+    [
+      "titlescreen",
+      "rxc8j0ty",
+      "TS:rxc8j0ty"
+    ],
+    [
+      "titlescreen",
+      "reft6ytm",
+      "TS:reft6ytm"
+    ],
+    [
+      "titlescreen",
+      "ra49nrcr",
+      "TS:ra49nrcr"
+    ],
+    [
+      "titlescreen",
+      "rm3q94my",
+      "TS:rm3q94my"
+    ],
+    [
+      "titlescreen",
+      "rdmtjh2r",
+      "TS:rdmtjh2r"
+    ],
+    [
+      "titlescreen",
+      "r2vbm70g",
+      "TS:r2vbm70g"
+    ],
+    [
+      "titlescreen",
+      "rehsp63e",
+      "TS:rehsp63e"
+    ]
+  ]
+}

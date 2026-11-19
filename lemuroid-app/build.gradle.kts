@@ -18,8 +18,17 @@ if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == tr
     }
 }
 
+val pcIntegration = providers.gradleProperty("cartdeckPcIntegrationDir").orNull
+val pcWine = providers.gradleProperty("cartdeckPcWineDir").orNull
+require(pcWine == null || pcIntegration != null) { "Wine requires the isolated CARTDECK PC integration build" }
+
 android {
     defaultConfig {
+        buildConfigField("boolean", "PC_INTEGRATION_ENABLED", (pcIntegration != null).toString())
+        buildConfigField("boolean", "PC_WINE_NATIVE_ENABLED", (pcWine != null).toString())
+        if (pcIntegration != null) {
+            require(providers.gradleProperty("cartdeck.pc.integrationLab").orNull == "true")
+        }
         buildConfigField(
             "boolean",
             "P1_EMU_ENABLED",
@@ -42,6 +51,10 @@ android {
         }
         if (providers.gradleProperty("cartdeck.wiiu.labId").orNull == "true") {
             applicationId = "dev.prestwich.cartdeck.wiiulab"
+        }
+
+        if (pcIntegration != null) {
+            applicationId = "dev.prestwich.cartdeck.pclab"
         }
 
         // P0 test-only overrides. No override means the original production configuration.
@@ -119,6 +132,22 @@ android {
         }
     }
 
+    if (pcIntegration != null) {
+        sourceSets.getByName("debug") {
+            java.srcDir("src/pcIntegration/java")
+            manifest.srcFile(
+                if (pcWine == null) "src/pcIntegration/AndroidManifest.xml" else "src/pcWine/AndroidManifest.xml",
+            )
+            if (pcWine != null) {
+                java.srcDir("src/pcWine/java")
+                java.srcDir("$pcWine/java")
+                assets.srcDir("$pcWine/assets")
+                jniLibs.srcDir("$pcWine/jniLibs")
+            }
+            jniLibs.srcDir("$pcIntegration/jniLibs")
+        }
+    }
+
     packagingOptions {
         jniLibs {
             // Stripping created some issues with some libretro cores such as ppsspp
@@ -133,6 +162,17 @@ android {
             if (providers.gradleProperty("cartdeck.p1emu.enabled").orNull == "true") {
                 // The connected bundle is already stripped and hash-bound to retained native symbols.
                 keepDebugSymbols += "**/*.so"
+            }
+            if (pcIntegration != null) {
+                keepDebugSymbols +=
+                    setOf(
+                        "**/libcartdeckpcruntime.so",
+                        "**/libcartdeckpc_dosbox.so",
+                        "**/liblibretrodroid.so",
+                    )
+            }
+            if (pcWine != null) {
+                keepDebugSymbols += "**/libcartdeckwine_*.so"
             }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {
@@ -264,6 +304,9 @@ dependencies {
     testImplementation("androidx.test:core:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    if (pcIntegration != null) {
+        debugImplementation(files("$pcIntegration/PcLibretroHost.aar"))
+    }
     implementation(project(":retrograde-util"))
     implementation(project(":retrograde-app-shared"))
     implementation(project(":lemuroid-metadata-libretro-db"))

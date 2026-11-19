@@ -24,3 +24,11 @@ Future PC execution should own a runtime capability boundary (DOSBox/Wine/transl
 with independently versioned native outputs and a separate laboratory install ID.
 Reject unknown PC runtime protocols; do not change existing console inputs or host
 receipts in order to implement PC-specific features.
+
+## Controlling roadmap
+
+Read [PC-00 #299](https://github.com/safetyblade/ROMMachine/issues/299) and the [PC-00 charter](../../../docs/research/pc/PC00_LANE_CHARTER_AND_FEASIBILITY_GATES.md). PC-R01 is the next increment; the current lab is not yet an independently integrated PC runtime. Use separate PC artifact identity, protocol capability, install ID and storage, without modifying or replacing the production console host or blocking standard APK assembly. PC-R02–R07 govern later guest execution, product integration, Wine and promotion.
+
+## New independent laboratory recipe
+
+Use build_pc_lab_host.sh, apply_pc_input.py and the frozen base-patches directory; the preserved older scripts and combined patch are historical evidence. No copy-over of the production script or Maven coordinate. Workflow cartdeck-pc-native-lab.yml builds the host and pinned core independently, then a synthetic lab APK with package dev.cartdeck.pc.lab. Normal CARTDECK does not consume its outputs. Only synthetic DOS COM input is provided; Windows support is not established. The old shared-host recovery workflow is retired. Remove the lab app independently to roll back; do not uninstall CARTDECK.

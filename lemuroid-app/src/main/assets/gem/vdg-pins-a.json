@@ -1,0 +1,194 @@
+[
+  {
+    "path": "gem/vdg/2600.json",
+    "version": "gem-vdg-2026.11.18.1-2600",
+    "sha256": "6a38f6faf94e5921115eb9b66522874c6c55ba1b8fe295063a4b79773d4ebcec",
+    "count": 116,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-2600",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "e190509c70af75bec4ab54d0eba8e783f645b792",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/2600.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/3ds.json",
+    "version": "gem-vdg-2026.11.18.1-3ds",
+    "sha256": "17d529df822fda7739db42dba321269d68920136b4dca9aae60b3740d54910c3",
+    "count": 500,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-3ds",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "a41fbde0864466ad87191d7512189fb140683e34",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/3ds.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/dc.json",
+    "version": "gem-vdg-2026.11.18.1-dc",
+    "sha256": "ffa7ab1336caf71ce1dc83d51ca9452894dfee777bb9db2bcf23272f87d729fb",
+    "count": 52,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-dc",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "df247391bbe6611371caa4af02a325f8aff4e111",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/dc.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/ds.json",
+    "version": "gem-vdg-2026.11.18.1-ds",
+    "sha256": "15397b494a4235a81db32e8d87c6d4c29acfde319e4eb64ebee50172639adb04",
+    "count": 2131,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-ds",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "916dfab2674b12072f7257621782ec79fabfb7c3",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/ds.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/gb.json",
+    "version": "gem-vdg-2026.11.18.1-gb",
+    "sha256": "1b290cb160dbc55241e05c0faac1cb2c57ba62dbf3c32651c3c30d044b95f13d",
+    "count": 97,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-gb",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "428de6ab88e2a6d9bf8fbebe51b538abda747ac1",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/gb.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/gba.json",
+    "version": "gem-vdg-2026.11.18.1-gba",
+    "sha256": "bf4b6c0b0582190078b6bb48dc473a88fd77578c7936fe868c3f59df9936fc5b",
+    "count": 809,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-gba",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "9c4cbb8b77cfa19dee63c6b5b9f4e7ff082517d6",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/gba.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/gc.json",
+    "version": "gem-vdg-2026.11.18.1-gc",
+    "sha256": "018cc87770395954c5a8a34895e880702a2748300c3c701c086cf6de501243b0",
+    "count": 542,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-gc",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "b8c9490b698a24dae8718dd9deda7381035ade6d",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/gc.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/gen.json",
+    "version": "gem-vdg-2026.11.18.1-gen",
+    "sha256": "07a495560ef09193c21dfe4c6277de854c99dc3c0da1dfdeb8cd69f7f31c5e8e",
+    "count": 26,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-gen",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "70863c6da25f14c7e494f2aaef4045831a3ca41a",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/gen.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/gg.json",
+    "version": "gem-vdg-2026.11.18.1-gg",
+    "sha256": "7a4818a168b8d7ac27914b83650f9eea15e7df7714754233d2c83ace1640685d",
+    "count": 1,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-gg",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "ce04b296cb00eb97e3839fa80b94589deca634a2",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/gg.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/n64.json",
+    "version": "gem-vdg-2026.11.18.1-n64",
+    "sha256": "32e09747929a0fbc0fa685d61648db46d823ebd3e5d5d4841da829091b277a99",
+    "count": 315,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-n64",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "30d5f592e618faed170c57f199dcef229c63c1f8",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/n64.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/nes.json",
+    "version": "gem-vdg-2026.11.18.1-nes",
+    "sha256": "41741b4e88997effa829a9f6fdb481c7a03b40e6c79522264d09c480c944c9bf",
+    "count": 98,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-nes",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "2d544babc858b8f4147cf13f6d7db63e4eb17a01",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/nes.sql"
+      }
+    ]
+  },
+  {
+    "path": "gem/vdg/ps.json",
+    "version": "gem-vdg-2026.11.18.1-ps",
+    "sha256": "f217d0507d836ab54dda890addf84156a883cf116ec25c68cde682037d99290e",
+    "count": 1188,
+    "sources": [
+      {
+        "attribution": "Bocaletto Luca, Videogames-Database. GPL v3; adapted factual title, platform and genre index. Source SQL and licence retained with GEM.",
+        "id": "vdg-ps",
+        "licence": "GPL-3.0-only",
+        "name": "Videogames-Database — Bocaletto Luca",
+        "revision": "5d27d8953256bd4acd725817b49200616ec1e461",
+        "url": "https://github.com/bocaletto-luca/Videogames-Database/blob/main/ps.sql"
+      }
+    ]
+  }
+]

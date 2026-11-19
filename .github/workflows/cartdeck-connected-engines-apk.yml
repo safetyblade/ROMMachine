@@ -376,6 +376,16 @@ jobs:
                   trusted = jobs.some(j => j.name.startsWith('Refresh LibretroDroid only / ') &&
                     j.name.endsWith('Verify and retain one genuine native component') && j.conclusion === 'success');
                 }
+                // XGFX-01 stacks on the physically accepted PERF A–E tree.
+                // Reuse its exact host artifact instead of changing another engine.
+                if (!trusted && engine === 'libretrodroid' && reuseRun === '44483195468' &&
+                    reuseName === 'native-ci01-libretrodroid-597df350d938ea60505da935384edbdd7ed8a983' &&
+                    run.conclusion === 'success' && run.event === 'pull_request' &&
+                    run.head_sha === '54afc6f1efe9ddf0e6d10d0ff3e2fa35b71a25b2' &&
+                    run.path === '.github/workflows/cartdeck-standalone-debug.yml' &&
+                    run.head_branch === 'engineering/perf03-engine-config') {
+                  trusted = true;
+                }
                 if (!trusted) continue;
                 chosen = {run_id: run.id, name: artifact.name};
                 break;

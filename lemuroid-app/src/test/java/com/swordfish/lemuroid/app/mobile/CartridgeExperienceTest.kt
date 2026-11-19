@@ -46,6 +46,7 @@ import com.swordfish.lemuroid.app.mobile.feature.games.GamesViewModel
 import com.swordfish.lemuroid.app.mobile.feature.home.HomeScreen
 import com.swordfish.lemuroid.app.mobile.feature.home.HomeViewModel
 import com.swordfish.lemuroid.app.mobile.feature.main.CartridgeDetail
+import com.swordfish.lemuroid.app.mobile.feature.product.GemLibraryScreen
 import com.swordfish.lemuroid.app.mobile.feature.search.SearchScreen
 import com.swordfish.lemuroid.app.mobile.feature.search.SearchViewModel
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfCell
@@ -127,6 +128,65 @@ class CartridgeExperienceTest {
         compose.setContent {
             CartridgeLibraryTheme { CartridgeDetail(selected, back, open, change, reset) }
         }
+    }
+
+    @Test
+    @Config(qualifiers = "w720dp-h360dp-land")
+    fun shelfDoesNotTreatGemAsLibrarySection() {
+        var selected = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                HomeScreen(
+                    state = HomeViewModel.UIState(indexInProgress = false, discoveryGames = listOf(game)),
+                    onGameClicked = { selected++ },
+                    onGameLongClick = {},
+                    onOpenCoreSelection = {},
+                    onEnableNotificationsClicked = {},
+                    onEnableMicrophoneClicked = {},
+                    onSetDirectoryClicked = {},
+                )
+            }
+        }
+        compose.onNodeWithText("GEM").assertDoesNotExist()
+        assertEquals(0, selected)
+        compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
+    }
+
+    @Test
+    fun gemRootHasDedicatedMenuAndExplicitReturnToShelf() {
+        var returned = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                GemLibraryScreen(games = emptyList(), onBackToShelf = { returned++ })
+            }
+        }
+        compose.onNodeWithText("GemFinder").assertExists()
+        compose.onNodeWithText("Game Intelligence").assertExists()
+        compose.onNodeWithText("My Ratings").assertExists()
+        compose.onNodeWithText("Back to shelf").performClick()
+        assertEquals(1, returned)
+    }
+
+    @Test
+    fun cartridgeIntelligenceUsesExistingRecordWithoutLaunching() {
+        var inspected: Game? = null
+        var launches = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                CartridgeDetail(
+                    game,
+                    {},
+                    { launches++ },
+                    { _, _ -> },
+                    {},
+                    onOpenIntelligence = { inspected = it },
+                )
+            }
+        }
+        compose.onNodeWithText("Game Intelligence").assertExists()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(game, inspected)
+        assertEquals(0, launches)
     }
 
     @Test fun emptyLibraryAddsCartridgesThroughCallback() {

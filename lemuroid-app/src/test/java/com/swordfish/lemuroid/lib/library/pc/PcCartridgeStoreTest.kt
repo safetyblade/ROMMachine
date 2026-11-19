@@ -53,6 +53,30 @@ class PcCartridgeStoreTest {
     }
 
     @Test
+    fun executableRecipeCanChangeWithoutChangingMediaOrGuest() {
+        val root = Files.createTempDirectory("pc-recipe").toFile()
+        try {
+            val store = PcCartridgeStore(root)
+            val original = PcWindowsLaunchRecipe("""C:\MAGIC\MAGIC.EXE""")
+            val entry = store.importIso("Magic", iso().inputStream(), launchRecipe = original)
+            val archive = entry.content.readBytes()
+            val workspace = store.workspace(entry)
+            workspace.prepareWritableDirectories()
+            val disk = File(workspace.guest, "guest.img").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+            assertEquals(original.executable, store.launchRecipe(entry)?.executable)
+            val updated = PcWindowsLaunchRecipe("""D:\GAME\START.EXE""")
+            store.setLaunchRecipe(entry, updated)
+            val reopened = PcCartridgeStore(root)
+            assertEquals(updated.executable, reopened.launchRecipe(entry)?.executable)
+            assertArrayEquals(archive, entry.content.readBytes())
+            assertArrayEquals(byteArrayOf(1, 2, 3), disk.readBytes())
+            assertNotEquals(workspace.guest, store.workspace(entry, java.util.UUID.randomUUID()).guest)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun invalidMediaAndCancelledImportNeverPublish() {
         val root = Files.createTempDirectory("pc-cartridge").toFile()
         try {

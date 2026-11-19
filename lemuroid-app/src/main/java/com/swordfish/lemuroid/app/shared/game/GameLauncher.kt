@@ -5,9 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
+import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
@@ -17,6 +19,7 @@ import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.library.pc.PcWineCartridges
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -88,6 +91,38 @@ class GameLauncher(
         GlobalScope.launch(Dispatchers.Main) {
             try {
                 val system = GameSystem.findById(game.systemId)
+                if (system.id == SystemID.DOS) {
+                    val managed =
+                        withContext(Dispatchers.IO) {
+                            PcManagedSession.resolve(activity, game)
+                        }
+                    if (managed != null) {
+                        val wine = withContext(Dispatchers.IO) { PcWineCartridges.isWine(managed) }
+                        if (wine && !BuildConfig.PC_WINE_NATIVE_ENABLED) {
+                            Toast.makeText(
+                                activity,
+                                "This cartridge requires the Wine integration build.",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            return@launch
+                        }
+                        if (BuildConfig.PC_INTEGRATION_ENABLED) {
+                            val host =
+                                if (wine) {
+                                    "org.winehq.wine.WineActivity"
+                                } else {
+                                    "com.swordfish.lemuroid.app.pc.PcIntegratedActivity"
+                                }
+                            val target =
+                                Intent().setClassName(activity, host)
+                                    .putExtra("cartdeck.game", game)
+                                    .putExtra("cartdeck.leanback", leanback)
+                            activity.startActivityForResult(target, BaseGameActivity.REQUEST_PLAY_GAME)
+                            gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
+                            return@launch
+                        }
+                    }
+                }
                 // The Wii U catalogue is independently searchable before Cemu's
                 // Vulkan host passes physical gameplay QA. Never try to launch
                 // a catalogue-only cartridge via the existing GLES frontend.

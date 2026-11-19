@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -9,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -16,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckCuratedDesigns
@@ -54,36 +57,50 @@ fun SettingsScreen(
             .collectAsState(false)
             .value
 
+    var section by rememberSaveable { mutableStateOf<String?>(null) }
+    BackHandler(enabled = section != null) { section = null }
     LemuroidSettingsPage(modifier = modifier) {
-        if (onOpenAppearance != null) {
-            val appearance = LocalShelfAppearance.current
-            val current =
-                CartdeckCuratedDesigns.byId(appearance.curatedDesignId)?.title
-                    ?: appearance.edition.replaceFirstChar { it.uppercase() }
-            LemuroidCardSettingsGroup(title = { Text("Appearance") }) {
-                LemuroidSettingsMenuLink(
-                    title = { Text("Edit appearance") },
-                    subtitle = { Text(current) },
+        val selected = section
+        if (selected == null) {
+            if (onOpenAppearance != null) {
+                val appearance = LocalShelfAppearance.current
+                val current =
+                    CartdeckCuratedDesigns.byId(appearance.curatedDesignId)?.title
+                        ?: appearance.edition.replaceFirstChar { it.uppercase() }
+                CartdeckMenuRow(
+                    title = { Text("Appearance") },
+                    supporting = { Text(current) },
                     onClick = onOpenAppearance,
                 )
             }
+            val sections =
+                listOf("Controllers", "Display & gameplay", "Shelf & library", "Help & guides", "System & advanced")
+            for (name in sections) {
+                CartdeckMenuRow(title = { Text(name) }, onClick = { section = name })
+            }
+        } else {
+            TextButton(onClick = { section = null }) { Text("‹ Settings") }
+            when (selected) {
+                "Controllers" -> InputSettings(navController)
+                "Display & gameplay" -> GeneralSettings(navController)
+                "Shelf & library" ->
+                    RomsSettings(
+                        state = state,
+                        onChangeFolder = { viewModel.changeLocalStorageFolder() },
+                        indexingInProgress = indexingInProgress,
+                        scanInProgress = scanInProgress,
+                        onSupportedGames = { navController.navigateToRoute(MainRoute.SETTINGS_SUPPORTED_GAMES) },
+                    )
+                "Help & guides" -> com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodHelpSettings(onOpenHelp)
+                "System & advanced" ->
+                    MiscSettings(
+                        indexingInProgress = indexingInProgress,
+                        onOpenRecovery = onOpenRecovery,
+                        isSaveSyncSupported = state.isSaveSyncSupported,
+                        navController = navController,
+                    )
+            }
         }
-        InputSettings(navController = navController)
-        GeneralSettings(navController)
-        RomsSettings(
-            state = state,
-            onChangeFolder = { viewModel.changeLocalStorageFolder() },
-            indexingInProgress = indexingInProgress,
-            scanInProgress = scanInProgress,
-            onSupportedGames = { navController.navigateToRoute(MainRoute.SETTINGS_SUPPORTED_GAMES) },
-        )
-        com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodHelpSettings(onOpenHelp)
-        MiscSettings(
-            indexingInProgress = indexingInProgress,
-            onOpenRecovery = onOpenRecovery,
-            isSaveSyncSupported = state.isSaveSyncSupported,
-            navController = navController,
-        )
     }
 }
 

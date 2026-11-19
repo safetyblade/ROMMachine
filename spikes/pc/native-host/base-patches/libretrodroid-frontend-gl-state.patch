@@ -1,0 +1,328 @@
+diff --git a/libretrodroid/src/main/cpp/frontendglstate.h b/libretrodroid/src/main/cpp/frontendglstate.h
+new file mode 100644
+index 0000000..58cd365
+--- /dev/null
++++ b/libretrodroid/src/main/cpp/frontendglstate.h
+@@ -0,0 +1,174 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++#pragma once
++
++#include <GLES3/gl3.h>
++#include <EGL/egl.h>
++#include <vector>
++#include <array>
++
++namespace libretrodroid {
++// A Libretro hardware core owns the current GL state at a video callback.
++// Presentation must neither interpret host-memory pointers as core VBO offsets
++// nor leave the core's cached GL state different from the actual driver state.
++class FrontendGLState {
++public:
++    explicit FrontendGLState(bool es3, bool preserve = true) : es3(es3), preserve(preserve) {
++        if (!preserve) return;
++        glGetIntegerv(GL_CURRENT_PROGRAM, &program);
++        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBuffer);
++        glGetIntegerv(GL_RENDERBUFFER_BINDING, &renderbuffer);
++        glGetIntegerv(GL_VIEWPORT, viewport);
++        glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor);
++        glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
++        glGetIntegerv(GL_ACTIVE_TEXTURE, &activeTexture);
++        glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
++        if (es3) {
++            glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
++            glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFramebuffer);
++            glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFramebuffer);
++            glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &pixelUnpackBuffer);
++            glGetIntegerv(GL_UNPACK_ROW_LENGTH, &unpackRowLength);
++        } else {
++            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFramebuffer);
++            GLint count = 0;
++            glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &count);
++            attributes.resize(count);
++            for (GLuint i = 0; i < attributes.size(); ++i) {
++                auto& a = attributes[i];
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &a.enabled);
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &a.size);
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &a.stride);
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &a.type);
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &a.normalized);
++                glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &a.buffer);
++                glGetVertexAttribPointerv(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &a.pointer);
++            }
++        }
++        for (int i = 0; i < 2; ++i) {
++            glActiveTexture(GL_TEXTURE0 + i);
++            glGetIntegerv(GL_TEXTURE_BINDING_2D, &textures[i]);
++            if (es3) glGetIntegerv(GL_SAMPLER_BINDING, &samplers[i]);
++        }
++        glActiveTexture(activeTexture);
++        for (unsigned i = 0; i < capabilities.size(); ++i)
++            enabled[i] = glIsEnabled(capabilities[i]);
++        if (es3) rasterizerDiscard = glIsEnabled(GL_RASTERIZER_DISCARD);
++    }
++
++    void prepare() const {
++        for (auto capability : capabilities) glDisable(capability);
++        if (es3) {
++            glDisable(GL_RASTERIZER_DISCARD);
++            glBindSampler(0, 0);
++            glBindSampler(1, 0);
++            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
++            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
++        }
++        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
++        glActiveTexture(GL_TEXTURE0);
++    }
++
++    void replaceFramebuffer(GLuint previous, GLuint replacement) {
++        if (previous == 0 || previous == replacement) return;
++        if (drawFramebuffer == static_cast<GLint>(previous)) drawFramebuffer = replacement;
++        if (readFramebuffer == static_cast<GLint>(previous)) readFramebuffer = replacement;
++    }
++
++    ~FrontendGLState() {
++        if (!preserve) return;
++        if (es3) {
++            glBindVertexArray(vao);
++            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFramebuffer);
++            glBindFramebuffer(GL_READ_FRAMEBUFFER, readFramebuffer);
++            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
++            glPixelStorei(GL_UNPACK_ROW_LENGTH, unpackRowLength);
++            restore(GL_RASTERIZER_DISCARD, rasterizerDiscard);
++        } else {
++            glBindFramebuffer(GL_FRAMEBUFFER, drawFramebuffer);
++            for (GLuint i = 0; i < attributes.size(); ++i) {
++                const auto& a = attributes[i];
++                glBindBuffer(GL_ARRAY_BUFFER, a.buffer);
++                glVertexAttribPointer(i, a.size, a.type, a.normalized, a.stride, a.pointer);
++                if (a.enabled) glEnableVertexAttribArray(i); else glDisableVertexAttribArray(i);
++            }
++        }
++        glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer);
++        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
++        glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
++        for (int i = 0; i < 2; ++i) {
++            glActiveTexture(GL_TEXTURE0 + i);
++            glBindTexture(GL_TEXTURE_2D, textures[i]);
++            if (es3) glBindSampler(i, samplers[i]);
++        }
++        glActiveTexture(activeTexture);
++        glUseProgram(program);
++        glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
++        glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
++        glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
++        for (unsigned i = 0; i < capabilities.size(); ++i)
++            restore(capabilities[i], enabled[i]);
++    }
++
++private:
++    static void restore(GLenum capability, GLboolean value) {
++        if (value) glEnable(capability); else glDisable(capability);
++    }
++    struct Attribute {
++        GLint enabled = 0, size = 4, stride = 0, type = GL_FLOAT, normalized = 0, buffer = 0;
++        void* pointer = nullptr;
++    };
++    const bool es3;
++    const bool preserve;
++    const std::array<GLenum, 7> capabilities = {GL_DEPTH_TEST, GL_BLEND, GL_SCISSOR_TEST,
++        GL_CULL_FACE, GL_STENCIL_TEST, GL_POLYGON_OFFSET_FILL, GL_SAMPLE_ALPHA_TO_COVERAGE};
++    GLboolean enabled[7]{}, rasterizerDiscard = GL_FALSE, colorMask[4]{};
++    GLint program = 0, arrayBuffer = 0, renderbuffer = 0, vao = 0;
++    GLint drawFramebuffer = 0, readFramebuffer = 0, pixelUnpackBuffer = 0;
++    GLint activeTexture = GL_TEXTURE0, textures[2]{}, samplers[2]{};
++    GLint viewport[4]{}, unpackAlignment = 4, unpackRowLength = 0;
++    GLfloat clearColor[4]{};
++    std::vector<Attribute> attributes;
++};
++
++// VAO state belongs to the frontend, not the core. GLES2 uses a VBO too; its
++// attribute state is restored by FrontendGLState instead of a VAO.
++class FrontendVertices {
++public:
++    ~FrontendVertices() {
++        if (context != EGL_NO_CONTEXT && context == eglGetCurrentContext()) {
++            if (vao) glDeleteVertexArrays(1, &vao);
++            if (buffer) glDeleteBuffers(1, &buffer);
++        }
++    }
++    void bind(bool es3, GLint position, GLint coordinate,
++              const float* vertices, const float* coordinates, unsigned count) {
++        const EGLContext current = eglGetCurrentContext();
++        if (context != current) {
++            // GL object names from a lost context must not delete objects in its replacement.
++            buffer = vao = 0;
++            context = current;
++        }
++        if (!buffer) glGenBuffers(1, &buffer);
++        if (es3) {
++            if (!vao) glGenVertexArrays(1, &vao);
++            glBindVertexArray(vao);
++        }
++        glBindBuffer(GL_ARRAY_BUFFER, buffer);
++        const GLsizeiptr bytes = count * sizeof(float);
++        glBufferData(GL_ARRAY_BUFFER, bytes * 2, nullptr, GL_STREAM_DRAW);
++        glBufferSubData(GL_ARRAY_BUFFER, 0, bytes, vertices);
++        glBufferSubData(GL_ARRAY_BUFFER, bytes, bytes, coordinates);
++        if (position >= 0) {
++            glVertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
++            glEnableVertexAttribArray(position);
++        }
++        if (coordinate >= 0) {
++            glVertexAttribPointer(coordinate, 2, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<void*>(bytes));
++            glEnableVertexAttribArray(coordinate);
++        }
++    }
++private:
++    EGLContext context = EGL_NO_CONTEXT;
++    GLuint buffer = 0, vao = 0;
++};
++}
+diff --git a/libretrodroid/src/main/cpp/immersivemode.cpp b/libretrodroid/src/main/cpp/immersivemode.cpp
+index af92350..bedab1b 100644
+--- a/libretrodroid/src/main/cpp/immersivemode.cpp
++++ b/libretrodroid/src/main/cpp/immersivemode.cpp
+@@ -123,11 +123,8 @@ void ImmersiveMode::renderToFramebuffer(uintptr_t texture, GLfloat* gBackgroundV
+
+     glViewport(0, 0, downscaledWidth, downscaledHeight);
+
+-    glVertexAttribPointer(blurPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, gBackgroundVertices);
+-    glEnableVertexAttribArray(blurPositionHandle);
+-
+-    glVertexAttribPointer(blurTextureCoordinatesHandle, 2, GL_FLOAT, GL_FALSE, 0, gTextureCoords);
+-    glEnableVertexAttribArray(blurTextureCoordinatesHandle);
++    frontendVertices.bind(es3, blurPositionHandle, blurTextureCoordinatesHandle,
++                          gBackgroundVertices, gTextureCoords, 12);
+
+     glBindFramebuffer(GL_FRAMEBUFFER, blurFramebuffers[blendFramebufferWriteIndex]->framebuffer);
+
+@@ -177,11 +174,8 @@ void ImmersiveMode::renderToFinalOutput(
+     glViewport(0, 0, screenWidth, screenHeight);
+     glUseProgram(displayShaderProgram);
+
+-    glVertexAttribPointer(displayPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, backgroundVertices.data());
+-    glEnableVertexAttribArray(displayPositionHandle);
+-
+-    glVertexAttribPointer(displayTextureCoordinatesHandle, 2, GL_FLOAT, GL_FALSE, 0, gTextureCoords);
+-    glEnableVertexAttribArray(displayTextureCoordinatesHandle);
++    frontendVertices.bind(es3, displayPositionHandle, displayTextureCoordinatesHandle,
++                          backgroundVertices.data(), gTextureCoords, 12);
+
+     glUniform4f(
+         displayForegroundBoundsHandle,
+diff --git a/libretrodroid/src/main/cpp/immersivemode.h b/libretrodroid/src/main/cpp/immersivemode.h
+index 50f066e..a189bfa 100644
+--- a/libretrodroid/src/main/cpp/immersivemode.h
++++ b/libretrodroid/src/main/cpp/immersivemode.h
+@@ -24,6 +24,7 @@
+ #include <GLES2/gl2.h>
+
+ #include "renderers/es3/es3utils.h"
++#include "frontendglstate.h"
+
+ namespace libretrodroid {
+
+@@ -54,6 +55,8 @@ public:
+         float blendFactor;
+     };
+
++    void setGLESVersion(int version) { es3 = version >= 3; }
++
+     explicit ImmersiveMode(const Config& config = Config()) :
+         downscaledWidth(config.downscaledWidth),
+         downscaledHeight(config.downscaledHeight),
+@@ -165,6 +168,8 @@ private:
+         1.0F,
+     };
+
++    bool es3 = true;
++    FrontendVertices frontendVertices;
+     GLuint blurShaderProgram = 0;
+     std::vector<std::unique_ptr<ES3Utils::Framebuffer>> blurFramebuffers;
+
+diff --git a/libretrodroid/src/main/cpp/video.cpp b/libretrodroid/src/main/cpp/video.cpp
+index a75dbaf..aac2910 100644
+--- a/libretrodroid/src/main/cpp/video.cpp
++++ b/libretrodroid/src/main/cpp/video.cpp
+@@ -141,7 +141,8 @@ void Video::renderFrame() {
+     if (skipDuplicateFrames && !isDirty) return;
+     isDirty = false;
+
+-    glDisable(GL_DEPTH_TEST);
++    FrontendGLState coreState(glesVersion >= 3, hardwareAccelerated);
++    coreState.prepare();
+
+     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+     glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
+@@ -176,12 +177,9 @@ void Video::renderFrame() {
+         glUseProgram(shader.gProgram);
+
+         auto vertices = isLastPass ? videoLayout.getForegroundVertices() : videoLayout.getFramebufferVertices();
+-        glVertexAttribPointer(shader.gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, vertices.data());
+-        glEnableVertexAttribArray(shader.gvPositionHandle);
+-
+         auto coordinates = videoLayout.getTextureCoordinates();
+-        glVertexAttribPointer(shader.gvCoordinateHandle, 2, GL_FLOAT, GL_FALSE, 0, coordinates.data());
+-        glEnableVertexAttribArray(shader.gvCoordinateHandle);
++        frontendVertices.bind(glesVersion >= 3, shader.gvPositionHandle, shader.gvCoordinateHandle,
++                              vertices.data(), coordinates.data(), vertices.size());
+
+         glActiveTexture(GL_TEXTURE0);
+         glBindTexture(GL_TEXTURE_2D, renderer->getTexture());
+@@ -199,8 +197,8 @@ void Video::renderFrame() {
+
+         glDrawArrays(GL_TRIANGLES, 0, 6);
+
+-        glDisableVertexAttribArray(shader.gvPositionHandle);
+-        glDisableVertexAttribArray(shader.gvCoordinateHandle);
++        if (shader.gvPositionHandle >= 0) glDisableVertexAttribArray(shader.gvPositionHandle);
++        if (shader.gvCoordinateHandle >= 0) glDisableVertexAttribArray(shader.gvCoordinateHandle);
+
+         if (shader.gPreviousPassTextureHandle != -1 && passData.texture.has_value()) {
+             glActiveTexture(GL_TEXTURE0 + 1);
+@@ -227,7 +225,13 @@ float Video::getTextureHeight() {
+
+ void Video::onNewFrame(const void *data, unsigned width, unsigned height, size_t pitch) {
+     if (data != nullptr) {
++        FrontendGLState coreState(glesVersion >= 3, hardwareAccelerated);
++        coreState.prepare();
++        const auto previousFramebuffer = renderer->getFramebuffer();
+         renderer->onNewFrame(data, width, height, pitch);
++        // A resolution change may replace the frontend FBO the core left bound.
++        // Never restore its deleted name into the current context.
++        coreState.replaceFramebuffer(previousFramebuffer, renderer->getFramebuffer());
+         isDirty = true;
+     }
+ }
+@@ -270,6 +274,9 @@ Video::Video(
+     immersiveMode(immersiveModeConfig),
+     videoLayout(bottomLeftOrigin, rotation, viewportRect, viewportAlignment) {
+
++    glesVersion = renderingOptions.openglESVersion;
++    hardwareAccelerated = renderingOptions.hardwareAccelerated;
++    immersiveMode.setGLESVersion(glesVersion);
+     printGLString("Version", GL_VERSION);
+     printGLString("Vendor", GL_VENDOR);
+     printGLString("Renderer", GL_RENDERER);
+diff --git a/libretrodroid/src/main/cpp/video.h b/libretrodroid/src/main/cpp/video.h
+index 05bd6b6..4f0791e 100644
+--- a/libretrodroid/src/main/cpp/video.h
++++ b/libretrodroid/src/main/cpp/video.h
+@@ -27,6 +27,7 @@
+ #include "utils/rect.h"
+ #include "immersivemode.h"
+ #include "videolayout.h"
++#include "frontendglstate.h"
+
+ namespace libretrodroid {
+
+@@ -111,6 +112,9 @@ private:
+     ImmersiveMode immersiveMode;
+     VideoLayout videoLayout;
+
++    int glesVersion = 2;
++    bool hardwareAccelerated = false;
++    FrontendVertices frontendVertices;
+     Renderer* renderer;
+ };
+
