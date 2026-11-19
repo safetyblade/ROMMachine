@@ -142,9 +142,9 @@ internal fun GemRatingRow(
             leading = {
                 Icon(
                     painter =
-                    painterResource(
-                        if (deckFit) R.drawable.cartdeck_feature_deckfit else R.drawable.cartdeck_feature_gemrating,
-                    ),
+                        painterResource(
+                            if (deckFit) R.drawable.cartdeck_feature_deckfit else R.drawable.cartdeck_feature_gemrating,
+                        ),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                 )
