@@ -138,11 +138,13 @@ fun DisplaySettingsScreen(
         Text("Screen aspect: Auto / Original", style = MaterialTheme.typography.titleMedium)
         for ((landscape, field) in listOf(true to "landscapeBorder", false to "portraitBorder")) {
             Text(if (landscape) "Landscape border" else "Portrait border", style = MaterialTheme.typography.titleMedium)
-            for (border in listOf(
-                DisplaySettingsStore.Border.STANDARD,
-                DisplaySettingsStore.Border.MINIMAL,
-                DisplaySettingsStore.Border.OFF,
-            )) {
+            val options =
+                listOf(
+                    DisplaySettingsStore.Border.STANDARD,
+                    DisplaySettingsStore.Border.MINIMAL,
+                    DisplaySettingsStore.Border.OFF,
+                )
+            for (border in options) {
                 val selected = snapshot.effective.border(landscape) == border
                 val label =
                     when (border) {
