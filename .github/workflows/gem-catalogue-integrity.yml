@@ -25,8 +25,13 @@ jobs:
         run: python3 -m unittest discover -s scripts/gem -p 'test_export_catalogue.py' -v
       - name: Reproduce and verify full historical catalogue
         run: python3 scripts/gem/verify_production_catalogue.py
+      - name: Test B7 projection and verify committed expansion
+        run: |
+          python3 -m unittest discover -s scripts/gem -p 'test_b7_catalogue_coverage.py' -v
+          python3 scripts/gem/verify_titlescreen_packages.py
 
   ingest-title-screen:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -54,47 +59,14 @@ jobs:
           digest="$(sha256sum "$source_db" | cut -d ' ' -f 1)"
           python3 scripts/gem/b7_catalogue_coverage.py --sqlite "$source_db" --sha256 "$digest" \
             --expected-version 2026.10.09 --output "$RUNNER_TEMP/gem-b7-candidates"
+      - name: Reproduce inspected package checksums
+        run: |
+          python3 scripts/gem/stage_titlescreen.py "$RUNNER_TEMP/gem-b7-candidates" "$RUNNER_TEMP/staged"
+          cmp "$RUNNER_TEMP/staged/titlescreen-pins.json" lemuroid-app/src/main/assets/gem/titlescreen-pins.json
+          cmp "$RUNNER_TEMP/staged/titlescreen-quarantine.json" docs/gemrating/titlescreen-quarantine.json
       - uses: actions/upload-artifact@v4
         with:
           name: gem-b7-unreviewed-catalogue-candidates
           path: ${{ runner.temp }}/gem-b7-candidates/
           if-no-files-found: error
           retention-days: 14
-
-  # One-time, branch-only materialization of independently inspected candidate bytes.
-  stage-branch-candidate:
-    needs: ingest-title-screen
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 343 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'engineering/gem-b1-b6-integration'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: gem-b7-unreviewed-catalogue-candidates
-          path: ${{ runner.temp }}/candidate
-      - name: Reproduce exact independently inspected packages
-        run: |
-          set -euo pipefail
-          python3 scripts/gem/stage_titlescreen.py "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/staged"
-          cd "$RUNNER_TEMP/staged"
-          echo 'a04193e5fe23389d3cc8b16c56658037b5ee7deb8ecb340b3b180eb21629e4c3  titlescreen-pins.json' | sha256sum --check
-          echo 'bee84fa2b107762db030b300cbca5f197c1dc6b2fe368736477257fb7bb9fd9b  titlescreen-quarantine.json' | sha256sum --check
-      - name: Materialize candidate only on existing GEM branch
-        run: |
-          set -euo pipefail
-          assets=lemuroid-app/src/main/assets/gem
-          if test -e "$assets/titlescreen-pins.json"; then
-            echo 'Candidate already staged; no changes.'
-            exit 0
-          fi
-          cp -r "$RUNNER_TEMP/staged/titlescreen" "$assets/"
-          cp "$RUNNER_TEMP/staged/titlescreen-pins.json" "$assets/"
-          cp "$RUNNER_TEMP/staged/titlescreen-quarantine.json" docs/gemrating/
-          git add -- "$assets/titlescreen" "$assets/titlescreen-pins.json" docs/gemrating/titlescreen-quarantine.json
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'GEM B7-A: stage 74030 source-pinned release candidates; quarantine 1365 records'
-          git push origin HEAD:refs/heads/engineering/gem-b1-b6-integration

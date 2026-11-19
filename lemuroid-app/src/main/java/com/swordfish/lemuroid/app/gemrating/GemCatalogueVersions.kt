@@ -98,6 +98,7 @@ internal class GemCatalogueVersions(
 
     private fun loadRef(ref: Ref): GemCataloguePackage.Loaded {
         if (ref == BASELINE) return bundled()
+        if (ref == LEGACY_BASELINE) return GemProductionCatalogue.loadLegacy(app)
         val bytes = file(ref).inputStream().use(GemSignedCatalogue::read)
         require(GemProfileBackup.digest(bytes) == ref.digest)
         val verified = GemSignedCatalogue.verify(bytes, requireNotNull(signingKey()))
@@ -147,7 +148,7 @@ internal class GemCatalogueVersions(
         require(verified.sequence > current.highestSequence) { "Update is not newer than accepted history" }
         val active = loadRef(current.active)
         val incoming = verified.catalogue.manifest
-        require(incoming.catalogueVersion != current.active.version && incoming.catalogueVersion != BASELINE.version)
+        require(incoming.catalogueVersion !in setOf(current.active.version, BASELINE.version, LEGACY_BASELINE.version))
         val history = GemCatalogueVersionPolicy.extend(current.identities, active.manifest.releases)
         GemCatalogueVersionPolicy.extend(history, incoming.releases)
         val oldIds = active.manifest.releases.map { it.releaseId }.toSet()
@@ -251,5 +252,6 @@ internal class GemCatalogueVersions(
         private val lock = Any()
         private val HEX = Regex("[a-f0-9]{64}")
         private val BASELINE = Ref(0, GemProductionCatalogue.VERSION, "")
+        private val LEGACY_BASELINE = Ref(0, GemProductionCatalogue.LEGACY_VERSION, "")
     }
 }
