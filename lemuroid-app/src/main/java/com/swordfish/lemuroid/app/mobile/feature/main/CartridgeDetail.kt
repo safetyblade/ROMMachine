@@ -161,8 +161,7 @@ fun CartridgeDetail(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.titleMedium)
-
+            Text(cartridgeSystemLabel(game.systemId), style = MaterialTheme.typography.labelMedium)
         }
         val actions: @Composable () -> Unit = {
             Button(
@@ -175,19 +174,18 @@ fun CartridgeDetail(
                 enabled = !opening,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(R.string.cartdeck_open)) }
-            OutlinedButton(
-                onClick = { setup = true },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text("Setup") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { setup = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Setup") }
+                if (onOpenIntelligence != null) {
+                    TextButton(
+                        onClick = { onOpenIntelligence(game) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Game Intelligence") }
+                }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 GemRatingRow(game, compact = true)
                 GemRatingRow(game, deckFit = true, compact = true)
-            }
-            if (onOpenIntelligence != null) {
-                TextButton(
-                    onClick = { onOpenIntelligence(game) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) { Text("Game Intelligence") }
             }
         }
         if (landscape) {
