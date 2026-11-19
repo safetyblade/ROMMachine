@@ -126,13 +126,25 @@ internal fun GemRatingRow(
             onClick = openEditor,
             enabled = store != null && !busy,
             modifier = Modifier.gemFocusTarget(),
-        ) { Text("$label · ${score?.let { "$it/$maximum" } ?: "Rate"}") }
+        ) {
+            Icon(
+                painterResource(
+                    if (deckFit) R.drawable.cartdeck_feature_deckfit else R.drawable.cartdeck_feature_gemrating,
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(" ${if (deckFit) "DeckFit" else "GEMRating"} ${score?.let { "$it/$maximum" } ?: "—"}")
+        }
     } else {
         CartdeckMenuRow(
             title = { Text(label) },
             leading = {
                 Icon(
-                    painter = painterResource(R.drawable.cartdeck_feature_gemrating),
+                    painter =
+                    painterResource(
+                        if (deckFit) R.drawable.cartdeck_feature_deckfit else R.drawable.cartdeck_feature_gemrating,
+                    ),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                 )
