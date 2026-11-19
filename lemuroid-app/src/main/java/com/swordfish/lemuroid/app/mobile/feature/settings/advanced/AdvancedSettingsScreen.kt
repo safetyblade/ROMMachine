@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.advanced
 
+import android.text.format.Formatter
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
@@ -11,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -46,6 +48,7 @@ fun AdvancedSettingsScreen(
 
         InputSettings()
         GeneralSettings(uiState.cache, viewModel, navController)
+        StorageSettings(viewModel)
     }
 }
 
@@ -123,6 +126,8 @@ private fun GeneralSettings(
             listOf(
                 stringResource(R.string.settings_description_low_latency_audio),
                 stringResource(R.string.settings_description_direct_game_load),
+                "ROM copy limits apply after leaving a game. Reload every session retains no staged copies. " +
+                    "Saves, installed games and shader caches are retained.",
                 stringResource(R.string.settings_description_reset_settings),
             ),
         )
@@ -130,6 +135,63 @@ private fun GeneralSettings(
 
     if (factoryResetDialogState.value) {
         FactoryResetDialog(factoryResetDialogState, viewModel, navController)
+    }
+}
+
+@Composable
+private fun StorageSettings(viewModel: AdvancedSettingsViewModel) {
+    val state = viewModel.storageState.collectAsState().value
+    val context = LocalContext.current
+    val confirmation = remember { mutableStateOf(false) }
+    val showAll = remember { mutableStateOf(false) }
+
+    fun size(bytes: Long) = Formatter.formatShortFileSize(context, bytes)
+
+    LemuroidCardSettingsGroup(title = { Text("Storage review") }) {
+        Text("Review app data and reclaim staged game copies. Original ROMs, saves and installed games are retained.")
+        TextButton(enabled = !state.busy, onClick = { viewModel.reviewStorage() }) {
+            Text(if (state.busy) "Reviewing storage…" else "Review / refresh usage")
+        }
+        state.report?.let { report ->
+            Text("Internal files: ${size(report.internalBytes)}")
+            Text("App-specific storage: ${size(report.externalBytes)}")
+            Text("Reclaimable media: ${size(report.reclaimableBytes)}")
+            Text("File-size estimates; Android storage totals may differ.")
+            if (report.incompleteEntries > 0) Text("Some entries could not be inspected.")
+            val entries = if (showAll.value) report.rows else report.rows.take(8)
+            entries.forEach { entry ->
+                val copy = if (entry.reclaimableBytes > 0) " · ${size(entry.reclaimableBytes)} reclaimable" else ""
+                Text("${entry.label}: ${size(entry.bytes)}$copy")
+            }
+            if (report.rows.size > 8) {
+                TextButton(onClick = { showAll.value = !showAll.value }) {
+                    Text(if (showAll.value) "Show less" else "Show all storage areas")
+                }
+            }
+            TextButton(
+                enabled = !state.busy && report.reclaimableBytes > 0,
+                onClick = { confirmation.value = true },
+            ) { Text("Clear staged game copies") }
+        }
+        state.message?.let { Text(it) }
+    }
+    if (confirmation.value) {
+        AlertDialog(
+            onDismissRequest = { confirmation.value = false },
+            title = { Text("Clear staged game copies?") },
+            text = { Text("Games may take longer to reopen. Original media must still be accessible. Saves are retained.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmation.value = false
+                        viewModel.reviewStorage(clear = true)
+                    },
+                ) { Text("Clear copies") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmation.value = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
