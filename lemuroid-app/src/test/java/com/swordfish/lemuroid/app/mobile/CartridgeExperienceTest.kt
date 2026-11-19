@@ -131,8 +131,7 @@ class CartridgeExperienceTest {
 
     @Test
     @Config(qualifiers = "w720dp-h360dp-land")
-    fun shelfGemEntryOpensProductWithoutSelectingOrRearrangingCartridge() {
-        var opened = 0
+    fun shelfDoesNotTreatGemAsLibrarySection() {
         var selected = 0
         compose.setContent {
             CartridgeLibraryTheme {
@@ -144,12 +143,10 @@ class CartridgeExperienceTest {
                     onEnableNotificationsClicked = {},
                     onEnableMicrophoneClicked = {},
                     onSetDirectoryClicked = {},
-                    onOpenGem = { opened++ },
                 )
             }
         }
-        compose.onNodeWithText("GEM").assertIsDisplayed().performClick()
-        assertEquals(1, opened)
+        compose.onNodeWithText("GEM").assertDoesNotExist()
         assertEquals(0, selected)
         compose.onNodeWithContentDescription("Atlas, GB, spine facing").assertExists()
     }
