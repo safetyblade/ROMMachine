@@ -238,6 +238,12 @@ android {
             ).forEach { property ->
                 System.getProperty(property)?.let { value -> testTask.systemProperty(property, value) }
             }
+            // Use Maven Central's canonical endpoint for the forked SDK resolver.
+            // The tests remain mandatory; failed downloads are not ignored.
+            testTask.systemProperty(
+                "robolectric.dependency.repo.url",
+                System.getProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2"),
+            )
         }
     }
 
