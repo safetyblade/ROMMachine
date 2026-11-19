@@ -35,6 +35,21 @@ class GemCatalogueIndex(
 
     private val whitespace = Regex("\\s+")
     private val hashPattern = Regex("[a-fA-F0-9]{64}")
+    private val suffix =
+        Regex(
+            "\\s*\\((?:USA|Europe|Japan|Australia|World|Asia|Korea|France|Germany|Spain|Italy|" +
+                "UK|Canada|[A-Za-z]{2}(?:,[A-Za-z]{2})+)\\)$",
+            RegexOption.IGNORE_CASE,
+        )
+
+    private fun reviewTitle(value: String): String {
+        var title = value.trim()
+        while (true) {
+            val simplified = title.replace(suffix, "").trim()
+            if (simplified == title) return normalized(title)
+            title = simplified
+        }
+    }
 
     private fun normalized(value: String): String = value.trim().lowercase(Locale.ROOT).replace(whitespace, " ")
 
@@ -57,7 +72,7 @@ class GemCatalogueIndex(
     }
 
     private val byId = records.associateBy { it.releaseId }
-    private val byTitle = records.groupBy { it.systemId to normalized(it.title) }
+    private val byTitle = records.groupBy { it.systemId to reviewTitle(it.title) }
     private val byHash =
         records.flatMap { release -> release.verifiedSha256.map { (release.systemId to it) to release } }
             .groupBy({ it.first }, { it.second })
@@ -95,7 +110,7 @@ class GemCatalogueIndex(
                 Match.Review(strong.sortedBy { it.releaseId })
             }
         }
-        val titles = byTitle[game.systemId to normalized(game.title)].orEmpty().sortedBy { it.releaseId }
+        val titles = byTitle[game.systemId to reviewTitle(game.title)].orEmpty().sortedBy { it.releaseId }
         return if (titles.isEmpty()) Match.Unmatched else Match.Review(titles)
     }
 }
