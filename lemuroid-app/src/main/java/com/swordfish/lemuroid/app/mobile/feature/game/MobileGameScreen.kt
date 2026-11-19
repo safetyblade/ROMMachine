@@ -567,7 +567,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             } else {
-                                listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                                if (isLandscape && individualInputs.isNotEmpty()) {
+                                    individualInputs.values.toList()
+                                } else {
+                                    listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                                }
                             }
                         } else {
                             emptyList()

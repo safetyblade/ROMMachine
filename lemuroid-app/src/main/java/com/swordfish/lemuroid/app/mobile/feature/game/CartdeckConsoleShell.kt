@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -123,7 +123,7 @@ internal fun CartdeckConsoleShell(
             // Responsive, noninteractive decoration; a valid measured aperture
             // is required before painting. Never paint into video, PadKit
             // bounds, or the protected CARTDECK brand seat.
-            if (hole != null && !minimal) {
+            if (hole != null && !isLandscape) {
                 val reservedBrand =
                     when {
                         !isLandscape && seatFits ->
@@ -207,6 +207,38 @@ internal fun CartdeckConsoleShell(
                         cornerRadius = CornerRadius(12.dp.toPx()),
                         style = Stroke(2.dp.toPx()),
                     )
+                    drawRoundRect(
+                        color = hardwareInlay(tokens),
+                        topLeft = Offset(panel.left + 2.dp.toPx(), panel.top + 2.dp.toPx()),
+                        size =
+                            androidx.compose.ui.geometry.Size(
+                                panel.width - 4.dp.toPx(),
+                                panel.height - 4.dp.toPx(),
+                            ),
+                        cornerRadius = CornerRadius(10.dp.toPx()),
+                        style = Stroke(1.dp.toPx()),
+                    )
+                }
+            }
+            // Engrave the finished landscape surfaces, not the substrate behind the panels.
+            if (isLandscape && hole != null) {
+                clipPath(shellPath) {
+                    drawCartdeckSurfaceDesign(
+                        patternId = patternId,
+                        stampId = stampId,
+                        frame =
+                            Rect(
+                                edge + 7.dp.toPx(),
+                                edge + 7.dp.toPx(),
+                                size.width - edge - 7.dp.toPx(),
+                                size.height - edge - 7.dp.toPx(),
+                            ),
+                        exclusions = listOf(hole) + controls,
+                        lineColour = tokens.accent,
+                        stampColour = tokens.onChassis,
+                        cellSize = maxOf(19.dp.toPx(), minOf(size.width, size.height) / 18f),
+                        clearance = 7.dp.toPx(),
+                    )
                 }
             }
             hole?.let { display ->
@@ -245,7 +277,7 @@ internal fun CartdeckConsoleShell(
                     }
                 drawPath(glassLip, tokens.glass)
                 drawRoundRect(
-                    color = lerp(tokens.bezel, tokens.secondary, if (dsPortrait) 0.38f else 0.55f),
+                    color = hardwareInlay(tokens).copy(alpha = if (dsPortrait) 0.55f else 0.9f),
                     topLeft = rim.topLeft,
                     size = rim.size,
                     cornerRadius = CornerRadius(10.dp.toPx()),

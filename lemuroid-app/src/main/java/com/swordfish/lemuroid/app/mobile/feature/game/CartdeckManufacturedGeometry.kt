@@ -179,19 +179,46 @@ internal fun DrawScope.drawManufacturedChannels(
             size = rect.size,
             cornerRadius = CornerRadius(radius),
         )
-        val inset = radius * 0.35f
-        val fill =
-            if (lighting.active(channel.zone, highContrast)) {
-                lighting.tint(tokens.accent, feedbackStrength)
-            } else {
-                lerp(tokens.bezel, tokens.secondary, 0.42f)
-            }
+        drawMaterialTrack(rect, tokens, lighting, channel.zone, highContrast, feedbackStrength)
+    }
+}
+
+/** Permanent accent material is independent of emitted light colour. */
+internal fun hardwareInlay(tokens: CartdeckEditionTokens): Color =
+    lerp(tokens.bezel, tokens.accent, 0.76f)
+
+/** Soft layered emission stays inside the validated hardware footprint. */
+internal fun DrawScope.drawMaterialTrack(
+    rect: Rect,
+    tokens: CartdeckEditionTokens,
+    lighting: CartdeckLighting,
+    zone: String,
+    highContrast: Boolean,
+    feedbackStrength: Float = 0f,
+) {
+    val radius = minOf(rect.width, rect.height) / 2f
+    if (radius <= 0f) return
+
+    fun layer(
+        fraction: Float,
+        colour: Color,
+    ) {
+        val inset = radius * fraction
         drawRoundRect(
-            color = fill,
+            color = colour,
             topLeft = Offset(rect.left + inset, rect.top + inset),
             size = Size(rect.width - inset * 2f, rect.height - inset * 2f),
             cornerRadius = CornerRadius(radius - inset),
         )
+    }
+
+    layer(0.08f, tokens.bezel)
+    layer(0.48f, hardwareInlay(tokens))
+    if (lighting.active(zone, highContrast)) {
+        val light = lighting.tint(tokens.accent, feedbackStrength)
+        layer(0.06f, light.copy(alpha = light.alpha * 0.16f))
+        layer(0.28f, light.copy(alpha = light.alpha * 0.34f))
+        layer(0.55f, light.copy(alpha = light.alpha * 0.82f))
     }
 }
 
@@ -204,5 +231,5 @@ internal fun manufacturedFrameAccent(
     when {
         highContrast -> Color.White
         lighting.active(CartdeckLighting.SCREEN) -> lighting.tint(tokens.accent)
-        else -> lerp(tokens.bezel, tokens.secondary, 0.55f)
+        else -> hardwareInlay(tokens)
     }

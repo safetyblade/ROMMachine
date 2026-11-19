@@ -21,7 +21,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -495,16 +494,18 @@ internal fun CartdeckHardwareSeats(
                             size = Size(width, height),
                             cornerRadius = CornerRadius(height / 2f),
                         )
-                        if (indicator && lighting.active(CartdeckLighting.CONTROL_WELLS, highContrast)) {
-                            drawRoundRect(
-                                color = lighting.tint(tokens.accent, feedbackStrength),
-                                topLeft = origin,
-                                size = Size(width, height),
-                                cornerRadius = CornerRadius(height / 2f),
+                        if (indicator) {
+                            drawMaterialTrack(
+                                Rect(origin.x, origin.y, origin.x + width, origin.y + height),
+                                tokens,
+                                lighting,
+                                CartdeckLighting.CONTROL_WELLS,
+                                highContrast,
+                                feedbackStrength,
                             )
-                        } else if (!indicator) {
+                        } else {
                             drawLine(
-                                color = lerp(tokens.bezel, tokens.secondary, 0.55f),
+                                color = hardwareInlay(tokens),
                                 start = origin + Offset(1.dp.toPx(), height),
                                 end = origin + Offset(width - 1.dp.toPx(), height),
                                 strokeWidth = 0.75.dp.toPx(),

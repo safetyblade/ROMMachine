@@ -172,10 +172,12 @@ object GameScreenLayout {
             val leftContainer = createRefFor(CONSTRAINTS_LEFT_CONTAINER)
             val rightContainer = createRefFor(CONSTRAINTS_RIGHT_CONTAINER)
 
+            val padInset = if (hardwareLandscape) 8.dp else 0.dp
             constrain(leftPad) {
                 absoluteLeft.linkTo(parent.absoluteLeft)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
+                top.linkTo(parent.top, margin = padInset)
+                bottom.linkTo(parent.bottom, margin = padInset)
+                verticalBias = if (hardwareLandscape) 0.45f else 0.5f
                 width = Dimension.wrapContent // Takes as much space as needed
             }
 
@@ -192,8 +194,9 @@ object GameScreenLayout {
 
             constrain(rightPad) {
                 absoluteRight.linkTo(parent.absoluteRight)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
+                top.linkTo(parent.top, margin = padInset)
+                bottom.linkTo(parent.bottom, margin = padInset)
+                verticalBias = if (hardwareLandscape) 0.45f else 0.5f
                 width = Dimension.wrapContent // Takes as much space as needed
             }
 
