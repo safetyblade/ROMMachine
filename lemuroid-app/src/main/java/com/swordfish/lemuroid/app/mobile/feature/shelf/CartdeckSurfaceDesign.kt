@@ -141,6 +141,7 @@ internal fun DrawScope.drawCartdeckSurfaceDesign(
     stampColour: Color,
     cellSize: Float,
     clearance: Float,
+    stampSeatOverride: Rect? = null,
 ) {
     if (patternId != CartdeckSurfaceDesign.PATTERN_NONE) {
         CartdeckSurfaceDesign.safeTiles(frame, exclusions, cellSize, clearance).forEach { tile ->
@@ -210,7 +211,7 @@ internal fun DrawScope.drawCartdeckSurfaceDesign(
 
     if (stampId == CartdeckSurfaceDesign.STAMP_NONE) return
     val stamp =
-        CartdeckSurfaceDesign.stampSeat(
+        stampSeatOverride ?: CartdeckSurfaceDesign.stampSeat(
             frame = frame,
             exclusions = exclusions,
             requestedSize = cellSize * 2.1f,

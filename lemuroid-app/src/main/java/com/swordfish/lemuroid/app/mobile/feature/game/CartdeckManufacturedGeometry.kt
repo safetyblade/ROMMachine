@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
 import com.swordfish.lemuroid.app.mobile.feature.shelf.drawLightingFinish
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
@@ -16,6 +17,12 @@ internal data class CartdeckHardwareChannel(
     val zone: String,
     val housing: Rect? = null,
     val glowBounds: Rect? = null,
+)
+
+internal data class LandscapeDecoration(
+    val bands: List<Rect> = emptyList(),
+    val stampSeat: Rect? = null,
+    val decalSeat: Rect? = null,
 )
 
 /** Measured geometry. Decorative trim disappears rather than moving a game or input. */
@@ -142,6 +149,64 @@ internal object CartdeckManufacturedGeometry {
                 height - 9f * density,
             )
         return fits(badge, frame, listOf(video) + controls, 4f * density)
+    }
+
+    /**
+     * Paired, deliberate engraving bands; no free-space pattern scatter.
+     * Reserve small independent artwork seats and omit entire rows if obstructed.
+     */
+    fun landscapeDecoration(
+        frame: Rect,
+        video: Rect,
+        controls: List<Rect>,
+        density: Float,
+        decalAnchor: String? = null,
+        protected: List<Rect> = emptyList(),
+    ): LandscapeDecoration {
+        if (density <= 0f || !density.isFinite()) return LandscapeDecoration()
+        val blocked = listOf(video) + controls + protected
+        val safe =
+            Rect(
+                frame.left + 40f * density,
+                frame.top + 10f * density,
+                frame.right - 40f * density,
+                frame.bottom - 10f * density,
+            )
+        val gap = 13f * density
+        val sideWidth = minOf(video.left - safe.left - gap, safe.right - video.right - gap)
+        val cell = 16f * density
+        val seatSize = 24f * density
+        val reserved = 32f * density
+        val columns = ((sideWidth - reserved) / cell).toInt()
+        if (columns < 2) return LandscapeDecoration()
+        val width = columns * cell
+        val top = frame.top + 15f * density
+        val bottom = frame.bottom - 31f * density
+        val leftBandStart = safe.left + reserved
+        val rightBandEnd = safe.right - reserved
+        val bands = mutableListOf<Rect>()
+        for (y in listOf(top, bottom)) {
+            val pair =
+                listOf(
+                    Rect(leftBandStart, y, leftBandStart + width, y + cell),
+                    Rect(rightBandEnd - width, y, rightBandEnd, y + cell),
+                )
+            if (pair.all { fits(it, safe, blocked, 3f * density) }) bands += pair
+        }
+        fun artwork(
+            left: Boolean,
+            upper: Boolean,
+        ): Rect? {
+            val x = if (left) safe.left else safe.right - seatSize
+            val y = if (upper) frame.top + 10f * density else frame.bottom - 34f * density
+            val rect = Rect(x, y, x + seatSize, y + seatSize)
+            return rect.takeIf { fits(it, safe, blocked + bands, 2f * density) }
+        }
+        val decalLeft = decalAnchor == CartdeckPersonalDecal.ANCHOR_LOWER_LEFT
+        val decalUpper = decalAnchor == CartdeckPersonalDecal.ANCHOR_UPPER_RAIL
+        val decal = if (decalAnchor == null) null else artwork(decalLeft, decalUpper)
+        val stamp = artwork(!decalLeft, false)?.takeUnless { it == decal }
+        return LandscapeDecoration(bands, stamp, decal)
     }
 
     fun sideHousings(

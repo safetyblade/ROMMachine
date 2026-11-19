@@ -220,38 +220,43 @@ internal fun CartdeckConsoleShell(
                     )
                 }
             }
-            // Engrave the finished landscape surfaces, not the substrate behind the panels.
+            // A landscape appearance is composed in intentional paired engraving bands,
+            // not scattered across leftover pixels or the clean controller surfaces.
             if (isLandscape && hole != null) {
-                clipPath(shellPath) {
-                    drawCartdeckSurfaceDesign(
-                        patternId = patternId,
-                        stampId = stampId,
-                        frame =
-                            Rect(
-                                edge + 7.dp.toPx(),
-                                edge + 7.dp.toPx(),
-                                size.width - edge - 7.dp.toPx(),
-                                size.height - edge - 7.dp.toPx(),
-                            ),
-                        exclusions =
-                            listOf(hole) + controls +
-                                if (footerSeat) {
-                                    listOf(
-                                        Rect(
-                                            size.width / 2f - 54.dp.toPx(),
-                                            size.height - 66.dp.toPx(),
-                                            size.width / 2f + 54.dp.toPx(),
-                                            size.height,
-                                        ),
-                                    )
-                                } else {
-                                    emptyList()
-                                },
-                        lineColour = tokens.accent,
-                        stampColour = tokens.onChassis,
-                        cellSize = maxOf(19.dp.toPx(), minOf(size.width, size.height) / 18f),
-                        clearance = 7.dp.toPx(),
+                val decoration =
+                    CartdeckManufacturedGeometry.landscapeDecoration(
+                        Rect(0f, 0f, size.width, size.height),
+                        hole,
+                        controls,
+                        this.density,
+                        decal?.anchor,
                     )
+                clipPath(shellPath) {
+                    decoration.bands.forEach { band ->
+                        drawCartdeckSurfaceDesign(
+                            patternId = patternId,
+                            stampId = CartdeckSurfaceDesign.STAMP_NONE,
+                            frame = band,
+                            exclusions = emptyList(),
+                            lineColour = tokens.accent,
+                            stampColour = tokens.onChassis,
+                            cellSize = 16.dp.toPx(),
+                            clearance = 0f,
+                        )
+                    }
+                    decoration.stampSeat?.let { seat ->
+                        drawCartdeckSurfaceDesign(
+                            patternId = CartdeckSurfaceDesign.PATTERN_NONE,
+                            stampId = stampId,
+                            frame = seat,
+                            exclusions = emptyList(),
+                            lineColour = tokens.accent,
+                            stampColour = tokens.onChassis,
+                            cellSize = 16.dp.toPx(),
+                            clearance = 0f,
+                            stampSeatOverride = seat,
+                        )
+                    }
                 }
             }
             hole?.let { display ->
@@ -413,10 +418,26 @@ internal fun CartdeckConsoleShell(
                 } else {
                     null
                 }
-            CartdeckDecalLayer(
-                decal = decal,
-                exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
-            )
+            val dedicatedSeat =
+                if (isLandscape) {
+                    CartdeckManufacturedGeometry.landscapeDecoration(
+                        Rect(0f, 0f, w, h),
+                        hole,
+                        controls,
+                        density.density,
+                        decal.anchor,
+                        listOfNotNull(protectedBrand),
+                    ).decalSeat
+                } else {
+                    null
+                }
+            if (!isLandscape || dedicatedSeat != null) {
+                CartdeckDecalLayer(
+                    decal = decal,
+                    exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
+                    dedicatedSeat = dedicatedSeat,
+                )
+            }
         }
 
         // Full brand returns above the standard manufactured screen; the
