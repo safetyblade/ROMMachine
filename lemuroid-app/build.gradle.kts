@@ -19,10 +19,13 @@ if (providers.gradleProperty("cartdeckNativeSystems").orNull?.isNotBlank() == tr
 }
 
 val pcIntegration = providers.gradleProperty("cartdeckPcIntegrationDir").orNull
+val pcWine = providers.gradleProperty("cartdeckPcWineDir").orNull
+require(pcWine == null || pcIntegration != null) { "Wine requires the isolated CARTDECK PC integration build" }
 
 android {
     defaultConfig {
         buildConfigField("boolean", "PC_INTEGRATION_ENABLED", (pcIntegration != null).toString())
+        buildConfigField("boolean", "PC_WINE_NATIVE_ENABLED", (pcWine != null).toString())
         if (pcIntegration != null) {
             require(providers.gradleProperty("cartdeck.pc.integrationLab").orNull == "true")
         }
@@ -132,7 +135,15 @@ android {
     if (pcIntegration != null) {
         sourceSets.getByName("debug") {
             java.srcDir("src/pcIntegration/java")
-            manifest.srcFile("src/pcIntegration/AndroidManifest.xml")
+            manifest.srcFile(
+                if (pcWine == null) "src/pcIntegration/AndroidManifest.xml" else "src/pcWine/AndroidManifest.xml",
+            )
+            if (pcWine != null) {
+                java.srcDir("src/pcWine/java")
+                java.srcDir("$pcWine/java")
+                assets.srcDir("$pcWine/assets")
+                jniLibs.srcDir("$pcWine/jniLibs")
+            }
             jniLibs.srcDir("$pcIntegration/jniLibs")
         }
     }
@@ -159,6 +170,9 @@ android {
                         "**/libcartdeckpc_dosbox.so",
                         "**/liblibretrodroid.so",
                     )
+            }
+            if (pcWine != null) {
+                keepDebugSymbols += "**/libcartdeckwine_*.so"
             }
             useLegacyPackaging = true
             if (providers.gradleProperty("cartdeck.ps2next.labId").orNull == "true") {

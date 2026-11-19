@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 /** Preparation remains separate from normal Shelf gameplay and runtime ownership. */
@@ -41,6 +42,9 @@ internal fun CartmodScreen(
                 enabled = enabled,
                 onImported = { revision++ },
             )
+        }
+        if (BuildConfig.PC_WINE_NATIVE_ENABLED && cartridgeId == null) {
+            PcWineImportSettings(enabled = enabled, onImported = { revision++ })
         }
         PcWindowsSetupSettings(
             enabled = enabled,

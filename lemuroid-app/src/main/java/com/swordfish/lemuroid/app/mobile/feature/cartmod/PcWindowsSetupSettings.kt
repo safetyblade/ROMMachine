@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore
 import com.swordfish.lemuroid.lib.library.pc.PcGuestDiskStore
 import com.swordfish.lemuroid.lib.library.pc.PcWindowsLaunchRecipe
+import com.swordfish.lemuroid.lib.library.pc.PcWineCartridges
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -59,6 +60,7 @@ internal fun PcWindowsSetupSettings(
                 withContext(Dispatchers.IO) {
                     store.entries()
                         .filter { cartridgeId == null || it.id.toString() == cartridgeId }
+                        .filterNot { PcWineCartridges.isWine(it) }
                         .map { it to PcGuestDiskStore(store.workspace(it)).disks().size }
                 }
         } catch (cancelled: CancellationException) {
