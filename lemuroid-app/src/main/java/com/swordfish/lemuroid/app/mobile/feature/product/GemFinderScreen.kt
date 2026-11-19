@@ -57,6 +57,7 @@ internal fun GemFinderScreen(
     modifier: Modifier = Modifier,
     onOpenCartridge: (Game) -> Unit = {},
     onInspectRelease: (String) -> Unit = {},
+    onIdentifyCartridge: (Game) -> Unit = {},
 ) {
     val context = LocalContext.current.applicationContext
     val coroutineScope = rememberCoroutineScope()
@@ -70,6 +71,7 @@ internal fun GemFinderScreen(
     var feed by remember { mutableStateOf<List<GemRatingRecommender.Recommendation>?>(null) }
     var surprising by remember { mutableStateOf(false) }
     var changingShare by remember { mutableStateOf(false) }
+    var showPreferences by remember { mutableStateOf(false) }
     var surprise by remember { mutableStateOf<GemRatingRecommender.Recommendation?>(null) }
     var message by remember { mutableStateOf("") }
 
@@ -182,22 +184,20 @@ internal fun GemFinderScreen(
                     Text("Loading personal preferences…")
                 } else {
                     if (data.ratings.isEmpty()) {
-                        Text("Rate a game and confirm its catalogue link in Browse to start personalised discovery.")
+                        Text("Build your taste profile", style = MaterialTheme.typography.titleMedium)
+                        Text("Pick a cartridge, rate it and identify the game to unlock personal picks.")
                     } else if (data.ratings.size < 3) {
-                        Text("Early recommendations · based on ${data.ratings.size} linked ratings")
-                    } else {
-                        Text("Based on ${data.ratings.size} linked ratings. All calculations are offline.")
+                        Text("Early picks for you", style = MaterialTheme.typography.bodySmall)
                     }
-                    if (data.unlinkedRatings > 0) {
-                        Text(
-                            "${data.unlinkedRatings} ratings need a confirmed catalogue link before discovery.",
-                        )
+                    if (data.ratings.isNotEmpty()) {
+                    TextButton(onClick = { showPreferences = !showPreferences }) {
+                        Text("Wildcards · $share%")
                     }
-                    Text("Wildcard target: $share%")
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
+                        if (showPreferences) {
                         TextButton(
                             onClick = { changeShare(share - 5) },
                             enabled = share > 20 && !surprising && !changingShare,
@@ -208,6 +208,7 @@ internal fun GemFinderScreen(
                             enabled = share < 50 && !surprising && !changingShare,
                             modifier = Modifier.gemFocusTarget(),
                         ) { Text("More") }
+                        }
                         TextButton(
                             onClick = {
                                 val prefs = preferences ?: return@TextButton
@@ -246,6 +247,7 @@ internal fun GemFinderScreen(
                             modifier = Modifier.gemFocusTarget(),
                         ) { Text("Surprise Me") }
                     }
+                    }
                 }
             }
         }
@@ -265,18 +267,25 @@ internal fun GemFinderScreen(
                     }
                 }
             }
-            if (currentFeed == null) {
+            if (data.ratings.isEmpty()) {
+                items(games.take(12), key = { it.cartridgeId }) { game ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CartridgeFront(game, modifier = Modifier.width(120.dp), offline = true)
+                            Column(Modifier.weight(1f)) {
+                                Text(game.displayName(), style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                                GemRatingRow(game, compact = true)
+                                TextButton(onClick = { onIdentifyCartridge(game) }) { Text("Identify game") }
+                            }
+                        }
+                    }
+                }
+            } else if (currentFeed == null) {
                 item(span = { GridItemSpan(maxLineSpan) }) { Text("Calculating recommendations…") }
             } else {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        "${currentFeed.count { it.wildcard }} wildcards · ${currentFeed.size} suggestions",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
                 if (currentFeed.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Text("No eligible matches in this view yet. Browse the catalogue to explore.")
+                        Text("No picks here yet. Rate more games or try another view.")
                     }
                 }
                 items(currentFeed, key = { it.game.releaseId }) { recommendation ->
@@ -309,9 +318,9 @@ private fun GemRecommendationCard(
             verticalAlignment = Alignment.Top,
         ) {
             if (installedGame != null) {
-                CartridgeFront(installedGame, modifier = Modifier.width(92.dp), offline = true)
+                CartridgeFront(installedGame, modifier = Modifier.width(120.dp), offline = true)
             } else {
-                CatalogueCartridgeFront(game.title, game.platform, Modifier.width(92.dp))
+                CatalogueCartridgeFront(game.title, game.platform, Modifier.width(120.dp))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(game.title, style = MaterialTheme.typography.titleMedium)
@@ -319,12 +328,13 @@ private fun GemRecommendationCard(
                     cartridgeSystemLabel(game.platform) + if (owned) " · On my shelf" else " · Not linked to shelf",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Text(recommendation.reason)
-                val kind = if (recommendation.wildcard) "Wildcard · " else ""
-                val evidence =
-                    if (recommendation.meaningfulBridge) "Provisional gameplay match" else "Broad metadata match"
-                Text(kind + evidence, style = MaterialTheme.typography.bodySmall)
-                Text("Compatibility not verified", style = MaterialTheme.typography.bodySmall)
+                Text(recommendation.reason, style = MaterialTheme.typography.bodySmall, maxLines = 3)
+                if (recommendation.wildcard) Text("Wildcard", style = MaterialTheme.typography.bodySmall)
+                if (installedGame != null) {
+                    GemRatingRow(installedGame, deckFit = true, compact = true)
+                } else {
+                    Text("DeckFit · Not assessed", style = MaterialTheme.typography.bodySmall)
+                }
                 if (installedGame != null) {
                     TextButton(
                         onClick = { onOpenCartridge(installedGame) },
