@@ -24,3 +24,10 @@ Owner-confirmed placement: additive UNI work, not a substitute for UNI-D/UNI-E/U
 ## Roadmap
 - Record under UNI parallel brand/appearance workstream and in the GC presentation acceptance matrix.
 - UNI-D3/D4 remain responsible for GripArc and adaptive controller geometry. UNI-E validates all emulator hosts. UNI-F validates global presentation and rollback.
+
+## 20 November 2026 — implementation and source provenance
+
+- Owner-provided video already exists on master at `lemuroid-app/src/main/res/raw/02_Loading2.mp4` (Git blob `5d1e9637...`, 6,773,125 bytes); D4 branch references that very blob at Android-compliant lowercase resource path `res/raw/cartdeck_signature_startup.mp4`. No duplicate upload or re-encoding.
+- Cold startup video centres and aspect-preserving crops into the full display; handheld and TV share playback. Muted; skip/back and decoder error exits; maximum 12.5-second safeguard; only cold entry.
+- C-slot launcher icon retains approved mark geometry; new colours apply globally to app icon, brand highlights and TV banner. Signature remains additive independent custom appearance.
+- Confirm video first-frame and centre-C framing on physical phone/tablet/TV, launcher mask/safe zone and monochrome, existing themes, navigation and gameplay/resume before merge.

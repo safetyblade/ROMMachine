@@ -162,7 +162,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
             LaunchedEffect(Unit) {
                 if (showingLaunchBrand.value) {
-                    delay(650)
+                    // The video handles normal completion; cap startup on decoder failure.
+                    delay(12_500)
                     showingLaunchBrand.value = false
                 }
             }
@@ -170,7 +171,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             Box(modifier = Modifier.fillMaxSize()) {
                 MainScreen(navController)
                 if (showingLaunchBrand.value) {
-                    CartdeckLaunchSignature()
+                    CartdeckLaunchSignature(onFinished = { showingLaunchBrand.value = false })
                 }
             }
         }
