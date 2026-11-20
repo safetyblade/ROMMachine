@@ -676,9 +676,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             // With a physical pad, take all landscape space rather than
             // reserving the old left/right touchscreen side containers.
+            val gripArcLandscape =
+                isLandscape && hardwareBorder && touchControlsVisibleState.value &&
+                    currentControllerConfig != null &&
+                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                    maxWidth >= 680.dp && maxHeight >= 320.dp
             val dedicatedHardwareLayout =
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
-                    currentControllerConfig != null && effectiveArcMode == ArcControlMode.STANDARD
+                    currentControllerConfig != null &&
+                    (effectiveArcMode == ArcControlMode.STANDARD || gripArcLandscape)
             val useFullLandscapeViewport =
                 !dedicatedHardwareLayout &&
                     (fullscreenWithGamepad || (currentControllerConfig?.allowTouchOverlay ?: true))
@@ -691,6 +697,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitMode,
                         portraitApertureRatio = portraitApertureRatio,
                         hardwareLandscape = dedicatedHardwareLayout,
+                        gripArcLandscape = gripArcLandscape,
                         availableWidth = maxWidth,
                         availableHeight = maxHeight,
                         portraitBottomInset =

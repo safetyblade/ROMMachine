@@ -115,6 +115,7 @@ object GameScreenLayout {
         portraitBottomInset: Dp = 0.dp,
         portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
         hardwareLandscape: Boolean = false,
+        gripArcLandscape: Boolean = false,
         availableWidth: Dp = 852.dp,
         availableHeight: Dp = 393.dp,
     ): ConstraintSet {
@@ -131,6 +132,7 @@ object GameScreenLayout {
             else ->
                 buildConstraintSetLandscapeNoOverlay(
                     hardwareLandscape,
+                    gripArcLandscape,
                     availableWidth,
                     availableHeight,
                 )
@@ -257,6 +259,7 @@ object GameScreenLayout {
 
     private fun buildConstraintSetLandscapeNoOverlay(
         hardwareLandscape: Boolean,
+        gripArcLandscape: Boolean,
         availableWidth: Dp,
         availableHeight: Dp,
     ): ConstraintSet {
@@ -276,7 +279,7 @@ object GameScreenLayout {
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = Dimension.wrapContent // Takes as much space as needed
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
@@ -297,7 +300,7 @@ object GameScreenLayout {
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = Dimension.wrapContent // Takes as much space as needed
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
