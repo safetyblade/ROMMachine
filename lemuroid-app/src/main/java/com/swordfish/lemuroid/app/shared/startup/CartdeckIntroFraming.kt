@@ -27,14 +27,31 @@ internal data class CartdeckIntroFraming(
                 "portrait"
             }
 
+        /**
+         * On portrait phones the approved landscape clip should end with a large centred mark,
+         * not a tiny letterbox. A measured 1.6x Fit zoom keeps the whole CARTDECK wordmark
+         * within the phone viewport; avoid full-screen Fill, which cuts off its outer letters.
+         * Tablets, TV and landscape retain their previous framing.
+         */
+        fun defaultFor(context: Context): CartdeckIntroFraming {
+            val portraitPhone =
+                orientation(context) == "portrait" &&
+                    context.resources.configuration.smallestScreenWidthDp < 600
+            return CartdeckIntroFraming(
+                fit = orientation(context) == "portrait",
+                zoom = if (portraitPhone) 1.6f else 1f,
+            )
+        }
+
         fun load(context: Context): CartdeckIntroFraming {
             val mode = orientation(context)
+            val fallback = defaultFor(context)
             val settings = context.getSharedPreferences(SETTINGS, Context.MODE_PRIVATE)
             return CartdeckIntroFraming(
-                fit = settings.getBoolean("fit_$mode", mode == "portrait"),
-                zoom = settings.getFloat("zoom_$mode", 1f),
-                offsetX = settings.getFloat("x_$mode", 0f),
-                offsetY = settings.getFloat("y_$mode", 0f),
+                fit = settings.getBoolean("fit_$mode", fallback.fit),
+                zoom = settings.getFloat("zoom_$mode", fallback.zoom),
+                offsetX = settings.getFloat("x_$mode", fallback.offsetX),
+                offsetY = settings.getFloat("y_$mode", fallback.offsetY),
             ).constrained()
         }
 
