@@ -24,8 +24,10 @@ import androidx.documentfile.provider.DocumentFile
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.PushbackInputStream
+import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.zip.CRC32
 import java.util.zip.CheckedInputStream
@@ -48,11 +50,14 @@ fun InputStream.calculateCrc32(): String =
     }
 
 fun File.calculateMd5(): String {
-    val bytes =
-        MessageDigest
-            .getInstance("MD5")
-            .digest(this.readBytes())
-    return bytes.toHexString()
+    val digest = MessageDigest.getInstance("MD5")
+    DigestInputStream(this.inputStream(), digest).use { stream ->
+        val buffer = ByteArray(CRC32_BYTE_ARRAY_SIZE)
+        while (stream.read(buffer) != -1) {
+            // Digest updates as the stream is read; no whole-file allocation.
+        }
+    }
+    return digest.digest().toHexString()
 }
 
 fun InputStream.writeToFile(file: File) {
@@ -69,7 +74,7 @@ fun ZipInputStream.extractEntryToFile(
 ) {
     this.use { inputStream ->
         while (true) {
-            val entry = inputStream.nextEntry
+            val entry = inputStream.nextEntry ?: throw IOException("Entry \"$entryName\" not found in archive")
             if (entry.name == entryName) break
         }
         inputStream.writeToFile(gameFile)
