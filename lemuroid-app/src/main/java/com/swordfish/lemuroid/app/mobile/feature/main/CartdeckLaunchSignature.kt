@@ -105,7 +105,7 @@ internal fun CartdeckLaunchSignature(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.Center) {
-                    TextButton(onClick = { update(CartdeckIntroFraming()) }) { Text("Reset") }
+                    TextButton(onClick = { update(CartdeckIntroFraming.defaultFor(context)) }) { Text("Reset") }
                     TextButton(onClick = closeEditor) { Text("Save & play") }
                     TextButton(onClick = { currentFinish.value() }) { Text("Skip intro") }
                 }
