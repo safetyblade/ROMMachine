@@ -59,12 +59,13 @@ object GameScreenLayout {
         portraitBottomInset: Dp = 0.dp,
         portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
         hardwareLandscape: Boolean = false,
+        gripArcLandscape: Boolean = false,
     ): ConstraintSet {
         return when {
             !isLandscape ->
                 buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
             allowTouchOverlay -> buildConstraintSetLandscape()
-            else -> buildConstraintSetLandscapeNoOverlay(hardwareLandscape)
+            else -> buildConstraintSetLandscapeNoOverlay(hardwareLandscape, gripArcLandscape)
         }
     }
 
@@ -183,7 +184,10 @@ object GameScreenLayout {
         }
     }
 
-    private fun buildConstraintSetLandscapeNoOverlay(hardwareLandscape: Boolean): ConstraintSet {
+    private fun buildConstraintSetLandscapeNoOverlay(
+        hardwareLandscape: Boolean,
+        gripArcLandscape: Boolean,
+    ): ConstraintSet {
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -199,7 +203,7 @@ object GameScreenLayout {
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = Dimension.wrapContent // Takes as much space as needed
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
@@ -220,7 +224,7 @@ object GameScreenLayout {
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = Dimension.wrapContent // Takes as much space as needed
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 

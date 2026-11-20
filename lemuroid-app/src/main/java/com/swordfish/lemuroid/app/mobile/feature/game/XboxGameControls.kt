@@ -199,8 +199,13 @@ fun XboxGameControls(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,
             ) {
+                val gripArcLandscape =
+                    landscape && hardwareBorder && !physicalControllerConnected && !isTv &&
+                        arc?.mode == ArcControlMode.STANDARD_GRIPARC &&
+                        maxWidth >= 680.dp && maxHeight >= 320.dp
                 val dedicatedHardwareLayout =
-                    landscape && hardwareBorder && (arc == null || arc.mode == ArcControlMode.STANDARD)
+                    landscape && hardwareBorder &&
+                        (arc == null || arc.mode == ArcControlMode.STANDARD || gripArcLandscape)
                 ConstraintLayout(
                     modifier = Modifier.fillMaxSize(),
                     constraintSet =
@@ -209,6 +214,7 @@ fun XboxGameControls(
                             !dedicatedHardwareLayout,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
                             hardwareLandscape = dedicatedHardwareLayout,
+                            gripArcLandscape = gripArcLandscape,
                             portraitApertureRatio =
                                 if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),

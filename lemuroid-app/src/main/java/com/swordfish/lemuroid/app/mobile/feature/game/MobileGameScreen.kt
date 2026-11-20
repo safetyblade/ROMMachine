@@ -484,21 +484,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             } else {
                                 nativeProfileValidated = true
                                 combinedPlacement =
-                                    if (!isLandscape) {
-                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
-                                            GripArcCombinedLayout.resolve(
-                                                gripManifest, nativeInventory, observedIds,
-                                                measured, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
-                                        } else {
-                                            GripArcCombinedLayout.resolveDockFirst(
-                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
-                                        }
+                                    if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                        GripArcCombinedLayout.resolve(
+                                            gripManifest, nativeInventory, observedIds,
+                                            measured, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        )
                                     } else {
-                                        null
+                                        GripArcCombinedLayout.resolveDockFirst(
+                                            gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        )
                                     }
                                 combinedPlacement?.let { GripArcFit.Fits(it.dock) }
                                     ?: GripArcFit.Unavailable(
@@ -506,7 +502,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                             "including its default position. " +
                                             "Standard controls are available for this session; " +
                                             "GripArc settings are preserved. " +
-                                            "Use portrait orientation or a larger display.",
+                                            "Try a larger display or change the control layout.",
                                     )
                             }
                         } else if (occupied.any { !it.inside(safeBounds) || it.intersects(viewportBounds.inset(4f)) }) {
@@ -676,9 +672,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             // With a physical pad, take all landscape space rather than
             // reserving the old left/right touchscreen side containers.
+            val gripArcLandscape =
+                isLandscape && hardwareBorder && touchControlsVisibleState.value &&
+                    currentControllerConfig != null &&
+                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                    maxWidth >= 680.dp && maxHeight >= 320.dp
             val dedicatedHardwareLayout =
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
-                    currentControllerConfig != null && effectiveArcMode == ArcControlMode.STANDARD
+                    currentControllerConfig != null &&
+                    (effectiveArcMode == ArcControlMode.STANDARD || gripArcLandscape)
             val useFullLandscapeViewport =
                 !dedicatedHardwareLayout &&
                     (fullscreenWithGamepad || (currentControllerConfig?.allowTouchOverlay ?: true))
@@ -691,6 +693,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitMode,
                         portraitApertureRatio = portraitApertureRatio,
                         hardwareLandscape = dedicatedHardwareLayout,
+                        gripArcLandscape = gripArcLandscape,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,

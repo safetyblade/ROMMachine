@@ -363,7 +363,7 @@ internal fun CartdeckConsoleShell(
                 } else {
                     emptyList()
                 }
-            if (!minimal) {
+            if (!minimal && !isLandscape) {
                 CartdeckHardwareGeometry.seamSegments(
                     left = left,
                     right = size.width - left,

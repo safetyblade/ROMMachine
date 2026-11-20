@@ -145,7 +145,7 @@ class GripArcProfileStore(context: Context) {
             )
         val assigned = preferred.filter { it in possible }.map { listOf(it) }
         val mappings = assigned + List(4 - assigned.size) { emptyList() }
-        return GripArcProfile(mappings = mappings)
+        return GripArcProfile(count = 4, mappings = mappings)
     }
 
     fun read(game: Game): GripArcProfile {
