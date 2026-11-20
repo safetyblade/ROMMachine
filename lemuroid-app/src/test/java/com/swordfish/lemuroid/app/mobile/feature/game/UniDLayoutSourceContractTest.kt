@@ -20,7 +20,10 @@ class UniDLayoutSourceContractTest {
         assertTrue(common.contains("Dimension.value(180.dp)"))
         for (name in listOf("MobileGameScreen.kt", "XboxGameControls.kt")) {
             val host = source(name)
-            assertTrue("$name must reserve the same GripArc side deck", host.contains("gripArcLandscape = gripArcLandscape"))
+            assertTrue(
+                "$name must reserve the same GripArc side deck",
+                host.contains("gripArcLandscape = gripArcLandscape"),
+            )
         }
     }
 

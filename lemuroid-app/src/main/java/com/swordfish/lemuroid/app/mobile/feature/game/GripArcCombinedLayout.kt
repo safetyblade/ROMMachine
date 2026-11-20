@@ -80,7 +80,8 @@ internal object GripArcCombinedLayout {
             // Preserve the selected native constellation; no replacement shoulder/face grid.
             // Preserve each native hand constellation. Move the group modestly inward
             // to nest the L around it; never send independent controls to empty corners.
-            for (up in listOf(0f, 8f, 16f, 24f, 32f, 48f)) for (inward in listOf(8f, 16f, 24f, 32f, 40f, 48f, 56f, 64f)) {
+            val inwardOptions = listOf(8f, 16f, 24f, 32f, 40f, 48f, 56f, 64f)
+            for (up in listOf(0f, 8f, 16f, 24f, 32f, 48f)) for (inward in inwardOptions) {
                 val controls = linkedMapOf<String, PivotArcBounds>()
                 val visuals = linkedMapOf<String, PivotArcSize>()
                 native.controls.forEach { spec ->
