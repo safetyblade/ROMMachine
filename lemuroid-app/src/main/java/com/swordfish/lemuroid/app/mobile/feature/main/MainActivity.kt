@@ -159,10 +159,11 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             // Only a new cold entry shows the launch mark; do not flash it again
             // after activity recreation, rotation or restoring a saved screen.
             val showingLaunchBrand = remember { mutableStateOf(savedInstanceState == null) }
+            val adjustingLaunchFrame = remember { mutableStateOf(false) }
 
-            LaunchedEffect(Unit) {
-                if (showingLaunchBrand.value) {
-                    // The video handles normal completion; cap startup on decoder failure.
+            LaunchedEffect(adjustingLaunchFrame.value) {
+                if (showingLaunchBrand.value && !adjustingLaunchFrame.value) {
+                    // Pause the startup safety timer during video framing adjustment.
                     delay(12_500)
                     showingLaunchBrand.value = false
                 }
@@ -171,7 +172,10 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             Box(modifier = Modifier.fillMaxSize()) {
                 MainScreen(navController)
                 if (showingLaunchBrand.value) {
-                    CartdeckLaunchSignature(onFinished = { showingLaunchBrand.value = false })
+                    CartdeckLaunchSignature(
+                        onFinished = { showingLaunchBrand.value = false },
+                        onAdjustingChanged = { adjustingLaunchFrame.value = it },
+                    )
                 }
             }
         }
