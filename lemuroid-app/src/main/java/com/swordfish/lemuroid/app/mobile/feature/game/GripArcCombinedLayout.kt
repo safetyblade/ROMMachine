@@ -421,7 +421,12 @@ internal object GripArcCombinedLayout {
                         }
                 if (completeAndSafe) {
                     return GripArcCombinedPlacement(
-                        dock, controls, visuals, seats, native, observedInputIds.toSet(),
+                        dock,
+                        controls,
+                        visuals,
+                        seats,
+                        native,
+                        observedInputIds.toSet(),
                     ).takeIf { it.complete }
                 }
             }
