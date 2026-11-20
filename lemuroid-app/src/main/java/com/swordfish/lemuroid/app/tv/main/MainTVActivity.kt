@@ -21,6 +21,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupPlayer
 import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 import com.swordfish.lemuroid.app.tv.channel.ChannelUpdateWork
 import com.swordfish.lemuroid.app.tv.favorites.TVFavoritesFragment
@@ -82,7 +83,7 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
                 if (!finished) {
                     finished = true
                     host.post {
-                        (host.findViewWithTag<View>("cartdeck-signature-startup") as? android.widget.VideoView)?.let {
+                        host.findViewWithTag<CartdeckStartupPlayer>("cartdeck-signature-startup")?.let {
                             it.stopPlayback()
                             host.removeView(it)
                         }
