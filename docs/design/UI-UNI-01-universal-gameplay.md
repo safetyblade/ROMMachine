@@ -30,3 +30,17 @@ Permanent accent inlays are separate from emitted light. Reuse palette roles for
 ## C14 / C15 / D2 owner-approved follow-up
 
 Landscapes use paired geometric engraving bands and independent artwork seats. If clearance fails, omit the paired band rather than scatter tiles. Preserve the same appearance roles and keep controller surfaces clean. Lighting behaviour and finish are independent: Solid / Glow / Neon, with Glow the legacy default and intensity/colour/zones retained. Standard landscape controls use session-only radial scale capping and shared housing clearances, preserving native inputs, rotation and saved settings. This is a candidate fit, not device-verified. GripArc close-fit solver and other adaptive configurations remain D3/D4 work.
+
+## UNI-D3 — Adaptive controller fit (implementation candidate)
+
+Owner accepts existing portrait and landscape hardware locations; lower parallel purple trim overlap is cosmetic and must not block UNI-D. Suppress the redundant landscape lower seam while retaining paired artwork bands, permanent material inlays and the existing bezel.
+
+Standard + GripArc must be eligible on landscape as well as portrait when touch controls and hardware surround are enabled. Reserve side-deck widths before fitting video; never crop/stretch actual emulator pixels or steal input events. Use a shared finite placement solver with complete native inventory, G1–G4 mapped independently, preserved profile counts and user mappings. New unconfigured profiles expose four slots by default; existing saved counts survive unchanged. On narrow viewports or unsafe fits, retain standard controls and explain the constraint. Do not silently present an overlapping layout. The first implementation extends combined inventory placement with measured landscape side-space and post-fit overlap checks. More compact close-to-control grouping requires owner/device acceptance, not an assumed pass.
+
+## UNI-D4 / D5 — next increments
+
+D4: optimise portrait whitespace and responsive landscape, tablet and TV allocation without moving accepted chassis hardware, losing dual-screen composition, or changing physical controller/Maximised/Off semantics. D5: validate every supported inventory, four G mappings, mirrored left/right, PivotArc combined, screen exclusion, portrait/landscape, small handsets, tablet/TV, profiles and saves. Hold final acceptance until physical input testing.
+
+## SIGNATURE — Cassia approval located
+
+The controlling source is GC-01 issue #262, updated 20 November 2026. Fixed application brand: midnight #13131A, neon pink #FF4FA3, electric cyan #19F5DA. SIGNATURE is also an additional selectable deck appearance; retain Original and custom appearances. Approved for bounded additive UNI follow-up after the current GripArc checkpoint, not implemented in this D3 candidate. Launcher icon, startup/loading and universal tokens remain in scope; do not change logo geometry.

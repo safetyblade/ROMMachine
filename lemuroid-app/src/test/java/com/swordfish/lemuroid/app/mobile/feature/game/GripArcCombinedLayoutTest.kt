@@ -181,6 +181,36 @@ class GripArcCombinedLayoutTest {
         )
     }
 
+    @Test fun landscapeCombinedControlsCannotCoverGameplayOrLoseNativeInputs() {
+        val safe = PivotArcBounds(8f, 8f, 1192f, 592f)
+        val viewport = PivotArcBounds(300f, 20f, 900f, 580f)
+        for (controller in controllers + TouchControllerID.XBOX360) {
+            val native = NativeControlInventory.forController(controller)!!
+            for (side in GripArcSide.values()) {
+                val placement =
+                    GripArcCombinedLayout.resolveDockFirst(
+                        manifest, native, safe, viewport, side, 0f, 0f,
+                    ) ?: continue
+                assertTrue(placement.complete)
+                assertEquals((1..4).toSet(), placement.dock.targets.keys)
+                val controls = placement.controls.values.toList()
+                val dock =
+                    GripArcPositionSolver.housingFootprint(
+                        placement.dock.housing, placement.dock.scale, side,
+                    ) + placement.dock.targets.values
+                controls.forEach { control ->
+                    assertTrue(control.inside(safe))
+                    assertFalse(control.intersects(viewport))
+                    assertTrue(dock.none { control.intersects(it) })
+                }
+                placement.seats.values.forEach { seat ->
+                    assertTrue(seat.inside(safe))
+                    assertFalse(seat.intersects(viewport))
+                }
+            }
+        }
+    }
+
     @Test fun measuredNarrowAndShortDecksCanNeverReturnClippedPartialInventory() {
         for (device in ControlDeckDeviceFixture.representative) for (controller in controllers) {
             for (side in GripArcSide.values()) {
