@@ -125,12 +125,8 @@ class GripArcCombinedLayoutTest {
                         manifest, native, native.inputIds, oversized,
                         device.safe, device.viewport, side, 0f, 0f,
                     )
-                if (p == null) {
-                    // Explicit unavailable is safer than a completely rearranged controller.
-                    assertTrue(device.safe.height < 650f)
-                    continue
-                }
-                assertTrue(p.complete)
+                assertNotNull("responsive $controller $side $device", p)
+                assertTrue(p!!.complete)
                 val reserved =
                     GripArcPositionSolver.housingFootprint(p.dock.housing, p.dock.scale, side) +
                         p.dock.targets.values
@@ -192,16 +188,10 @@ class GripArcCombinedLayoutTest {
                         0f,
                         0f,
                     )
-                if (p != null) {
-                    assertTrue("$controller $side $device", p.complete)
-                    assertEquals(native.controls.map { it.key }.toSet(), p.controls.keys)
-                    assertTrue(p.controls.values.none { it.intersects(device.viewport) })
-                } else {
-                    // A cramped device must not scatter or silently omit controls.
-                    val baseline =
-                        GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)
-                    assertTrue(baseline == null || device.safe.height < 650f)
-                }
+                assertNotNull("initial $controller $side $device", p)
+                assertTrue(p!!.complete)
+                assertEquals(native.controls.map { it.key }.toSet(), p.controls.keys)
+                assertTrue(p.controls.values.none { it.intersects(device.viewport) })
             }
         }
     }
