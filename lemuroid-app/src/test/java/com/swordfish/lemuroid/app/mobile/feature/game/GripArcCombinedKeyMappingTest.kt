@@ -26,6 +26,16 @@ class GripArcCombinedKeyMappingTest {
         assertEquals(1, controls.getValue("AnalogL").motionSource)
     }
 
+    @Test fun xboxProgrammableCatalogueMatchesNativeWhiteBlackAndTriggers() {
+        val xbox = GripArcInputCatalog.forSystem(com.swordfish.lemuroid.lib.library.SystemID.XBOX)
+        val native = NativeControlInventory.forController(TouchControllerID.XBOX)!!
+        val available = native.inputIds
+        assertEquals(10, xbox.size)
+        assertTrue(xbox.map { "key:" + it.code }.all { it in available })
+        assertTrue(xbox.any { it.label == "White" && it.code == KeyEvent.KEYCODE_BUTTON_L1 })
+        assertTrue(xbox.any { it.label == "Black" && it.code == KeyEvent.KEYCODE_BUTTON_R1 })
+    }
+
     @Test fun selectedControllerVariantDeterminesCompleteInventory() {
         val digital = NativeControlInventory.forController(TouchControllerID.PSX)!!.controls.associateBy { it.key }
         val dual =
