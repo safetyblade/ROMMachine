@@ -167,7 +167,10 @@ class GripArcCombinedLayoutTest {
             val face = positions.values.first { it.centerX > device.safe.centerX && it.width > 80f }
             assertTrue("$controller directional controls left", dpad.centerX < face.centerX)
             for (spec in native.controls) {
-                assertTrue("$controller " + spec.key + " initial geometry", positions.getValue(spec.seat).isFiniteArea())
+                assertTrue(
+                    "$controller " + spec.key + " initial geometry",
+                    positions.getValue(spec.seat).isFiniteArea(),
+                )
             }
         }
     }
