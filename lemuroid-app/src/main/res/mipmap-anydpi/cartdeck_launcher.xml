@@ -3,7 +3,7 @@
     android:viewportWidth="128" android:viewportHeight="128">
     <!-- Android pre-26 launcher fallback: same approved mark, opaque SIGNATURE brand. -->
     <path android:fillColor="#13131A" android:pathData="M0,0 H128 V128 H0 Z"/>
-    <group android:translateX="16">
+    <group android:translateX="11">
     <path android:fillColor="#00000000" android:strokeColor="#FF4FA3"
         android:strokeWidth="12" android:strokeLineCap="square"
         android:pathData="M78,16 H44 Q18,16 18,43 V75 Q18,102 44,102 H78"/>
