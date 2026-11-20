@@ -267,7 +267,8 @@ internal object GripArcCombinedLayout {
                     seat == "analog-right" -> box(right - 18f, 0.76f, 70f)
                     seat.startsWith("shoulder-L") || seat == "aux-L" ->
                         box(safe.left + 30f + if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
-                    seat.startsWith("shoulder-R") || seat == "aux-Z" ->
+                    seat == "aux-Z" -> box(safe.right - 98f, 0.10f, 48f)
+                    seat.startsWith("shoulder-R") ->
                         box(safe.right - 30f - if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
                     seat == "select" -> box(middle - 50f, 0.25f, 48f)
                     seat == "start" -> box(middle + 50f, 0.25f, 48f)

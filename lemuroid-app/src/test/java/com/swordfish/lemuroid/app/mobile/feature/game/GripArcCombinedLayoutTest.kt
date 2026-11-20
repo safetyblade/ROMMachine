@@ -172,6 +172,9 @@ class GripArcCombinedLayoutTest {
                     positions.getValue(spec.seat).isFiniteArea(),
                 )
             }
+            if (controller == TouchControllerID.GAMECUBE) {
+                assertFalse(positions.getValue("shoulder-R").intersects(positions.getValue("aux-Z")))
+            }
         }
     }
 
