@@ -30,7 +30,7 @@ internal fun CartdeckLaunchSignature() {
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(Color(0xFF303B49)),
+                .background(Color(0xFF13131A)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -46,13 +46,13 @@ internal fun CartdeckLaunchSignature() {
                 text = stringResource(R.string.cartdeck_launch_title),
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFEDF6F2),
+                color = Color(0xFFF8F1F7),
                 letterSpacing = 2.sp,
             )
             Text(
                 text = stringResource(R.string.cartdeck_launch_byline),
                 fontSize = 13.sp,
-                color = Color(0xFF4ED8C4),
+                color = Color(0xFF19F5DA),
             )
         }
     }

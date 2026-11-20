@@ -15,6 +15,7 @@ data class CartdeckCuratedDesign(
 )
 
 object CartdeckCuratedDesigns {
+    const val SIGNATURE_ID = "signature-005"
     const val LIGHT_ID = "light-004"
     const val STEALTH_ACID_ID = "stealth-acid-001"
     const val ARCANA_GILDED_ID = "arcana-gilded-002"
@@ -22,6 +23,38 @@ object CartdeckCuratedDesigns {
 
     val designs: List<CartdeckCuratedDesign> =
         listOf(
+            CartdeckCuratedDesign(
+                id = SIGNATURE_ID,
+                title = "Signature",
+                description = "Midnight enamel, neon pink hardware and electric cyan highlights",
+                baseEdition = "original",
+                patternId = CartdeckSurfaceDesign.PATTERN_NONE,
+                stampId = CartdeckSurfaceDesign.STAMP_NONE,
+                colours =
+                    mapOf(
+                        "chassis" to 0xFF13131AL,
+                        "secondary" to 0xFF282132L,
+                        "bezel" to 0xFF0A0A0FL,
+                        "glass" to 0xFF07080CL,
+                        "button" to 0xFF3B2448L,
+                        "accent" to 0xFFFF4FA3L,
+                        "onChassis" to 0xFFF8F1F7L,
+                        "onButton" to 0xFFFFFFFFL,
+                        "focus" to 0xFF19F5DAL,
+                        "roomBackdrop" to 0xFF0C0C12L,
+                        "shelfBackboard" to 0xFF17131FL,
+                        "shelfDeck" to 0xFF282132L,
+                        "shelfLip" to 0xFFFF4FA3L,
+                        "shelfGroove" to 0xFF090A0FL,
+                        "edgeHighlight" to 0xFF19F5DAL,
+                        "shelfShadow" to 0xFF06060AL,
+                        "sectionDivider" to 0xFF413049L,
+                        "vacantCell" to 0xFF211B2AL,
+                        "sectionText" to 0xFFF8F1F7L,
+                        "focusOutline" to 0xFF19F5DAL,
+                        "interactionAccent" to 0xFF19F5DAL,
+                    ),
+            ),
             CartdeckCuratedDesign(
                 id = LIGHT_ID,
                 title = "Light",
