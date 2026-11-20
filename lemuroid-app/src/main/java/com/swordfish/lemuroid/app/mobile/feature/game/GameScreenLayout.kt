@@ -28,6 +28,42 @@ internal fun landscapeHardwareInsets(
         else -> LandscapeHardwareInsets(42.dp, 16.dp, 16.dp, 8.dp)
     }
 
+internal data class PortraitHardwareInsets(
+    val top: Dp,
+    val side: Dp,
+    val controlGap: Dp,
+)
+
+/**
+ * Adaptive manufactured portrait glass: the accepted 393×852 handheld is unchanged.
+ * The emulator itself still owns true pixel aspect and screen/dual-screen coordinates.
+ */
+internal fun portraitHardwareInsets(
+    availableWidth: Dp,
+    availableHeight: Dp,
+    expanded: Boolean,
+): PortraitHardwareInsets =
+    when {
+        availableWidth < 360.dp || availableHeight < 700.dp ->
+            PortraitHardwareInsets(
+                if (expanded) 56.dp else 64.dp,
+                if (expanded) 10.dp else 14.dp,
+                12.dp,
+            )
+        availableWidth >= 600.dp && availableHeight >= 900.dp ->
+            PortraitHardwareInsets(
+                if (expanded) 92.dp else 104.dp,
+                if (expanded) 22.dp else 30.dp,
+                24.dp,
+            )
+        else ->
+            PortraitHardwareInsets(
+                if (expanded) 76.dp else 84.dp,
+                if (expanded) 14.dp else 22.dp,
+                16.dp,
+            )
+    }
+
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
     const val CONSTRAINTS_LEFT_CONTAINER = "leftContainer"
@@ -84,7 +120,13 @@ object GameScreenLayout {
     ): ConstraintSet {
         return when {
             !isLandscape ->
-                buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
+                buildConstraintSetPortrait(
+                    portraitMode,
+                    portraitBottomInset,
+                    portraitApertureRatio,
+                    availableWidth,
+                    availableHeight,
+                )
             allowTouchOverlay -> buildConstraintSetLandscape()
             else ->
                 buildConstraintSetLandscapeNoOverlay(
@@ -99,7 +141,11 @@ object GameScreenLayout {
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         bottomInset: Dp,
         apertureRatio: String,
+        availableWidth: Dp,
+        availableHeight: Dp,
     ): ConstraintSet {
+        val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
+        val insets = portraitHardwareInsets(availableWidth, availableHeight, expanded)
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -115,13 +161,12 @@ object GameScreenLayout {
                     // Portrait glass follows a known system's native frame
                     // when measured vertical space allows. The core retains
                     // its own true pixel aspect and letterboxing.
-                    val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
                     height = Dimension.ratio(apertureRatio)
-                    top.linkTo(parent.top, margin = if (expanded) 76.dp else 84.dp)
-                    bottom.linkTo(leftPad.top, margin = 16.dp)
+                    top.linkTo(parent.top, margin = insets.top)
+                    bottom.linkTo(leftPad.top, margin = insets.controlGap)
                     verticalBias = 0f
-                    absoluteLeft.linkTo(parent.absoluteLeft, margin = if (expanded) 14.dp else 22.dp)
-                    absoluteRight.linkTo(parent.absoluteRight, margin = if (expanded) 14.dp else 22.dp)
+                    absoluteLeft.linkTo(parent.absoluteLeft, margin = insets.side)
+                    absoluteRight.linkTo(parent.absoluteRight, margin = insets.side)
                 } else {
                     // The tested v2101 DS layout stays flexible, including
                     // its original stylus/touch coordinate mapping.
