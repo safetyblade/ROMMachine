@@ -322,9 +322,7 @@ internal object GripArcCombinedLayout {
                 )?.placement
             } ?: return null
         val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
-        val sideDeck =
-            viewport.left - safe.left >= 140f && safe.right - viewport.right >= 140f
-        val top = if (sideDeck) safe.top + 4f else maxOf(safe.top, viewport.bottom + 8f)
+        val top = maxOf(safe.top, viewport.bottom + 8f)
         val groups =
             native.controls.groupBy { it.seat }.values.sortedBy { specs ->
                 when (specs.first().kind) {
@@ -349,8 +347,8 @@ internal object GripArcCombinedLayout {
                                 NativeControlKind.ANALOG -> maxOf(48f, 64f * artScale)
                                 else -> 48f
                             }
-                        val x = if (spec.kind == NativeControlKind.FACE) spec.faceX * 52f * artScale else 0f
-                        val y = if (spec.kind == NativeControlKind.FACE) spec.faceY * 52f * artScale else 0f
+                        val x = if (spec.kind == NativeControlKind.FACE) spec.faceX * 52f else 0f
+                        val y = if (spec.kind == NativeControlKind.FACE) spec.faceY * 52f else 0f
                         spec.key to PivotArcBounds(x - size / 2, y - size / 2, x + size / 2, y + size / 2)
                     }
                 val hull =
@@ -363,12 +361,8 @@ internal object GripArcCombinedLayout {
                 val candidates = mutableListOf<Pair<Float, Float>>()
                 var y = top + 4f
                 while (y + hull.height + 4f <= safe.bottom) {
-                    val minX =
-                        if (sideDeck && !first.leftHand) viewport.right + 8f else safe.left + 4f
-                    val maxX =
-                        if (sideDeck && first.leftHand) viewport.left - 8f else safe.right - 4f
-                    var x = minX
-                    while (x + hull.width <= maxX) {
+                    var x = safe.left + 4f
+                    while (x + hull.width + 4f <= safe.right) {
                         candidates += x to y
                         x += 8f
                     }
@@ -391,8 +385,7 @@ internal object GripArcCombinedLayout {
                         val correctHand =
                             first.kind == NativeControlKind.UTILITY ||
                                 (if (first.leftHand) seat.centerX <= safe.centerX else seat.centerX >= safe.centerX)
-                        correctHand && !seat.inset(4f).intersects(viewport.inset(-4f)) &&
-                            (reserved + seats.values).none { seat.inset(4f).intersects(it.inset(3f)) }
+                        correctHand && (reserved + seats.values).none { seat.inset(4f).intersects(it.inset(3f)) }
                     } ?: break
                 specs.forEach { spec ->
                     val r = parts.getValue(spec.key)
@@ -401,7 +394,7 @@ internal object GripArcCombinedLayout {
                             r.left - hull.left + origin.first, r.top - hull.top + origin.second,
                             r.right - hull.left + origin.first, r.bottom - hull.top + origin.second,
                         )
-                    visuals[spec.key] = PivotArcSize(r.width, r.height)
+                    visuals[spec.key] = PivotArcSize(r.width * artScale, r.height * artScale)
                 }
                 seats[first.seat] =
                     PivotArcBounds(
@@ -409,26 +402,8 @@ internal object GripArcCombinedLayout {
                     )
             }
             if (controls.size == native.controls.size) {
-                val bounds = controls.values.toList()
-                val completeAndSafe =
-                    bounds.all { it.inside(safe) && !it.intersects(viewport) } &&
-                        bounds.indices.all { i ->
-                            (i + 1 until bounds.size).none { j -> bounds[i].intersects(bounds[j]) }
-                        } &&
-                        seats.values.all { seat ->
-                            seat.inside(safe) && !seat.intersects(viewport) &&
-                                reserved.none { it.intersects(seat.inset(3f)) }
-                        }
-                if (completeAndSafe) {
-                    return GripArcCombinedPlacement(
-                        dock,
-                        controls,
-                        visuals,
-                        seats,
-                        native,
-                        observedInputIds.toSet(),
-                    ).takeIf { it.complete }
-                }
+                return GripArcCombinedPlacement(dock, controls, visuals, seats, native, observedInputIds.toSet())
+                    .takeIf { it.complete }
             }
         }
         return null
