@@ -243,17 +243,11 @@ internal object GripArcCombinedLayout {
         val middle = safe.centerX
         val gameCube = native.controller == TouchControllerID.GAMECUBE
 
-        fun box(
-            x: Float,
-            fraction: Float,
-            diameter: Float,
-        ): PivotArcBounds {
+        fun box(x: Float, fraction: Float, diameter: Float): PivotArcBounds {
             val y = deckTop + deckHeight * fraction
             return PivotArcBounds(
-                x - diameter / 2f,
-                y - diameter / 2f,
-                x + diameter / 2f,
-                y + diameter / 2f,
+                x - diameter / 2f, y - diameter / 2f,
+                x + diameter / 2f, y + diameter / 2f,
             )
         }
 
@@ -277,4 +271,6 @@ internal object GripArcCombinedLayout {
             seat to rect
         }
     }
+
+
 }

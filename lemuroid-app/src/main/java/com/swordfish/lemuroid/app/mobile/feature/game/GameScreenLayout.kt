@@ -26,6 +26,7 @@ internal fun landscapeHardwareInsets(
         availableWidth > 1080.dp && availableHeight > 520.dp ->
             LandscapeHardwareInsets(54.dp, 20.dp, 20.dp, 10.dp)
         else -> LandscapeHardwareInsets(42.dp, 16.dp, 16.dp, 8.dp)
+    }
 
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
