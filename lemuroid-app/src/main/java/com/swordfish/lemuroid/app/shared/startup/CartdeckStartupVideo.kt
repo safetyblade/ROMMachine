@@ -27,8 +27,7 @@ internal object CartdeckStartupVideo {
     fun create(
         context: Context,
         onFinished: () -> Unit,
-    ): CartdeckStartupPlayer =
-        CartdeckStartupPlayer(context, onFinished, FIRST_FRAME_TIMEOUT_MS)
+    ): CartdeckStartupPlayer = CartdeckStartupPlayer(context, onFinished, FIRST_FRAME_TIMEOUT_MS)
 }
 
 internal class CartdeckStartupPlayer(
