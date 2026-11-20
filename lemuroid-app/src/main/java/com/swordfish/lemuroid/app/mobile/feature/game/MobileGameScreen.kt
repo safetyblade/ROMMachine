@@ -691,6 +691,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitMode,
                         portraitApertureRatio = portraitApertureRatio,
                         hardwareLandscape = dedicatedHardwareLayout,
+                        availableWidth = maxWidth,
+                        availableHeight = maxHeight,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,

@@ -8,6 +8,25 @@ import androidx.constraintlayout.compose.Dimension
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
+internal data class LandscapeHardwareInsets(
+    val padTopBottom: Dp,
+    val sideInset: Dp,
+    val screenHorizontal: Dp,
+    val screenVertical: Dp,
+)
+
+/** Adapt decoration and control clearance to usable deck dimensions without moving individual buttons. */
+internal fun landscapeHardwareInsets(
+    availableWidth: Dp,
+    availableHeight: Dp,
+): LandscapeHardwareInsets =
+    when {
+        availableWidth < 700.dp || availableHeight < 360.dp ->
+            LandscapeHardwareInsets(20.dp, 8.dp, 10.dp, 5.dp)
+        availableWidth > 1080.dp && availableHeight > 520.dp ->
+            LandscapeHardwareInsets(54.dp, 20.dp, 20.dp, 10.dp)
+        else -> LandscapeHardwareInsets(42.dp, 16.dp, 16.dp, 8.dp)
+
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
     const val CONSTRAINTS_LEFT_CONTAINER = "leftContainer"
@@ -59,12 +78,18 @@ object GameScreenLayout {
         portraitBottomInset: Dp = 0.dp,
         portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
         hardwareLandscape: Boolean = false,
+        availableWidth: Dp = 852.dp,
+        availableHeight: Dp = 393.dp,
     ): ConstraintSet {
         return when {
             !isLandscape ->
                 buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
             allowTouchOverlay -> buildConstraintSetLandscape()
-            else -> buildConstraintSetLandscapeNoOverlay(hardwareLandscape)
+            else -> buildConstraintSetLandscapeNoOverlay(
+                hardwareLandscape,
+                availableWidth,
+                availableHeight,
+            )
         }
     }
 
@@ -183,7 +208,12 @@ object GameScreenLayout {
         }
     }
 
-    private fun buildConstraintSetLandscapeNoOverlay(hardwareLandscape: Boolean): ConstraintSet {
+    private fun buildConstraintSetLandscapeNoOverlay(
+        hardwareLandscape: Boolean,
+        availableWidth: Dp,
+        availableHeight: Dp,
+    ): ConstraintSet {
+        val insets = landscapeHardwareInsets(availableWidth, availableHeight)
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -192,8 +222,8 @@ object GameScreenLayout {
             val leftContainer = createRefFor(CONSTRAINTS_LEFT_CONTAINER)
             val rightContainer = createRefFor(CONSTRAINTS_RIGHT_CONTAINER)
 
-            val padInset = if (hardwareLandscape) 42.dp else 0.dp
-            val sideInset = if (hardwareLandscape) 16.dp else 0.dp
+            val padInset = if (hardwareLandscape) insets.padTopBottom else 0.dp
+            val sideInset = if (hardwareLandscape) insets.sideInset else 0.dp
             constrain(leftPad) {
                 absoluteLeft.linkTo(parent.absoluteLeft, margin = sideInset)
                 top.linkTo(parent.top, margin = padInset)
@@ -206,8 +236,8 @@ object GameScreenLayout {
             constrain(gameView) {
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
-                val clearance = if (hardwareLandscape) 8.dp else 0.dp
-                val horizontalClearance = if (hardwareLandscape) 16.dp else 0.dp
+                val clearance = if (hardwareLandscape) insets.screenVertical else 0.dp
+                val horizontalClearance = if (hardwareLandscape) insets.screenHorizontal else 0.dp
                 absoluteLeft.linkTo(leftPad.absoluteRight, margin = horizontalClearance)
                 absoluteRight.linkTo(rightPad.absoluteLeft, margin = horizontalClearance)
                 top.linkTo(parent.top, margin = clearance)

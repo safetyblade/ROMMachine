@@ -209,6 +209,8 @@ fun XboxGameControls(
                             !dedicatedHardwareLayout,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
                             hardwareLandscape = dedicatedHardwareLayout,
+                            availableWidth = this@BoxWithConstraints.maxWidth,
+                            availableHeight = this@BoxWithConstraints.maxHeight,
                             portraitApertureRatio =
                                 if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),
