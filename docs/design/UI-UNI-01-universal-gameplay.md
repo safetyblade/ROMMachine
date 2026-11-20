@@ -30,3 +30,7 @@ Permanent accent inlays are separate from emitted light. Reuse palette roles for
 ## C14 / C15 / D2 owner-approved follow-up
 
 Landscapes use paired geometric engraving bands and independent artwork seats. If clearance fails, omit the paired band rather than scatter tiles. Preserve the same appearance roles and keep controller surfaces clean. Lighting behaviour and finish are independent: Solid / Glow / Neon, with Glow the legacy default and intensity/colour/zones retained. Standard landscape controls use session-only radial scale capping and shared housing clearances, preserving native inputs, rotation and saved settings. This is a candidate fit, not device-verified. GripArc close-fit solver and other adaptive configurations remain D3/D4 work.
+
+## 20 November 2026 — UNI-C owner acceptance / UNI-D handoff
+
+Owner accepts the landscape chassis and the overall landscape control positions. Minor overlap of the two lower purple seams is non-blocking; prevent double-paint of the old landscape deck seam. Begin UNI-D3 group-preserving close-fit GripArc, UNI-D4 adaptive viewport and UNI-D5 multi-console/device checks. Same four programmable G buttons and all native controls required; do not mark GripArc accepted on source verification alone. Cassia SIGNATURE is an additive brand/appearance workstream as recorded in ../design/UNI-SIGNATURE-01-BRIEF.md; no app-wide brand files have been changed here.

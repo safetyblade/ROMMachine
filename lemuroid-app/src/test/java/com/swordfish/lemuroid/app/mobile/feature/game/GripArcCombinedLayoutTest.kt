@@ -59,6 +59,22 @@ class GripArcCombinedLayoutTest {
         return result
     }
 
+    @Test fun closeFitPreservesControllerConstellationsAndMinimumTargets() {
+        val anchor = PivotArcBounds(20f, 200f, 120f, 300f)
+        val upper = PivotArcBounds(40f, 212f, 88f, 260f)
+        val lower = PivotArcBounds(40f, 264f, 88f, 312f)
+        val originalDx = lower.centerX - upper.centerX
+        val originalDy = lower.centerY - upper.centerY
+        val top = GripArcCombinedLayout.closeFit(upper, anchor, 0.90f, 8f, -16f)
+        val bottom = GripArcCombinedLayout.closeFit(lower, anchor, 0.90f, 8f, -16f)
+        assertEquals(originalDx * 0.90f, bottom.centerX - top.centerX, 0.001f)
+        assertEquals(originalDy * 0.90f, bottom.centerY - top.centerY, 0.001f)
+        assertTrue(top.width >= 48f && top.height >= 48f)
+        assertTrue(bottom.width >= 48f && bottom.height >= 48f)
+        assertTrue(kotlin.math.abs(top.centerY - upper.centerY) <= 24f)
+        assertTrue(kotlin.math.abs(bottom.centerY - lower.centerY) <= 24f)
+    }
+
     @Test fun everySelectedNativeInventorySurvivesResolutionOnBothSides() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         for (controller in controllers) for (side in GripArcSide.values()) {

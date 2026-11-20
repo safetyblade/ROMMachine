@@ -363,7 +363,9 @@ internal fun CartdeckConsoleShell(
                 } else {
                     emptyList()
                 }
-            if (!minimal) {
+            // Landscape engraving bands already supply the bottom inlay.
+            // Do not double-paint the old horizontal deck seam across their edges.
+            if (!minimal && !isLandscape) {
                 CartdeckHardwareGeometry.seamSegments(
                     left = left,
                     right = size.width - left,

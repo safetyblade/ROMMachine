@@ -19,6 +19,24 @@ internal data class GripArcCombinedPlacement(
 }
 
 internal object GripArcCombinedLayout {
+    // Measured Standard constellations take priority over dock-first free-space packing.
+    // Each entire hand group is translated together; console-specific identities stay fixed.
+    private val closeFitOffsets = listOf(0f, 8f, 16f, 24f)
+
+    internal fun closeFit(
+        control: PivotArcBounds,
+        anchor: PivotArcBounds,
+        scale: Float,
+        shiftX: Float,
+        shiftY: Float,
+    ): PivotArcBounds {
+        val x = anchor.centerX + (control.centerX - anchor.centerX) * scale + shiftX
+        val y = anchor.centerY + (control.centerY - anchor.centerY) * scale + shiftY
+        val width = maxOf(48.1f, control.width * scale)
+        val height = maxOf(48.1f, control.height * scale)
+        return PivotArcBounds(x - width / 2f, y - height / 2f, x + width / 2f, y + height / 2f)
+    }
+
     fun hasMeasurements(
         native: NativeControlInventory,
         measured: Map<String, PivotArcBounds>,
@@ -78,7 +96,7 @@ internal object GripArcCombinedLayout {
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
             val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
             // Preserve the selected native constellation; no replacement shoulder/face grid.
-            for (up in listOf(0f, 16f, 32f, 48f, 64f, 80f, 96f)) for (inward in listOf(10f, 16f, 24f)) {
+            for (up in closeFitOffsets) for (inward in closeFitOffsets) {
                 val controls = linkedMapOf<String, PivotArcBounds>()
                 val visuals = linkedMapOf<String, PivotArcSize>()
                 native.controls.forEach { spec ->
@@ -90,11 +108,7 @@ internal object GripArcCombinedLayout {
                         } else {
                             0f
                         }
-                    val x = anchor.centerX + (r.centerX - anchor.centerX) * 0.90f + shift
-                    val y = anchor.centerY + (r.centerY - anchor.centerY) * 0.90f - up
-                    val w = maxOf(48.1f, r.width * 0.90f)
-                    val h = maxOf(48.1f, r.height * 0.90f)
-                    controls[spec.key] = PivotArcBounds(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
+                    controls[spec.key] = closeFit(r, anchor, 0.90f, shift, -up)
                     visuals[spec.key] = PivotArcSize(r.width * 0.90f, r.height * 0.90f)
                 }
                 // Keep each native hand constellation intact when its painted edge needs a small safe-inset correction.
