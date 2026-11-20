@@ -20,8 +20,8 @@ import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
-import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 import com.swordfish.lemuroid.app.tv.channel.ChannelUpdateWork
 import com.swordfish.lemuroid.app.tv.favorites.TVFavoritesFragment
 import com.swordfish.lemuroid.app.tv.games.TVGamesFragment
@@ -38,9 +38,9 @@ import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import dagger.Provides
 import dagger.android.ContributesAndroidInjector
+import javax.inject.Inject
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import javax.inject.Inject
 
 @OptIn(DelicateCoroutinesApi::class)
 class MainTVActivity : BaseTVActivity(), BusyActivity {
