@@ -30,5 +30,8 @@ class CartdeckSignatureDesignTest {
         assertEquals(CartdeckCuratedDesigns.SIGNATURE_ID, selected.curatedDesignId)
         assertNotEquals(original.custom, selected.custom)
         assertEquals(0xFFFF4FA3L, selected.custom.getValue("accent"))
+        assertEquals(CartdeckLighting.FINISH_NEON, selected.lighting.finish)
+        assertEquals(CartdeckLighting.MODE_STATIC, selected.lighting.mode)
+        assertEquals(40, selected.lighting.intensity)
     }
 }

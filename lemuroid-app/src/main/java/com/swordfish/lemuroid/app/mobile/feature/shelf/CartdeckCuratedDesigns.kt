@@ -198,7 +198,16 @@ object CartdeckCuratedDesigns {
             patternId = design.patternId,
             stampId = design.stampId,
             decal = null,
-            lighting = CartdeckLighting(),
+            lighting =
+                if (design.id == SIGNATURE_ID) {
+                    CartdeckLighting(
+                        mode = CartdeckLighting.MODE_STATIC,
+                        finish = CartdeckLighting.FINISH_NEON,
+                        intensity = 40,
+                    )
+                } else {
+                    CartdeckLighting()
+                },
         )
     }
 }
