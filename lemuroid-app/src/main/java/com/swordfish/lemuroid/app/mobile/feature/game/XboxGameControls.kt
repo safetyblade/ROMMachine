@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
