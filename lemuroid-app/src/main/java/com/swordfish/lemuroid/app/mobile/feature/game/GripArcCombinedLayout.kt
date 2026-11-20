@@ -96,7 +96,14 @@ internal object GripArcCombinedLayout {
                     }
                 spec.key to base
             }
-        for ((dockX, dockY) in listOf(dx to dy, 0f to 0f).distinct()) {
+        // Move the accessory up the side before displacing genuine controller groups.
+        // The complete 160dp L and all G1-G4 targets remain intact.
+        val dockOffsets =
+            listOf(dx to dy, 0f to 0f) +
+                listOf(48f, 96f, 144f).flatMap { lift ->
+                    listOf(dx to (dy - lift), 0f to -lift)
+                }
+        for ((dockX, dockY) in dockOffsets.distinct()) {
             val fit = GripArcPositionSolver.resolve(manifest, safe, viewport, emptyList(), side, dockX, dockY)
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
             val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
