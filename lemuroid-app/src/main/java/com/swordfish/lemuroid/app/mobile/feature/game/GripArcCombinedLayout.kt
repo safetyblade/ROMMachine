@@ -78,7 +78,10 @@ internal object GripArcCombinedLayout {
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
             val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
             // Preserve the selected native constellation; no replacement shoulder/face grid.
-            for (up in listOf(0f, 16f, 32f, 48f, 64f, 80f, 96f)) for (inward in listOf(10f, 16f, 24f)) {
+            // Preserve each native hand constellation. Move the group modestly inward
+            // to nest the L around it; never send independent controls to empty corners.
+            for (up in listOf(0f, 8f, 16f, 24f, 32f, 48f)) {
+                for (inward in listOf(8f, 16f, 24f, 32f, 40f, 48f, 56f, 64f)) {
                 val controls = linkedMapOf<String, PivotArcBounds>()
                 val visuals = linkedMapOf<String, PivotArcSize>()
                 native.controls.forEach { spec ->
@@ -111,7 +114,7 @@ internal object GripArcCombinedLayout {
                             else -> 0f
                         }
                     val dockShift = if (left == (side == GripArcSide.LEFT)) inward else 0f
-                    if (kotlin.math.abs(correction) + dockShift > 24f) {
+                    if (kotlin.math.abs(correction) + dockShift > 72f) {
                         edgeFits = false
                         break
                     }
@@ -194,6 +197,7 @@ internal object GripArcCombinedLayout {
                     native,
                     observedInputIds.toSet(),
                 ).takeIf { it.complete }
+                }
             }
         }
         return reflow(manifest, native, observedInputIds, safe, viewport, side, dx, dy)
