@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
+import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -25,6 +26,16 @@ class GripArcProfileTest {
         assertTrue(ArcControlMode.STANDARD_GRIPARC.hasGrip)
         assertTrue(ArcControlMode.PIVOTARC_GRIPARC.hasPivot)
         assertTrue(ArcControlMode.PIVOTARC_GRIPARC.hasGrip)
+    }
+
+    @Test fun newProfilesExposeFourButtonsAndBothXboxGenerationsHaveInputs() {
+        assertEquals(4, GripArcProfile().count)
+        for (system in listOf(SystemID.XBOX, SystemID.XBOX360)) {
+            val inputs = GripArcInputCatalog.forSystem(system)
+            assertTrue(inputs.isNotEmpty())
+            assertTrue(inputs.any { it.code == KeyEvent.KEYCODE_BUTTON_A })
+            assertTrue(inputs.any { it.code == KeyEvent.KEYCODE_BUTTON_L1 })
+        }
     }
 
     @Test fun allFourMappingsSurviveCountReductionAndReEnable() {

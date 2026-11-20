@@ -89,9 +89,11 @@ object GripArcInputCatalog {
                     r2.copy(label = "R"),
                     start,
                 )
-            SystemID.XBOX360 ->
+            SystemID.XBOX, SystemID.XBOX360 ->
                 listOf(
-                    a, b, x, y, l.copy(label = "LB"), r.copy(label = "RB"),
+                    a, b, x, y,
+                    l.copy(label = if (system == SystemID.XBOX) "White" else "LB"),
+                    r.copy(label = if (system == SystemID.XBOX) "Black" else "RB"),
                     l2.copy(label = "LT"), r2.copy(label = "RT"), start, select.copy(label = "Back"),
                 )
             else -> emptyList()
@@ -105,7 +107,7 @@ object GripArcInputCatalog {
 data class GripArcProfile(
     val mode: ArcControlMode = ArcControlMode.STANDARD,
     val side: GripArcSide = GripArcSide.RIGHT,
-    val count: Int = 1,
+    val count: Int = 4,
     val mappings: List<List<Int>> = List(4) { emptyList() },
     val dx: Float = 0f,
     val dy: Float = 0f,

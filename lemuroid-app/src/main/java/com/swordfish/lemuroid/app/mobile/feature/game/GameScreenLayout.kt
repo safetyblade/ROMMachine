@@ -86,11 +86,12 @@ object GameScreenLayout {
             !isLandscape ->
                 buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
             allowTouchOverlay -> buildConstraintSetLandscape()
-            else -> buildConstraintSetLandscapeNoOverlay(
-                hardwareLandscape,
-                availableWidth,
-                availableHeight,
-            )
+            else ->
+                buildConstraintSetLandscapeNoOverlay(
+                    hardwareLandscape,
+                    availableWidth,
+                    availableHeight,
+                )
         }
     }
 
