@@ -46,6 +46,8 @@ internal class CartdeckStartupPlayer(
     private var videoWidth = 0
     private var videoHeight = 0
     private var firstFrameRendered = false
+    private var adjustingFraming = false
+    private var framing = CartdeckIntroFraming.load(context)
     private var stopped = false
     private var finished = false
 
@@ -58,7 +60,7 @@ internal class CartdeckStartupPlayer(
         val markSize = (148f * resources.displayMetrics.density).toInt()
         addView(placeholder, LayoutParams(markSize, markSize, Gravity.CENTER))
         texture.surfaceTextureListener = this
-        texture.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateCentreCrop() }
+        texture.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateFraming() }
         postDelayed(
             {
                 if (!firstFrameRendered && !stopped) {
@@ -91,13 +93,13 @@ internal class CartdeckStartupPlayer(
             player.setOnVideoSizeChangedListener { _, newWidth, newHeight ->
                 videoWidth = newWidth
                 videoHeight = newHeight
-                updateCentreCrop()
+                updateFraming()
             }
             player.setOnPreparedListener { prepared ->
                 if (!stopped) {
                     videoWidth = prepared.videoWidth
                     videoHeight = prepared.videoHeight
-                    updateCentreCrop()
+                    updateFraming()
                     prepared.start()
                 }
             }
@@ -108,7 +110,7 @@ internal class CartdeckStartupPlayer(
                 }
                 false
             }
-            player.setOnCompletionListener { finishOnce() }
+            player.setOnCompletionListener { if (!adjustingFraming) finishOnce() }
             player.setOnErrorListener { _, what, extra ->
                 Log.w("CartdeckStartupVideo", "Decoder error what=$what extra=$extra; opening shelf")
                 finishOnce()
@@ -121,20 +123,63 @@ internal class CartdeckStartupPlayer(
         }
     }
 
-    /** Preserve clip aspect, centre its C, crop only outside the available display. */
-    private fun updateCentreCrop() {
+    /** Fit reveals all of the clip; Fill crops. Offset and zoom remain in safe bounds. */
+    private fun updateFraming() {
         val viewWidth = texture.width.toFloat()
         val viewHeight = texture.height.toFloat()
         if (viewWidth <= 0f || viewHeight <= 0f || videoWidth <= 0 || videoHeight <= 0) return
         val videoAspect = videoWidth.toFloat() / videoHeight
         val viewAspect = viewWidth / viewHeight
-        val horizontalScale = if (videoAspect > viewAspect) videoAspect / viewAspect else 1f
-        val verticalScale = if (videoAspect < viewAspect) viewAspect / videoAspect else 1f
+        val safe = framing.constrained()
+        val horizontalScale =
+            if (safe.fit) {
+                minOf(1f, videoAspect / viewAspect)
+            } else {
+                maxOf(1f, videoAspect / viewAspect)
+            }
+        val verticalScale =
+            if (safe.fit) {
+                minOf(1f, viewAspect / videoAspect)
+            } else {
+                maxOf(1f, viewAspect / videoAspect)
+            }
         texture.setTransform(
             Matrix().apply {
-                setScale(horizontalScale, verticalScale, viewWidth / 2f, viewHeight / 2f)
+                setScale(
+                    horizontalScale * safe.zoom,
+                    verticalScale * safe.zoom,
+                    viewWidth / 2f,
+                    viewHeight / 2f,
+                )
+                postTranslate(safe.offsetX * viewWidth, safe.offsetY * viewHeight)
             },
         )
+    }
+
+    fun previewFraming(next: CartdeckIntroFraming) {
+        framing = next.constrained()
+        updateFraming()
+    }
+
+    fun persistFraming() {
+        CartdeckIntroFraming.save(context, framing)
+    }
+
+    fun pauseForFraming() {
+        adjustingFraming = true
+        mediaPlayer?.let { if (it.isPlaying) it.pause() }
+    }
+
+    fun resumeAfterFraming() {
+        adjustingFraming = false
+        mediaPlayer?.let { player ->
+            if (!stopped) {
+                if (player.duration > 0 && player.currentPosition >= player.duration - 150) {
+                    player.seekTo(0)
+                }
+                player.start()
+            }
+        }
     }
 
     override fun onSurfaceTextureSizeChanged(
@@ -142,7 +187,7 @@ internal class CartdeckStartupPlayer(
         width: Int,
         height: Int,
     ) {
-        updateCentreCrop()
+        updateFraming()
     }
 
     override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) = Unit
