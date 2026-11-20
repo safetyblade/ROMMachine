@@ -53,7 +53,11 @@ internal object GripArcCombinedLayout {
         dy: Float,
     ): GripArcCombinedPlacement? {
         if (!safe.isFiniteArea() || !viewport.isFiniteArea()) return null
-        return reflow(manifest, native, native.inputIds, safe, viewport, side, dx, dy)
+        val baseline = initialNativeConstellation(native, safe, viewport) ?: return null
+        return resolve(
+            manifest, native, native.inputIds, baseline, safe, viewport, side, dx, dy,
+            fallbackToNativeBaseline = false,
+        )
     }
 
     fun resolve(
@@ -66,6 +70,7 @@ internal object GripArcCombinedLayout {
         side: GripArcSide,
         dx: Float,
         dy: Float,
+        fallbackToNativeBaseline: Boolean = true,
     ): GripArcCombinedPlacement? {
         if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
             !native.matchesNativeInputs(observedInputIds) || !hasMeasurements(native, measured)
@@ -210,113 +215,62 @@ internal object GripArcCombinedLayout {
                 ).takeIf { it.complete }
             }
         }
-        return reflow(manifest, native, observedInputIds, safe, viewport, side, dx, dy)
+        if (!fallbackToNativeBaseline) return null
+        val baseline = initialNativeConstellation(native, safe, viewport) ?: return null
+        return resolve(
+            manifest, native, observedInputIds, baseline, safe, viewport, side, dx, dy,
+            fallbackToNativeBaseline = false,
+        )
     }
 
-    /** Reserve the dock before sizing native seats. Live Standard artwork is only a preference. */
-    private fun reflow(
-        manifest: GripArcManifest,
+    /**
+     * First-frame constellation: positions derive from the exact native inventory,
+     * using familiar shoulder / face / directional / analog / utility groups.
+     * No row-by-row arbitrary packing; unsupported compact decks fail safely.
+     * Live native measurements replace this provisional geometry when available.
+     */
+    internal fun initialNativeConstellation(
         native: NativeControlInventory,
-        observedInputIds: Set<String>,
         safe: PivotArcBounds,
         viewport: PivotArcBounds,
-        side: GripArcSide,
-        dx: Float,
-        dy: Float,
-    ): GripArcCombinedPlacement? {
-        val dock =
-            listOf(dx to dy, 0f to 0f).distinct().firstNotNullOfOrNull { (x, y) ->
-                (
-                    GripArcPositionSolver.resolve(
-                        manifest, safe, viewport, emptyList(), side, x, y,
-                    ) as? GripArcFit.Fits
-                )?.placement
-            } ?: return null
-        val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
-        val top = maxOf(safe.top, viewport.bottom + 8f)
-        val groups =
-            native.controls.groupBy { it.seat }.values.sortedBy { specs ->
-                when (specs.first().kind) {
-                    NativeControlKind.FACE -> 0
-                    NativeControlKind.DPAD -> 1
-                    NativeControlKind.ANALOG -> 2
-                    NativeControlKind.SHOULDER -> 3
-                    NativeControlKind.UTILITY -> 4
-                }
-            }
-        for (artScale in listOf(1f, 0.85f, 0.7f)) {
-            val controls = linkedMapOf<String, PivotArcBounds>()
-            val visuals = linkedMapOf<String, PivotArcSize>()
-            val seats = linkedMapOf<String, PivotArcBounds>()
-            for (specs in groups) {
-                val first = specs.first()
-                val parts =
-                    specs.associate { spec ->
-                        val size =
-                            when (spec.kind) {
-                                NativeControlKind.DPAD -> maxOf(64f, 96f * artScale)
-                                NativeControlKind.ANALOG -> maxOf(48f, 64f * artScale)
-                                else -> 48f
-                            }
-                        val x = if (spec.kind == NativeControlKind.FACE) spec.faceX * 52f else 0f
-                        val y = if (spec.kind == NativeControlKind.FACE) spec.faceY * 52f else 0f
-                        spec.key to PivotArcBounds(x - size / 2, y - size / 2, x + size / 2, y + size / 2)
-                    }
-                val hull =
-                    PivotArcBounds(
-                        parts.values.minOf { it.left },
-                        parts.values.minOf { it.top },
-                        parts.values.maxOf { it.right },
-                        parts.values.maxOf { it.bottom },
-                    )
-                val candidates = mutableListOf<Pair<Float, Float>>()
-                var y = top + 4f
-                while (y + hull.height + 4f <= safe.bottom) {
-                    var x = safe.left + 4f
-                    while (x + hull.width + 4f <= safe.right) {
-                        candidates += x to y
-                        x += 8f
-                    }
-                    y += 8f
-                }
-                val preferredX = if (first.leftHand) safe.left else safe.right - hull.width
-                val preferredY =
-                    top +
-                        when (first.kind) {
-                            NativeControlKind.SHOULDER -> 0f
-                            NativeControlKind.DPAD, NativeControlKind.FACE -> 64f
-                            NativeControlKind.ANALOG -> 192f
-                            NativeControlKind.UTILITY -> 272f
-                        }
-                val origin =
-                    candidates.sortedBy { (x, y) ->
-                        kotlin.math.abs(x - preferredX) + kotlin.math.abs(y - preferredY)
-                    }.firstOrNull { (x, y) ->
-                        val seat = PivotArcBounds(x, y, x + hull.width, y + hull.height)
-                        val correctHand =
-                            first.kind == NativeControlKind.UTILITY ||
-                                (if (first.leftHand) seat.centerX <= safe.centerX else seat.centerX >= safe.centerX)
-                        correctHand && (reserved + seats.values).none { seat.inset(4f).intersects(it.inset(3f)) }
-                    } ?: break
-                specs.forEach { spec ->
-                    val r = parts.getValue(spec.key)
-                    controls[spec.key] =
-                        PivotArcBounds(
-                            r.left - hull.left + origin.first, r.top - hull.top + origin.second,
-                            r.right - hull.left + origin.first, r.bottom - hull.top + origin.second,
-                        )
-                    visuals[spec.key] = PivotArcSize(r.width * artScale, r.height * artScale)
-                }
-                seats[first.seat] =
-                    PivotArcBounds(
-                        origin.first, origin.second, origin.first + hull.width, origin.second + hull.height,
-                    )
-            }
-            if (controls.size == native.controls.size) {
-                return GripArcCombinedPlacement(dock, controls, visuals, seats, native, observedInputIds.toSet())
-                    .takeIf { it.complete }
-            }
+    ): Map<String, PivotArcBounds>? {
+        val deckTop = maxOf(safe.top + 24f, viewport.bottom + 18f)
+        val deckHeight = safe.bottom - deckTop
+        if (deckHeight < 280f || safe.width < 290f) return null
+        val width = safe.width
+        val left = safe.left + width * 0.19f
+        val right = safe.right - width * 0.19f
+        val middle = safe.centerX
+        val gameCube = native.controller == TouchControllerID.GAMECUBE
+
+        fun box(x: Float, fraction: Float, diameter: Float): PivotArcBounds {
+            val y = deckTop + deckHeight * fraction
+            return PivotArcBounds(
+                x - diameter / 2f, y - diameter / 2f,
+                x + diameter / 2f, y + diameter / 2f,
+            )
         }
-        return null
+
+        return native.controls.associate { spec ->
+            val seat = spec.seat
+            val rect =
+                when {
+                    seat == "dpad" -> box(left, if (gameCube) 0.76f else 0.49f, 112f)
+                    seat.startsWith("face-") -> box(right, 0.49f, if (seat == "face-ab") 116f else 132f)
+                    seat == "analog-left" -> box(left + 18f, if (gameCube) 0.49f else 0.76f, 70f)
+                    seat == "analog-right" -> box(right - 18f, 0.76f, 70f)
+                    seat.startsWith("shoulder-L") || seat == "aux-L" ->
+                        box(safe.left + 30f + if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
+                    seat.startsWith("shoulder-R") || seat == "aux-Z" ->
+                        box(safe.right - 30f - if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
+                    seat == "select" -> box(middle - 50f, 0.25f, 48f)
+                    seat == "start" -> box(middle + 50f, 0.25f, 48f)
+                    seat == "menu" -> box(middle, 0.89f, 48f)
+                    else -> return null
+                }
+            seat to rect
+        }
     }
+
+
 }

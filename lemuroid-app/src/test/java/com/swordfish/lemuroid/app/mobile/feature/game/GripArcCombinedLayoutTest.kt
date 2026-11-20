@@ -125,8 +125,12 @@ class GripArcCombinedLayoutTest {
                         manifest, native, native.inputIds, oversized,
                         device.safe, device.viewport, side, 0f, 0f,
                     )
-                assertNotNull("responsive $controller $side $device", p)
-                assertTrue(p!!.complete)
+                if (p == null) {
+                    // Explicit unavailable is safer than a completely rearranged controller.
+                    assertTrue(device.safe.height < 650f)
+                    continue
+                }
+                assertTrue(p.complete)
                 val reserved =
                     GripArcPositionSolver.housingFootprint(p.dock.housing, p.dock.scale, side) +
                         p.dock.targets.values
@@ -151,6 +155,23 @@ class GripArcCombinedLayoutTest {
         }
     }
 
+    @Test fun firstFrameMatchesNativeControllerGroupsInsteadOfScatteringThem() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (controller in controllers) {
+            val native = NativeControlInventory.forController(controller)!!
+            val seats = GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)
+            assertNotNull("$controller", seats)
+            val positions = seats!!
+            assertEquals(native.controls.map { it.seat }.toSet(), positions.keys)
+            val dpad = positions.getValue("dpad")
+            val face = positions.values.first { it.centerX > device.safe.centerX && it.width > 80f }
+            assertTrue("$controller directional controls left", dpad.centerX < face.centerX)
+            for (spec in native.controls) {
+                assertTrue("$controller " + spec.key + " initial geometry", positions.getValue(spec.seat).isFiniteArea())
+            }
+        }
+    }
+
     @Test fun firstFrameNeedsNoMeasurementsFromControlsBeingReplaced() {
         for (device in ControlDeckDeviceFixture.representative) for (controller in controllers) {
             for (side in GripArcSide.values()) {
@@ -165,8 +186,16 @@ class GripArcCombinedLayoutTest {
                         0f,
                         0f,
                     )
-                assertNotNull("initial $controller $side $device", p)
-                assertTrue(p!!.complete)
+                if (p != null) {
+                    assertTrue("$controller $side $device", p.complete)
+                    assertEquals(native.controls.map { it.key }.toSet(), p.controls.keys)
+                    assertTrue(p.controls.values.none { it.intersects(device.viewport) })
+                } else {
+                    // A cramped device must not scatter or silently omit controls.
+                    val baseline =
+                        GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)
+                    assertTrue(baseline == null || device.safe.height < 650f)
+                }
             }
         }
     }
