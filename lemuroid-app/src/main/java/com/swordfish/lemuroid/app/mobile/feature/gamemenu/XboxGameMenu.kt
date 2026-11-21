@@ -45,6 +45,8 @@ internal fun XboxGameMenu(
     pauseFeedback: String = "Menu open. This engine may continue running.",
     canResume: Boolean = true,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
+    performanceCaptureEnabled: Boolean = false,
+    onTogglePerformanceCapture: (() -> Unit)? = null,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -125,6 +127,17 @@ internal fun XboxGameMenu(
                         Text(engineInfo, style = MaterialTheme.typography.bodySmall)
                         Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
                         GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        if (onTogglePerformanceCapture != null) {
+                            Text(
+                                "Frame diagnostics are off by default and never appear over gameplay. " +
+                                    "Start capture here for a test, then return here to stop and copy the report.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink(
+                                if (performanceCaptureEnabled) "Stop Xbox 360 frame capture" else "Start Xbox 360 frame capture",
+                                onClick = onTogglePerformanceCapture,
+                            )
+                        }
                     }
                 }
                 composable(GameMenuRoute.TROUBLESHOOTING) {
