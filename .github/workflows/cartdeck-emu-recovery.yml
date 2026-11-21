@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   gates:
-    if: github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'engineering/emu-recovery-')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (startsWith(github.head_ref, 'engineering/emu-recovery-') || github.head_ref == 'engineering/perf-stage02-xbox-20261121')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
