@@ -33,6 +33,19 @@ class DisplaySettingsStoreTest {
         assertTrue(store.read("one").effective.hd == true)
     }
 
+    @Test fun landscapeDefaultsOffUntilExplicitlySelectedAndRespectsOverrides() {
+        val store = DisplaySettingsStore(temporary.newFolder())
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("gbc").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("xbox").effective.border(true))
+        store.set(null, "landscapeBorder", "MINIMAL")
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
+        store.set("gbc", "landscapeBorder", "OFF")
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("gbc").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
+        store.useGlobal("gbc")
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("gbc").effective.border(true))
+    }
+
     @Test fun minimalIsIndependentByOrientationAndPreservesExistingOverrides() {
         val root = temporary.newFolder()
         val store = DisplaySettingsStore(root)
