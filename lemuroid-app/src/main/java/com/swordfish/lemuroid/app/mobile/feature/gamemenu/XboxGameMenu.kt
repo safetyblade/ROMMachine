@@ -134,7 +134,11 @@ internal fun XboxGameMenu(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             GameMenuLink(
-                                if (performanceCaptureEnabled) "Stop Xbox 360 frame capture" else "Start Xbox 360 frame capture",
+                                if (performanceCaptureEnabled) {
+                                    "Stop Xbox 360 frame capture"
+                                } else {
+                                    "Start Xbox 360 frame capture"
+                                },
                                 onClick = onTogglePerformanceCapture,
                             )
                         }
