@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,6 +48,7 @@ class SharedGameMenuTest {
         var resumes = 0
         var probes = 0
         var captureEnabled by mutableStateOf(false)
+        var pipelineQueued by mutableStateOf(Xbox360PipelineAB.Mode.NORMAL)
         val clipboard = compose.activity.getSystemService(ClipboardManager::class.java)
         compose.setContent {
             if (visible) {
@@ -64,6 +66,9 @@ class SharedGameMenuTest {
                     onProbe = { probes++ }, onPreviousEngine = {}, appearance = ShelfAppearance(),
                     performanceCaptureEnabled = captureEnabled,
                     onTogglePerformanceCapture = { captureEnabled = !captureEnabled },
+                    pipelineABActive = Xbox360PipelineAB.Mode.NORMAL.description,
+                    pipelineABQueued = pipelineQueued.description,
+                    onQueuePipelineAB = { pipelineQueued = it },
                 ) { Text("Touch controls fixture") }
             }
         }
@@ -72,6 +77,7 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Game Settings").assertDoesNotExist()
         compose.onNodeWithText("Copy engine/GPU report").assertDoesNotExist()
         compose.onNodeWithText("Start Xbox 360 frame capture").assertDoesNotExist()
+        compose.onNodeWithText("Next launch: test draw skipping OFF").assertDoesNotExist()
         compose.onNodeWithText("Controls").performClick()
         compose.onNodeWithText("Touch controls fixture").assertIsDisplayed()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
@@ -79,6 +85,12 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Previous Engine").assertDoesNotExist()
         compose.onNodeWithText("Fixture engine").assertDoesNotExist()
         compose.onNodeWithText("Diagnostics").performClick()
+        compose.onNodeWithText("Next launch: test draw skipping OFF").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.SKIP_OFF, pipelineQueued) }
+        compose.onNodeWithText("Next launch: test draw skipping ON").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.SKIP_ON, pipelineQueued) }
+        compose.onNodeWithText("Next launch: restore engine default").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.NORMAL, pipelineQueued) }
         compose.onNodeWithText("Start Xbox 360 frame capture").performScrollTo().performClick()
         compose.onNodeWithText("Stop Xbox 360 frame capture").assertIsDisplayed()
         compose.onNodeWithText("Stop Xbox 360 frame capture").performClick()
