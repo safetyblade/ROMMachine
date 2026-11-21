@@ -386,7 +386,9 @@ jobs:
                   run.path === '.github/workflows/cartdeck-emu-recovery.yml' &&
                   (run.head_branch?.startsWith('engineering/emu-recovery-') ||
                    (engine === 'xenia' && run.head_branch === 'engineering/perf-stage02-xbox-20261121')) &&
-                  new RegExp('^' + prefix + '[0-9a-f]{40}                const pcHost = engine === 'libretrodroid' && run.event === 'pull_request' &&
+                  artifact.name.length === prefix.length + 40 &&
+                  new RegExp('^' + prefix + '[0-9a-f]{40}').test(artifact.name);
+                const pcHost = engine === 'libretrodroid' && run.event === 'pull_request' &&
                   run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                   run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
                   new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
