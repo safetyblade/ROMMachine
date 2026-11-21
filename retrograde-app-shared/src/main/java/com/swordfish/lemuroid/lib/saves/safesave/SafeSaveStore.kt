@@ -85,7 +85,9 @@ class SafeSaveStore(
         } catch (error: Exception) {
             staging.deleteRecursively()
             if (destination.exists() && index.snapshot(snapshotId) == null) destination.deleteRecursively()
-            index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()))
+            index.appendJournal(
+                SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
+            )
             throw error
         }
     }
@@ -119,7 +121,9 @@ class SafeSaveStore(
         try {
             if (destination.exists()) {
                 copyTreeVerified(destination, backupDir)
-                index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "DEST_BACKUP", backupDir.name, clock()))
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "DEST_BACKUP", backupDir.name, clock()),
+                )
             }
             snapshot.files.forEach { record ->
                 val target = File(staging, record.relativePath)
@@ -141,7 +145,9 @@ class SafeSaveStore(
             if (!activated && displaced.exists() && !destination.exists()) {
                 displaced.renameTo(destination)
             }
-            index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "FAILED", error.message ?: "restore failed", clock()))
+            index.appendJournal(
+                SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "FAILED", error.message ?: "restore failed", clock()),
+            )
             throw error
         }
     }
