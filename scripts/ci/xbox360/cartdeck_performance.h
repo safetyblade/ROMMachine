@@ -8,6 +8,12 @@
 #include <cstdio>
 
 namespace cartdeck::perf {
+// Never capture performance metrics during ordinary gameplay. Explicitly enabled
+// from the paused Advanced > Diagnostics screen, with no on-screen HUD.
+inline std::atomic<bool> capture_enabled{false};
+inline void set_capture_enabled(bool enabled) {
+  capture_enabled.store(enabled, std::memory_order_relaxed);
+}
 inline uint64_t now() {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -17,6 +23,7 @@ struct Window {
   std::array<std::atomic<uint64_t>, capacity> samples{};
   std::atomic<uint64_t> count{0}, sum{0}, maximum{0}, previous{0};
   void add(uint64_t ns) {
+    if (!capture_enabled.load(std::memory_order_relaxed)) return;
     const auto slot = count.fetch_add(1, std::memory_order_relaxed);
     samples[slot % capacity].store(ns, std::memory_order_relaxed);
     sum.fetch_add(ns, std::memory_order_relaxed);
@@ -24,6 +31,10 @@ struct Window {
     while (old < ns && !maximum.compare_exchange_weak(old, ns, std::memory_order_relaxed)) {}
   }
   void tick() {
+    if (!capture_enabled.load(std::memory_order_relaxed)) {
+      previous.store(0, std::memory_order_relaxed);
+      return;
+    }
     const auto time = now();
     const auto before = previous.exchange(time, std::memory_order_relaxed);
     if (before && time >= before) add(time - before);
@@ -50,9 +61,9 @@ inline constexpr const char* names[] = {"guest_swap_interval", "host_present_int
   "xgfx_page_state_refresh"};
 struct Scope {
   Metric metric;
-  uint64_t start = now();
-  explicit Scope(Metric m) : metric(m) {}
-  ~Scope() { windows[metric].add(now() - start); }
+  uint64_t start;
+  explicit Scope(Metric m) : metric(m), start(capture_enabled.load(std::memory_order_relaxed) ? now() : 0) {}
+  ~Scope() { if (start) windows[metric].add(now() - start); }
 };
 // 03A: read-only frame-boundary snapshot of the effective Xenia settings.
 // One bounded write per frame, never a render policy override or per-draw log.
@@ -62,6 +73,7 @@ inline std::atomic<uint64_t> xgfx_settings_frames{0};
 inline void note_xgfx_settings(bool clear_pages, bool cache_descriptors,
                                bool skip_fetch_writes, bool fast_registers,
                                int mid_frame_draws) {
+  if (!capture_enabled.load(std::memory_order_relaxed)) return;
   const uint32_t bits = (clear_pages ? 1u : 0u) |
       (cache_descriptors ? 2u : 0u) |
       (skip_fetch_writes ? 4u : 0u) | (fast_registers ? 8u : 0u);
@@ -72,6 +84,7 @@ inline void note_xgfx_settings(bool clear_pages, bool cache_descriptors,
 inline std::atomic<uint64_t> skipped_draws{0}, audio_underrun_frames{0};
 inline std::atomic<uint64_t> last_present_guest_sequence{0}, guest_sequence_repeats{0};
 inline void presented(uint64_t guest_sequence) {
+  if (!capture_enabled.load(std::memory_order_relaxed)) return;
   windows[HostPresent].tick();
   const auto previous = last_present_guest_sequence.exchange(guest_sequence, std::memory_order_relaxed);
   if (guest_sequence && previous == guest_sequence) guest_sequence_repeats.fetch_add(1, std::memory_order_relaxed);
@@ -96,10 +109,11 @@ inline void append(char* out, size_t size) {
       windows[i].maximum.load() / 1e6);
   }
   const uint32_t xgfx = xgfx_settings.load(std::memory_order_relaxed);
-  write("xgfx03_schema=1 frames=%llu measured=FRAME_BOUNDARY "
+  write("xgfx03_schema=1 capture=%s frames=%llu measured=FRAME_BOUNDARY "
         "clear_memory_page_state=%d vulkan_cache_texture_descriptors=%d "
         "vulkan_skip_redundant_fetch_constant_writes=%d "
         "vulkan_fast_register_ranges=%d vulkan_mid_frame_submission_draws=%d\n",
+        capture_enabled.load(std::memory_order_relaxed) ? "ON" : "OFF",
         static_cast<unsigned long long>(xgfx_settings_frames.load(std::memory_order_relaxed)),
         int(bool(xgfx & 1u)), int(bool(xgfx & 2u)), int(bool(xgfx & 4u)),
         int(bool(xgfx & 8u)), xgfx_mid_frame_draws.load(std::memory_order_relaxed));
