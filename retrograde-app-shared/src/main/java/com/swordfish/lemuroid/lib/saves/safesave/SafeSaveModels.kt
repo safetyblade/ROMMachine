@@ -63,11 +63,12 @@ interface SafeSaveIndex {
 }
 
 fun requireCartridgeUuid(value: String): String {
-    val parsed = try {
-        UUID.fromString(value)
-    } catch (error: IllegalArgumentException) {
-        throw IllegalArgumentException("Cartridge identity must be an immutable UUID", error)
-    }
+    val parsed =
+        try {
+            UUID.fromString(value)
+        } catch (error: IllegalArgumentException) {
+            throw IllegalArgumentException("Cartridge identity must be an immutable UUID", error)
+        }
     require(parsed.toString() == value.lowercase()) { "Cartridge UUID must be canonical" }
     return value.lowercase()
 }
