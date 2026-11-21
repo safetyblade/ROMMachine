@@ -125,5 +125,7 @@ int register_xendroid_Emulator(JNIEnv* env)''')
 
     from repair_shared_memory import apply
     apply(cpp)
+    from shader_translation_wait import apply as apply_shader_wait
+    apply_shader_wait(cpp)
     from instrument_performance import instrument
     instrument(cpp, support)
