@@ -7,7 +7,10 @@ import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import kotlin.math.abs
 
 /** Native NcPadState: digital D-pad/utilities, six analog face buttons, two triggers. */
-class XboxPadState {
+class XboxPadState(private val stickDeadzone: Float = .15f) {
+    init {
+        require(stickDeadzone.isFinite() && stickDeadzone in 0f..0.5f)
+    }
     private val keys = mutableSetOf<Int>()
     private var hat = 0
     private var leftTrigger = 0
@@ -129,7 +132,8 @@ class XboxPadState {
         second: Float,
     ) = (maxOf(first, second).coerceIn(0f, 1f) * 255).toInt()
 
-    private fun stick(value: Float) = if (abs(value) < .15f) 0 else (value.coerceIn(-1f, 1f) * 32767).toInt()
+    private fun stick(value: Float) =
+        if (!value.isFinite() || abs(value) <= stickDeadzone) 0 else (value.coerceIn(-1f, 1f) * 32767).toInt()
 
     companion object {
         private val digital =
