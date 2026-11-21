@@ -146,7 +146,8 @@ internal fun XboxGameMenu(
                             }
                             Text(
                                 "XGFX-05 guest-memory ordering: disables early Vulkan upload hoisting " +
-                                    "for one launch only. This may affect speed; it does not stall pipeline compilation.",
+                                    "for one launch only. This may affect speed; " +
+                                    "it does not stall pipeline compilation.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             GameMenuLink("Next launch: test ordered memory uploads") {
