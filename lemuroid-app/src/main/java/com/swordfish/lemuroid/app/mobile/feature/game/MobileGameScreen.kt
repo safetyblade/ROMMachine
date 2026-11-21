@@ -88,7 +88,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isLandscape = constraints.maxWidth > constraints.maxHeight
         val display = rememberDisplaySettings(viewModel.cartridgeId)
-        val showBorder = display.effective.border(isLandscape) == DisplaySettingsStore.Border.STANDARD
+        val border = display.effective.border(isLandscape)
+        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
+        val showBorder = border != DisplaySettingsStore.Border.OFF
         val appContext = LocalContext.current
         val resolved = rememberGameplayAppearance()
         val appearance = resolved.source
@@ -552,7 +554,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     highContrast = appearance.highContrast,
                     feedbackStrength = reactiveLightStrength,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
-                    minimal = fullscreenWithGamepad,
+                    minimal = !hardwareBorder || fullscreenWithGamepad,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
@@ -565,7 +567,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             } else {
-                                listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                                if (isLandscape && individualInputs.isNotEmpty()) {
+                                    individualInputs.values.toList()
+                                } else {
+                                    listOfNotNull(leftPadBounds.value, rightPadBounds.value)
+                                }
                             }
                         } else {
                             emptyList()
@@ -607,15 +613,21 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
-            if (jointPlacement != null && touchControlsVisibleState.value) {
-                CompositeControlDeckHousing(jointPlacement, shellTokens)
+            if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
+                CompositeControlDeckHousing(
+                    jointPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                )
             }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
                 currentControllerConfig != null
             ) {
-                if (showBorder) {
+                if (hardwareBorder) {
                     CartdeckHardwareSeats(
                         tokens = shellTokens,
                         edition = edition,
@@ -634,7 +646,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 }
             }
 
-            LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, showBorder) {
+            LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, hardwareBorder) {
                 val gameView = viewModel.retroGameView.retroGameViewFlow()
                 if (fullPos == null || viewPos == null) return@LaunchedEffect
                 // Fit the COMPLETE rendered frame just inside its measured
@@ -642,7 +654,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 // shader bleed; never apply it to DS touch geometry or to
                 // full-screen controller play.
                 val guard =
-                    if (showBorder && !fullscreenWithGamepad &&
+                    if (hardwareBorder && !fullscreenWithGamepad &&
                         portraitMode == CartdeckViewportPolicy.PortraitMode.STANDARD
                     ) {
                         1f
@@ -664,8 +676,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             // With a physical pad, take all landscape space rather than
             // reserving the old left/right touchscreen side containers.
+            val gripArcLandscape =
+                isLandscape && hardwareBorder && touchControlsVisibleState.value &&
+                    currentControllerConfig != null &&
+                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                    maxWidth >= 680.dp && maxHeight >= 320.dp
+            val dedicatedHardwareLayout =
+                isLandscape && hardwareBorder && touchControlsVisibleState.value &&
+                    currentControllerConfig != null &&
+                    (effectiveArcMode == ArcControlMode.STANDARD || gripArcLandscape)
             val useFullLandscapeViewport =
-                fullscreenWithGamepad || (currentControllerConfig?.allowTouchOverlay ?: true)
+                !dedicatedHardwareLayout &&
+                    (fullscreenWithGamepad || (currentControllerConfig?.allowTouchOverlay ?: true))
             ConstraintLayout(
                 modifier = Modifier.fillMaxSize(),
                 constraintSet =
@@ -674,6 +696,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         useFullLandscapeViewport,
                         portraitMode,
                         portraitApertureRatio = portraitApertureRatio,
+                        hardwareLandscape = dedicatedHardwareLayout,
+                        gripArcLandscape = gripArcLandscape,
+                        availableWidth = maxWidth,
+                        availableHeight = maxHeight,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,
@@ -711,7 +737,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_BOTTOM_CONTAINER),
                             )
-                        } else if (!currentControllerConfig.allowTouchOverlay) {
+                        } else if (dedicatedHardwareLayout || !currentControllerConfig.allowTouchOverlay) {
                             PadContainer(
                                 modifier = Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_CONTAINER),
                             )
@@ -726,19 +752,25 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD).size(1.dp))
                         } else {
+                            val effectiveSettings =
+                                if (dedicatedHardwareLayout) {
+                                    GameScreenLayout.fitLandscapeHardwareSettings(touchControllerSettings, maxHeight)
+                                } else {
+                                    touchControllerSettings
+                                }
                             leftGamePad?.invoke(
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD)
                                     .onGloballyPositioned { leftPadBounds.value = it.boundsInRoot() },
-                                touchControllerSettings,
+                                effectiveSettings,
                             )
                             rightGamePad?.invoke(
                                 this,
                                 Modifier
                                     .layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD)
                                     .onGloballyPositioned { rightPadBounds.value = it.boundsInRoot() },
-                                touchControllerSettings,
+                                effectiveSettings,
                             )
                         }
                         GameScreenRunningCentralMenu(
@@ -780,7 +812,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 fullscreenWithGamepad = fullscreenWithGamepad,
                 isLoading = isLoading,
                 onPressed = viewModel::pressGripArcSlot,
-                drawHousing = jointPlacement == null,
+                drawHousing = hardwareBorder && jointPlacement == null,
+                lighting = resolved.lighting,
+                highContrast = appearance.highContrast,
+                feedbackStrength = reactiveLightStrength,
             )
             val pivotError = pivotResolution as? PivotArcResolution.Unavailable
             val gripError = gripResolution as? GripArcFit.Unavailable

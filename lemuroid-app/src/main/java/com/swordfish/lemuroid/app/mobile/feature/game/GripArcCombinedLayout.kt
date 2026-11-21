@@ -19,6 +19,24 @@ internal data class GripArcCombinedPlacement(
 }
 
 internal object GripArcCombinedLayout {
+    // Measured Standard constellations take priority over dock-first free-space packing.
+    // Each entire hand group is translated together; console-specific identities stay fixed.
+    private val closeFitOffsets = listOf(0f, 8f, 16f, 24f)
+
+    internal fun closeFit(
+        control: PivotArcBounds,
+        anchor: PivotArcBounds,
+        scale: Float,
+        shiftX: Float,
+        shiftY: Float,
+    ): PivotArcBounds {
+        val x = anchor.centerX + (control.centerX - anchor.centerX) * scale + shiftX
+        val y = anchor.centerY + (control.centerY - anchor.centerY) * scale + shiftY
+        val width = maxOf(48.1f, control.width * scale)
+        val height = maxOf(48.1f, control.height * scale)
+        return PivotArcBounds(x - width / 2f, y - height / 2f, x + width / 2f, y + height / 2f)
+    }
+
     fun hasMeasurements(
         native: NativeControlInventory,
         measured: Map<String, PivotArcBounds>,
@@ -35,7 +53,17 @@ internal object GripArcCombinedLayout {
         dy: Float,
     ): GripArcCombinedPlacement? {
         if (!safe.isFiniteArea() || !viewport.isFiniteArea()) return null
-        return reflow(manifest, native, native.inputIds, safe, viewport, side, dx, dy)
+        val baseline = initialNativeConstellation(native, safe, viewport)
+        val fitted =
+            baseline?.let {
+                resolve(
+                    manifest, native, native.inputIds, it, safe, viewport, side, dx, dy,
+                    fallbackToNativeBaseline = false,
+                )
+            }
+        return fitted ?: placeWholeNativeGroups(
+            manifest, native, native.inputIds, safe, viewport, side, dx, dy,
+        )
     }
 
     fun resolve(
@@ -48,6 +76,7 @@ internal object GripArcCombinedLayout {
         side: GripArcSide,
         dx: Float,
         dy: Float,
+        fallbackToNativeBaseline: Boolean = true,
     ): GripArcCombinedPlacement? {
         if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
             !native.matchesNativeInputs(observedInputIds) || !hasMeasurements(native, measured)
@@ -73,12 +102,19 @@ internal object GripArcCombinedLayout {
                     }
                 spec.key to base
             }
-        for ((dockX, dockY) in listOf(dx to dy, 0f to 0f).distinct()) {
+        // Move the accessory up the side before displacing genuine controller groups.
+        // The complete 160dp L and all G1-G4 targets remain intact.
+        val dockOffsets =
+            listOf(dx to dy, 0f to 0f) +
+                listOf(48f, 96f, 144f).flatMap { lift ->
+                    listOf(dx to (dy - lift), 0f to -lift)
+                }
+        for ((dockX, dockY) in dockOffsets.distinct()) {
             val fit = GripArcPositionSolver.resolve(manifest, safe, viewport, emptyList(), side, dockX, dockY)
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
             val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
             // Preserve the selected native constellation; no replacement shoulder/face grid.
-            for (up in listOf(0f, 16f, 32f, 48f, 64f, 80f, 96f)) for (inward in listOf(10f, 16f, 24f)) {
+            for (up in closeFitOffsets) for (inward in closeFitOffsets) {
                 val controls = linkedMapOf<String, PivotArcBounds>()
                 val visuals = linkedMapOf<String, PivotArcSize>()
                 native.controls.forEach { spec ->
@@ -90,11 +126,7 @@ internal object GripArcCombinedLayout {
                         } else {
                             0f
                         }
-                    val x = anchor.centerX + (r.centerX - anchor.centerX) * 0.90f + shift
-                    val y = anchor.centerY + (r.centerY - anchor.centerY) * 0.90f - up
-                    val w = maxOf(48.1f, r.width * 0.90f)
-                    val h = maxOf(48.1f, r.height * 0.90f)
-                    controls[spec.key] = PivotArcBounds(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
+                    controls[spec.key] = closeFit(r, anchor, 0.90f, shift, -up)
                     visuals[spec.key] = PivotArcSize(r.width * 0.90f, r.height * 0.90f)
                 }
                 // Keep each native hand constellation intact when its painted edge needs a small safe-inset correction.
@@ -196,11 +228,82 @@ internal object GripArcCombinedLayout {
                 ).takeIf { it.complete }
             }
         }
-        return reflow(manifest, native, observedInputIds, safe, viewport, side, dx, dy)
+        if (!fallbackToNativeBaseline) return null
+        val baseline = initialNativeConstellation(native, safe, viewport)
+        val fitted =
+            baseline?.let {
+                resolve(
+                    manifest, native, observedInputIds, it, safe, viewport, side, dx, dy,
+                    fallbackToNativeBaseline = false,
+                )
+            }
+        return fitted ?: placeWholeNativeGroups(
+            manifest, native, observedInputIds, safe, viewport, side, dx, dy,
+        )
     }
 
-    /** Reserve the dock before sizing native seats. Live Standard artwork is only a preference. */
-    private fun reflow(
+    /**
+     * First-frame constellation: positions derive from the exact native inventory,
+     * using familiar shoulder / face / directional / analog / utility groups.
+     * No row-by-row arbitrary packing; unsupported compact decks fail safely.
+     * Live native measurements replace this provisional geometry when available.
+     */
+    internal fun initialNativeConstellation(
+        native: NativeControlInventory,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+    ): Map<String, PivotArcBounds>? {
+        val deckTop = maxOf(safe.top + 24f, viewport.bottom + 18f)
+        val deckHeight = safe.bottom - deckTop
+        if (deckHeight < 280f || safe.width < 290f) return null
+        val width = safe.width
+        val left = safe.left + width * 0.19f
+        val right = safe.right - width * 0.19f
+        val middle = safe.centerX
+        val gameCube = native.controller == TouchControllerID.GAMECUBE
+
+        fun box(
+            x: Float,
+            fraction: Float,
+            diameter: Float,
+        ): PivotArcBounds {
+            val y = deckTop + deckHeight * fraction
+            return PivotArcBounds(
+                x - diameter / 2f,
+                y - diameter / 2f,
+                x + diameter / 2f,
+                y + diameter / 2f,
+            )
+        }
+
+        return native.controls.associate { spec ->
+            val seat = spec.seat
+            val rect =
+                when {
+                    seat == "dpad" -> box(left, if (gameCube) 0.76f else 0.49f, 112f)
+                    seat.startsWith("face-") -> box(right, 0.49f, if (seat == "face-ab") 116f else 132f)
+                    seat == "analog-left" -> box(left + 18f, if (gameCube) 0.49f else 0.76f, 70f)
+                    seat == "analog-right" -> box(right - 18f, 0.76f, 70f)
+                    seat.startsWith("shoulder-L") || seat == "aux-L" ->
+                        box(safe.left + 30f + if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
+                    seat == "aux-Z" -> box(safe.right - 98f, 0.10f, 48f)
+                    seat.startsWith("shoulder-R") ->
+                        box(safe.right - 30f - if (seat.endsWith("2")) 60f else 0f, 0.10f, 48f)
+                    seat == "select" -> box(middle - 50f, 0.25f, 48f)
+                    seat == "start" -> box(middle + 50f, 0.25f, 48f)
+                    seat == "menu" -> box(middle, 0.89f, 48f)
+                    else -> return null
+                }
+            seat to rect
+        }
+    }
+
+    /**
+     * Safe, deterministic fallback when a measured close fit cannot hold every original input.
+     * Each native seat remains an intact group; never scatter individual face/dpad keys.
+     * The measured close-fit solver always runs first, and saved geometry is unchanged.
+     */
+    private fun placeWholeNativeGroups(
         manifest: GripArcManifest,
         native: NativeControlInventory,
         observedInputIds: Set<String>,

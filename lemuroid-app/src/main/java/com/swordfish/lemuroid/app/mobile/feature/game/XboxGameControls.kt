@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
@@ -59,6 +60,8 @@ fun XboxGameControls(
         }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
+        val border = display.effective.border(landscape)
+        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
         // SDL owns the guest surface beneath this transparent Compose overlay.
         // The maximised path must not instantiate PadKit's virtual controller.
         val isTv =
@@ -71,7 +74,7 @@ fun XboxGameControls(
                 onViewport,
                 presentationAspect,
                 isTv,
-                display.effective.border(true) == DisplaySettingsStore.Border.STANDARD,
+                border != DisplaySettingsStore.Border.OFF,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
             )
@@ -164,7 +167,7 @@ fun XboxGameControls(
             Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
             onInputEvents = onInput,
         ) {
-            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+            if (border != DisplaySettingsStore.Border.OFF) {
                 CartdeckConsoleShell(
                     tokens = tokens,
                     videoBounds = video.value,
@@ -177,9 +180,10 @@ fun XboxGameControls(
                     // Native hosts currently provide baseline lighting, not core-feedback events.
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
+                    minimal = !hardwareBorder,
                 )
             }
-            if (display.effective.border(landscape) == DisplaySettingsStore.Border.STANDARD) {
+            if (hardwareBorder) {
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
@@ -196,13 +200,24 @@ fun XboxGameControls(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,
             ) {
+                val gripArcLandscape =
+                    landscape && hardwareBorder && !physicalControllerConnected && !isTv &&
+                        arc?.mode == ArcControlMode.STANDARD_GRIPARC &&
+                        this@BoxWithConstraints.maxWidth >= 680.dp && this@BoxWithConstraints.maxHeight >= 320.dp
+                val dedicatedHardwareLayout =
+                    landscape && hardwareBorder &&
+                        (arc == null || arc.mode == ArcControlMode.STANDARD || gripArcLandscape)
                 ConstraintLayout(
                     modifier = Modifier.fillMaxSize(),
                     constraintSet =
                         GameScreenLayout.buildConstraintSet(
                             landscape,
-                            true,
+                            !dedicatedHardwareLayout,
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
+                            hardwareLandscape = dedicatedHardwareLayout,
+                            gripArcLandscape = gripArcLandscape,
+                            availableWidth = this@BoxWithConstraints.maxWidth,
+                            availableHeight = this@BoxWithConstraints.maxHeight,
                             portraitApertureRatio =
                                 if (presentationAspect >= 1.6f) "16:9" else CartdeckViewportPolicy.STANDARD_RATIO,
                         ),
@@ -241,21 +256,40 @@ fun XboxGameControls(
                     )
                     if (placement == null && !physicalControllerConnected && !isTv) {
                         val config = TouchControllerID.getConfig(controllerId)
+                        val effectiveSettings =
+                            if (dedicatedHardwareLayout) {
+                                GameScreenLayout.fitLandscapeHardwareSettings(
+                                    settings,
+                                    this@BoxWithConstraints.maxHeight,
+                                )
+                            } else {
+                                settings
+                            }
                         config.leftComposable(
                             this@PadKit,
                             Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD),
-                            settings,
+                            effectiveSettings,
                         )
                         config.rightComposable(
                             this@PadKit,
                             Modifier.layoutId(GameScreenLayout.CONSTRAINTS_RIGHT_PAD),
-                            settings,
+                            effectiveSettings,
                         )
                     }
                 }
                 if (placement != null && arc != null && !physicalControllerConnected && !isTv) {
                     GripArcCombinedControls(placement)
-                    GripArcAccessory(placement.dock, arc, tokens, false, false, onGripPressed)
+                    GripArcAccessory(
+                        placement.dock,
+                        arc,
+                        tokens,
+                        false,
+                        false,
+                        onGripPressed,
+                        drawHousing = hardwareBorder,
+                        lighting = resolved.lighting,
+                        highContrast = appearance.highContrast,
+                    )
                 }
             }
         }

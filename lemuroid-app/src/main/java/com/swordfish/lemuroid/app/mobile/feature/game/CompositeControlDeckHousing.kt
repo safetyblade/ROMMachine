@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 /** Pointer-transparent joint material. Both contours come from the input placement result. */
@@ -19,6 +20,9 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 internal fun CompositeControlDeckHousing(
     placement: CompositeControlDeckPlacement,
     tokens: CartdeckEditionTokens,
+    lighting: CartdeckLighting = CartdeckLighting(),
+    highContrast: Boolean = false,
+    feedbackStrength: Float = 0f,
 ) {
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
@@ -59,6 +63,6 @@ internal fun CompositeControlDeckHousing(
                 compact = true,
             )
         }
-        GripArcHousing(placement.dock, tokens)
+        GripArcHousing(placement.dock, tokens, lighting, highContrast, feedbackStrength)
     }
 }

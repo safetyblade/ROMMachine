@@ -8,12 +8,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
+import com.swordfish.lemuroid.app.mobile.feature.shelf.drawLightingFinish
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 internal data class CartdeckHardwareChannel(
     val bounds: Rect,
     val zone: String,
     val housing: Rect? = null,
+    val glowBounds: Rect? = null,
+)
+
+internal data class LandscapeDecoration(
+    val bands: List<Rect> = emptyList(),
+    val stampSeat: Rect? = null,
+    val decalSeat: Rect? = null,
 )
 
 /** Measured geometry. Decorative trim disappears rather than moving a game or input. */
@@ -45,12 +54,17 @@ internal object CartdeckManufacturedGeometry {
         val safe = Rect(frame.left + edge, frame.top + edge, frame.right - edge, frame.bottom - edge)
         val tracks = mutableListOf<CartdeckHardwareChannel>()
 
+        fun glowBounds(rect: Rect): Rect? =
+            CartdeckHardwareGeometry.expanded(rect, 2f * density).takeIf {
+                fits(it, safe, blocked, 0.5f * density)
+            }
+
         fun group(
             zone: String,
             rects: List<Rect>,
         ) {
             if (rects.all { fits(it, safe, blocked, 0.5f * density) }) {
-                tracks += rects.map { CartdeckHardwareChannel(it, zone) }
+                tracks += rects.map { CartdeckHardwareChannel(it, zone, glowBounds = glowBounds(it)) }
             }
         }
 
@@ -107,7 +121,12 @@ internal object CartdeckManufacturedGeometry {
             ) {
                 tracks +=
                     crown.mapIndexed { index, rect ->
-                        CartdeckHardwareChannel(rect, CartdeckLighting.SIDE_RAILS, housing.takeIf { index == 1 })
+                        CartdeckHardwareChannel(
+                            rect,
+                            CartdeckLighting.SIDE_RAILS,
+                            housing.takeIf { index == 1 },
+                            glowBounds(rect),
+                        )
                     }
             }
         }
@@ -130,6 +149,66 @@ internal object CartdeckManufacturedGeometry {
                 height - 9f * density,
             )
         return fits(badge, frame, listOf(video) + controls, 4f * density)
+    }
+
+    /**
+     * Paired, deliberate engraving bands; no free-space pattern scatter.
+     * Reserve small independent artwork seats and omit entire rows if obstructed.
+     */
+    fun landscapeDecoration(
+        frame: Rect,
+        video: Rect,
+        controls: List<Rect>,
+        density: Float,
+        decalAnchor: String? = null,
+        protectedRects: List<Rect> = emptyList(),
+    ): LandscapeDecoration {
+        if (density <= 0f || !density.isFinite()) return LandscapeDecoration()
+        val blocked = listOf(video) + controls + protectedRects
+        val safe =
+            Rect(
+                frame.left + 40f * density,
+                frame.top + 10f * density,
+                frame.right - 40f * density,
+                frame.bottom - 10f * density,
+            )
+        val gap = 13f * density
+        val sideWidth = minOf(video.left - safe.left - gap, safe.right - video.right - gap)
+        val cell = 16f * density
+        val seatSize = 24f * density
+        val reserved = 32f * density
+        val columns = ((sideWidth - reserved) / cell).toInt()
+        if (columns < 2) return LandscapeDecoration()
+        val width = columns * cell
+        val top = frame.top + 15f * density
+        val bottom = frame.bottom - 31f * density
+        val leftBandStart = safe.left + reserved
+        val rightBandEnd = safe.right - reserved
+        val bands = mutableListOf<Rect>()
+        for (y in listOf(top, bottom)) {
+            val pair =
+                listOf(
+                    Rect(leftBandStart, y, leftBandStart + width, y + cell),
+                    Rect(rightBandEnd - width, y, rightBandEnd, y + cell),
+                )
+            if (pair.all { fits(it, safe, blocked, 3f * density) }) bands += pair
+        }
+
+        fun artwork(
+            left: Boolean,
+            upper: Boolean,
+        ): Rect? {
+            val x = if (left) safe.left else safe.right - seatSize
+            val y = if (upper) frame.top + 10f * density else frame.bottom - 34f * density
+            val rect = Rect(x, y, x + seatSize, y + seatSize)
+            return rect.takeIf { fits(it, safe, blocked + bands, 2f * density) }
+        }
+
+        val decalLeft = decalAnchor == CartdeckPersonalDecal.ANCHOR_LOWER_LEFT
+        val decalUpper = decalAnchor == CartdeckPersonalDecal.ANCHOR_UPPER_RAIL
+        val decal = if (decalAnchor == null) null else artwork(decalLeft, decalUpper)
+        val stamp = artwork(!decalLeft, false)?.takeUnless { it == decal }
+        return LandscapeDecoration(bands, stamp, decal)
     }
 
     fun sideHousings(
@@ -171,27 +250,51 @@ internal fun DrawScope.drawManufacturedChannels(
                 cornerRadius = CornerRadius(housing.height / 3f),
             )
         }
-        val rect = channel.bounds
-        val radius = minOf(rect.width, rect.height) / 2f
-        drawRoundRect(
-            color = tokens.bezel,
-            topLeft = rect.topLeft,
-            size = rect.size,
-            cornerRadius = CornerRadius(radius),
+        drawMaterialTrack(
+            channel.bounds,
+            tokens,
+            lighting,
+            channel.zone,
+            highContrast,
+            feedbackStrength,
+            channel.glowBounds,
         )
-        val inset = radius * 0.35f
-        val fill =
-            if (lighting.active(channel.zone, highContrast)) {
-                lighting.tint(tokens.accent, feedbackStrength)
-            } else {
-                lerp(tokens.bezel, tokens.secondary, 0.42f)
-            }
+    }
+}
+
+/** Permanent accent material is independent of emitted light colour. */
+internal fun hardwareInlay(tokens: CartdeckEditionTokens): Color = lerp(tokens.bezel, tokens.accent, 0.76f)
+
+/** Soft layered emission stays inside the validated hardware footprint. */
+internal fun DrawScope.drawMaterialTrack(
+    rect: Rect,
+    tokens: CartdeckEditionTokens,
+    lighting: CartdeckLighting,
+    zone: String,
+    highContrast: Boolean,
+    feedbackStrength: Float = 0f,
+    glowBounds: Rect? = null,
+) {
+    val radius = minOf(rect.width, rect.height) / 2f
+    if (radius <= 0f) return
+
+    fun layer(
+        fraction: Float,
+        colour: Color,
+    ) {
+        val inset = radius * fraction
         drawRoundRect(
-            color = fill,
+            color = colour,
             topLeft = Offset(rect.left + inset, rect.top + inset),
             size = Size(rect.width - inset * 2f, rect.height - inset * 2f),
             cornerRadius = CornerRadius(radius - inset),
         )
+    }
+
+    layer(0.08f, tokens.bezel)
+    layer(0.48f, hardwareInlay(tokens))
+    if (lighting.active(zone, highContrast)) {
+        drawLightingFinish(rect, lighting.tint(tokens.accent, feedbackStrength), lighting.finish, glowBounds)
     }
 }
 
@@ -204,5 +307,5 @@ internal fun manufacturedFrameAccent(
     when {
         highContrast -> Color.White
         lighting.active(CartdeckLighting.SCREEN) -> lighting.tint(tokens.accent)
-        else -> lerp(tokens.bezel, tokens.secondary, 0.55f)
+        else -> hardwareInlay(tokens)
     }

@@ -1,5 +1,13 @@
 # CARTDECK — Master product and delivery roadmap
 
+## 20 November 2026 — UNI owner acceptance and Cassia SIGNATURE
+
+- UNI-C portrait and landscape visual hardware accepted on device. Small duplicate purple lower landscape seam is non-blocking; remove it without moving video/control geometry.
+- UNI-D3/D4/D5 active: group-preserving GripArc, PivotArc combined modes, adaptive sizing and full device/console matrix; existing GripArc #135 blocker remains until owner/Marcus physical acceptance.
+- Cassia-approved SIGNATURE is **additive** UNI global branding plus a separate premium appearance. Midnight `#13131A`, neon pink `#FF4FA3`, electric cyan `#19F5DA`; app icon, launch/loading and global brand updated in its own implementation lane. Original and other editions remain. [Approved brand brief](../design/UNI-SIGNATURE-01-BRIEF.md). Not yet implemented in app source.
+
+
+
 ## 17 November 2026 — CONTROLLING PC-00 / REL-ENG owner decisions
 
 **Bundled release:** CARTDECK includes **all approved, licence-cleared emulators within the app**. No runtime is installed through a separate emulator download or third-party app. At release Settings links to a **separate open-source emulator-only source/build repository** for the assembled engine technologies, **not** a CARTDECK engine downloader. [REL-ENG-01 #307](https://github.com/safetyblade/ROMMachine/issues/307) controls source/binary provenance and release; that separate repository does not independently fulfil applicable GPL app/host corresponding-source obligations.

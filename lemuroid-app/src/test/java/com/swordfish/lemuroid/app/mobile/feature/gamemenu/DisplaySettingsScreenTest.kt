@@ -44,7 +44,7 @@ class DisplaySettingsScreenTest {
         compose.onNodeWithText("Widescreen", substring = true).assertDoesNotExist()
         compose.onNodeWithText("HD scaling:", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Help").assertIsDisplayed()
-        compose.onAllNodesWithText("Standard · selected")[0].assertIsDisplayed()
+        compose.onAllNodesWithText("Hardware · selected")[0].assertIsDisplayed()
         compose.onNodeWithText("Use Global Default").performScrollTo().assertIsDisplayed()
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(game.cartridgeId).effective.border(true))
     }

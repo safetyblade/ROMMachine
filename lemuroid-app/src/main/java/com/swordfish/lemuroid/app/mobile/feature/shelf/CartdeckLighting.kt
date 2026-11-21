@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.shelf
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -14,12 +15,23 @@ data class CartdeckLighting(
     val intensity: Int = 65,
     val colour: Long? = null,
     val zones: Set<String> = DEFAULT_ZONES,
+    val finish: String = FINISH_GLOW,
 ) {
     companion object {
         const val MODE_OFF = "off"
         const val MODE_STATIC = "static"
         const val MODE_FEEDBACK = "feedback"
         const val MODE_CONTROLLER = "controller"
+
+        const val FINISH_SOLID = "solid"
+        const val FINISH_GLOW = "glow"
+        const val FINISH_NEON = "neon"
+        val finishes =
+            linkedMapOf(
+                FINISH_SOLID to "Solid",
+                FINISH_GLOW to "Glow",
+                FINISH_NEON to "Neon",
+            )
 
         const val SCREEN = "screen"
         const val SIDE_RAILS = "side-rails"
@@ -38,6 +50,7 @@ data class CartdeckLighting(
 
     fun validate(): CartdeckLighting {
         require(mode in setOf(MODE_OFF, MODE_STATIC, MODE_FEEDBACK, MODE_CONTROLLER)) { "Unsupported lighting mode" }
+        require(finish in finishes) { "Unsupported lighting finish" }
         require(intensity in 0..100) { "Invalid lighting intensity" }
         require(colour == null || colour in 0L..0xFFFFFFFFL) { "Invalid lighting colour" }
         require(zones.all { it in availableZones }) { "Unsupported lighting zone" }
@@ -155,8 +168,60 @@ internal fun DrawScope.drawCartdeckLighting(
         )
     val colour = lighting.tint(accent, feedbackStrength)
     strips.forEach { strip ->
-        // Light never bleeds into protected video/control areas: don't paint
-        // unbounded bloom outside the already validated physical strip.
-        drawRect(color = colour, topLeft = strip.topLeft, size = strip.size)
+        val spread = minOf(clearance / 3f, thickness * 1.5f)
+        val halo = Rect(strip.left - spread, strip.top - spread, strip.right + spread, strip.bottom + spread)
+        val blocked = listOf(video) + controls + brand
+        val safeHalo =
+            halo.takeIf {
+                it.left >= frame.left && it.top >= frame.top && it.right <= frame.right && it.bottom <= frame.bottom &&
+                    blocked.none { obstacle ->
+                        it.left < obstacle.right && it.right > obstacle.left &&
+                            it.top < obstacle.bottom && it.bottom > obstacle.top
+                    }
+            }
+        drawLightingFinish(strip, colour, lighting.finish, safeHalo)
     }
+}
+
+/** Shared bounded emission for real hardware and the live appearance preview. */
+internal fun DrawScope.drawLightingFinish(
+    strip: Rect,
+    light: Color,
+    finish: String,
+    safeHalo: Rect? = null,
+) {
+    val radius = minOf(strip.width, strip.height) / 2f
+    if (radius <= 0f || light.alpha <= 0f) return
+
+    fun layer(
+        fraction: Float,
+        colour: Color,
+    ) {
+        val inset = radius * fraction
+        val bounds = Rect(strip.left + inset, strip.top + inset, strip.right - inset, strip.bottom - inset)
+        drawRoundRect(
+            color = colour,
+            topLeft = bounds.topLeft,
+            size = bounds.size,
+            cornerRadius = CornerRadius(radius - inset),
+        )
+    }
+
+    if (finish == CartdeckLighting.FINISH_SOLID) {
+        layer(0.48f, light)
+        return
+    }
+    val neon = finish == CartdeckLighting.FINISH_NEON
+    if (safeHalo != null) {
+        drawRoundRect(
+            color = light.copy(alpha = light.alpha * (if (neon) 0.24f else 0.10f)),
+            topLeft = safeHalo.topLeft,
+            size = safeHalo.size,
+            cornerRadius = CornerRadius(minOf(safeHalo.width, safeHalo.height) / 2f),
+        )
+    }
+    layer(0.04f, light.copy(alpha = light.alpha * (if (neon) 0.40f else 0.16f)))
+    layer(0.28f, light.copy(alpha = light.alpha * (if (neon) 0.65f else 0.34f)))
+    layer(0.55f, light.copy(alpha = light.alpha * (if (neon) 1f else 0.82f)))
+    if (neon) layer(0.74f, androidx.compose.ui.graphics.lerp(light, Color.White, 0.45f).copy(alpha = light.alpha))
 }

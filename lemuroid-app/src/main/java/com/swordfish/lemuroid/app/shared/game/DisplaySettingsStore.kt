@@ -32,7 +32,7 @@ class DisplaySettingsStore(
     private val directory: File,
     private val legacy: () -> Choices = { Choices() },
 ) {
-    enum class Border { OFF, STANDARD }
+    enum class Border { OFF, STANDARD, MINIMAL }
 
     @Serializable
     data class Choices(

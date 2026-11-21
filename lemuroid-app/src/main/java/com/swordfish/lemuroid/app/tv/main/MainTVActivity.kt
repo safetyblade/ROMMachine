@@ -5,7 +5,10 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -18,6 +21,8 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupPlayer
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 import com.swordfish.lemuroid.app.tv.channel.ChannelUpdateWork
 import com.swordfish.lemuroid.app.tv.favorites.TVFavoritesFragment
 import com.swordfish.lemuroid.app.tv.games.TVGamesFragment
@@ -55,6 +60,7 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tv_main)
+        if (savedInstanceState == null) showSignatureStartupVideo()
 
         val factory = MainTVViewModel.Factory(applicationContext)
         mainViewModel = ViewModelProvider(this, factory).get(MainTVViewModel::class.java)
@@ -66,6 +72,52 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
         }
 
         ensureLegacyStoragePermissionsIfNeeded()
+    }
+
+    /** TV uses the same centered startup clip, with a controller skip and a bounded timeout. */
+    private fun showSignatureStartupVideo() {
+        val host = findViewById<FrameLayout>(android.R.id.content)
+        var finished = false
+        val player =
+            CartdeckStartupVideo.create(this) {
+                if (!finished) {
+                    finished = true
+                    host.post {
+                        host.findViewWithTag<CartdeckStartupPlayer>("cartdeck-signature-startup")?.let {
+                            it.stopPlayback()
+                            host.removeView(it)
+                        }
+                    }
+                }
+            }
+        player.tag = "cartdeck-signature-startup"
+        player.isFocusableInTouchMode = true
+        player.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN &&
+                keyCode in listOf(KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_A)
+            ) {
+                if (!finished) {
+                    finished = true
+                    player.stopPlayback()
+                    host.removeView(player)
+                }
+                true
+            } else {
+                false
+            }
+        }
+        host.addView(
+            player,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+        )
+        player.requestFocus()
+        player.postDelayed({
+            if (!finished) {
+                finished = true
+                player.stopPlayback()
+                host.removeView(player)
+            }
+        }, CartdeckStartupVideo.MAX_DURATION_MS)
     }
 
     override fun onActivityResult(

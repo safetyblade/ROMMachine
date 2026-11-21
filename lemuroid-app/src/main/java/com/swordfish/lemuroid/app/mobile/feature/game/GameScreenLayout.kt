@@ -6,6 +6,63 @@ import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
+
+internal data class LandscapeHardwareInsets(
+    val padTopBottom: Dp,
+    val sideInset: Dp,
+    val screenHorizontal: Dp,
+    val screenVertical: Dp,
+)
+
+/** Adapt decoration and control clearance to usable deck dimensions without moving individual buttons. */
+internal fun landscapeHardwareInsets(
+    availableWidth: Dp,
+    availableHeight: Dp,
+): LandscapeHardwareInsets =
+    when {
+        availableWidth < 700.dp || availableHeight < 360.dp ->
+            LandscapeHardwareInsets(20.dp, 8.dp, 10.dp, 5.dp)
+        availableWidth > 1080.dp && availableHeight > 520.dp ->
+            LandscapeHardwareInsets(54.dp, 20.dp, 20.dp, 10.dp)
+        else -> LandscapeHardwareInsets(42.dp, 16.dp, 16.dp, 8.dp)
+    }
+
+internal data class PortraitHardwareInsets(
+    val top: Dp,
+    val side: Dp,
+    val controlGap: Dp,
+)
+
+/**
+ * Adaptive manufactured portrait glass: the accepted 393×852 handheld is unchanged.
+ * The emulator itself still owns true pixel aspect and screen/dual-screen coordinates.
+ */
+internal fun portraitHardwareInsets(
+    availableWidth: Dp,
+    availableHeight: Dp,
+    expanded: Boolean,
+): PortraitHardwareInsets =
+    when {
+        availableWidth < 360.dp || availableHeight < 700.dp ->
+            PortraitHardwareInsets(
+                if (expanded) 56.dp else 64.dp,
+                if (expanded) 10.dp else 14.dp,
+                12.dp,
+            )
+        availableWidth >= 600.dp && availableHeight >= 900.dp ->
+            PortraitHardwareInsets(
+                if (expanded) 92.dp else 104.dp,
+                if (expanded) 22.dp else 30.dp,
+                24.dp,
+            )
+        else ->
+            PortraitHardwareInsets(
+                if (expanded) 76.dp else 84.dp,
+                if (expanded) 14.dp else 22.dp,
+                16.dp,
+            )
+    }
 
 object GameScreenLayout {
     const val CONSTRAINTS_BOTTOM_CONTAINER = "bottomContainer"
@@ -32,18 +89,53 @@ object GameScreenLayout {
         return if (availableHeight >= 680.dp) 24.dp else 12.dp
     }
 
+    /**
+     * Preserve the saved radial constellation; cap the effective session scale
+     * against the side-deck height rather than moving individual controls.
+     */
+    internal fun fitLandscapeHardwareSettings(
+        settings: TouchControllerSettingsManager.Settings,
+        height: Dp,
+    ): TouchControllerSettingsManager.Settings {
+        val available = (height.value - 84f).coerceAtLeast(0f)
+        // BaseLayout uses 160dp × interpolated scale; allow the surrounding secondary dials.
+        val maximumDialScale = available / (160f * 1.9f)
+        val maximumSetting =
+            (
+                (maximumDialScale - TouchControllerSettingsManager.MIN_SCALE) /
+                    (TouchControllerSettingsManager.MAX_SCALE - TouchControllerSettingsManager.MIN_SCALE)
+            ).coerceIn(0f, 1f)
+        return settings.copy(scale = minOf(settings.scale, maximumSetting))
+    }
+
     fun buildConstraintSet(
         isLandscape: Boolean,
         allowTouchOverlay: Boolean,
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         portraitBottomInset: Dp = 0.dp,
         portraitApertureRatio: String = CartdeckViewportPolicy.STANDARD_RATIO,
+        hardwareLandscape: Boolean = false,
+        gripArcLandscape: Boolean = false,
+        availableWidth: Dp = 852.dp,
+        availableHeight: Dp = 393.dp,
     ): ConstraintSet {
         return when {
             !isLandscape ->
-                buildConstraintSetPortrait(portraitMode, portraitBottomInset, portraitApertureRatio)
+                buildConstraintSetPortrait(
+                    portraitMode,
+                    portraitBottomInset,
+                    portraitApertureRatio,
+                    availableWidth,
+                    availableHeight,
+                )
             allowTouchOverlay -> buildConstraintSetLandscape()
-            else -> buildConstraintSetLandscapeNoOverlay()
+            else ->
+                buildConstraintSetLandscapeNoOverlay(
+                    hardwareLandscape,
+                    gripArcLandscape,
+                    availableWidth,
+                    availableHeight,
+                )
         }
     }
 
@@ -51,7 +143,11 @@ object GameScreenLayout {
         portraitMode: CartdeckViewportPolicy.PortraitMode,
         bottomInset: Dp,
         apertureRatio: String,
+        availableWidth: Dp,
+        availableHeight: Dp,
     ): ConstraintSet {
+        val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
+        val insets = portraitHardwareInsets(availableWidth, availableHeight, expanded)
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -67,13 +163,12 @@ object GameScreenLayout {
                     // Portrait glass follows a known system's native frame
                     // when measured vertical space allows. The core retains
                     // its own true pixel aspect and letterboxing.
-                    val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
                     height = Dimension.ratio(apertureRatio)
-                    top.linkTo(parent.top, margin = if (expanded) 76.dp else 84.dp)
-                    bottom.linkTo(leftPad.top, margin = 16.dp)
+                    top.linkTo(parent.top, margin = insets.top)
+                    bottom.linkTo(leftPad.top, margin = insets.controlGap)
                     verticalBias = 0f
-                    absoluteLeft.linkTo(parent.absoluteLeft, margin = if (expanded) 14.dp else 22.dp)
-                    absoluteRight.linkTo(parent.absoluteRight, margin = if (expanded) 14.dp else 22.dp)
+                    absoluteLeft.linkTo(parent.absoluteLeft, margin = insets.side)
+                    absoluteRight.linkTo(parent.absoluteRight, margin = insets.side)
                 } else {
                     // The tested v2101 DS layout stays flexible, including
                     // its original stylus/touch coordinate mapping.
@@ -162,7 +257,13 @@ object GameScreenLayout {
         }
     }
 
-    private fun buildConstraintSetLandscapeNoOverlay(): ConstraintSet {
+    private fun buildConstraintSetLandscapeNoOverlay(
+        hardwareLandscape: Boolean,
+        gripArcLandscape: Boolean,
+        availableWidth: Dp,
+        availableHeight: Dp,
+    ): ConstraintSet {
+        val insets = landscapeHardwareInsets(availableWidth, availableHeight)
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -171,28 +272,36 @@ object GameScreenLayout {
             val leftContainer = createRefFor(CONSTRAINTS_LEFT_CONTAINER)
             val rightContainer = createRefFor(CONSTRAINTS_RIGHT_CONTAINER)
 
+            val padInset = if (hardwareLandscape) insets.padTopBottom else 0.dp
+            val sideInset = if (hardwareLandscape) insets.sideInset else 0.dp
             constrain(leftPad) {
-                absoluteLeft.linkTo(parent.absoluteLeft)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
-                width = Dimension.wrapContent // Takes as much space as needed
+                absoluteLeft.linkTo(parent.absoluteLeft, margin = sideInset)
+                top.linkTo(parent.top, margin = padInset)
+                bottom.linkTo(parent.bottom, margin = padInset)
+                verticalBias = 0.5f
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
+                if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
             constrain(gameView) {
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
-                absoluteLeft.linkTo(leftPad.absoluteRight)
-                absoluteRight.linkTo(rightPad.absoluteLeft)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
+                val clearance = if (hardwareLandscape) insets.screenVertical else 0.dp
+                val horizontalClearance = if (hardwareLandscape) insets.screenHorizontal else 0.dp
+                absoluteLeft.linkTo(leftPad.absoluteRight, margin = horizontalClearance)
+                absoluteRight.linkTo(rightPad.absoluteLeft, margin = horizontalClearance)
+                top.linkTo(parent.top, margin = clearance)
+                bottom.linkTo(parent.bottom, margin = clearance)
                 width = Dimension.fillToConstraints // Expands between leftPad and rightPad
             }
 
             constrain(rightPad) {
-                absoluteRight.linkTo(parent.absoluteRight)
-                top.linkTo(parent.top)
-                bottom.linkTo(parent.bottom)
-                width = Dimension.wrapContent // Takes as much space as needed
+                absoluteRight.linkTo(parent.absoluteRight, margin = sideInset)
+                top.linkTo(parent.top, margin = padInset)
+                bottom.linkTo(parent.bottom, margin = padInset)
+                verticalBias = 0.5f
+                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
+                if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
             constrain(gameContainer) {

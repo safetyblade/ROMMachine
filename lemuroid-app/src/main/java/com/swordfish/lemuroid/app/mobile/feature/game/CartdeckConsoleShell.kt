@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -62,6 +62,28 @@ internal fun CartdeckConsoleShell(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
+        if (minimal) {
+            Canvas(Modifier.fillMaxSize()) {
+                if (hole != null) {
+                    val trim = 3.dp.toPx()
+                    val outer =
+                        Rect(
+                            (hole.left - trim).coerceAtLeast(0f),
+                            (hole.top - trim).coerceAtLeast(0f),
+                            (hole.right + trim).coerceAtMost(size.width),
+                            (hole.bottom + trim).coerceAtMost(size.height),
+                        )
+                    val frame =
+                        Path().apply {
+                            fillType = PathFillType.EvenOdd
+                            addRect(outer)
+                            addRect(hole)
+                        }
+                    drawPath(frame, manufacturedFrameAccent(tokens, lighting, highContrast))
+                }
+            }
+            return@BoxWithConstraints
+        }
         val badgeTop = 25.dp
         val badgeHeight = 39.dp
         val badgeClearance = 9.dp
@@ -101,7 +123,7 @@ internal fun CartdeckConsoleShell(
             // Responsive, noninteractive decoration; a valid measured aperture
             // is required before painting. Never paint into video, PadKit
             // bounds, or the protected CARTDECK brand seat.
-            if (hole != null && !minimal) {
+            if (hole != null && !isLandscape) {
                 val reservedBrand =
                     when {
                         !isLandscape && seatFits ->
@@ -185,6 +207,68 @@ internal fun CartdeckConsoleShell(
                         cornerRadius = CornerRadius(12.dp.toPx()),
                         style = Stroke(2.dp.toPx()),
                     )
+                    drawRoundRect(
+                        color = hardwareInlay(tokens),
+                        topLeft = Offset(panel.left + 2.dp.toPx(), panel.top + 2.dp.toPx()),
+                        size =
+                            androidx.compose.ui.geometry.Size(
+                                panel.width - 4.dp.toPx(),
+                                panel.height - 4.dp.toPx(),
+                            ),
+                        cornerRadius = CornerRadius(10.dp.toPx()),
+                        style = Stroke(1.dp.toPx()),
+                    )
+                }
+            }
+            // A landscape appearance is composed in intentional paired engraving bands,
+            // not scattered across leftover pixels or the clean controller surfaces.
+            if (isLandscape && hole != null) {
+                val decoration =
+                    CartdeckManufacturedGeometry.landscapeDecoration(
+                        Rect(0f, 0f, size.width, size.height),
+                        hole,
+                        controls,
+                        this.density,
+                        decal?.anchor,
+                        if (footerSeat) {
+                            listOf(
+                                Rect(
+                                    size.width / 2f - 54.dp.toPx(),
+                                    size.height - 66.dp.toPx(),
+                                    size.width / 2f + 54.dp.toPx(),
+                                    size.height,
+                                ),
+                            )
+                        } else {
+                            emptyList()
+                        },
+                    )
+                clipPath(shellPath) {
+                    decoration.bands.forEach { band ->
+                        drawCartdeckSurfaceDesign(
+                            patternId = patternId,
+                            stampId = CartdeckSurfaceDesign.STAMP_NONE,
+                            frame = band,
+                            exclusions = emptyList(),
+                            lineColour = tokens.accent,
+                            stampColour = tokens.onChassis,
+                            cellSize = 16.dp.toPx(),
+                            clearance = 0f,
+                        )
+                    }
+                    decoration.stampSeat?.let { seat ->
+                        drawCartdeckSurfaceDesign(
+                            patternId = CartdeckSurfaceDesign.PATTERN_NONE,
+                            stampId = stampId,
+                            frame = seat,
+                            exclusions = emptyList(),
+                            lineColour = tokens.accent,
+                            stampColour = tokens.onChassis,
+                            cellSize = 16.dp.toPx(),
+                            clearance = 0f,
+                            stampSeatOverride = seat,
+                        )
+                    }
                 }
             }
             hole?.let { display ->
@@ -223,7 +307,7 @@ internal fun CartdeckConsoleShell(
                     }
                 drawPath(glassLip, tokens.glass)
                 drawRoundRect(
-                    color = lerp(tokens.bezel, tokens.secondary, if (dsPortrait) 0.38f else 0.55f),
+                    color = hardwareInlay(tokens).copy(alpha = if (dsPortrait) 0.55f else 0.9f),
                     topLeft = rim.topLeft,
                     size = rim.size,
                     cornerRadius = CornerRadius(10.dp.toPx()),
@@ -279,7 +363,9 @@ internal fun CartdeckConsoleShell(
                 } else {
                     emptyList()
                 }
-            if (!minimal) {
+            // Landscape engraving bands already supply the bottom inlay.
+            // Do not double-paint the old horizontal deck seam across their edges.
+            if (!minimal && !isLandscape) {
                 CartdeckHardwareGeometry.seamSegments(
                     left = left,
                     right = size.width - left,
@@ -346,10 +432,26 @@ internal fun CartdeckConsoleShell(
                 } else {
                     null
                 }
-            CartdeckDecalLayer(
-                decal = decal,
-                exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
-            )
+            val dedicatedSeat =
+                if (isLandscape) {
+                    CartdeckManufacturedGeometry.landscapeDecoration(
+                        Rect(0f, 0f, w, h),
+                        hole,
+                        controls,
+                        density.density,
+                        decal.anchor,
+                        listOfNotNull(protectedBrand),
+                    ).decalSeat
+                } else {
+                    null
+                }
+            if (!isLandscape || dedicatedSeat != null) {
+                CartdeckDecalLayer(
+                    decal = decal,
+                    exclusions = listOf(hole) + controls + listOfNotNull(protectedBrand),
+                    dedicatedSeat = dedicatedSeat,
+                )
+            }
         }
 
         // Full brand returns above the standard manufactured screen; the

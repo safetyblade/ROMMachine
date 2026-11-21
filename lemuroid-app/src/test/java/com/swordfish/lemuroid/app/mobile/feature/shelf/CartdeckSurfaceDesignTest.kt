@@ -14,6 +14,7 @@ class CartdeckSurfaceDesignTest {
         val baseline = requireNotNull(CartdeckCuratedDesigns.byId(CartdeckCuratedDesigns.STEALTH_ACID_ID))
         val ids =
             listOf(
+                CartdeckCuratedDesigns.SIGNATURE_ID,
                 CartdeckCuratedDesigns.LIGHT_ID,
                 CartdeckCuratedDesigns.ARCANA_GILDED_ID,
                 CartdeckCuratedDesigns.WILDBOUND_FORGE_ID,
@@ -26,9 +27,19 @@ class CartdeckSurfaceDesignTest {
             val applied = CartdeckCuratedDesigns.apply(ShelfAppearance(), id)
             assertEquals(id, applied.curatedDesignId)
             assertEquals(design.colours, applied.custom)
-            assertEquals(CartdeckLighting(), applied.lighting)
+            val expectedLighting =
+                if (id == CartdeckCuratedDesigns.SIGNATURE_ID) {
+                    CartdeckLighting(
+                        mode = CartdeckLighting.MODE_STATIC,
+                        finish = CartdeckLighting.FINISH_NEON,
+                        intensity = 40,
+                    )
+                } else {
+                    CartdeckLighting()
+                }
+            assertEquals(expectedLighting, applied.lighting)
         }
-        assertEquals(4, CartdeckCuratedDesigns.designs.map { it.id }.distinct().size)
+        assertEquals(5, CartdeckCuratedDesigns.designs.map { it.id }.distinct().size)
     }
 
     @Test

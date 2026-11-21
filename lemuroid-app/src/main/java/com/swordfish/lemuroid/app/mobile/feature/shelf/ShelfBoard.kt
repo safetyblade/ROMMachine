@@ -676,15 +676,16 @@ fun ShelfRail(
     highContrast: Boolean = false,
 ) {
     val colors = LocalShelfMaterials.current
-    val railColour =
-        if (lighting.active(CartdeckLighting.SHELF_RAIL, highContrast)) {
-            lighting.tint(colors.interactionAccent)
-        } else {
-            colors.edgeHighlight
-        }
     Column(Modifier.fillMaxWidth().height(22.dp).graphicsLayer { shadowElevation = 6.dp.toPx() }) {
-        Box(Modifier.fillMaxWidth().height(5.dp).background(colors.shelfGroove))
-        Box(Modifier.fillMaxWidth().height(2.dp).background(railColour))
+        Canvas(Modifier.fillMaxWidth().height(7.dp)) {
+            drawRect(colors.shelfGroove)
+            val track = Rect(0f, 5.dp.toPx(), size.width, size.height)
+            drawRect(colors.edgeHighlight, topLeft = track.topLeft, size = track.size)
+            if (lighting.active(CartdeckLighting.SHELF_RAIL, highContrast)) {
+                val halo = Rect(0f, 2.dp.toPx(), size.width, size.height)
+                drawLightingFinish(track, lighting.tint(colors.interactionAccent), lighting.finish, halo)
+            }
+        }
         Box(
             Modifier.fillMaxWidth().height(
                 9.dp,

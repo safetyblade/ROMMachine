@@ -225,6 +225,7 @@ internal fun decalFromJson(json: JSONObject): CartdeckPersonalDecal =
 internal fun lightingToJson(lighting: CartdeckLighting): JSONObject =
     JSONObject().apply {
         put("mode", lighting.mode)
+        put("finish", lighting.finish)
         put("intensity", lighting.intensity)
         put("colour", lighting.colour ?: JSONObject.NULL)
         put("zones", JSONArray(lighting.zones.sorted()))
@@ -241,6 +242,7 @@ internal fun lightingFromJson(json: JSONObject): CartdeckLighting {
         }
     return CartdeckLighting(
         mode = json.optString("mode", CartdeckLighting.MODE_OFF),
+        finish = json.optString("finish", defaults.finish),
         intensity = json.optInt("intensity", defaults.intensity),
         colour = if (json.isNull("colour")) null else json.getLong("colour"),
         zones = zones,

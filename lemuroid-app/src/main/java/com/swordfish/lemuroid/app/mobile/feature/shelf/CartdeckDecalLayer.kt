@@ -25,6 +25,7 @@ internal fun CartdeckDecalLayer(
     decal: CartdeckPersonalDecal?,
     exclusions: List<Rect>,
     modifier: Modifier = Modifier,
+    dedicatedSeat: Rect? = null,
 ) {
     val context = LocalContext.current
     val asset by produceState<ImageBitmap?>(initialValue = null, key1 = decal?.assetId) {
@@ -34,7 +35,15 @@ internal fun CartdeckDecalLayer(
     Canvas(modifier.fillMaxSize()) {
         val margin = 12.dp.toPx()
         val seat =
-            CartdeckDecalGeometry.place(
+            dedicatedSeat?.let { reserved ->
+                val half = reserved.width * decal.scale / 2f
+                Rect(
+                    reserved.center.x - half,
+                    reserved.center.y - half,
+                    reserved.center.x + half,
+                    reserved.center.y + half,
+                )
+            } ?: CartdeckDecalGeometry.place(
                 frame = Rect(margin, margin, size.width - margin, size.height - margin),
                 exclusions = exclusions,
                 decal = decal,

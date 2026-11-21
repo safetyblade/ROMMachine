@@ -1,7 +1,10 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckPersonalDecal
+import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -33,6 +36,55 @@ class CartdeckManufacturedGeometryTest {
         val compact = CartdeckManufacturedGeometry.channels(frame, ds, emptyList(), 1f, true)
         assertTrue(compact.none { it.bounds.center.y == 16f })
         assertTrue(compact.none { CartdeckHardwareGeometry.intersects(it.bounds, ds) })
+    }
+
+    @Test
+    fun glowNeverEscapesSafeHardwareOrTouchesVideoAndControls() {
+        val frame = Rect(0f, 0f, 393f, 852f)
+        val video = Rect(22f, 84f, 371f, 346f)
+        val controls = listOf(Rect(30f, 400f, 180f, 700f))
+        val tracks = CartdeckManufacturedGeometry.channels(frame, video, controls, 1f, false)
+        val halos = tracks.mapNotNull { it.glowBounds }
+        assertTrue(halos.isNotEmpty())
+        assertTrue(halos.all { it.left >= 9f && it.top >= 9f && it.right <= 384f && it.bottom <= 843f })
+        assertFalse(halos.any { CartdeckHardwareGeometry.intersects(it, video) })
+        assertFalse(halos.any { halo -> controls.any { CartdeckHardwareGeometry.intersects(halo, it) } })
+    }
+
+    @Test
+    fun landscapeEngravingIsPairedAndAvoidsControlsAndArtworkSeats() {
+        val frame = Rect(0f, 0f, 852f, 393f)
+        val video = Rect(230f, 8f, 622f, 385f)
+        val controls = listOf(Rect(30f, 46f, 210f, 345f), Rect(642f, 46f, 822f, 345f))
+        val decoration =
+            CartdeckManufacturedGeometry.landscapeDecoration(
+                frame,
+                video,
+                controls,
+                1f,
+                CartdeckPersonalDecal.ANCHOR_LOWER_RIGHT,
+            )
+        assertEquals(4, decoration.bands.size)
+        assertEquals(decoration.bands[0].width, decoration.bands[1].width)
+        val art = listOfNotNull(decoration.stampSeat, decoration.decalSeat)
+        assertEquals(2, art.size)
+        assertTrue((decoration.bands + art).none { CartdeckHardwareGeometry.intersects(it, video) })
+        assertTrue(
+            (decoration.bands + art).none { zone ->
+                controls.any { CartdeckHardwareGeometry.intersects(it, zone) }
+            },
+        )
+        assertTrue(art.none { seat -> decoration.bands.any { CartdeckHardwareGeometry.intersects(it, seat) } })
+    }
+
+    @Test
+    fun landscapeFitCapsOnlySessionScaleAndKeepsNativeRotationAndMargins() {
+        val saved = TouchControllerSettingsManager.Settings(scale = 0.8f, rotation = 0.1f, marginX = 0.1f)
+        val compact = GameScreenLayout.fitLandscapeHardwareSettings(saved, 393.dp)
+        assertTrue(compact.scale < saved.scale)
+        assertEquals(saved.rotation, compact.rotation)
+        assertEquals(saved.marginX, compact.marginX)
+        assertEquals(saved, GameScreenLayout.fitLandscapeHardwareSettings(saved, 800.dp))
     }
 
     @Test

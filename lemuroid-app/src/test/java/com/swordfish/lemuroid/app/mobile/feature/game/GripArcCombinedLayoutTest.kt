@@ -59,6 +59,22 @@ class GripArcCombinedLayoutTest {
         return result
     }
 
+    @Test fun closeFitPreservesControllerConstellationsAndMinimumTargets() {
+        val anchor = PivotArcBounds(20f, 200f, 120f, 300f)
+        val upper = PivotArcBounds(40f, 212f, 88f, 260f)
+        val lower = PivotArcBounds(40f, 264f, 88f, 312f)
+        val originalDx = lower.centerX - upper.centerX
+        val originalDy = lower.centerY - upper.centerY
+        val top = GripArcCombinedLayout.closeFit(upper, anchor, 0.90f, 8f, -16f)
+        val bottom = GripArcCombinedLayout.closeFit(lower, anchor, 0.90f, 8f, -16f)
+        assertEquals(originalDx * 0.90f, bottom.centerX - top.centerX, 0.001f)
+        assertEquals(originalDy * 0.90f, bottom.centerY - top.centerY, 0.001f)
+        assertTrue(top.width >= 48f && top.height >= 48f)
+        assertTrue(bottom.width >= 48f && bottom.height >= 48f)
+        assertTrue(kotlin.math.abs(top.centerY - upper.centerY) <= 24f)
+        assertTrue(kotlin.math.abs(bottom.centerY - lower.centerY) <= 24f)
+    }
+
     @Test fun everySelectedNativeInventorySurvivesResolutionOnBothSides() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         for (controller in controllers) for (side in GripArcSide.values()) {
@@ -135,6 +151,29 @@ class GripArcCombinedLayoutTest {
         }
     }
 
+    @Test fun firstFrameMatchesNativeControllerGroupsInsteadOfScatteringThem() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (controller in controllers) {
+            val native = NativeControlInventory.forController(controller)!!
+            val seats = GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)
+            assertNotNull("$controller", seats)
+            val positions = seats!!
+            assertEquals(native.controls.map { it.seat }.toSet(), positions.keys)
+            val dpad = positions.getValue("dpad")
+            val face = positions.values.first { it.centerX > device.safe.centerX && it.width > 80f }
+            assertTrue("$controller directional controls left", dpad.centerX < face.centerX)
+            for (spec in native.controls) {
+                assertTrue(
+                    "$controller " + spec.key + " initial geometry",
+                    positions.getValue(spec.seat).isFiniteArea(),
+                )
+            }
+            if (controller == TouchControllerID.GAMECUBE) {
+                assertFalse(positions.getValue("shoulder-R").intersects(positions.getValue("aux-Z")))
+            }
+        }
+    }
+
     @Test fun firstFrameNeedsNoMeasurementsFromControlsBeingReplaced() {
         for (device in ControlDeckDeviceFixture.representative) for (controller in controllers) {
             for (side in GripArcSide.values()) {
@@ -151,6 +190,8 @@ class GripArcCombinedLayoutTest {
                     )
                 assertNotNull("initial $controller $side $device", p)
                 assertTrue(p!!.complete)
+                assertEquals(native.controls.map { it.key }.toSet(), p.controls.keys)
+                assertTrue(p.controls.values.none { it.intersects(device.viewport) })
             }
         }
     }
