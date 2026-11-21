@@ -99,7 +99,7 @@ inline void append(char* out, size_t size) {
   write("xgfx03_schema=1 frames=%llu measured=FRAME_BOUNDARY "
         "clear_memory_page_state=%d vulkan_cache_texture_descriptors=%d "
         "vulkan_skip_redundant_fetch_constant_writes=%d "
-        "vulkan_fast_register_ranges=%d vulkan_mid_frame_submission_draws=%d\\n",
+        "vulkan_fast_register_ranges=%d vulkan_mid_frame_submission_draws=%d\n",
         static_cast<unsigned long long>(xgfx_settings_frames.load(std::memory_order_relaxed)),
         int(bool(xgfx & 1u)), int(bool(xgfx & 2u)), int(bool(xgfx & 4u)),
         int(bool(xgfx & 8u)), xgfx_mid_frame_draws.load(std::memory_order_relaxed));
