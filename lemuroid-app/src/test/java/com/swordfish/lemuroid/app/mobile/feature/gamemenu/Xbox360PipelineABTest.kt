@@ -1,8 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
-import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
-
 import android.content.Context
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
