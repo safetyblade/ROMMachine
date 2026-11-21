@@ -109,9 +109,17 @@ jobs:
         id: cached
         uses: actions/github-script@v7
         with:
+          retries: 3
           script: |
             const prefix = 'native-ci01-${{ inputs.engine }}-';
-            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            let artifacts;
+            try {
+              artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            } catch (error) {
+              if (![500, 502, 503, 504].includes(error.status)) throw error;
+              core.warning('Native artifact cache unavailable (GitHub 5xx); build verified pinned source instead');
+              return;
+            }
             for (const a of artifacts.filter(a => !a.expired && a.name.startsWith(prefix)).sort((a,b) => new Date(b.created_at)-new Date(a.created_at))) {
               const id = a.workflow_run?.id;
               if (!id || String(id) === String(context.runId)) continue;

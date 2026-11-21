@@ -9,4 +9,6 @@ public final class Emulator extends xendroid.emulator.Emulator {
     public native void setup_launch_args(String[] args);
     public native void setup_uri_info_list_file(String path);
     public native String cartdeck_report();
+    // Engineering-only advanced diagnostics. Disabled by native default.
+    public native void cartdeck_set_xgfx_diagnostics(boolean enabled);
 }

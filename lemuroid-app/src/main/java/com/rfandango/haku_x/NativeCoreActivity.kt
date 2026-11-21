@@ -101,7 +101,7 @@ class NativeCoreActivity : SDLActivity() {
     }
     private val menuShowing get() = menuOpen || recoveryDialog?.isShowing == true
     private val main = Handler(Looper.getMainLooper())
-    private val hardware = XboxPadState()
+    private val hardware = XboxPadState(stickDeadzone = 0f)
     private val physicalMapping: NativeControllerMappingSession by lazy {
         NativeControllerMappingSession(
             this,
@@ -142,7 +142,7 @@ class NativeCoreActivity : SDLActivity() {
     private val mappingProbe = ControllerInputProbe()
     private var selectedMappingId by mutableStateOf(-1)
     private var mappingNotice by mutableStateOf<String?>(null)
-    private val touch = XboxPadState()
+    private val touch = XboxPadState(stickDeadzone = 0f)
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
     private var presentationRecorded = false

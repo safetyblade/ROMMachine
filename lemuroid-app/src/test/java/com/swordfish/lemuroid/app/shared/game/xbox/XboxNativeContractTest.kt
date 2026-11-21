@@ -43,6 +43,28 @@ class XboxNativeContractTest {
         assertFalse(pad.key(KeyEvent.KEYCODE_VOLUME_UP, true))
     }
 
+    @Test fun originalXboxDoesNotSuppressSmallTouchAnalogMovements() {
+        val xboxTouch = XboxPadState(stickDeadzone = 0f)
+        xboxTouch.direction(1, .08f, -.08f)
+        xboxTouch.direction(2, .06f, .05f)
+        assertTrue(xboxTouch.lx > 0)
+        assertTrue(xboxTouch.ly < 0)
+        assertTrue(xboxTouch.rx > 0)
+        assertTrue(xboxTouch.ry > 0)
+        xboxTouch.direction(1, 0f, 0f)
+        assertEquals(0, xboxTouch.lx)
+        assertEquals(0, xboxTouch.ly)
+    }
+
+    @Test fun originalXboxDoesNotApplySecondDeadzoneAfterCalibratedController() {
+        val xboxHardware = XboxPadState(stickDeadzone = 0f)
+        xboxHardware.motion { axis -> if (axis == MotionEvent.AXIS_X) .04f else 0f }
+        assertTrue(xboxHardware.lx > 0)
+        val unchangedOtherConsoles = XboxPadState()
+        unchangedOtherConsoles.motion { axis -> if (axis == MotionEvent.AXIS_X) .04f else 0f }
+        assertEquals(0, unchangedOtherConsoles.lx)
+    }
+
     @Test fun dpadHatAndKeyReleaseDoNotCancelOtherHeldButtons() {
         val pad = XboxPadState()
         pad.key(KeyEvent.KEYCODE_DPAD_UP, true)

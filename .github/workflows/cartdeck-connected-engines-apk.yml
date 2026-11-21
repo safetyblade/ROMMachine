@@ -228,6 +228,7 @@ jobs:
         id: ci01_set
         uses: actions/github-script@v7
         with:
+          retries: 3
           script: |
             const engines = ['ps1', 'psp', 'dc', 'gc', 'ps2'];
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
@@ -316,6 +317,7 @@ jobs:
         if: inputs.use_ci01_all_native == true
         uses: actions/github-script@v7
         with:
+          retries: 3
           script: |
             const engines = ['hakux', 'xenia', 'armsx2', 'cemu', 'libretrodroid'];
             const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
@@ -382,8 +384,10 @@ jobs:
                   run.path === '.github/workflows/cartdeck-ci01-native-engine.yml' && artifact.name === prefix + run.head_sha;
                 const recovered = run.event === 'pull_request' &&
                   run.path === '.github/workflows/cartdeck-emu-recovery.yml' &&
-                  run.head_branch?.startsWith('engineering/emu-recovery-') &&
-                  new RegExp('^' + prefix + '[0-9a-f]{40}$').test(artifact.name);
+                  (run.head_branch?.startsWith('engineering/emu-recovery-') ||
+                   (engine === 'xenia' && run.head_branch === 'engineering/perf-stage02-xbox-20261121')) &&
+                  artifact.name.length === prefix.length + 40 &&
+                  new RegExp('^' + prefix + '[0-9a-f]{40}').test(artifact.name);
                 const pcHost = engine === 'libretrodroid' && run.event === 'pull_request' &&
                   run.path === '.github/workflows/cartdeck-pc-host-recovery.yml' &&
                   run.head_branch?.startsWith('engineering/perf-pc01-input-continuation-') &&
