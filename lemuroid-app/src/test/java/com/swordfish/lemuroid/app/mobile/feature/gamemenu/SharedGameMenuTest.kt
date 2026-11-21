@@ -89,6 +89,8 @@ class SharedGameMenuTest {
         compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.SKIP_OFF, pipelineQueued) }
         compose.onNodeWithText("Next launch: test draw skipping ON").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.SKIP_ON, pipelineQueued) }
+        compose.onNodeWithText("Next launch: test ordered memory uploads").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.ORDERED_UPLOADS, pipelineQueued) }
         compose.onNodeWithText("Next launch: restore engine default").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(Xbox360PipelineAB.Mode.NORMAL, pipelineQueued) }
         compose.onNodeWithText("Start Xbox 360 frame capture").performScrollTo().performClick()
