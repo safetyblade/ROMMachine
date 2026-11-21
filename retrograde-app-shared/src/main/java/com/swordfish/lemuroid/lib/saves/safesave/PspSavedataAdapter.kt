@@ -32,7 +32,10 @@ object PspSavedataAdapter {
      * Discover one explicitly named group. The group name selects a directory;
      * it is never used to infer which cartridge owns the save.
      */
-    fun discover(modernSaveRoot: File, groupName: String): DiscoveredGroup {
+    fun discover(
+        modernSaveRoot: File,
+        groupName: String,
+    ): DiscoveredGroup {
         require(GROUP_NAME.matches(groupName)) { "Unsafe PSP savedata group name" }
         val root = savedataRoot(modernSaveRoot)
         val group = File(root, groupName)
@@ -41,8 +44,10 @@ object PspSavedataAdapter {
         val files = mutableListOf<File>()
         group.walkTopDown().forEach { entry ->
             if (entry == group) return@forEach
-            check(entry.canonicalFile.path == groupCanonical.path ||
-                entry.canonicalFile.path.startsWith(groupCanonical.path + File.separator)) {
+            check(
+                entry.canonicalFile.path == groupCanonical.path ||
+                    entry.canonicalFile.path.startsWith(groupCanonical.path + File.separator),
+            ) {
                 "PSP savedata symlinks are not supported"
             }
             if (entry.isFile) files += entry
@@ -58,7 +63,10 @@ object PspSavedataAdapter {
     }
 
     /** Relative path of [file] inside its savedata group, with traversal rejected. */
-    fun relativePath(group: File, file: File): String {
+    fun relativePath(
+        group: File,
+        file: File,
+    ): String {
         val relative = file.relativeTo(group).path
         require(relative.isNotBlank() && !relative.startsWith("..") && '\\' !in relative) {
             "Unsafe PSP savedata relative path"
