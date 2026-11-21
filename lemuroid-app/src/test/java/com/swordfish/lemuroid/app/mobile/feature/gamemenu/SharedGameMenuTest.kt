@@ -46,6 +46,7 @@ class SharedGameMenuTest {
         var visible by mutableStateOf(true)
         var resumes = 0
         var probes = 0
+        var captureEnabled by mutableStateOf(false)
         val clipboard = compose.activity.getSystemService(ClipboardManager::class.java)
         compose.setContent {
             if (visible) {
@@ -61,6 +62,8 @@ class SharedGameMenuTest {
                         )
                     },
                     onProbe = { probes++ }, onPreviousEngine = {}, appearance = ShelfAppearance(),
+                    performanceCaptureEnabled = captureEnabled,
+                    onTogglePerformanceCapture = { captureEnabled = !captureEnabled },
                 ) { Text("Touch controls fixture") }
             }
         }
@@ -68,6 +71,7 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Save & Load").assertIsDisplayed()
         compose.onNodeWithText("Game Settings").assertDoesNotExist()
         compose.onNodeWithText("Copy engine/GPU report").assertDoesNotExist()
+        compose.onNodeWithText("Start Xbox 360 frame capture").assertDoesNotExist()
         compose.onNodeWithText("Controls").performClick()
         compose.onNodeWithText("Touch controls fixture").assertIsDisplayed()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
@@ -75,6 +79,10 @@ class SharedGameMenuTest {
         compose.onNodeWithText("Previous Engine").assertDoesNotExist()
         compose.onNodeWithText("Fixture engine").assertDoesNotExist()
         compose.onNodeWithText("Diagnostics").performClick()
+        compose.onNodeWithText("Start Xbox 360 frame capture").performScrollTo().performClick()
+        compose.onNodeWithText("Stop Xbox 360 frame capture").assertIsDisplayed()
+        compose.onNodeWithText("Stop Xbox 360 frame capture").performClick()
+        compose.onNodeWithText("Start Xbox 360 frame capture").assertIsDisplayed()
         compose.onNodeWithText("Fixture engine").assertIsDisplayed()
         compose.onNodeWithText("Copy engine/GPU report").performClick()
         compose.runOnIdle { assertEquals("Fixture report", clipboard.primaryClip!!.getItemAt(0).text) }
