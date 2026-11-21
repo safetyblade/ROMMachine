@@ -81,7 +81,7 @@ int main() {
         sm.SetSystemPageBlocksValidWithGpuDataWritten();
         if (sm.valid[0] != 1 || !(sm.invalid[0] & 2)) return 12;
         // A multi-chunk write still marks every changed chunk exactly once.
-        uint32_t across = 63 * page;
+        uint32_t across = ((64u * 64u) - 1u) * page;
         sm.MakeRangeValid(across, 3 * page, true);
         if ((sm.dirty_blocks_ & 3u) != 3u) return 18;
         sm.SetSystemPageBlocksValidWithGpuDataWritten();
