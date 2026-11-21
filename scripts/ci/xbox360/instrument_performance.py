@@ -45,6 +45,23 @@ def instrument(cpp, support):
     gpu = root / 'gpu/vulkan/vulkan_command_processor.cc'
     edit(gpu, 'xe::RecordGuestPresent(); ++cartdeck::guest_swaps;',
          'xe::RecordGuestPresent(); ++cartdeck::guest_swaps; cartdeck::perf::windows[cartdeck::perf::GuestSwap].tick();')
+    # XGFX-03A: compare the actual frame options and optional shared-memory
+    # refresh time against XGFX-01/-02 owner results. No cvar mutations.
+    edit(gpu, '''  if (is_closing_frame) {
+    if (cvars::clear_memory_page_state) {
+      shared_memory_->SetSystemPageBlocksValidWithGpuDataWritten();
+    }''', '''  if (is_closing_frame) {
+    cartdeck::perf::note_xgfx_settings(
+        cvars::clear_memory_page_state,
+        cvars::vulkan_cache_texture_descriptors,
+        cvars::vulkan_skip_redundant_fetch_constant_writes,
+        cvars::vulkan_fast_register_ranges,
+        cvars::vulkan_mid_frame_submission_draws);
+    if (cvars::clear_memory_page_state) {
+      cartdeck::perf::Scope cartdeck_page_refresh(
+          cartdeck::perf::XgfxPageRefresh);
+      shared_memory_->SetSystemPageBlocksValidWithGpuDataWritten();
+    }''')
     # Unbounded per-draw formatting/log traffic is replaced with a buffered counter.
     # Rendering and async pipeline decisions are unchanged.
     for old in [
