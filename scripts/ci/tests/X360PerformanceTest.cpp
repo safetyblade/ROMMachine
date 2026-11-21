@@ -29,6 +29,14 @@ int main() {
   assert(std::strstr(report,"jit_compile count=1 p50_ms=123.456789"));
   assert(std::strstr(report,"unique_completed_frames=UNAVAILABLE"));
   assert(std::strstr(report,"guest_sequence_repeats=1"));
+  assert(std::strstr(report,"guest_sequence_advances=2"));
+  assert(std::strstr(report,"guest_image_integrity=UNVERIFIED"));
+  assert(std::strstr(report,"scope=PROCESS_CUMULATIVE"));
+  assert(std::strstr(report,"capture_sessions=1"));
+  presented(1);
+  char regression_report[16384] = {};
+  append(regression_report, sizeof(regression_report));
+  assert(std::strstr(regression_report,"guest_sequence_regressions=1"));
   // Both settings and real refresh work are reported without changing a cvar.
   note_xgfx_settings(false, true, true, true, 1300);
   windows[XgfxPageRefresh].add(5000000);
