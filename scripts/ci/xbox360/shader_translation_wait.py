@@ -54,6 +54,13 @@ def apply(cpp):
         ("translated field", "    bool is_translated_ = false;", "    std::atomic<bool> is_translated_{false};"),
     ])
     patch_file(gpu / "shader_translator.cc", [
+        ("failed analysis publishes completion",
+         '    XELOGE("AnalyzeUcode must be done on the shader before translation");\n'
+         "    return false;",
+         '    XELOGE("AnalyzeUcode must be done on the shader before translation");\n'
+         "    translation.is_valid_ = false;\n"
+         "    translation.PublishTranslation();\n"
+         "    return false;"),
         ("early publication",
          "  translation.is_translated_ = true;\n\n  bool is_valid = true;",
          "  // Publish only after validity, bindings and PostTranslation are complete.\n\n"
