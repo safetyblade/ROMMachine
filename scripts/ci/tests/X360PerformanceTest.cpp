@@ -34,7 +34,7 @@ int main() {
   windows[XgfxPageRefresh].add(5000000);
   char xgfx_report[16384] = "baseline";
   append(xgfx_report, sizeof(xgfx_report));
-  assert(std::strstr(xgfx_report, "xgfx03_schema=1 frames=1"));
+  assert(std::strstr(xgfx_report, "xgfx03_schema=1 capture=ON frames=1"));
   assert(std::strstr(xgfx_report, "clear_memory_page_state=0"));
   assert(std::strstr(xgfx_report, "vulkan_cache_texture_descriptors=1"));
   assert(std::strstr(xgfx_report, "vulkan_mid_frame_submission_draws=1300"));
