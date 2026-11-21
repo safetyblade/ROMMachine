@@ -145,6 +145,9 @@ class NativeCoreActivity : SDLActivity() {
     private val touch = XboxPadState(stickDeadzone = 0f)
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
+    // Host-only process baseline. Never infer completed guest frames from polling.
+    private val sessionStartedElapsedMs = android.os.SystemClock.elapsedRealtime()
+    private val sessionStartedCpuMs = android.os.Process.getElapsedCpuTime()
     private var presentationRecorded = false
     private var pixelProbeRequested = false
     private var surfacePixelReport = "surface_pixel_probe=disabled"
@@ -495,6 +498,16 @@ class NativeCoreActivity : SDLActivity() {
     private fun presentationContract(): String =
         engine.properties.getProperty("cartdeck.presentation", "legacy acquired image")
 
+    /** Sampled only when a user explicitly copies a report or requests recovery. */
+    private fun hostPerformanceSnapshot(): String {
+        val wallMs = (android.os.SystemClock.elapsedRealtime() - sessionStartedElapsedMs).coerceAtLeast(0L)
+        val cpuMs = (android.os.Process.getElapsedCpuTime() - sessionStartedCpuMs).coerceAtLeast(0L)
+        val pssKib = runCatching { android.os.Debug.getPss() }.getOrDefault(-1L)
+        return "xbox_host_perf_schema=1 scope=PROCESS wall_ms=$wallMs cpu_ms=$cpuMs " +
+            "pss_kib=$pssKib native_fps=UNAVAILABLE guest_simulation_rate=UNAVAILABLE " +
+            "gpu_execution_time=UNAVAILABLE scene_integrity=UNVERIFIED"
+    }
+
     private fun diagnosticReport(
         reason: String,
         capturedGpuReport: String? = null,
@@ -508,6 +521,7 @@ class NativeCoreActivity : SDLActivity() {
             "Device: ${android.os.Build.MODEL}; Android ${android.os.Build.VERSION.SDK_INT}\n" +
             "Stage: ${watchdog.stage}; guest frame presented: ${watchdog.presented}\n" +
             "Native failure category: ${nativeGetFatalKind()}\n" +
+            "${hostPerformanceSnapshot()}\n" +
             "${capturedGpuReport ?: gpuReport()}\n" +
             "Presentation probe: ${presentationContract()}\n" +
             "${viewportAudit.summary()}\n" +
