@@ -18,7 +18,7 @@ class DisplaySettingsStoreTest {
     @Test fun defaultsOverridesAndResetSurviveReopenWithoutTouchingOtherCartridges() {
         val root = temporary.newFolder()
         val store = DisplaySettingsStore(root) { DisplaySettingsStore.Choices(filter = "auto", hd = true) }
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("one").effective.border(true))
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(false))
         store.set(null, "landscapeBorder", "STANDARD")
         store.set("one", "landscapeBorder", "OFF")
@@ -33,16 +33,16 @@ class DisplaySettingsStoreTest {
         assertTrue(store.read("one").effective.hd == true)
     }
 
-    @Test fun noControllerLandscapeUsesHardwareUnlessExplicitlyDisabled() {
+    @Test fun landscapeDefaultsOffUntilExplicitlySelectedAndRespectsOverrides() {
         val store = DisplaySettingsStore(temporary.newFolder())
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("gbc").effective.border(true))
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("xbox").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("gbc").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("xbox").effective.border(true))
         store.set(null, "landscapeBorder", "MINIMAL")
         assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
         store.set("gbc", "landscapeBorder", "OFF")
         assertEquals(DisplaySettingsStore.Border.OFF, store.read("gbc").effective.border(true))
         assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
-        store.set("gbc", "landscapeBorder", null)
+        store.useGlobal("gbc")
         assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("gbc").effective.border(true))
     }
 
