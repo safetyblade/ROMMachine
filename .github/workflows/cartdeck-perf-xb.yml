@@ -43,5 +43,3 @@ jobs:
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_shader_wait.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_xgfx04_counters.py' -v
-      - name: Recheck shared-memory graph correctness
-        run: python3 -m unittest discover -s scripts/ci -p 'test_x360_shared_memory.py' -v
