@@ -92,6 +92,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var menuOpen by mutableStateOf(false)
+    // Explicit Advanced > Diagnostics opt-in only; no gameplay overlay or automatic capture.
+    private var xgfxDiagnosticsEnabled by mutableStateOf(false)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
     private var failed = false
     private var physicalConnected by mutableStateOf(false)
@@ -238,6 +240,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
+                                performanceCaptureEnabled = xgfxDiagnosticsEnabled,
+                                onTogglePerformanceCapture = if (BuildConfig.DEBUG) ::togglePerformanceCapture else null,
                                 onProbe = {},
                                 onPreviousEngine = { if (Xbox360Engine.store(filesDir).rollback()) leave() },
                                 appearance = null,
@@ -608,6 +612,18 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         Xbox360Reports.write(filesDir, report)
     }
 
+    private fun togglePerformanceCapture() {
+        if (!BuildConfig.DEBUG || !booted || failed || leaving || !menuOpen) return
+        val next = !xgfxDiagnosticsEnabled
+        runCatching {
+            requireNotNull(emulator).cartdeck_set_xgfx_diagnostics(next)
+        }.onSuccess {
+            xgfxDiagnosticsEnabled = next
+        }.onFailure {
+            menuPauseFeedback = "Xbox 360 diagnostic capture is unavailable in this engine."
+        }
+    }
+
     private fun copyReport() {
         val native = runCatching { emulator?.cartdeck_report() }.getOrNull()
         if (native != null) saveReport(native)
@@ -620,6 +636,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun leave() {
         if (leaving) return
+        runCatching { emulator?.cartdeck_set_xgfx_diagnostics(false) }
+        xgfxDiagnosticsEnabled = false
         leaving = true
         preparation.requestCancellation()
         releaseInputs()
