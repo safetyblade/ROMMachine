@@ -145,6 +145,7 @@ class NativeCoreActivity : SDLActivity() {
     private val touch = XboxPadState(stickDeadzone = 0f)
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
+
     // Host-only process baseline. Never infer completed guest frames from polling.
     private val sessionStartedElapsedMs = android.os.SystemClock.elapsedRealtime()
     private val sessionStartedCpuMs = android.os.Process.getElapsedCpuTime()
