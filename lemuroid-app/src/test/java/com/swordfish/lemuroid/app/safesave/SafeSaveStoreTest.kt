@@ -32,8 +32,7 @@ private class InMemoryIndex : SafeSaveIndex {
     override fun snapshotsForCartridge(cartridgeUuid: String) =
         snapshots.values.filter { it.cartridgeUuid == cartridgeUuid }
 
-    override fun snapshotsForGroup(groupName: String) =
-        snapshots.values.filter { it.groupName == groupName }
+    override fun snapshotsForGroup(groupName: String) = snapshots.values.filter { it.groupName == groupName }
 
     override fun appendJournal(record: SafeSaveJournalRecord) {
         journal += record
@@ -163,8 +162,9 @@ class SafeSaveStoreTest {
         val (parent, saveRoot, snapshotRoot) = fixture()
         try {
             val index = InMemoryIndex()
-            val captured = SafeSaveStore(index, snapshotRoot)
-                .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val captured =
+                SafeSaveStore(index, snapshotRoot)
+                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
             // Simulate install-over: brand-new store/access objects, same index + roots.
             val access = SafeSavePspAccess(SafeSaveStore(index, snapshotRoot), index)
             val found = access.verifiedSavesForCartridge(cartridgeA)
@@ -182,8 +182,9 @@ class SafeSaveStoreTest {
             val context = ApplicationProvider.getApplicationContext<android.content.Context>()
             val dbFile = File(parent, "safesave-test.db")
             val db1 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
-            val captured = SafeSaveStore(RoomSafeSaveIndex(db1.safeSaveDao()), snapshotRoot)
-                .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val captured =
+                SafeSaveStore(RoomSafeSaveIndex(db1.safeSaveDao()), snapshotRoot)
+                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
             db1.close()
             val db2 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
             val reopened = RoomSafeSaveIndex(db2.safeSaveDao()).snapshot(captured.snapshot.snapshotId)
