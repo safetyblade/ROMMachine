@@ -163,6 +163,7 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
             engineId = engineId,
             engineVersion = engineVersion,
             saveType = saveType,
+            groupName = groupName,
             saveTimestamp = saveTimestamp,
             captureTime = captureTime,
             verificationState = SafeSaveVerificationState.valueOf(verificationState),
