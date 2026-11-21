@@ -228,6 +228,7 @@ jobs:
         id: ci01_set
         uses: actions/github-script@v7
         with:
+          retries: 3
           script: |
             const engines = ['ps1', 'psp', 'dc', 'gc', 'ps2'];
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
@@ -316,6 +317,7 @@ jobs:
         if: inputs.use_ci01_all_native == true
         uses: actions/github-script@v7
         with:
+          retries: 3
           script: |
             const engines = ['hakux', 'xenia', 'armsx2', 'cemu', 'libretrodroid'];
             const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
