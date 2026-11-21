@@ -118,7 +118,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val effectiveArcMode = sessionChoice.value.modeFor(arcProfile.mode)
         val effectiveArcSide = sessionChoice.value.sideFor(arcProfile.side)
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
-        val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(false)
+        val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(true)
         // The existing enabled-gamepad flow already hides the main touch pad
         // on every device. Fullscreen landscape must also hide GripArc and
         // decorative physical-shell artwork while keeping game input alive.
