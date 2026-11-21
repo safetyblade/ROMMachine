@@ -42,17 +42,33 @@ struct Window {
   }
 };
 enum Metric { GuestSwap, HostPresent, Jit, Shader, Pipeline, Acquire, PresentCall,
-              QueueLock, FrameFence, Submit, MetricCount };
+              QueueLock, FrameFence, Submit, XgfxPageRefresh, MetricCount };
 inline std::array<Window, MetricCount> windows;
 inline constexpr const char* names[] = {"guest_swap_interval", "host_present_interval",
   "jit_compile", "shader_translate", "pipeline_compile", "swapchain_acquire",
-  "present_call", "present_queue_lock", "frame_fence_wait", "gpu_submit_cpu"};
+  "present_call", "present_queue_lock", "frame_fence_wait", "gpu_submit_cpu",
+  "xgfx_page_state_refresh"};
 struct Scope {
   Metric metric;
   uint64_t start = now();
   explicit Scope(Metric m) : metric(m) {}
   ~Scope() { windows[metric].add(now() - start); }
 };
+// 03A: read-only frame-boundary snapshot of the effective Xenia settings.
+// One bounded write per frame, never a render policy override or per-draw log.
+inline std::atomic<uint32_t> xgfx_settings{0};
+inline std::atomic<int> xgfx_mid_frame_draws{0};
+inline std::atomic<uint64_t> xgfx_settings_frames{0};
+inline void note_xgfx_settings(bool clear_pages, bool cache_descriptors,
+                               bool skip_fetch_writes, bool fast_registers,
+                               int mid_frame_draws) {
+  const uint32_t bits = (clear_pages ? 1u : 0u) |
+      (cache_descriptors ? 2u : 0u) |
+      (skip_fetch_writes ? 4u : 0u) | (fast_registers ? 8u : 0u);
+  xgfx_settings.store(bits, std::memory_order_relaxed);
+  xgfx_mid_frame_draws.store(mid_frame_draws, std::memory_order_relaxed);
+  xgfx_settings_frames.fetch_add(1, std::memory_order_relaxed);
+}
 inline std::atomic<uint64_t> skipped_draws{0}, audio_underrun_frames{0};
 inline std::atomic<uint64_t> last_present_guest_sequence{0}, guest_sequence_repeats{0};
 inline void presented(uint64_t guest_sequence) {
@@ -79,6 +95,14 @@ inline void append(char* out, size_t size) {
       p[0] / 1e6, p[1] / 1e6, p[2] / 1e6, windows[i].sum.load() / 1e6,
       windows[i].maximum.load() / 1e6);
   }
+  const uint32_t xgfx = xgfx_settings.load(std::memory_order_relaxed);
+  write("xgfx03_schema=1 frames=%llu measured=FRAME_BOUNDARY "
+        "clear_memory_page_state=%d vulkan_cache_texture_descriptors=%d "
+        "vulkan_skip_redundant_fetch_constant_writes=%d "
+        "vulkan_fast_register_ranges=%d vulkan_mid_frame_submission_draws=%d\\n",
+        static_cast<unsigned long long>(xgfx_settings_frames.load(std::memory_order_relaxed)),
+        int(bool(xgfx & 1u)), int(bool(xgfx & 2u)), int(bool(xgfx & 4u)),
+        int(bool(xgfx & 8u)), xgfx_mid_frame_draws.load(std::memory_order_relaxed));
   write("skipped_draws=%llu audio_underrun_frames=%llu guest_sequence_repeats=%llu\n",
     static_cast<unsigned long long>(skipped_draws.load()),
     static_cast<unsigned long long>(audio_underrun_frames.load()),
