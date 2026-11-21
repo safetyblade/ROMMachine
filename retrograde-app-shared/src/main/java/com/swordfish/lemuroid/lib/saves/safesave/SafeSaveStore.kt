@@ -54,32 +54,32 @@ class SafeSaveStore(
             check(staging.mkdirs()) { "Unable to stage SafeSave snapshot" }
             val records =
                 group.files.map { source ->
-                val relative = PspSavedataAdapter.relativePath(group.directory, source)
-                val copy = File(staging, relative)
-                check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
-                    "Unable to stage SafeSave file"
+                    val relative = PspSavedataAdapter.relativePath(group.directory, source)
+                    val copy = File(staging, relative)
+                    check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
+                        "Unable to stage SafeSave file"
+                    }
+                    source.copyTo(copy, overwrite = false)
+                    val sourceHash = sha256(source)
+                    check(sha256(copy) == sourceHash) { "SafeSave capture verification failed for $relative" }
+                    SafeSaveFileRecord(relative, source.length(), sourceHash)
                 }
-                source.copyTo(copy, overwrite = false)
-                val sourceHash = sha256(source)
-                check(sha256(copy) == sourceHash) { "SafeSave capture verification failed for $relative" }
-                SafeSaveFileRecord(relative, source.length(), sourceHash)
-            }
             val snapshot =
                 SafeSaveSnapshotRecord(
                     snapshotId = snapshotId,
-                cartridgeUuid = uuid,
-                platform = PspSavedataAdapter.PLATFORM,
-                engineId = PspSavedataAdapter.ENGINE_ID,
-                engineVersion = engineVersion,
-                saveType = PspSavedataAdapter.SAVE_TYPE,
-                groupName = groupName,
-                saveTimestamp = group.latestModified,
-                captureTime = clock(),
-                verificationState = SafeSaveVerificationState.VERIFIED,
-                totalBytes = group.totalBytes,
-                fileCount = records.size,
-                files = records,
-            )
+                    cartridgeUuid = uuid,
+                    platform = PspSavedataAdapter.PLATFORM,
+                    engineId = PspSavedataAdapter.ENGINE_ID,
+                    engineVersion = engineVersion,
+                    saveType = PspSavedataAdapter.SAVE_TYPE,
+                    groupName = groupName,
+                    saveTimestamp = group.latestModified,
+                    captureTime = clock(),
+                    verificationState = SafeSaveVerificationState.VERIFIED,
+                    totalBytes = group.totalBytes,
+                    fileCount = records.size,
+                    files = records,
+                )
             check(staging.renameTo(destination)) { "Unable to activate SafeSave snapshot" }
             index.insertSnapshot(snapshot)
             index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()))
