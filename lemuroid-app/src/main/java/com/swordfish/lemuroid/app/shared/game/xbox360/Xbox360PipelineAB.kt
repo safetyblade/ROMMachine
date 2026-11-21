@@ -3,7 +3,7 @@ package com.swordfish.lemuroid.app.shared.game.xbox360
 import android.content.Context
 
 /**
- * Debug-only, one-launch global Xbox 360 shader pipeline A/B test.
+ * Debug-only, one-launch global Xbox 360 renderer/memory ordering A/B tests.
  *
  * Does not alter Xenia's config, per-title overrides, shader cache, guest HDD
  * or save files. A pending test is consumed before launching any Xbox 360 title.
@@ -20,6 +20,7 @@ internal object Xbox360PipelineAB {
         NORMAL("Engine default", null),
         SKIP_ON("Draw skipping ON", "--vulkan_async_skip_draws=true"),
         SKIP_OFF("Draw skipping OFF", "--vulkan_async_skip_draws=false"),
+        ORDERED_UPLOADS("Guest-memory uploads ordered (hoisting OFF)", "--vulkan_hoist_shmem_uploads=false"),
     }
 
     fun queued(context: Context): Mode {
