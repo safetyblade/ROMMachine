@@ -142,7 +142,7 @@ inline void append(char* out, size_t size) {
         "replay_dropped_indexed_draw=%llu replay_submitted_draw=%llu "
         "replay_submitted_indexed_draw=%llu gpu_range_writes=%llu "
         "valid_changed_blocks=%llu gpu_to_cpu_blocks=%llu "
-        "cpu_to_gpu_blocks=%llu (block=64_pages, counters=sessions)\\n",
+        "cpu_to_gpu_blocks=%llu (block=64_pages, counters=sessions)\n",
         capture_enabled.load(std::memory_order_relaxed) ? "ON" : "OFF",
         static_cast<unsigned long long>(xgfx04_deferred_pipeline_unready.load()),
         static_cast<unsigned long long>(xgfx04_replay_dropped_draw.load()),
