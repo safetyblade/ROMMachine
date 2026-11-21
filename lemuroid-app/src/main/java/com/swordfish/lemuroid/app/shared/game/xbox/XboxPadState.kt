@@ -11,6 +11,7 @@ class XboxPadState(private val stickDeadzone: Float = .15f) {
     init {
         require(stickDeadzone.isFinite() && stickDeadzone in 0f..0.5f)
     }
+
     private val keys = mutableSetOf<Int>()
     private var hat = 0
     private var leftTrigger = 0
