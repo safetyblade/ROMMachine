@@ -29,8 +29,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
-import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
