@@ -56,7 +56,7 @@ class DisplaySettingsStore(
             )
 
         fun border(landscape: Boolean): Border =
-            if (landscape) landscapeBorder ?: Border.OFF else portraitBorder ?: Border.STANDARD
+            if (landscape) landscapeBorder ?: Border.STANDARD else portraitBorder ?: Border.STANDARD
     }
 
     data class Snapshot(val effective: Choices, val own: Choices, val error: String? = null)
