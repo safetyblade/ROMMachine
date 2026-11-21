@@ -25,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
@@ -47,6 +48,9 @@ internal fun XboxGameMenu(
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     performanceCaptureEnabled: Boolean = false,
     onTogglePerformanceCapture: (() -> Unit)? = null,
+    pipelineABActive: String? = null,
+    pipelineABQueued: String = "Engine default",
+    onQueuePipelineAB: ((Xbox360PipelineAB.Mode) -> Unit)? = null,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -127,6 +131,23 @@ internal fun XboxGameMenu(
                         Text(engineInfo, style = MaterialTheme.typography.bodySmall)
                         Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
                         GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        if (pipelineABActive != null && onQueuePipelineAB != null) {
+                            Text(
+                                "Global Xbox 360 pipeline A/B (debug only). Active: $pipelineABActive. " +
+                                    "Next launch: $pipelineABQueued. Changes only affect the next Xbox 360 " +
+                                    "launch and reset automatically; no game files or caches are changed.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink("Next launch: test draw skipping OFF") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.SKIP_OFF)
+                            }
+                            GameMenuLink("Next launch: test draw skipping ON") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.SKIP_ON)
+                            }
+                            GameMenuLink("Next launch: restore engine default") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.NORMAL)
+                            }
+                        }
                         if (onTogglePerformanceCapture != null) {
                             Text(
                                 "Frame diagnostics are off by default and never appear over gameplay. " +
