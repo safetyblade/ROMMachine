@@ -52,7 +52,8 @@ class SafeSaveStore(
         val destination = File(snapshotRoot, snapshotId)
         try {
             check(staging.mkdirs()) { "Unable to stage SafeSave snapshot" }
-            val records = group.files.map { source ->
+            val records =
+                group.files.map { source ->
                 val relative = PspSavedataAdapter.relativePath(group.directory, source)
                 val copy = File(staging, relative)
                 check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
@@ -63,8 +64,9 @@ class SafeSaveStore(
                 check(sha256(copy) == sourceHash) { "SafeSave capture verification failed for $relative" }
                 SafeSaveFileRecord(relative, source.length(), sourceHash)
             }
-            val snapshot = SafeSaveSnapshotRecord(
-                snapshotId = snapshotId,
+            val snapshot =
+                SafeSaveSnapshotRecord(
+                    snapshotId = snapshotId,
                 cartridgeUuid = uuid,
                 platform = PspSavedataAdapter.PLATFORM,
                 engineId = PspSavedataAdapter.ENGINE_ID,
@@ -138,8 +140,11 @@ class SafeSaveStore(
             activated = true
             displaced.deleteRecursively()
             index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "COMPLETE", "VERIFIED", clock()))
-            return RestoreResult(snapshotId, if (backupDir.exists()) backupDir else null,
-                Metrics(clock() - started, snapshot.fileCount, snapshot.totalBytes))
+            return RestoreResult(
+                snapshotId,
+                if (backupDir.exists()) backupDir else null,
+                Metrics(clock() - started, snapshot.fileCount, snapshot.totalBytes),
+            )
         } catch (error: Exception) {
             staging.deleteRecursively()
             if (!activated && displaced.exists() && !destination.exists()) {
@@ -169,7 +174,10 @@ class SafeSaveStore(
         }
     }
 
-    private fun copyTreeVerified(source: File, destination: File) {
+    private fun copyTreeVerified(
+        source: File,
+        destination: File,
+    ) {
         source.walkTopDown().forEach { entry ->
             val relative = entry.relativeTo(source).path
             if (relative.isBlank()) return@forEach
@@ -186,7 +194,10 @@ class SafeSaveStore(
         }
     }
 
-    private fun requireFreeSpace(root: File, neededBytes: Long) {
+    private fun requireFreeSpace(
+        root: File,
+        neededBytes: Long,
+    ) {
         val probe = generateSequence(root) { it.parentFile }.firstOrNull { it.exists() } ?: return
         check(probe.usableSpace > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
     }
