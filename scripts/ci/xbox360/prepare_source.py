@@ -28,10 +28,14 @@ def prepare(source, support):
         {"setup_launch_args", "([Ljava/lang/String;)V", (void*)j_setup_launch_args},
         {"setup_uri_info_list_file", "(Ljava/lang/String;)V", (void*)j_setup_uri_info_list_file},
         {"cartdeck_report", "()Ljava/lang/String;", (void*)j_cartdeck_report},
+        {"cartdeck_set_xgfx_diagnostics", "(Z)V", (void*)j_cartdeck_set_xgfx_diagnostics},
     };
 ''' + text[end:]
     text = text.replace('int register_xendroid_Emulator(JNIEnv* env)', '''static jstring j_cartdeck_report(JNIEnv* env, jobject) {
     char out[16384]; cartdeck::report(out, sizeof(out)); return env->NewStringUTF(out);
+}
+static void j_cartdeck_set_xgfx_diagnostics(JNIEnv*, jobject, jboolean enabled) {
+    cartdeck::perf::set_capture_enabled(enabled == JNI_TRUE);
 }
 int register_xendroid_Emulator(JNIEnv* env)''')
     # Release JNI strings; do not pin per-launch arrays indefinitely.
