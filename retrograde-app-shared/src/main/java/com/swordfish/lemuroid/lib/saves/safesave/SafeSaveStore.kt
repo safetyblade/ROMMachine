@@ -146,7 +146,14 @@ class SafeSaveStore(
                 displaced.renameTo(destination)
             }
             index.appendJournal(
-                SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "FAILED", error.message ?: "restore failed", clock()),
+                SafeSaveJournalRecord(
+                    opId,
+                    "RESTORE",
+                    snapshotId,
+                    "FAILED",
+                    error.message ?: "restore failed",
+                    clock(),
+                ),
             )
             throw error
         }
