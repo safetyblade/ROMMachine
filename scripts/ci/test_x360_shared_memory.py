@@ -80,6 +80,14 @@ int main() {
         sm.MakeRangeValid(page, page, false);
         sm.SetSystemPageBlocksValidWithGpuDataWritten();
         if (sm.valid[0] != 1 || !(sm.invalid[0] & 2)) return 12;
+        // A multi-chunk write still marks every changed chunk exactly once.
+        uint32_t across = ((64u * 64u) - 1u) * page;
+        sm.MakeRangeValid(across, 3 * page, true);
+        if ((sm.dirty_blocks_ & 3u) != 3u) return 18;
+        sm.SetSystemPageBlocksValidWithGpuDataWritten();
+        sm.MakeRangeValid(across, 3 * page, false);
+        if ((sm.dirty_blocks_ & 3u) != 3u) return 19;
+        sm.SetSystemPageBlocksValidWithGpuDataWritten();
         // Repeated use across chunk boundaries, including the last page.
         for (uint32_t n = 0; n < 10000; ++n) {
             uint32_t block = n % sm.num_system_page_flags_;
@@ -113,6 +121,8 @@ class SharedMemoryRegression(unittest.TestCase):
             url = f"https://raw.githubusercontent.com/rfandango/XenDroid/{PIN}/{REL}"
             original = urllib.request.urlopen(url, timeout=60).read().decode()
         changed = patch(original)
+        self.assertIn("uint32_t cartdeck_changed_chunks = 0;", changed)
+        self.assertEqual(changed.count("dirty_blocks_ |= cartdeck_changed_chunks;"), 1)
         with tempfile.TemporaryDirectory() as directory:
             root_path = Path(directory)
             for name, source, expected in (("old", original, 12), ("fixed", changed, 0)):

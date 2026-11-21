@@ -33,7 +33,8 @@ class FileKtTest {
         val file = Files.createTempFile("md5-large-", ".bin").toFile()
         try {
             file.writeBytes(bytes)
-            val expected = MessageDigest.getInstance("MD5").digest(bytes).toHexString()
+            val digest = MessageDigest.getInstance("MD5").digest(bytes)
+            val expected = digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
             assertEquals(expected, file.calculateMd5())
         } finally {
             file.delete()

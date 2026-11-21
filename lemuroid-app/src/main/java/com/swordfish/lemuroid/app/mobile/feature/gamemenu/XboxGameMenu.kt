@@ -25,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
+import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
@@ -45,6 +46,11 @@ internal fun XboxGameMenu(
     pauseFeedback: String = "Menu open. This engine may continue running.",
     canResume: Boolean = true,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
+    performanceCaptureEnabled: Boolean = false,
+    onTogglePerformanceCapture: (() -> Unit)? = null,
+    pipelineABActive: String? = null,
+    pipelineABQueued: String = "Engine default",
+    onQueuePipelineAB: ((Xbox360PipelineAB.Mode) -> Unit)? = null,
     recovery: @Composable () -> Unit = {},
     controls: @Composable () -> Unit,
 ) {
@@ -125,6 +131,47 @@ internal fun XboxGameMenu(
                         Text(engineInfo, style = MaterialTheme.typography.bodySmall)
                         Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
                         GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        if (pipelineABActive != null && onQueuePipelineAB != null) {
+                            Text(
+                                "Global Xbox 360 renderer/memory A/B (debug only). Active: $pipelineABActive. " +
+                                    "Next launch: $pipelineABQueued. One launch only; settings automatically reset. " +
+                                    "No game files, saves or shader caches are cleared.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink("Next launch: test draw skipping OFF") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.SKIP_OFF)
+                            }
+                            GameMenuLink("Next launch: test draw skipping ON") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.SKIP_ON)
+                            }
+                            Text(
+                                "XGFX-05 guest-memory ordering: disables early Vulkan upload hoisting " +
+                                    "for one launch only. This may affect speed; " +
+                                    "it does not stall pipeline compilation.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink("Next launch: test ordered memory uploads") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.ORDERED_UPLOADS)
+                            }
+                            GameMenuLink("Next launch: restore engine default") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.NORMAL)
+                            }
+                        }
+                        if (onTogglePerformanceCapture != null) {
+                            Text(
+                                "Frame diagnostics are off by default and never appear over gameplay. " +
+                                    "Start capture here for a test, then return here to stop and copy the report.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink(
+                                if (performanceCaptureEnabled) {
+                                    "Stop Xbox 360 frame capture"
+                                } else {
+                                    "Start Xbox 360 frame capture"
+                                },
+                                onClick = onTogglePerformanceCapture,
+                            )
+                        }
                     }
                 }
                 composable(GameMenuRoute.TROUBLESHOOTING) {

@@ -92,6 +92,11 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var menuOpen by mutableStateOf(false)
+
+    // Explicit Advanced > Diagnostics opt-in only; no gameplay overlay or automatic capture.
+    private var xgfxDiagnosticsEnabled by mutableStateOf(false)
+    private var pipelineABActive = Xbox360PipelineAB.Mode.NORMAL
+    private var pipelineABQueued by mutableStateOf(Xbox360PipelineAB.Mode.NORMAL)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
     private var failed = false
     private var physicalConnected by mutableStateOf(false)
@@ -129,6 +134,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pipelineABQueued =
+            if (BuildConfig.DEBUG) Xbox360PipelineAB.queued(this) else Xbox360PipelineAB.Mode.NORMAL
         observeControllerMenuEdges(this, menuEdge)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -238,6 +245,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
+                                performanceCaptureEnabled = xgfxDiagnosticsEnabled,
+                                onTogglePerformanceCapture =
+                                    if (BuildConfig.DEBUG) ::togglePerformanceCapture else null,
+                                pipelineABActive = if (BuildConfig.DEBUG) pipelineABActive.description else null,
+                                pipelineABQueued = pipelineABQueued.description,
+                                onQueuePipelineAB = if (BuildConfig.DEBUG) ::queuePipelineAB else null,
                                 onProbe = {},
                                 onPreviousEngine = { if (Xbox360Engine.store(filesDir).rollback()) leave() },
                                 appearance = null,
@@ -307,6 +320,13 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                     XeniaEmulator().apply {
                         setup_context(this@Xbox360Activity)
                         val data = Xbox360Engine.data(filesDir)
+                        pipelineABActive =
+                            if (BuildConfig.DEBUG) {
+                                Xbox360PipelineAB.consume(this@Xbox360Activity)
+                            } else {
+                                Xbox360PipelineAB.Mode.NORMAL
+                            }
+                        pipelineABQueued = Xbox360PipelineAB.Mode.NORMAL
                         setup_launch_args(
                             arrayOf(
                                 "--storage_root=${data.absolutePath}",
@@ -316,7 +336,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 "--log_file=${File(data, "logs/xenia.log").absolutePath}",
                                 "--hid=android", "--vulkan_lib_path=",
                                 "--logged_profile_slot_0_xuid=${profile.xuid}",
-                            ),
+                            ) + listOfNotNull(pipelineABActive.launchOption),
                         )
                         setup_game_path(staged.absolutePath)
                     }
@@ -600,12 +620,35 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 "abi=${android.os.Build.SUPPORTED_ABIS.joinToString()}; available_memory=${memory.availMem}\n" +
                 "process_rss_bytes=${rssBytes ?: "UNAVAILABLE"}; thermal_status=$thermal; " +
                 "native_heap_bytes=${android.os.Debug.getNativeHeapAllocatedSize()}\n" +
-                "$info\n$native\n${viewportAudit.summary()}\n" +
+                "$info\n" +
+                "pipeline_ab_scope=GLOBAL_XBOX360_ONE_LAUNCH; " +
+                "pipeline_ab_active=${pipelineABActive.name}; " +
+                "pipeline_ab_launch_option=${pipelineABActive.launchOption ?: "ENGINE_DEFAULT"}\n" +
+                "$native\n${viewportAudit.summary()}\n" +
                 "failure=${if (failed) message else "NONE_RECORDED"}\n" +
                 "content_and_saves=RETAINED; automatic_restart=false; " +
                 "exit=${if (leaving) "USER_REQUESTED" else "NOT_OBSERVED"}\n" +
                 "Startup, JIT compilation and Vulkan presentation do not establish meaningful graphics or gameplay."
         Xbox360Reports.write(filesDir, report)
+    }
+
+    private fun queuePipelineAB(mode: Xbox360PipelineAB.Mode) {
+        if (!BuildConfig.DEBUG || !menuOpen || failed || leaving) return
+        runCatching { Xbox360PipelineAB.queue(this, mode) }
+            .onSuccess { pipelineABQueued = mode }
+            .onFailure { menuPauseFeedback = "Could not prepare the Xbox 360 pipeline A/B test." }
+    }
+
+    private fun togglePerformanceCapture() {
+        if (!BuildConfig.DEBUG || !booted || failed || leaving || !menuOpen) return
+        val next = !xgfxDiagnosticsEnabled
+        runCatching {
+            requireNotNull(emulator).cartdeck_set_xgfx_diagnostics(next)
+        }.onSuccess {
+            xgfxDiagnosticsEnabled = next
+        }.onFailure {
+            menuPauseFeedback = "Xbox 360 diagnostic capture is unavailable in this engine."
+        }
     }
 
     private fun copyReport() {
@@ -620,6 +663,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
 
     private fun leave() {
         if (leaving) return
+        runCatching { emulator?.cartdeck_set_xgfx_diagnostics(false) }
+        xgfxDiagnosticsEnabled = false
         leaving = true
         preparation.requestCancellation()
         releaseInputs()
