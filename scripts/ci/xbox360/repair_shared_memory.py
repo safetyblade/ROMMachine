@@ -32,9 +32,27 @@ def patch(text):
       }
       if (old_valid != system_page_flags_valid_[i] ||
           old_gpu_written != system_page_flags_valid_and_gpu_written_[i]) {
-        gpu_written_data_dirty_ = true;
-        dirty_blocks_ |= 1u << (i >> 6);
+        cartdeck_changed_chunks |= 1u << (i >> 6);
       }""")
+    # Batch dirty mask writes once per locked range rather than repeatedly
+    # touching shared bookkeeping for every CPU-uploaded page.
+    text = replace_once(text, """    for (uint32_t i = valid_block_first; i <= valid_block_last; ++i) {""",
+        """    uint32_t cartdeck_changed_chunks = 0;
+    for (uint32_t i = valid_block_first; i <= valid_block_last; ++i) {""")
+    text = replace_once(text, """      }
+    }
+  }
+
+  if (memory_invalidation_callback_handle_) {""",
+        """      }
+    }
+    if (cartdeck_changed_chunks) {
+      gpu_written_data_dirty_ = true;
+      dirty_blocks_ |= cartdeck_changed_chunks;
+    }
+  }
+
+  if (memory_invalidation_callback_handle_) {""")
     # Empty ranges have no invalidated pages. Malformed ranges must not
     # permit hoisting an upload ahead of previously recorded GPU consumers.
     return replace_once(text, """  for (uint32_t i = 0; i < count; ++i) {
