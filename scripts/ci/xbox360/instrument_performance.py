@@ -51,12 +51,14 @@ def instrument(cpp, support):
     if (cvars::clear_memory_page_state) {
       shared_memory_->SetSystemPageBlocksValidWithGpuDataWritten();
     }''', '''  if (is_closing_frame) {
-    cartdeck::perf::note_xgfx_settings(
-        cvars::clear_memory_page_state,
-        cvars::vulkan_cache_texture_descriptors,
-        cvars::vulkan_skip_redundant_fetch_constant_writes,
-        cvars::vulkan_fast_register_ranges,
-        cvars::vulkan_mid_frame_submission_draws);
+    if (cartdeck::perf::capture_enabled.load(std::memory_order_relaxed)) {
+      cartdeck::perf::note_xgfx_settings(
+          cvars::clear_memory_page_state,
+          cvars::vulkan_cache_texture_descriptors,
+          cvars::vulkan_skip_redundant_fetch_constant_writes,
+          cvars::vulkan_fast_register_ranges,
+          cvars::vulkan_mid_frame_submission_draws);
+    }
     if (cvars::clear_memory_page_state) {
       cartdeck::perf::Scope cartdeck_page_refresh(
           cartdeck::perf::XgfxPageRefresh);
@@ -73,9 +75,9 @@ def instrument(cpp, support):
         '''    XELOGI("Draw skipped (pipeline not ready yet): VS {:016X}, PS {:016X}",
            vertex_shader->ucode_data_hash(),
            pixel_shader ? pixel_shader->ucode_data_hash() : 0);''']:
-        edit(gpu, old, '    cartdeck::perf::skipped_draws.fetch_add(1, std::memory_order_relaxed);')
+        edit(gpu, old, '    if (cartdeck::perf::capture_enabled.load(std::memory_order_relaxed)) cartdeck::perf::skipped_draws.fetch_add(1, std::memory_order_relaxed);')
     audio = cpp / 'xe_aaudio_audio_driver.cpp'
     edit(audio, '#include "xe_aaudio_audio_driver.h"',
          '#include "xe_aaudio_audio_driver.h"\n#include "cartdeck_performance.h"')
     edit(audio, '    stat_gaps_.fetch_add(1, std::memory_order_relaxed);',
-         '    cartdeck::perf::audio_underrun_frames.fetch_add(channel_samples_, std::memory_order_relaxed);\n    stat_gaps_.fetch_add(1, std::memory_order_relaxed);')
+         '    if (cartdeck::perf::capture_enabled.load(std::memory_order_relaxed)) cartdeck::perf::audio_underrun_frames.fetch_add(channel_samples_, std::memory_order_relaxed);\n    stat_gaps_.fetch_add(1, std::memory_order_relaxed);')
