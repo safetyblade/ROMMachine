@@ -53,12 +53,12 @@ struct Window {
   }
 };
 enum Metric { GuestSwap, HostPresent, Jit, Shader, Pipeline, Acquire, PresentCall,
-              QueueLock, FrameFence, Submit, XgfxPageRefresh, MetricCount };
+              QueueLock, FrameFence, Submit, XgfxPageRefresh, XgfxPipelineQueueWait, MetricCount };
 inline std::array<Window, MetricCount> windows;
 inline constexpr const char* names[] = {"guest_swap_interval", "host_present_interval",
   "jit_compile", "shader_translate", "pipeline_compile", "swapchain_acquire",
   "present_call", "present_queue_lock", "frame_fence_wait", "gpu_submit_cpu",
-  "xgfx_page_state_refresh"};
+  "xgfx_page_state_refresh", "xgfx_pipeline_queue_wait"};
 struct Scope {
   Metric metric;
   uint64_t start;
@@ -80,6 +80,22 @@ inline void note_xgfx_settings(bool clear_pages, bool cache_descriptors,
   xgfx_settings.store(bits, std::memory_order_relaxed);
   xgfx_mid_frame_draws.store(mid_frame_draws, std::memory_order_relaxed);
   xgfx_settings_frames.fetch_add(1, std::memory_order_relaxed);
+}
+// XGFX-04: replay-time counts, unlike skipped_draws (immediate draw checks).
+// Never inspect or log guest buffers; only aggregate atomics when user opts in.
+inline std::atomic<uint64_t> xgfx04_deferred_pipeline_unready{0};
+inline std::atomic<uint64_t> xgfx04_replay_dropped_draw{0};
+inline std::atomic<uint64_t> xgfx04_replay_dropped_indexed_draw{0};
+inline std::atomic<uint64_t> xgfx04_replay_submitted_draw{0};
+inline std::atomic<uint64_t> xgfx04_replay_submitted_indexed_draw{0};
+inline std::atomic<uint64_t> xgfx04_gpu_range_writes{0};
+inline std::atomic<uint64_t> xgfx04_valid_changed_blocks{0};
+inline std::atomic<uint64_t> xgfx04_gpu_to_cpu_blocks{0};
+inline std::atomic<uint64_t> xgfx04_cpu_to_gpu_blocks{0};
+inline void count(std::atomic<uint64_t>& metric) {
+  if (capture_enabled.load(std::memory_order_relaxed)) {
+    metric.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 inline std::atomic<uint64_t> skipped_draws{0}, audio_underrun_frames{0};
 inline std::atomic<uint64_t> last_present_guest_sequence{0}, guest_sequence_repeats{0};
@@ -121,5 +137,21 @@ inline void append(char* out, size_t size) {
     static_cast<unsigned long long>(skipped_draws.load()),
     static_cast<unsigned long long>(audio_underrun_frames.load()),
     static_cast<unsigned long long>(guest_sequence_repeats.load()));
+  write("xgfx04_schema=1 capture=%s "
+        "deferred_pipeline_unready=%llu replay_dropped_draw=%llu "
+        "replay_dropped_indexed_draw=%llu replay_submitted_draw=%llu "
+        "replay_submitted_indexed_draw=%llu gpu_range_writes=%llu "
+        "valid_changed_blocks=%llu gpu_to_cpu_blocks=%llu "
+        "cpu_to_gpu_blocks=%llu (block=64_pages, counters=sessions)\\n",
+        capture_enabled.load(std::memory_order_relaxed) ? "ON" : "OFF",
+        static_cast<unsigned long long>(xgfx04_deferred_pipeline_unready.load()),
+        static_cast<unsigned long long>(xgfx04_replay_dropped_draw.load()),
+        static_cast<unsigned long long>(xgfx04_replay_dropped_indexed_draw.load()),
+        static_cast<unsigned long long>(xgfx04_replay_submitted_draw.load()),
+        static_cast<unsigned long long>(xgfx04_replay_submitted_indexed_draw.load()),
+        static_cast<unsigned long long>(xgfx04_gpu_range_writes.load()),
+        static_cast<unsigned long long>(xgfx04_valid_changed_blocks.load()),
+        static_cast<unsigned long long>(xgfx04_gpu_to_cpu_blocks.load()),
+        static_cast<unsigned long long>(xgfx04_cpu_to_gpu_blocks.load()));
 }
 }
