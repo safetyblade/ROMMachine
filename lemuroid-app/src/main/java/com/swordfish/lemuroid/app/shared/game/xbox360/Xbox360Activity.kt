@@ -92,6 +92,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private val preparation = com.swordfish.lemuroid.app.shared.game.LaunchPreparation()
     private var leaving = false
     private var menuOpen by mutableStateOf(false)
+
     // Explicit Advanced > Diagnostics opt-in only; no gameplay overlay or automatic capture.
     private var xgfxDiagnosticsEnabled by mutableStateOf(false)
     private var message by mutableStateOf("Preparing Xbox 360 content. Open the menu to cancel.")
@@ -241,7 +242,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 onReturnToShelf = ::leave,
                                 onCopyReport = ::copyReport,
                                 performanceCaptureEnabled = xgfxDiagnosticsEnabled,
-                                onTogglePerformanceCapture = if (BuildConfig.DEBUG) ::togglePerformanceCapture else null,
+                                onTogglePerformanceCapture =
+                                    if (BuildConfig.DEBUG) ::togglePerformanceCapture else null,
                                 onProbe = {},
                                 onPreviousEngine = { if (Xbox360Engine.store(filesDir).rollback()) leave() },
                                 appearance = null,
