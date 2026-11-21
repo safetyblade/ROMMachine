@@ -133,9 +133,9 @@ internal fun XboxGameMenu(
                         GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
                         if (pipelineABActive != null && onQueuePipelineAB != null) {
                             Text(
-                                "Global Xbox 360 pipeline A/B (debug only). Active: $pipelineABActive. " +
-                                    "Next launch: $pipelineABQueued. Changes only affect the next Xbox 360 " +
-                                    "launch and reset automatically; no game files or caches are changed.",
+                                "Global Xbox 360 renderer/memory A/B (debug only). Active: $pipelineABActive. " +
+                                    "Next launch: $pipelineABQueued. One launch only; settings automatically reset. " +
+                                    "No game files, saves or shader caches are cleared.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             GameMenuLink("Next launch: test draw skipping OFF") {
@@ -143,6 +143,14 @@ internal fun XboxGameMenu(
                             }
                             GameMenuLink("Next launch: test draw skipping ON") {
                                 onQueuePipelineAB(Xbox360PipelineAB.Mode.SKIP_ON)
+                            }
+                            Text(
+                                "XGFX-05 guest-memory ordering: disables early Vulkan upload hoisting " +
+                                    "for one launch only. This may affect speed; it does not stall pipeline compilation.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            GameMenuLink("Next launch: test ordered memory uploads") {
+                                onQueuePipelineAB(Xbox360PipelineAB.Mode.ORDERED_UPLOADS)
                             }
                             GameMenuLink("Next launch: restore engine default") {
                                 onQueuePipelineAB(Xbox360PipelineAB.Mode.NORMAL)
