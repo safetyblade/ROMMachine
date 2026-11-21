@@ -137,7 +137,7 @@ jobs:
       pc_host_native_run_id: ${{ needs.host-refresh.result == 'success' && format('{0}', github.run_id) || '' }}
       pc_host_reuse_run_id: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.run || '' }}
       pc_host_reuse_artifact_name: ${{ needs.host-preflight.outputs.valid == 'true' && needs.host-preflight.outputs.name || '' }}
-      xenia_reuse_verified_xgfx01: ${{ github.head_ref == 'engineering/master-consolidation-20261119' }}
+      xenia_reuse_verified_xgfx01: ${{ github.head_ref == 'engineering/master-consolidation-20261119' || github.head_ref == 'engineering/perf-stage02-xbox-20261121' }}
       publish_apk: true
     secrets: inherit
 
