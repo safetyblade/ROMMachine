@@ -11,8 +11,12 @@ namespace cartdeck::perf {
 // Never capture performance metrics during ordinary gameplay. Explicitly enabled
 // from the paused Advanced > Diagnostics screen, with no on-screen HUD.
 inline std::atomic<bool> capture_enabled{false};
+inline std::atomic<uint64_t> capture_sessions{0};
 inline void set_capture_enabled(bool enabled) {
-  capture_enabled.store(enabled, std::memory_order_relaxed);
+  const bool was_enabled = capture_enabled.exchange(enabled, std::memory_order_acq_rel);
+  if (enabled && !was_enabled) {
+    capture_sessions.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 inline uint64_t now() {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -99,11 +103,18 @@ inline void count(std::atomic<uint64_t>& metric) {
 }
 inline std::atomic<uint64_t> skipped_draws{0}, audio_underrun_frames{0};
 inline std::atomic<uint64_t> last_present_guest_sequence{0}, guest_sequence_repeats{0};
+inline std::atomic<uint64_t> guest_sequence_advances{0}, guest_sequence_regressions{0};
 inline void presented(uint64_t guest_sequence) {
   if (!capture_enabled.load(std::memory_order_relaxed)) return;
   windows[HostPresent].tick();
   const auto previous = last_present_guest_sequence.exchange(guest_sequence, std::memory_order_relaxed);
-  if (guest_sequence && previous == guest_sequence) guest_sequence_repeats.fetch_add(1, std::memory_order_relaxed);
+  if (guest_sequence && previous == guest_sequence) {
+    guest_sequence_repeats.fetch_add(1, std::memory_order_relaxed);
+  } else if (guest_sequence > previous) {
+    guest_sequence_advances.fetch_add(1, std::memory_order_relaxed);
+  } else if (guest_sequence && previous > guest_sequence) {
+    guest_sequence_regressions.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 inline void append(char* out, size_t size) {
   size_t used = 0;
@@ -137,6 +148,12 @@ inline void append(char* out, size_t size) {
     static_cast<unsigned long long>(skipped_draws.load()),
     static_cast<unsigned long long>(audio_underrun_frames.load()),
     static_cast<unsigned long long>(guest_sequence_repeats.load()));
+  write("perf_xb_schema=1 capture_sessions=%llu scope=PROCESS_CUMULATIVE "
+        "guest_sequence_advances=%llu guest_sequence_regressions=%llu "
+        "guest_image_integrity=UNVERIFIED unique_completed_frames=UNAVAILABLE\n",
+    static_cast<unsigned long long>(capture_sessions.load()),
+    static_cast<unsigned long long>(guest_sequence_advances.load()),
+    static_cast<unsigned long long>(guest_sequence_regressions.load()));
   write("xgfx04_schema=1 capture=%s "
         "deferred_pipeline_unready=%llu replay_dropped_draw=%llu "
         "replay_dropped_indexed_draw=%llu replay_submitted_draw=%llu "
