@@ -1,3 +1,5 @@
+> **LATEST OWNER REFINEMENT — 22 NOV 2026:** Read [GC01_INPUT_MOTION_GEM_JUNIOR_OWNER_LOCK_2026-11-22.md](GC01_INPUT_MOTION_GEM_JUNIOR_OWNER_LOCK_2026-11-22.md) first. It supersedes this document's controller conflict default (automatic reciprocal **SWAP**, not Replace/Cancel default); Junior verification UX (simple local parent **PIN** for exit/settings, no mandatory device credential); and combines app-side Wii + 3DS motion/virtual inputs under **GC**, with native sensor/backend bridges retained in **PERF**. GEM user ratings remain whole numbers. SafeSave Export All remains as specified. Historical conflicting details below are not controlling.
+
 # CARTDECK GC-01 — Owner decisions, SafeSave all-console dashboard and direct controller remapping
 **Owner instruction:** Jonathan Prestwich, 22 November 2026 (AEDT)  
 **Status:** **OWNER-APPROVED product direction** OD-01 through OD-06 as refined here; **NOT** engineering implementation, architecture sign-off, physical QA, merge approval or release sign-off.  
