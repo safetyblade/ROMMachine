@@ -15,6 +15,14 @@
 | Original Xbox, Xbox 360, Wii, Wii U | 2.5 |
 | PS3, DOS | 2.0 |
 
+## Universal baseline assignment — B7-B source implementation
+
+- Every one of the **88,246 bundled offline release records** across the currently registered **30 systems** inherits its own starting console baseline through `GemDeckFit.baselineHalfStepsFor(release.systemId)`. The console baseline is retained on each `Estimate.baselineHalfSteps`, even when the public number is suppressed for an Input review hold.
+- A normal release receives a provisional numerical DeckFit from console baseline plus bounded genre/gameplay modifiers. Current explicit holds are **14** release IDs with a base assignment but **no public numeric score** until their required input pathway is verified. The **91** manually reviewed exact-release touch ratings remain higher-priority than the automated result.
+- This is an **on-demand local projection**, not a separate 88,246-row import, a modification to the immutable approved source shards or a claim that every game is independently researched, launches or runs correctly. It requires no network or database migration. Existing GEM browse and discovery read the same `GemDeckFit.estimate(release)` values.
+- The exhaustive bundled-catalogue Robolectric test now asserts every release has a valid base score, exactly 91 reviewed overrides, exactly 14 known holds, and a valid public score on the other **88,232** release records. Future catalogue updates must not silently add an unscored platform or overwrite existing overrides.
+- The expected count is a **test assertion**, not claimed Android-device QA. Any unsupported engine or failed game launch must still appear independently as unknown/not working; special-input exceptions retain their hold regardless of the underlying platform baseline.
+
 ## Adjustments (from reliable source-backed traits only)
 
 | Explicit game fact | Adjustment |
