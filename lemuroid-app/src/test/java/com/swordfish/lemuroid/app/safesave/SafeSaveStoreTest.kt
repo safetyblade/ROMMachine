@@ -128,6 +128,33 @@ class SafeSaveStoreTest {
     }
 
     @Test
+    fun journalCommitFailureRestoresTheDisplacedSave() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val saved = InMemoryIndex()
+            val index =
+                object : SafeSaveIndex by saved {
+                    override fun appendJournal(record: SafeSaveJournalRecord) {
+                        check(record.kind != "RESTORE" || record.stage != "COMPLETE") { "Journal write failed" }
+                        saved.appendJournal(record)
+                    }
+                }
+            val store = SafeSaveStore(index, snapshotRoot)
+            val captured = store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val live = File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN")
+            live.writeText("current-progress")
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("current-progress", live.readText())
+            assertEquals("FAILED", saved.journal().last().stage)
+            assertTrue(store.verify(captured.snapshot.snapshotId))
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
     fun corruptedSnapshotIsRefusedAndLiveSavePreserved() {
         val (parent, saveRoot, snapshotRoot) = fixture()
         try {

@@ -131,31 +131,30 @@ class SafeSaveStore(
                 File(snapshotDir, record.relativePath).copyTo(target, overwrite = false)
                 check(sha256(target) == record.sha256) { "Restored file failed verification: ${record.relativePath}" }
             }
+            index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "ACTIVATING", "", clock()))
             if (destination.exists()) check(destination.renameTo(displaced)) { "Unable to displace current savedata" }
             check(staging.renameTo(destination)) { "Unable to activate SafeSave restore" }
             activated = true
-            displaced.deleteRecursively()
             index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "COMPLETE", "VERIFIED", clock()))
+            runCatching { displaced.deleteRecursively() }
             return RestoreResult(
                 snapshotId,
                 if (backupDir.exists()) backupDir else null,
                 Metrics(clock() - started, snapshot.fileCount, snapshot.totalBytes),
             )
         } catch (error: Exception) {
-            staging.deleteRecursively()
-            if (!activated && displaced.exists() && !destination.exists()) {
-                displaced.renameTo(destination)
+            val removedReplacement = !activated || destination.renameTo(staging)
+            val rolledBack = removedReplacement && (!displaced.exists() || displaced.renameTo(destination))
+            if (rolledBack) staging.deleteRecursively()
+            val stage = if (rolledBack) "FAILED" else "RECOVERY_REQUIRED"
+            try {
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "RESTORE", snapshotId, stage, "Restore failed", clock()),
+                )
+            } catch (journalError: Exception) {
+                error.addSuppressed(journalError)
             }
-            index.appendJournal(
-                SafeSaveJournalRecord(
-                    opId,
-                    "RESTORE",
-                    snapshotId,
-                    "FAILED",
-                    error.message ?: "restore failed",
-                    clock(),
-                ),
-            )
+            if (!rolledBack) throw IOException("Restore interrupted. Preserve the backup and contact support.", error)
             throw error
         }
     }
