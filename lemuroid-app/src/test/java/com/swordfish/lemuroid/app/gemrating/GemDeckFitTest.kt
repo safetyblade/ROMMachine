@@ -20,6 +20,7 @@ class GemDeckFitTest {
         val pokemon = GemDeckFit.estimate("VDG:gb:94", "gb", "Strategy")
         assertEquals(10, pokemon.halfSteps)
         assertEquals(GemDeckFit.Basis.REVIEWED_TOUCH, pokemon.basis)
+        assertEquals(9, pokemon.baselineHalfSteps)
         assertEquals("DeckFit 5/5 · Provisional", pokemon.displayText)
 
         val ikaruga = GemDeckFit.estimate("VDG:gc:382", "gc", "Shooter")
@@ -36,6 +37,7 @@ class GemDeckFitTest {
         val tilt = GemDeckFit.estimate("VDG:gb:40", "gb", "Puzzle")
         assertEquals(GemDeckFit.Basis.INPUT_REVIEW, tilt.basis)
         assertNull(tilt.halfSteps)
+        assertEquals(9, tilt.baselineHalfSteps)
         assertTrue(tilt.evidenceText.contains("Special input"))
     }
 
@@ -176,17 +178,36 @@ class GemDeckFitTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val catalogue = GemProductionCatalogue.load(context).manifest.releases
         assertEquals(GemProductionCatalogue.RELEASE_COUNT, catalogue.size)
+        val systemsWithBaselines = mutableSetOf<String>()
+        var inputReviewCount = 0
+        var reviewedCount = 0
+        var numericCount = 0
         for (release in catalogue) {
+            // A console baseline is assigned to EVERY individual release, not just rated games.
+            val baseline =
+                requireNotNull(GemDeckFit.baselineHalfStepsFor(release.systemId)) {
+                    "No DeckFit console baseline for ${release.releaseId} (${release.systemId})"
+                }
+            assertTrue("${release.releaseId} has invalid console baseline", baseline in 2..10)
+            systemsWithBaselines.add(release.systemId)
             val estimate = GemDeckFit.estimate(release)
+            assertEquals("${release.releaseId} lost its baseline", baseline, estimate.baselineHalfSteps)
             if (estimate.basis == GemDeckFit.Basis.INPUT_REVIEW) {
+                inputReviewCount++
                 assertNull(estimate.halfSteps)
                 assertTrue(estimate.displayText.contains("Input review"))
             } else {
+                numericCount++
+                if (estimate.basis == GemDeckFit.Basis.REVIEWED_TOUCH) reviewedCount++
                 val score = requireNotNull(estimate.halfSteps)
                 assertTrue("${release.releaseId} missing valid DeckFit", score in 2..10)
                 assertTrue(estimate.displayText.contains("Provisional"))
             }
             assertTrue(estimate.evidenceText.contains("not device-tested"))
         }
+        assertEquals(SystemID.values().size, systemsWithBaselines.size)
+        assertEquals("All identified special-input holds remain unscored", 14, inputReviewCount)
+        assertEquals("Every existing exact-ID review remains effective", 91, reviewedCount)
+        assertEquals(GemProductionCatalogue.RELEASE_COUNT - inputReviewCount, numericCount)
     }
 }
