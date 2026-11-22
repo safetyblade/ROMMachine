@@ -257,7 +257,8 @@ object GemRatingRecommender {
                             "Shared with ${best.game.title}: ${bridgeDetails.joinToString(", ")}" +
                                 (if (differences.isEmpty()) "" else ". Explore: ${differences.joinToString(", ")}")
                         } else {
-                            "Explore ${clean(game.primaryGenre) ?: clean(game.playstyle) ?: "new"} games based on your ratings"
+                            val exploration = clean(game.primaryGenre) ?: clean(game.playstyle) ?: "new"
+                            "Explore $exploration games based on your ratings"
                         }
                     val wildcard = meaningfulBridge && novelty >= 0.25
                     Recommendation(
