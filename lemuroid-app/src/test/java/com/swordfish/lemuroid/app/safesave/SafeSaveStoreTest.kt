@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.safesave
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.saves.safesave.RoomSafeSaveIndex
@@ -225,6 +226,37 @@ class SafeSaveStoreTest {
             assertEquals(listOf(captured.snapshot.snapshotId), found.map { it.snapshotId })
             assertTrue(access.verifiedSavesForCartridge(cartridgeB).isEmpty())
         } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fileIndexFailureDoesNotPublishAPartialSnapshot() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            executor.submit<Unit> {
+                val db = Room.inMemoryDatabaseBuilder(context, SafeSaveDatabase::class.java).build()
+                try {
+                    db.openHelper.writableDatabase.execSQL(
+                        "CREATE TRIGGER fixture_reject_file BEFORE INSERT ON safesave_files " +
+                            "BEGIN SELECT RAISE(ABORT, 'fixture file failure'); END",
+                    )
+                    val index = RoomSafeSaveIndex(db.safeSaveDao())
+                    assertThrows(SQLiteConstraintException::class.java) {
+                        SafeSaveStore(index, snapshotRoot)
+                            .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+                    }
+                    assertTrue(index.snapshotsForCartridge(cartridgeA).isEmpty())
+                    assertTrue(snapshotRoot.listFiles().orEmpty().isEmpty())
+                    assertEquals("FAILED", index.journal().single().stage)
+                } finally {
+                    db.close()
+                }
+            }.get(30, TimeUnit.SECONDS)
+        } finally {
+            executor.shutdownNow()
             parent.deleteRecursively()
         }
     }

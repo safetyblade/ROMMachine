@@ -10,6 +10,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 
 /**
  * SAVE-A01: separately versioned SafeSave metadata database.
@@ -67,6 +68,15 @@ interface SafeSaveDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertFiles(files: List<SafeSaveFileEntity>)
 
+    @Transaction
+    fun registerSnapshot(
+        snapshot: SafeSaveSnapshotEntity,
+        files: List<SafeSaveFileEntity>,
+    ) {
+        insertSnapshot(snapshot)
+        insertFiles(files)
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertJournal(entity: SafeSaveJournalEntity)
 
@@ -105,7 +115,7 @@ abstract class SafeSaveDatabase : RoomDatabase() {
 /** Room-backed [SafeSaveIndex]. Stores metadata only; save bytes stay on disk. */
 class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
     override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
-        dao.insertSnapshot(
+        dao.registerSnapshot(
             SafeSaveSnapshotEntity(
                 snapshotId = snapshot.snapshotId,
                 cartridgeUuid = snapshot.cartridgeUuid,
@@ -120,8 +130,6 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
                 totalBytes = snapshot.totalBytes,
                 fileCount = snapshot.fileCount,
             ),
-        )
-        dao.insertFiles(
             snapshot.files.map {
                 SafeSaveFileEntity(snapshot.snapshotId, it.relativePath, it.sizeBytes, it.sha256)
             },
