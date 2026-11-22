@@ -22,18 +22,18 @@ object GemDeckFit {
     }
 
     data class Estimate(
-        val halfSteps: Int,
+        val halfSteps: Int?,
         val basis: Basis,
     ) {
         init {
-            require(halfSteps in 2..10)
+            require(halfSteps == null || halfSteps in 2..10)
         }
 
         val scoreText: String
-            get() = if (halfSteps % 2 == 0) (halfSteps / 2).toString() else "${halfSteps / 2}.5"
+            get() = if (halfSteps == null) "—" else if (halfSteps % 2 == 0) (halfSteps / 2).toString() else "${halfSteps / 2}.5"
 
         val displayText: String
-            get() = "DeckFit $scoreText/5 · Provisional"
+            get() = if (halfSteps == null) "DeckFit · Input review" else "DeckFit $scoreText/5 · Provisional"
 
         val evidenceText: String
             get() =
@@ -205,9 +205,9 @@ object GemDeckFit {
         primaryGenre: String?,
     ): Estimate {
         reviewedTouchHalfSteps[releaseId]?.let { return Estimate(it, Basis.REVIEWED_TOUCH) }
-        if (releaseId in inputReviewReleaseIds) return Estimate(4, Basis.INPUT_REVIEW)
+        if (releaseId in inputReviewReleaseIds) return Estimate(null, Basis.INPUT_REVIEW)
 
-        val base = platformHalfSteps[systemId] ?: return Estimate(2, Basis.INPUT_REVIEW)
+        val base = platformHalfSteps[systemId] ?: return Estimate(null, Basis.INPUT_REVIEW)
         // Only use explicit, broad genre labels. Action/Adventure/Unknown make no control promises.
         val delta =
             when (primaryGenre?.trim()?.lowercase(Locale.ROOT)) {
