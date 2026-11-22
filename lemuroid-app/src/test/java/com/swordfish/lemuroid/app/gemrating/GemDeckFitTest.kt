@@ -58,6 +58,74 @@ class GemDeckFitTest {
     }
 
     @Test
+    fun `QuickScore respects console baselines and evidence-backed half-point modifiers`() {
+        assertEquals(9, GemDeckFit.estimate("TEST:gbc", "gbc", null).halfSteps)
+        assertEquals(8, GemDeckFit.estimate("TEST:3ds", "3ds", null).halfSteps)
+        assertEquals(6, GemDeckFit.estimate("TEST:ps2", "ps2", null).halfSteps)
+
+        val gbcComplex =
+            GemDeckFit.estimate(
+                "TEST:gbc-complex",
+                "gbc",
+                "Action",
+                traits = setOf(GemDeckFit.Trait.COMPLEX_CHORDS),
+            )
+        assertEquals(8, gbcComplex.halfSteps)
+
+        val ps2TwoDimensional =
+            GemDeckFit.estimate(
+                "TEST:ps2-2d",
+                "ps2",
+                "Action",
+                traits = setOf(GemDeckFit.Trait.SIMPLE_2D),
+            )
+        assertEquals(7, ps2TwoDimensional.halfSteps)
+
+        val ps2Tactics =
+            GemDeckFit.estimate(
+                "VDG:ps2:1270",
+                "ps2",
+                "Role-Playing",
+                "Disgaea: Hour of Darkness",
+            )
+        assertEquals(8, ps2Tactics.halfSteps)
+        assertEquals(GemDeckFit.Basis.GAME_TRAITS, ps2Tactics.basis)
+
+        val mappedTilt =
+            GemDeckFit.estimate(
+                "TEST:3ds-tilt",
+                "3ds",
+                "Action",
+                traits = setOf(GemDeckFit.Trait.MOTION_FALLBACK),
+            )
+        assertEquals(6, mappedTilt.halfSteps)
+
+        val unsupportedMotion =
+            GemDeckFit.estimate(
+                "VDG:3ds:15",
+                "3ds",
+                "Action",
+                "Beyblade Evolution",
+            )
+        assertNull(unsupportedMotion.halfSteps)
+        assertEquals(GemDeckFit.Basis.INPUT_REVIEW, unsupportedMotion.basis)
+
+        val onePointCap =
+            GemDeckFit.estimate(
+                "TEST:gbc-difficult",
+                "gbc",
+                "Action",
+                traits =
+                    setOf(
+                        GemDeckFit.Trait.COMPLEX_CHORDS,
+                        GemDeckFit.Trait.PRECISION_ACTION,
+                        GemDeckFit.Trait.SMALL_TEXT,
+                    ),
+            )
+        assertEquals(7, onePointCap.halfSteps)
+    }
+
+    @Test
     fun `every currently bundled release receives a provisional DeckFit projection`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val catalogue = GemProductionCatalogue.load(context).manifest.releases
