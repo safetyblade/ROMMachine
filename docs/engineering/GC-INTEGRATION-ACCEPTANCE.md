@@ -1,3 +1,5 @@
+> **CONTROLLING OWNER HANDOFF — 22 NOV 2026:** [GC01 authoritative A–H implementation and prior UI reuse](gc01/GC01_AUTHORITATIVE_OWNER_IMPLEMENTATION_HANDOFF_2026-11-22.md) supersedes conflicting historical feature-scope/design direction. **Implement, do not rescope**. SafeSave must expose real per-console in-game saves/state/VMU/card counts and Export All with exceptions; controllers need live two-press **reciprocal SWAP** and actual native host testing; Junior uses a simple PIN; Wii+3DS motion UI belongs to GC with native sensor bridges in PERF; GEM needs **only a simple exact-ID Roxy/team CSV/JSON enrichment interface wired to existing offline recommendation logic, not a new database-platform project**. Existing 25-screen Sienna UX and merged controller/nav/shelf UI remain the source foundation. This is a design/integration instruction, not release/QA approval. The historical status matrix below is preserved and must be refreshed with current source/physical evidence.
+
 # CARTDECK GC integration and physical acceptance
 
 Draft integration candidate for #262. The baseline is master
