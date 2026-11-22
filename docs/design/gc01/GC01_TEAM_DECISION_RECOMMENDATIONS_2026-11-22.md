@@ -1,3 +1,5 @@
+> **OWNER DECISION UPDATE — 22 NOV 2026:** Jonathan has approved OD-01 through OD-06 with refinements. The controlling record is [GC01_OWNER_APPROVED_DECISIONS_2026-11-22.md](GC01_OWNER_APPROVED_DECISIONS_2026-11-22.md). The "RECOMMENDED, NOT APPROVED" rows and caveats below are **historical pre-approval proposals**, not current decision status. In particular **My DeckFit is whole 1–5 ALWAYS**, the controller remapper uses physical two-press capture with live visual feedback, and SafeSave must show per-console native saves/states/cards/unassigned backups plus Export All with explicit exceptions. Engineering and physical QA remain outstanding.
+
 # CARTDECK GC-01 — Whole-team design review and decision recommendations
 22 November 2026 | Draft PR #362 | **Design guidance, not source implementation or role sign-off**
 
