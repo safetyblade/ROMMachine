@@ -232,7 +232,7 @@ internal fun GemLibraryScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(
-                        listOf("For You", "Browse", "My Ratings", "Game Intelligence", "Search websites", "Manage"),
+                        listOf("For You", "Browse", "My Ratings", "Game Intelligence", "Manage"),
                     ) { destination ->
                         val title =
                             when (destination) {
@@ -260,7 +260,6 @@ internal fun GemLibraryScreen(
                     }
                 }
             }
-            "Search websites" -> GemWebsiteSearchScreen()
             "Manage" ->
                 GemManagementScreen(
                     onCatalogueChanged = { reloading++ },

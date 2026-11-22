@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.cartmod
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.mobile.feature.product.GemWebsiteSearchScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 /** Preparation remains separate from normal Shelf gameplay and runtime ownership. */
@@ -33,11 +35,23 @@ internal fun CartmodScreen(
     cartridgeId: String? = null,
 ) {
     var revision by remember { mutableStateOf(0) }
+    var searchWebsites by rememberSaveable { mutableStateOf(false) }
+    if (cartridgeId == null && searchWebsites) {
+        BackHandler { searchWebsites = false }
+        Column(modifier) {
+            TextButton(onClick = { searchWebsites = false }) { Text("Back to CARTMOD") }
+            GemWebsiteSearchScreen(Modifier.weight(1f))
+        }
+        return
+    }
     Column(
         modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (cartridgeId == null) {
+            OutlinedButton(onClick = { searchWebsites = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Search websites")
+            }
             PcImportSettings(
                 enabled = enabled,
                 onImported = { revision++ },

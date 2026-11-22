@@ -35,7 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 
-/** GEM's actual website search; recommendations remain separately capability-gated. */
+/** User-initiated browser search from the CARTMOD workshop. */
 @Composable
 internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
