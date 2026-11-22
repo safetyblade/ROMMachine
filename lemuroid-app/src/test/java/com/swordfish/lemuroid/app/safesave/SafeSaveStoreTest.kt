@@ -18,6 +18,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private class InMemoryIndex : SafeSaveIndex {
     val snapshots = linkedMapOf<String, SafeSaveSnapshotRecord>()
@@ -178,19 +180,35 @@ class SafeSaveStoreTest {
     @Test
     fun roomIndexPersistsAcrossDatabaseReopen() {
         val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
         try {
             val context = ApplicationProvider.getApplicationContext<android.content.Context>()
             val dbFile = File(parent, "safesave-test.db")
-            val db1 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
+            // SafeSaveStore is synchronous by contract; production calls it from
+            // an IO worker. Preserve Room's main-thread safety rule in this test.
             val captured =
-                SafeSaveStore(RoomSafeSaveIndex(db1.safeSaveDao()), snapshotRoot)
-                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
-            db1.close()
-            val db2 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
-            val reopened = RoomSafeSaveIndex(db2.safeSaveDao()).snapshot(captured.snapshot.snapshotId)
-            assertEquals(captured.snapshot, reopened)
-            db2.close()
+                executor.submit<SafeSaveSnapshotRecord> {
+                    val db = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
+                    try {
+                        SafeSaveStore(RoomSafeSaveIndex(db.safeSaveDao()), snapshotRoot)
+                            .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+                            .snapshot
+                    } finally {
+                        db.close()
+                    }
+                }.get(30, TimeUnit.SECONDS)
+            val reopened =
+                executor.submit<SafeSaveSnapshotRecord?> {
+                    val db = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
+                    try {
+                        RoomSafeSaveIndex(db.safeSaveDao()).snapshot(captured.snapshotId)
+                    } finally {
+                        db.close()
+                    }
+                }.get(30, TimeUnit.SECONDS)
+            assertEquals(captured, reopened)
         } finally {
+            executor.shutdownNow()
             parent.deleteRecursively()
         }
     }
