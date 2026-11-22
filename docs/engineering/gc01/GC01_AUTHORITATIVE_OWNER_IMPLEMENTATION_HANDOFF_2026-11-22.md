@@ -1,3 +1,5 @@
+> **NEW OWNER DESIGN SCOPE — PIV-HH-01 (22 NOV, 20:12 AEDT):** [PivotArc handheld one-hand layouts for all 11 source-registered handheld systems](../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) is now the controlling **DESIGN** for the new handheld-specific PivotArc expansion. Preserve current GB/GBC/GBA/SNES PivotArc source/presets, keep existing PivotArc Hold A/B and **do not add permanent H1–H3**. Expand console-authentic one-hand PivotArc profiles for GG, LYNX, NGP, WS, WSC, PSP, NDS, NINTENDO_3DS with exact original guest controls and honest screen/touch/motion limits. This is **not** the Standard touch HHOLD-01 optional Hold Tray and does not change GripArc G1–G4. Implement within existing GC C/E, same PR, without new design/backend or claiming device QA. If an older statement says never extend PivotArc to more handhelds, that narrower instruction is superseded by this **new owner request**. Preserve all original A–H / SafeSave / GEM priorities.
+
 # CARTDECK GC-01 — AUTHORITATIVE OWNER IMPLEMENTATION HANDOFF
 22 November 2026 | Owner: Jonathan Prestwich | GC draft PR #362
 
