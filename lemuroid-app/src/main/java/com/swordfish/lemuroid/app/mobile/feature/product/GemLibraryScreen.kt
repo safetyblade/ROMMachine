@@ -250,7 +250,7 @@ internal fun GemLibraryScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(
-                        listOf("For You", "Browse", "My Ratings", "Game Intelligence", "Manage"),
+                        listOf("For You", "Browse", "My Ratings", "Homebrew", "Game Intelligence", "Manage"),
                     ) { destination ->
                         val title =
                             when (destination) {
@@ -289,6 +289,7 @@ internal fun GemLibraryScreen(
                     modifier = Modifier.weight(1f),
                 )
             "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
+            "Homebrew" -> GemWebsiteSearchScreen(modifier = Modifier.weight(1f))
             "For You" -> {
                 if (error) {
                     Text("Catalogue verification failed. Your ratings and saves remain unchanged.")
