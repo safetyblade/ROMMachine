@@ -38,9 +38,12 @@ object GemDeckFit {
     data class Estimate(
         val halfSteps: Int?,
         val basis: Basis,
+        /** The assigned console starting score, retained even for Input review holds. */
+        val baselineHalfSteps: Int? = null,
     ) {
         init {
             require(halfSteps == null || halfSteps in 2..10)
+            require(baselineHalfSteps == null || baselineHalfSteps in 2..10)
         }
 
         val scoreText: String
@@ -226,6 +229,13 @@ object GemDeckFit {
             "VDG:wiiu:row-130",
         )
 
+    /**
+     * Every catalogue release inherits a deterministic console baseline without mutating
+     * signed GEM source shards, adding per-game rows or touching personal ratings.
+     * An Input review hold still has this underlying baseline but has no public score.
+     */
+    fun baselineHalfStepsFor(systemId: String): Int? = platformHalfSteps[systemId]
+
     fun estimate(release: GemCataloguePackage.Release): Estimate =
         estimate(release.releaseId, release.systemId, release.primaryGenre, release.title)
 
@@ -237,12 +247,13 @@ object GemDeckFit {
         title: String? = null,
         traits: Set<Trait> = emptySet(),
     ): Estimate {
+        val base = baselineHalfStepsFor(systemId)
         if (Trait.REQUIRED_INPUT_UNAVAILABLE in traits || releaseId in inputReviewReleaseIds) {
-            return Estimate(null, Basis.INPUT_REVIEW)
+            return Estimate(null, Basis.INPUT_REVIEW, base)
         }
-        reviewedTouchHalfSteps[releaseId]?.let { return Estimate(it, Basis.REVIEWED_TOUCH) }
+        reviewedTouchHalfSteps[releaseId]?.let { return Estimate(it, Basis.REVIEWED_TOUCH, base) }
 
-        val base = platformHalfSteps[systemId] ?: return Estimate(null, Basis.INPUT_REVIEW)
+        if (base == null) return Estimate(null, Basis.INPUT_REVIEW)
         // Avoid assuming every RPG is turn-based or every action game has a 3D camera.
         val genreDelta =
             when (primaryGenre?.trim()?.lowercase(Locale.ROOT)) {
@@ -260,7 +271,7 @@ object GemDeckFit {
                 genreDelta != 0 -> Basis.PLATFORM_GENRE
                 else -> Basis.PLATFORM_ONLY
             }
-        return Estimate((base + boundedDelta).coerceIn(2, 10), basis)
+        return Estimate((base + boundedDelta).coerceIn(2, 10), basis, base)
     }
 
     private fun curatedTraits(
