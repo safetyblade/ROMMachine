@@ -212,6 +212,7 @@ object GemDeckFit {
             "VDG:ds:1891",
             "VDG:ds:698",
             "VDG:ds:1583",
+            "VDG:3ds:15", // Beyblade Evolution: native 3DS motion path awaiting physical verification
             "VDG:wii:1252",
             "VDG:wii:616",
         )
@@ -259,6 +260,7 @@ object GemDeckFit {
             if (feature.playstyle.equals("Turn-based", ignoreCase = true)) add(Trait.TURN_BASED)
             if (feature.playstyle.equals("First-person", ignoreCase = true)) add(Trait.DUAL_ANALOG_AIM)
             if ("High speed" in feature.mechanics) add(Trait.PRECISION_ACTION)
+            if ("2D tactical" in feature.mechanics) add(Trait.SIMPLE_2D)
         }
     }
 }
