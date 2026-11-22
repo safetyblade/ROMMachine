@@ -408,8 +408,9 @@ jobs:
                 }
                 if (!chosen) {
                   core.setFailed('No successful source-matched Xenia engineering build for this PR. Never reuse an older recipe.');
+                  return;
                 }
-                return;
+                continue;
               }
               const reuseRun = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_run_id }}' : '';
               const reuseName = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_artifact_name }}' : '';
