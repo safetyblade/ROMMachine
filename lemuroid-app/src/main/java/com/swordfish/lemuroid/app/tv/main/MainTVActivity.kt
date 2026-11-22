@@ -2,10 +2,12 @@ package com.swordfish.lemuroid.app.tv.main
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -19,6 +21,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.input.CartridgeNavigationMotion
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupPlayer
@@ -37,6 +40,7 @@ import com.swordfish.lemuroid.lib.injection.PerActivity
 import com.swordfish.lemuroid.lib.injection.PerFragment
 import com.swordfish.lemuroid.lib.library.covers.CustomCoverManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import dagger.Provides
 import dagger.android.ContributesAndroidInjector
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -59,8 +63,9 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
         setContentView(R.layout.activity_tv_main)
-        if (savedInstanceState == null) showSignatureStartupVideo()
+        if (savedInstanceState == null && CartdeckStartupVideo.claimColdStart()) showSignatureStartupVideo()
 
         val factory = MainTVViewModel.Factory(applicationContext)
         mainViewModel = ViewModelProvider(this, factory).get(MainTVViewModel::class.java)
@@ -93,10 +98,8 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
         player.tag = "cartdeck-signature-startup"
         player.isFocusableInTouchMode = true
         player.setOnKeyListener { _, keyCode, event ->
-            if (event.action == KeyEvent.ACTION_DOWN &&
-                keyCode in listOf(KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_A)
-            ) {
-                if (!finished) {
+            if (CartdeckStartupVideo.isSkipKey(keyCode)) {
+                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled && !finished) {
                     finished = true
                     player.stopPlayback()
                     host.removeView(player)
@@ -118,6 +121,64 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
                 host.removeView(player)
             }
         }, CartdeckStartupVideo.MAX_DURATION_MS)
+    }
+
+    private var cartridgeDialog: AlertDialog? = null
+    private val cartridgeNavigation = CartridgeNavigationMotion()
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) cartridgeNavigation.clear()
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        cartridgeNavigation.dispatch(event) { key -> super.dispatchKeyEvent(key) } ||
+            super.dispatchGenericMotionEvent(event)
+
+    fun showCartridge(
+        game: Game,
+        onPlay: (Game) -> Unit,
+    ) {
+        if (cartridgeDialog != null) return
+        val previousFocus = currentFocus
+        val dialog =
+            AlertDialog.Builder(this)
+                .setTitle(game.displayName())
+                .setMessage(com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel(game.systemId))
+                .setNegativeButton(R.string.cartdeck_back_to_shelf, null)
+                .setPositiveButton(R.string.cartdeck_open) { _, _ -> onPlay(game) }
+                .create()
+        cartridgeDialog = dialog
+        dialog.setOnDismissListener {
+            cartridgeDialog = null
+            previousFocus?.requestFocus()
+        }
+        dialog.setOnKeyListener { _, code, event ->
+            when (code) {
+                KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_ESCAPE -> {
+                    if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+                        if (code == KeyEvent.KEYCODE_BUTTON_A) {
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).takeIf { it.isFocused }?.performClick()
+                            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).takeIf { it.isFocused }?.performClick()
+                        } else {
+                            dialog.dismiss()
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        dialog.show()
+        dialog.window?.decorView?.setOnGenericMotionListener { _, event ->
+            cartridgeNavigation.dispatch(event) { key -> dialog.dispatchKeyEvent(key) }
+        }
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus()
+    }
+
+    override fun onDestroy() {
+        cartridgeDialog?.dismiss()
+        super.onDestroy()
     }
 
     override fun onActivityResult(

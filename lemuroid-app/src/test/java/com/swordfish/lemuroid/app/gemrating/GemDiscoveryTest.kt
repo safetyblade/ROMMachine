@@ -123,6 +123,30 @@ class GemDiscoveryTest {
     }
 
     @Test
+    fun explicitCatalogueRatingIsPortableAndTrainsWithoutClaimingOwnership() {
+        val first = GemCataloguePackage.Release("gb:1", "gb", "Same", "source", "1", "Strategy")
+        val second = first.copy(releaseId = "gb:2", sourceRecordId = "2")
+        val profileId = "12300000-0000-0000-0000-000000000000"
+        val rating =
+            GemRatingRepository.Rating(
+                cartridgeId = GemRatingRepository.catalogueRatingId(second.releaseId),
+                score = 9,
+                revision = 1L,
+                updatedAt = 123L,
+                displayTitle = second.title,
+                platformId = second.systemId,
+                deckFit = 3,
+                catalogueReleaseId = second.releaseId,
+            )
+        val snapshot = GemRatingRepository.Snapshot(profileId, records = listOf(rating))
+        val restored = GemProfileBackup.decode(GemProfileBackup.encode(snapshot))
+        val input = GemDiscovery.prepare(listOf(first, second), restored.records, emptyMap(), emptyList())
+        assertEquals(snapshot, restored)
+        assertEquals(listOf(Rating(second.releaseId, 9.0)), input.ratings)
+        assertTrue(input.ownedIds.isEmpty())
+    }
+
+    @Test
     fun provisionalFeatureSeedRequiresExactIdAndTitle() {
         assertTrue(GemGameplayFeatures.find("VDG:xb:row-85", "Phantom Dust") != null)
         assertNull(GemGameplayFeatures.find("VDG:xb:row-85", "Another game"))

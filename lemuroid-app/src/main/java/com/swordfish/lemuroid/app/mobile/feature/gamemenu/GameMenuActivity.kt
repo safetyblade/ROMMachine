@@ -447,7 +447,11 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                         cancelCapture()
                                         pendingBinding = id to native
                                     },
-                                    onCancel = ::cancelCapture,
+                                    onCancel = {
+                                        cancelCapture()
+                                        mappingDraft?.cancelConflict()
+                                        mappingRevision++
+                                    },
                                     onReset = { device ->
                                         cancelCapture()
                                         mappingDraft?.reset(

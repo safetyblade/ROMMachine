@@ -22,6 +22,7 @@ class GemRatingRepository(
         val displayTitle: String? = null,
         val platformId: String? = null,
         val deckFit: Int? = null,
+        val catalogueReleaseId: String? = null,
     )
 
     @Serializable
@@ -71,6 +72,7 @@ class GemRatingRepository(
         displayTitle: String? = null,
         platformId: String? = null,
         deckFitOnly: Boolean = false,
+        catalogueReleaseId: String? = null,
     ): Snapshot =
         synchronized(lock) {
             verifyAccess(expected)
@@ -80,6 +82,10 @@ class GemRatingRepository(
             require(platformId == null || platformId.length in 1..64)
             val existing = readValidated(expected.profileId)
             val previous = existing.records.firstOrNull { it.cartridgeId == cartridgeId }
+            if (catalogueReleaseId != null) require(catalogueRatingId(catalogueReleaseId) == cartridgeId)
+            require(previous == null || catalogueReleaseId == previous.catalogueReleaseId) {
+                "Rating identity cannot change"
+            }
             val priorScore = if (deckFitOnly) previous?.deckFit else previous?.score
             if (priorScore == score) return@synchronized existing
             val revision = previous?.revision ?: 0L
@@ -95,6 +101,7 @@ class GemRatingRepository(
                     displayTitle = displayTitle ?: previous?.displayTitle,
                     platformId = platformId ?: previous?.platformId,
                     deckFit = if (deckFitOnly) score else previous?.deckFit,
+                    catalogueReleaseId = catalogueReleaseId,
                 )
             val next =
                 existing.copy(
@@ -186,12 +193,18 @@ class GemRatingRepository(
             snapshot.preferences?.let(::validatePreferences)
             snapshot.records.forEach {
                 requireUuid(it.cartridgeId)
+                if (it.catalogueReleaseId != null) require(catalogueRatingId(it.catalogueReleaseId) == it.cartridgeId)
                 require(it.score == null || it.score in 1..10)
                 require(it.deckFit == null || it.deckFit in 1..5)
                 require(it.revision > 0 && it.updatedAt >= 0)
                 require(it.displayTitle == null || it.displayTitle.length in 1..512)
                 require(it.platformId == null || it.platformId.length in 1..64)
             }
+        }
+
+        internal fun catalogueRatingId(releaseId: String): String {
+            require(releaseId.length in 1..256 && releaseId.none(Char::isISOControl))
+            return UUID.nameUUIDFromBytes("cartdeck.gem.release:$releaseId".encodeToByteArray()).toString()
         }
 
         internal fun requireUuid(value: String) {

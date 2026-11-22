@@ -5,11 +5,13 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Rect
 
 /** Root coordinates are shared by shelf cells and the in-place pickup overlay. */
 class CartridgeGeometry {
     val cells = mutableStateMapOf<Int, Rect>()
+    val shelfFocus = mutableMapOf<Int, FocusRequester>()
     val frontFacing = mutableSetOf<Int>()
     var selectedId: Int? by mutableStateOf(null)
     private val owners = mutableMapOf<Int, Any>()

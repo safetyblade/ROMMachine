@@ -18,7 +18,7 @@ class DisplaySettingsStoreTest {
     @Test fun defaultsOverridesAndResetSurviveReopenWithoutTouchingOtherCartridges() {
         val root = temporary.newFolder()
         val store = DisplaySettingsStore(root) { DisplaySettingsStore.Choices(filter = "auto", hd = true) }
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("one").effective.border(true))
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(false))
         store.set(null, "landscapeBorder", "STANDARD")
         store.set("one", "landscapeBorder", "OFF")
@@ -33,12 +33,12 @@ class DisplaySettingsStoreTest {
         assertTrue(store.read("one").effective.hd == true)
     }
 
-    @Test fun hardwareIsTheUntouchedDefaultInBothOrientationsAndExistingOffChoicesRemainExplicit() {
+    @Test fun landscapeDefaultsOffAndExistingSelectionsRemainExplicit() {
         val root = temporary.newFolder()
         val store = DisplaySettingsStore(root)
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(null).effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read(null).effective.border(true))
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(null).effective.border(false))
-        assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(true))
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("one").effective.border(true))
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read("one").effective.border(false))
         // A previously selected global or cartridge-specific OFF must not be rewritten.
         store.set(null, "landscapeBorder", "OFF")
@@ -51,6 +51,16 @@ class DisplaySettingsStoreTest {
         reopened.set("one", "landscapeBorder", "STANDARD")
         assertEquals(DisplaySettingsStore.Border.STANDARD, reopened.read("one").effective.border(true))
         assertEquals(DisplaySettingsStore.Border.OFF, reopened.read("two").effective.border(true))
+    }
+
+    @Test fun globalMinimalAppliesUntilCartridgeExplicitOffAndResetReinheritsGlobal() {
+        val store = DisplaySettingsStore(temporary.newFolder())
+        store.set(null, "landscapeBorder", "MINIMAL")
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
+        store.set("xbox", "landscapeBorder", "OFF")
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read("xbox").effective.border(true))
+        store.useGlobal("xbox")
+        assertEquals(DisplaySettingsStore.Border.MINIMAL, store.read("xbox").effective.border(true))
     }
 
     @Test fun minimalIsIndependentByOrientationAndPreservesExistingOverrides() {

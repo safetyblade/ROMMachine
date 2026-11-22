@@ -141,7 +141,14 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
 
     override fun appendJournal(record: SafeSaveJournalRecord) {
         dao.insertJournal(
-            SafeSaveJournalEntity(record.opId, record.kind, record.snapshotId, record.stage, record.result, record.timestamp),
+            SafeSaveJournalEntity(
+                record.opId,
+                record.kind,
+                record.snapshotId,
+                record.stage,
+                record.result,
+                record.timestamp,
+            ),
         )
     }
 
@@ -156,6 +163,7 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
             engineId = engineId,
             engineVersion = engineVersion,
             saveType = saveType,
+            groupName = groupName,
             saveTimestamp = saveTimestamp,
             captureTime = captureTime,
             verificationState = SafeSaveVerificationState.valueOf(verificationState),

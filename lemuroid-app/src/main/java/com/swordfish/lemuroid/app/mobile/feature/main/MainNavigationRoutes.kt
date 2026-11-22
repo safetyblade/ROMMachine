@@ -48,6 +48,10 @@ enum class MainRoute(
         route = "gem",
         titleId = R.string.cartdeck_gem_title,
     ),
+    SAFESAVE(
+        route = "safesave",
+        titleId = R.string.cartdeck_safesave_title,
+    ),
     CARTMOD(
         route = "cartmod",
         titleId = R.string.cartdeck_cartmod_title,

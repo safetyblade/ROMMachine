@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometry
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -163,6 +164,7 @@ fun ShelfBoard(
     val currentLayout by rememberUpdatedState(layout)
     val turn = remember { Animatable(0f) }
     var turning by remember { mutableStateOf<String?>(null) }
+    val geometry = LocalCartridgeGeometry.current
     val focusRequests = remember { mutableStateMapOf<String, FocusRequester>() }
 
     fun flip(cell: ShelfCell) {
@@ -445,6 +447,13 @@ fun ShelfBoard(
                                                 .then(if (game == null) editingActions else Modifier),
                                         ) {
                                             if (game != null) {
+                                                DisposableEffect(game.id, focusRequester) {
+                                                    onDispose {
+                                                        if (geometry.shelfFocus[game.id] === focusRequester) {
+                                                            geometry.shelfFocus.remove(game.id)
+                                                        }
+                                                    }
+                                                }
                                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                                                     ShelfCartridge(
                                                         game,
@@ -458,6 +467,7 @@ fun ShelfBoard(
                                                             .focusRequester(focusRequester)
                                                             .onGloballyPositioned {
                                                                 focusRequests[cell.id] = focusRequester
+                                                                geometry.shelfFocus[game.id] = focusRequester
                                                             }
                                                             .then(editingActions)
                                                             .alpha(if (dragging == cell.id) 0.25f else 1f)

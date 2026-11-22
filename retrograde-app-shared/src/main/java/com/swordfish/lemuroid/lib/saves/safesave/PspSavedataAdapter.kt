@@ -18,7 +18,24 @@ object PspSavedataAdapter {
 
     private val GROUP_NAME = Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 
-    fun savedataRoot(modernSaveRoot: File): File = File(File(modernSaveRoot, "PSP"), "SAVEDATA")
+    fun savedataRoot(modernSaveRoot: File): File = plainChild(plainChild(modernSaveRoot, "PSP"), "SAVEDATA")
+
+    internal fun destination(
+        modernSaveRoot: File,
+        groupName: String,
+    ): File {
+        require(GROUP_NAME.matches(groupName)) { "Unsafe PSP savedata group name" }
+        return plainChild(savedataRoot(modernSaveRoot), groupName)
+    }
+
+    internal fun plainChild(
+        directory: File,
+        name: String,
+    ): File {
+        val expected = File(directory.canonicalFile, name)
+        check(expected.canonicalFile == expected) { "PSP savedata symlinks are not supported" }
+        return expected
+    }
 
     data class DiscoveredGroup(
         val groupName: String,
@@ -32,19 +49,18 @@ object PspSavedataAdapter {
      * Discover one explicitly named group. The group name selects a directory;
      * it is never used to infer which cartridge owns the save.
      */
-    fun discover(modernSaveRoot: File, groupName: String): DiscoveredGroup {
-        require(GROUP_NAME.matches(groupName)) { "Unsafe PSP savedata group name" }
-        val root = savedataRoot(modernSaveRoot)
-        val group = File(root, groupName)
+    fun discover(
+        modernSaveRoot: File,
+        groupName: String,
+    ): DiscoveredGroup {
+        val group = destination(modernSaveRoot, groupName)
         require(group.isDirectory) { "PSP savedata group not found: $groupName" }
-        val groupCanonical = group.canonicalFile
         val files = mutableListOf<File>()
-        group.walkTopDown().forEach { entry ->
-            if (entry == group) return@forEach
-            check(entry.canonicalFile.path == groupCanonical.path ||
-                entry.canonicalFile.path.startsWith(groupCanonical.path + File.separator)) {
-                "PSP savedata symlinks are not supported"
-            }
+        group.walkTopDown().onEnter { directory ->
+            check(directory.canonicalFile == directory) { "PSP savedata symlinks are not supported" }
+            true
+        }.forEach { entry ->
+            check(entry.canonicalFile == entry) { "PSP savedata symlinks are not supported" }
             if (entry.isFile) files += entry
         }
         require(files.isNotEmpty()) { "PSP savedata group is empty: $groupName" }
@@ -58,9 +74,15 @@ object PspSavedataAdapter {
     }
 
     /** Relative path of [file] inside its savedata group, with traversal rejected. */
-    fun relativePath(group: File, file: File): String {
+    fun relativePath(
+        group: File,
+        file: File,
+    ): String {
         val relative = file.relativeTo(group).path
-        require(relative.isNotBlank() && !relative.startsWith("..") && '\\' !in relative) {
+        require(
+            relative.isNotBlank() && '\\' !in relative &&
+                relative.split('/').all { it.isNotEmpty() && it != "." && it != ".." && it.none(Char::isISOControl) },
+        ) {
             "Unsafe PSP savedata relative path"
         }
         return relative

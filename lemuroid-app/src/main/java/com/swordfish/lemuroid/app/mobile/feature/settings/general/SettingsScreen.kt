@@ -24,6 +24,7 @@ import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckCuratedDesigns
 import com.swordfish.lemuroid.app.mobile.feature.shelf.LocalShelfAppearance
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupSound
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
@@ -73,6 +74,7 @@ fun SettingsScreen(
                     onClick = onOpenAppearance,
                 )
             }
+            StartupSoundSettings()
             val sections =
                 listOf("Controllers", "Display & gameplay", "Shelf & library", "Help & guides", "System & advanced")
             for (name in sections) {
@@ -101,6 +103,47 @@ fun SettingsScreen(
                     )
             }
         }
+    }
+}
+
+@Composable
+private fun StartupSoundSettings() {
+    val context = LocalContext.current
+    val preferences = remember(context) { CartdeckStartupSound.preferences(context) }
+    var volume by remember(preferences) { mutableStateOf(CartdeckStartupSound.volume(preferences)) }
+    var muted by remember(preferences) { mutableStateOf(CartdeckStartupSound.muted(preferences)) }
+    var open by rememberSaveable { mutableStateOf(false) }
+    val volumeLabel = if (muted) "Muted ($volume%)" else "$volume%"
+    CartdeckMenuRow(
+        title = { Text("Startup Sound") },
+        supporting = { Text(volumeLabel) },
+        onClick = { open = true },
+    )
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text("Startup Sound") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text("Intro volume · $volumeLabel")
+                    androidx.compose.material3.Slider(
+                        value = volume.toFloat(),
+                        onValueChange = {
+                            volume = kotlin.math.round(it).toInt()
+                            preferences.edit().putInt(CartdeckStartupSound.VOLUME, volume).apply()
+                        },
+                        valueRange = 0f..100f,
+                    )
+                    TextButton(onClick = {
+                        muted = !muted
+                        preferences.edit().putBoolean(CartdeckStartupSound.MUTED, muted).apply()
+                    }) {
+                        Text(if (muted) "Unmute" else "Mute")
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Done") } },
+        )
     }
 }
 

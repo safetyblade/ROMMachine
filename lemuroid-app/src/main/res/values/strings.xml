@@ -1,4 +1,5 @@
 <resources>
+    <string name="cartdeck_safesave_title">SafeSave</string>
     <string name="cartdeck_header_title">CARTDECK</string>
     <string name="cartdeck_header_library">LIBRARY</string>
     <string name="cartdeck_library_options">Library options</string>

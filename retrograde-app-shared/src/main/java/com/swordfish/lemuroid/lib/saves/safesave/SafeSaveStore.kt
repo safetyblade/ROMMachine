@@ -52,32 +52,34 @@ class SafeSaveStore(
         val destination = File(snapshotRoot, snapshotId)
         try {
             check(staging.mkdirs()) { "Unable to stage SafeSave snapshot" }
-            val records = group.files.map { source ->
-                val relative = PspSavedataAdapter.relativePath(group.directory, source)
-                val copy = File(staging, relative)
-                check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
-                    "Unable to stage SafeSave file"
+            val records =
+                group.files.map { source ->
+                    val relative = PspSavedataAdapter.relativePath(group.directory, source)
+                    val copy = File(staging, relative)
+                    check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
+                        "Unable to stage SafeSave file"
+                    }
+                    source.copyTo(copy, overwrite = false)
+                    val sourceHash = sha256(source)
+                    check(sha256(copy) == sourceHash) { "SafeSave capture verification failed for $relative" }
+                    SafeSaveFileRecord(relative, source.length(), sourceHash)
                 }
-                source.copyTo(copy, overwrite = false)
-                val sourceHash = sha256(source)
-                check(sha256(copy) == sourceHash) { "SafeSave capture verification failed for $relative" }
-                SafeSaveFileRecord(relative, source.length(), sourceHash)
-            }
-            val snapshot = SafeSaveSnapshotRecord(
-                snapshotId = snapshotId,
-                cartridgeUuid = uuid,
-                platform = PspSavedataAdapter.PLATFORM,
-                engineId = PspSavedataAdapter.ENGINE_ID,
-                engineVersion = engineVersion,
-                saveType = PspSavedataAdapter.SAVE_TYPE,
-                groupName = groupName,
-                saveTimestamp = group.latestModified,
-                captureTime = clock(),
-                verificationState = SafeSaveVerificationState.VERIFIED,
-                totalBytes = group.totalBytes,
-                fileCount = records.size,
-                files = records,
-            )
+            val snapshot =
+                SafeSaveSnapshotRecord(
+                    snapshotId = snapshotId,
+                    cartridgeUuid = uuid,
+                    platform = PspSavedataAdapter.PLATFORM,
+                    engineId = PspSavedataAdapter.ENGINE_ID,
+                    engineVersion = engineVersion,
+                    saveType = PspSavedataAdapter.SAVE_TYPE,
+                    groupName = groupName,
+                    saveTimestamp = group.latestModified,
+                    captureTime = clock(),
+                    verificationState = SafeSaveVerificationState.VERIFIED,
+                    totalBytes = group.totalBytes,
+                    fileCount = records.size,
+                    files = records,
+                )
             check(staging.renameTo(destination)) { "Unable to activate SafeSave snapshot" }
             index.insertSnapshot(snapshot)
             index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()))
@@ -85,7 +87,9 @@ class SafeSaveStore(
         } catch (error: Exception) {
             staging.deleteRecursively()
             if (destination.exists() && index.snapshot(snapshotId) == null) destination.deleteRecursively()
-            index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()))
+            index.appendJournal(
+                SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
+            )
             throw error
         }
     }
@@ -99,16 +103,10 @@ class SafeSaveStore(
         check(engineQuiesced) { "Engine must be closed/quiesced before SafeSave restore" }
         val snapshot = index.snapshot(snapshotId) ?: throw IOException("SafeSave snapshot not found: $snapshotId")
         check(snapshot.verificationState == SafeSaveVerificationState.VERIFIED) { "Snapshot is not verified" }
-        val snapshotDir = File(snapshotRoot, snapshotId)
-        // Corruption gate: verify stored bytes before touching the destination.
-        snapshot.files.forEach { record ->
-            val file = File(snapshotDir, record.relativePath)
-            check(file.isFile && file.length() == record.sizeBytes && sha256(file) == record.sha256) {
-                "Snapshot file failed verification: ${record.relativePath}"
-            }
-        }
+        check(verify(snapshotId)) { "Snapshot files failed verification" }
+        val snapshotDir = PspSavedataAdapter.plainChild(snapshotRoot, snapshotId)
         val savedataRoot = PspSavedataAdapter.savedataRoot(modernSaveRoot)
-        val destination = File(savedataRoot, snapshot.groupName)
+        val destination = PspSavedataAdapter.destination(modernSaveRoot, snapshot.groupName)
         requireFreeSpace(savedataRoot, snapshot.totalBytes * 2)
 
         val opId = UUID.randomUUID().toString()
@@ -118,8 +116,12 @@ class SafeSaveStore(
         var activated = false
         try {
             if (destination.exists()) {
-                copyTreeVerified(destination, backupDir)
-                index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "DEST_BACKUP", backupDir.name, clock()))
+                val current = PspSavedataAdapter.discover(modernSaveRoot, snapshot.groupName)
+                requireFreeSpace(snapshotRoot, current.totalBytes)
+                copyTreeVerified(current, backupDir)
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "DEST_BACKUP", backupDir.name, clock()),
+                )
             }
             snapshot.files.forEach { record ->
                 val target = File(staging, record.relativePath)
@@ -129,51 +131,74 @@ class SafeSaveStore(
                 File(snapshotDir, record.relativePath).copyTo(target, overwrite = false)
                 check(sha256(target) == record.sha256) { "Restored file failed verification: ${record.relativePath}" }
             }
+            index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "ACTIVATING", "", clock()))
             if (destination.exists()) check(destination.renameTo(displaced)) { "Unable to displace current savedata" }
             check(staging.renameTo(destination)) { "Unable to activate SafeSave restore" }
             activated = true
-            displaced.deleteRecursively()
             index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "COMPLETE", "VERIFIED", clock()))
-            return RestoreResult(snapshotId, if (backupDir.exists()) backupDir else null,
-                Metrics(clock() - started, snapshot.fileCount, snapshot.totalBytes))
+            runCatching { displaced.deleteRecursively() }
+            return RestoreResult(
+                snapshotId,
+                if (backupDir.exists()) backupDir else null,
+                Metrics(clock() - started, snapshot.fileCount, snapshot.totalBytes),
+            )
         } catch (error: Exception) {
-            staging.deleteRecursively()
-            if (!activated && displaced.exists() && !destination.exists()) {
-                displaced.renameTo(destination)
+            val removedReplacement = !activated || destination.renameTo(staging)
+            val rolledBack = removedReplacement && (!displaced.exists() || displaced.renameTo(destination))
+            if (rolledBack) staging.deleteRecursively()
+            val stage = if (rolledBack) "FAILED" else "RECOVERY_REQUIRED"
+            try {
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "RESTORE", snapshotId, stage, "Restore failed", clock()),
+                )
+            } catch (journalError: Exception) {
+                error.addSuppressed(journalError)
             }
-            index.appendJournal(SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "FAILED", error.message ?: "restore failed", clock()))
+            if (!rolledBack) throw IOException("Restore interrupted. Preserve the backup and contact support.", error)
             throw error
         }
     }
 
     /** Verify stored bytes of a snapshot without touching any live save. */
-    fun verify(snapshotId: String): Boolean {
-        val snapshot = index.snapshot(snapshotId) ?: return false
-        val dir = File(snapshotRoot, snapshotId)
-        return snapshot.files.all { record ->
-            val file = File(dir, record.relativePath)
-            file.isFile && file.length() == record.sizeBytes && sha256(file) == record.sha256
-        }
-    }
-
-    private fun copyTreeVerified(source: File, destination: File) {
-        source.walkTopDown().forEach { entry ->
-            val relative = entry.relativeTo(source).path
-            if (relative.isBlank()) return@forEach
-            val copy = File(destination, relative)
-            if (entry.isDirectory) {
-                check(copy.isDirectory || copy.mkdirs()) { "Unable to back up savedata" }
-            } else {
-                check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
-                    "Unable to back up savedata"
+    fun verify(snapshotId: String): Boolean =
+        runCatching {
+            require(UUID.fromString(snapshotId).toString() == snapshotId)
+            val snapshot = index.snapshot(snapshotId) ?: return false
+            val directory = PspSavedataAdapter.plainChild(snapshotRoot, snapshotId)
+            val paths = snapshot.files.map { it.relativePath }
+            snapshot.snapshotId == snapshotId &&
+                snapshot.platform == PspSavedataAdapter.PLATFORM &&
+                snapshot.engineId == PspSavedataAdapter.ENGINE_ID &&
+                snapshot.verificationState == SafeSaveVerificationState.VERIFIED &&
+                paths.isNotEmpty() && paths.size == paths.distinct().size && paths.size == snapshot.fileCount &&
+                snapshot.totalBytes == snapshot.files.sumOf { it.sizeBytes } &&
+                snapshot.files.all { record ->
+                    val file = File(directory, record.relativePath)
+                    PspSavedataAdapter.relativePath(directory, file) == record.relativePath &&
+                        file.canonicalFile == file && file.isFile &&
+                        file.length() == record.sizeBytes && sha256(file) == record.sha256
                 }
-                entry.copyTo(copy, overwrite = false)
-                check(sha256(copy) == sha256(entry)) { "Destination backup verification failed" }
+        }.getOrDefault(false)
+
+    private fun copyTreeVerified(
+        group: PspSavedataAdapter.DiscoveredGroup,
+        destination: File,
+    ) {
+        group.files.forEach { entry ->
+            val relative = PspSavedataAdapter.relativePath(group.directory, entry)
+            val copy = File(destination, relative)
+            check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
+                "Unable to back up savedata"
             }
+            entry.copyTo(copy, overwrite = false)
+            check(sha256(copy) == sha256(entry)) { "Destination backup verification failed" }
         }
     }
 
-    private fun requireFreeSpace(root: File, neededBytes: Long) {
+    private fun requireFreeSpace(
+        root: File,
+        neededBytes: Long,
+    ) {
         val probe = generateSequence(root) { it.parentFile }.firstOrNull { it.exists() } ?: return
         check(probe.usableSpace > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
     }

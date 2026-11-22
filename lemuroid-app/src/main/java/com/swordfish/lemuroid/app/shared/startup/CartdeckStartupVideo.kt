@@ -1,13 +1,20 @@
 package com.swordfish.lemuroid.app.shared.startup
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.Surface
 import android.view.TextureView
 import android.view.View
@@ -23,6 +30,26 @@ import com.swordfish.lemuroid.R
 internal object CartdeckStartupVideo {
     const val MAX_DURATION_MS = 12_500L
     private const val FIRST_FRAME_TIMEOUT_MS = 6_000L
+
+    private var shownInProcess = false
+
+    fun claimColdStart(): Boolean {
+        if (shownInProcess) return false
+        shownInProcess = true
+        return true
+    }
+
+    fun isSkipKey(keyCode: Int): Boolean =
+        when (keyCode) {
+            KeyEvent.KEYCODE_BACK,
+            KeyEvent.KEYCODE_ESCAPE,
+            KeyEvent.KEYCODE_BUTTON_B,
+            KeyEvent.KEYCODE_BUTTON_A,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            -> true
+            else -> false
+        }
 
     fun create(
         context: Context,
@@ -41,6 +68,23 @@ internal class CartdeckStartupPlayer(
             setImageResource(R.drawable.cartdeck_mark_foreground)
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
+    private val audioManager = context.getSystemService(AudioManager::class.java)
+    private val audioAttributes =
+        AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+            .build()
+    private val focusListener =
+        AudioManager.OnAudioFocusChangeListener { change ->
+            if (change != AudioManager.AUDIOFOCUS_GAIN && hasAudioFocus && !stopped) finishOnce()
+        }
+    private var focusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus = false
+    private val soundPreferences = CartdeckStartupSound.preferences(context)
+    private val soundListener =
+        android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> updateVolume() }
+    private var prepared = false
+    private var endFramingProgress = 0f
     private var mediaPlayer: MediaPlayer? = null
     private var videoSurface: Surface? = null
     private var videoWidth = 0
@@ -59,6 +103,7 @@ internal class CartdeckStartupPlayer(
         )
         val markSize = (148f * resources.displayMetrics.density).toInt()
         addView(placeholder, LayoutParams(markSize, markSize, Gravity.CENTER))
+        soundPreferences.registerOnSharedPreferenceChangeListener(soundListener)
         texture.surfaceTextureListener = this
         texture.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateFraming() }
         postDelayed(
@@ -78,6 +123,12 @@ internal class CartdeckStartupPlayer(
         height: Int,
     ) {
         if (stopped || mediaPlayer != null) return
+        if (Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f ||
+            (Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled())
+        ) {
+            postDelayed({ finishOnce() }, 500L)
+            return
+        }
         val surface = Surface(surfaceTexture)
         videoSurface = surface
         val player = MediaPlayer()
@@ -89,7 +140,7 @@ internal class CartdeckStartupPlayer(
             )
             player.setSurface(surface)
             player.isLooping = false
-            player.setVolume(0f, 0f)
+            player.setAudioAttributes(audioAttributes)
             player.setOnVideoSizeChangedListener { _, newWidth, newHeight ->
                 videoWidth = newWidth
                 videoHeight = newHeight
@@ -100,7 +151,9 @@ internal class CartdeckStartupPlayer(
                     videoWidth = prepared.videoWidth
                     videoHeight = prepared.videoHeight
                     updateFraming()
-                    prepared.start()
+                    this.prepared = true
+                    updateVolume()
+                    if (!adjustingFraming) prepared.start()
                 }
             }
             player.setOnInfoListener { _, what, _ ->
@@ -143,15 +196,28 @@ internal class CartdeckStartupPlayer(
             } else {
                 maxOf(1f, viewAspect / videoAspect)
             }
+        val progress = if (adjustingFraming) 0f else endFramingProgress
+        // The final wordmark spans 47% of the source width. Keep it prominent
+        // on phones and reserve margins on widescreen and overscanned displays.
+        val endZoom = if (viewAspect < 1f) 1.85f else 0.95f
+        val endScaleX = minOf(1f, videoAspect / viewAspect) * endZoom
+        val endScaleY = minOf(1f, viewAspect / videoAspect) * endZoom
         texture.setTransform(
             Matrix().apply {
                 setScale(
-                    horizontalScale * safe.zoom,
-                    verticalScale * safe.zoom,
+                    horizontalScale * safe.zoom * (1f - progress) + endScaleX * progress,
+                    verticalScale * safe.zoom * (1f - progress) + endScaleY * progress,
                     viewWidth / 2f,
                     viewHeight / 2f,
                 )
-                postTranslate(safe.offsetX * viewWidth, safe.offsetY * viewHeight)
+                if (progress == 0f) {
+                    postTranslate(safe.offsetX * viewWidth, safe.offsetY * viewHeight)
+                } else {
+                    postTranslate(
+                        safe.offsetX * viewWidth * (1f - progress),
+                        safe.offsetY * viewHeight * (1f - progress),
+                    )
+                }
             },
         )
     }
@@ -167,16 +233,17 @@ internal class CartdeckStartupPlayer(
 
     fun pauseForFraming() {
         adjustingFraming = true
-        mediaPlayer?.let { if (it.isPlaying) it.pause() }
+        if (prepared) mediaPlayer?.pause()
+        updateFraming()
+        releaseAudioFocus()
     }
 
     fun resumeAfterFraming() {
         adjustingFraming = false
         mediaPlayer?.let { player ->
-            if (!stopped) {
-                if (player.duration > 0 && player.currentPosition >= player.duration - 150) {
-                    player.seekTo(0)
-                }
+            if (prepared && !stopped) {
+                updateFraming()
+                updateVolume()
                 player.start()
             }
         }
@@ -190,7 +257,66 @@ internal class CartdeckStartupPlayer(
         updateFraming()
     }
 
-    override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) = Unit
+    override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) {
+        val player = mediaPlayer ?: return
+        if (!prepared || adjustingFraming || stopped) return
+        val progress = ((player.currentPosition - 7_900) / 900f).coerceIn(0f, 1f)
+        if (progress != endFramingProgress) {
+            endFramingProgress = progress
+            updateFraming()
+        }
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != View.VISIBLE && mediaPlayer != null) finishOnce()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun updateVolume() {
+        val player = mediaPlayer ?: return
+        if (!prepared || adjustingFraming || stopped) return
+        val gain = CartdeckStartupSound.gain(soundPreferences)
+        if (gain == 0f) {
+            player.setVolume(0f, 0f)
+            releaseAudioFocus()
+            return
+        }
+        if (!hasAudioFocus) {
+            val result =
+                if (Build.VERSION.SDK_INT >= 26) {
+                    val request =
+                        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                            .setAudioAttributes(audioAttributes)
+                            .setOnAudioFocusChangeListener(focusListener)
+                            .setWillPauseWhenDucked(true)
+                            .build()
+                    focusRequest = request
+                    audioManager.requestAudioFocus(request)
+                } else {
+                    audioManager.requestAudioFocus(
+                        focusListener,
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT,
+                    )
+                }
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+        val effectiveGain = if (hasAudioFocus) gain else 0f
+        player.setVolume(effectiveGain, effectiveGain)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun releaseAudioFocus() {
+        if (!hasAudioFocus) return
+        hasAudioFocus = false
+        if (Build.VERSION.SDK_INT >= 26) {
+            focusRequest?.let(audioManager::abandonAudioFocusRequest)
+            focusRequest = null
+        } else {
+            audioManager.abandonAudioFocus(focusListener)
+        }
+    }
 
     override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
         stopPlayback()
@@ -201,13 +327,15 @@ internal class CartdeckStartupPlayer(
         if (finished) return
         finished = true
         stopPlayback()
-        post { onFinished() }
+        android.os.Handler(android.os.Looper.getMainLooper()).post { onFinished() }
     }
 
     fun stopPlayback() {
         if (stopped) return
         stopped = true
+        soundPreferences.unregisterOnSharedPreferenceChangeListener(soundListener)
         mediaPlayer?.release()
+        releaseAudioFocus()
         mediaPlayer = null
         videoSurface?.release()
         videoSurface = null

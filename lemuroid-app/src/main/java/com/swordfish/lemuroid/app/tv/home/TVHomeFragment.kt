@@ -30,6 +30,7 @@ import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 import com.swordfish.lemuroid.app.shared.settings.StorageFrameworkPickerLauncher
 import com.swordfish.lemuroid.app.shared.systems.MetaSystemInfo
 import com.swordfish.lemuroid.app.tv.folderpicker.TVFolderPickerLauncher
+import com.swordfish.lemuroid.app.tv.main.MainTVActivity
 import com.swordfish.lemuroid.app.tv.settings.TVSettingsActivity
 import com.swordfish.lemuroid.app.tv.shared.GamePresenter
 import com.swordfish.lemuroid.app.tv.shared.TVHelper
@@ -69,7 +70,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         onItemViewClickedListener =
             OnItemViewClickedListener { _, item, _, _ ->
                 when (item) {
-                    is Game -> gameInteractor.onGamePlay(item)
+                    is Game -> (activity as? MainTVActivity)?.showCartridge(item, gameInteractor::onGamePlay)
                     is MetaSystemInfo -> {
                         val action =
                             TVHomeFragmentDirections.actionNavigationSystemsToNavigationGames(

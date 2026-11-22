@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.GameInteractor
+import com.swordfish.lemuroid.app.tv.main.MainTVActivity
 import com.swordfish.lemuroid.app.tv.shared.GamePresenter
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.lib.library.MetaSystemID
@@ -65,7 +66,7 @@ class TVGamesFragment : VerticalGridSupportFragment() {
         onItemViewClickedListener =
             OnItemViewClickedListener { _, item, _, _ ->
                 when (item) {
-                    is Game -> gameInteractor.onGamePlay(item)
+                    is Game -> (activity as? MainTVActivity)?.showCartridge(item, gameInteractor::onGamePlay)
                 }
             }
     }

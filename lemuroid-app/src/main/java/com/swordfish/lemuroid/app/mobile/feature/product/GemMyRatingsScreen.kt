@@ -135,11 +135,13 @@ internal fun GemMyRatingsScreen(
                                 cartridgeId = rating.cartridgeId,
                                 displayTitle = title,
                                 platformId = platform,
+                                catalogueReleaseId = rating.catalogueReleaseId,
                             )
                             GemRatingRow(
                                 cartridgeId = rating.cartridgeId,
                                 displayTitle = title,
                                 platformId = platform,
+                                catalogueReleaseId = rating.catalogueReleaseId,
                                 deckFit = true,
                             )
                         }

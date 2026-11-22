@@ -4,12 +4,14 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,14 +35,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -59,11 +64,14 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeSpine
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometry
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeFlight
+import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
+import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** Same root as the source cell: no unrelated dialog-window coordinate origin. */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CartridgePickup(
     gameId: Int,
@@ -72,7 +80,7 @@ fun CartridgePickup(
     sourceBounds: Rect?,
     onDismiss: () -> Unit,
     artworkRevision: Int = 0,
-    content: @Composable (frontModifier: Modifier, close: () -> Unit) -> Unit,
+    content: @Composable (frontModifier: Modifier, close: () -> Unit, playFocus: FocusRequester) -> Unit,
 ) {
     val context = LocalContext.current
     val appearance = LocalShelfAppearance.current
@@ -103,6 +111,8 @@ fun CartridgePickup(
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
     val focus = remember { FocusRequester() }
+    val playFocus = remember { FocusRequester() }
+    val backEdge = remember { ControllerMenuEdge() }
     var cardAttached by remember { mutableStateOf(false) }
     val settled = progress.value >= 0.999f && !closing
     val close: () -> Unit = {
@@ -125,24 +135,44 @@ fun CartridgePickup(
             progress.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
         }
     }
-    LaunchedEffect(settled, cardAttached) { if (settled && cardAttached) focus.requestFocus() }
+    LaunchedEffect(settled, cardAttached, game != null) {
+        if (cardAttached) {
+            if (settled && game != null) playFocus.requestFocus() else focus.requestFocus()
+        }
+    }
     val density = LocalDensity.current
     BoxWithConstraints(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
             .onGloballyPositioned { root = it.boundsInRoot() }
             .background(Color.Black.copy(alpha = 0.65f * progress.value))
-            .clickable(onClick = close).semantics { paneTitle = "Cartridge details" },
+            .clickable(onClick = close).semantics { paneTitle = "Cartridge details" }
+            .onPreviewKeyEvent { event ->
+                val key = event.nativeKeyEvent
+                when (key.keyCode) {
+                    KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_ESCAPE -> {
+                        if (backEdge.handle(key)) close()
+                        true
+                    }
+                    else -> !settled
+                }
+            },
     ) {
         Surface(
             Modifier.align(Alignment.Center).widthIn(max = if (maxWidth > maxHeight) 840.dp else 560.dp).fillMaxWidth()
                 .heightIn(max = maxHeight - 32.dp).padding(16.dp)
                 .graphicsLayer { alpha = if (settled) 1f else 0f }
                 .then(if (!settled) Modifier.clearAndSetSemantics {} else Modifier)
+                .focusProperties { exit = { FocusRequester.Cancel } }
+                .focusGroup()
                 .focusRequester(focus).focusable().clickable {}
                 .onGloballyPositioned { cardAttached = true },
             shape = MaterialTheme.shapes.large,
         ) {
-            content(Modifier.onGloballyPositioned { target = Rect(it.positionInRoot(), it.size.toSize()) }, close)
+            content(
+                Modifier.onGloballyPositioned { target = Rect(it.positionInRoot(), it.size.toSize()) },
+                close,
+                playFocus,
+            )
         }
         if (!settled) Box(Modifier.fillMaxSize().clickable {}.clearAndSetSemantics {})
         if (!settled && sourceBounds != null && target != null && game != null) {

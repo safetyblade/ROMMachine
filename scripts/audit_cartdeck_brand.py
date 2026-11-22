@@ -5,6 +5,7 @@ This static audit is NOT an APK/device, licence or save-migration acceptance tes
 """
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -50,14 +51,22 @@ def check() -> None:
     launch = content(
         "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/main/CartdeckLaunchSignature.kt"
     )
-    assert "R.string.cartdeck_launch_title" in launch
-    assert "R.string.cartdeck_launch_byline" in launch
-    main_activity = content(
-        "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/main/MainActivity.kt"
-    )
-    assert "CartdeckLaunchSignature()" in main_activity
-    assert "delay(650)" in main_activity
-    assert "savedInstanceState == null" in main_activity, "Avoid brand flash on Activity restoration"
+    assert "CartdeckStartupVideo.create" in launch
+    player = content("lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/startup/CartdeckStartupVideo.kt")
+    assert "R.raw.cartdeck_signature_startup" in player
+    assert "R.drawable.cartdeck_mark_foreground" in player
+    approved_clip = RES / "raw/cartdeck_signature_startup.mp4"
+    assert hashlib.sha256(approved_clip.read_bytes()).hexdigest() == (
+        "ff77e4224ee0c741eb97de79487fcb7afd0854ad3e9501cf35541ff9b0edb462"
+    ), "Startup video and soundtrack must match the approved SIGNATURE clip"
+    for activity in (
+        "mobile/feature/main/MainActivity.kt",
+        "tv/main/MainTVActivity.kt",
+    ):
+        source = content(f"lemuroid-app/src/main/java/com/swordfish/lemuroid/app/{activity}")
+        assert "savedInstanceState == null && CartdeckStartupVideo.claimColdStart()" in source, (
+            f"Avoid startup replay on Activity restoration in {activity}"
+        )
     assert not re.search(r"\bLemuroid\b", strings), "Main English UI still displays Lemuroid"
     for translated in RES.glob("values*/strings.xml"):
         local_text = translated.read_text(encoding="utf-8")
@@ -69,7 +78,8 @@ def check() -> None:
     round_icon = icon_resource(RES / "mipmap-anydpi/cartdeck_launcher_round.xml", "vector")
     adaptive = icon_resource(RES / "mipmap-anydpi-v26/cartdeck_launcher.xml", "adaptive-icon")
     round_adaptive = icon_resource(RES / "mipmap-anydpi-v26/cartdeck_launcher_round.xml", "adaptive-icon")
-    assert len(base_icon) >= 3 and len(round_icon) >= 3, "Legacy icon missing foreground"
+    for node in (base_icon, round_icon):
+        assert len(list(node.iter("path"))) == 3, "Legacy icon must contain the chassis and two mark strokes"
     for node in (adaptive, round_adaptive):
         assert node.find("foreground").get(A + "drawable") == "@drawable/cartdeck_mark_foreground"
         assert node.find("monochrome").get(A + "drawable") == "@drawable/cartdeck_mark_monochrome"
@@ -87,8 +97,8 @@ def check() -> None:
         "mipmap-anydpi/cartdeck_launcher_round.xml",
     ):
         node = ET.parse(RES / path).getroot()
-        found = [e.get(A + "pathData") for e in node.iter() if e.tag == "path"]
-        assert [norm(v) for v in found[-2:]] == [norm(v) for v in official_paths], (
+        found = [norm(e.get(A + "pathData")) for e in node.iter("path") if e.get(A + "strokeWidth") == "12"]
+        assert found == [norm(v) for v in official_paths], (
             f"{path} differs from the approved C-slot mark geometry"
         )
 
@@ -128,8 +138,9 @@ def check() -> None:
 
     brand = ET.parse(RES / "values/cartdeck_brand.xml").getroot()
     values = {v.get("name"): (v.text or "").strip() for v in brand}
-    assert values["cartdeck_launcher_background"] == "#303B49"
-    assert values["cartdeck_brand_accent"] == "#4ED8C4"
+    assert values["cartdeck_launcher_background"] == "#13131A"
+    assert values["cartdeck_brand_accent"] == "#FF4FA3"
+    assert values["cartdeck_brand_neon_cyan"] == "#19F5DA"
 
     assert content("README.md").startswith("# CARTDECK")
     assert "Lemuroid" in content("THIRD_PARTY_NOTICES.md"), "Upstream attribution lost"
@@ -138,7 +149,7 @@ def check() -> None:
     assert "CARTDECK" in content("fastlane/metadata/android/en-US/full_description.txt").splitlines()[0]
 
     print("PASS — app label, source geometry, adaptive icons, TV banner, English UI copy,")
-    print("       metadata, P0 package continuity, original palette and source attribution.")
+    print("       metadata, P0 package continuity, SIGNATURE palette and source attribution.")
     print("WARNING — no APK compiled or inspected; no save upgrade or external-core licence test.")
     leftovers = []
     for folder in (ROOT / "lemuroid-app/src/main", ROOT / "fastlane/metadata"):

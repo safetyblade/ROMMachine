@@ -18,6 +18,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private class InMemoryIndex : SafeSaveIndex {
     val snapshots = linkedMapOf<String, SafeSaveSnapshotRecord>()
@@ -32,8 +34,7 @@ private class InMemoryIndex : SafeSaveIndex {
     override fun snapshotsForCartridge(cartridgeUuid: String) =
         snapshots.values.filter { it.cartridgeUuid == cartridgeUuid }
 
-    override fun snapshotsForGroup(groupName: String) =
-        snapshots.values.filter { it.groupName == groupName }
+    override fun snapshotsForGroup(groupName: String) = snapshots.values.filter { it.groupName == groupName }
 
     override fun appendJournal(record: SafeSaveJournalRecord) {
         journal += record
@@ -127,6 +128,33 @@ class SafeSaveStoreTest {
     }
 
     @Test
+    fun journalCommitFailureRestoresTheDisplacedSave() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val saved = InMemoryIndex()
+            val index =
+                object : SafeSaveIndex by saved {
+                    override fun appendJournal(record: SafeSaveJournalRecord) {
+                        check(record.kind != "RESTORE" || record.stage != "COMPLETE") { "Journal write failed" }
+                        saved.appendJournal(record)
+                    }
+                }
+            val store = SafeSaveStore(index, snapshotRoot)
+            val captured = store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val live = File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN")
+            live.writeText("current-progress")
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("current-progress", live.readText())
+            assertEquals("FAILED", saved.journal().last().stage)
+            assertTrue(store.verify(captured.snapshot.snapshotId))
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
     fun corruptedSnapshotIsRefusedAndLiveSavePreserved() {
         val (parent, saveRoot, snapshotRoot) = fixture()
         try {
@@ -138,6 +166,31 @@ class SafeSaveStoreTest {
                 store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
             }
             assertEquals("level-3-progress", File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText())
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun symbolicLinksAreRefusedBeforeCaptureOrReplacement() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val outside = File(parent, "outside.txt").apply { writeText("unrelated progress") }
+            val group = File(saveRoot, "PSP/SAVEDATA/ULUS10001")
+            val link = File(group, "linked-data")
+            Files.createSymbolicLink(link.toPath(), outside.toPath())
+            val store = SafeSaveStore(InMemoryIndex(), snapshotRoot)
+            assertThrows(IllegalStateException::class.java) {
+                store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            }
+            Files.delete(link.toPath())
+            val captured = store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            Files.createSymbolicLink(link.toPath(), File(group, "DATA.BIN").toPath())
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("level-3-progress", File(group, "DATA.BIN").readText())
+            assertEquals("unrelated progress", outside.readText())
         } finally {
             parent.deleteRecursively()
         }
@@ -163,8 +216,9 @@ class SafeSaveStoreTest {
         val (parent, saveRoot, snapshotRoot) = fixture()
         try {
             val index = InMemoryIndex()
-            val captured = SafeSaveStore(index, snapshotRoot)
-                .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val captured =
+                SafeSaveStore(index, snapshotRoot)
+                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
             // Simulate install-over: brand-new store/access objects, same index + roots.
             val access = SafeSavePspAccess(SafeSaveStore(index, snapshotRoot), index)
             val found = access.verifiedSavesForCartridge(cartridgeA)
@@ -178,18 +232,35 @@ class SafeSaveStoreTest {
     @Test
     fun roomIndexPersistsAcrossDatabaseReopen() {
         val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
         try {
             val context = ApplicationProvider.getApplicationContext<android.content.Context>()
             val dbFile = File(parent, "safesave-test.db")
-            val db1 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
-            val captured = SafeSaveStore(RoomSafeSaveIndex(db1.safeSaveDao()), snapshotRoot)
-                .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
-            db1.close()
-            val db2 = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
-            val reopened = RoomSafeSaveIndex(db2.safeSaveDao()).snapshot(captured.snapshot.snapshotId)
-            assertEquals(captured.snapshot, reopened)
-            db2.close()
+            // SafeSaveStore is synchronous by contract; production calls it from
+            // an IO worker. Preserve Room's main-thread safety rule in this test.
+            val captured =
+                executor.submit<SafeSaveSnapshotRecord> {
+                    val db = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
+                    try {
+                        SafeSaveStore(RoomSafeSaveIndex(db.safeSaveDao()), snapshotRoot)
+                            .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+                            .snapshot
+                    } finally {
+                        db.close()
+                    }
+                }.get(30, TimeUnit.SECONDS)
+            val reopened =
+                executor.submit<SafeSaveSnapshotRecord?> {
+                    val db = Room.databaseBuilder(context, SafeSaveDatabase::class.java, dbFile.absolutePath).build()
+                    try {
+                        RoomSafeSaveIndex(db.safeSaveDao()).snapshot(captured.snapshotId)
+                    } finally {
+                        db.close()
+                    }
+                }.get(30, TimeUnit.SECONDS)
+            assertEquals(captured, reopened)
         } finally {
+            executor.shutdownNow()
             parent.deleteRecursively()
         }
     }

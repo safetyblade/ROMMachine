@@ -6,6 +6,8 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -29,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -76,11 +79,13 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometr
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.input.CartridgeNavigationMotion
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 import com.swordfish.lemuroid.common.coroutines.safeLaunch
 import com.swordfish.lemuroid.ext.feature.review.ReviewManager
 import com.swordfish.lemuroid.lib.android.RetrogradeComponentActivity
@@ -137,6 +142,36 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     @Inject
     lateinit var gameLauncher: GameLauncher
 
+    private var skipStartup: (() -> Unit)? = null
+    private val cartridgeNavigation = CartridgeNavigationMotion()
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) cartridgeNavigation.clear()
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        cartridgeNavigation.dispatch(event) { key -> super.dispatchKeyEvent(key) } ||
+            super.dispatchGenericMotionEvent(event)
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val skip = skipStartup
+        if (skip != null && CartdeckStartupVideo.isSkipKey(event.keyCode)) {
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) skip()
+            return true
+        }
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_A) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount > 0) return true
+            return super.dispatchKeyEvent(
+                KeyEvent(
+                    event.downTime, event.eventTime, event.action, KeyEvent.KEYCODE_DPAD_CENTER,
+                    event.repeatCount, event.metaState, event.deviceId, event.scanCode, event.flags, event.source,
+                ),
+            )
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     private val reviewManager = ReviewManager()
 
     private val mainViewModel: MainViewModel by viewModels {
@@ -149,6 +184,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         GlobalScope.safeLaunch {
             reviewManager.initialize(applicationContext)
@@ -158,7 +194,8 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             val navController = rememberNavController()
             // Only a new cold entry shows the launch mark; do not flash it again
             // after activity recreation, rotation or restoring a saved screen.
-            val showingLaunchBrand = remember { mutableStateOf(savedInstanceState == null) }
+            val showingLaunchBrand =
+                remember { mutableStateOf(savedInstanceState == null && CartdeckStartupVideo.claimColdStart()) }
             val adjustingLaunchFrame = remember { mutableStateOf(false) }
 
             LaunchedEffect(adjustingLaunchFrame.value) {
@@ -175,6 +212,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     CartdeckLaunchSignature(
                         onFinished = { showingLaunchBrand.value = false },
                         onAdjustingChanged = { adjustingLaunchFrame.value = it },
+                        onSkipAvailable = { skipStartup = it },
                     )
                 }
             }
@@ -240,7 +278,15 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             val coverGameId = rememberSaveable { mutableStateOf<Int?>(null) }
             val geometry = LocalCartridgeGeometry.current
             val pickupSource = remember { mutableStateOf<Rect?>(null) }
+            val restoreFocusId = remember { mutableStateOf<Int?>(null) }
+            LaunchedEffect(coverGameId.value, restoreFocusId.value) {
+                if (coverGameId.value == null) {
+                    restoreFocusId.value?.let { geometry.shelfFocus[it]?.requestFocus() }
+                    restoreFocusId.value = null
+                }
+            }
             val dismissCover = {
+                restoreFocusId.value = coverGameId.value
                 geometry.selectedId = null
                 coverGameId.value = null
                 pickupSource.value = null
@@ -312,7 +358,12 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             }
 
             Scaffold(
-                modifier = if (coverGameId.value != null) Modifier.clearAndSetSemantics {} else Modifier,
+                modifier =
+                    if (coverGameId.value != null) {
+                        Modifier.clearAndSetSemantics {}.onPreviewKeyEvent { true }
+                    } else {
+                        Modifier
+                    },
                 snackbarHost = { SnackbarHost(refreshMessages) },
                 topBar = {
                     MainTopBar(
@@ -391,6 +442,13 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                     }
                                 }
                             },
+                        )
+                    }
+                    composable(MainRoute.SAFESAVE) {
+                        com.swordfish.lemuroid.app.mobile.feature.product.SafeSaveScreen(
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
+                            binding = cartridgeSaveBinding,
+                            modifier = Modifier.padding(padding),
                         )
                     }
                     composable(MainRoute.CARTMOD) {
