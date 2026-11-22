@@ -217,6 +217,8 @@ object GemDeckFit {
             "VDG:wii:row-616",
             "VDG:wii:row-736", // WarioWare: Smooth Moves requires distinct Wii Remote motion poses
             "VDG:wii:row-1253", // Wii Sports Resort needs verified MotionPlus-equivalent guest motion
+            "VDG:wiiu:row-94", // Kirby and the Rainbow Curse needs GamePad stylus drawing
+            "VDG:wiiu:row-130", // Star Fox Zero needs verified dual-screen and motion aiming
         )
 
     fun estimate(release: GemCataloguePackage.Release): Estimate =
