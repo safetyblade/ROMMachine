@@ -143,7 +143,7 @@ internal fun SafeSaveScreen(
             )
         }
     SafeSaveSurface(
-        playerName = "Manager · current player",
+        playerName = "Current player",
         inventory = rows,
         onBackUp =
             if (!busy && rows.isNotEmpty()) {
