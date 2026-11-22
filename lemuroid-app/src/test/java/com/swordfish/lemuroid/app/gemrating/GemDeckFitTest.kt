@@ -209,7 +209,7 @@ class GemDeckFitTest {
             }
             assertTrue(estimate.evidenceText.contains("not device-tested"))
         }
-        assertEquals(SystemID.values().size, systemsWithBaselines.size)
+        assertEquals("Every mapped catalogue system must have a baseline", 30, systemsWithBaselines.size)
         assertEquals("All identified special-input holds remain unscored", 14, inputReviewCount)
         assertEquals("Every existing exact-ID review remains effective", 91, reviewedCount)
         assertEquals(GemProductionCatalogue.RELEASE_COUNT - inputReviewCount, numericCount)
