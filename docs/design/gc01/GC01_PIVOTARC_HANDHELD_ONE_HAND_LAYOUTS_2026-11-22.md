@@ -80,6 +80,83 @@ Every PivotArc handheld layout has a **single thumb island**, not the distant le
 
 **Important historical vs source discrepancy:** Neo Geo Pocket and Game Gear front labels differ from their underlying Android key IDs; WonderSwan orientation and DS auxiliary controls depend on the current core/layout. The design spec does not authorise changing emulation guest mappings to match simplified user-facing names. Source implementation must prove each platform's intended labels and actual native events in tests.
 
+## 3A. Design wireframes — relative control topology, NOT final pixel geometry
+
+These are source-aware, right-hand preference schematics only; Sienna/Elliot must render from measured safe bounds, >=48dp touch rectangles, original PadKit guest identities and full viewport. Mirror the **control geometry** for left-hand choice, never the guest directions or game image. Utilities are visually separated from the thumb island. No handset has been physically measured/accepted for these new layouts.
+
+**GB / GBC — original portrait D + A/B (current PivotArc is protected):**
+
+    Original full game viewport above; never shrink or crop
+        [ SELECT ]       [ START ]        [ MENU ]
+                       [ D ▲▼◀▶ ]
+                   [ B ]       [ A ]
+                  hold B      hold A
+    One thumb travels D ↔ B/A; default legacy geometry unchanged
+
+**GBA — D, A/B, L/R, Start/Select (current approved cluster protected):**
+
+        [ SELECT ]                       [ START ] [ MENU ]
+                    [ L ]   [ D ▲▼◀▶ ]   [ R ]
+                       [ B ]          [ A ]
+                    hold B           hold A
+    L/R positions use approved split-shoulder topology; do not
+    infer exact pixels from this diagram
+
+**Game Gear / Neo Geo Pocket — native two-face family with different labels:**
+
+        [ START/Pocket OPTION where actual ]       [ MENU ]
+                     [ Direction D ]
+                 [ 1/B ]      [ 2/A ]
+    Game Gear shows 1/2; Neo Geo Pocket shows native A/B and its
+    actual Option. Display-label order must follow selected core.
+
+**Atari Lynx — original options + flip/Pause preserved:**
+
+          [ OPTION 1 ]  [ OPTION 2 ]    [ PAUSE ] [ MENU ]
+                    [ D ▲▼◀▶ ]
+                  [ B ]      [ A ]
+    Handedness mirror and guest Lynx screen inversion are DIFFERENT
+    operations; Option + Pause combinations remain possible.
+
+**WonderSwan / WonderSwan Color — TWO independent cursor groups:**
+
+    HORIZONTAL                 VERTICAL
+        [ X 4-way nucleus ]        [ Y 4-way nucleus ]
+        [ Y 4-way secondary ]      [ X 4-way secondary ]
+             [ B ] [ A ]               [ B ] [ A ]
+                [ START ]                [ START ]
+    Both X and Y emit distinct original four directional inputs.
+    Do not substitute one cluster for the other.
+
+**PSP — D-pad and true analog stay independent:**
+
+        [ L ]        [ START ][ SELECT ][ MENU ]      [ R ]
+        [ D secondary ]     [ Analog / D main ]    [ △ ○ × □ ]
+    The player selects which directional input sits in the thumb
+    nucleus. Both still exist; one original analog nub only.
+
+**Nintendo DS — TWO real screens and an unobstructed stylus:**
+
+                  [ UPPER SCREEN ]
+                  [ LOWER TOUCH SCREEN ]  ← no deck overlay
+        [ L ]    [ D ▲▼◀▶ ]      [ A B X Y ]    [ R ]
+                [ START ][ SELECT ][ MENU ]
+    Stylus-first option brings controls to the closest *safe* edge
+    but does not intercept the lower touchscreen or invent Mic/Lid.
+
+**Nintendo 3DS — Circle Pad, D-pad, optional real motion:**
+
+                  [ UPPER SCREEN ]
+                  [ LOWER TOUCH SCREEN ]  ← preserve stylus
+        [ L ] [ D secondary ]  [ CIRCLE main ]  [ A B X Y ][ R ]
+                        [ START ][ SELECT ][ MENU ]
+             [ Virtual TILT, only if native gyro bridge VERIFIED ]
+    A virtual tilt stick is a separate sensor control, not a renamed
+    Circle Pad. New-3DS-specific C-stick/ZL/ZR only when real engine
+    capability and game requirement have been verified.
+
+**Physical gamepad present:** retain full source-native inputs and TV/DeX controller setup. PivotArc is an optional *touch* layout, not proof that a gamepad title works in one hand.
+
 ## 4. Make "as many games as possible" measurable, not a marketing statement
 
 Offer three **game interaction patterns** and choose a conservative suggestion from actual control requirements:
