@@ -212,13 +212,18 @@ object GemDeckFit {
             "VDG:ds:1891",
             "VDG:ds:698",
             "VDG:ds:1583",
-            "VDG:3ds:15", // Beyblade Evolution: native 3DS motion path awaiting physical verification
+            // Beyblade Evolution requires guest motion input verification.
+            "VDG:3ds:15",
             "VDG:wii:row-1252",
             "VDG:wii:row-616",
-            "VDG:wii:row-736", // WarioWare: Smooth Moves requires distinct Wii Remote motion poses
-            "VDG:wii:row-1253", // Wii Sports Resort needs verified MotionPlus-equivalent guest motion
-            "VDG:wiiu:row-94", // Kirby and the Rainbow Curse needs GamePad stylus drawing
-            "VDG:wiiu:row-130", // Star Fox Zero needs verified dual-screen and motion aiming
+            // WarioWare: Smooth Moves uses distinct Wii Remote poses.
+            "VDG:wii:row-736",
+            // Wii Sports Resort requires MotionPlus-equivalent guest motion.
+            "VDG:wii:row-1253",
+            // Kirby and the Rainbow Curse needs GamePad stylus drawing.
+            "VDG:wiiu:row-94",
+            // Star Fox Zero needs dual-screen and motion aiming verification.
+            "VDG:wiiu:row-130",
         )
 
     fun estimate(release: GemCataloguePackage.Release): Estimate =
@@ -258,7 +263,10 @@ object GemDeckFit {
         return Estimate((base + boundedDelta).coerceIn(2, 10), basis)
     }
 
-    private fun curatedTraits(releaseId: String, title: String): Set<Trait> {
+    private fun curatedTraits(
+        releaseId: String,
+        title: String,
+    ): Set<Trait> {
         val feature = GemGameplayFeatures.find(releaseId, title) ?: return emptySet()
         return buildSet {
             if (feature.playstyle.equals("Turn-based", ignoreCase = true)) add(Trait.TURN_BASED)
