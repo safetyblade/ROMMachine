@@ -1,0 +1,158 @@
+{
+  "format": "cartdeck-gem-special-input-research-v1",
+  "status": "staged_research_only",
+  "preparedOn": "2026-11-22",
+  "inputReviewCount": 14,
+  "policy": "Known required special inputs remain unscored until working guest-equivalent controls verified; this is not an emulator failure claim.",
+  "rows": [
+    {
+      "releaseId": "VDG:gb:40",
+      "title": "Kirby Tilt 'n' Tumble",
+      "systemId": "gb",
+      "status": "Input review",
+      "inputRequirement": "Cartridge tilt/accelerometer",
+      "evidenceUrl": "https://www.gamespot.com/reviews/kirby-tilt-n-tumble-review/1900-2701119/",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:1246",
+      "title": "Professor Layton and the Curious Village",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:502",
+      "title": "Phoenix Wright: Ace Attorney",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:1806",
+      "title": "Nintendogs",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:1891",
+      "title": "Trauma Center: Under the Knife",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:698",
+      "title": "Elite Beat Agents",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:ds:1583",
+      "title": "The World Ends With You",
+      "systemId": "nds",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:3ds:15",
+      "title": "Beyblade Evolution",
+      "systemId": "3ds",
+      "status": "Input review",
+      "inputRequirement": "3DS gyro/tilt launch",
+      "evidenceUrl": "https://www.pocketgamer.com/beyblade-evolution/hands-on-with-beyblade-evolution-spinning-top-meets-pokemon-on-3ds/",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wii:row-1252",
+      "title": "Wii Sports",
+      "systemId": "wii",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wii:row-616",
+      "title": "Wii Play",
+      "systemId": "wii",
+      "status": "Input review",
+      "inputRequirement": "Prior GEM-03 review flag; precise control requirement/guest support needs retest",
+      "evidenceUrl": null,
+      "evidenceBasis": "GEM-03 14-Nov editorial audit; independent source detail still pending",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wii:row-736",
+      "title": "WarioWare: Smooth Moves",
+      "systemId": "wii",
+      "status": "Input review",
+      "inputRequirement": "Wii Remote multi-pose motion",
+      "evidenceUrl": "https://www.nintendo.com/en-gb/Games/Wii/WarioWare-Smooth-Moves-283850.html",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wii:row-1253",
+      "title": "Wii Sports Resort",
+      "systemId": "wii",
+      "status": "Input review",
+      "inputRequirement": "Wii MotionPlus precision motion",
+      "evidenceUrl": "https://www.nintendo.com/en-gb/Games/Wii/Wii-Sports-Resort-283982.html",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wiiu:row-94",
+      "title": "Kirby and the Rainbow Curse",
+      "systemId": "wiiu",
+      "status": "Input review",
+      "inputRequirement": "Wii U GamePad stylus and drawing",
+      "evidenceUrl": "https://www.nintendo.com/en-gb/News/2015/March/Join-Kirby-on-his-most-clay-ful-adventure-yet-in-Kirby-and-the-Rainbow-Paintbrush-launching-in-Europe-on-May-8th-for-Wii-U-975149.html",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    },
+    {
+      "releaseId": "VDG:wiiu:row-130",
+      "title": "Star Fox: Zero",
+      "systemId": "wiiu",
+      "status": "Input review",
+      "inputRequirement": "Wii U GamePad motion aiming and dual-screen view",
+      "evidenceUrl": "https://www.nintendo.com/en-gb/Games/Wii-U-games/Star-Fox-Zero-1026132.html",
+      "evidenceBasis": "External published control description; CARTDECK input path NOT physically verified",
+      "physicalGuestInputVerified": false
+    }
+  ],
+  "nonHoldExceptions": [
+    {
+      "releaseId": "VDG:3ds:337",
+      "title": "Mario Kart 7",
+      "status": "Do not hold for optional gyro",
+      "reason": "Nintendo documents Circle Pad as an alternative to optional gyro steering.",
+      "evidenceUrl": "https://www.nintendo.com/en-gb/News/2011/Discover-new-ways-to-race-with-fans-around-the-globe-with-Mario-Kart-7-for-Nintendo-3DS-252857.html"
+    }
+  ]
+}

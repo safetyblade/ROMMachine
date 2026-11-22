@@ -95,7 +95,7 @@ class SavesManager(
         coreID: CoreID?,
     ): File {
         val root = directoriesManager.getSavesDirectory()
-        val scope = if (isIsolatedEngine(coreID)) coreID!!.coreName else "shared"
+        val scope = saveRamScope(coreID)
         val legacyDirectory =
             if (isIsolatedEngine(coreID)) {
                 File(root, "engine-save-ram/$scope").apply { mkdirs() }
@@ -106,20 +106,22 @@ class SavesManager(
         return binding?.sramFile(game, legacy, scope) ?: legacy
     }
 
-    private fun isIsolatedEngine(coreID: CoreID?): Boolean =
-        coreID in
-            setOf(
-                CoreID.PCSX_REARMED_MODERN,
-                CoreID.PPSSPP_MODERN,
-                CoreID.FLYCAST_MODERN,
-                CoreID.DOLPHIN_MODERN,
-                CoreID.PLAY_MODERN,
-            )
-
     /** This name should make it compatible with RetroArch so that users can freely sync saves across the two application. */
     private fun getSaveRAMFileName(game: Game) = "${game.saveFileName().substringBeforeLast(".")}.srm"
 
     companion object {
+        internal fun saveRamScope(coreID: CoreID?) = if (isIsolatedEngine(coreID)) coreID!!.coreName else "shared"
+
+        private fun isIsolatedEngine(coreID: CoreID?): Boolean =
+            coreID in
+                setOf(
+                    CoreID.PCSX_REARMED_MODERN,
+                    CoreID.PPSSPP_MODERN,
+                    CoreID.FLYCAST_MODERN,
+                    CoreID.DOLPHIN_MODERN,
+                    CoreID.PLAY_MODERN,
+                )
+
         private const val FILE_ACCESS_RETRIES = 3
     }
 }

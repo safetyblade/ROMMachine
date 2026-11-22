@@ -136,7 +136,7 @@ internal fun GemRatingRow(
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
             )
-            Text(" ${if (deckFit) "DeckFit" else "GEMRating"} ${score?.let { "$it/$maximum" } ?: "—"}")
+            Text(" ${if (deckFit) "My DeckFit" else "GEMRating"} ${score?.let { "$it/$maximum" } ?: "—"}")
         }
     } else {
         CartdeckMenuRow(
@@ -171,10 +171,19 @@ internal fun GemRatingRow(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-                    Text(if (deckFit) "How comfortable is this game to play handheld?" else "How much do you enjoy it?")
+                    Text(
+                        if (deckFit) {
+                            "How naturally can you play using CARTDECK's on-screen controls?"
+                        } else {
+                            "How much do you enjoy it?"
+                        },
+                    )
                     if (deckFit) {
                         Text("1 · Very difficult to handle   3 · Playable with compromises   5 · Comfortable")
-                        Text("Consider controls, legibility, orientation, session length and required peripherals.")
+                        Text(
+                            "No external controller or special setup. " +
+                                "Consider launch, controls, display, audio and saves.",
+                        )
                     }
                     for (range in (1..maximum).chunked(if (deckFit) 3 else 4)) {
                         Row(Modifier.fillMaxWidth()) {

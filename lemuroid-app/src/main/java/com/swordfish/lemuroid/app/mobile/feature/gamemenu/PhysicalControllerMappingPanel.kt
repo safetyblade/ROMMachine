@@ -73,6 +73,8 @@ internal fun PhysicalControllerMappingPanel(
     onDiscard: () -> Unit,
     onResolveConflict: () -> Unit,
     onSave: () -> Unit,
+    guidedSwapPrompt: String? = null,
+    onStartSwap: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -147,7 +149,8 @@ internal fun PhysicalControllerMappingPanel(
         }
         val actualPort = if (runtimePort != null) runtimePort(selected) else ports(selected)
         val portLabel = actualPort?.let { "Player ${it + 1}" } ?: "Unassigned player port"
-        val editing = draft?.dirty == true || draft?.conflict != null || captureTarget != null
+        val capturing = captureTarget != null || guidedSwapPrompt != null
+        val editing = draft?.dirty == true || draft?.conflict != null || capturing
         Text(selected.name, style = MaterialTheme.typography.titleMedium)
         Text("$portLabel · ${devices.size} connected", style = MaterialTheme.typography.bodySmall)
         GameMenuLink("Choose controller (${devices.size} connected)", enabled = !editing) {
@@ -398,12 +401,29 @@ internal fun PhysicalControllerMappingPanel(
             )
             GameMenuLink("Cancel capture", onClick = onCancel)
         }
-        if (draft?.conflict != null) {
-            Text(
-                "This physical button already has a different binding. " +
-                    "Review and swap the two bindings, or Undo / Cancel.",
-            )
-            GameMenuLink("Swap conflicting bindings", onClick = onResolveConflict)
+        if (guidedSwapPrompt != null) {
+            Text(guidedSwapPrompt)
+            GameMenuLink("Cancel capture", onClick = onCancel)
+        } else if (onStartSwap != null && draft != null && draft.conflict == null && captureTarget == null) {
+            GameMenuLink("Swap two buttons", onClick = onStartSwap)
+        }
+        draft?.conflict?.let { (replacement, requested) ->
+            val original = draft.bindings.entries.firstOrNull { it.value == requested }?.key
+            val displaced = draft.bindings[replacement]
+            Text("${physicalName(replacement)} → ${targetName(requested)}")
+            if (original != null) {
+                if (displaced == null) {
+                    Text("${physicalName(original)} will be unassigned.")
+                } else {
+                    Text("${physicalName(original)} → ${targetName(displaced)}")
+                }
+                val triggers = setOf(KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2)
+                if ((original in triggers) != (replacement in triggers)) {
+                    Text("A digital button sends a full press. Variable trigger pressure may be lost.")
+                }
+            }
+            GameMenuLink("Confirm Swap", onClick = onResolveConflict)
+            GameMenuLink("Cancel swap", onClick = onCancel)
         }
         message?.let { Text(it) }
         Text("Map buttons", style = MaterialTheme.typography.titleMedium)
@@ -422,7 +442,7 @@ internal fun PhysicalControllerMappingPanel(
             Text("Mapping ${step + 1} of ${mappingKeys.size}")
             GameMenuLink(
                 if (step + 1 < mappingKeys.size) "Next button" else "Finish guided mapping",
-                enabled = captureTarget == null && draft?.conflict == null,
+                enabled = !capturing && draft?.conflict == null,
             ) {
                 val next = mappingKeys.getOrNull(step + 1)
                 if (next == null) {

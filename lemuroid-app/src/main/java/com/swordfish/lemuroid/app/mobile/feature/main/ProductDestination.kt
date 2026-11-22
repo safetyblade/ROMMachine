@@ -13,7 +13,7 @@ internal enum class ProductDestination(
 ) {
     SHELF("Shelf", MainRoute.HOME, R.drawable.cartdeck_brand_shelf),
     GEM("GEM", MainRoute.GEM, R.drawable.cartdeck_brand_gem),
-    SAFESAVE("SafeSave", null, null),
+    SAFESAVE("SafeSave", MainRoute.SAFESAVE, R.drawable.cartdeck_brand_safesave_wordmark),
     CARTMOD("CARTMOD", MainRoute.CARTMOD, R.drawable.cartdeck_brand_cartmod),
     SETTINGS("Settings", MainRoute.SETTINGS, R.drawable.cartdeck_brand_settings),
     ;

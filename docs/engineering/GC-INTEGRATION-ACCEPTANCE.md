@@ -69,3 +69,56 @@ lawfully supplied titles. Keep backups of any existing test progress.
    recommendations. Check compact landscape and tablet controls using
    known games. Record each result independently of Marcus.
 6. Review reports and the exact commit before giving explicit merge approval.
+
+## Current A–H implementation evidence
+
+| Work | Source status | Remaining acceptance |
+| --- | --- | --- |
+| A, native menus | Existing shared menu retained | Menu ownership, reopen and recovery journeys. Physical QA NOT TESTED. |
+| B, display | Existing viewport and opt-in landscape surround retained | Confirm aspect, safe zones, DS/3DS dual screens and tablet/TV settings. Physical QA NOT TESTED. |
+| C, controllers | Existing mapping draft supports a reciprocal two-button preview, explicit confirmation and Undo. Native settings capture two physical presses and warn about digital trigger substitution. | Confirm routed guest actions and P1/P2 on each host, disconnect/reconnect, and full D-pad TV and DeX journeys. Physical QA NOT TESTED. |
+| D, Wii and 3DS | Existing attachment and controller inventory retained | Guest IR and motion require source-backed dispatch and physical evidence. Physical QA NOT TESTED. |
+| E, PivotArc and GripArc | Existing handheld inventories and source mappings retained | Joint fit for all twelve handhelds, 48dp targets, original guest buttons, orientation and held-input release. Physical QA NOT TESTED. |
+| F, Modern Function | Existing research and custom mapping retained | Verified title and edition action mapping and actual gameplay. Physical QA NOT TESTED. |
+| G, Xbox 360 continuity | Existing engine and player paths retained | Native ownership and save-only storage adapter, install-over and reopen. Physical QA NOT TESTED. |
+| H, display/performance boundaries | Existing native provenance and engine pins retained | Respective runtime evidence and physical checks. PERF remains in its own lane. |
+| GEM | Bundled contribution overlay carries 30 CARTDECK-authored records with exact release IDs and titles. The five publisher-sourced candidates and four proposed input holds remain staged. #368's 91 reviewed touch scores and 14 existing input holds are retained. Fractional research scores remain internal pending a public precision decision. | Full profile semantics, remaining licensed coverage and editorial confidence. Physical QA NOT TESTED. |
+| SafeSave and Junior | Existing SafeSave surface displays app-managed bound inventory and provides SAF export, verification, compatible same-player restore and interrupted-restore rollback. | Native adapter coverage, immutable player session authorization, Junior playroom, multi-owner exports and transfers. Physical QA NOT TESTED. |
+| SIGNATURE and TV | Existing startup clip, sound preferences and controller navigation retained. | Device audio routing and interruptions, logo framing and TV focus/launch/return. Physical QA NOT TESTED. |
+
+### Source coverage for the Save Centre
+
+Managed RAM means an existing UUID-bound save file, when present. Managed state
+coverage includes occupied manual slots, autosaves and available sidecars under
+a recognized configured core namespace. The restore checks binding, cartridge,
+player and compatibility before activation. State restores presently require the
+same CARTDECK build. An undocumented native save path remains outside this
+inventory.
+
+| Registered family or system | Game saves | Manual / auto states | Whole card / VMU | Restore |
+| --- | --- | --- | --- | --- |
+| GB, GBC, GBA | Managed RAM | Managed / managed | — | Managed format only |
+| NES, SNES, Master System, Mega Drive, Game Gear, Sega CD | Managed RAM | Managed / managed | — | Managed format only |
+| Atari 2600/7800, Lynx, PC Engine, Neo Geo Pocket/Color, WonderSwan/Color, N64 | Managed RAM | Managed / managed where emitted | — | Managed format only |
+| FBNeo, MAME 2003 Plus | Managed RAM | Managed / managed where emitted | Native NVRAM excluded | Managed format only |
+| DS | Managed RAM | Managed / managed | — | Managed format only. External conversions excluded |
+| 3DS | Managed RAM where emitted | State creation unavailable in configured core | Native Citra storage excluded | Managed format only |
+| PS1 | Recognized raw 128 KiB PCSX card | Managed / managed | Whole raw PCSX card | Recognized card and managed states |
+| PSP | Managed RAM where emitted. PSP savedata snapshot backend separate | Managed / managed for recognized namespaces | — | Managed format only in Save Centre |
+| Dreamcast | Managed RAM where emitted | Managed / managed for recognized namespaces | Native VMU excluded | Managed format only |
+| GameCube | Managed RAM where emitted | Managed / managed for recognized namespaces | Native Dolphin cards excluded | Managed format only |
+| Wii | Managed RAM where emitted | Managed / managed for recognized namespaces | Native mixed NAND excluded | Managed format only |
+| PS2 | Managed RAM where emitted | Managed / managed for recognized namespaces | Native Play! and ARMSX2 cards excluded | Managed format only |
+| PS3 | Guest user savedata outside this inventory | Engine states outside this inventory | — | Unavailable |
+| Xbox | Mixed guest HDD excluded | Engine states outside this inventory | — | Unavailable |
+| Xbox 360 | Native XUID-owned progress excluded pending a bounded adapter | Engine states outside this inventory | — | Unavailable |
+| Wii U | Mixed cartridge NAND excluded | Engine states outside this inventory | — | Unavailable |
+| DOS / PC | Managed RAM where emitted. Persistent guest disk excluded | DOSBox Pure declares state creation unavailable in this configuration | — | Managed format only |
+
+For each row with managed support, use an owned title. Save in-game, write two
+manual slots and an autosave where available, close the engine, export the
+cartridge, change each save, restore after the backup confirmation, then reopen
+the game and load each slot. For PS1, use a full card holding more than one
+game and compare the entire image. Repeat after an install-over. Record game,
+engine, exact APK SHA, Android version, device and individual result. All rows
+are currently **NOT TESTED** on physical hardware.

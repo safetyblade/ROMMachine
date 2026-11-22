@@ -24,6 +24,9 @@ internal object GemFeatureContributions {
         val playstyle: String? = null,
         val mechanics: List<String>? = null,
         val sourceId: String? = null,
+        val sourceRecord: String? = null,
+        val sourceRevision: String? = null,
+        val evidence: String? = null,
     )
 
     @Serializable
@@ -68,15 +71,19 @@ internal object GemFeatureContributions {
         val rejected = mutableListOf<Rejected>()
         for (row in batch.records) {
             val release = known[row.releaseId]
-            val values = listOfNotNull(
-                row.primaryGenre, row.crossoverGenre, row.playstyle, row.sourceId,
-            ) + row.mechanics.orEmpty()
+            val values =
+                listOfNotNull(
+                    row.primaryGenre, row.crossoverGenre, row.playstyle, row.sourceId,
+                ) + row.mechanics.orEmpty()
             val reason =
                 when {
                     !seen.add(row.releaseId) -> "Duplicate release ID in contribution"
                     release == null -> "Release ID not in active catalogue"
                     release.title != row.title -> "Title does not match exact release ID"
                     values.any { it.isBlank() || it.length > 96 } -> "Invalid feature field"
+                    listOfNotNull(row.sourceRecord, row.sourceRevision, row.evidence).any {
+                        it.isBlank() || it.length > 512 || it.any(Char::isISOControl)
+                    } -> "Invalid contribution provenance"
                     row.mechanics.orEmpty().size > 16 -> "Too many mechanics"
                     values.isEmpty() -> "No gameplay features supplied"
                     else -> null

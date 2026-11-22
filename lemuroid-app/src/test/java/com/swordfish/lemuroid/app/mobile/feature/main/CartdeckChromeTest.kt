@@ -100,6 +100,6 @@ class CartdeckChromeTest {
         compose.onNodeWithText("CARTMOD").assertExists()
         compose.onNodeWithText("GEM").assertExists()
         compose.onNodeWithText("Settings").assertExists()
-        compose.onNodeWithText("SafeSave").assertDoesNotExist()
+        compose.onNodeWithText("SafeSave").assertExists()
     }
 }

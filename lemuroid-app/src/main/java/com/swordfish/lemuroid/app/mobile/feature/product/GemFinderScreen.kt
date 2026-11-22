@@ -35,9 +35,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
+import com.swordfish.lemuroid.app.gemrating.GemDeckFit
 import com.swordfish.lemuroid.app.gemrating.GemDiscovery
-import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
 import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
+import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
 import com.swordfish.lemuroid.app.gemrating.GemRatingRecommender
@@ -324,6 +325,10 @@ private fun GemRecommendationCard(
     onInspectRelease: (String) -> Unit,
 ) {
     val game = recommendation.game
+    val deckFit =
+        remember(game.releaseId, game.platform, game.primaryGenre) {
+            GemDeckFit.estimate(game.releaseId, game.platform, game.primaryGenre, game.title)
+        }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Row(
             Modifier.padding(12.dp),
@@ -343,10 +348,9 @@ private fun GemRecommendationCard(
                 )
                 Text(recommendation.reason, style = MaterialTheme.typography.bodySmall, maxLines = 3)
                 if (recommendation.wildcard) Text("Wildcard", style = MaterialTheme.typography.bodySmall)
+                Text(deckFit.displayText, style = MaterialTheme.typography.bodySmall)
                 if (installedGame != null) {
                     GemRatingRow(installedGame, deckFit = true, compact = true)
-                } else {
-                    Text("DeckFit · Not assessed", style = MaterialTheme.typography.bodySmall)
                 }
                 if (installedGame != null) {
                     TextButton(

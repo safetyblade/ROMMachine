@@ -14,6 +14,20 @@ internal object GemGameplayFeatures {
 
     val entries =
         mapOf(
+            "VDG:ps2:1270" to
+                Entry(
+                    "Disgaea: Hour of Darkness",
+                    "Tactics",
+                    "Turn-based",
+                    setOf("2D tactical", "Grid combat"),
+                ),
+            "VDG:ps2:1269" to
+                Entry(
+                    "Disgaea 2: Cursed Memories",
+                    "Tactics",
+                    "Turn-based",
+                    setOf("2D tactical", "Grid combat"),
+                ),
             "VDG:gba:794" to
                 Entry(
                     "Advance Wars",

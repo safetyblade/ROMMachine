@@ -54,6 +54,8 @@ internal class NativeControllerMappingSession(
     private val heldOutputs = NativeControllerKeyMapping.HeldOutputs()
     private var draft by mutableStateOf<ControllerMappingDraft?>(null)
     private var pending by mutableStateOf<Int?>(null)
+    private var guidedSwap by mutableStateOf(false)
+    private var swapFirst by mutableStateOf<Int?>(null)
     private var revision by mutableIntStateOf(0)
     private var generation by mutableIntStateOf(0)
     private var probeRevision by mutableIntStateOf(0)
@@ -189,6 +191,8 @@ internal class NativeControllerMappingSession(
 
     private fun cancelCapture() {
         pending = null
+        guidedSwap = false
+        swapFirst = null
         captureEdge.clear()
         backEdge.clear()
         probe.clear()
@@ -236,7 +240,7 @@ internal class NativeControllerMappingSession(
             cancelCapture()
             return true
         }
-        if (pending != null && event.keyCode == KeyEvent.KEYCODE_BACK) {
+        if ((pending != null || guidedSwap) && event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (backEdge.handle(event)) cancelCapture()
             return true
         }
@@ -244,6 +248,24 @@ internal class NativeControllerMappingSession(
             if (event.action == KeyEvent.ACTION_DOWN || event.action == KeyEvent.ACTION_UP) {
                 probe.key(event.keyCode, event.action == KeyEvent.ACTION_DOWN)
                 probeRevision++
+            }
+            if (guidedSwap && managerKey(event.keyCode) && captureEdge.handle(event)) {
+                val first = swapFirst
+                if (first == null) {
+                    if (draft?.bindings?.containsKey(event.keyCode) == true) {
+                        swapFirst = event.keyCode
+                    } else {
+                        message = "Choose a button with a mapped action first."
+                    }
+                } else if (draft?.requestSwap(first, event.keyCode) == true) {
+                    guidedSwap = false
+                    swapFirst = null
+                    message = null
+                    revision++
+                } else {
+                    message = "Choose a different physical button."
+                }
+                return true
             }
             val target = pending
             if (target != null && managerKey(event.keyCode) && captureEdge.handle(event)) {
@@ -253,7 +275,7 @@ internal class NativeControllerMappingSession(
                 return true
             }
         }
-        return pending != null
+        return pending != null || guidedSwap
     }
 
     private val navigationHats = mutableMapOf<Int, ControllerHatEdges>()
@@ -335,6 +357,24 @@ internal class NativeControllerMappingSession(
             runtimePort = if (runtime) playerPort else null,
             captureHatBindings = false,
             captureTarget = pending,
+            guidedSwapPrompt =
+                if (guidedSwap) {
+                    val first = swapFirst
+                    if (first == null) {
+                        "Press the physical button whose action you want to move."
+                    } else {
+                        val button = com.swordfish.lemuroid.app.shared.input.ControllerLabels.input(first)
+                        "$button selected. Press the replacement physical button."
+                    }
+                } else {
+                    null
+                },
+            onStartSwap = {
+                cancelCapture()
+                draft?.cancelConflict()
+                message = null
+                guidedSwap = true
+            },
             mappingRevision = revision,
             generation = generation,
             draft = draft,
@@ -346,7 +386,11 @@ internal class NativeControllerMappingSession(
                 cancelCapture()
                 pending = target
             },
-            onCancel = ::cancelCapture,
+            onCancel = {
+                cancelCapture()
+                draft?.cancelConflict()
+                revision++
+            },
             onReset = { device ->
                 cancelCapture()
                 draft?.reset(manager.defaultBindings(device).mapKeys { it.key.keyCode }.mapValues { it.value.keyCode })

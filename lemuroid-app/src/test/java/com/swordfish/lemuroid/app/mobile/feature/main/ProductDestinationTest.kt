@@ -8,7 +8,7 @@ class ProductDestinationTest {
     @Test
     fun dockContainsOnlyMountedProductsInApprovedOrder() {
         assertEquals(
-            listOf("Shelf", "GEM", "CARTMOD", "Settings"),
+            listOf("Shelf", "GEM", "SafeSave", "CARTMOD", "Settings"),
             ProductDestination.mountedDock().map { it.second },
         )
         assertFalse(ProductDestination.isMountedRoot(null))
