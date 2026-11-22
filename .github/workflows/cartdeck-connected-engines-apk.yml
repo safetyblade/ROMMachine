@@ -646,24 +646,21 @@ jobs:
         run: |
           set -euo pipefail
           repo=https://repo.maven.apache.org/maven2/org/robolectric/android-all-instrumented
-          for version in 9-robolectric-4913185-2-i7 14-robolectric-10818077-i7 15-robolectric-12650502-i7; do
+          while read -r version digest; do
             dir="$HOME/.m2/repository/org/robolectric/android-all-instrumented/$version"
             jar="android-all-instrumented-$version.jar"
             mkdir -p "$dir"
-            if [[ ! -s "$dir/$jar.sha512" ]]; then
-              curl --fail --silent --show-error --retry 7 --retry-max-time 240 \
-                "$repo/$version/$jar.sha512" --output "$dir/$jar.sha512.tmp"
-              mv "$dir/$jar.sha512.tmp" "$dir/$jar.sha512"
-            fi
-            digest=$(tr -d '[:space:]' < "$dir/$jar.sha512")
-            [[ "$digest" =~ ^[[:xdigit:]]{128}$ ]]
-            if ! printf '%s  %s\n' "$digest" "$dir/$jar" | sha512sum --check --status; then
-              curl --fail --silent --show-error --retry 7 --retry-max-time 240 \
+            if [[ ! -s "$dir/$jar" ]] || ! printf '%s  %s\n' "$digest" "$dir/$jar" | sha512sum --check --status; then
+              curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 8 --retry-max-time 240 \
                 "$repo/$version/$jar" --output "$dir/$jar.tmp"
               printf '%s  %s\n' "$digest" "$dir/$jar.tmp" | sha512sum --check
               mv "$dir/$jar.tmp" "$dir/$jar"
             fi
-          done
+          done <<'SDKS'
+          9-robolectric-4913185-2-i7 24687b9ea919eb20f5e27e47274f2aa711e98eb332d4769d34044a3b4952a71393831d0a3f61ba726dc8fe220673a76138c11a0716f304999e5b029146fe88eb
+          14-robolectric-10818077-i7 7cdc0b1306e7865f1acd25a363073149654caee5b8e278c5ae37ff4724185724eff39f0b0111800b521e640bb28698d9d2e655134a801569a0f07470e7b5f455
+          15-robolectric-12650502-i7 87bdd0341838f5f630e1ff412ab29cb2f06e0f8cb7751f14679d11b4ee6084873001f8f6a8581ae6e139fa7c9a654b632412827430f984ebecc3c2588674f7e7
+          SDKS
       - name: Compile the connected application, mandatory checks and upgrade APK
         shell: bash
         run: |

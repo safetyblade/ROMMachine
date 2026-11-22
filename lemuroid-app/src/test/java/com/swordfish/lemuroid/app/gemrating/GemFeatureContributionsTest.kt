@@ -36,6 +36,28 @@ class GemFeatureContributionsTest {
     }
 
     @Test
+    fun previewShowsAdditionsAndChangesAndRejectsAmbiguousDuplicates() {
+        val raw =
+            """
+            {
+              "schemaVersion": 1,
+              "records": [
+                {"releaseId":"r-1","title":"Rated","mechanics":["Deckbuilding"]},
+                {"releaseId":"r-2","title":"Candidate","playstyle":"Turn-based"},
+                {"releaseId":"r-3","title":"Other","mechanics":["Lap racing"]},
+                {"releaseId":"r-3","title":"Other","mechanics":["Drifting"]}
+              ]
+            }
+            """.trimIndent()
+        val current = mapOf("r-1" to GemFeatureContributions.Record("r-1", "Rated", playstyle = "Turn-based"))
+        val preview = GemFeatureContributions.parse(raw, releases).preview(current)
+        assertEquals(setOf("r-2"), preview.added)
+        assertEquals(setOf("r-1"), preview.changed)
+        assertEquals(listOf("r-3", "r-3"), preview.rejected.map { it.releaseId })
+        assertEquals("Turn-based", current.getValue("r-1").playstyle)
+    }
+
+    @Test
     fun addedMechanicsFlowIntoExistingOfflineRankingWithoutCreatingRatings() {
         val raw =
             """

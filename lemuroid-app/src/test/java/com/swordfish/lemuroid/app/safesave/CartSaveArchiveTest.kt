@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.safesave
 
+import com.swordfish.lemuroid.app.mobile.feature.product.storeUnassignedArchive
 import com.swordfish.lemuroid.lib.saves.safesave.CartSaveArchive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,6 +24,22 @@ class CartSaveArchiveTest {
         CartSaveArchive.write(archive, fixture.first, fixture.second)
         assertEquals(fixture.first, CartSaveArchive.inspect(archive))
         assertEquals(131072L, fixture.first.saveGroups.single().artifacts.first().byteLength)
+    }
+
+    @Test
+    fun unassignedArchiveIsRetainedWithoutRewritingOrTrustingChangedInput() {
+        val (manifest, payloads) = fixture()
+        val archive = File(temp.root, "incoming.cartsave")
+        CartSaveArchive.write(archive, manifest, payloads)
+        val unassigned = File(temp.root, "unassigned")
+        val stored = storeUnassignedArchive(unassigned, manifest, archive::inputStream)
+        assertEquals(manifest, CartSaveArchive.inspect(stored))
+        assertEquals(stored, storeUnassignedArchive(unassigned, manifest, archive::inputStream))
+        assertThrows(IllegalArgumentException::class.java) {
+            storeUnassignedArchive(unassigned, manifest) { byteArrayOf(1, 2, 3).inputStream() }
+        }
+        assertEquals(listOf(stored.name), unassigned.list()?.toList())
+        assertEquals(manifest, CartSaveArchive.inspect(stored))
     }
 
     @Test

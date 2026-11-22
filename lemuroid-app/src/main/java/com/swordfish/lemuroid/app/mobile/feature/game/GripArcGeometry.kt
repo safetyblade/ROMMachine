@@ -69,6 +69,8 @@ sealed interface GripArcFit {
 
 /** One fixed compact 160×160dp assembly. No progressive shrinking of touch targets. */
 object GripArcPositionSolver {
+    internal const val HOUSING_ARM_INNER_X = 102f
+    internal const val HOUSING_ARM_INNER_Y = 118f
     private const val SAFE_GAP = 8f
     private const val MIN_TARGET = 48f
     private val scales = listOf(1f)
@@ -79,8 +81,8 @@ object GripArcPositionSolver {
         scale: Float,
         side: GripArcSide,
     ): List<PivotArcBounds> {
-        val armLeft = if (side == GripArcSide.RIGHT) 96f else 4f
-        val armRight = if (side == GripArcSide.RIGHT) 156f else 64f
+        val armLeft = if (side == GripArcSide.RIGHT) HOUSING_ARM_INNER_X else 4f
+        val armRight = if (side == GripArcSide.RIGHT) 156f else 160f - HOUSING_ARM_INNER_X
         return listOf(
             PivotArcBounds(
                 housing.left + armLeft * scale,
@@ -90,7 +92,7 @@ object GripArcPositionSolver {
             ),
             PivotArcBounds(
                 housing.left + 4f * scale,
-                housing.top + 116f * scale,
+                housing.top + HOUSING_ARM_INNER_Y * scale,
                 housing.left + 156f * scale,
                 housing.top + 156f * scale,
             ),

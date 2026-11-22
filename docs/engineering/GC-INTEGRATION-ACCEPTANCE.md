@@ -72,7 +72,7 @@ lawfully supplied titles. Keep backups of any existing test progress.
 
 ## Current A–H implementation evidence
 
-After #362 merged, the continuation is draft #368 against master. SafeSave visual acceptance is **FAIL pending owner review** ([owner correction](https://github.com/safetyblade/ROMMachine/issues/290#issuecomment-7078323576)). The Save Centre uses the shipped SafeSave wordmark, primary backup and restore actions, counts from managed inventory, and expandable console groups. A verified backup index and Unassigned Backups are still required.
+After #362 merged, the continuation is draft #368 against master. SafeSave visual acceptance is **FAIL pending owner review** ([owner correction](https://github.com/safetyblade/ROMMachine/issues/290#issuecomment-7078323576)). The Save Centre uses the shipped SafeSave wordmark, primary backup and restore actions, counts from managed inventory, and expandable console groups. Verified unmatched imports can be retained in Unassigned Backups for later review. Explicit assignment and a full verified-backup index remain open.
 
 | Work | Source status | Remaining acceptance |
 | --- | --- | --- |
@@ -80,7 +80,7 @@ After #362 merged, the continuation is draft #368 against master. SafeSave visua
 | B, display | Existing viewport and opt-in landscape surround retained | Confirm aspect, safe zones, DS/3DS dual screens and tablet/TV settings. Physical QA NOT TESTED. |
 | C, controllers | Existing mapping draft supports a reciprocal two-button preview, explicit confirmation and Undo. Native settings capture two physical presses and warn about digital trigger substitution. | Confirm routed guest actions and P1/P2 on each host, disconnect/reconnect, and full D-pad TV and DeX journeys. Physical QA NOT TESTED. |
 | D, Wii and 3DS | Existing attachment and controller inventory retained | Guest IR and motion require source-backed dispatch and physical evidence. Physical QA NOT TESTED. |
-| E, PivotArc and GripArc | Existing handheld inventories and source mappings retained | Joint fit for all twelve handhelds, 48dp targets, original guest buttons, orientation and held-input release. Physical QA NOT TESTED. |
+| E, PivotArc and GripArc | Existing handheld inventories and source mappings retained; narrower GripArc painted arms share the solver footprint while retaining all four 48dp targets. | Joint fit for all twelve handhelds, 48dp targets, original guest buttons, orientation and held-input release. Physical QA NOT TESTED. |
 | F, Modern Function | Existing research and custom mapping retained | Verified title and edition action mapping and actual gameplay. Physical QA NOT TESTED. |
 | G, Xbox 360 continuity | Existing engine and player paths retained | Native ownership and save-only storage adapter, install-over and reopen. Physical QA NOT TESTED. |
 | H, display/performance boundaries | Existing native provenance and engine pins retained | Respective runtime evidence and physical checks. PERF remains in its own lane. |

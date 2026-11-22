@@ -142,10 +142,12 @@ internal fun GripArcHousing(
 ) {
     val housing = placement.housing
     val left = placement.side == GripArcSide.LEFT
+    val insideX = GripArcPositionSolver.HOUSING_ARM_INNER_X
+    val insideY = GripArcPositionSolver.HOUSING_ARM_INNER_Y
     val outer =
         remember {
             Path().apply {
-                moveTo(104f, 4f)
+                moveTo(insideX + 8f, 4f)
                 lineTo(148f, 4f)
                 lineTo(156f, 12f)
                 lineTo(156f, 148f)
@@ -153,16 +155,16 @@ internal fun GripArcHousing(
                 lineTo(12f, 156f)
                 lineTo(4f, 148f)
                 lineTo(4f, 124f)
-                lineTo(12f, 116f)
-                lineTo(96f, 116f)
-                lineTo(96f, 12f)
+                lineTo(12f, insideY)
+                lineTo(insideX, insideY)
+                lineTo(insideX, 12f)
                 close()
             }
         }
     val inner =
         remember {
             Path().apply {
-                moveTo(106f, 10f)
+                moveTo(insideX + 10f, 10f)
                 lineTo(146f, 10f)
                 lineTo(150f, 16f)
                 lineTo(150f, 145f)
@@ -170,9 +172,9 @@ internal fun GripArcHousing(
                 lineTo(14f, 150f)
                 lineTo(10f, 145f)
                 lineTo(10f, 127f)
-                lineTo(15f, 122f)
-                lineTo(102f, 122f)
-                lineTo(102f, 16f)
+                lineTo(15f, insideY + 6f)
+                lineTo(insideX + 6f, insideY + 6f)
+                lineTo(insideX + 6f, 16f)
                 close()
             }
         }
@@ -217,11 +219,11 @@ internal fun GripArcHousing(
                 )
                 drawLine(
                     tokens.onChassis.copy(alpha = 0.26f),
-                    Offset(99f, 24f),
-                    Offset(99f, 108f),
+                    Offset(insideX + 3f, 24f),
+                    Offset(insideX + 3f, 108f),
                     strokeWidth = 1.2f,
                 )
-                for (p in listOf(Offset(102f, 14f), Offset(147f, 14f), Offset(14f, 144f), Offset(147f, 145f))) {
+                for (p in listOf(Offset(insideX + 6f, 14f), Offset(147f, 14f), Offset(14f, 144f), Offset(147f, 145f))) {
                     drawCircle(tokens.bezel, radius = 2.8f, center = p)
                     drawCircle(tokens.secondary, radius = 2.8f, center = p, style = Stroke(width = 1.3f))
                     drawLine(

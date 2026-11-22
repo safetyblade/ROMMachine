@@ -26,6 +26,19 @@ class GripArcCombinedLayoutTest {
             TouchControllerID.XBOX,
         )
 
+    @Test fun paintedArmsAreCompactAndMirrorAroundTheFixedSlotGrid() {
+        val housing = PivotArcBounds(0f, 0f, 160f, 160f)
+        val right = GripArcPositionSolver.housingFootprint(housing, 1f, GripArcSide.RIGHT)
+        val left = GripArcPositionSolver.housingFootprint(housing, 1f, GripArcSide.LEFT)
+        assertEquals(54f, right[0].width, 0.001f)
+        assertEquals(38f, right[1].height, 0.001f)
+        right.zip(left).forEach { (r, l) ->
+            assertEquals(160f - r.right, l.left, 0.001f)
+            assertEquals(160f - r.left, l.right, 0.001f)
+        }
+        assertTrue(manifest.slots.all { it.hitTarget.w == 48f && it.hitTarget.h == 48f })
+    }
+
     // Synthetic native-bound fixture. Runtime uses the actual native composable observations.
     private fun measured(native: NativeControlInventory): Map<String, PivotArcBounds> {
         fun box(

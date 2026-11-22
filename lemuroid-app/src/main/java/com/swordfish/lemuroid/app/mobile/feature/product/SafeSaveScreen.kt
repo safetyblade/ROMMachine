@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,6 +51,9 @@ internal fun SafeSaveScreen(
     var message by remember { mutableStateOf<String?>(null) }
     var selected by remember { mutableStateOf<Game?>(null) }
     var importPreview by remember { mutableStateOf<ImportPreview?>(null) }
+    var unassigned by remember { mutableStateOf<List<File>>(emptyList()) }
+    var showUnassigned by remember { mutableStateOf(false) }
+    var keepUnassigned by remember { mutableStateOf<UnassignedBackup?>(null) }
     var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var pendingExport by remember { mutableStateOf<ExportRequest?>(null) }
@@ -60,22 +64,31 @@ internal fun SafeSaveScreen(
         result.onSuccess { inventory = it }.onFailure { message = "Save inventory could not be read." }
     }
 
-    val open =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                busy = true
-                scope.launch {
-                    val result =
-                        withContext(Dispatchers.IO) {
-                            runCatching { previewDocument(context, binding, games, uri) }
-                        }
-                    result.onSuccess { importPreview = it }
-                        .onFailure {
-                            message = (it as? RestoreRefused)?.message ?: "The backup is invalid or unreadable."
-                        }
-                    busy = false
+    LaunchedEffect(revision) {
+        unassigned = withContext(Dispatchers.IO) { unassignedArchives(context) }
+    }
+
+    fun review(
+        uri: Uri,
+        alreadyStored: Boolean = false,
+    ) {
+        busy = true
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { previewDocument(context, binding, games, uri) } }
+            result.onSuccess { importPreview = it }.onFailure {
+                if (it is UnassignedBackup && !alreadyStored) {
+                    keepUnassigned = it
+                } else {
+                    message = (it as? RestoreRefused)?.message ?: "The backup is invalid or unreadable."
                 }
             }
+            busy = false
+        }
+    }
+
+    val open =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) review(uri)
         }
     val save =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
@@ -173,6 +186,13 @@ internal fun SafeSaveScreen(
                         },
                     )
                 }
+                if (unassigned.isNotEmpty() && !busy) {
+                    add(
+                        ProductAction("Unassigned Backups · ${unassigned.size}", "Review saved backups") {
+                            showUnassigned = true
+                        },
+                    )
+                }
                 add(
                     ProductAction("Backup coverage", "View the limits of this backup") {
                         message = "Includes bound save RAM, supported PS1 cards and known app-managed states. " +
@@ -258,6 +278,47 @@ internal fun SafeSaveScreen(
                 }) { Text("Restore after backup") }
             },
             dismissButton = { TextButton(onClick = { importPreview = null }) { Text("Cancel") } },
+        )
+    }
+    keepUnassigned?.let { candidate ->
+        AlertDialog(
+            onDismissRequest = { keepUnassigned = null },
+            title = { Text("Keep unassigned backup?") },
+            text = { Text(candidate.message.orEmpty()) },
+            confirmButton = {
+                TextButton(onClick = {
+                    keepUnassigned = null
+                    busy = true
+                    scope.launch {
+                        val result =
+                            withContext(Dispatchers.IO) { runCatching { retainUnassigned(context, candidate) } }
+                        if (result.isSuccess) revision++
+                        message =
+                            if (result.isSuccess) "Backup kept in Unassigned Backups." else "Backup could not be kept."
+                        busy = false
+                    }
+                }) { Text("Keep Backup") }
+            },
+            dismissButton = { TextButton(onClick = { keepUnassigned = null }) { Text("Cancel") } },
+        )
+    }
+    if (showUnassigned) {
+        AlertDialog(
+            onDismissRequest = { showUnassigned = false },
+            title = { Text("Unassigned Backups") },
+            text = {
+                androidx.compose.foundation.lazy.LazyColumn {
+                    items(unassigned.size) { index ->
+                        val archive = unassigned[index]
+                        val date = java.text.DateFormat.getDateTimeInstance().format(Date(archive.lastModified()))
+                        TextButton(onClick = {
+                            showUnassigned = false
+                            review(Uri.fromFile(archive), alreadyStored = true)
+                        }, modifier = Modifier.gemFocusTarget()) { Text(date) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showUnassigned = false }) { Text("Done") } },
         )
     }
     message?.let { info ->
@@ -390,7 +451,57 @@ private fun export(
     }
 }
 
-private class RestoreRefused(message: String) : IllegalArgumentException(message)
+private open class RestoreRefused(message: String) : IllegalArgumentException(message)
+
+private class MissingCartridge : RestoreRefused("A cartridge in this backup has no exact local match.")
+
+private class UnassignedBackup(
+    val uri: Uri,
+    val manifest: CartSaveArchive.Manifest,
+) : RestoreRefused("No matching cartridge. You can keep the verified archive for later.")
+
+private fun unassignedDirectory(context: Context): File = File(context.noBackupFilesDir, "safesave/unassigned")
+
+private fun unassignedArchives(context: Context): List<File> =
+    unassignedDirectory(context).listFiles().orEmpty()
+        .filter { it.isFile && it.extension == "cartsave" && it == it.canonicalFile }
+        .sortedByDescending(File::lastModified)
+
+private fun retainUnassigned(
+    context: Context,
+    candidate: UnassignedBackup,
+) {
+    val lease = checkNotNull(SaveStorageLease.acquire(context))
+    lease.use {
+        storeUnassignedArchive(unassignedDirectory(context), candidate.manifest) {
+            requireNotNull(context.contentResolver.openInputStream(candidate.uri))
+        }
+    }
+}
+
+internal fun storeUnassignedArchive(
+    root: File,
+    manifest: CartSaveArchive.Manifest,
+    openSource: () -> InputStream,
+): File {
+    val directory = root.canonicalFile
+    check(directory.isDirectory || directory.mkdirs())
+    val destination = File(directory, "${UUID.fromString(manifest.snapshotId)}.cartsave")
+    check(destination.canonicalFile == destination)
+    val staged = File.createTempFile("incoming-", ".tmp", directory)
+    try {
+        openSource().use { ModFiles.copyBounded(it, staged, CartSaveArchive.MAX_ARCHIVE_BYTES) }
+        check(CartSaveArchive.inspect(staged) == manifest)
+        if (destination.exists()) {
+            check(CartSaveArchive.inspect(destination) == manifest)
+        } else {
+            check(staged.renameTo(destination))
+        }
+        return destination
+    } finally {
+        staged.delete()
+    }
+}
 
 private fun previewDocument(
     context: Context,
@@ -405,7 +516,12 @@ private fun previewDocument(
             throw RestoreRefused("Complete the interrupted restore in Recovery first.")
         }
         val owner = GemRatingLocalStore.open(context).session.profileId
-        val targets = restoreTargets(binding, games, manifest, owner)
+        val targets =
+            try {
+                restoreTargets(binding, games, manifest, owner)
+            } catch (_: MissingCartridge) {
+                throw UnassignedBackup(uri, manifest)
+            }
         ImportPreview(uri, manifest, targets.map { it.game.title }.distinct(), existingFiles(targets))
     }
 }
@@ -494,7 +610,7 @@ private fun restoreTargets(
         val gameId = group.linkedCartridgeIds.singleOrNull()
         val game =
             games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
-                ?: throw RestoreRefused("A cartridge in this backup has no exact local match.")
+                ?: throw MissingCartridge()
         val destination =
             files(binding, game, includeMissing = true).singleOrNull {
                 it.engineId == group.engineId &&
