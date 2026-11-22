@@ -65,6 +65,10 @@ internal fun GemLibraryScreen(
     var error by remember { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf("Menu") }
     var query by rememberSaveable { mutableStateOf("") }
+    var browseCatalogue by rememberSaveable { mutableStateOf(true) }
+    var platformFilter by rememberSaveable { mutableStateOf("") }
+    var genreFilter by rememberSaveable { mutableStateOf("") }
+    var pageLimit by rememberSaveable { mutableStateOf(48) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var inspectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var customEditing by remember { mutableStateOf(false) }
@@ -147,6 +151,20 @@ internal fun GemLibraryScreen(
     val savedId = remember(selected, revision) { selected?.let { corrections.read(it) } }
     val custom = remember(selected, revision) { selected?.let { corrections.custom(it) } }
     val inspected = current?.manifest?.releases?.firstOrNull { it.releaseId == inspectedId }
+    var installedByRelease by remember(current, games, revision) { mutableStateOf(emptyMap<String, List<Game>>()) }
+    LaunchedEffect(current, games, revision) {
+        if (current != null) {
+            installedByRelease =
+                withContext(Dispatchers.IO) {
+                    games.mapNotNull { game ->
+                        val id =
+                            corrections.read(game)
+                                ?: (current.match(game) as? GemCatalogueIndex.Match.Confirmed)?.release?.releaseId
+                        id?.takeIf { current.index.find(it)?.systemId == game.systemId }?.let { it to game }
+                    }.groupBy({ it.first }, { it.second })
+                }
+        }
+    }
     val sources = remember(current) { current?.manifest?.sources.orEmpty().associateBy { it.id } }
     val match =
         remember(current, selected) {
@@ -164,7 +182,7 @@ internal fun GemLibraryScreen(
         mutableStateOf<List<GemCataloguePackage.Release>>(emptyList())
     }
     var searching by remember(current, query, selected, candidateIds, savedId) { mutableStateOf(true) }
-    LaunchedEffect(current, query, selected, candidateIds, savedId) {
+    LaunchedEffect(current, query, selected, candidateIds, savedId, platformFilter, genreFilter, pageLimit) {
         val term = query.trim()
         if (term.isNotEmpty()) delay(120)
         results =
@@ -172,13 +190,21 @@ internal fun GemLibraryScreen(
                 current?.manifest?.releases.orEmpty().asSequence()
                     .filter { selected == null || it.systemId == selected.systemId }
                     .filter {
+                        selected != null || platformFilter.isBlank() ||
+                            cartridgeSystemLabel(it.systemId).contains(platformFilter.trim(), ignoreCase = true)
+                    }
+                    .filter {
+                        selected != null || genreFilter.isBlank() ||
+                            it.primaryGenre.orEmpty().contains(genreFilter.trim(), ignoreCase = true)
+                    }
+                    .filter {
                         if (term.isEmpty()) {
-                            selected != null && (it.releaseId in candidateIds || it.releaseId == savedId)
+                            selected == null || it.releaseId in candidateIds || it.releaseId == savedId
                         } else {
                             it.title.contains(term, ignoreCase = true)
                         }
                     }
-                    .take(100)
+                    .take(pageLimit + 1)
                     .toList()
             }
         searching = false
@@ -196,15 +222,27 @@ internal fun GemLibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(listOf("For You", "Browse", "My Ratings", "Search websites", "Manage")) { destination ->
+                    items(
+                        listOf("For You", "Browse", "My Ratings", "Game Intelligence", "Search websites", "Manage"),
+                    ) { destination ->
                         val title =
                             when (destination) {
                                 "For You" -> "GemFinder"
-                                "Browse" -> "Game Intelligence"
+                                "Browse" -> "Browse Games"
                                 "Manage" -> "GEM settings"
                                 else -> destination
                             }
-                        CartdeckMenuRow(title = { Text(title) }, onClick = { page = destination })
+                        CartdeckMenuRow(
+                            title = { Text(title) },
+                            onClick = {
+                                if (destination == "Browse" || destination == "Game Intelligence") {
+                                    browseCatalogue = destination == "Browse"
+                                    page = "Browse"
+                                } else {
+                                    page = destination
+                                }
+                            },
+                        )
                     }
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         TextButton(onClick = onBackToShelf, modifier = Modifier.gemFocusTarget()) {
@@ -260,7 +298,10 @@ internal fun GemLibraryScreen(
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Game Intelligence", style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                if (selected == null) "Browse Games" else "Game Intelligence",
+                                style = MaterialTheme.typography.titleLarge,
+                            )
                             if (message.isNotBlank()) Text(message)
                             if (error) {
                                 Text("Catalogue verification failed. Your cartridges and saves remain unchanged.")
@@ -271,12 +312,42 @@ internal fun GemLibraryScreen(
                                     value = query,
                                     onValueChange = {
                                         query = it.take(160)
+                                        pageLimit = 48
                                         inspectedId = null
                                     },
                                     label = { Text("Find a game") },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                 )
+                            }
+                            if (selected == null && inspected == null && current != null) {
+                                TextButton(onClick = { browseCatalogue = !browseCatalogue }) {
+                                    Text(if (browseCatalogue) "Identify my cartridges" else "Browse catalogue")
+                                }
+                                if (browseCatalogue) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedTextField(
+                                            value = platformFilter,
+                                            onValueChange = {
+                                                platformFilter = it.take(64)
+                                                pageLimit = 48
+                                            },
+                                            label = { Text("Console") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                        )
+                                        OutlinedTextField(
+                                            value = genreFilter,
+                                            onValueChange = {
+                                                genreFilter = it.take(64)
+                                                pageLimit = 48
+                                            },
+                                            label = { Text("Genre") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                        )
+                                    }
+                                }
                             }
                             if (selected != null) {
                                 Row(
@@ -329,15 +400,23 @@ internal fun GemLibraryScreen(
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
                                 GemIntelligenceRecord(inspected, sources[inspected.sourceId])
+                                installedByRelease[inspected.releaseId].orEmpty().forEach { game ->
+                                    TextButton(
+                                        onClick = { onOpenCartridge(game) },
+                                    ) { Text("Open ${game.displayName()}") }
+                                }
                             }
                         }
                     }
                     if (current != null && inspected == null) {
-                        if (selected == null && query.isBlank()) {
+                        if (selected == null && !browseCatalogue) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 Text("My cartridges", style = MaterialTheme.typography.titleMedium)
                             }
-                            items(games, key = { it.cartridgeId }) { game ->
+                            items(
+                                games.filter { it.displayName().contains(query.trim(), ignoreCase = true) },
+                                key = { it.cartridgeId },
+                            ) { game ->
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow(
                                     title = { Text(game.displayName(), maxLines = 2) },
                                     leading = {
@@ -358,7 +437,7 @@ internal fun GemLibraryScreen(
                                     Text("No match found. Try a shorter title or add game information.")
                                 }
                             }
-                            items(results, key = { it.releaseId }) { release ->
+                            items(results.take(pageLimit), key = { it.releaseId }) { release ->
                                 Column(Modifier.fillMaxWidth().padding(4.dp)) {
                                     GemIntelligenceRecord(release, sources[release.sourceId])
                                     if (selected != null) {
@@ -367,6 +446,22 @@ internal fun GemLibraryScreen(
                                             enabled = !writing && request == null,
                                             modifier = Modifier.gemFocusTarget(),
                                         ) { Text("Confirm this entry") }
+                                    } else {
+                                        val copies = installedByRelease[release.releaseId].orEmpty()
+                                        TextButton(
+                                            onClick = { inspectedId = release.releaseId },
+                                            modifier = Modifier.gemFocusTarget(),
+                                        ) {
+                                            val label = if (copies.isEmpty()) "View release" else "In your library"
+                                            Text(label)
+                                        }
+                                    }
+                                }
+                            }
+                            if (results.size > pageLimit) {
+                                item(span = { GridItemSpan(maxLineSpan) }) {
+                                    TextButton(onClick = { pageLimit += 48 }, modifier = Modifier.gemFocusTarget()) {
+                                        Text("Show more releases")
                                     }
                                 }
                             }

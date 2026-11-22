@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupVideo
 internal fun CartdeckLaunchSignature(
     onFinished: () -> Unit,
     onAdjustingChanged: (Boolean) -> Unit,
+    onSkipAvailable: ((() -> Unit)?) -> Unit,
 ) {
     val currentFinish = rememberUpdatedState(onFinished)
     val context = LocalContext.current
@@ -49,11 +51,19 @@ internal fun CartdeckLaunchSignature(
         onAdjustingChanged(false)
     }
 
+    val skip = {
+        player.stopPlayback()
+        currentFinish.value()
+    }
+    DisposableEffect(player, editing.value) {
+        onSkipAvailable(if (editing.value) null else skip)
+        onDispose { onSkipAvailable(null) }
+    }
     BackHandler {
         if (editing.value) {
             closeEditor()
         } else {
-            currentFinish.value()
+            skip()
         }
     }
     DisposableEffect(player) {
@@ -62,7 +72,7 @@ internal fun CartdeckLaunchSignature(
             player.stopPlayback()
         }
     }
-    Box(Modifier.fillMaxSize().background(Color(0xFF13131A))) {
+    Box(Modifier.fillMaxSize().background(Color(0xFF13131A)).safeDrawingPadding()) {
         AndroidView(factory = { player }, modifier = Modifier.fillMaxSize())
         if (editing.value) {
             Column(
@@ -107,7 +117,7 @@ internal fun CartdeckLaunchSignature(
                 Row(horizontalArrangement = Arrangement.Center) {
                     TextButton(onClick = { update(CartdeckIntroFraming.defaultFor(context)) }) { Text("Reset") }
                     TextButton(onClick = closeEditor) { Text("Save & play") }
-                    TextButton(onClick = { currentFinish.value() }) { Text("Skip intro") }
+                    TextButton(onClick = skip) { Text("Skip intro") }
                 }
             }
         } else {
@@ -122,7 +132,7 @@ internal fun CartdeckLaunchSignature(
                 Text("Frame", color = Color(0xFFF8F1F7))
             }
             TextButton(
-                onClick = { currentFinish.value() },
+                onClick = skip,
                 modifier = Modifier.align(Alignment.BottomEnd),
             ) {
                 Text("Skip intro", color = Color(0xFFF8F1F7))

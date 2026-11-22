@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -65,14 +66,28 @@ class CartridgeMotionTest {
         compose.setContent {
             CartridgeLibraryTheme(ShelfAppearance(reducedMotion = true)) {
                 Box {
-                    CartridgePickup(1, game, true, Rect(10f, 400f, 82f, 660f), { closes++ }) { front, close ->
-                        CartridgeDetail(game, close, { opens++ }, { _, _ -> }, {}, frontModifier = front)
+                    CartridgePickup(
+                        1,
+                        game,
+                        true,
+                        Rect(10f, 400f, 82f, 660f),
+                        { closes++ },
+                    ) { front, close, playFocus ->
+                        CartridgeDetail(
+                            game,
+                            close,
+                            { opens++ },
+                            { _, _ -> },
+                            {},
+                            frontModifier = front,
+                            playFocus = playFocus,
+                        )
                     }
                 }
             }
         }
         assertEquals(0, opens)
-        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithText("Open").assertIsDisplayed().assertIsEnabled().assertIsFocused().performClick()
         compose.onNodeWithText("Open").assertIsNotEnabled()
         assertEquals(1, opens)
         compose.onNodeWithText("Back to shelf").assertIsDisplayed().performClick()

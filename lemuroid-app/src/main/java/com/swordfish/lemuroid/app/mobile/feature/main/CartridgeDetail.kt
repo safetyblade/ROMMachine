@@ -30,6 +30,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -97,7 +99,7 @@ fun CartridgeDetailHost(
         sourceBounds,
         onDismiss,
         artworkRevision = record.value.first,
-    ) { front, close ->
+    ) { front, close, playFocus ->
         if (game == null) {
             Column(Modifier.padding(24.dp)) {
                 if (record.value.first == 0) {
@@ -118,6 +120,7 @@ fun CartridgeDetailHost(
                 front,
                 onUseOnlineCover = onUseOnlineCover,
                 onOpenIntelligence = onOpenIntelligence,
+                playFocus = playFocus,
             )
         }
     }
@@ -134,6 +137,7 @@ fun CartridgeDetail(
     frontModifier: Modifier = Modifier,
     onUseOnlineCover: (suspend (Game, Bitmap) -> Boolean)? = null,
     onOpenIntelligence: ((Game) -> Unit)? = null,
+    playFocus: FocusRequester? = null,
 ) {
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -172,7 +176,9 @@ fun CartridgeDetail(
                     }
                 },
                 enabled = !opening,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier =
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .then(playFocus?.let { Modifier.focusRequester(it) } ?: Modifier),
             ) { Text(stringResource(R.string.cartdeck_open)) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 TextButton(onClick = { setup = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Setup") }

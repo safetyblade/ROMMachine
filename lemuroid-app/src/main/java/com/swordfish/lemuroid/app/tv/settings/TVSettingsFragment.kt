@@ -10,6 +10,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
+import androidx.preference.SeekBarPreference
+import androidx.preference.SwitchPreference
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.DisplaySettingsActivity
@@ -17,6 +19,7 @@ import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
+import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupSound
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.kotlin.NTuple2
@@ -102,6 +105,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             SharedPreferencesHelper.getSharedPreferencesDataStore(requireContext())
         setPreferencesFromResource(R.xml.tv_settings, rootKey)
         if (rootKey == null) {
+            addStartupSoundSettings()
             preferenceScreen.addPreference(
                 Preference(requireContext()).apply {
                     key = "cartdeck_controller_editor"
@@ -152,6 +156,37 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             }
             it.isVisible = saveSyncManager.isSupported()
         }
+    }
+
+    private fun addStartupSoundSettings() {
+        val context = requireContext()
+        val preferences = CartdeckStartupSound.preferences(context)
+        preferenceScreen.addPreference(
+            SeekBarPreference(context).apply {
+                key = "cartdeck_startup_sound_volume"
+                title = "Startup Sound volume"
+                isPersistent = false
+                max = 100
+                value = CartdeckStartupSound.volume(preferences)
+                showSeekBarValue = true
+                setOnPreferenceChangeListener { _, next ->
+                    preferences.edit().putInt(CartdeckStartupSound.VOLUME, next as Int).apply()
+                    true
+                }
+            },
+        )
+        preferenceScreen.addPreference(
+            SwitchPreference(context).apply {
+                key = "cartdeck_startup_sound_muted"
+                title = "Mute Startup Sound"
+                isPersistent = false
+                isChecked = CartdeckStartupSound.muted(preferences)
+                setOnPreferenceChangeListener { _, next ->
+                    preferences.edit().putBoolean(CartdeckStartupSound.MUTED, next as Boolean).apply()
+                    true
+                }
+            },
+        )
     }
 
     override fun onResume() {
