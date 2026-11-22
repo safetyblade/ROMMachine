@@ -43,6 +43,35 @@ This document is the current single owner contract and supersedes any conflictin
 - **Wii+3DS:** GC owns an adaptable, per-game **Choose Your Controls** experience. **Wii defaults to a connected gamepad** with matching proven Sideways/Nunchuk/Classic configuration, with optional **virtual on-screen IR pointer/tilt** and **phone gyro/accelerometer motion**. **3DS offers an independent additional virtual Tilt Stick** plus optional phone sensors, preserving Circle Pad and stylus. Allow combined gamepad buttons + virtual pointer/motion. Choose/recommend by *actual device, core capability and game needs*; never claim a fake sensor bridge. PERF owns guest sensor/IR/core/host integration.
 - **Original GC:** A–H remains entire finish line. No merge/QA PASS on UI alone or green CI.
 
+## 1A. OWNER UI CORRECTION — CONTROL SETUP LIVES IN SETTINGS (22 NOV, EVENING)
+
+**This replaces conflicting old descriptions that place the full Controls editor/setup in the in-game menu.** The user's goal is to play games with accessible controls, not administer controller configuration from a small game overlay.
+
+**Settings → Controls & Setup (single source of truth)** is the normal full configuration destination:
+- Connected controllers, device names, gamepad assignment P1/P2, select active controller and management of remapping.
+- Current two-press **reciprocal swap**, live visual diagram, real guest test, warning-only analogue fidelity differences, Save/Undo/Reset and per-device/per-game overrides.
+- Console Authentic / verified Modern Function / Custom.
+- Standard/PivotArc/GripArc selection, PivotArc hold assignment (including the three additional quick-hold controls), GripArc G1–G4 mapping, side, placement and profiles.
+- Touchscreen layout, optional graded analogue trigger, gestures and controls, sensitivity and safe hit targets.
+- Wii gamepad-first attachment choice, virtual IR/right-stick pointer and phone motion; 3DS independent Tilt Stick and phone motion; calibration and real backend capability preview.
+- Device-specific advanced options only if supported; technical engine diagnostics remain Advanced.
+
+The gameplay pause menu may show **Resume**, **Controller/Control summary**, and an **Open Controls Settings** route that safely pauses and returns to the same game. **Do not duplicate the full editor, mapper, setup wizard or saved configuration workflow inside the overlay.** Settings on TV must remain operable by gamepad/remote; Back returns to the previous focused game or shelf without leaking input to the paused engine.
+
+### PivotArc gameplay exception: existing Hold A/B plus exactly THREE extra quick-hold controls
+
+- **Preserve existing in-game Hold A and Hold B** and their accepted latch/touch behaviour. Add **three extra configurable quick-hold controls** on the PivotArc gameplay surface, provisionally identified **H1, H2, H3** until Sienna finalises compact visual labels. H1–H3 are distinct from GripArc's existing **G1–G4**; do not repurpose its four-button count or remove its functionality.
+- H1, H2, H3 are **quick latches**, not a duplicate configuration editor: tapping a latch toggles its configured actual native guest input **held DOWN**, then tapping again releases **UP**. Active/inactive indicator reflects real dispatched latch state; never fake game input because UI lit up. Multiple latches and ordinary direction/buttons can be simultaneous via source ownership.
+- **Settings** is where each H1–H3 target is assigned or cleared, with a console-specific native input chooser, conflicts, preview/test, default, and per-cartridge persistence. Do not invent one default key that would be wrong across Game Boy, GBA, SNES or console families.
+- Runtime toggles are session-only, **NOT persisted as pressed across games/relaunch**; on pause/exit/profile switch/core stop/focus loss, cancel/neutralise any in-flight holds according to the current safe Pause/Resume policy. Never strand a key DOWN or duplicate the final release when ordinary touch, physical gamepad and GripArc share a target.
+- Placement must preserve the existing machined PivotArc aesthetic and native A/B, D-pad, shoulder/Start/Select, gameplay viewport and other console-specific inventory. Keep usable >=48dp hit zones, mirrored left/right variants and no collision with GripArc, PivotArc cover or screen safe areas. On cramped layouts use a clear compact/tray presentation *only if* it preserves all original inputs; otherwise show a truthful safe fallback rather than hiding buttons.
+- Use current **PivotArcControlGroup.kt** (already renders HoldA/HoldB), **PivotArcHeldInputGate.kt** (already arbitrates latch+GripArc key ownership), **PivotArcLayoutProfile** and **CompositeControlDeckSolver** as the starting point. Preserve owner-observed PivotArc + GripArc fit FAIL #135 until actual owner/Marcus device proof.
+- Scope clarification: three **additional** quick-hold controls alongside existing Hold A/B, not three replacement controls and not three additional configuration menus.
+
+**Minimum player test:** In Settings choose H1=one supported guest input, H2/H3 other actual keys; play a game, latch H1 while holding a D-pad direction and physical gamepad input, switch H2/H3 on/off, verify exact guest key down/up and active visual indicator, return to Settings/change the assignment, restart and verify assignment persists while *latched pressed state* does not. Repeat Standard/PivotArc + GripArc on owner handset/TV where supported, without overlap or disappearance of genuine console inputs. Source unit test != Marcus physical PASS.
+
+**Implementation priority:** This is a small integration refinement to existing GC-01 C/E input UI, not a new PR or a new settings subsystem. Reuse the existing mapping, settings, PivotArc and GripArc code. Actual code and new APK are still required; a doc-only commit does not count as execution progress.
+
 ## 2. SafeSave — finish the existing surface and real services
 
 On the existing SafeSaveSurface home show **current player**, games with native saves per console, occupied manual save-state slots, auto/resume slots, complete cards and VMUs, backup totals, unassigned verified archives, latest backup, Export All, Restore and Exceptions.
@@ -194,5 +223,7 @@ Additionally shelf #303, TV/DeX #308, SIGNATURE #360 original approved video/aud
 - **Motion:** Wii **gamepad-first**, selectable virtual IR pointer/phone sensors/mixed buttons+pointer; 3DS independent virtual Tilt Stick plus phone sensor and Beyblade launch; capability-accurate GC UI/calibration with **PERF** engine bridge evidence or blocked status.
 - **Full A–H console matrix** and independent Marcus/owner hardware test instructions; source PASS is not hardware PASS. No silent system exclusions.
 - List only genuine technical/engine/legal blockers and narrow outstanding owner decisions.
+
+**Controller setup and saved configuration is under Settings; only PivotArc's existing Hold A/B and three new quick-hold gameplay latches remain on the play surface.**
 
 **DO THE IMPLEMENTATION. Keep exact current source identity and all existing player ROMs, saves, states, appearances and ratings intact.**
