@@ -364,6 +364,53 @@ jobs:
                 core.setOutput(engine + '_name', exact.name);
                 continue;
               }
+              // PERF-XB: the independently compiled Xenia engineering build already
+              // contains the exact native bytes but not a CI-01 packaging receipt.
+              // Only select a successful producer from this PR whose intervening
+              // commits cannot have changed the source recipe.
+              if (engine === 'xenia' &&
+                  context.payload.pull_request?.head?.ref === 'engineering/perf-xb-stage0-4-integrated-20261122') {
+                const recipeFiles = JSON.parse(require('node:child_process').execFileSync(
+                  'python3', ['-c',
+                    'import json,sys;sys.path.insert(0,"scripts/ci");from ci01_remaining_engines import build_recipe_files;print(json.dumps(build_recipe_files("xenia")))'
+                  ], {encoding: 'utf8'}));
+                const candidates = all.filter(a =>
+                  !a.expired && a.name === 'CARTDECK_XBOX360_NATIVE_ENGINEERING' &&
+                  a.workflow_run?.id && a.workflow_run.id !== context.runId)
+                  .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+                for (const artifact of candidates) {
+                  const runId = artifact.workflow_run.id;
+                  if (!runs.has(runId)) {
+                    const result = await github.rest.actions.getWorkflowRun({...context.repo, run_id: runId});
+                    runs.set(runId, result.data);
+                  }
+                  const run = runs.get(runId);
+                  if (run.conclusion !== 'success' || run.event !== 'pull_request' ||
+                      run.path !== '.github/workflows/cartdeck-xbox360-engineering.yml' ||
+                      run.head_branch !== 'engineering/perf-xb-stage0-4-integrated-20261122' ||
+                      run.head_repository?.full_name !== context.repo.owner + '/' + context.repo.repo) continue;
+                  const comparison = (await github.rest.repos.compareCommitsWithBasehead({
+                    ...context.repo, basehead: run.head_sha + '...' + context.sha
+                  })).data;
+                  if (!['ahead','identical'].includes(comparison.status) ||
+                      !comparison.files || comparison.files.length >= 300 ||
+                      comparison.files.some(f => recipeFiles.includes(f.filename) ||
+                        recipeFiles.includes(f.previous_filename) ||
+                        f.filename.startsWith('scripts/ci/xbox360/') ||
+                        (f.previous_filename || '').startsWith('scripts/ci/xbox360/'))) continue;
+                  core.setOutput('xenia_run', String(runId));
+                  core.setOutput('xenia_name', artifact.name);
+                  core.setOutput('xenia_engineering', 'true');
+                  core.info('Matched successful Xenia source producer ' + run.head_sha +
+                            ' to unchanged current recipe at ' + context.sha);
+                  chosen = {run_id: runId, name: artifact.name};
+                  break;
+                }
+                if (!chosen) {
+                  core.setFailed('No successful source-matched Xenia engineering build for this PR. Never reuse an older recipe.');
+                }
+                return;
+              }
               const reuseRun = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_run_id }}' : '';
               const reuseName = engine === 'libretrodroid' ? '${{ inputs.pc_host_reuse_artifact_name }}' : '';
               if (Boolean(reuseRun) !== Boolean(reuseName)) {
@@ -450,6 +497,18 @@ jobs:
           run-id: ${{ steps.ci01_backends.outputs.xenia_run }}
           name: ${{ steps.ci01_backends.outputs.xenia_name }}
           path: work/connected/ci01-native/xenia
+      - name: Issue source-matched Xenia CI-01 receipt from native engineering build
+        if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.xenia_engineering == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=work/connected/ci01-native/xenia
+          verified=work/connected/ci01-native/xenia-with-receipt
+          python3 scripts/ci/ci01_remaining_engines.py --engine xenia \
+            --source "$source" --directory "$verified"
+          mv "$source" work/connected/ci01-native/xenia-native-original
+          mv "$verified" "$source"
+          python3 scripts/ci/ci01_remaining_engines.py --engine xenia --directory "$source"
       - name: Download verified armsx2 native backend
         if: inputs.use_ci01_all_native == true && steps.ci01_backends.outputs.armsx2_run != ''
         uses: actions/download-artifact@v4
