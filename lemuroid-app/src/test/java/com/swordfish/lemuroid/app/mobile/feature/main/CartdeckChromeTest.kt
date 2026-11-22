@@ -68,6 +68,21 @@ class CartdeckChromeTest {
         assertTrue(appearanceRequested == 1)
     }
 
+
+    @Test fun safeSaveUsesItsApprovedBrandInTheSharedHeader() {
+        compose.setContent {
+            CartridgeLibraryTheme {
+                MainTopBar(
+                    currentRoute = MainRoute.SAFESAVE,
+                    navController = rememberNavController(),
+                    onUpdateQueryString = {},
+                    mainUIState = MainViewModel.UiState(),
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("SafeSave").assertExists()
+    }
+
     @Test fun contextualDockClosesWithoutReintroducingLegacyTabs() {
         var arranging by mutableStateOf(true)
         var editToolsCalls = 0
