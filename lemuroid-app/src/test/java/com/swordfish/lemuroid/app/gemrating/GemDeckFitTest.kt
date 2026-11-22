@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,7 +52,7 @@ class GemDeckFitTest {
         assertNull(GemDeckFit.estimate("UNKNOWN-3", "future-system", "Strategy").halfSteps)
         for (system in SystemID.values()) {
             val estimate = GemDeckFit.estimate("TEST:${system.dbname}", system.dbname, null)
-            assertTrue("${system.dbname} must remain in DeckFit bounds", estimate.halfSteps in 2..10)
+            assertTrue("${system.dbname} must remain in DeckFit bounds", requireNotNull(estimate.halfSteps) in 2..10)
             assertEquals(GemDeckFit.Basis.PLATFORM_ONLY, estimate.basis)
         }
     }
