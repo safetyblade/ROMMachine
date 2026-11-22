@@ -312,9 +312,10 @@ private fun GemRecommendationCard(
     onInspectRelease: (String) -> Unit,
 ) {
     val game = recommendation.game
-    val deckFit = remember(game.releaseId, game.platform, game.primaryGenre) {
-        GemDeckFit.estimate(game.releaseId, game.platform, game.primaryGenre, game.title)
-    }
+    val deckFit =
+        remember(game.releaseId, game.platform, game.primaryGenre) {
+            GemDeckFit.estimate(game.releaseId, game.platform, game.primaryGenre, game.title)
+        }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Row(
             Modifier.padding(12.dp),
