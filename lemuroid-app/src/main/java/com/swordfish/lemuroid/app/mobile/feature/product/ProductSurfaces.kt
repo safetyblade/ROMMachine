@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
 import android.content.res.Configuration
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +36,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckCuratedDesigns
@@ -160,11 +158,6 @@ internal fun SafeSaveSurface(
         ) {
             item {
                 Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Image(
-                        painterResource(R.drawable.cartdeck_brand_safesave_lockup),
-                        contentDescription = "SafeSave",
-                        modifier = Modifier.width(168.dp).height(42.dp),
-                    )
                     Text("Save Centre", style = MaterialTheme.typography.headlineSmall)
                     Text(playerName, style = MaterialTheme.typography.labelLarge)
                 }
