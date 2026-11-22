@@ -1,13 +1,13 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
-import java.net.URI
-import java.net.URLDecoder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.URI
+import java.net.URLDecoder
 
 class HomebrewDirectoryTest {
     @Test fun listedSourcesAreHttpsAndRestrictedToReviewedDomains() {
