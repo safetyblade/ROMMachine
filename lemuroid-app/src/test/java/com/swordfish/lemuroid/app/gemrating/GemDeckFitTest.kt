@@ -147,6 +147,8 @@ class GemDeckFitTest {
                 "VDG:wii:row-616",
                 "VDG:wii:row-736",
                 "VDG:wii:row-1253",
+                "VDG:wiiu:row-94",
+                "VDG:wiiu:row-130",
             )
         val catalogue =
             GemProductionCatalogue.load(ApplicationProvider.getApplicationContext<Context>())
