@@ -645,16 +645,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          repo=https://repo.maven.apache.org/maven2/org/robolectric/android-all-instrumented
           while read -r version digest; do
             dir="$HOME/.m2/repository/org/robolectric/android-all-instrumented/$version"
             jar="android-all-instrumented-$version.jar"
             mkdir -p "$dir"
             if [[ ! -s "$dir/$jar" ]] || ! printf '%s  %s\n' "$digest" "$dir/$jar" | sha512sum --check --status; then
-              curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 8 --retry-max-time 240 \
-                "$repo/$version/$jar" --output "$dir/$jar.tmp"
-              printf '%s  %s\n' "$digest" "$dir/$jar.tmp" | sha512sum --check
-              mv "$dir/$jar.tmp" "$dir/$jar"
+              verified=false
+              for base in https://maven-central.storage-download.googleapis.com/maven2 https://repo.maven.apache.org/maven2; do
+                url="$base/org/robolectric/android-all-instrumented/$version/$jar"
+                if curl --fail --silent --show-error --retry 3 --retry-delay 8 --max-time 180 \
+                    "$url" --output "$dir/$jar.tmp" &&
+                    printf '%s  %s\n' "$digest" "$dir/$jar.tmp" | sha512sum --check; then
+                  mv "$dir/$jar.tmp" "$dir/$jar"
+                  verified=true
+                  break
+                fi
+              done
+              if [[ "$verified" != true ]]; then
+                echo "::error::Unable to fetch a checksum-verified Robolectric SDK $version"
+                exit 1
+              fi
             fi
           done <<'SDKS'
           9-robolectric-4913185-2-i7 24687b9ea919eb20f5e27e47274f2aa711e98eb332d4769d34044a3b4952a71393831d0a3f61ba726dc8fe220673a76138c11a0716f304999e5b029146fe88eb
