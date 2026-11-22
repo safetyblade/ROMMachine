@@ -127,9 +127,9 @@ object GemDeckFit {
             "VDG:gba:90" to 7,
             "VDG:snes:9" to 6,
             "VDG:ps:415" to 7,
-            "VDG:xb:522" to 4,
+            "VDG:xb:row-522" to 4,
             "VDG:n64:202" to 5,
-            "VDG:xb:85" to 5,
+            "VDG:xb:row-85" to 5,
             "VDG:gb:26" to 9,
             "VDG:gb:27" to 9,
             "VDG:gb:5" to 9,
@@ -191,15 +191,15 @@ object GemDeckFit {
             "VDG:gc:308" to 5,
             "VDG:gc:149" to 4,
             "VDG:gc:52" to 4,
-            "VDG:wii:784" to 5,
-            "VDG:wii:864" to 6,
-            "VDG:xb:519" to 4,
-            "VDG:xb:452" to 6,
-            "VDG:xb:79" to 3,
-            "VDG:xb:455" to 7,
-            "VDG:xb:572" to 4,
-            "VDG:xb:336" to 5,
-            "VDG:xb:210" to 5,
+            "VDG:wii:row-784" to 5,
+            "VDG:wii:row-864" to 6,
+            "VDG:xb:row-519" to 4,
+            "VDG:xb:row-452" to 6,
+            "VDG:xb:row-79" to 3,
+            "VDG:xb:row-455" to 7,
+            "VDG:xb:row-572" to 4,
+            "VDG:xb:row-336" to 5,
+            "VDG:xb:row-210" to 5,
         )
 
     /** Research records with nonstandard input controls; do not score these as ordinary games. */
@@ -213,8 +213,10 @@ object GemDeckFit {
             "VDG:ds:698",
             "VDG:ds:1583",
             "VDG:3ds:15", // Beyblade Evolution: native 3DS motion path awaiting physical verification
-            "VDG:wii:1252",
-            "VDG:wii:616",
+            "VDG:wii:row-1252",
+            "VDG:wii:row-616",
+            "VDG:wii:row-736", // WarioWare: Smooth Moves requires distinct Wii Remote motion poses
+            "VDG:wii:row-1253", // Wii Sports Resort needs verified MotionPlus-equivalent guest motion
         )
 
     fun estimate(release: GemCataloguePackage.Release): Estimate =
