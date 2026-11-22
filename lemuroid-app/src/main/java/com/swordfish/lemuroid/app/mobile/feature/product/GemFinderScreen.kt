@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemDiscovery
+import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
 import com.swordfish.lemuroid.app.gemrating.GemDiscoveryPreferences
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
@@ -97,7 +98,19 @@ internal fun GemFinderScreen(
                     val ids = (games.map { it.cartridgeId } + records.map { it.cartridgeId }).distinct()
                     val links = ids.mapNotNull { id -> corrections.read(id)?.let { id to it } }.toMap()
                     val shelf = games.map { GemDiscovery.ShelfEntry(it.cartridgeId, it.systemId, it.title) }
-                    val prepared = GemDiscovery.prepare(catalogue.manifest.releases, records, links, shelf)
+                    // Small source-owned gameplay feature pack; no catalogue/Room migration.
+                    val contributions =
+                        context.assets.open("gem/features/v1.json").use {
+                            GemFeatureContributions.load(it, catalogue.manifest.releases)
+                        }
+                    val prepared =
+                        GemDiscovery.prepare(
+                            catalogue.manifest.releases,
+                            records,
+                            links,
+                            shelf,
+                            contributions.accepted,
+                        )
                     val installed =
                         games.mapNotNull { game ->
                             links[game.cartridgeId]?.takeIf {
