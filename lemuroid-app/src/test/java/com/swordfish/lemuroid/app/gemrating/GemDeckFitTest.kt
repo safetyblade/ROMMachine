@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.library.SystemID
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,7 +36,7 @@ class GemDeckFitTest {
     fun `special-input holds cannot be presented as ordinary genre estimates`() {
         val tilt = GemDeckFit.estimate("VDG:gb:40", "gb", "Puzzle")
         assertEquals(GemDeckFit.Basis.INPUT_REVIEW, tilt.basis)
-        assertEquals(4, tilt.halfSteps)
+        assertNull(tilt.halfSteps)
         assertTrue(tilt.evidenceText.contains("Special input"))
     }
 
@@ -48,10 +50,7 @@ class GemDeckFitTest {
             GemDeckFit.Basis.PLATFORM_ONLY,
             GemDeckFit.estimate("UNKNOWN-2", "gba", "Action").basis,
         )
-        assertEquals(
-            2,
-            GemDeckFit.estimate("UNKNOWN-3", "future-system", "Strategy").halfSteps,
-        )
+        assertNull(GemDeckFit.estimate("UNKNOWN-3", "future-system", "Strategy").halfSteps)
         for (system in SystemID.values()) {
             val estimate = GemDeckFit.estimate("TEST:${system.dbname}", system.dbname, null)
             assertTrue("${system.dbname} must remain in DeckFit bounds", estimate.halfSteps in 2..10)
@@ -66,8 +65,14 @@ class GemDeckFitTest {
         assertEquals(GemProductionCatalogue.RELEASE_COUNT, catalogue.size)
         for (release in catalogue) {
             val estimate = GemDeckFit.estimate(release)
-            assertTrue("${release.releaseId} missing valid DeckFit", estimate.halfSteps in 2..10)
-            assertTrue(estimate.displayText.contains("Provisional"))
+            if (estimate.basis == GemDeckFit.Basis.INPUT_REVIEW) {
+                assertNull(estimate.halfSteps)
+                assertTrue(estimate.displayText.contains("Input review"))
+            } else {
+                val score = requireNotNull(estimate.halfSteps)
+                assertTrue("${release.releaseId} missing valid DeckFit", score in 2..10)
+                assertTrue(estimate.displayText.contains("Provisional"))
+            }
             assertTrue(estimate.evidenceText.contains("not device-tested"))
         }
     }
