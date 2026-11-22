@@ -444,6 +444,13 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             },
                         )
                     }
+                    composable(MainRoute.SAFESAVE) {
+                        com.swordfish.lemuroid.app.mobile.feature.product.SafeSaveScreen(
+                            games = retrogradeDb.gameDao().selectShelfGames().collectAsState(emptyList()).value,
+                            binding = cartridgeSaveBinding,
+                            modifier = Modifier.padding(padding),
+                        )
+                    }
                     composable(MainRoute.CARTMOD) {
                         com.swordfish.lemuroid.app.mobile.feature.cartmod.CartmodScreen(
                             modifier = Modifier.padding(padding),

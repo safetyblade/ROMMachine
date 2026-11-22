@@ -1,0 +1,524 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "releaseId": "VDG:3ds:325",
+      "title": "Puyo Puyo Tetris",
+      "primaryGenre": "Puzzle",
+      "crossoverGenre": null,
+      "playstyle": "Fixed-screen",
+      "mechanics": [
+        "Falling blocks",
+        "Score attack"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:3ds:337",
+      "title": "Mario Kart 7",
+      "primaryGenre": "Racing",
+      "crossoverGenre": "Kart racing",
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Items",
+        "Lap racing"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:3ds:365",
+      "title": "Fire Emblem: Awakening",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Unit progression"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:3ds:489",
+      "title": "Culdcept Revolt",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Card game",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Deckbuilding",
+        "Resource management"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:1295",
+      "title": "Tetris DS",
+      "primaryGenre": "Puzzle",
+      "crossoverGenre": null,
+      "playstyle": "Fixed-screen",
+      "mechanics": [
+        "Falling blocks",
+        "Score attack"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:1362",
+      "title": "Mario Kart DS",
+      "primaryGenre": "Racing",
+      "crossoverGenre": "Kart racing",
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Items",
+        "Lap racing"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:1434",
+      "title": "Dragon Quest Monsters: Joker",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": null,
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Collecting",
+        "Team building"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:1435",
+      "title": "Dragon Quest Monsters: Joker 2",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": null,
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Collecting",
+        "Team building"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:1457",
+      "title": "Fire Emblem: Shadow Dragon",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Unit progression"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:2056",
+      "title": "Advance Wars: Dual Strike",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Resource management"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:2065",
+      "title": "Culdcept DS",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Card game",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Deckbuilding",
+        "Resource management"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ds:85",
+      "title": "GoldenEye 007 (2010)",
+      "primaryGenre": "Action",
+      "crossoverGenre": null,
+      "playstyle": "First-person",
+      "mechanics": [
+        "Campaign",
+        "First-person combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gb:46",
+      "title": "Tetris",
+      "primaryGenre": "Puzzle",
+      "crossoverGenre": null,
+      "playstyle": "Fixed-screen",
+      "mechanics": [
+        "Falling blocks",
+        "Score attack"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gb:94",
+      "title": "Pokémon Trading Card Game",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Card game",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Deckbuilding",
+        "Card combat",
+        "Collecting"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:527",
+      "title": "F-Zero: GP Legend",
+      "primaryGenre": "Racing",
+      "crossoverGenre": null,
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Lap racing",
+        "High speed"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:528",
+      "title": "F-Zero: Maximum Velocity",
+      "primaryGenre": "Racing",
+      "crossoverGenre": null,
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Lap racing",
+        "High speed"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:544",
+      "title": "Mario Kart: Super Circuit",
+      "primaryGenre": "Racing",
+      "crossoverGenre": "Kart racing",
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Items",
+        "Lap racing"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:794",
+      "title": "Advance Wars",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Resource management"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:795",
+      "title": "Advance Wars 2: Black Hole Rising",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Resource management"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:798",
+      "title": "Fire Emblem",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Unit progression"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:gba:799",
+      "title": "Fire Emblem: The Sacred Stones",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat",
+        "Unit progression"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:n64:144",
+      "title": "F-Zero X",
+      "primaryGenre": "Racing",
+      "crossoverGenre": null,
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Lap racing",
+        "High speed"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:n64:153",
+      "title": "Mario Kart 64",
+      "primaryGenre": "Racing",
+      "crossoverGenre": "Kart racing",
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Items",
+        "Lap racing"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:n64:193",
+      "title": "Paper Mario",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": null,
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Timing",
+        "Unit progression"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:n64:202",
+      "title": "GoldenEye 007",
+      "primaryGenre": "Shooter",
+      "crossoverGenre": null,
+      "playstyle": "First-person",
+      "mechanics": [
+        "Campaign",
+        "First-person combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ps2:1269",
+      "title": "Disgaea 2: Cursed Memories",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "2D tactical",
+        "Grid combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:ps2:1270",
+      "title": "Disgaea: Hour of Darkness",
+      "primaryGenre": "Role-Playing",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "2D tactical",
+        "Grid combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:wiiu:row-113",
+      "title": "Mario Kart 8",
+      "primaryGenre": "Racing",
+      "crossoverGenre": "Kart racing",
+      "playstyle": "Arcade-style",
+      "mechanics": [
+        "Items",
+        "Lap racing"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:xb:row-522",
+      "title": "Halo: Combat Evolved",
+      "primaryGenre": "Shooter",
+      "crossoverGenre": null,
+      "playstyle": "First-person",
+      "mechanics": [
+        "Campaign",
+        "First-person combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:xb:row-85",
+      "title": "Phantom Dust",
+      "primaryGenre": "Action",
+      "crossoverGenre": "Card game",
+      "playstyle": "Real-time",
+      "mechanics": [
+        "Deckbuilding",
+        "Arena combat"
+      ],
+      "sourceId": "cartdeck-curated",
+      "sourceRecord": "GemGameplayFeatures.kt",
+      "sourceRevision": "2026-11-22",
+      "evidence": "Existing exact-ID editorial seed; provisional; no device proof"
+    },
+    {
+      "releaseId": "VDG:3ds:364",
+      "title": "Fire Emblem Fates",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat"
+      ],
+      "sourceRecord": "https://www.nintendo.com/en-gb/Games/Nintendo-3DS-games/Fire-Emblem-Fates-1026071.html",
+      "sourceId": "nintendo-published-description",
+      "sourceRevision": "reviewed-2026-11-22",
+      "evidence": "Publisher gameplay description; editorial metadata, not Android runtime evidence",
+      "primaryGenre": "Role-Playing"
+    },
+    {
+      "releaseId": "VDG:gc:19",
+      "title": "Fire Emblem: Path of Radiance",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat"
+      ],
+      "sourceRecord": "https://www.nintendo.com/en-za/Games/Nintendo-GameCube/Fire-Emblem-Path-of-Radiance-268082.html",
+      "sourceId": "nintendo-published-description",
+      "sourceRevision": "reviewed-2026-11-22",
+      "evidence": "Publisher gameplay description; editorial metadata, not Android runtime evidence"
+    },
+    {
+      "releaseId": "VDG:gc:354",
+      "title": "Paper Mario: The Thousand-Year Door",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Timing"
+      ],
+      "sourceRecord": "https://www.nintendo.com/en-gb/News/2007/Interview-Super-Paper-Mario-249673.html",
+      "sourceId": "nintendo-published-description",
+      "sourceRevision": "reviewed-2026-11-22",
+      "evidence": "Publisher gameplay description; editorial metadata, not Android runtime evidence",
+      "primaryGenre": "Role-Playing"
+    },
+    {
+      "releaseId": "VDG:wii:row-1272",
+      "title": "Fire Emblem: Radiant Dawn",
+      "primaryGenre": "Strategy",
+      "crossoverGenre": "Tactics",
+      "playstyle": "Turn-based",
+      "mechanics": [
+        "Grid combat"
+      ],
+      "sourceRecord": "https://www.nintendo.com/en-gb/News/2008/Fire-Emblem-Radiant-Dawn-comes-to-Wii--250370.html",
+      "sourceId": "nintendo-published-description",
+      "sourceRevision": "reviewed-2026-11-22",
+      "evidence": "Publisher gameplay description; editorial metadata, not Android runtime evidence"
+    },
+    {
+      "releaseId": "VDG:wii:row-673",
+      "title": "Super Paper Mario",
+      "playstyle": "Real-time",
+      "mechanics": [
+        "Platforming"
+      ],
+      "sourceRecord": "https://www.nintendo.com/en-gb/News/2007/Interview-Super-Paper-Mario-249673.html",
+      "sourceId": "nintendo-published-description",
+      "sourceRevision": "reviewed-2026-11-22",
+      "evidence": "Publisher gameplay description; editorial metadata, not Android runtime evidence",
+      "primaryGenre": "Platform"
+    }
+  ]
+}

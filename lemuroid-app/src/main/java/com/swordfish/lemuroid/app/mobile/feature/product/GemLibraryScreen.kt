@@ -37,6 +37,7 @@ import com.swordfish.lemuroid.app.gemrating.GemCatalogueIndex
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemDeckFit
+import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
@@ -149,6 +150,18 @@ internal fun GemLibraryScreen(
     }
 
     val current = catalogue
+    var contributions by remember(current) { mutableStateOf(emptyMap<String, GemFeatureContributions.Record>()) }
+    LaunchedEffect(current) {
+        val releases = current?.manifest?.releases ?: return@LaunchedEffect
+        contributions =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    context.assets.open("gem/features/v1.json").use {
+                        GemFeatureContributions.load(it, releases).accepted
+                    }
+                }.getOrDefault(emptyMap())
+            }
+    }
     val selected = games.firstOrNull { it.cartridgeId == selectedId }
     val savedId = remember(selected, revision) { selected?.let { corrections.read(it) } }
     val custom = remember(selected, revision) { selected?.let { corrections.custom(it) } }
@@ -184,7 +197,9 @@ internal fun GemLibraryScreen(
         mutableStateOf<List<GemCataloguePackage.Release>>(emptyList())
     }
     var searching by remember(current, query, selected, candidateIds, savedId) { mutableStateOf(true) }
-    LaunchedEffect(current, query, selected, candidateIds, savedId, platformFilter, genreFilter, pageLimit) {
+    LaunchedEffect(
+        current, query, selected, candidateIds, savedId, platformFilter, genreFilter, pageLimit, contributions,
+    ) {
         val term = query.trim()
         if (term.isNotEmpty()) delay(120)
         results =
@@ -203,13 +218,15 @@ internal fun GemLibraryScreen(
                         if (term.isEmpty()) {
                             selected == null || it.releaseId in candidateIds || it.releaseId == savedId
                         } else {
+                            val tags =
+                                contributions[it.releaseId]?.mechanics
+                                    ?: GemGameplayFeatures.find(it.releaseId, it.title)?.mechanics.orEmpty()
                             it.title.contains(term, ignoreCase = true) ||
                                 (
                                     selected == null &&
                                         (
                                             it.releaseId.equals(term, ignoreCase = true) ||
-                                                GemGameplayFeatures.find(it.releaseId, it.title)?.mechanics.orEmpty()
-                                                    .any { mechanic -> mechanic.contains(term, ignoreCase = true) }
+                                                tags.any { mechanic -> mechanic.contains(term, ignoreCase = true) }
                                         )
                                 )
                         }
@@ -412,7 +429,11 @@ internal fun GemLibraryScreen(
                             }
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
-                                GemIntelligenceRecord(inspected, sources[inspected.sourceId])
+                                GemIntelligenceRecord(
+                                    inspected,
+                                    sources[inspected.sourceId],
+                                    contributions[inspected.releaseId],
+                                )
                                 val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 val libraryStatus = if (installed.isEmpty()) "No linked cartridge" else "Installed"
                                 Text(libraryStatus)
@@ -469,7 +490,11 @@ internal fun GemLibraryScreen(
                             }
                             items(results.take(pageLimit), key = { it.releaseId }) { release ->
                                 Column(Modifier.fillMaxWidth().padding(4.dp)) {
-                                    GemIntelligenceRecord(release, sources[release.sourceId])
+                                    GemIntelligenceRecord(
+                                        release,
+                                        sources[release.sourceId],
+                                        contributions[release.releaseId],
+                                    )
                                     if (selected != null) {
                                         TextButton(
                                             onClick = { pending = release },
@@ -561,27 +586,34 @@ internal fun GemLibraryScreen(
 private fun GemIntelligenceRecord(
     release: GemCataloguePackage.Release,
     source: GemCataloguePackage.Source?,
+    contribution: GemFeatureContributions.Record?,
 ) {
-    val feature = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
-    val deckFit = remember(release) { GemDeckFit.estimate(release) }
+    val fallback = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
+    val genre = contribution?.primaryGenre ?: release.primaryGenre
+    val crossover = contribution?.crossoverGenre ?: fallback?.crossover
+    val playstyle = contribution?.playstyle ?: fallback?.playstyle
+    val mechanics = contribution?.mechanics ?: fallback?.mechanics.orEmpty()
+    val deckFit =
+        remember(release, genre) {
+            GemDeckFit.estimate(release.releaseId, release.systemId, genre, release.title)
+        }
     var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(release.title, style = MaterialTheme.typography.titleMedium)
-                Text(cartridgeSystemLabel(release.systemId) + " · " + (release.primaryGenre ?: "Genre unknown"))
-                feature?.let {
-                    Text(listOfNotNull(it.crossover, it.playstyle).joinToString(" · "))
-                    if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
-                    Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
-                }
+                Text(cartridgeSystemLabel(release.systemId) + " · " + (genre ?: "Genre unknown"))
+                val traits = listOfNotNull(crossover, playstyle)
+                if (traits.isNotEmpty()) Text(traits.joinToString(" · "))
+                if (mechanics.isNotEmpty()) Text(mechanics.sorted().joinToString(" · "))
                 Text(deckFit.displayText, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
                 if (details) {
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+                    contribution?.evidence?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     Text(deckFit.evidenceText, style = MaterialTheme.typography.bodySmall)
                     Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
                 }

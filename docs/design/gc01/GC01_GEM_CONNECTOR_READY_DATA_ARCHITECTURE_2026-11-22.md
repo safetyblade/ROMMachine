@@ -1,3 +1,5 @@
+> **LATEST OWNER REFINEMENT — 22 NOV 2026:** Read [GC01_INPUT_MOTION_GEM_JUNIOR_OWNER_LOCK_2026-11-22.md](GC01_INPUT_MOTION_GEM_JUNIOR_OWNER_LOCK_2026-11-22.md). Owner **approves** provider-neutral connector-ready design and scalable indexed offline storage. Historic game releases form a finite catalogue, though under-covered releases and metadata facets can be enriched. Allow ordinary users to edit personal metadata without a heavy approval workflow. Legal redistribution of *bundled* outside data still requires validation; preservation of ROM UUID, SaveBinding and player GemRating is non-negotiable. Pending-decision language about GEM-C01/C03 below is historical.
+
 # CARTDECK GEM — Connector-ready, offline-first data and recommendation architecture
 **Owner directive 22 Nov 2026. Status:** design/architecture guidance on draft GC PR #362, not implementation or release. Original GC-01 A–H #262 and source checks remain required.
 

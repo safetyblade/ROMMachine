@@ -43,6 +43,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.saves.SavesManager
 import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
+import com.swordfish.lemuroid.lib.saves.safesave.SaveStorageLease
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import dagger.Lazy
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -96,6 +97,17 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setUpExceptionsHandler()
+        if (!runCatching { SaveStorageLease.enterGameProcess(applicationContext) }.getOrDefault(false)) {
+            setResult(
+                RESULT_ERROR,
+                Intent().putExtra(
+                    PLAY_GAME_RESULT_ERROR,
+                    "Save storage is busy. Try again when the operation finishes.",
+                ),
+            )
+            finish()
+            return
+        }
         GameService.startService(applicationContext, intent)
         game = intent.getSerializableExtra(EXTRA_GAME) as Game
         systemCoreConfig = intent.getSerializableExtra(EXTRA_SYSTEM_CORE_CONFIG) as SystemCoreConfig
@@ -346,7 +358,11 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onGenericMotionEvent(event)
+        if (!::baseGameScreenViewModel.isInitialized || baseGameScreenViewModel.isPreparingLaunch()) {
+            return super.onGenericMotionEvent(
+                event,
+            )
+        }
         val handled = baseGameScreenViewModel.sendMotionEvent(event)
         if (handled) {
             return true
@@ -358,7 +374,12 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
-        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onKeyDown(keyCode, event)
+        if (!::baseGameScreenViewModel.isInitialized || baseGameScreenViewModel.isPreparingLaunch()) {
+            return super.onKeyDown(
+                keyCode,
+                event,
+            )
+        }
         val handled = baseGameScreenViewModel.sendKeyEvent(keyCode, event)
         if (handled) {
             return true
@@ -370,7 +391,12 @@ abstract class BaseGameActivity : ImmersiveActivity() {
         keyCode: Int,
         event: KeyEvent,
     ): Boolean {
-        if (baseGameScreenViewModel.isPreparingLaunch()) return super.onKeyUp(keyCode, event)
+        if (!::baseGameScreenViewModel.isInitialized || baseGameScreenViewModel.isPreparingLaunch()) {
+            return super.onKeyUp(
+                keyCode,
+                event,
+            )
+        }
         val handled = baseGameScreenViewModel.sendKeyEvent(keyCode, event)
         if (handled) {
             return true
@@ -453,7 +479,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     override fun onStop() {
-        if (!finishTriggered && !isFinishing && !isChangingConfigurations) {
+        if (::baseGameScreenViewModel.isInitialized && !finishTriggered && !isFinishing && !isChangingConfigurations) {
             baseGameScreenViewModel.requestBackgroundSave()
         }
         super.onStop()

@@ -25,6 +25,21 @@ class ControllerMappingDraft(initial: Map<Int, Int>) {
         return true
     }
 
+    /** Preview a reciprocal move using physical input order. Only confirmation changes the draft. */
+    fun requestSwap(
+        first: Int,
+        second: Int,
+    ): Boolean {
+        val action = bindings[first] ?: return false
+        if (first == second || bindings[second] == action) return false
+        conflict = second to action
+        return true
+    }
+
+    fun cancelConflict() {
+        conflict = null
+    }
+
     /** Explicit conflict correction swaps the displaced target rather than silently losing it. */
     fun resolveConflict() {
         val (source, target) = conflict ?: return

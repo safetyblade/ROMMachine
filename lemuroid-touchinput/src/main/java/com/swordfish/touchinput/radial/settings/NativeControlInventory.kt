@@ -51,10 +51,16 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
     companion object {
         fun forController(id: TouchControllerID): NativeControlInventory? {
             val sony = id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP)
-            val twoFace = id in setOf(TouchControllerID.GB, TouchControllerID.GBA)
+            val twoFace =
+                id in
+                    setOf(
+                        TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG,
+                        TouchControllerID.LYNX, TouchControllerID.NGP,
+                    )
             val supported =
                 setOf(
-                    TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.SNES, TouchControllerID.PSX,
+                    TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG, TouchControllerID.LYNX,
+                    TouchControllerID.NGP, TouchControllerID.SNES, TouchControllerID.PSX,
                     TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP,
                     TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
                     TouchControllerID.XBOX, TouchControllerID.XBOX360,
@@ -118,7 +124,14 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     NativeControlSpec(
                         key, if (twoFace) "face-ab" else "face-abxy", NativeControlKind.FACE,
                         keyCode = (if (id == TouchControllerID.DREAMCAST) dc else code).getValue(key),
-                        icon = if (sony) icons[key] else null, faceX = offset.first, faceY = offset.second,
+                        icon = if (sony) icons[key] else null,
+                        label =
+                            when (id) {
+                                TouchControllerID.GG -> if (key == "A") "2" else "1"
+                                TouchControllerID.NGP -> if (key == "A") "B" else "A"
+                                else -> key
+                            },
+                        faceX = offset.first, faceY = offset.second,
                     )
             }
 
@@ -142,7 +155,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                         roundButton = key == "Z",
                     )
             }
-            if (id != TouchControllerID.GB) {
+            if (id !in setOf(TouchControllerID.GB, TouchControllerID.GG, TouchControllerID.NGP)) {
                 val dcTriggers = id == TouchControllerID.DREAMCAST
                 val numbered = id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK)
                 button(
@@ -157,6 +170,8 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     if (dcTriggers) KeyEvent.KEYCODE_BUTTON_L2 else KeyEvent.KEYCODE_BUTTON_L1,
                     if (numbered) {
                         "L1"
+                    } else if (id == TouchControllerID.LYNX) {
+                        "Option 1"
                     } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
                         if (id == TouchControllerID.XBOX360) "LB" else "White"
                     } else {
@@ -176,6 +191,8 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     if (dcTriggers) KeyEvent.KEYCODE_BUTTON_R2 else KeyEvent.KEYCODE_BUTTON_R1,
                     if (numbered) {
                         "R1"
+                    } else if (id == TouchControllerID.LYNX) {
+                        "Option 2"
                     } else if (id in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)) {
                         if (id == TouchControllerID.XBOX360) "RB" else "Black"
                     } else {
@@ -204,7 +221,12 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                 )
             }
             if (id == TouchControllerID.GAMECUBE) button("Z", "aux-Z", KeyEvent.KEYCODE_BUTTON_R2)
-            if (id !in setOf(TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST)) {
+            if (id !in
+                setOf(
+                    TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
+                    TouchControllerID.GG, TouchControllerID.LYNX, TouchControllerID.NGP,
+                )
+            ) {
                 button(
                     "Select",
                     "select",
@@ -222,7 +244,13 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     true,
                 )
             }
-            button("Start", "start", KeyEvent.KEYCODE_BUTTON_START, icon = NativeControlIcon.START)
+            button(
+                "Start",
+                "start",
+                KeyEvent.KEYCODE_BUTTON_START,
+                label = if (id == TouchControllerID.LYNX) "Pause" else "Start",
+                icon = NativeControlIcon.START,
+            )
             button("Menu", "menu", KeyEvent.KEYCODE_BUTTON_MODE, icon = NativeControlIcon.MENU)
             if (id in
                 setOf(

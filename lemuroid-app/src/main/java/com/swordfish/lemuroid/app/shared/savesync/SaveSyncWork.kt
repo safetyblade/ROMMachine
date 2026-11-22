@@ -19,6 +19,8 @@ import com.swordfish.lemuroid.app.utils.android.createSyncForegroundInfo
 import com.swordfish.lemuroid.lib.injection.AndroidWorkerInjection
 import com.swordfish.lemuroid.lib.injection.WorkerKey
 import com.swordfish.lemuroid.lib.library.findByName
+import com.swordfish.lemuroid.lib.saves.safesave.BoundSaveRestore
+import com.swordfish.lemuroid.lib.saves.safesave.SaveStorageLease
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import dagger.Binds
 import dagger.android.AndroidInjector
@@ -44,6 +46,16 @@ class SaveSyncWork(context: Context, workerParams: WorkerParameters) :
             return Result.success()
         }
 
+        val lease = SaveStorageLease.acquire(applicationContext) ?: return Result.retry()
+        lease.use {
+            if (BoundSaveRestore.recoveryPending(applicationContext)) return Result.retry()
+            syncSaves()
+        }
+
+        return Result.success()
+    }
+
+    private suspend fun syncSaves() {
         displayNotification()
 
         val coresToSync =
@@ -56,8 +68,6 @@ class SaveSyncWork(context: Context, workerParams: WorkerParameters) :
         } catch (e: Throwable) {
             Timber.e(e, "Error in saves sync")
         }
-
-        return Result.success()
     }
 
     private suspend fun shouldPerformSaveSync(): Boolean {

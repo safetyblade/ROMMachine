@@ -20,6 +20,22 @@ class ControllerMappingDraftTest {
         assertFalse(draft.dirty)
     }
 
+    @Test fun twoPhysicalPressesPreserveBothActionsUntilConfirmed() {
+        val original = mapOf(105 to 96, 99 to 97)
+        val draft = ControllerMappingDraft(original)
+        assertFalse(draft.requestSwap(105, 105))
+        assertTrue(draft.requestSwap(105, 99))
+        assertEquals(original, draft.bindings)
+        draft.cancelConflict()
+        draft.resolveConflict()
+        assertEquals(original, draft.bindings)
+        assertTrue(draft.requestSwap(105, 99))
+        draft.resolveConflict()
+        assertEquals(mapOf(105 to 97, 99 to 96), draft.bindings)
+        draft.undo()
+        assertEquals(original, draft.bindings)
+    }
+
     @Test fun undoResetAndSaveFormSingleDeviceTransaction() {
         val draft = ControllerMappingDraft(mapOf(96 to 96))
         assertTrue(draft.assign(100, 99))

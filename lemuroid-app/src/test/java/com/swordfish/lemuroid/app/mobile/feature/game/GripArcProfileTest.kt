@@ -38,6 +38,42 @@ class GripArcProfileTest {
         }
     }
 
+    @Test fun newlyMappedHandheldCataloguesUseTheActualPadKitKeysAndLabels() {
+        val gg = GripArcInputCatalog.forSystem(SystemID.GG)
+        assertEquals(listOf("2", "1", "Start"), gg.map { it.label })
+        assertEquals(listOf(a, b, KeyEvent.KEYCODE_BUTTON_START), gg.map { it.code })
+
+        val lynx = GripArcInputCatalog.forSystem(SystemID.LYNX)
+        assertEquals(listOf("A", "B", "Option 1", "Option 2", "Pause"), lynx.map { it.label })
+        assertEquals(
+            listOf(a, b, l, r, KeyEvent.KEYCODE_BUTTON_START),
+            lynx.map { it.code },
+        )
+
+        val ngp = GripArcInputCatalog.forSystem(SystemID.NGP)
+        assertEquals(listOf("B", "A", "Start"), ngp.map { it.label })
+        assertEquals(listOf(a, b, KeyEvent.KEYCODE_BUTTON_START), ngp.map { it.code })
+        // NGC is Neo Geo Pocket Color, not the GAMECUBE console.
+        assertEquals(ngp, GripArcInputCatalog.forSystem(SystemID.NGC))
+
+        val threeDs = GripArcInputCatalog.forSystem(SystemID.NINTENDO_3DS)
+        assertEquals(
+            listOf(
+                a,
+                b,
+                KeyEvent.KEYCODE_BUTTON_X,
+                KeyEvent.KEYCODE_BUTTON_Y,
+                l,
+                r,
+                KeyEvent.KEYCODE_BUTTON_START,
+                KeyEvent.KEYCODE_BUTTON_SELECT,
+            ),
+            threeDs.map { it.code },
+        )
+        // Listing a control for mapping does not assert that the native 3DS
+        // composite layout or guest sensor bridge is implemented.
+    }
+
     @Test fun allFourMappingsSurviveCountReductionAndReEnable() {
         val original =
             GripArcProfile(

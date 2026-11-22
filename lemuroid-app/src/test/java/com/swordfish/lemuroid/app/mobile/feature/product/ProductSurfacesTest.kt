@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
@@ -18,6 +19,27 @@ import org.robolectric.annotation.Config
 @Config(sdk = [28], application = Application::class)
 class ProductSurfacesTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun saveCentreShowsApprovedBrandAndExposesRestoreWithAnEmptyInventory() {
+        var restores = 0
+        compose.setContent {
+            CartridgeLibraryTheme {
+                SafeSaveSurface(
+                    playerName = "Manager",
+                    inventory = emptyList(),
+                    onBackUp = null,
+                    onRestore = { restores++ },
+                    availableActions = emptyList(),
+                    onDetails = {},
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("SafeSave").assertExists()
+        compose.onNodeWithText("Save Centre").assertExists()
+        compose.onNodeWithText("Back Up Everything").assertIsNotEnabled()
+        compose.onNodeWithText("Restore Backup").performClick()
+        assertEquals(1, restores)
+    }
 
     @Test fun juniorEmptyStateOffersOnlyParentRequest() {
         var requests = 0

@@ -636,6 +636,34 @@ jobs:
             --native-bridge work/connected/ps3-bridge/libcartdeck_ps3.so \
             --libretro-host work/connected/ps3-vulkan/libcartdeckps3vulkanhost.so --ndk "$ndk"
           echo 'CARTDECK_APK_MAX_MIB=512' >> "$GITHUB_ENV"
+      - name: Cache Robolectric SDK jars
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: cartdeck-robolectric-4.14.1-sdk-28-34-35-v1
+      - name: Verify and prefetch the test SDK jars
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo=https://repo.maven.apache.org/maven2/org/robolectric/android-all-instrumented
+          for version in 9-robolectric-4913185-2-i7 14-robolectric-10818077-i7 15-robolectric-12650502-i7; do
+            dir="$HOME/.m2/repository/org/robolectric/android-all-instrumented/$version"
+            jar="android-all-instrumented-$version.jar"
+            mkdir -p "$dir"
+            if [[ ! -s "$dir/$jar.sha512" ]]; then
+              curl --fail --silent --show-error --retry 7 --retry-max-time 240 \
+                "$repo/$version/$jar.sha512" --output "$dir/$jar.sha512.tmp"
+              mv "$dir/$jar.sha512.tmp" "$dir/$jar.sha512"
+            fi
+            digest=$(tr -d '[:space:]' < "$dir/$jar.sha512")
+            [[ "$digest" =~ ^[[:xdigit:]]{128}$ ]]
+            if ! printf '%s  %s\n' "$digest" "$dir/$jar" | sha512sum --check --status; then
+              curl --fail --silent --show-error --retry 7 --retry-max-time 240 \
+                "$repo/$version/$jar" --output "$dir/$jar.tmp"
+              printf '%s  %s\n' "$digest" "$dir/$jar.tmp" | sha512sum --check
+              mv "$dir/$jar.tmp" "$dir/$jar"
+            fi
+          done
       - name: Compile the connected application, mandatory checks and upgrade APK
         shell: bash
         run: |

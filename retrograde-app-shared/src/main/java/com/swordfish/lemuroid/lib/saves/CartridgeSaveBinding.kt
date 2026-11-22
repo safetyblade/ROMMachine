@@ -1,8 +1,11 @@
 package com.swordfish.lemuroid.lib.saves
 
 import android.util.AtomicFile
+import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.db.entity.RetiredCartridge
+import com.swordfish.lemuroid.lib.saves.safesave.CartSaveArchive
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -206,6 +209,108 @@ class CartridgeSaveBinding(
             File(root, "cartridges/${id(game)}/${key(namespace)}"),
             false,
         )
+    }
+
+    data class BoundSaveFile(
+        val file: File,
+        val kind: CartSaveArchive.Kind,
+        val logicalName: String,
+        val slot: String? = null,
+    )
+
+    data class BoundSaveGroup(
+        val engineId: String,
+        val stateVersion: Int?,
+        val files: List<BoundSaveFile>,
+    )
+
+    /** Read the existing authority markers without activating a legacy migration. */
+    fun inspectBoundSaves(
+        game: Game,
+        configurations: List<SystemCoreConfig>,
+        includeMissing: Boolean = false,
+    ): List<BoundSaveGroup> {
+        val cartridge = id(game)
+        val name = game.saveFileName()
+        require(name.isNotBlank() && name.none { it in "/\\:" || it.isISOControl() })
+        val groups = mutableListOf<BoundSaveGroup>()
+        val scopes = configurations.map { SavesManager.saveRamScope(it.coreID) }.toSet() + "shared"
+        for (scope in scopes) {
+            val directory =
+                boundDirectory(
+                    cartridge, "sram", scope, directories.getSavesDirectory(), "sram/${key(scope)}",
+                ) ?: continue
+            val raw = boundFile(directory, "${name.substringBeforeLast('.')}.srm", includeMissing) ?: continue
+            val isPs1 = game.systemId == SystemID.PSX.dbname
+            if (isPs1 && raw.exists()) {
+                if (raw.length() != PlayStationMemoryCard.SIZE.toLong()) continue
+                if (!PlayStationMemoryCard.isRawCard(raw.readBytes())) continue
+            }
+            val kind = if (isPs1) CartSaveArchive.Kind.MEMORY_CARD else CartSaveArchive.Kind.GAME_SAVE
+            groups += BoundSaveGroup(scope, null, listOf(BoundSaveFile(raw, kind, "sram")))
+        }
+        for (config in configurations.distinctBy { it.stateNamespace }) {
+            val namespace = config.stateNamespace
+            val stateDir =
+                boundDirectory(
+                    cartridge, "states", namespace, directories.getStatesDirectory(), key(namespace),
+                ) ?: continue
+            val previewDir =
+                boundDirectory(
+                    cartridge,
+                    "previews",
+                    namespace,
+                    directories.getStatesPreviewDirectory(),
+                    key(namespace),
+                )
+            val files = mutableListOf<BoundSaveFile>()
+            for (slot in 0..StatesManager.MAX_STATES) {
+                val key = if (slot == 0) "auto" else slot.toString()
+                val fileName = if (slot == 0) "$name.state" else "$name.slot$slot"
+                val state = boundFile(stateDir, fileName, includeMissing) ?: continue
+                val kind = if (slot == 0) CartSaveArchive.Kind.AUTOSAVE else CartSaveArchive.Kind.MANUAL_STATE
+                files += BoundSaveFile(state, kind, "state-$key", key)
+                boundFile(stateDir, "$fileName.metadata", includeMissing)?.let {
+                    files += BoundSaveFile(it, CartSaveArchive.Kind.STATE_METADATA, "metadata-$key", key)
+                }
+                if (slot != 0 && previewDir != null) {
+                    boundFile(previewDir, "$fileName.jpg", includeMissing)?.let {
+                        files += BoundSaveFile(it, CartSaveArchive.Kind.STATE_PREVIEW, "preview-$key", key)
+                    }
+                }
+            }
+            if (files.isNotEmpty()) groups += BoundSaveGroup(config.coreID.coreName, config.statesVersion, files)
+        }
+        return groups
+    }
+
+    private fun boundDirectory(
+        cartridge: String,
+        family: String,
+        namespace: String,
+        root: File,
+        relativeDirectory: String,
+    ): File? {
+        val markerRoot = directories.getSaveBindingsDirectory().canonicalFile
+        val marker = File(markerRoot, "$cartridge/$family/${key(namespace)}.active")
+        if (marker.canonicalFile != marker || !marker.isFile || marker.length() !in 1..1024) return null
+        if (File(marker.path + ".bak").exists() || File(marker.path + ".new").exists()) return null
+        if (!marker.readText().startsWith("savebinding-v1:$cartridge:")) return null
+        val target = File(root.canonicalFile, "cartridges/$cartridge/$relativeDirectory")
+        if (target.canonicalFile != target || !target.isDirectory) return null
+        return target
+    }
+
+    private fun boundFile(
+        directory: File,
+        name: String,
+        includeMissing: Boolean,
+    ): File? {
+        val candidate = File(directory, name)
+        return candidate.takeIf {
+            it.canonicalFile == it && (it.isFile && it.length() > 0 || includeMissing && !it.exists()) &&
+                !File(it.path + ".bak").exists() && !File(it.path + ".new").exists()
+        }
     }
 
     private suspend fun bind(

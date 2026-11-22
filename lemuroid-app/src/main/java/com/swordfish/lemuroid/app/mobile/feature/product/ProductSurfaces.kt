@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,17 +18,22 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 /**
@@ -94,28 +100,125 @@ internal fun GemSurface(
     }
 }
 
-internal data class SaveInventoryRow(val id: String, val title: String, val summary: String)
+internal data class SaveInventoryRow(
+    val id: String,
+    val title: String,
+    val system: String,
+    val gameSaves: Int,
+    val manualStates: Int,
+    val resumeStates: Int,
+    val cards: Int,
+    val summary: String,
+)
 
 @Composable
 internal fun SafeSaveSurface(
     playerName: String,
     inventory: List<SaveInventoryRow>,
+    onBackUp: (() -> Unit)?,
+    onRestore: (() -> Unit)?,
     availableActions: List<ProductAction>,
     onDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    var expanded by remember { mutableStateOf<String?>(null) }
+    val consoles = inventory.groupBy { it.system }.entries.sortedBy { cartridgeSystemLabel(it.key) }
+    LazyColumn(modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            Text("SafeSave", style = MaterialTheme.typography.headlineMedium)
-            Text("Saves for $playerName")
+            Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Image(
+                    painterResource(R.drawable.cartdeck_brand_safesave_wordmark),
+                    contentDescription = "SafeSave",
+                    modifier = Modifier.width(168.dp).heightIn(max = 52.dp),
+                )
+                Text("Save Centre", style = MaterialTheme.typography.headlineSmall)
+                Text(playerName, style = MaterialTheme.typography.labelLarge)
+            }
         }
-        items(availableActions, key = { it.label }) { action -> ProductActionCard(action) }
-        if (inventory.isEmpty()) {
-            item { Text("No verified saves to display") }
+        item {
+            BoxWithConstraints {
+                if (maxWidth >= 420.dp) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SafeSaveBackupButton(onBackUp, Modifier.weight(1f))
+                        SafeSaveRestoreButton(onRestore, Modifier.weight(1f))
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SafeSaveBackupButton(onBackUp, Modifier.fillMaxWidth())
+                        SafeSaveRestoreButton(onRestore, Modifier.fillMaxWidth())
+                    }
+                }
+            }
         }
-        items(inventory, key = { it.id }) { save ->
-            ProductActionCard(ProductAction(save.title, save.summary) { onDetails(save.id) })
+        item {
+            val metrics =
+                listOf(
+                    "Games with saves" to inventory.count { it.gameSaves + it.cards > 0 },
+                    "Manual states" to inventory.sumOf { it.manualStates },
+                    "Resume states" to inventory.sumOf { it.resumeStates },
+                    "Full cards" to inventory.sumOf { it.cards },
+                )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                metrics.chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { (label, value) ->
+                            ElevatedCard(Modifier.weight(1f)) {
+                                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                    Text(value.toString(), style = MaterialTheme.typography.titleLarge)
+                                    Text(label, style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+        if (inventory.isEmpty()) item { Text("No managed saves found.") }
+        consoles.forEach { (system, saves) ->
+            item(key = "console-$system") {
+                ElevatedCard(Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = { expanded = if (expanded == system) null else system },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).gemFocusTarget(),
+                    ) {
+                        Text(cartridgeSystemLabel(system), modifier = Modifier.weight(1f))
+                        Text("${saves.size} cartridges")
+                    }
+                }
+            }
+            if (expanded == system) {
+                items(saves, key = { it.id }) { save ->
+                    ProductActionCard(ProductAction(save.title, save.summary) { onDetails(save.id) })
+                }
+            }
+        }
+        items(availableActions, key = { it.label }) { action ->
+            TextButton(action.invoke, Modifier.heightIn(min = 48.dp).gemFocusTarget()) { Text(action.label) }
+        }
+    }
+}
+
+@Composable
+private fun SafeSaveBackupButton(
+    action: (() -> Unit)?,
+    modifier: Modifier,
+) {
+    Button(onClick = {
+        action?.invoke()
+    }, enabled = action != null, modifier = modifier.heightIn(min = 48.dp).gemFocusTarget()) {
+        Text("Back Up Everything")
+    }
+}
+
+@Composable
+private fun SafeSaveRestoreButton(
+    action: (() -> Unit)?,
+    modifier: Modifier,
+) {
+    OutlinedButton(onClick = {
+        action?.invoke()
+    }, enabled = action != null, modifier = modifier.heightIn(min = 48.dp).gemFocusTarget()) {
+        Text("Restore Backup")
     }
 }
 

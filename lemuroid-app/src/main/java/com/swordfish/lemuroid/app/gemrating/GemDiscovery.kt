@@ -42,20 +42,23 @@ internal object GemDiscovery {
         records: List<GemRatingRepository.Rating>,
         links: Map<String, String>,
         shelf: List<ShelfEntry>,
+        contributions: Map<String, GemFeatureContributions.Record> = emptyMap(),
     ): Input {
         val catalogue =
             releases.map { release ->
                 val features = GemGameplayFeatures.find(release.releaseId, release.title)
+                val contribution = contributions[release.releaseId]?.takeIf { it.title == release.title }
+                val genre = contribution?.primaryGenre ?: release.primaryGenre
                 val eligible =
-                    release.primaryGenre?.let(::normalized) in genres && !nonGames.containsMatchIn(release.title)
+                    genre?.let(::normalized) in genres && !nonGames.containsMatchIn(release.title)
                 GemRatingRecommender.Game(
                     releaseId = release.releaseId,
                     title = release.title,
                     platform = release.systemId,
-                    primaryGenre = release.primaryGenre,
-                    crossoverGenre = features?.crossover,
-                    playstyle = features?.playstyle,
-                    mechanics = features?.mechanics.orEmpty(),
+                    primaryGenre = genre,
+                    crossoverGenre = contribution?.crossoverGenre ?: features?.crossover,
+                    playstyle = contribution?.playstyle ?: features?.playstyle,
+                    mechanics = contribution?.mechanics?.toSet() ?: features?.mechanics.orEmpty(),
                     eligibility =
                         if (eligible) {
                             GemRatingRecommender.Eligibility.GAME
@@ -63,7 +66,7 @@ internal object GemDiscovery {
                             GemRatingRecommender.Eligibility.RESEARCH_ONLY
                         },
                     evidence =
-                        if (features == null) {
+                        if (features == null && contribution == null) {
                             GemRatingRecommender.Evidence.WEAK_CONTEXT
                         } else {
                             GemRatingRecommender.Evidence.EDITORIAL_PROVISIONAL

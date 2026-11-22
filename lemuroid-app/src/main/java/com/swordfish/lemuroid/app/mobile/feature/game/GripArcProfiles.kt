@@ -44,7 +44,17 @@ object GripArcInputCatalog {
         when (system) {
             SystemID.GB, SystemID.GBC -> listOf(a, b, start, select)
             SystemID.GBA -> listOf(a, b, l, r, start, select)
-            SystemID.SNES, SystemID.NDS -> listOf(a, b, x, y, l, r, start, select)
+            // Labels follow the existing PadKit touch layouts, not guessed console ABXY.
+            // Game Gear uses Button 2 on Android A and Button 1 on Android B.
+            SystemID.GG -> listOf(a.copy(label = "2"), b.copy(label = "1"), start)
+            // Lynx Options are genuine guest L1/R1 inputs; Start is the Pause key.
+            SystemID.LYNX ->
+                listOf(a, b, l.copy(label = "Option 1"), r.copy(label = "Option 2"), start.copy(label = "Pause"))
+            // NGC is Neo Geo Pocket Color (not Nintendo GameCube); both use the NGP PadKit layout.
+            // PadKit shows B on Android A and A on Android B. Preserve the existing guest key codes.
+            SystemID.NGP, SystemID.NGC -> listOf(a.copy(label = "B"), b.copy(label = "A"), start)
+            SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS ->
+                listOf(a, b, x, y, l, r, start, select)
             SystemID.PSP ->
                 listOf(
                     a.copy(label = "Circle"),
@@ -74,8 +84,6 @@ object GripArcInputCatalog {
                     GripArcInput("R half", KeyEvent.KEYCODE_BUTTON_THUMBR),
                     start,
                 )
-            // NGC refers to Neo Geo Pocket Color, not Nintendo GameCube.
-            SystemID.NGC -> listOf(a, b, start, select)
             // Flycast: DC A/B/X/Y = RetroPad B/A/Y/X; triggers = L2/R2.
             // Preserve persisted RetroPad keycodes, change only labels and
             // expose previously missing trigger choices to GripArc.
