@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,7 +49,7 @@ internal fun SafeSaveScreen(
     var inventory by remember { mutableStateOf<Map<String, List<CartridgeSaveBinding.BoundSaveGroup>>>(emptyMap()) }
     var message by remember { mutableStateOf<String?>(null) }
     var selected by remember { mutableStateOf<Game?>(null) }
-    var importPreview by remember { mutableStateOf<Pair<Uri, CartSaveArchive.Manifest>?>(null) }
+    var importPreview by remember { mutableStateOf<ImportPreview?>(null) }
     var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var pendingExport by remember { mutableStateOf<ExportRequest?>(null) }
@@ -64,9 +65,14 @@ internal fun SafeSaveScreen(
             if (uri != null) {
                 busy = true
                 scope.launch {
-                    val result = withContext(Dispatchers.IO) { runCatching { inspectDocument(context, uri) } }
-                    result.onSuccess { importPreview = uri to it }
-                        .onFailure { message = "The backup is invalid or unreadable." }
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            runCatching { previewDocument(context, binding, games, uri) }
+                        }
+                    result.onSuccess { importPreview = it }
+                        .onFailure {
+                            message = (it as? RestoreRefused)?.message ?: "The backup is invalid or unreadable."
+                        }
                     busy = false
                 }
             }
@@ -174,10 +180,24 @@ internal fun SafeSaveScreen(
     )
 
     selected?.let { game ->
+        val hasCard =
+            inventory[game.cartridgeId].orEmpty().any { group ->
+                group.files.any { it.kind == CartSaveArchive.Kind.MEMORY_CARD }
+            }
         AlertDialog(
             onDismissRequest = { selected = null },
             title = { Text(game.title) },
-            text = { Text(rows.firstOrNull { it.id == game.cartridgeId }?.summary.orEmpty()) },
+            text = {
+                Column {
+                    Text(rows.firstOrNull { it.id == game.cartridgeId }?.summary.orEmpty())
+                    if (hasCard) {
+                        Text("A full memory card can include progress from other games.")
+                        TextButton(onClick = { requestExport(listOf(game), CartSaveArchive.Scope.CARD_BANK) }) {
+                            Text("Export full memory card")
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = { requestExport(listOf(game), CartSaveArchive.Scope.GAME) },
@@ -190,7 +210,8 @@ internal fun SafeSaveScreen(
             },
         )
     }
-    importPreview?.let { (uri, manifest) ->
+    importPreview?.let { preview ->
+        val manifest = preview.manifest
         val files = manifest.saveGroups.flatMap { it.artifacts }
         val states =
             files.count {
@@ -202,9 +223,14 @@ internal fun SafeSaveScreen(
             text = {
                 val groupCount = manifest.saveGroups.size
                 val bytes = files.sumOf { it.byteLength }
+                val titles = preview.titles.take(3).joinToString()
+                val additional = (preview.titles.size - 3).coerceAtLeast(0)
+                val gamesSummary = if (additional > 0) "$titles and $additional more" else titles
+                val engines = manifest.saveGroups.map { it.engineId }.distinct().take(3).joinToString()
                 Text(
                     "$groupCount save groups · $states states · $bytes bytes. " +
-                        "SafeSave copies current progress before replacing compatible saves.",
+                        "$gamesSummary · $engines · current local player. " +
+                        "${preview.existingFiles.size} existing files will be backed up before replacement.",
                 )
             },
             confirmButton = {
@@ -214,7 +240,7 @@ internal fun SafeSaveScreen(
                     scope.launch {
                         val result =
                             withContext(Dispatchers.IO) {
-                                runCatching { restoreDocument(context, binding, games, uri, manifest) }
+                                runCatching { restoreDocument(context, binding, games, preview) }
                             }
                         message =
                             result.fold(
@@ -240,6 +266,13 @@ internal fun SafeSaveScreen(
 }
 
 private data class ExportRequest(val games: List<Game>, val scope: CartSaveArchive.Scope)
+
+private data class ImportPreview(
+    val uri: Uri,
+    val manifest: CartSaveArchive.Manifest,
+    val titles: List<String>,
+    val existingFiles: Map<File, Pair<Long, Long>>,
+)
 
 private fun files(
     binding: CartridgeSaveBinding,
@@ -281,9 +314,16 @@ private fun export(
                 val payloads = mutableMapOf<String, File>()
                 val groups =
                     request.games.flatMap { game ->
-                        files(binding, game).map { group ->
+                        files(binding, game).mapNotNull { group ->
+                            val eligible =
+                                if (request.scope == CartSaveArchive.Scope.CARD_BANK) {
+                                    group.files.filter { it.kind == CartSaveArchive.Kind.MEMORY_CARD }
+                                } else {
+                                    group.files
+                                }
+                            if (eligible.isEmpty()) return@mapNotNull null
                             val artifacts =
-                                group.files.map { file ->
+                                eligible.map { file ->
                                     CartSaveArchive.artifact(file.kind, file.file, file.logicalName, file.slot).also {
                                         payloads[it.artifactId] = file.file
                                     }
@@ -347,6 +387,24 @@ private fun export(
 
 private class RestoreRefused(message: String) : IllegalArgumentException(message)
 
+private fun previewDocument(
+    context: Context,
+    binding: CartridgeSaveBinding,
+    games: List<Game>,
+    uri: Uri,
+): ImportPreview {
+    val manifest = inspectDocument(context, uri)
+    val lease = SaveStorageLease.acquire(context) ?: throw RestoreRefused("Close the game or wait for save sync.")
+    return lease.use {
+        if (BoundSaveRestore.recoveryPending(context)) {
+            throw RestoreRefused("Complete the interrupted restore in Recovery first.")
+        }
+        val owner = GemRatingLocalStore.open(context).session.profileId
+        val targets = restoreTargets(binding, games, manifest, owner)
+        ImportPreview(uri, manifest, targets.map { it.game.title }.distinct(), existingFiles(targets))
+    }
+}
+
 private fun compatibility(
     group: CartridgeSaveBinding.BoundSaveGroup,
     artifacts: List<CartSaveArchive.Artifact>,
@@ -361,12 +419,12 @@ private fun restoreDocument(
     context: Context,
     binding: CartridgeSaveBinding,
     games: List<Game>,
-    uri: Uri,
-    manifest: CartSaveArchive.Manifest,
+    preview: ImportPreview,
 ) {
+    val manifest = preview.manifest
     val archive = File.createTempFile("cartsave-restore-", ".zip", context.cacheDir)
     try {
-        requireNotNull(context.contentResolver.openInputStream(uri)).use {
+        requireNotNull(context.contentResolver.openInputStream(preview.uri)).use {
             ModFiles.copyBounded(it, archive, CartSaveArchive.MAX_ARCHIVE_BYTES)
         }
         val extracted = CartSaveArchive.extractVerified(archive, context.cacheDir.canonicalFile, manifest)
@@ -376,49 +434,29 @@ private fun restoreDocument(
                     ?: throw RestoreRefused("Close the game or wait for save sync to finish.")
             lease.use {
                 val owner = GemRatingLocalStore.open(context).session.profileId
+                val targets = restoreTargets(binding, games, manifest, owner)
+                if (existingFiles(targets) != preview.existingFiles) {
+                    throw RestoreRefused(
+                        "The destination changed. Open the backup again to review what will be replaced.",
+                    )
+                }
                 val replacements =
-                    manifest.saveGroups.flatMap { group ->
-                        if (group.ownerId != owner || manifest.source.player?.id != owner) {
-                            throw RestoreRefused("This backup belongs to a different local player.")
-                        }
-                        val gameId = group.linkedCartridgeIds.singleOrNull()
-                        val game =
-                            games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
-                                ?: throw RestoreRefused("A cartridge in this backup has no exact local match.")
-                        val destination =
-                            files(binding, game, includeMissing = true).singleOrNull {
-                                it.engineId == group.engineId &&
-                                    compatibility(it, group.artifacts) == group.engineVersion
-                            } ?: throw RestoreRefused("No compatible save binding.")
-                        val archivedNames = group.artifacts.map { it.relativePath }.toSet()
-                        val archivedSlots = group.artifacts.mapNotNull { it.slot }.toSet()
-                        if (destination.files.any {
-                                it.slot in archivedSlots && it.file.exists() && it.logicalName !in archivedNames
-                            }
-                        ) {
-                            throw RestoreRefused("The backup lacks an existing sidecar for a selected save slot.")
-                        }
-                        group.artifacts.map { artifact ->
-                            val target =
-                                destination.files.singleOrNull {
-                                    it.logicalName == artifact.relativePath && it.kind == artifact.saveKind &&
-                                        it.slot == artifact.slot
-                                } ?: throw RestoreRefused("A backup file has no safe destination.")
-                            val source = File(extracted, artifact.path)
-                            if (artifact.saveKind == CartSaveArchive.Kind.MEMORY_CARD) {
-                                if (source.length() != PlayStationMemoryCard.SIZE.toLong() ||
-                                    !PlayStationMemoryCard.isRawCard(source.readBytes())
-                                ) {
-                                    throw RestoreRefused("The PlayStation card image is invalid.")
-                                }
-                            }
-                            if (artifact.saveKind == CartSaveArchive.Kind.MANUAL_STATE ||
-                                artifact.saveKind == CartSaveArchive.Kind.AUTOSAVE
+                    targets.map { target ->
+                        val artifact = target.artifact
+                        val source = File(extracted, artifact.path)
+                        if (artifact.saveKind == CartSaveArchive.Kind.MEMORY_CARD) {
+                            if (source.length() != PlayStationMemoryCard.SIZE.toLong() ||
+                                !PlayStationMemoryCard.isRawCard(source.readBytes())
                             ) {
-                                validateStateSize(source)
+                                throw RestoreRefused("The PlayStation card image is invalid.")
                             }
-                            BoundSaveRestore.Replacement(target.file, source, artifact)
                         }
+                        if (artifact.saveKind == CartSaveArchive.Kind.MANUAL_STATE ||
+                            artifact.saveKind == CartSaveArchive.Kind.AUTOSAVE
+                        ) {
+                            validateStateSize(source)
+                        }
+                        BoundSaveRestore.Replacement(target.file, source, artifact)
                     }
                 BoundSaveRestore(context).restore(replacements)
             }
@@ -429,6 +467,51 @@ private fun restoreDocument(
         archive.delete()
     }
 }
+
+private data class RestoreTarget(val game: Game, val file: File, val artifact: CartSaveArchive.Artifact)
+
+private fun existingFiles(targets: List<RestoreTarget>): Map<File, Pair<Long, Long>> =
+    targets.mapNotNull { target ->
+        val file = target.file
+        file.takeIf(File::isFile)?.let { it to (it.length() to it.lastModified()) }
+    }.toMap()
+
+private fun restoreTargets(
+    binding: CartridgeSaveBinding,
+    games: List<Game>,
+    manifest: CartSaveArchive.Manifest,
+    owner: String,
+): List<RestoreTarget> =
+    manifest.saveGroups.flatMap { group ->
+        if (group.ownerId != owner || manifest.source.player?.id != owner) {
+            throw RestoreRefused("This backup belongs to a different local player.")
+        }
+        val gameId = group.linkedCartridgeIds.singleOrNull()
+        val game =
+            games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
+                ?: throw RestoreRefused("A cartridge in this backup has no exact local match.")
+        val destination =
+            files(binding, game, includeMissing = true).singleOrNull {
+                it.engineId == group.engineId &&
+                    compatibility(it, group.artifacts) == group.engineVersion
+            } ?: throw RestoreRefused("No compatible save binding.")
+        val archivedNames = group.artifacts.map { it.relativePath }.toSet()
+        val archivedSlots = group.artifacts.mapNotNull { it.slot }.toSet()
+        if (destination.files.any {
+                it.slot in archivedSlots && it.file.exists() && it.logicalName !in archivedNames
+            }
+        ) {
+            throw RestoreRefused("The backup lacks an existing sidecar for a selected save slot.")
+        }
+        group.artifacts.map { artifact ->
+            val target =
+                destination.files.singleOrNull {
+                    it.logicalName == artifact.relativePath && it.kind == artifact.saveKind &&
+                        it.slot == artifact.slot
+                } ?: throw RestoreRefused("A backup file has no safe destination.")
+            RestoreTarget(game, target.file, artifact)
+        }
+    }
 
 private fun validateStateSize(source: File) {
     val limit = 128L * 1024 * 1024
