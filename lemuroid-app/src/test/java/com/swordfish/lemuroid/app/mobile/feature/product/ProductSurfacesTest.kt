@@ -13,7 +13,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
@@ -35,7 +34,7 @@ import java.io.File
 class ProductSurfacesTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun saveCentreShowsApprovedBrandAndExposesRestoreWithAnEmptyInventory() {
+    @Test fun saveCentreShowsCompactContentAndExposesRestoreWithAnEmptyInventory() {
         var restores = 0
         var unassigned = 0
         compose.setContent {
@@ -51,7 +50,6 @@ class ProductSurfacesTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("SafeSave").assertExists()
         compose.onNodeWithText("Save Centre").assertExists()
         compose.onNodeWithText("Back Up Everything").assertIsNotEnabled()
         compose.onNodeWithText("Restore Backup").performClick()
@@ -132,7 +130,7 @@ class ProductSurfacesTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("SafeSave").assertIsDisplayed()
+        compose.onNodeWithText("Save Centre").assertIsDisplayed()
         compose.onNodeWithText("Back Up Everything").assertIsDisplayed()
         compose.onNodeWithText("Restore Backup").assertIsDisplayed()
         compose.runOnIdle {
