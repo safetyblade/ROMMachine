@@ -55,8 +55,10 @@ internal object HomebrewDirectory {
      */
     fun searchUri(query: String): URI? {
         if (query.length > 120 || query.any { it.isISOControl() }) return null
-        val text = query.trim().filter { it.isLetterOrDigit() || it.isWhitespace() || it == '-' || it == '_' || it == '\'' }
-            .trim()
+        val text =
+            query.trim()
+                .filter { it.isLetterOrDigit() || it.isWhitespace() || it == '-' || it == '_' || it == '\'' }
+                .trim()
         if (text.isBlank()) return null
         val terms =
             "homebrew game \"" + text + "\" " +
