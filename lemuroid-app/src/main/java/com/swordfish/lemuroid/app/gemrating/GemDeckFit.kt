@@ -5,8 +5,9 @@ import java.util.Locale
 /**
  * Research-only, controller-free DeckFit projection for the offline GEM release catalogue.
  *
- * Every known release receives a provisional 1–5 estimate from its system and optional broad
- * genre; exact-ID reviewed touch assessments take precedence. This is NOT a gameplay/boot pass.
+ * Each ordinary release receives a provisional 1–5 estimate from its system and optional broad
+ * genre; special-input holds remain unscored pending evidence. Exact-ID touch assessments
+ * take precedence. This is NOT a gameplay/boot pass.
  * User-edited My DeckFit, My GEMRating and private RoxyRating remain independent.
  *
  * The reviewed exact-ID seed is taken from "GEM-03 Assessment Audit — 2026-11-14".
