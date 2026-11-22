@@ -58,8 +58,16 @@ class GripArcProfileTest {
 
         val threeDs = GripArcInputCatalog.forSystem(SystemID.NINTENDO_3DS)
         assertEquals(
-            listOf(a, b, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y, l, r,
-                KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_BUTTON_SELECT),
+            listOf(
+                a,
+                b,
+                KeyEvent.KEYCODE_BUTTON_X,
+                KeyEvent.KEYCODE_BUTTON_Y,
+                l,
+                r,
+                KeyEvent.KEYCODE_BUTTON_START,
+                KeyEvent.KEYCODE_BUTTON_SELECT,
+            ),
             threeDs.map { it.code },
         )
         // Listing a control for mapping does not assert that the native 3DS
