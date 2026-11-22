@@ -467,7 +467,8 @@ internal fun GemLibraryScreen(
                                             modifier = Modifier.gemFocusTarget(),
                                         ) { Text("Identify an existing cartridge") }
                                     } else {
-                                        Text("Add a ${cartridgeSystemLabel(inspected.systemId)} cartridge to your shelf to link it.")
+                                        val console = cartridgeSystemLabel(inspected.systemId)
+                                        Text("Add a $console cartridge to your shelf to link it.")
                                     }
                                 }
                                 val ratingId = GemRatingRepository.catalogueRatingId(inspected.releaseId)
@@ -499,8 +500,11 @@ internal fun GemLibraryScreen(
                                 Column {
                                     Text("My cartridges", style = MaterialTheme.typography.titleMedium)
                                     if (linkingRelease != null) {
-                                        Text("Choose the ${cartridgeSystemLabel(linkingRelease.systemId)} cartridge for ${linkingRelease.title}.")
-                                        TextButton(onClick = { linkingReleaseId = null }) { Text("Cancel identification") }
+                                        val console = cartridgeSystemLabel(linkingRelease.systemId)
+                                        Text("Choose the $console cartridge for ${linkingRelease.title}.")
+                                        TextButton(
+                                            onClick = { linkingReleaseId = null },
+                                        ) { Text("Cancel identification") }
                                     }
                                 }
                             }
