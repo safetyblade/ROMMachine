@@ -5,9 +5,9 @@ import java.util.Locale
 /**
  * Research-only, controller-free DeckFit projection for the offline GEM release catalogue.
  *
- * Each ordinary release receives a provisional 1–5 estimate from its system and optional broad
- * genre; special-input holds remain unscored pending evidence. Exact-ID touch assessments
- * take precedence. This is NOT a gameplay/boot pass.
+ * QuickScore = per-system baseline + bounded, evidence-backed gameplay adjustments.
+ * Required-but-unavailable inputs remain unscored. Reviewed exact-ID touch scores take precedence.
+ * This research projection is NOT a claim that a game boots, saves or works in the installed APK.
  * User-edited My DeckFit, My GEMRating and private RoxyRating remain independent.
  *
  * The reviewed exact-ID seed is taken from "GEM-03 Assessment Audit — 2026-11-14".
@@ -19,7 +19,20 @@ object GemDeckFit {
         REVIEWED_TOUCH,
         PLATFORM_GENRE,
         PLATFORM_ONLY,
+        GAME_TRAITS,
         INPUT_REVIEW,
+    }
+
+    /** Curated traits are opt-in and must be supported by source evidence, never title guessing. */
+    enum class Trait(val deltaHalfSteps: Int) {
+        SIMPLE_2D(1),
+        TURN_BASED(1),
+        PRECISION_ACTION(-1),
+        COMPLEX_CHORDS(-1),
+        DUAL_ANALOG_AIM(-1),
+        SMALL_TEXT(-1),
+        MOTION_FALLBACK(-2),
+        REQUIRED_INPUT_UNAVAILABLE(0),
     }
 
     data class Estimate(
@@ -31,7 +44,12 @@ object GemDeckFit {
         }
 
         val scoreText: String
-            get() = if (halfSteps == null) "—" else if (halfSteps % 2 == 0) (halfSteps / 2).toString() else "${halfSteps / 2}.5"
+            get() =
+                when {
+                    halfSteps == null -> "—"
+                    halfSteps % 2 == 0 -> (halfSteps / 2).toString()
+                    else -> "${halfSteps / 2}.5"
+                }
 
         val displayText: String
             get() = if (halfSteps == null) "DeckFit · Input review" else "DeckFit $scoreText/5 · Provisional"
@@ -42,6 +60,7 @@ object GemDeckFit {
                     Basis.REVIEWED_TOUCH -> "Research-reviewed touch estimate; game not device-tested"
                     Basis.PLATFORM_GENRE -> "Low-confidence system/genre estimate; game not device-tested"
                     Basis.PLATFORM_ONLY -> "Low-confidence system estimate; game not device-tested"
+                    Basis.GAME_TRAITS -> "Research-tagged gameplay adjustment; game not device-tested"
                     Basis.INPUT_REVIEW -> "Special input needs review; game not device-tested"
                 }
     }
@@ -67,24 +86,24 @@ object GemDeckFit {
             "snes" to 7,
             "sms" to 8,
             "md" to 7,
-            "scd" to 6,
+            "scd" to 7,
             "pce" to 7,
             "n64" to 6,
             "psx" to 6,
             "psp" to 7,
-            "nds" to 7,
-            "3ds" to 6,
+            "nds" to 8,
+            "3ds" to 8,
             "fbneo" to 7,
             "mame2003plus" to 6,
-            "dos" to 3,
-            "dc" to 5,
-            "gc" to 5,
-            "ps2" to 5,
+            "dos" to 4,
+            "dc" to 6,
+            "gc" to 6,
+            "ps2" to 6,
             "xbox" to 5,
-            "wii" to 4,
-            "xbox360" to 4,
-            "wiiu" to 3,
-            "ps3" to 2,
+            "wii" to 5,
+            "xbox360" to 5,
+            "wiiu" to 5,
+            "ps3" to 4,
         )
 
     /** Exact release IDs only, not title aliases or controller-based assessments. */
@@ -198,27 +217,48 @@ object GemDeckFit {
         )
 
     fun estimate(release: GemCataloguePackage.Release): Estimate =
-        estimate(release.releaseId, release.systemId, release.primaryGenre)
+        estimate(release.releaseId, release.systemId, release.primaryGenre, release.title)
 
+    /** Optional explicit traits allow a versioned catalogue-sidecar to add exact-ID evidence. */
     fun estimate(
         releaseId: String,
         systemId: String,
         primaryGenre: String?,
+        title: String? = null,
+        traits: Set<Trait> = emptySet(),
     ): Estimate {
+        if (Trait.REQUIRED_INPUT_UNAVAILABLE in traits || releaseId in inputReviewReleaseIds) {
+            return Estimate(null, Basis.INPUT_REVIEW)
+        }
         reviewedTouchHalfSteps[releaseId]?.let { return Estimate(it, Basis.REVIEWED_TOUCH) }
-        if (releaseId in inputReviewReleaseIds) return Estimate(null, Basis.INPUT_REVIEW)
 
         val base = platformHalfSteps[systemId] ?: return Estimate(null, Basis.INPUT_REVIEW)
-        // Only use explicit, broad genre labels. Action/Adventure/Unknown make no control promises.
-        val delta =
+        // Avoid assuming every RPG is turn-based or every action game has a 3D camera.
+        val genreDelta =
             when (primaryGenre?.trim()?.lowercase(Locale.ROOT)) {
-                "strategy", "puzzle", "role-playing", "role playing" -> 1
-                "fighting", "racing", "shooter", "sports" -> -1
+                "strategy", "puzzle" -> 1
+                "fighting", "racing", "shooter" -> -1
                 else -> 0
             }
-        return Estimate(
-            (base + delta).coerceIn(2, 10),
-            if (delta == 0) Basis.PLATFORM_ONLY else Basis.PLATFORM_GENRE,
-        )
+        val researchedTraits = title?.let { curatedTraits(releaseId, it) }.orEmpty()
+        val allTraits = researchedTraits + traits
+        val traitDelta = allTraits.sumOf { it.deltaHalfSteps }
+        val boundedDelta = (genreDelta + traitDelta).coerceIn(-2, 2)
+        val basis =
+            when {
+                allTraits.isNotEmpty() -> Basis.GAME_TRAITS
+                genreDelta != 0 -> Basis.PLATFORM_GENRE
+                else -> Basis.PLATFORM_ONLY
+            }
+        return Estimate((base + boundedDelta).coerceIn(2, 10), basis)
+    }
+
+    private fun curatedTraits(releaseId: String, title: String): Set<Trait> {
+        val feature = GemGameplayFeatures.find(releaseId, title) ?: return emptySet()
+        return buildSet {
+            if (feature.playstyle.equals("Turn-based", ignoreCase = true)) add(Trait.TURN_BASED)
+            if (feature.playstyle.equals("First-person", ignoreCase = true)) add(Trait.DUAL_ANALOG_AIM)
+            if ("High speed" in feature.mechanics) add(Trait.PRECISION_ACTION)
+        }
     }
 }
