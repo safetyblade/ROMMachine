@@ -68,7 +68,6 @@ class CartdeckChromeTest {
         assertTrue(appearanceRequested == 1)
     }
 
-
     @Test fun safeSaveUsesItsApprovedBrandInTheSharedHeader() {
         compose.setContent {
             CartridgeLibraryTheme {
