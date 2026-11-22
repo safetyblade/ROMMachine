@@ -39,6 +39,7 @@ import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
+import com.swordfish.lemuroid.app.gemrating.GemRatingRepository
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CatalogueCartridgeFront
@@ -201,7 +202,15 @@ internal fun GemLibraryScreen(
                         if (term.isEmpty()) {
                             selected == null || it.releaseId in candidateIds || it.releaseId == savedId
                         } else {
-                            it.title.contains(term, ignoreCase = true)
+                            it.title.contains(term, ignoreCase = true) ||
+                                (
+                                    selected == null &&
+                                        (
+                                            it.releaseId.equals(term, ignoreCase = true) ||
+                                                GemGameplayFeatures.find(it.releaseId, it.title)?.mechanics.orEmpty()
+                                                    .any { mechanic -> mechanic.contains(term, ignoreCase = true) }
+                                        )
+                                )
                         }
                     }
                     .take(pageLimit + 1)
@@ -315,7 +324,11 @@ internal fun GemLibraryScreen(
                                         pageLimit = 48
                                         inspectedId = null
                                     },
-                                    label = { Text("Find a game") },
+                                    label = {
+                                        Text(
+                                            if (selected == null) "Title, release ID or mechanic" else "Find a game",
+                                        )
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                 )
@@ -400,7 +413,24 @@ internal fun GemLibraryScreen(
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
                                 GemIntelligenceRecord(inspected, sources[inspected.sourceId])
-                                installedByRelease[inspected.releaseId].orEmpty().forEach { game ->
+                                val installed = installedByRelease[inspected.releaseId].orEmpty()
+                                val libraryStatus = if (installed.isEmpty()) "No linked cartridge" else "Installed"
+                                Text(libraryStatus)
+                                val ratingId = GemRatingRepository.catalogueRatingId(inspected.releaseId)
+                                GemRatingRow(
+                                    cartridgeId = ratingId,
+                                    displayTitle = inspected.title,
+                                    platformId = inspected.systemId,
+                                    catalogueReleaseId = inspected.releaseId,
+                                )
+                                GemRatingRow(
+                                    cartridgeId = ratingId,
+                                    displayTitle = inspected.title,
+                                    platformId = inspected.systemId,
+                                    catalogueReleaseId = inspected.releaseId,
+                                    deckFit = true,
+                                )
+                                installed.forEach { game ->
                                     TextButton(
                                         onClick = { onOpenCartridge(game) },
                                     ) { Text("Open ${game.displayName()}") }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -78,6 +79,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalCartridgeGeometr
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.input.CartridgeNavigationMotion
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
@@ -141,6 +143,16 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     lateinit var gameLauncher: GameLauncher
 
     private var skipStartup: (() -> Unit)? = null
+    private val cartridgeNavigation = CartridgeNavigationMotion()
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) cartridgeNavigation.clear()
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        cartridgeNavigation.dispatch(event) { key -> super.dispatchKeyEvent(key) } ||
+            super.dispatchGenericMotionEvent(event)
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val skip = skipStartup

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -20,6 +21,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.input.CartridgeNavigationMotion
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupPlayer
@@ -122,6 +124,16 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
     }
 
     private var cartridgeDialog: AlertDialog? = null
+    private val cartridgeNavigation = CartridgeNavigationMotion()
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) cartridgeNavigation.clear()
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        cartridgeNavigation.dispatch(event) { key -> super.dispatchKeyEvent(key) } ||
+            super.dispatchGenericMotionEvent(event)
 
     fun showCartridge(
         game: Game,
@@ -158,6 +170,9 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
             }
         }
         dialog.show()
+        dialog.window?.decorView?.setOnGenericMotionListener { _, event ->
+            cartridgeNavigation.dispatch(event) { key -> dialog.dispatchKeyEvent(key) }
+        }
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus()
     }
 

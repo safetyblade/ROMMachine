@@ -56,11 +56,12 @@ internal fun GemRatingRow(
     displayTitle: String,
     platformId: String?,
     onRatingChanged: () -> Unit = {},
+    catalogueReleaseId: String? = null,
     deckFit: Boolean = false,
     compact: Boolean = false,
 ) {
     val context = LocalContext.current.applicationContext
-    val label = if (deckFit) "DeckFit" else "My GEMRating"
+    val label = if (deckFit) "My DeckFit" else "My GEMRating"
     val maximum = if (deckFit) 5 else 10
     val scope = rememberCoroutineScope()
     var store by remember(cartridgeId) { mutableStateOf<GemRatingLocalStore?>(null) }
@@ -101,6 +102,7 @@ internal fun GemRatingRow(
                             displayTitle = displayTitle.take(512).ifBlank { null },
                             platformId = platformId?.take(64)?.ifBlank { null },
                             deckFitOnly = deckFit,
+                            catalogueReleaseId = catalogueReleaseId,
                         )
                     }
                 }
@@ -170,6 +172,10 @@ internal fun GemRatingRow(
                 ) {
                     Text(displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
                     Text(if (deckFit) "How comfortable is this game to play handheld?" else "How much do you enjoy it?")
+                    if (deckFit) {
+                        Text("1 · Very difficult to handle   3 · Playable with compromises   5 · Comfortable")
+                        Text("Consider controls, legibility, orientation, session length and required peripherals.")
+                    }
                     for (range in (1..maximum).chunked(if (deckFit) 3 else 4)) {
                         Row(Modifier.fillMaxWidth()) {
                             for (value in range) {

@@ -87,7 +87,8 @@ internal object GemDiscovery {
         val active = records.filter { it.score != null }
         val linked =
             active.mapNotNull { rating ->
-                val release = links[rating.cartridgeId]?.let(byId::get) ?: return@mapNotNull null
+                val releaseId = rating.catalogueReleaseId ?: links[rating.cartridgeId]
+                val release = byId[releaseId] ?: return@mapNotNull null
                 val platform = installed[rating.cartridgeId]?.systemId ?: rating.platformId
                 if (platform != release.platform || release.eligibility != GemRatingRecommender.Eligibility.GAME) {
                     return@mapNotNull null

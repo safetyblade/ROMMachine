@@ -103,16 +103,10 @@ class SafeSaveStore(
         check(engineQuiesced) { "Engine must be closed/quiesced before SafeSave restore" }
         val snapshot = index.snapshot(snapshotId) ?: throw IOException("SafeSave snapshot not found: $snapshotId")
         check(snapshot.verificationState == SafeSaveVerificationState.VERIFIED) { "Snapshot is not verified" }
-        val snapshotDir = File(snapshotRoot, snapshotId)
-        // Corruption gate: verify stored bytes before touching the destination.
-        snapshot.files.forEach { record ->
-            val file = File(snapshotDir, record.relativePath)
-            check(file.isFile && file.length() == record.sizeBytes && sha256(file) == record.sha256) {
-                "Snapshot file failed verification: ${record.relativePath}"
-            }
-        }
+        check(verify(snapshotId)) { "Snapshot files failed verification" }
+        val snapshotDir = PspSavedataAdapter.plainChild(snapshotRoot, snapshotId)
         val savedataRoot = PspSavedataAdapter.savedataRoot(modernSaveRoot)
-        val destination = File(savedataRoot, snapshot.groupName)
+        val destination = PspSavedataAdapter.destination(modernSaveRoot, snapshot.groupName)
         requireFreeSpace(savedataRoot, snapshot.totalBytes * 2)
 
         val opId = UUID.randomUUID().toString()
@@ -122,7 +116,9 @@ class SafeSaveStore(
         var activated = false
         try {
             if (destination.exists()) {
-                copyTreeVerified(destination, backupDir)
+                val current = PspSavedataAdapter.discover(modernSaveRoot, snapshot.groupName)
+                requireFreeSpace(snapshotRoot, current.totalBytes)
+                copyTreeVerified(current, backupDir)
                 index.appendJournal(
                     SafeSaveJournalRecord(opId, "RESTORE", snapshotId, "DEST_BACKUP", backupDir.name, clock()),
                 )
@@ -165,32 +161,38 @@ class SafeSaveStore(
     }
 
     /** Verify stored bytes of a snapshot without touching any live save. */
-    fun verify(snapshotId: String): Boolean {
-        val snapshot = index.snapshot(snapshotId) ?: return false
-        val dir = File(snapshotRoot, snapshotId)
-        return snapshot.files.all { record ->
-            val file = File(dir, record.relativePath)
-            file.isFile && file.length() == record.sizeBytes && sha256(file) == record.sha256
-        }
-    }
+    fun verify(snapshotId: String): Boolean =
+        runCatching {
+            require(UUID.fromString(snapshotId).toString() == snapshotId)
+            val snapshot = index.snapshot(snapshotId) ?: return false
+            val directory = PspSavedataAdapter.plainChild(snapshotRoot, snapshotId)
+            val paths = snapshot.files.map { it.relativePath }
+            snapshot.snapshotId == snapshotId &&
+                snapshot.platform == PspSavedataAdapter.PLATFORM &&
+                snapshot.engineId == PspSavedataAdapter.ENGINE_ID &&
+                snapshot.verificationState == SafeSaveVerificationState.VERIFIED &&
+                paths.isNotEmpty() && paths.size == paths.distinct().size && paths.size == snapshot.fileCount &&
+                snapshot.totalBytes == snapshot.files.sumOf { it.sizeBytes } &&
+                snapshot.files.all { record ->
+                    val file = File(directory, record.relativePath)
+                    PspSavedataAdapter.relativePath(directory, file) == record.relativePath &&
+                        file.canonicalFile == file && file.isFile &&
+                        file.length() == record.sizeBytes && sha256(file) == record.sha256
+                }
+        }.getOrDefault(false)
 
     private fun copyTreeVerified(
-        source: File,
+        group: PspSavedataAdapter.DiscoveredGroup,
         destination: File,
     ) {
-        source.walkTopDown().forEach { entry ->
-            val relative = entry.relativeTo(source).path
-            if (relative.isBlank()) return@forEach
+        group.files.forEach { entry ->
+            val relative = PspSavedataAdapter.relativePath(group.directory, entry)
             val copy = File(destination, relative)
-            if (entry.isDirectory) {
-                check(copy.isDirectory || copy.mkdirs()) { "Unable to back up savedata" }
-            } else {
-                check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
-                    "Unable to back up savedata"
-                }
-                entry.copyTo(copy, overwrite = false)
-                check(sha256(copy) == sha256(entry)) { "Destination backup verification failed" }
+            check(copy.parentFile?.isDirectory == true || copy.parentFile?.mkdirs() == true) {
+                "Unable to back up savedata"
             }
+            entry.copyTo(copy, overwrite = false)
+            check(sha256(copy) == sha256(entry)) { "Destination backup verification failed" }
         }
     }
 

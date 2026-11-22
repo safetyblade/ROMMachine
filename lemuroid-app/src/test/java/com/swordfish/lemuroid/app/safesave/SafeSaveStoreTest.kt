@@ -145,6 +145,31 @@ class SafeSaveStoreTest {
     }
 
     @Test
+    fun symbolicLinksAreRefusedBeforeCaptureOrReplacement() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val outside = File(parent, "outside.txt").apply { writeText("unrelated progress") }
+            val group = File(saveRoot, "PSP/SAVEDATA/ULUS10001")
+            val link = File(group, "linked-data")
+            Files.createSymbolicLink(link.toPath(), outside.toPath())
+            val store = SafeSaveStore(InMemoryIndex(), snapshotRoot)
+            assertThrows(IllegalStateException::class.java) {
+                store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            }
+            Files.delete(link.toPath())
+            val captured = store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            Files.createSymbolicLink(link.toPath(), File(group, "DATA.BIN").toPath())
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("level-3-progress", File(group, "DATA.BIN").readText())
+            assertEquals("unrelated progress", outside.readText())
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
     fun interruptedRestoreLeavesJournalAndOriginal() {
         val (parent, saveRoot, snapshotRoot) = fixture()
         try {
