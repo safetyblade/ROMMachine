@@ -74,6 +74,7 @@ internal fun GemLibraryScreen(
     var pageLimit by rememberSaveable { mutableStateOf(48) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var inspectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var linkingReleaseId by rememberSaveable { mutableStateOf<String?>(null) }
     var customEditing by remember { mutableStateOf(false) }
     var customTitle by rememberSaveable { mutableStateOf("") }
     var customGenre by rememberSaveable { mutableStateOf("") }
@@ -94,6 +95,7 @@ internal fun GemLibraryScreen(
             page = "Browse"
             selectedId = initialCartridgeId
             inspectedId = null
+            linkingReleaseId = null
             query = ""
             onCartridgeIdConsumed()
         }
@@ -236,10 +238,19 @@ internal fun GemLibraryScreen(
             }
         searching = false
     }
-    BackHandler(enabled = page != "Menu") { page = "Menu" }
+    BackHandler(enabled = page != "Menu") {
+        linkingReleaseId = null
+        page = "Menu"
+    }
     Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (page != "Menu") {
-            TextButton(onClick = { page = "Menu" }, modifier = Modifier.gemFocusTarget()) { Text("‹ GEM menu") }
+            TextButton(
+                onClick = {
+                    linkingReleaseId = null
+                    page = "Menu"
+                },
+                modifier = Modifier.gemFocusTarget(),
+            ) { Text("‹ GEM menu") }
         }
         when (page) {
             "Menu" -> {
@@ -353,9 +364,12 @@ internal fun GemLibraryScreen(
                                 )
                             }
                             if (selected == null && inspected == null && current != null) {
-                                TextButton(onClick = { browseCatalogue = !browseCatalogue }) {
-                                    Text(if (browseCatalogue) "Identify my cartridges" else "Browse catalogue")
-                                }
+                                TextButton(
+                                    onClick = {
+                                        linkingReleaseId = null
+                                        browseCatalogue = !browseCatalogue
+                                    },
+                                ) { Text(if (browseCatalogue) "Identify my cartridges" else "Browse catalogue") }
                                 if (browseCatalogue) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedTextField(
@@ -439,6 +453,23 @@ internal fun GemLibraryScreen(
                                 val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 val libraryStatus = if (installed.isEmpty()) "No linked cartridge" else "Installed"
                                 Text(libraryStatus)
+                                if (installed.isEmpty()) {
+                                    val candidates = games.count { it.systemId == inspected.systemId }
+                                    if (candidates > 0) {
+                                        TextButton(
+                                            onClick = {
+                                                linkingReleaseId = inspected.releaseId
+                                                selectedId = null
+                                                inspectedId = null
+                                                browseCatalogue = false
+                                                query = ""
+                                            },
+                                            modifier = Modifier.gemFocusTarget(),
+                                        ) { Text("Identify an existing cartridge") }
+                                    } else {
+                                        Text("Add a ${cartridgeSystemLabel(inspected.systemId)} cartridge to your shelf to link it.")
+                                    }
+                                }
                                 val ratingId = GemRatingRepository.catalogueRatingId(inspected.releaseId)
                                 GemRatingRow(
                                     cartridgeId = ratingId,
@@ -463,11 +494,21 @@ internal fun GemLibraryScreen(
                     }
                     if (current != null && inspected == null) {
                         if (selected == null && !browseCatalogue) {
+                            val linkingRelease = linkingReleaseId?.let { current.index.find(it) }
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                Text("My cartridges", style = MaterialTheme.typography.titleMedium)
+                                Column {
+                                    Text("My cartridges", style = MaterialTheme.typography.titleMedium)
+                                    if (linkingRelease != null) {
+                                        Text("Choose the ${cartridgeSystemLabel(linkingRelease.systemId)} cartridge for ${linkingRelease.title}.")
+                                        TextButton(onClick = { linkingReleaseId = null }) { Text("Cancel identification") }
+                                    }
+                                }
                             }
                             items(
-                                games.filter { it.displayName().contains(query.trim(), ignoreCase = true) },
+                                games.filter {
+                                    (linkingRelease == null || it.systemId == linkingRelease.systemId) &&
+                                        it.displayName().contains(query.trim(), ignoreCase = true)
+                                },
                                 key = { it.cartridgeId },
                             ) { game ->
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow(
@@ -478,6 +519,10 @@ internal fun GemLibraryScreen(
                                     supporting = { Text(cartridgeSystemLabel(game.systemId)) },
                                     onClick = {
                                         selectedId = game.cartridgeId
+                                        if (linkingRelease != null) {
+                                            pending = linkingRelease
+                                            linkingReleaseId = null
+                                        }
                                         query = ""
                                     },
                                 )
