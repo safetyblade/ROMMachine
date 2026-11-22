@@ -1,10 +1,10 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import android.view.KeyEvent
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
+import com.swordfish.touchinput.radial.settings.NativeControlKind
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
-import android.view.KeyEvent
-import com.swordfish.touchinput.radial.settings.NativeControlKind
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Test
