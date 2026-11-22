@@ -126,6 +126,50 @@ class GemDeckFitTest {
     }
 
     @Test
+    fun `exact source-qualified IDs retain curated scores and special-input holds`() {
+        val reviewed =
+            mapOf(
+                "VDG:xb:row-522" to 4,
+                "VDG:xb:row-85" to 5,
+                "VDG:xb:row-519" to 4,
+                "VDG:xb:row-452" to 6,
+                "VDG:xb:row-79" to 3,
+                "VDG:xb:row-455" to 7,
+                "VDG:xb:row-572" to 4,
+                "VDG:xb:row-336" to 5,
+                "VDG:xb:row-210" to 5,
+                "VDG:wii:row-784" to 5,
+                "VDG:wii:row-864" to 6,
+            )
+        val held =
+            setOf(
+                "VDG:wii:row-1252",
+                "VDG:wii:row-616",
+                "VDG:wii:row-736",
+                "VDG:wii:row-1253",
+            )
+        val catalogue =
+            GemProductionCatalogue.load(ApplicationProvider.getApplicationContext<Context>())
+                .manifest.releases.associateBy { it.releaseId }
+        for ((id, expectedScore) in reviewed) {
+            val release = requireNotNull(catalogue[id]) { "Missing reviewed release: $id" }
+            val estimate = GemDeckFit.estimate(release)
+            assertEquals(id, expectedScore, estimate.halfSteps)
+            assertEquals(id, GemDeckFit.Basis.REVIEWED_TOUCH, estimate.basis)
+        }
+        for (id in held) {
+            val release = requireNotNull(catalogue[id]) { "Missing held release: $id" }
+            val estimate = GemDeckFit.estimate(release)
+            assertNull(id, estimate.halfSteps)
+            assertEquals(id, GemDeckFit.Basis.INPUT_REVIEW, estimate.basis)
+        }
+        assertEquals(
+            GemDeckFit.Basis.PLATFORM_ONLY,
+            GemDeckFit.estimate("VDG:xb:522", "xbox", null).basis,
+        )
+    }
+
+    @Test
     fun `every currently bundled release receives a provisional DeckFit projection`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val catalogue = GemProductionCatalogue.load(context).manifest.releases
