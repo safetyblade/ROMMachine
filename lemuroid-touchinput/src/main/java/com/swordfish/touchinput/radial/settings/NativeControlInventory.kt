@@ -52,10 +52,11 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
         fun forController(id: TouchControllerID): NativeControlInventory? {
             val sony = id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP)
             val twoFace =
-                id in setOf(
-                    TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG,
-                    TouchControllerID.LYNX, TouchControllerID.NGP,
-                )
+                id in
+                    setOf(
+                        TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG,
+                        TouchControllerID.LYNX, TouchControllerID.NGP,
+                    )
             val supported =
                 setOf(
                     TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG, TouchControllerID.LYNX,
