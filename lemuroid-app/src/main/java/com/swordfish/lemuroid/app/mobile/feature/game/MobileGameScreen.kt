@@ -793,6 +793,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 ) {
                     PivotArcControlGroup(
                         placement = pivotPlacement,
+                        system = viewModel.systemId,
                         heldKeys = heldPivotKeys.value,
                         accent = shellTokens.accent,
                         onToggleHold = viewModel::togglePivotArcHold,

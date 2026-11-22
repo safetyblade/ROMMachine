@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
@@ -39,6 +40,7 @@ import com.swordfish.touchinput.controller.R as TouchR
 @Composable
 fun PadKitScope.PivotArcControlGroup(
     placement: PivotArcPlacement,
+    system: SystemID,
     heldKeys: Set<Int>,
     accent: Color,
     onToggleHold: (Int) -> Unit,
@@ -69,10 +71,11 @@ fun PadKitScope.PivotArcControlGroup(
                         },
                     )
             if (key == "HoldA" || key == "HoldB") {
-                val code = if (key == "HoldA") KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
+                val face = if (key == "HoldA") "A" else "B"
+                val code = if (face == "A") KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
                 PivotArcHoldSwitch(
                     modifier = position,
-                    label = if (key == "HoldA") "A" else "B",
+                    label = PivotArcLayoutProfile.nativeLabel(system, face),
                     showLabel = combined,
                     diameter = visual.w,
                     active = code in heldKeys,
@@ -109,10 +112,11 @@ fun PadKitScope.PivotArcControlGroup(
                         "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
                         else -> null
                     } ?: return@forEach
+                val label = PivotArcLayoutProfile.nativeLabel(system, key)
                 val icon =
                     when (key) {
                         "Select" -> TouchR.drawable.button_select
-                        "Start" -> TouchR.drawable.button_start
+                        "Start" -> TouchR.drawable.button_start.takeIf { label == key }
                         "Menu" -> TouchR.drawable.button_menu
                         else -> null
                     }
@@ -130,7 +134,7 @@ fun PadKitScope.PivotArcControlGroup(
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
                                 LemuroidButtonForeground(
                                     pressed = pressed,
-                                    label = key.takeIf { icon == null },
+                                    label = label.takeIf { icon == null },
                                     icon = icon,
                                     shape = shape,
                                 )

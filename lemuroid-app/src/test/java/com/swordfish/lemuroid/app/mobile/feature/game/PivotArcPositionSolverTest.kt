@@ -186,8 +186,31 @@ class PivotArcPositionSolverTest {
     }
 
     @Test fun expandedConsoleControlsNeverPretendToBeSupported() {
-        for (system in listOf(SystemID.PSX, SystemID.PSP, SystemID.N64, SystemID.NDS, SystemID.NGC, SystemID.GENESIS)) {
+        for (system in listOf(
+            SystemID.PSX,
+            SystemID.PSP,
+            SystemID.N64,
+            SystemID.NDS,
+            SystemID.GAMECUBE,
+            SystemID.GENESIS,
+        )) {
             assertEquals(null, PivotArcLayoutProfile.activeFor(system))
         }
+    }
+
+    @Test fun handheldTwoButtonFamiliesKeepNativeLabelsAndOmitPhantomSelect() {
+        for (system in listOf(SystemID.GG, SystemID.LYNX, SystemID.NGP, SystemID.NGC)) {
+            for (leftHand in listOf(false, true)) {
+                val controls = (resolve(system, leftHand = leftHand) as PivotArcResolution.Fits).placement.controls
+                assertTrue(controls.keys.containsAll(listOf("D", "A", "B", "Start", "Menu", "HoldA", "HoldB")))
+                assertEquals(null, controls["Select"])
+                assertEquals(system == SystemID.LYNX, "L" in controls && "R" in controls)
+            }
+        }
+        assertEquals("2", PivotArcLayoutProfile.nativeLabel(SystemID.GG, "A"))
+        assertEquals("1", PivotArcLayoutProfile.nativeLabel(SystemID.GG, "B"))
+        assertEquals("Pause", PivotArcLayoutProfile.nativeLabel(SystemID.LYNX, "Start"))
+        assertEquals("B", PivotArcLayoutProfile.nativeLabel(SystemID.NGC, "A"))
+        assertEquals("Option", PivotArcLayoutProfile.nativeLabel(SystemID.NGP, "Start"))
     }
 }

@@ -56,9 +56,39 @@ object PivotArcLayoutProfile {
     fun activeFor(system: SystemID): List<String>? =
         when (system) {
             SystemID.GB, SystemID.GBC -> listOf("D", "A", "B", "Select", "Start", "Menu")
+            SystemID.GG, SystemID.NGP, SystemID.NGC -> listOf("D", "A", "B", "Start", "Menu")
+            SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
             SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
             else -> null
+        }
+
+    fun nativeLabel(
+        system: SystemID,
+        key: String,
+    ): String =
+        when (system) {
+            SystemID.GG ->
+                when (key) {
+                    "A" -> "2"
+                    "B" -> "1"
+                    else -> key
+                }
+            SystemID.NGP, SystemID.NGC ->
+                when (key) {
+                    "A" -> "B"
+                    "B" -> "A"
+                    "Start" -> "Option"
+                    else -> key
+                }
+            SystemID.LYNX ->
+                when (key) {
+                    "L" -> "Opt 1"
+                    "R" -> "Opt 2"
+                    "Start" -> "Pause"
+                    else -> key
+                }
+            else -> key
         }
 }
 
