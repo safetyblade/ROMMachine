@@ -1,0 +1,6 @@
+<!-- Source: design/brand-01/b2/safesave/mark.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <group>
+        <path android:fillColor="#00000000" android:strokeColor="#FFFF4FA3" android:strokeWidth="1.75" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M5 4h11l3 3v13H5zM9 4v9l3-2.5 3 2.5V4M8.5 17h7"/>
+    </group>
+</vector>

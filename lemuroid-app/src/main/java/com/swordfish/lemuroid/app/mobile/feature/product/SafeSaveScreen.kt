@@ -246,12 +246,14 @@ internal fun SafeSaveScreen(
                 val titles = preview.titles.take(3).joinToString()
                 val additional = (preview.titles.size - 3).coerceAtLeast(0)
                 val gamesSummary = if (additional > 0) "$titles and $additional more" else titles
-                val engines = manifest.saveGroups.map { it.engineId }.distinct().take(3).joinToString()
-                Text(
-                    "$groupCount save groups · $states states · $bytes bytes. " +
-                        "$gamesSummary · $engines · current local player. " +
-                        "${preview.existingFiles.size} existing files will be backed up before replacement.",
-                )
+                Column {
+                    Text("$groupCount save groups · $states states · $bytes bytes")
+                    Text(gamesSummary)
+                    Text("${preview.existingFiles.size} existing files will be backed up before replacement.")
+                    if (files.any { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD }) {
+                        Text("Restoring a full memory card can replace progress from other games.")
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -452,12 +454,13 @@ private fun export(
 
 private open class RestoreRefused(message: String) : IllegalArgumentException(message)
 
-private class MissingCartridge : RestoreRefused("A cartridge in this backup has no exact local match.")
+private class UnmatchedBackupTarget(message: String) : RestoreRefused(message)
 
 private class UnassignedBackup(
     val uri: Uri,
     val manifest: CartSaveArchive.Manifest,
-) : RestoreRefused("No matching cartridge. You can keep the verified archive for later.")
+    reason: String,
+) : RestoreRefused(reason)
 
 private fun unassignedDirectory(context: Context): File = File(context.noBackupFilesDir, "safesave/unassigned")
 
@@ -518,8 +521,8 @@ private fun previewDocument(
         val targets =
             try {
                 restoreTargets(binding, games, manifest, owner)
-            } catch (_: MissingCartridge) {
-                throw UnassignedBackup(uri, manifest)
+            } catch (unmatched: UnmatchedBackupTarget) {
+                throw UnassignedBackup(uri, manifest, unmatched.message.orEmpty())
             }
         ImportPreview(uri, manifest, targets.map { it.game.title }.distinct(), existingFiles(targets))
     }
@@ -604,17 +607,17 @@ private fun restoreTargets(
 ): List<RestoreTarget> =
     manifest.saveGroups.flatMap { group ->
         if (group.ownerId != owner || manifest.source.player?.id != owner) {
-            throw RestoreRefused("This backup belongs to a different local player.")
+            throw UnmatchedBackupTarget("This backup belongs to a different local player.")
         }
         val gameId = group.linkedCartridgeIds.singleOrNull()
         val game =
             games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
-                ?: throw MissingCartridge()
+                ?: throw UnmatchedBackupTarget("A cartridge in this backup has no exact local match.")
         val destination =
             files(binding, game, includeMissing = true).singleOrNull {
                 it.engineId == group.engineId &&
                     compatibility(it, group.artifacts) == group.engineVersion
-            } ?: throw RestoreRefused("No compatible save binding.")
+            } ?: throw UnmatchedBackupTarget("No compatible save binding.")
         val archivedNames = group.artifacts.map { it.relativePath }.toSet()
         val archivedSlots = group.artifacts.mapNotNull { it.slot }.toSet()
         if (destination.files.any {

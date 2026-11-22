@@ -38,6 +38,12 @@ class CartSaveArchiveTest {
         assertThrows(IllegalArgumentException::class.java) {
             storeUnassignedArchive(unassigned, manifest) { byteArrayOf(1, 2, 3).inputStream() }
         }
+        val conflictingManifest = manifest.copy(createdAtUtc = "2026-11-22T03:04:05Z")
+        val conflictingArchive = File(temp.root, "conflicting.cartsave")
+        CartSaveArchive.write(conflictingArchive, conflictingManifest, payloads)
+        assertThrows(IllegalStateException::class.java) {
+            storeUnassignedArchive(unassigned, conflictingManifest, conflictingArchive::inputStream)
+        }
         assertEquals(listOf(stored.name), unassigned.list()?.toList())
         assertEquals(manifest, CartSaveArchive.inspect(stored))
     }
