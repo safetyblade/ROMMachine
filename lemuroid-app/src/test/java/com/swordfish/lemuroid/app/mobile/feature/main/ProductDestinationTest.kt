@@ -6,6 +6,13 @@ import org.junit.Test
 
 class ProductDestinationTest {
     @Test
+    fun tvProductEntryOpensTheRequestedMountedRoot() {
+        assertEquals(MainRoute.SAFESAVE, initialProductRoute(openSafeSave = true, openGem = false))
+        assertEquals(MainRoute.GEM, initialProductRoute(openSafeSave = false, openGem = true))
+        assertEquals(MainRoute.HOME, initialProductRoute(openSafeSave = false, openGem = false))
+    }
+
+    @Test
     fun dockContainsOnlyMountedProductsInApprovedOrder() {
         assertEquals(
             listOf("Shelf", "GEM", "SafeSave", "CARTMOD", "Settings"),

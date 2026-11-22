@@ -33,6 +33,18 @@ fun NavController.navigateToRoute(route: MainRoute) {
     this.navigate(route.route)
 }
 
+internal const val OPEN_SAFESAVE_EXTRA = "cartdeck.open_safesave"
+
+internal fun initialProductRoute(
+    openSafeSave: Boolean,
+    openGem: Boolean,
+): MainRoute =
+    when {
+        openSafeSave -> MainRoute.SAFESAVE
+        openGem -> MainRoute.GEM
+        else -> MainRoute.HOME
+    }
+
 enum class MainRoute(
     val route: String,
     @StringRes val titleId: Int,

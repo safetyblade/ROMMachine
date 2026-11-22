@@ -21,6 +21,7 @@ object GemDeckFit {
         PLATFORM_ONLY,
         GAME_TRAITS,
         INPUT_REVIEW,
+        NOT_ASSESSED,
     }
 
     /** Curated traits are opt-in and must be supported by source evidence, never title guessing. */
@@ -55,7 +56,12 @@ object GemDeckFit {
                 }
 
         val displayText: String
-            get() = if (halfSteps == null) "DeckFit · Input review" else "DeckFit $scoreText/5 · Provisional"
+            get() =
+                when {
+                    basis == Basis.INPUT_REVIEW -> "DeckFit · Input review"
+                    halfSteps == null -> "DeckFit · Not yet assessed"
+                    else -> "DeckFit $scoreText/5 · Provisional"
+                }
 
         val evidenceText: String
             get() =
@@ -65,6 +71,7 @@ object GemDeckFit {
                     Basis.PLATFORM_ONLY -> "Low-confidence system estimate; game not device-tested"
                     Basis.GAME_TRAITS -> "Research-tagged gameplay adjustment; game not device-tested"
                     Basis.INPUT_REVIEW -> "Special input needs review; game not device-tested"
+                    Basis.NOT_ASSESSED -> "No system baseline or reviewed touch estimate; game not device-tested"
                 }
     }
 
@@ -253,7 +260,7 @@ object GemDeckFit {
         }
         reviewedTouchHalfSteps[releaseId]?.let { return Estimate(it, Basis.REVIEWED_TOUCH, base) }
 
-        if (base == null) return Estimate(null, Basis.INPUT_REVIEW)
+        if (base == null) return Estimate(null, Basis.NOT_ASSESSED)
         // Avoid assuming every RPG is turn-based or every action game has a 3D camera.
         val genreDelta =
             when (primaryGenre?.trim()?.lowercase(Locale.ROOT)) {

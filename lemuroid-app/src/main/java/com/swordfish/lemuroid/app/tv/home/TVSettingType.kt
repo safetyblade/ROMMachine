@@ -10,5 +10,6 @@ enum class TVSettingType(val icon: Int, val text: Int) {
     SETTINGS(R.drawable.ic_settings_white_64dp, R.string.settings),
     CONTROLLERS(R.drawable.ic_settings_white_64dp, R.string.cartdeck_tv_controllers),
     GEM(R.drawable.cartdeck_brand_gem, R.string.cartdeck_gem_title),
+    SAFESAVE(R.drawable.cartdeck_brand_safesave_wordmark, R.string.cartdeck_safesave_title),
     SAVE_SYNC(R.drawable.ic_cloud_sync_64dp, R.string.save_sync),
 }

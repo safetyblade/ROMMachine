@@ -24,6 +24,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
+import com.swordfish.lemuroid.app.mobile.feature.main.OPEN_SAFESAVE_EXTRA
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
@@ -94,6 +95,11 @@ class TVHomeFragment : BrowseSupportFragment() {
                                 startActivity(
                                     Intent(requireContext(), MainActivity::class.java)
                                         .putExtra("cartdeck.open_gem", true),
+                                )
+                            TVSettingType.SAFESAVE ->
+                                startActivity(
+                                    Intent(requireContext(), MainActivity::class.java)
+                                        .putExtra(OPEN_SAFESAVE_EXTRA, true),
                                 )
                             TVSettingType.CONTROLLERS ->
                                 startActivity(Intent(requireContext(), ControllerSettingsActivity::class.java))
@@ -268,6 +274,10 @@ class TVHomeFragment : BrowseSupportFragment() {
         gemItems.add(TVSetting(TVSettingType.GEM))
         result.add(ListRow(HeaderItem(GEM_ADAPTER, "GEM"), gemItems))
 
+        val saveItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
+        saveItems.add(TVSetting(TVSettingType.SAFESAVE))
+        result.add(ListRow(HeaderItem(SAFESAVE_ADAPTER, getString(R.string.cartdeck_safesave_title)), saveItems))
+
         val settingsItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
         settingsItems.setItems(
             buildSettingsRowItems(indexInProgress = false, scanInProgress = false),
@@ -320,6 +330,7 @@ class TVHomeFragment : BrowseSupportFragment() {
         const val SYSTEM_ADAPTER = 2L
         const val SETTINGS_ADAPTER = 3L
         const val GEM_ADAPTER = 5L
+        const val SAFESAVE_ADAPTER = 6L
         const val FAVORITES_ADAPTER = 4L
 
         private fun shelfRowId(index: Int) = -1L - index

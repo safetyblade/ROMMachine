@@ -72,7 +72,7 @@ lawfully supplied titles. Keep backups of any existing test progress.
 
 ## Current A–H implementation evidence
 
-After #362 merged, the continuation is draft #368 against master. SafeSave visual acceptance is **FAIL pending owner review** ([owner correction](https://github.com/safetyblade/ROMMachine/issues/290#issuecomment-7078323576)). The Save Centre uses the shipped SafeSave wordmark, primary backup and restore actions, counts from managed inventory, and expandable console groups. Verified unmatched imports can be retained in Unassigned Backups for later review. Explicit assignment and a full verified-backup index remain open.
+After #362 merged, the continuation is draft #368 against master. SafeSave visual acceptance is **FAIL pending owner review** ([owner correction](https://github.com/safetyblade/ROMMachine/issues/290#issuecomment-7078323576)). The Save Centre uses the shipped SafeSave wordmark, primary backup and restore actions, counts from managed inventory, and expandable console groups. Verified unmatched imports can be retained in Unassigned Backups for later review. The Android TV shelf opens this same Save Centre through its SafeSave tile. Explicit assignment and a full verified-backup index remain open.
 
 | Work | Source status | Remaining acceptance |
 | --- | --- | --- |
@@ -124,3 +124,12 @@ the game and load each slot. For PS1, use a full card holding more than one
 game and compare the entire image. Repeat after an install-over. Record game,
 engine, exact APK SHA, Android version, device and individual result. All rows
 are currently **NOT TESTED** on physical hardware.
+
+### Sequential GC checkpoints
+
+| Source | Scope | Verified evidence |
+| --- | --- | --- |
+| `dc7799cd` | Reconciled draft #368 with merged GC and added the branded Save Centre and five factual GEM records. | Catalogue and Room passed. The APK job stopped on HTTP 429 fetching Robolectric SDKs. [Workflow](https://github.com/safetyblade/ROMMachine/actions/runs/45016962589) |
+| `98615c02` | Retained unmatched verified archives, reduced GripArc's painted footprint, and added a contribution preview with duplicate protection. | 747 local Android tests passed. The APK job still stopped on HTTP 429. [Workflow](https://github.com/safetyblade/ROMMachine/actions/runs/45059572339) |
+| `f6b9b2fb` | Added Game Gear, Lynx and both Neo Geo Pocket PivotArc layouts and used a checksum-verified Maven Central mirror in CI. | 748 CI tests, UI gate and signed ARM64 build passed. [APK](https://github.com/safetyblade/ROMMachine/actions/runs/45060169330/artifacts/14769303114) |
+| `f46c9792` | Enabled the optional measured Standard Hold Tray on eight supported handheld systems and added compact SafeSave console summaries and top-level access to Unassigned Backups. | 750 CI tests, UI gate and signed ARM64 build passed. The artifact source tree, checksum and signing certificate were verified. [APK](https://github.com/safetyblade/ROMMachine/actions/runs/45061354741/artifacts/14770495096) |
