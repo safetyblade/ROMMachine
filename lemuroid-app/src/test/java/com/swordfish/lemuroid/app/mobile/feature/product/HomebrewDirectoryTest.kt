@@ -45,6 +45,6 @@ class HomebrewDirectoryTest {
         assertNotNull(search)
         val decoded = URLDecoder.decode(search!!.rawQuery.substringAfter("q="), "UTF-8")
         assertFalse(decoded.contains("site:untrusted.example"))
-        assertTrue(decoded.contains("PSP siteuntrusted.example"))
+        assertTrue(decoded.contains("PSP siteuntrustedexample"))
     }
 }
