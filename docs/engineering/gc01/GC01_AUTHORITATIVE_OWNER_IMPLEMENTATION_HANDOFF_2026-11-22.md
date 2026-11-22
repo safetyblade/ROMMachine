@@ -144,10 +144,45 @@ Additionally shelf #303, TV/DeX #308, SIGNATURE #360 original approved video/aud
 
 1. **SafeSave numbers:** distinct games-with-saves vs files vs state slots vs shared card banks; don't double-count or silently omit.
 2. **Analogue-to-digital mapping:** **warning only, never block swap on lost pressure fidelity**; let player choose on/off guest input; preserve both old actions. Offer an optional analog touch trigger (slider/swipe/press ramp and sensor pressure only if hardware proves it) for games where proportional control is useful. Test actual guest partial/full/release and explain any backend limitations.
-3. **Junior forgotten PIN:** optional parent-held recovery code at setup is a recommended narrow technical safeguard; no universal bypass. Owner hasn't approved a specific unrecoverable-PIN reset policy; protect all saved progress and do not invent one.
+3. **Junior forgotten PIN — APPROVED:** offer a **parent-held offline recovery code at PIN setup** with clear one-time display and confirmation; protect its verifier independently from PIN, rate-limit and lock out automated guesses. The same parent can recover/change PIN using that proof. No universal bypass, default/reset PIN or data deletion. If both PIN and recovery code are lost and no verified device-backed proof exists, leave protected access unavailable and preserve saves; any further reset flow requires a separately reviewed secure design.
 4. **Motion physical proof:** no visual sensor feature called working unless the actual guest moves; report PERF dependency explicitly.
 5. **GEM unknown data:** unknown vs verified must remain distinct. Only source-backed feature explanations and actual user ratings may drive the displayed recommendations. No speculative DB project.
 6. **Existing child PR #368:** inspect and reconcile before integration, do not auto-merge.
+
+## 7A. CONNECTOR-PRELOADED IMPLEMENTATION SHORTCUTS — DO NOT SPEND CODEX TOKENS REDISCOVERING
+
+**Live source entry points already verified on the #362 branch:**
+
+| Deliverable | Existing file/function | Actual current gap / focused work |
+| --- | --- | --- |
+| Save Centre | `ProductSurfaces.kt` includes `SafeSaveSurface(playerName, inventory, availableActions, onDetails)` | A generic Compose list is NOT a wired whole-console backup inventory. Connect actual adapters, player scope, counts, Export All / Restore / Exceptions to real service. Do not build a new UI framework. |
+| Controller editor | `PhysicalControllerMappingPanel.kt` has live probe, guided button capture, a **Swap conflicting bindings** command, Undo/Reset/Save; `NativeControllerMappingSession.kt` owns key capture and host selection | Current workflow starts by choosing an original target; owner instead wants **press physical source then press physical replacement** and automatic reciprocal swap, visual arrows and real guest output. Reuse draft/store/tester, not replace all of PR #294. |
+| Controller axes | Existing PhysicalControllerMappingPanel currently displays **"Stick and trigger axis remapping is unavailable"** in one configuration; `NativeControllerMappingSession.observeMotion` samples axes and hats | Do NOT claim that showing analogue trigger values equals routeable analogue remapping. Implement source-specific axis/threshold/neutral semantics and the optional on-screen pressure trigger where supported, while always letting player accept warning-only digital swaps. |
+| GEM source | `GemCataloguePackage.Release` / `GemGameplayFeatures` / `GemDiscovery.prepare` / `GemRatingRecommender.Game` | Existing recommendation fields already exist; gameplay facets are sparse. Add a simple exact-release-ID CSV/JSON overlay importer and **verify it actually populates the scorer and UI**. Never replatform database without a measured fault. |
+| GEM personal scores | `GemRatingRepository`, `GemMyRatingsScreen.kt`, `GemFinderScreen.kt`, offline recommender PR #282 | Only explicit user whole 1–10 GemRatings learn; 1–5 My DeckFit separate. Tests high / low / clear / no ratings / multiple profiles; don't invent user score from catalogue or DeckFit. |
+| GC menu/TV | `SharedGameMenu.kt`, `GameMenuActivity`, `MainNavigationRoutes.kt`, `PagedShelfSections.kt`, UI PR #294/#312/#317, GC #303/#308 | Preserve focus/release, same game surface, portrait/TV, already accepted navigation and universal game menu; **no second menu or shelf**. |
+| Tilt foundation | Android `TiltSensor`, `TiltConfiguration`, `GameViewModelTilt` cited in PERF #365 | Existing tilt-to-D-pad/analog conversion **does not prove gyro/accel guest input**. PERF native core bridge/host negotiation must be verified; GC chooser displays honest availability. |
+| Wii core capability | Historic Wii #85 + Sienna M09 | Normal gamepad buttons default, optional real virtual IR/right-stick pointer, separate accelerometer/gyro; respect guest host capability. No fake sensor support from a UI crosshair. |
+| Junior PIN | `PlayerChooserSurface`, `JuniorPlayroomSurface`, JR01 final UX | Existing Compose shells are not the secure profile service. Add local PIN + enrolled offline recovery code, service/repository/deep-link permission guard and one cover child UI. |
+| SafeSave storage | JR01 SafeSave architecture/format docs, SAVE #290, current SafeSave v1 store | Add adapters, crash journal and source preserving migration; **no new database**. `SafeSaveSurface` rows must use actual game/save/state/card inventory. |
+
+**Minimum high-value tests before claiming ready:**
+1. Controller physical RT→X reciprocal press selection; visual preview, confirm, actual guest events on original & swapped buttons; **show pressure loss warning and allow Save**, optional analogue touch slider sends partial values where a guest axis is real, returns neutral.
+2. Wii gamepad default on compatible Wii title; virtual IR drag/click + normal gamepad buttons on an IR title, disabled if engine incapable; phone gyro availability and pause reset; TV no-touch gamepad/right-stick fallback.
+3. 3DS extra Tilt Stick separate from Circle Pad, phone sensor option, Beyblade directional aim and pull-back launch **at actual guest sensor interface**, portrait/landscape, no overlap with touchscreen/stylus.
+4. Junior enter, 4–6 digit PIN, parent-held recovery code enrolment/use, no Back/deep-link escape and no save loss.
+5. SafeSave real console-specific game count vs slot vs card count, Export All supported + exceptions, hash and rollback on interrupted restore.
+6. GEM contributor batch import (20–300 records), exact IDs and rejected rows, user whole-number high/low/clear changes existing GemFinder ranks and grounded reasons, no data loss. **No new SQL database or general source crawl.**
+7. All original GC A–H, SIGNATURE and legacy install-over retained; same-head APK, owner/Marcus physical results NOT TESTED unless actually performed.
+
+**Parallel work boundaries / avoiding major pitfalls:**
+- **#368 remains an OPEN, UNMERGED child GEM B7-B draft**; check its current head and reconcile only after explicit authorisation, never mistake a provisional DeckFit overlay for real playability.
+- **#365 is a cross-lane input dependency**, not permission to replace GC input flow with PERF native core changes; PERF core/host work needs its own verified native artifact and saves-safe integration gate.
+- **GC docs alone do not build an APK.** Preserve previous last verified APK; new source must produce a new exact-commit testable APK.
+- Real Libretro/native backend support determines whether Save State, analogue axis, Wii IR and 3DS gyro can work. **Distinct unsupported capability is visible**, not an app-wide blocked test or a synthetic PASS.
+- A user's preferred mapping is allowed with **warning-only** analogue loss; a sensor-dependent game cannot be claimed supported if its guest bridge is absent.
+- Never mark all 88,246 releases physically tested or treat a source heuristic/connector record as player GemRating.
+- Preserve signing, package ID, immutable release/cartridge UUIDs, profiles, native save roots, memory cards/VMUs, appearance and controller settings.
 
 ## 8. Exit requirements for Codex
 
