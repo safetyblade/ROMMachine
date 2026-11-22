@@ -1,3 +1,5 @@
+> **LATEST OWNER PIVOTARC EXPANSION — 22 NOV 20:12 AEDT:** [PIV-HH-01 dedicated 11-handheld PivotArc layout specification](GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) is a **new, separate approved design scope**. HHOLD-01 continues to govern only the **optional up-to-three-slot Hold Tray for Standard handheld touch**. Earlier HHOLD-01 wording "do not expand PivotArc to every handheld" applies only to the hold-tray task and is **not** a blanket prohibition: the new request explicitly designs PivotArc profiles for every registered handheld while preserving its original Hold A/B and no new H1–H3. No duplicate Standard tray on PivotArc. Do not alter GripArc G1–G4 or claim new source/QA success from design documentation.
+
 # CARTDECK — GC-01 Handheld Hold Controls (HHOLD-01)
 **Design created:** 22 November 2026 | **Owner:** Jonathan Prestwich | **Working PR:** #362 | **Design status:** Owner-scoped design proposal / Codex implementation handoff, **not** code/QA acceptance.
 
