@@ -37,6 +37,19 @@ class PivotArcHeldInputGateTest {
         assertTrue(gate.holds.value.isEmpty())
     }
 
+    @Test fun configuredStandardHoldSharesPhysicalOwnershipAndReleasesOnRemoval() {
+        val shoulder = KeyEvent.KEYCODE_BUTTON_L1
+        gate.setStandardHoldKeys(setOf(shoulder))
+        assertFalse(gate.setSource(a, "touch", true))
+        gate.toggleHold(shoulder)
+        assertTrue(gate.setSource(shoulder, "physical", true))
+        assertTrue(gate.setSource(shoulder, "physical", false))
+        assertEquals(listOf(KeyEvent.ACTION_DOWN to shoulder), events)
+        gate.setStandardHoldKeys(emptySet())
+        assertEquals(listOf(KeyEvent.ACTION_DOWN to shoulder, KeyEvent.ACTION_UP to shoulder), events)
+        assertTrue(gate.holds.value.isEmpty())
+    }
+
     @Test fun bothLatchesCanOperateIndependently() {
         gate.setEnabled(true)
         gate.toggleHold(a)

@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,8 +121,10 @@ internal fun SafeSaveSurface(
     availableActions: List<ProductAction>,
     onDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
+    unassignedCount: Int = 0,
+    onUnassigned: (() -> Unit)? = null,
 ) {
-    var expanded by remember { mutableStateOf<String?>(null) }
+    var expanded by rememberSaveable { mutableStateOf<String?>(null) }
     val consoles = inventory.groupBy { it.system }.entries.sortedBy { cartridgeSystemLabel(it.key) }
     LazyColumn(modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
@@ -173,6 +176,14 @@ internal fun SafeSaveSurface(
                 }
             }
         }
+        if (onUnassigned != null) {
+            item {
+                TextButton(onUnassigned, Modifier.fillMaxWidth().gemFocusTarget()) {
+                    Text("Unassigned Backups", modifier = Modifier.weight(1f))
+                    Text(unassignedCount.toString())
+                }
+            }
+        }
         if (inventory.isEmpty()) item { Text("No managed saves found.") }
         consoles.forEach { (system, saves) ->
             item(key = "console-$system") {
@@ -181,8 +192,13 @@ internal fun SafeSaveSurface(
                         onClick = { expanded = if (expanded == system) null else system },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).gemFocusTarget(),
                     ) {
-                        Text(cartridgeSystemLabel(system), modifier = Modifier.weight(1f))
-                        Text("${saves.size} cartridges")
+                        Column(Modifier.weight(1f)) {
+                            Text(cartridgeSystemLabel(system), style = MaterialTheme.typography.titleSmall)
+                            val games = saves.count { it.gameSaves + it.cards > 0 }
+                            val states = saves.sumOf { it.manualStates + it.resumeStates }
+                            val cards = saves.sumOf { it.cards }
+                            Text("$games games with saves · $states states · $cards cards")
+                        }
                     }
                 }
             }

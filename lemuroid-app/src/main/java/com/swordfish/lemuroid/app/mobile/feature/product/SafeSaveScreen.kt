@@ -186,13 +186,6 @@ internal fun SafeSaveScreen(
                         },
                     )
                 }
-                if (unassigned.isNotEmpty() && !busy) {
-                    add(
-                        ProductAction("Unassigned Backups · ${unassigned.size}", "Review saved backups") {
-                            showUnassigned = true
-                        },
-                    )
-                }
                 add(
                     ProductAction("Backup coverage", "View the limits of this backup") {
                         message = "Includes bound save RAM, supported PS1 cards and known app-managed states. " +
@@ -202,6 +195,8 @@ internal fun SafeSaveScreen(
             },
         onDetails = { id -> if (!busy) selected = games.firstOrNull { it.cartridgeId == id } },
         modifier = modifier,
+        unassignedCount = unassigned.size,
+        onUnassigned = if (busy) null else ({ showUnassigned = true }),
     )
 
     selected?.let { game ->
@@ -307,14 +302,18 @@ internal fun SafeSaveScreen(
             onDismissRequest = { showUnassigned = false },
             title = { Text("Unassigned Backups") },
             text = {
-                androidx.compose.foundation.lazy.LazyColumn {
-                    items(unassigned.size) { index ->
-                        val archive = unassigned[index]
-                        val date = java.text.DateFormat.getDateTimeInstance().format(Date(archive.lastModified()))
-                        TextButton(onClick = {
-                            showUnassigned = false
-                            review(Uri.fromFile(archive), alreadyStored = true)
-                        }, modifier = Modifier.gemFocusTarget()) { Text(date) }
+                if (unassigned.isEmpty()) {
+                    Text("No unassigned backups.")
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(unassigned.size) { index ->
+                            val archive = unassigned[index]
+                            val date = java.text.DateFormat.getDateTimeInstance().format(Date(archive.lastModified()))
+                            TextButton(onClick = {
+                                showUnassigned = false
+                                review(Uri.fromFile(archive), alreadyStored = true)
+                            }, modifier = Modifier.gemFocusTarget()) { Text(date) }
+                        }
                     }
                 }
             },

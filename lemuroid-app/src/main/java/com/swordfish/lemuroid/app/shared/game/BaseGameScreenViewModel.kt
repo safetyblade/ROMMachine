@@ -450,6 +450,10 @@ class BaseGameScreenViewModel(
         pivotArcHeldInputGate.toggleHold(keyCode)
     }
 
+    fun setStandardHoldKeys(keys: Set<Int>) {
+        pivotArcHeldInputGate.setStandardHoldKeys(keys)
+    }
+
     override fun onResume(owner: LifecycleOwner) {
         reloadGripArcProfile()
     }

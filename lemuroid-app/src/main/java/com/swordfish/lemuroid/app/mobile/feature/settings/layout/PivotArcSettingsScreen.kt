@@ -40,7 +40,9 @@ import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcPositionSolver
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcResolution
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSettingsStore
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcWordmark
+import com.swordfish.lemuroid.app.mobile.feature.game.StandardHoldTraySettings
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberPivotArcSettings
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.SystemID
 
 /** Settings → Layout. Intentional global choice, with no per-game mutations. */
@@ -61,7 +63,10 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
         TextButton(onClick = { helpOpen = !helpOpen }) { Text(if (helpOpen) "Hide layout help" else "Layout help") }
         if (helpOpen) {
             Text("One global control layout across cartridges.")
-            Text("GB, GBC, GBA and SNES use PivotArc. Other systems retain Standard controls and your preference.")
+            val supported =
+                SystemID.entries.filter { PivotArcLayoutProfile.activeFor(it) != null }
+                    .joinToString { cartridgeSystemLabel(it.dbname) }
+            Text("PivotArc systems: $supported.")
             Text("Left Hand mirrors positions without changing game or input identities.")
         }
         LayoutChoice(
@@ -92,6 +97,9 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
             }
             Button(onClick = { adjusting = true }, enabled = baseline != null) { Text("Adjust Position") }
             TextButton(onClick = { store.resetPosition() }) { Text("Reset Position") }
+        } else {
+            HorizontalDivider()
+            StandardHoldTraySettings()
         }
     }
     if (adjusting && baseline != null) {

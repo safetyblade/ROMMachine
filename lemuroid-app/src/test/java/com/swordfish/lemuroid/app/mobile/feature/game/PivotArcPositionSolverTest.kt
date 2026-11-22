@@ -213,4 +213,15 @@ class PivotArcPositionSolverTest {
         assertEquals("B", PivotArcLayoutProfile.nativeLabel(SystemID.NGC, "A"))
         assertEquals("Option", PivotArcLayoutProfile.nativeLabel(SystemID.NGP, "Start"))
     }
+
+    @Test fun standardTrayUsesOnlyMeasuredFreeSpaceAndKeepsFullTargets() {
+        val safe = PivotArcBounds(8f, 8f, 320f, 600f)
+        val occupied = listOf(PivotArcBounds(8f, 80f, 320f, 460f), PivotArcBounds(8f, 500f, 106f, 600f))
+        val slots = findStandardHoldTray(safe, occupied, 3)
+        assertEquals(3, slots.size)
+        assertTrue(slots.all { it.width == 48f && it.height == 48f && it.inside(safe) })
+        assertTrue(slots.none { slot -> occupied.any { slot.intersects(it) } })
+        assertTrue(findStandardHoldTray(safe, emptyList(), 1).isEmpty())
+        assertTrue(findStandardHoldTray(safe, listOf(safe), 1).isEmpty())
+    }
 }

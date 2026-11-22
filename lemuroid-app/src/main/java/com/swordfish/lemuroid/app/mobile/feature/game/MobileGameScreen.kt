@@ -806,6 +806,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
             }
+            if (effectiveArcMode == ArcControlMode.STANDARD && touchControlsVisibleState.value &&
+                !isLoading && isResumed.value
+            ) {
+                StandardHoldTray(
+                    system = viewModel.systemId,
+                    native = nativeInventory,
+                    root = fullPos,
+                    viewport = viewPos,
+                    measured = individualInputs,
+                    held = heldPivotKeys.value,
+                    onKeys = viewModel::setStandardHoldKeys,
+                    onToggle = viewModel::togglePivotArcHold,
+                )
+            }
             GripArcAccessory(
                 placement = gripPlacement,
                 profile = arcProfile,

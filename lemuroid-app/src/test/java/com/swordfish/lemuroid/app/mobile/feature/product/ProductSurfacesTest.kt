@@ -22,6 +22,7 @@ class ProductSurfacesTest {
 
     @Test fun saveCentreShowsApprovedBrandAndExposesRestoreWithAnEmptyInventory() {
         var restores = 0
+        var unassigned = 0
         compose.setContent {
             CartridgeLibraryTheme {
                 SafeSaveSurface(
@@ -31,6 +32,7 @@ class ProductSurfacesTest {
                     onRestore = { restores++ },
                     availableActions = emptyList(),
                     onDetails = {},
+                    onUnassigned = { unassigned++ },
                 )
             }
         }
@@ -38,7 +40,9 @@ class ProductSurfacesTest {
         compose.onNodeWithText("Save Centre").assertExists()
         compose.onNodeWithText("Back Up Everything").assertIsNotEnabled()
         compose.onNodeWithText("Restore Backup").performClick()
+        compose.onNodeWithText("Unassigned Backups").performClick()
         assertEquals(1, restores)
+        assertEquals(1, unassigned)
     }
 
     @Test fun juniorEmptyStateOffersOnlyParentRequest() {
