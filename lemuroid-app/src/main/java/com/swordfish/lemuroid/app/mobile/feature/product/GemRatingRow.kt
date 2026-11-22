@@ -181,7 +181,8 @@ internal fun GemRatingRow(
                     if (deckFit) {
                         Text("1 · Very difficult to handle   3 · Playable with compromises   5 · Comfortable")
                         Text(
-                            "No external controller or special setup. Consider launch, controls, display, audio and saves.",
+                            "No external controller or special setup. " +
+                                "Consider launch, controls, display, audio and saves.",
                         )
                     }
                     for (range in (1..maximum).chunked(if (deckFit) 3 else 4)) {
