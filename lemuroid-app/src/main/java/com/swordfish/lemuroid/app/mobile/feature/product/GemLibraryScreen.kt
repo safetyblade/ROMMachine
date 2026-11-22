@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueIndex
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
+import com.swordfish.lemuroid.app.gemrating.GemDeckFit
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
@@ -562,6 +563,7 @@ private fun GemIntelligenceRecord(
     source: GemCataloguePackage.Source?,
 ) {
     val feature = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
+    val deckFit = remember(release) { GemDeckFit.estimate(release) }
     var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -574,12 +576,13 @@ private fun GemIntelligenceRecord(
                     if (it.mechanics.isNotEmpty()) Text(it.mechanics.sorted().joinToString(" · "))
                     Text("Provisional gameplay classification", style = MaterialTheme.typography.bodySmall)
                 }
-                Text("DeckFit · Not assessed", style = MaterialTheme.typography.bodySmall)
+                Text(deckFit.displayText, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
                 if (details) {
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+                    Text(deckFit.evidenceText, style = MaterialTheme.typography.bodySmall)
                     Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
                 }
             }
