@@ -171,10 +171,18 @@ internal fun GemRatingRow(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-                    Text(if (deckFit) "How naturally can you play using CARTDECK's on-screen controls?" else "How much do you enjoy it?")
+                    Text(
+                        if (deckFit) {
+                            "How naturally can you play using CARTDECK's on-screen controls?"
+                        } else {
+                            "How much do you enjoy it?"
+                        },
+                    )
                     if (deckFit) {
                         Text("1 · Very difficult to handle   3 · Playable with compromises   5 · Comfortable")
-                        Text("No external controller or special setup. Consider launch, controls, display, audio and saves.")
+                        Text(
+                            "No external controller or special setup. Consider launch, controls, display, audio and saves.",
+                        )
                     }
                     for (range in (1..maximum).chunked(if (deckFit) 3 else 4)) {
                         Row(Modifier.fillMaxWidth()) {
