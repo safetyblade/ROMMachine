@@ -1,0 +1,147 @@
+# CARTDECK GC-01 — AUTHORITATIVE OWNER IMPLEMENTATION HANDOFF
+22 November 2026 | Owner: Jonathan Prestwich | GC draft PR #362
+
+**Status:** Owner-approved product and UX decisions; this is NOT delivered feature code, build acceptance, a human team review/signature, independent hardware QA, master merge or release approval.
+
+## 0. Mission and controlling precedence
+
+**Finish the ORIGINAL ENTIRE GC programme A–H** under owner [#262](https://github.com/safetyblade/ROMMachine/issues/262), including SafeSave, GEM, Junior/profiles, TV/DeX, SIGNATURE and Wii/3DS special inputs. Implement rather than rescope. The current #362 GC branch is the ONE implementation lane. Keep PERF engine/core work separate; coordinate with #60/#365 without blindly merging native sources. No merge to master without Jonathan.
+
+This document is the current single owner contract and supersedes any conflicting **recommendation or pending-status wording** in older 22 November design proposals. The detailed earlier records remain supporting references:
+- [Original GC design gaps](../../design/gc01/GC01_FULL_COMPLETION_DESIGN_SUPPLEMENT_2026-11-22.md)
+- [Role-by-role proposals](../../design/gc01/GC01_TEAM_DECISION_RECOMMENDATIONS_2026-11-22.md)
+- [OD01–06 approved](../../design/gc01/GC01_OWNER_APPROVED_DECISIONS_2026-11-22.md)
+- [Reciprocal swap / simple Junior PIN / Wii and 3DS motion owner lock](../../design/gc01/GC01_INPUT_MOTION_GEM_JUNIOR_OWNER_LOCK_2026-11-22.md)
+- [GEM missing metadata and user-rating recommendation contract](../../design/gc01/GC01_GEM_RECOMMENDATION_DATA_REQUIREMENTS_2026-11-22.md)
+- [Connector-ready GEM design — apply the SIMPLIFIED scope of §5 here](../../design/gc01/GC01_GEM_CONNECTOR_READY_DATA_ARCHITECTURE_2026-11-22.md)
+
+### DO NOT REBUILD PREVIOUS UI — REUSE THE REAL DELIVERED WORK
+
+| Existing UI/research source | Reuse, do not recreate |
+| --- | --- |
+| [Sienna full original GC design M00–M24 / components C01–C14](https://github.com/safetyblade/ROMMachine/blob/engineering/gameplay-consistency-gc01/docs/engineering/gc01/04_SIENNA_COMPLETE_UX_DESIGN.md) and [Daniel/Sienna architecture](02_DANIEL_SIENNA_DESIGN.md) | Entire A–H interaction state map: M01 menu, M02 Save/Load, M04–M08 controller mapping/test, M09 Wii, M10–M12 touch/GripArc, M13–M14 display, M17 Xbox360, M18–M24 safe recovery. |
+| **Merged [PR #294](https://github.com/safetyblade/ROMMachine/pull/294)** | Existing Compose shared menus, controller discovery, mapping, tester, persistence, Display; enhance live UI and real guest dispatch, don't replace. |
+| [PhysicalControllerMappingPanel.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/gamemenu/PhysicalControllerMappingPanel.kt), [NativeControllerMappingSession.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/gamemenu/NativeControllerMappingSession.kt), [ControllerSettingsActivity.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/gamemenu/ControllerSettingsActivity.kt), [ControllerCalibrationPanel.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/gamemenu/ControllerCalibrationPanel.kt) | Panel ALREADY displays native bindings, captures physical presses and offers a conflict-swap command. Use those existing stores, key capture and input probe; change discovery/preview/default action to the approved reciprocal two-press swap. |
+| **Merged [PR #312](https://github.com/safetyblade/ROMMachine/pull/312) and [PR #317](https://github.com/safetyblade/ROMMachine/pull/317)**; [HOT03](../../design/HOT03_UNIFIED_PRODUCT_NAVIGATION.md) and [HOT04](../../design/HOT04_ROADMAP_UI_DELIVERY.md); [#303](https://github.com/safetyblade/ROMMachine/issues/303), [#308](https://github.com/safetyblade/ROMMachine/issues/308) | Preserve real Shelf/navigation compact landscape, horizontal sections/independent vertical scroll, ten-foot focus and controller-only journey. Extend MainNavigationRoutes/MainNavigationBar/HomeScreen/PagedShelfSections; no second navigation framework. |
+| [JR01 final UX](../../design/jr01/JR01_FINAL_SCREEN_INPUT_PARENT_CONTRACT.md), [JR01 product spec](../../design/jr01/JR01_PRODUCT_UX_SPEC.md), [SafeSave API](../../architecture/jr01/SAFESAVE_FORMAT_AND_API_V1.md), [architecture](../../architecture/jr01/JR01_PROFILES_SAFESAVE_ARCHITECTURE.md), [ProductSurfaces.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/product/ProductSurfaces.kt) | Existing SafeSaveSurface, PlayerChooserSurface and JuniorPlayroomSurface are present but require production wiring; do not create a parallel save centre or child UI. |
+| **Merged [PR #282](https://github.com/safetyblade/ROMMachine/pull/282)** and [GEM B2](../../gemrating/GEM_B2_RATING_CHECKPOINT.md), [offline engine](../../gemrating/OFFLINE_ENGINE_CHECKPOINT.md), [B7-A](../../gemrating/GEM_B7_A_EXPANSION_CHECKPOINT.md); [GemLibraryScreen.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/product/GemLibraryScreen.kt), [GemFinderScreen.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/product/GemFinderScreen.kt), [GemMyRatingsScreen.kt](../../../lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/product/GemMyRatingsScreen.kt) | The real user rating UI, offline catalogue and pure recommendation scorer already exist. Wire feature enrichment and stored ratings to these; do not create a new recommender. |
+| **Open child [PR #368](https://github.com/safetyblade/ROMMachine/pull/368)** | B7-B provisional touch-only DeckFit work targets GC #362 but is NOT merged/accepted. Inspect and reconcile without auto-merging, rewriting scores or assuming game runtime verification. |
+| [Modern Function research PR #175](https://github.com/safetyblade/ROMMachine/pull/175) / [#172](https://github.com/safetyblade/ROMMachine/issues/172), [#135](https://github.com/safetyblade/ROMMachine/issues/135) GripArc, [#85](https://github.com/safetyblade/ROMMachine/issues/85) Wii, [#365](https://github.com/safetyblade/ROMMachine/issues/365) 3DS, [#360](https://github.com/safetyblade/ROMMachine/issues/360) SIGNATURE | Respect approved action matrix, native controls, PivotArc/GripArc inventory, motion peripherals and intro video/audio. Documentation alone never proves game action. |
+
+**Single product navigation:** Shelf / GEM / SafeSave / CARTMOD / Settings, with Profiles in header. Website search/My Sources remains in CARTMOD; GEM is offline catalogue/recommendation. Controller settings are ordinary player-facing Settings, with diagnostics under Advanced.
+
+## 1. Complete owner decision register
+
+- **OD01 Display:** Default original aspect / Fit. Optional explicit, renderer-backed Stretch to Fill (may distort, never crop); preserve stored choices and DS/3DS/Wii U special viewports.
+- **OD02 Junior:** Simple parent PIN to exit Junior, access Grown-Ups or edit protected settings/allowlists. Local setup/confirm/change, rate-limited salted protected verifier; no mandatory online account, biometric or Android system credential. No universal bypass, no OS-wide kiosk claim.
+- **OD03 Rating precision:** Always **whole-number personal GemRating 1–10** and **whole-number My DeckFit 1–5**; editorial/provisional DeckFit 1–5 or Not yet assessed. No half-points now or planned. Only user-entered GemRatings are preference-training data.
+- **OD04 Mapping:** Two physical presses, live highlighted controller view, **reciprocal SWAP as default** rather than Replace/Cancel-default. RT's old guest action moves to X, X's old action moves to RT; Confirm then Test/Save/Undo/Reset. Three-layer physical normalisation → correct guest engine/port → per-cartridge Custom override > verified opted-in Modern Function > Authentic. Preserve old mappings; no global A/B swap.
+- **OD05 Unassigned saves:** Safe validated imported orphan archives visible as **Unassigned Backups** in SafeSave; user-controlled explicit link/export/delete only, immutable and never auto-linked by title.
+- **OD06 Data safety:** Preserve existing SafeSave snapshot/index v1 database. Only additive necessary main Room profile/ownership migration and durable journal; no destructive schema reset or save alias overwrite.
+- **GEM connector/scaling:** Provider-neutral metadata contribution interface, indexed fast offline reads and a versioned optional overlay; game release universe finite historically, metadata grows. User/team annotations easy to add/edit, no heavy user-edit governance. Packaging redistributed third-party material must respect actual source rights; private ratings never exposed.
+- **SafeSave ALL:** Console summary shows distinct games with saves, manual states, autosave/resume states, complete shared cards/VMUs, unassigned backups, verified archive counts, per-console exceptions. Back Up Everything and Export All cover all **actually supportable** items, with transparent exclusions, not blocked by unsupported state support on another engine.
+- **Wii+3DS:** GC owns common player-facing Motion & Pointer modes, on-screen input, phone sensor selection, calibration, per-game saves and safe layout; PERF owns guest sensor/IR/core/host integration. No fake functional motion UX.
+- **Original GC:** A–H remains entire finish line. No merge/QA PASS on UI alone or green CI.
+
+## 2. SafeSave — finish the existing surface and real services
+
+On the existing SafeSaveSurface home show **current player**, games with native saves per console, occupied manual save-state slots, auto/resume slots, complete cards and VMUs, backup totals, unassigned verified archives, latest backup, Export All, Restore and Exceptions.
+
+**Count meaning must be exact:** "Xbox — 5 games with saves" means five distinct verified cartridge/game save groups, **not five files**; "PS2 — 5 games with saves, 3 manual states, 2 complete cards" is illustrative ONLY; one shared card with two games cannot be exported twice or counted as two cards. Never hardcode values or infer from registered core list. Show unsupported state count as unavailable, not zero if not measurable.
+
+**Back Up Everything / Export All:** discover real supported engines and all player-authorised save roots, native game saves, state files/metadata/previews, whole shared memory cards/VMUs, safe orphan archives. Show preview of exact included/excluded/locked/unknown groups, sizes and affected players; export all supported data even if another engine has no savestate API. Quiesce writers, stage, SHA verify, bounded portable .cartsave through SAF, verify provider where possible and return receipt. No ROMs/BIOS/mixed NAND/HDD content. Restore validates exact ROM/core/engine identity and state compatibility, backs up destination, journals and verifies activation/reopen, rolls back on failure. Show persistent Exceptions for Research: engine, kind, count, reason and next action. Existing SNAPSHOT v1/old saves must remain safe. No fake "all saved" when something failed.
+
+**Direct UI acceptance:** visible working Save Centre in Android APK, functional Back Up Everything and Restore from actual in-game save + save state, complete per-registered-console status register, no destructive old install migration, independent physical games proof for claiming actual console PASS. One unavailable state engine is a documented limit not an excuse to skip backups from supported engines.
+
+## 3. Controller mapping — visually live two-press reciprocal exchange
+
+Reuse PR #294, M04–M08 and the current PhysicalControllerMappingPanel/NativeControllerMappingSession.
+
+**User flow:** Connected gamepad → select controller, global or This Game and port → **Press button whose guest action to move** (RT) → pad visual lights RT, shows previous output A → **Press replacement physical button** (X) → pad lights X/output B → preview clearly shows X→A and RT→B (both preserved) → **Confirm Swap** → Test actual engine-bound native guest press/release/axes → Save. Undo/Reset/Cancel/visible draft, TV/gamepad-only setup. Don't make user first pick a line in a dense table. Diagram/list alternative for non-emitting physical keys/accessibility. Menu/Back escape never becomes unreachable; capture never leaks game/shelf events.
+
+**Special safety:** Swapping a continuous analogue trigger with a digital face button cannot recreate proportional analogue pressure. Warn or block depending on native game input requirements; do not silently claim parity. If target button has no existing action, show explicit fallback/confirmation rather than losing essential native output. P1/P2 profiles and menu ownership are distinct. Reconnect and input state neutralisation, native Play!/Wii/Libretro/Xenia dispatch, verified Modern Function with actual game-action test.
+
+## 4. Shared Wii / 3DS Motion & Pointer controls
+
+GC UX: Game Controls → Motion & Pointer → **Phone Motion / Virtual On-screen Motion / Stick Pointer where genuine backend support / Off**, per-game state, calibrate/recentre, live visual test and accessible layout. Wii retains Sideways/Nunchuk/Classic attachments, actual IR mapping and controls. 3DS retains circle pad/dual screens/stylus and gyro/acceleration path; Beyblade Evolution needs **actual bidirectional aim AND pull/ripcord launch**, not just UI animation or D-pad tilt. Preserve original source display, PivotArc/GripArc and other buttons.
+
+PERF #60/#365: verify real Android accelerometer/gyro/rotation signal into actual guest emulator (Citra/Azahar/Dolphin) using pinned/native host supported API. Show "not supported in this engine" if not wired; do not claim core support from an Android sensor callback alone. Keep Culdcept #311 black-screen as separate PERF defect; do not transfer Wii original GC UX into PERF.
+
+## 5. GEM — MINIMAL Roxy/team add-to interface; do not redesign the database
+
+**OWNER INSTRUCTION: Do not spend this pass comparing databases, designing a schema platform, building a plugin framework or selecting a new recommender.** The current catalogue/package and GemRatingRecommender/GemDiscovery/GemGameplayFeatures already provide a straightforward place to connect new metadata. Keep that baseline, avoid app database/Room migrations for basic game facets, and implement one small stable source contribution input.
+
+### 5.1 Simple contributor contract
+
+Roxy/team can add or amend **a batch of exact-ID feature rows** in a plain CSV or JSON file, or call one equivalent provider-neutral programmatic importer. Each row supports:
+- **releaseId**: required exact existing stable source-qualified release key.
+- **primaryGenre, crossoverGenre, playstyle, mechanics[]**: optional P0 fields already accepted by the recommender; normalize tags and allow blanks/unknown.
+- **optional controls/peripherals and session style** only where data is available and will actually be consumed. These are P1, do not delay P0.
+- **sourceId / source record / revision / evidence** where available, for provenance and included third-party rights/attribution. Ordinary team/user annotations require no onerous manual review workflow; private player rating data is never in contributor rows.
+
+**One implementation seam:** Read contribution → validate exact ID/schema/tags → preview **added / updated / rejected with per-row reason** → apply an **additive versioned GameplayFeatures overlay** keyed by release ID → existing GemDiscovery projects merged fields into existing GemRatingRecommender.Game → existing GEM Browse/For You displays the effect. Preserve old base release IDs, existing ratings and previous version on error; no scanner, save, engine, controller or Room changes.
+
+- No need to preload or rewrite 88,246 rows; start with zero overlay and additive 20–300 record batches, easy for Roxy to extend. Team should not have to edit Kotlin per game, create a GitHub issue per tag or wait for the whole arcade DAT ingestion to see a working result.
+- Data from a future connector enters via **the same importer**. Connector-friendly means a documented stable format and validation, NOT executable network plugins or continuous update jobs inside the Android app in this pass.
+- Existing memory/indexing approach is acceptable **unless objective startup, search, RAM or ranking tests demonstrate a real bottleneck**. Fix measured problems locally, not speculative 500k-scale replatform. Preserve offline operation and a rollback-able pack, avoid resetting user data.
+- Historical game releases are finite, but metadata and user corrections can be enriched. Don't impose strict human approval on personal notes/genres. A bundled/re-distributed externally sourced dataset still needs lawful source rights and traceability.
+
+### 5.2 Make the existing designed recommendation logic truly function
+
+Existing source facts on current GC branch:
+- GemCataloguePackage.Release stores release ID, title, platform, optional primary genre but not widespread playstyle/mechanics.
+- GemDiscovery.prepare currently calls a small GemGameplayFeatures.find lookup for crossover, playstyle and mechanics; missing features become empty/weak context.
+- GemRatingRecommender already accepts these fields and **only explicit user GemRating preferences**, with offline deterministic scoring and existing 16 fixtures from PR #282.
+
+**The task is connecting incremental sourced facets to that existing projection/scorer**—not building another ranking model or database.
+
+Required evidence/tests:
+1. Add sample exact-ID source contribution to a genre/mechanics playstyle title; confirm loading and GEM Browse display.
+2. A player enters whole-number 9/10 GemRating; with sourced shared features the related candidate increases rank, with grounded reason.
+3. The same player's explicit low GemRating reduces related preference; clearing returns baseline without residual training signal.
+4. A second player has independent ratings and results; no Roxy/DeckFit/critic/popularity score is secretly passed as player rating.
+5. An unknown release ID/bad tag yields a clear rejected row; existing catalogue and prior ratings continue unchanged.
+6. Adding a second batch / installing new catalogue maintains identical immutable release/cartridge IDs and ratings; uninstalled titles can be rated and honestly marked Not in Library.
+7. With no user ratings/real features, show neutral Browse/Rate a Game rather than invented For You; wildcard share and exclusions deterministic.
+8. UI to live engine/ratings store → reload → source-driven rank/reason change; no fake recommendation card.
+
+Rating UI stays **whole GemRating 1–10**, **whole My DeckFit 1–5**. Editorial provisional DeckFit and actual physical game compatibility remain separate. Current separate child PR #368 is only a provisional scoring candidate; coordinate rather than silently merge.
+
+**Roxy's scheduled/source review may supply more rows, but completing the interface and these tests does not wait for that review.** Roxy/team can then add metadata forever with the same simple contract; no new architecture exercise.
+
+## 6. Remaining original GC A–H (mandatory)
+
+| Area | Delivered experience and reuse anchor |
+| --- | --- |
+| **A Native Menu** | Single app-owned game menu, real Pause/Resume/Save/Load capability and errors, Back/TV input. Reuse M00–M03/M15/M18/M20/M24 and PR #294. |
+| **B Display** | Correct original image/aspect, safe TV/handset landscape, top-line bleed, DS/3DS dual screens, Wii U transform, supported user Fill. Reuse M13–M14, PR #294/#312, UNI. |
+| **C Physical Controllers** | Two-press reciprocal swap, native actual input translation, controller-only TV, ports/reconnect and tester. Reuse M04–M08, PR #294, #308. |
+| **D Wii/3DS GC UX** | Wii attachment/IR and 3DS tilt/pointer choice, on-screen/phone sensors and truthfully blocked backend. Reuse M09, #85 and #365 (PERF bridge). |
+| **E PivotArc + GripArc** | Measured physical Standard+GripArc/PivotArc+GripArc, G1–G4, no missing original buttons, 48dp targets. Reuse M10–M12 and #135. |
+| **F Modern Function** | Verified exact-game/region/edition actions to real guest keys, opt-in with Custom/Authentic fallback, no global A/B. Reuse M08, #172 and PR #175 research. |
+| **G Xbox360 continuity** | Preserve guest profile/save identity, menu, native save/reopen/install-over, true port mappings; no false savestate claim. Reuse M17/#255. |
+| **H Engine quality** | Real capability/recovery states across actual registered console roster; PERF runtime defects separate, no fake supported status. Reuse M16/M18/M19 and #262. |
+
+Additionally shelf #303, TV/DeX #308, SIGNATURE #360 original approved video/audio/framing/volume, normal Settings/Advanced hierarchy and full profiles/Junior must remain covered. No user-facing diagnostics outside Advanced.
+
+## 7. LAST SMALL DETAILS TO TIGHTEN — no new broad decisions
+
+1. **SafeSave numbers:** distinct games-with-saves vs files vs state slots vs shared card banks; don't double-count or silently omit.
+2. **Analogue-to-digital mapping:** warn/block when RT/X would lose needed pressure; preserve two original actions; test actual guest key press/release, not diagram only.
+3. **Junior forgotten PIN:** optional parent-held recovery code at setup is a recommended narrow technical safeguard; no universal bypass. Owner hasn't approved a specific unrecoverable-PIN reset policy; protect all saved progress and do not invent one.
+4. **Motion physical proof:** no visual sensor feature called working unless the actual guest moves; report PERF dependency explicitly.
+5. **GEM unknown data:** unknown vs verified must remain distinct. Only source-backed feature explanations and actual user ratings may drive the displayed recommendations. No speculative DB project.
+6. **Existing child PR #368:** inspect and reconcile before integration, do not auto-merge.
+
+## 8. Exit requirements for Codex
+
+- **Actual production code**, not another documentation/design-only return; one draft #362 and no master merge without owner.
+- Same-head ARM64 APK artifact link, package/version/signing and prior rollback comparison; full unit, Room, source/native and UI tests.
+- **SafeSave:** first-class usable destination; per-console real save/state/card/unassigned counts; one-action Export All for safe supported data, truthful exceptions, working restore/reopen and real data durability.
+- **Controllers:** visual direct RT↔X swap with reciprocal bindings, analog safety, Test/Save/Undo and native guest action; controller-only TV/DeX journey and P1/P2 where supported.
+- **GEM:** simple Roxy/team contributor file/import interface, actual feature-to-existing-GemFinder pipeline and player GemRating high/low/clear/profile test; not a new database.
+- **Motion:** GC UI and calibration with PERФ engine support/blocked evidence for Wii and 3DS.
+- **Full A–H console matrix** and independent Marcus/owner hardware test instructions; source PASS is not hardware PASS. No silent system exclusions.
+- List only genuine technical/engine/legal blockers and narrow outstanding owner decisions.
+
+**DO THE IMPLEMENTATION. Keep exact current source identity and all existing player ROMs, saves, states, appearances and ratings intact.**
