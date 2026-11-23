@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.product
 
 import android.app.Application
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -22,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
@@ -42,6 +45,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
@@ -121,6 +125,23 @@ class ProductSurfacesTest {
         compose.onNodeWithText("Catalogue title").assertDoesNotExist()
         compose.onNodeWithText("More details").performClick()
         compose.onNodeWithText("Catalogue title: Catalogue title").assertExists()
+    }
+
+    @Test fun curatedHomebrewSearchOpensTheBrowserWithoutSavingSources() {
+        val term = "PSP puzzle"
+        compose.setContent {
+            CartridgeLibraryTheme { GemWebsiteSearchScreen() }
+        }
+        val action = compose.onNodeWithText("Search curated sites")
+        action.assertIsNotEnabled()
+        compose.onNode(hasSetTextAction()).performTextInput(term)
+        action.assertIsEnabled().performClick()
+        compose.runOnIdle {
+            val launch = shadowOf(compose.activity).nextStartedActivity
+            assertEquals(Intent.ACTION_VIEW, launch.action)
+            assertEquals(HomebrewDirectory.searchUri(term)?.toASCIIString(), launch.dataString)
+            assertTrue(GemWebsiteStore(compose.activity).read().isEmpty())
+        }
     }
 
     @Test fun juniorEmptyStateOffersOnlyParentRequest() {
