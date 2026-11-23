@@ -108,12 +108,19 @@ enum class TouchControllerID {
             settings: TouchControllerSettingsManager.Settings,
         ) -> Unit,
         val nativeInventory: NativeControlInventory? = null,
+        val holdTrayInventory: NativeControlInventory? = nativeInventory,
     )
 
     companion object {
         fun getConfig(id: TouchControllerID): Config {
             val native = getNativeConfig(id)
-            return Config(native.leftComposable, native.rightComposable, NativeControlInventory.forController(id))
+            val gripInventory = NativeControlInventory.forController(id)
+            return Config(
+                native.leftComposable,
+                native.rightComposable,
+                gripInventory,
+                gripInventory ?: NativeControlInventory.forHoldTray(id),
+            )
         }
 
         private fun getNativeConfig(id: TouchControllerID): Config {

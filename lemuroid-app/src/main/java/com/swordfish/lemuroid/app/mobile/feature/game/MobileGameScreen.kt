@@ -822,7 +822,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             ) {
                 StandardHoldTray(
                     system = viewModel.systemId,
-                    native = nativeInventory,
+                    native = touchGamePads?.holdTrayInventory,
                     root = fullPos,
                     viewport = viewPos,
                     measured = individualInputs,

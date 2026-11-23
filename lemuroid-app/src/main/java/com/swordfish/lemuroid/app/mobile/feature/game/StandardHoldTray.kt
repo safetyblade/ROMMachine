@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.view.KeyEvent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.offset
@@ -32,7 +33,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
 
-private val handhelds =
+internal val standardHoldTraySystems =
     listOf(
         SystemID.GB,
         SystemID.GBC,
@@ -41,14 +42,30 @@ private val handhelds =
         SystemID.LYNX,
         SystemID.NGP,
         SystemID.NGC,
+        SystemID.WS,
+        SystemID.WSC,
         SystemID.PSP,
+        SystemID.NDS,
+        SystemID.NINTENDO_3DS,
     )
+
+private val wonderSwanHoldInputs =
+    listOf(
+        GripArcInput("A / X3", KeyEvent.KEYCODE_BUTTON_A),
+        GripArcInput("B / X4", KeyEvent.KEYCODE_BUTTON_B),
+        GripArcInput("X1", KeyEvent.KEYCODE_BUTTON_Y),
+        GripArcInput("X2", KeyEvent.KEYCODE_BUTTON_X),
+        GripArcInput("Start", KeyEvent.KEYCODE_BUTTON_START),
+    )
+
+internal fun standardHoldTrayInputs(system: SystemID): List<GripArcInput> =
+    if (system == SystemID.WS || system == SystemID.WSC) wonderSwanHoldInputs else GripArcInputCatalog.forSystem(system)
 
 private class StandardHoldTrayStore(context: Context) {
     val preferences = context.getSharedPreferences("cartdeck_standard_hold_tray_v1", Context.MODE_PRIVATE)
 
     fun read(system: SystemID): List<Int> {
-        val allowed = GripArcInputCatalog.forSystem(system).map { it.code }
+        val allowed = standardHoldTrayInputs(system).map { it.code }
         return preferences.getString(system.dbname, "").orEmpty().split(',')
             .mapNotNull(String::toIntOrNull).filter { it in allowed }.distinct().take(3)
     }
@@ -74,7 +91,7 @@ internal fun StandardHoldTraySettings() {
             Text(cartridgeSystemLabel(system.dbname))
         }
         DropdownMenu(choosingSystem, { choosingSystem = false }) {
-            handhelds.forEach {
+            standardHoldTraySystems.forEach {
                 DropdownMenuItem(
                     text = { Text(cartridgeSystemLabel(it.dbname)) },
                     onClick = {
@@ -85,7 +102,10 @@ internal fun StandardHoldTraySettings() {
             }
         }
         Text("Choose up to three buttons. The tray appears when there is room.")
-        GripArcInputCatalog.forSystem(system).forEach { input ->
+        if (system == SystemID.WS || system == SystemID.WSC) {
+            Text("X1 and X2 are available with vertical WonderSwan controls.")
+        }
+        standardHoldTrayInputs(system).forEach { input ->
             val selected = input.code in keys
             FilterChip(
                 selected = selected,
@@ -152,7 +172,7 @@ internal fun StandardHoldTray(
     val drawing = WindowInsets.safeDrawing
     val gestures = WindowInsets.safeGestures
     val nativeKeys = native?.controls.orEmpty().mapNotNull { it.keyCode }.toSet()
-    val selected = if (system in handhelds) keys.filter { it in nativeKeys } else emptyList()
+    val selected = if (system in standardHoldTraySystems) keys.filter { it in nativeKeys } else emptyList()
     val seats = native?.controls.orEmpty().map { it.seat }.toSet()
     val measuredControls = seats.isNotEmpty() && seats.all { it in measured }
     val placement =
@@ -184,9 +204,14 @@ internal fun StandardHoldTray(
         onKeys(activeKeys)
         onDispose { onKeys(emptySet()) }
     }
-    val catalog = GripArcInputCatalog.forSystem(system).associateBy { it.code }
+    val catalog = standardHoldTrayInputs(system).associateBy { it.code }
     selected.zip(placement).forEach { (key, bounds) ->
-        val label = catalog.getValue(key).label
+        val label =
+            if (system == SystemID.WS || system == SystemID.WSC) {
+                native?.controls?.firstOrNull { it.keyCode == key }?.label ?: catalog.getValue(key).label
+            } else {
+                catalog.getValue(key).label
+            }
         val shortLabel =
             when (label) {
                 "Option 1" -> "O1"

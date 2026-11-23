@@ -79,7 +79,7 @@ internal object GripArcCombinedLayout {
         dy: Float,
         fallbackToNativeBaseline: Boolean = true,
     ): GripArcCombinedPlacement? {
-        if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
+        if (!native.supportsGripArc || !safe.isFiniteArea() || !viewport.isFiniteArea() ||
             !native.matchesNativeInputs(observedInputIds) || !hasMeasurements(native, measured)
         ) {
             return null
