@@ -49,6 +49,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.io.RandomAccessFile
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -104,6 +105,45 @@ class ProductSurfacesTest {
         compose.onNodeWithText("unassigned backups are excluded", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Choose Backup File").assertDoesNotExist()
+    }
+
+    @Test fun safeSaveExposesTheWholeArmsx2CardExportAction() {
+        val game =
+            Game(
+                fileName = "fixture.chd",
+                fileUri = "content://fixture/ps2",
+                title = "PS2 card fixture",
+                systemId = "ps2",
+                developer = null,
+                coverFrontUrl = null,
+                lastIndexedAt = 1,
+            )
+        val card =
+            File(compose.activity.filesDir, "native/ps2/armsx2/cartridges/${game.cartridgeId}/memcards/Mcd001.ps2")
+        check(card.parentFile?.mkdirs() == true)
+        RandomAccessFile(card, "rw").use {
+            it.setLength(8L * 1024 * 528 * 2)
+            it.writeBytes("Sony PS2 Memory Card Format ")
+        }
+        val binding = CartridgeSaveBinding(DirectoriesManager(compose.activity.application)) { listOf(game) }
+        compose.setContent {
+            CartridgeLibraryTheme { SafeSaveScreen(listOf(game), binding) }
+        }
+        compose.waitUntil(5_000) {
+            runCatching { compose.onNodeWithText("Back Up Everything").assertIsEnabled() }.isSuccess
+        }
+        val console = "Games 1 · States 0 · Cards 1"
+        val list = compose.onNode(hasScrollAction())
+        list.performScrollToNode(hasText(console))
+        compose.onNodeWithText(console).performClick()
+        list.performScrollToNode(hasText(game.title))
+        compose.onNodeWithText("Open").performClick()
+        compose.onNodeWithText("Export full memory card").performClick()
+        compose.runOnIdle {
+            val intent = shadowOf(compose.activity).nextStartedActivityForResult.intent
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, intent.action)
+            assertTrue(intent.getStringExtra(Intent.EXTRA_TITLE).orEmpty().endsWith(".cartsave"))
+        }
     }
 
     @Test fun gameIntelligenceUsesTheInstalledCartridgeTitleAndKeepsCatalogueFacts() {

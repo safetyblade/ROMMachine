@@ -20,10 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.mods.ModFiles
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.PlayStationMemoryCard
+import com.swordfish.lemuroid.lib.saves.safesave.Armsx2FileCards
 import com.swordfish.lemuroid.lib.saves.safesave.BoundSaveRestore
 import com.swordfish.lemuroid.lib.saves.safesave.CartSaveArchive
 import com.swordfish.lemuroid.lib.saves.safesave.SaveStorageLease
@@ -60,7 +62,9 @@ internal fun SafeSaveScreen(
 
     LaunchedEffect(games, binding, revision) {
         val result =
-            withContext(Dispatchers.IO) { runCatching { games.associate { it.cartridgeId to files(binding, it) } } }
+            withContext(
+                Dispatchers.IO,
+            ) { runCatching { games.associate { it.cartridgeId to files(context, binding, it) } } }
         result.onSuccess { inventory = it }.onFailure { message = "Save inventory could not be read." }
     }
 
@@ -205,7 +209,8 @@ internal fun SafeSaveScreen(
             title = { Text("Back Up Everything") },
             text = {
                 Text(
-                    "Backs up managed saves and supported PS1 cards. Native saves and unassigned backups are excluded.",
+                    "Includes managed saves and supported PS1 and ARMSX2 cards. " +
+                        "Other native saves and unassigned backups are excluded.",
                 )
             },
             confirmButton = {
@@ -361,12 +366,22 @@ private data class ImportPreview(
 )
 
 private fun files(
+    context: Context,
     binding: CartridgeSaveBinding,
     game: Game,
     includeMissing: Boolean = false,
 ): List<CartridgeSaveBinding.BoundSaveGroup> {
     val system = GameSystem.all().firstOrNull { it.id.dbname == game.systemId }
-    return binding.inspectBoundSaves(game, system?.systemCoreConfigs.orEmpty(), includeMissing)
+    val managed = binding.inspectBoundSaves(game, system?.systemCoreConfigs.orEmpty(), includeMissing)
+    if (game.systemId != SystemID.PLAYSTATION_2.dbname) return managed
+    val cards = Armsx2FileCards.discover(context.filesDir, game.cartridgeId, includeMissing)
+    if (cards.isEmpty()) return managed
+    return managed +
+        CartridgeSaveBinding.BoundSaveGroup(
+            Armsx2FileCards.ENGINE_ID,
+            null,
+            cards.map { CartridgeSaveBinding.BoundSaveFile(it, CartSaveArchive.Kind.MEMORY_CARD, it.name) },
+        )
 }
 
 private fun inspectDocument(
@@ -400,7 +415,7 @@ private fun export(
                 val payloads = mutableMapOf<String, File>()
                 val groups =
                     request.games.flatMap { game ->
-                        files(binding, game).mapNotNull { group ->
+                        files(context, binding, game).mapNotNull { group ->
                             val eligible =
                                 if (request.scope == CartSaveArchive.Scope.CARD_BANK) {
                                     group.files.filter { it.kind == CartSaveArchive.Kind.MEMORY_CARD }
@@ -541,7 +556,7 @@ private fun previewDocument(
         val owner = GemRatingLocalStore.open(context).session.profileId
         val targets =
             try {
-                restoreTargets(binding, games, manifest, owner)
+                restoreTargets(context, binding, games, manifest, owner)
             } catch (unmatched: UnmatchedBackupTarget) {
                 throw UnassignedBackup(uri, manifest, unmatched.message.orEmpty())
             }
@@ -553,10 +568,10 @@ private fun compatibility(
     group: CartridgeSaveBinding.BoundSaveGroup,
     artifacts: List<CartSaveArchive.Artifact>,
 ): String =
-    if (artifacts.all { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD }) {
-        "ps1-raw-128k"
-    } else {
-        "cartdeck-${BuildConfig.VERSION_CODE}/state-protocol-${group.stateVersion}"
+    when {
+        group.engineId == Armsx2FileCards.ENGINE_ID -> Armsx2FileCards.FORMAT
+        artifacts.all { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD } -> "ps1-raw-128k"
+        else -> "cartdeck-${BuildConfig.VERSION_CODE}/state-protocol-${group.stateVersion}"
     }
 
 private fun restoreDocument(
@@ -578,7 +593,7 @@ private fun restoreDocument(
                     ?: throw RestoreRefused("Close the game or wait for save sync to finish.")
             lease.use {
                 val owner = GemRatingLocalStore.open(context).session.profileId
-                val targets = restoreTargets(binding, games, manifest, owner)
+                val targets = restoreTargets(context, binding, games, manifest, owner)
                 if (existingFiles(targets) != preview.existingFiles) {
                     throw RestoreRefused(
                         "The destination changed. Open the backup again to review what will be replaced.",
@@ -589,11 +604,14 @@ private fun restoreDocument(
                         val artifact = target.artifact
                         val source = File(extracted, artifact.path)
                         if (artifact.saveKind == CartSaveArchive.Kind.MEMORY_CARD) {
-                            if (source.length() != PlayStationMemoryCard.SIZE.toLong() ||
-                                !PlayStationMemoryCard.isRawCard(source.readBytes())
-                            ) {
-                                throw RestoreRefused("The PlayStation card image is invalid.")
-                            }
+                            val isValid =
+                                if (target.engineId == Armsx2FileCards.ENGINE_ID) {
+                                    Armsx2FileCards.isFormattedCard(source)
+                                } else {
+                                    source.length() == PlayStationMemoryCard.SIZE.toLong() &&
+                                        PlayStationMemoryCard.isRawCard(source.readBytes())
+                                }
+                            if (!isValid) throw RestoreRefused("The memory card image is invalid for this engine.")
                         }
                         if (artifact.saveKind == CartSaveArchive.Kind.MANUAL_STATE ||
                             artifact.saveKind == CartSaveArchive.Kind.AUTOSAVE
@@ -612,7 +630,12 @@ private fun restoreDocument(
     }
 }
 
-private data class RestoreTarget(val game: Game, val file: File, val artifact: CartSaveArchive.Artifact)
+private data class RestoreTarget(
+    val game: Game,
+    val file: File,
+    val artifact: CartSaveArchive.Artifact,
+    val engineId: String,
+)
 
 private fun existingFiles(targets: List<RestoreTarget>): Map<File, Pair<Long, Long>> =
     targets.mapNotNull { target ->
@@ -621,6 +644,7 @@ private fun existingFiles(targets: List<RestoreTarget>): Map<File, Pair<Long, Lo
     }.toMap()
 
 private fun restoreTargets(
+    context: Context,
     binding: CartridgeSaveBinding,
     games: List<Game>,
     manifest: CartSaveArchive.Manifest,
@@ -635,7 +659,7 @@ private fun restoreTargets(
             games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
                 ?: throw UnmatchedBackupTarget("A cartridge in this backup has no exact local match.")
         val destination =
-            files(binding, game, includeMissing = true).singleOrNull {
+            files(context, binding, game, includeMissing = true).singleOrNull {
                 it.engineId == group.engineId &&
                     compatibility(it, group.artifacts) == group.engineVersion
             } ?: throw UnmatchedBackupTarget("No compatible save binding.")
@@ -653,7 +677,7 @@ private fun restoreTargets(
                     it.logicalName == artifact.relativePath && it.kind == artifact.saveKind &&
                         it.slot == artifact.slot
                 } ?: throw RestoreRefused("A backup file has no safe destination.")
-            RestoreTarget(game, target.file, artifact)
+            RestoreTarget(game, target.file, artifact, destination.engineId)
         }
     }
 
