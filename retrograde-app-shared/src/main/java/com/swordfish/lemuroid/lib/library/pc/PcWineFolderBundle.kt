@@ -23,8 +23,9 @@ object PcWineFolderBundle {
     private const val MAX_SINGLE = 512L * 1024 * 1024
     private const val MAX_TOTAL = 2L * 1024 * 1024 * 1024
     private const val RESERVE = 256L * 1024 * 1024
-    private val forbidden = setOf("CON", "PRN", "AUX", "NUL") +
-        (1..9).flatMap { listOf("COM" + it, "LPT" + it) }
+    private val forbidden =
+        setOf("CON", "PRN", "AUX", "NUL") +
+            (1..9).flatMap { listOf("COM" + it, "LPT" + it) }
 
     fun validPath(name: String): String {
         require(name.length in 1..1024 && !name.startsWith("/") && '\\' !in name)
@@ -40,8 +41,7 @@ object PcWineFolderBundle {
         return name
     }
 
-    fun isFolder(entry: PcCartridgeStore.Entry): Boolean =
-        File(entry.content.parentFile, MANIFEST).isFile
+    fun isFolder(entry: PcCartridgeStore.Entry): Boolean = File(entry.content.parentFile, MANIFEST).isFile
 
     fun importFolder(
         filesRoot: File,
@@ -112,13 +112,14 @@ object PcWineFolderBundle {
             } finally {
                 probe.delete()
             }
-            val manifest = buildString {
-                append(HEADER).append('\t').append(chosen.path).append('\n')
-                for (record in records) {
-                    append(record.path).append('\t').append(record.size).append('\t')
-                    append(record.sha).append('\n')
+            val manifest =
+                buildString {
+                    append(HEADER).append('\t').append(chosen.path).append('\n')
+                    for (record in records) {
+                        append(record.path).append('\t').append(record.size).append('\t')
+                        append(record.sha).append('\n')
+                    }
                 }
-            }
             write(File(stage, MANIFEST), manifest.toByteArray(Charsets.UTF_8))
             write(File(stage, "title.txt"), clean.toByteArray(Charsets.UTF_8))
             check(archive.setReadOnly())
@@ -131,7 +132,10 @@ object PcWineFolderBundle {
         }
     }
 
-    fun prepareExecutable(entry: PcCartridgeStore.Entry, workspace: PcWorkspace): File {
+    fun prepareExecutable(
+        entry: PcCartridgeStore.Entry,
+        workspace: PcWorkspace,
+    ): File {
         val (selected, records) = readManifest(entry)
         workspace.prepareWritableDirectories()
         val content = File(workspace.runtime, "content")
@@ -187,20 +191,24 @@ object PcWineFolderBundle {
         val header = lines.first().split('\t')
         check(header.size == 2 && header[0] == HEADER)
         val selected = validPath(header[1])
-        val records = lines.drop(1).filter { it.isNotEmpty() }.map { line ->
-            val parts = line.split('\t')
-            check(parts.size == 3 && parts[2].matches(Regex("[a-f0-9]{64}")))
-            val size = parts[1].toLong()
-            check(size in 0..MAX_SINGLE)
-            Record(validPath(parts[0]), size, parts[2])
-        }
+        val records =
+            lines.drop(1).filter { it.isNotEmpty() }.map { line ->
+                val parts = line.split('\t')
+                check(parts.size == 3 && parts[2].matches(Regex("[a-f0-9]{64}")))
+                val size = parts[1].toLong()
+                check(size in 0..MAX_SINGLE)
+                Record(validPath(parts[0]), size, parts[2])
+            }
         check(records.isNotEmpty() && records.size <= MAX_FILES && records.sumOf { it.size } <= MAX_TOTAL)
         check(records.map { it.path.lowercase(Locale.ROOT) }.toSet().size == records.size)
         check(records.any { it.path == selected })
         return selected to records
     }
 
-    private fun safeFile(root: File, relative: String): File {
+    private fun safeFile(
+        root: File,
+        relative: String,
+    ): File {
         val file = File(root, validPath(relative))
         val base = root.canonicalFile.toPath()
         check(file.canonicalFile.toPath().startsWith(base) && file.canonicalFile.toPath() != base)
@@ -213,10 +221,15 @@ object PcWineFolderBundle {
         return file
     }
 
-    private fun write(file: File, bytes: ByteArray) {
-        file.outputStream().use { it.write(bytes); it.fd.sync() }
+    private fun write(
+        file: File,
+        bytes: ByteArray,
+    ) {
+        file.outputStream().use {
+            it.write(bytes)
+            it.fd.sync()
+        }
     }
 
-    private fun hex(hash: MessageDigest): String =
-        hash.digest().joinToString("") { "%02x".format(it) }
+    private fun hex(hash: MessageDigest): String = hash.digest().joinToString("") { "%02x".format(it) }
 }

@@ -20,8 +20,10 @@ class PcWineFolderBundleTest {
             putShort(68, machine.toShort())
         }.array()
 
-    private fun source(path: String, bytes: ByteArray): PcWineFolderBundle.Source =
-        PcWineFolderBundle.Source(path) { bytes.inputStream() }
+    private fun source(
+        path: String,
+        bytes: ByteArray,
+    ): PcWineFolderBundle.Source = PcWineFolderBundle.Source(path) { bytes.inputStream() }
 
     @Test
     fun folderPreservesNestedDependenciesAndGameModificationsAcrossReopen() {

@@ -13,14 +13,21 @@ internal object PcWineFolderTree {
         val exePaths: List<String>,
     )
 
-    fun scan(context: Context, uri: Uri): Selection {
+    fun scan(
+        context: Context,
+        uri: Uri,
+    ): Selection {
         val root = checkNotNull(DocumentFile.fromTreeUri(context, uri)) { "Folder not accessible" }
         require(root.isDirectory)
         val candidates = mutableListOf<PcWineFolderBundle.Source>()
         val visited = mutableSetOf<Uri>()
         var nodes = 0
 
-        fun walk(directory: DocumentFile, prefix: String, depth: Int) {
+        fun walk(
+            directory: DocumentFile,
+            prefix: String,
+            depth: Int,
+        ) {
             check(depth <= 12 && visited.add(directory.uri)) { "Recursive or overly deep game folder" }
             for (child in directory.listFiles()) {
                 nodes++
