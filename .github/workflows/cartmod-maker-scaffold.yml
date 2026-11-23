@@ -1,0 +1,27 @@
+name: CARTMOD Maker scaffold contract
+on:
+  pull_request:
+    paths:
+      - 'spikes/cartmod-maker/**'
+      - '.github/workflows/cartmod-maker-scaffold.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  maker-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate GBC/GBA Maker reference contract
+        run: |
+          python -m unittest discover -s spikes/cartmod-maker/tests -v
+          python spikes/cartmod-maker/maker_reference.py validate spikes/cartmod-maker/examples/pocket-puzzle.cartproj.json
+          python spikes/cartmod-maker/maker_reference.py validate spikes/cartmod-maker/examples/pocket-shop.cartproj.json
+          python spikes/cartmod-maker/maker_reference.py preview spikes/cartmod-maker/examples/pocket-puzzle.cartproj.json --actions R,R,D
+          python spikes/cartmod-maker/maker_reference.py preview spikes/cartmod-maker/examples/pocket-shop.cartproj.json --actions I,I,I

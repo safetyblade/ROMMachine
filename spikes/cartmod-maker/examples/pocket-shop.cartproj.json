@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "projectId": "10000000-0000-4000-8000-000000000002",
+  "name": "Pocket Shop",
+  "targets": [
+    "GBC",
+    "GBA"
+  ],
+  "board": {
+    "width": 5,
+    "height": 5,
+    "rows": [
+      "#####",
+      "#...#",
+      "#.C.#",
+      "#...#",
+      "#####"
+    ],
+    "player": {
+      "x": 2,
+      "y": 2
+    }
+  },
+  "variables": {
+    "coins": 0,
+    "stock": 2,
+    "won": false
+  },
+  "rules": [
+    {
+      "id": "sell_item",
+      "event": "interact",
+      "tile": "C",
+      "conditions": [
+        {
+          "variable": "stock",
+          "compare": "gt",
+          "value": 0
+        }
+      ],
+      "actions": [
+        {
+          "type": "add",
+          "variable": "coins",
+          "value": 3
+        },
+        {
+          "type": "add",
+          "variable": "stock",
+          "value": -1
+        }
+      ]
+    },
+    {
+      "id": "complete_day",
+      "event": "interact",
+      "tile": "C",
+      "conditions": [
+        {
+          "variable": "coins",
+          "compare": "gte",
+          "value": 6
+        }
+      ],
+      "actions": [
+        {
+          "type": "set",
+          "variable": "won",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

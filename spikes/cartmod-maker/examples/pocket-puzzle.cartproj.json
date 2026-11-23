@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "projectId": "10000000-0000-4000-8000-000000000001",
+  "name": "Pocket Puzzle",
+  "targets": [
+    "GBC",
+    "GBA"
+  ],
+  "board": {
+    "width": 5,
+    "height": 5,
+    "rows": [
+      "#####",
+      "#...#",
+      "#.#G#",
+      "#...#",
+      "#####"
+    ],
+    "player": {
+      "x": 1,
+      "y": 1
+    }
+  },
+  "variables": {
+    "won": false
+  },
+  "rules": [
+    {
+      "id": "reach_goal",
+      "event": "enter",
+      "tile": "G",
+      "conditions": [],
+      "actions": [
+        {
+          "type": "set",
+          "variable": "won",
+          "value": true
+        }
+      ]
+    }
+  ]
+}
