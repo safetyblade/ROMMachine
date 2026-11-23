@@ -1,6 +1,12 @@
 name: CARTDECK PC full-folder game source audit
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'scripts/ci/pc_folder_fixture_audit.py'
+      - '.github/workflows/cartdeck-pc-folder-fixtures.yml'
+      - 'docs/research/pc/PC_EXE_FOLDER_FINAL_LEG_20261123.md'
 permissions:
   contents: read
 jobs:
