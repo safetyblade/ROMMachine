@@ -36,7 +36,6 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroViewData
-import com.swordfish.libretrodroid.ImmersiveMode
 import com.swordfish.libretrodroid.Variable
 import com.swordfish.libretrodroid.ViewportAlignment
 import com.swordfish.libretrodroid.VirtualFile
@@ -172,7 +171,6 @@ class GameViewModelRetroGameView(
         val lowLatencyAudio = settingsManager.lowLatencyAudio()
         val enableRumble = settingsManager.enableRumble()
         val directLoad = settingsManager.allowDirectGameLoad()
-        val enableImmersiveMode = settingsManager.enableImmersiveMode()
 
         val hasMicrophonePermission =
             ContextCompat.checkSelfPermission(
@@ -240,7 +238,6 @@ class GameViewModelRetroGameView(
                                 lowLatencyAudio,
                                 enableRumble,
                                 enableMicrophone,
-                                enableImmersiveMode,
                             )
                         GameState.Loaded(
                             gameData = loadingState.gameData,
@@ -367,7 +364,6 @@ class GameViewModelRetroGameView(
         lowLatencyAudio: Boolean,
         requestRumble: Boolean,
         requestMicrophone: Boolean,
-        enableImmersiveMode: Boolean,
     ): GLRetroViewData {
         return GLRetroViewData(appContext).apply {
             coreFilePath = gameData.coreLibrary
@@ -404,15 +400,7 @@ class GameViewModelRetroGameView(
             rumbleEventsEnabled = requestRumble
             skipDuplicateFrames = systemCoreConfig.skipDuplicateFrames
             enableMicrophone = requestMicrophone
-            immersiveMode = buildImmersiveModeConfiguration(enableImmersiveMode)
-        }
-    }
-
-    private fun buildImmersiveModeConfiguration(enableImmersiveMode: Boolean): ImmersiveMode? {
-        return if (enableImmersiveMode) {
-            ImmersiveMode(blendFactor = 0.05f)
-        } else {
-            null
+            immersiveMode = null
         }
     }
 
