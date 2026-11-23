@@ -15,6 +15,26 @@ KOTLIN = ROOT / "lemuroid-app/src/main/java/com/swordfish/lemuroid/app/gemrating
 PINS = ("vdg-pins-a.json", "vdg-pins-b.json", "titlescreen-pins.json")
 
 
+def _kotlin_string_set(code: str, name: str) -> set[str]:
+    """Read a simple Kotlin setOf string literal, independent of ktlint line wrapping."""
+    match = re.search(
+        rf"\\bprivate\\s+val\\s+{re.escape(name)}\\s*=\\s*setOf\\s*\\((.*?)\\)",
+        code,
+        re.S,
+    )
+    if match is None:
+        raise AssertionError(f"Missing Kotlin source set: {name}")
+    body = match.group(1)
+    values = re.findall(r'"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"', body)
+    # Source taxonomy values are plain string literals, not expressions.
+    unparsed = re.sub(r'"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"\\s*,?', "", body)
+    if unparsed.strip():
+        raise AssertionError(f"Unsupported Kotlin source set expression: {name}")
+    if not values or len(values) != len(set(values)):
+        raise AssertionError(f"Empty or duplicate Kotlin source set: {name}")
+    return set(values)
+
+
 def taxonomy():
     code = KOTLIN.read_text(encoding="utf-8")
     assert "private val genres =" in code
@@ -22,10 +42,8 @@ def taxonomy():
     entries = re.findall(r'^\s*"([^"]+)"\s+to\s+"([^"]+)"\s*,?\s*$', section, re.M)
     mapped = dict(entries)
     assert len(mapped) == len(entries), "Duplicate taxonomy source label"
-    nongame_section = code.split("private val nonGame = setOf(", 1)[1].split(")", 1)[0]
-    nongame = set(re.findall(r'"([^"]+)"', nongame_section))
-    unknown_section = code.split("private val ambiguous = setOf(", 1)[1].split(")", 1)[0]
-    ambiguous = set(re.findall(r'"([^"]+)"', unknown_section))
+    nongame = _kotlin_string_set(code, "nonGame")
+    ambiguous = _kotlin_string_set(code, "ambiguous")
     assert not (set(mapped) & nongame)
     assert not (set(mapped) & ambiguous)
     return mapped, nongame, ambiguous
