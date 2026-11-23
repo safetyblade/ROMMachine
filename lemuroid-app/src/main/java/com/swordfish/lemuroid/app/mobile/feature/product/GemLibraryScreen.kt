@@ -152,6 +152,11 @@ internal fun GemLibraryScreen(
     }
 
     val current = catalogue
+    val linkingRelease =
+        remember(current, linkingReleaseId) {
+            val id = linkingReleaseId ?: return@remember null
+            current?.manifest?.releases?.firstOrNull { it.releaseId == id }
+        }
     var contributions by remember(current) { mutableStateOf(emptyMap<String, GemFeatureContributions.Record>()) }
     LaunchedEffect(current) {
         val releases = current?.manifest?.releases ?: return@LaunchedEffect
@@ -495,11 +500,6 @@ internal fun GemLibraryScreen(
                     }
                     if (current != null && inspected == null) {
                         if (selected == null && !browseCatalogue) {
-                            val linkingRelease =
-                                remember(current, linkingReleaseId) {
-                                    val id = linkingReleaseId ?: return@remember null
-                                    current.manifest.releases.firstOrNull { it.releaseId == id }
-                                }
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 Column {
                                     Text("My cartridges", style = MaterialTheme.typography.titleMedium)
