@@ -558,8 +558,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             val pivotHoldsEnabled =
                 pivotPlacement != null && touchControlsVisibleState.value && !isLoading
-            DisposableEffect(viewModel, pivotHoldsEnabled) {
-                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled)
+            val pivotController = currentControllerConfig?.touchControllerID
+            DisposableEffect(viewModel, pivotHoldsEnabled, pivotController) {
+                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled, pivotController)
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 

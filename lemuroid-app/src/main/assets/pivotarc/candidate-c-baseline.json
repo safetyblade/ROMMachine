@@ -156,6 +156,12 @@
       "touch": {"w": 48, "h": 48},
       "kind": "utility"
     },
+    "Cursor": {
+      "center": {"x": 322, "y": 643},
+      "visual": {"w": 58, "h": 58},
+      "touch": {"w": 64, "h": 64},
+      "kind": "dpad"
+    },
     "Analog": {
       "center": {
         "x": 322,

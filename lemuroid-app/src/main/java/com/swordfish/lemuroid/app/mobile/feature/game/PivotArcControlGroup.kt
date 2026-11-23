@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
@@ -53,6 +54,7 @@ fun PadKitScope.PivotArcControlGroup(
     touchController: TouchControllerID? = null,
 ) {
     val observe = LocalCartdeckControlBounds.current
+    val wonderSwan = WonderSwanPivotInput.forController(touchController)
     Box(Modifier.fillMaxSize()) {
         placement.controls.forEach { (key, bounds) ->
             val visual = placement.visuals.getValue(key)
@@ -79,7 +81,12 @@ fun PadKitScope.PivotArcControlGroup(
                     )
             if (key == "HoldA" || key == "HoldB") {
                 val face = if (key == "HoldA") "A" else "B"
-                val code = if (face == "A") KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
+                val code =
+                    if (face == "A") {
+                        wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
+                    } else {
+                        wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
+                    }
                 PivotArcHoldSwitch(
                     modifier = position,
                     label = PivotArcLayoutProfile.nativeLabel(system, face),
@@ -97,16 +104,32 @@ fun PadKitScope.PivotArcControlGroup(
                     background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
                     foreground = { LemuroidButtonForeground(pressed = it) },
                 )
-            } else if (key == "D") {
+            } else if (key == "D" || (key == "Cursor" && wonderSwan != null)) {
+                val secondary = key == "Cursor"
+                val label = if (secondary) wonderSwan?.secondaryLabel else wonderSwan?.primaryLabel
+                val directionSource =
+                    if (secondary) {
+                        checkNotNull(wonderSwan).source
+                    } else {
+                        ComposeTouchLayouts.MOTION_SOURCE_DPAD
+                    }
                 ControlCross(
-                    modifier = position,
-                    id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_DPAD),
+                    modifier = if (label == null) position else position.semantics { contentDescription = label },
+                    id = Id.DiscreteDirection(directionSource),
                     allowDiagonals = true,
                     background = {},
                     foreground = { direction ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
                                 LemuroidCrossForeground(allowDiagonals = true, directionState = direction)
+                                if (label != null) {
+                                    Text(
+                                        label.take(1),
+                                        Modifier.align(Alignment.Center),
+                                        color = accent,
+                                        fontSize = 12.sp,
+                                    )
+                                }
                             }
                         }
                     },
@@ -114,8 +137,8 @@ fun PadKitScope.PivotArcControlGroup(
             } else {
                 val inputKey =
                     when (key) {
-                        "A" -> KeyEvent.KEYCODE_BUTTON_A
-                        "B" -> KeyEvent.KEYCODE_BUTTON_B
+                        "A" -> wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
+                        "B" -> wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
                         "X" -> KeyEvent.KEYCODE_BUTTON_X
                         "Y" -> KeyEvent.KEYCODE_BUTTON_Y
                         "L" -> KeyEvent.KEYCODE_BUTTON_L1

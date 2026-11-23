@@ -237,6 +237,22 @@ class PivotArcPositionSolverTest {
         assertEquals(baseline, PivotArcLayoutProfile.forSystem(baseline, SystemID.GBA, pspAnalogPrimary = true))
     }
 
+    @Test fun bothWonderSwanSystemsKeepIndependentCursorSeatsWithoutLosingButtons() {
+        for (system in listOf(SystemID.WS, SystemID.WSC)) {
+            for (leftHand in listOf(false, true)) {
+                val layout = (resolve(system, leftHand = leftHand) as PivotArcResolution.Fits).placement
+                assertEquals(
+                    setOf("D", "Cursor", "A", "B", "Start", "Menu", "HoldA", "HoldB"),
+                    layout.controls.keys,
+                )
+                val cursor = layout.controls.getValue("Cursor")
+                assertTrue(cursor.width >= 48f && cursor.height >= 48f)
+                assertFalse(cursor.intersects(referenceViewport))
+                assertTrue(layout.controls.filterKeys { it != "Cursor" }.values.none(cursor::intersects))
+            }
+        }
+    }
+
     @Test fun dualScreenPivotArcKeepsStylusRegionAndBackendSpecificAuxiliaries() {
         val viewport = PivotArcBounds(22f, 36f, 371f, 452f)
         for (side in listOf(false, true)) {

@@ -20,15 +20,24 @@ class PivotArcHeldInputGate(
     private var pivotEnabled = false
     private var gripEnabled = false
     private var trayKeys = emptySet<Int>()
+    private var pivotFaceKeys = DEFAULT_FACE_KEYS
+    private var pivotCursorKeys = emptySet<Int>()
 
     @Synchronized
     fun isEnabled(): Boolean = pivotEnabled
 
     @Synchronized
-    fun setEnabled(value: Boolean) {
-        if (pivotEnabled == value) return
+    fun setEnabled(
+        value: Boolean,
+        faceKeys: Set<Int> = DEFAULT_FACE_KEYS,
+        cursorKeys: Set<Int> = emptySet(),
+    ) {
+        require((faceKeys + cursorKeys).all { it in MANAGED_KEYS })
+        if (pivotEnabled == value && pivotFaceKeys == faceKeys && pivotCursorKeys == cursorKeys) return
         clear()
         pivotEnabled = value
+        pivotFaceKeys = faceKeys
+        pivotCursorKeys = cursorKeys
     }
 
     @Synchronized
@@ -59,7 +68,7 @@ class PivotArcHeldInputGate(
     ): Boolean {
         val owns =
             (gripEnabled && keyCode in MANAGED_KEYS) ||
-                (pivotEnabled && keyCode in LATCHABLE_KEYS) || keyCode in trayKeys
+                (pivotEnabled && (keyCode in pivotFaceKeys || keyCode in pivotCursorKeys)) || keyCode in trayKeys
         if (!owns) return false
         val wasDown = sources[keyCode]?.isNotEmpty() == true
         val owners = sources.getOrPut(keyCode) { mutableSetOf() }
@@ -74,7 +83,7 @@ class PivotArcHeldInputGate(
 
     @Synchronized
     fun toggleHold(keyCode: Int) {
-        val latchable = if (pivotEnabled) LATCHABLE_KEYS else trayKeys
+        val latchable = if (pivotEnabled) pivotFaceKeys else trayKeys
         if (keyCode !in latchable) return
         val active = sources[keyCode]?.contains(HOLD_SOURCE) == true
         setSource(keyCode, HOLD_SOURCE, !active)
@@ -122,10 +131,10 @@ class PivotArcHeldInputGate(
 
     companion object {
         private const val HOLD_SOURCE = "pivotarc-latch"
-        private val LATCHABLE_KEYS =
+        private val DEFAULT_FACE_KEYS =
             setOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B)
         private val MANAGED_KEYS =
-            LATCHABLE_KEYS +
+            DEFAULT_FACE_KEYS +
                 setOf(
                     KeyEvent.KEYCODE_BUTTON_X,
                     KeyEvent.KEYCODE_BUTTON_Y,

@@ -203,6 +203,15 @@ class GameViewModelTouchControls(
         yAxis: Float,
     ) {
         when (id) {
+            WonderSwanPivotInput.HORIZONTAL_SOURCE, WonderSwanPivotInput.VERTICAL_SOURCE -> {
+                val mapping = WonderSwanPivotInput.forController(touchControlId.value)
+                if (mapping?.source == id) {
+                    mapping.dispatch(xAxis, yAxis) { key, pressed ->
+                        pivotArcHoldGate.setSource(key, "touch:ws-cursor", pressed)
+                    }
+                }
+            }
+
             ComposeTouchLayouts.MOTION_SOURCE_DPAD -> {
                 retroGameView.retroGameView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, xAxis, yAxis)
             }

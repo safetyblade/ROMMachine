@@ -78,6 +78,7 @@ object PivotArcLayoutProfile {
             SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
             SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            SystemID.WS, SystemID.WSC -> listOf("D", "Cursor", "A", "B", "Start", "Menu")
             SystemID.NDS -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu", "Mic", "Lid")
             SystemID.PSP, SystemID.NINTENDO_3DS ->
                 listOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
