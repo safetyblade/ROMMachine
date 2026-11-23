@@ -120,6 +120,25 @@ internal object PivotArcModuleGeometry {
     }
 }
 
+/**
+ * The control hull is a safe-placement envelope, NOT an opaque replacement faceplate.
+ * Only thin top/bottom machined rails and the original per-button seats are painted.
+ * This is invariant across compact screens, themes and active controller inventories.
+ */
+internal object PivotArcPaintPolicy {
+    fun rails(plate: Rect, width: Float): List<Rect> {
+        if (width <= 0f || plate.width <= width * 4f || plate.height <= width * 4f) return emptyList()
+        return listOf(
+            Rect(plate.left + width, plate.top, plate.right - width, plate.top + width),
+            Rect(plate.left + width, plate.bottom - width, plate.right - width, plate.bottom),
+        )
+    }
+
+    fun railAreaFraction(plate: Rect, width: Float): Float =
+        if (plate.width <= 0f || plate.height <= 0f) 0f
+        else rails(plate, width).sumOf { (it.width * it.height).toDouble() }.toFloat() / (plate.width * plate.height)
+}
+
 /** Draw beneath PadKit and its artwork; never install pointer handlers. */
 @Composable
 internal fun CartdeckPivotArcModule(
@@ -140,70 +159,26 @@ internal fun CartdeckPivotArcModule(
         Canvas(Modifier.fillMaxSize()) {
             val plate = module.plate
             val bevel = 15.dp.toPx()
-            val face =
-                Path().apply {
-                    moveTo(plate.left + bevel, plate.top)
-                    lineTo(plate.right - bevel, plate.top)
-                    lineTo(plate.right, plate.top + bevel)
-                    lineTo(plate.right, plate.bottom - bevel)
-                    lineTo(plate.right - bevel, plate.bottom)
-                    lineTo(plate.left + bevel, plate.bottom)
-                    lineTo(plate.left, plate.bottom - bevel)
-                    lineTo(plate.left, plate.top + bevel)
-                    close()
-                }
-            // V2: multiple material levels are painted UNDER PadKit. This
-            // layer never owns input, changes control coordinates, or extends
-            // into the game viewport (the plate comes from measured geometry).
-            val depth = 3.dp.toPx()
-            val insetEdge = 7.dp.toPx()
-
-            fun chamferedPlate(
-                bounds: Rect,
-                corner: Float,
-            ) = Path().apply {
-                moveTo(bounds.left + corner, bounds.top)
-                lineTo(bounds.right - corner, bounds.top)
-                lineTo(bounds.right, bounds.top + corner)
-                lineTo(bounds.right, bounds.bottom - corner)
-                lineTo(bounds.right - corner, bounds.bottom)
-                lineTo(bounds.left + corner, bounds.bottom)
-                lineTo(bounds.left, bounds.bottom - corner)
-                lineTo(bounds.left, bounds.top + corner)
-                close()
-            }
-            val contactShadow =
-                Rect(plate.left, plate.top + depth, plate.right, plate.bottom)
-            drawPath(chamferedPlate(contactShadow, bevel), tokens.bezel.copy(alpha = 0.68f))
-            drawPath(face, tokens.secondary)
-            drawPath(
-                face,
-                tokens.onChassis.copy(alpha = 0.23f),
-                style = Stroke(width = 2.dp.toPx()),
-            )
-            drawPath(face, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
-            val innerPlate =
-                Rect(
-                    plate.left + insetEdge,
-                    plate.top + insetEdge,
-                    plate.right - insetEdge,
-                    plate.bottom - insetEdge,
-                )
-            if (innerPlate.width > 2 * bevel && innerPlate.height > 2 * bevel) {
-                val inner = chamferedPlate(innerPlate, bevel * 0.60f)
-                drawPath(inner, tokens.chassis.copy(alpha = 0.46f))
-                drawPath(
-                    inner,
-                    tokens.onChassis.copy(alpha = 0.13f),
-                    style = Stroke(width = 1.1.dp.toPx()),
+            // V3: no full-hull opaque plate. The CARTDECK chassis stays visible
+            // between thumb groups, including PlayStation's four-face/analog deck.
+            // Touch positions are unchanged; these rails never receive pointers.
+            val railWidth = 3.dp.toPx()
+            for (rail in PivotArcPaintPolicy.rails(plate, railWidth)) {
+                drawRoundRect(
+                    color = tokens.bezel.copy(alpha = 0.80f),
+                    topLeft = Offset(rail.left, rail.top),
+                    size = Size(rail.width, rail.height),
+                    cornerRadius = CornerRadius(railWidth / 2f),
                 )
                 drawLine(
-                    tokens.bezel.copy(alpha = 0.64f),
-                    Offset(innerPlate.left + bevel, innerPlate.bottom - 2.dp.toPx()),
-                    Offset(innerPlate.right - bevel, innerPlate.bottom - 2.dp.toPx()),
-                    strokeWidth = 2.2.dp.toPx(),
+                    color = tokens.secondary.copy(alpha = 0.82f),
+                    start = Offset(rail.left + bevel, rail.center.y),
+                    end = Offset(rail.right - bevel, rail.center.y),
+                    strokeWidth = 1.dp.toPx(),
                 )
             }
+            // Local machined wells below are preserved; the large rectangular
+            // material fill and opaque inset are intentionally retired.
             // The face, D-pad well and shoulders get individual machined
             // seats. The existing caps/pressed feedback remain authoritative.
             val gameplaySeats =
