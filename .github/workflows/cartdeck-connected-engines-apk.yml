@@ -696,7 +696,7 @@ jobs:
             -PcartdeckNativeBundleDir="$GITHUB_WORKSPACE/work/connected/bundle" \
             -PcartdeckHostMavenRepo="$GITHUB_WORKSPACE/work/connected/host/maven" \
             -PcartdeckLibretroDroidVersion=0.14.0-cartdeck3 \
-            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 "${benchmark_args[@]}"
+            -Pkotlin.compiler.execution.strategy=in-process --no-daemon --no-configuration-cache --max-workers=2 --stacktrace "${benchmark_args[@]}"
           bash scripts/ci/verify_standalone_apk.sh
           python3 scripts/ci/verify_citra_apk_provenance.py \
             "$CARTDECK_OUTPUT/CARTDECK_STANDALONE_ARM64_DEBUG.apk" \
