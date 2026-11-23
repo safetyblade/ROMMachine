@@ -14,35 +14,6 @@
             app:iconSpaceReserved="false"
             android:defaultValue="true"/>
 
-        <SwitchPreference
-            android:key="@string/pref_key_hd_mode"
-            android:title="@string/settings_title_hd_mode"
-            android:summary="@string/settings_description_hd_mode"
-            app:iconSpaceReserved="false"
-            app:disableDependentsState="true"
-            android:defaultValue="false"/>
-
-        <SeekBarPreference
-            android:key="@string/pref_key_hd_mode_quality"
-            android:title="@string/settings_title_hd_quality"
-            android:summary="@string/settings_description_hd_quality"
-            app:min="0"
-            android:max="2"
-            app:seekBarIncrement="1"
-            app:showSeekBarValue="false"
-            app:iconSpaceReserved="false"
-            android:defaultValue="2"/>
-
-        <ListPreference
-            android:key="@string/pref_key_shader_filter"
-            android:title="@string/display_filter"
-            app:iconSpaceReserved="false"
-            app:useSimpleSummaryProvider="true"
-            android:entries="@array/pref_key_shader_filter_display_names"
-            app:entryValues="@array/pref_key_shader_filter_values"
-            app:dependency="@string/pref_key_hd_mode"
-            android:defaultValue="auto"/>
-
     </PreferenceCategory>
 
     <PreferenceCategory
