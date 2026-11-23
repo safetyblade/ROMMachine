@@ -76,8 +76,9 @@ def validate_project(data: Any) -> dict:
     if any(ord(ch) < 32 for ch in name):
         _fail("name: control characters not allowed")
     targets = d["targets"]
-    if (not isinstance(targets, list) or not targets or len(set(map(str, targets))) != len(targets)
-            or not set(targets) <= ALLOWED_TARGETS or len(targets) > 2):
+    if (not isinstance(targets, list) or not 1 <= len(targets) <= 2
+            or any(type(t) is not str or t not in ALLOWED_TARGETS for t in targets)
+            or len(set(targets)) != len(targets)):
         _fail("targets: unique nonempty GBC/GBA list required")
     board = _fields(
         d["board"], "board",
@@ -119,14 +120,15 @@ def validate_project(data: Any) -> dict:
             {"id", "event", "tile", "conditions", "actions"},
             {"id", "event", "tile", "conditions", "actions"},
         )
-        if not isinstance(r["id"], str) or not r["id"].isascii() or not r["id"].isidentifier():
+        if (not isinstance(r["id"], str) or not r["id"].isascii()
+                or not r["id"].isidentifier() or r["id"].startswith("_")):
             _fail(f"{prefix}.id: ASCII identifier required")
         if r["id"] in ids:
             _fail(f"{prefix}.id: duplicate")
         ids.add(r["id"])
-        if r["event"] not in ALLOWED_EVENTS:
+        if type(r["event"]) is not str or r["event"] not in ALLOWED_EVENTS:
             _fail(f"{prefix}.event: unsupported")
-        if r["tile"] not in ALLOWED_TILES - {"#"}:
+        if type(r["tile"]) is not str or r["tile"] not in ALLOWED_TILES - {"#"}:
             _fail(f"{prefix}.tile: unsupported")
         conditions = r["conditions"]
         actions = r["actions"]
@@ -140,7 +142,8 @@ def validate_project(data: Any) -> dict:
                 {"variable", "compare", "value"},
             )
             key = c["variable"]
-            if key not in variables or c["compare"] not in ALLOWED_COMPARISONS:
+            if (type(key) is not str or key not in variables or
+                    type(c["compare"]) is not str or c["compare"] not in ALLOWED_COMPARISONS):
                 _fail(f"{prefix}: unknown variable/comparison")
             _typed_value(c["value"], f"{prefix}.condition.value")
             if type(c["value"]) is not type(variables[key]):
@@ -154,7 +157,8 @@ def validate_project(data: Any) -> dict:
                 {"type", "variable", "value"},
             )
             key = a["variable"]
-            if key not in variables or a["type"] not in ("set", "add"):
+            if (type(key) is not str or key not in variables or
+                    type(a["type"]) is not str or a["type"] not in ("set", "add")):
                 _fail(f"{prefix}: unsupported action or variable")
             _typed_value(a["value"], f"{prefix}.action.value")
             if a["type"] == "set" and type(a["value"]) is not type(variables[key]):
