@@ -125,7 +125,10 @@ internal object PivotArcModuleGeometry {
  * This is invariant across compact screens, themes and active controller inventories.
  */
 internal object PivotArcPaintPolicy {
-    fun rails(plate: Rect, width: Float): List<Rect> {
+    fun rails(
+        plate: Rect,
+        width: Float,
+    ): List<Rect> {
         if (width <= 0f || plate.width <= width * 4f || plate.height <= width * 4f) return emptyList()
         return listOf(
             Rect(plate.left + width, plate.top, plate.right - width, plate.top + width),
@@ -133,7 +136,10 @@ internal object PivotArcPaintPolicy {
         )
     }
 
-    fun railAreaFraction(plate: Rect, width: Float): Float =
+    fun railAreaFraction(
+        plate: Rect,
+        width: Float,
+    ): Float =
         if (plate.width <= 0f || plate.height <= 0f) {
             0f
         } else {
