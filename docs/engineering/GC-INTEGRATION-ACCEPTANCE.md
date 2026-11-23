@@ -1,8 +1,8 @@
 > **GC C/E BLOCKER #135 / PIV-HH-01 CONSOLIDATED 22 NOV:** [Unifying GripArc V2.2 repairs and all **12** handheld PivotArc systems](gc01/GC01_PIVOTARC_GRIPARC_UNIFIED_ENGINEERING_ACCEPTANCE_2026-11-22.md). `SystemID.NGC` = Neo Geo Pocket Color is a distinct 12th handheld source identity. Current **Standard+GripArc** source/input partly works but owner found **oversized full L and hidden console buttons**; **PivotArc+GripArc physical FAIL**. Full source-native input/48dp/visual fit and proper G1–G4 + A/B holds, left/right, console switching, same-head APK and Marcus device evidence remain acceptance requirements; no source fixture or docs can mark #135 PASS.
 
-> **PIV-HH-01 — HANDHELD PIVOTARC DESIGN ADDITION (22 NOV):** [New console-authentic PivotArc layouts for GB, GBC, GBA, GG, LYNX, NGP, WS, WSC, PSP, NDS and 3DS](../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) (see repository-root-relative path docs/design/gc01/) add a **GC C/E design and future engineering QA gate**. Existing GB/GBC/GBA/SNES PivotArc and Hold A/B are preserved; **no new fixed H1–H3**. Optional Standard-only Hold Tray is separate. Evaluate one-thumb game reach, source-original buttons, WonderSwan orientation, Lynx Option/Pause, PSP analog, NDS/3DS stylus/motion, 48dp/no cropping, exact guest down/up and safe fallback; physical PASS still pending. This is documentation until Kotlin and owner/Marcus tests exist.
+> **PIV-HH-01 — HANDHELD PIVOTARC DESIGN ADDITION (22 NOV):** [New console-authentic PivotArc layouts for GB, GBC, GBA, GG, LYNX, NGP, WS, WSC, PSP, NDS and 3DS](../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) (see repository-root-relative path docs/design/gc01/) add a **GC C/E design and future engineering QA gate**. Existing GB/GBC/GBA/SNES PivotArc and Hold A/B are preserved; **no new fixed H1–H3**. Optional Standard-only Hold Tray is separate. Evaluate one-thumb game reach, source-original buttons, WonderSwan orientation, Lynx Option/Pause, PSP analog, NDS/3DS stylus/motion, 48dp/no cropping, exact guest down/up and safe fallback; physical PASS still pending. Some handheld layouts now exist in Kotlin, including Game Gear, Lynx, NGP and Neo Geo Pocket Color. Remaining handheld source layouts and owner/Marcus physical testing still block acceptance.
 
-> **HHOLD-01 — FINAL OWNER CORRECTION (22 NOV 2026):** The prior proposal to add **three H1–H3 buttons into PivotArc** was **withdrawn**. Preserve existing PivotArc **Hold A/B** and GripArc G1–G4. [Handheld Hold Controls design](../design/gc01/GC01_HANDHELD_UNIVERSAL_HOLD_CONTROLS_DESIGN_2026-11-22.md) covers an **optional 1–3 slot Standard handheld touch tray** for GB/GBC/GBA/GG/LYNX/NGP/WS/WSC/PSP/NDS/3DS, console-accurate source mapping, Settings ownership and no overlapping native controls. QA proof includes GBA B-held+D-pad, PSP, DS/3DS stylus, per-player/per-game persistence and gamepad/touch release. This is design scope, not implemented functionality or physical QA.
+> **HHOLD-01 — FINAL OWNER CORRECTION (22 NOV 2026):** The prior proposal to add **three H1–H3 buttons into PivotArc** was **withdrawn**. Preserve existing PivotArc **Hold A/B** and GripArc G1–G4. [Handheld Hold Controls design](../design/gc01/GC01_HANDHELD_UNIVERSAL_HOLD_CONTROLS_DESIGN_2026-11-22.md) covers an **optional 1–3 slot Standard handheld touch tray** for GB/GBC/GBA/GG/LYNX/NGP/WS/WSC/PSP/NDS/3DS, console-accurate source mapping, Settings ownership and no overlapping native controls. QA proof includes GBA B-held+D-pad, PSP, DS/3DS stylus, per-player/per-game persistence and gamepad/touch release. The optional Hold Tray now has a bounded source implementation for the 12 handheld identities in #368, with source tests; controller-specific device fit, touch release and parent/child acceptance remain NOT TESTED.
 
 > **LATEST OWNER INPUT / QA REFINEMENT — 22 NOV 2026:** See [authoritative GC implementation handoff](gc01/GC01_AUTHORITATIVE_OWNER_IMPLEMENTATION_HANDOFF_2026-11-22.md). **Reciprocal RT↔X analogue↔digital swaps are warning-only (not blocked)**; test a real graduated on-screen analogue touch trigger and honest guest-axis response. **Wii gamepad-first**, option for genuine virtual IR/right-stick pointer + phone motion, mixed controls. **3DS independent virtual tilt stick** and real phone sensors; no claim of guest support from UI alone. Junior PIN plus parent-held recovery code at setup. All original GC A–H, GEM offline recommender, SafeSave real per-console counts and Export All must remain tested; physical status not inferred from docs/CI.
 
@@ -10,11 +10,19 @@
 
 # CARTDECK GC integration and physical acceptance
 
-Draft integration candidate for #262. The baseline is master
-`5d7e31abef1e5018ea01c6f271ea8889670b0f9c`. Continue on #362. Keep the
-separate PERF candidate #367 intact. Its successful APK run
-44973008175 and artifact 14734563067 are historical baseline evidence.
-Xbox 360 engineering run 44973008246 failed on that commit.
+**Current engineering integration:** GC #362 has merged. Continue only on draft
+[GC #368](https://github.com/safetyblade/ROMMachine/pull/368) against master;
+the separate PERF #367 remains independent. The validated pre-connector source
+`19d8ad113eb482f8cf3d2f5d6419a8ebf311e032` passed Kotlin formatting,
+GEM integrity, Room migration, connected ARM64 APK and UI merge gates:
+[run 45101741140](https://github.com/safetyblade/ROMMachine/actions/runs/45101741140),
+[APK 91344725](https://github.com/safetyblade/ROMMachine/actions/runs/45101741140/artifacts/14785473487).
+**Later source commits on #368 require their own exact-head CI**; consult the
+live workflow before sharing an APK. These are engineering-source results,
+**not** owner/Marcus physical acceptance, release, or permission to merge.
+
+The older GC #362 baseline `5d7e31ab`, PERF artifact 14734563067 and
+run 44973008246 below are retained solely as historical reference.
 
 ## Feature inventory
 
@@ -137,3 +145,6 @@ are currently **NOT TESTED** on physical hardware.
 | `2527fba1` | Repaired Kotlin formatting and exact GEM catalogue identity selection. | Kotlin, Room, GEM, connected APK and UI merge gates passed. Verified the APK's source tree, checksum and unchanged ARM64 signer. [APK](https://github.com/safetyblade/ROMMachine/actions/runs/45095136698/artifacts/14782899817) |
 | `a6d85ac8` | Integrated closer G-control fit, the SafeSave coverage dialog and shared navigation render, and actual installed cartridge artwork in GEM. | 768 local app tests passed. Kotlin, Room, GEM, connected APK and UI merge gates passed. The APK tree, checksum and signer match the build evidence. [APK](https://github.com/safetyblade/ROMMachine/actions/runs/45096565532/artifacts/14784101278) · [Host renders and tests](https://github.com/safetyblade/ROMMachine/actions/runs/45096565532/artifacts/14783532917) |
 | `90182968` | Added the PSP capture transaction and ownership recheck, scoped export reporting, closer controller fit with saved offsets, and the Homebrew browser-action regression. | 773 full local app tests passed. Kotlin, Room, GEM, connected APK and UI merge gates passed. [APK](https://github.com/safetyblade/ROMMachine/actions/runs/45098178007/artifacts/14784521482) · [Host renders and tests](https://github.com/safetyblade/ROMMachine/actions/runs/45098178007/artifacts/14784910302) |
+| `19d8ad11` | Added measured controller group refinements, twelve-system Hold Tray coverage, TV focus restoration, supported ARMSX2 PS2 card handling, SafeSave PSP/ownership safeguards and regression tests. | **Exact-head CI PASS:** Kotlin, GEM, Room, ARM64 APK, UI merge gate. [APK 91344725](https://github.com/safetyblade/ROMMachine/actions/runs/45101741140/artifacts/14785473487) · [Host UI evidence](https://github.com/safetyblade/ROMMachine/actions/runs/45101741140/artifacts/14785079573). **Physical owner QA NOT TESTED for this head.** |
+| `connector 23 Nov` | Corrected state-only Save Centre game counts, reconciled supported PS2 coverage wording and added regression tests without changing saved files. | These **subsequent source commits require fresh exact-head CI** before being called passed; no device test or merge authorisation. |
+
