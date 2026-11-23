@@ -101,8 +101,32 @@ Closed #303 (navigation), #308 (TV), #162/#167 (display foundation), and #288/#2
 
 **Separate:** Remaining PC emulation and Xbox/PS3/native engine performance belong to PERF; CARTMOD maker beta follows the agreed creator roadmap. No new fourth top-level lane.
 
-## 6. Codex continuation contract
+## 6. MANDATORY GC ENGINEERING FINISH GATE — GRIPARC IS NOT OPTIONAL
 
-Read this file together with the original [GC owner handoff](GC01_AUTHORITATIVE_OWNER_IMPLEMENTATION_HANDOFF_2026-11-22.md), [GC integration acceptance](../GC-INTEGRATION-ACCEPTANCE.md), GC issue #262 and PR #368. In the current active draft branch, first verify live CI/head and repair any failures, then **implement** Stage 1 + 1.5 (code/UI/policy/tests), tackle available Q1–Q7 bounded wins, and work through all genuinely unblocked GC A–H engineering. Source tasks outrank repeated owner QA descriptions.
+**Owner clarification, 23 November 2026:** The target is **SmartVisual Stage 1 + 1.5 AND all remaining executable GC work**. Neither the quick-win list nor a successful APK is an alternative to completing GripArc. Issue [#135](https://github.com/safetyblade/ROMMachine/issues/135) remains an **engineering FAIL**, not merely a physical-QA check.
+
+**Execution order:** (1) recover/verify exact-head CI; (2) complete SmartVisual Stage 1/1.5 with code/tests; (3) **complete GripArc/PivotArc engineering in full, ahead of optional quick wins**; (4) finish the remaining GC A–H, SafeSave, profiles/Junior, GEM, SIGNATURE and TV engineering; (5) final full build and honest matrix. All verified units may be committed progressively, but do not mark GC engineering DONE while #135 is partial.
+
+### GripArc engineering DONE requires ALL of these on PR #368
+
+1. **Actual compact premium full-L addon** in the source-approved visual style, G1–G4 stable, left and right attachment, even with one assigned slot. Remove the bulky/detached corner and large wasted-gap layout shown in the owner's failure screenshots. Solve the entire native + addon deck composition rather than shrink a border or move labels. Preserve original native console button labels, arrangements and controls.
+2. **Both Standard + GripArc AND PivotArc + GripArc must fit** using measured native button/hit bounds, video viewport, safe insets and available screen dimensions; portrait and landscape, compact phone widths, scaled tablet/TV where applicable, no hidden controls, no fake compression. All active touch targets >=48dp without overlapping or silently clipped areas. Keep original display aspect/crop policy, game visual area and Start/Select.
+3. **Console-authentic inventory:** verify native control registration and visibility, especially GB/GBC/GBA, SNES, PS1, PS2, PSP, Dreamcast, GameCube, WonderSwan/Color, DS and 3DS. Implement remaining WS/WSC/NDS/3DS PivotArc profiles rather than labelling unfinished layouts device-only. No fixed H1–H3 in PivotArc; its Hold A/B and the separately approved Standard Hold Tray remain intact. Correctly distinguish Neo Geo Pocket Color system ID from GameCube.
+4. **Real guest input contract:** every G1–G4 single/chord and held input, PivotArc Hold A/B, analogue/digital original keys, key-down/up/release and focus/reconnect are emitted to appropriate guest input routing; no stuck keys, phantom touch, swallowed native input or duplicate controls. Correct PSP primary-direction selection persists without stealing its independent D-pad and analogue. Source unit-only model satisfaction is not enough if the actual UI ignores the solver.
+5. **Persistence and recovery:** side, vertical offset, game and player mapping, disable/enable, swap modes, launch/reopen, resume and install-over preserve control selections; unsupported combinations use a truthful safe alternative without losing the previous preference.
+6. **Automated proof:** unit and Compose-render fixture matrix for Standard/PivotArc with GripArc on both sides and compact/normal/wide windows; per-console original-button inventory, painted bounds + hit target bounds, overlap/no-crop, all four programmable buttons, hold/release and launch/resume; minimum regression for screens matching the owner screenshot dimensions. Tests must exercise the rendering and input wiring, not only abstract polygon or renderer geometry.
+
+A physical handset/Marcus check is **separate and remains NOT TESTED until performed**; nevertheless all six engineering criteria above are code-and-test requirements. Do not relabel incomplete geometry, missing guest actions, console profiles or failing fixture coverage as “physical QA pending”.
+
+### Exact finish status and continuation
+
+- Report **ENGINEERING COMPLETE** for GripArc only when all six criteria are demonstrably covered at the same source SHA, with CI tests and a verified signed ARM64 APK.
+- If an input is blocked by a genuinely unavailable **external native emulator interface**, name the exact interface/engine, attempted integration and accountable PERF issue; finish every independent UI/geometry/host code requirement. An unimplemented Compose control or unresolved local geometry algorithm is **not** an external engine dependency.
+- If execution capacity runs out before closing #135 or any other source requirement, report **ENGINEERING INCOMPLETE**, list precise remaining tasks and branch/test status, and resume from them in the next run. Never report “GC done,” “only physical testing remains,” or request merge on that basis.
+- Do not stop on the first successful build, partial grip improvement, SmartVisual completion or optional quick win. No automatic owner QA PASS or issue closure.
+
+## 7. Codex continuation contract
+
+Read this file together with the original [GC owner handoff](GC01_AUTHORITATIVE_OWNER_IMPLEMENTATION_HANDOFF_2026-11-22.md), [GC integration acceptance](../GC-INTEGRATION-ACCEPTANCE.md), GC issue #262 and PR #368. In the current active draft branch, first verify live CI/head and repair any failures, then **implement** Stage 1 + 1.5 (code/UI/policy/tests), **complete the six mandatory GripArc engineering gates above**, and finish all genuinely unblocked GC A–H engineering before optional quick wins. Never treat unfinished GripArc as device-only QA. Source tasks outrank repeated owner QA descriptions.
 
 Build signed exact-head ARM64 debug APK, report its actual artifact URL, gate results, unresolved source/host dependencies and a **separate deferred physical owner checklist**. Do not stop at one successful build; do not claim physical passes, merge PR #368, release, close issues automatically, or start post-GC Stage 2/3 in this run.
