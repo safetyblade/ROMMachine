@@ -53,6 +53,7 @@ internal fun SafeSaveScreen(
     var importPreview by remember { mutableStateOf<ImportPreview?>(null) }
     var unassigned by remember { mutableStateOf<List<File>>(emptyList()) }
     var showUnassigned by remember { mutableStateOf(false) }
+    var showBackupCoverage by remember { mutableStateOf(false) }
     var keepUnassigned by remember { mutableStateOf<UnassignedBackup?>(null) }
     var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
@@ -147,7 +148,7 @@ internal fun SafeSaveScreen(
         inventory = rows,
         onBackUp =
             if (!busy && rows.isNotEmpty()) {
-                { requestExport(games, CartSaveArchive.Scope.PLAYER) }
+                { showBackupCoverage = true }
             } else {
                 null
             },
@@ -198,6 +199,25 @@ internal fun SafeSaveScreen(
         unassignedCount = unassigned.size,
         onUnassigned = if (busy) null else ({ showUnassigned = true }),
     )
+
+    if (showBackupCoverage) {
+        AlertDialog(
+            onDismissRequest = { showBackupCoverage = false },
+            title = { Text("Back Up Everything") },
+            text = {
+                Text(
+                    "Backs up managed saves and supported PS1 cards. Native saves and unassigned backups are excluded.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackupCoverage = false
+                    requestExport(games, CartSaveArchive.Scope.PLAYER)
+                }) { Text("Choose Backup File") }
+            },
+            dismissButton = { TextButton(onClick = { showBackupCoverage = false }) { Text("Cancel") } },
+        )
+    }
 
     selected?.let { game ->
         val hasCard =

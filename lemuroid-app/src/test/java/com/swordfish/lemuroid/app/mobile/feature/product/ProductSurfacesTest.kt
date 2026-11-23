@@ -8,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
@@ -19,6 +20,12 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.pressKey
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
+import com.swordfish.lemuroid.lib.library.CoreID
+import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
+import com.swordfish.lemuroid.lib.saves.SavesManager
+import com.swordfish.lemuroid.lib.storage.DirectoriesManager
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,6 +63,33 @@ class ProductSurfacesTest {
         compose.onNodeWithText("Unassigned Backups").performClick()
         assertEquals(1, restores)
         assertEquals(1, unassigned)
+    }
+
+    @Test fun bulkBackupShowsCoverageBeforeOpeningTheFilePicker() {
+        val game =
+            Game(
+                fileName = "backup-scope.gb",
+                fileUri = "content://fixture/backup-scope",
+                title = "Backup scope fixture",
+                systemId = "gb",
+                developer = null,
+                coverFrontUrl = null,
+                lastIndexedAt = 1,
+            )
+        val directories = DirectoriesManager(compose.activity.application)
+        val binding = CartridgeSaveBinding(directories) { listOf(game) }
+        runBlocking { SavesManager(directories, binding).setSaveRAM(game, byteArrayOf(1, 2), CoreID.GAMBATTE) }
+        compose.setContent {
+            CartridgeLibraryTheme { SafeSaveScreen(listOf(game), binding) }
+        }
+        compose.waitUntil(5_000) {
+            runCatching { compose.onNodeWithText("Back Up Everything").assertIsEnabled() }.isSuccess
+        }
+        compose.onNodeWithText("Back Up Everything").performClick()
+        compose.onNodeWithText("Choose Backup File").assertIsDisplayed()
+        compose.onNodeWithText("unassigned backups are excluded", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Choose Backup File").assertDoesNotExist()
     }
 
     @Test fun juniorEmptyStateOffersOnlyParentRequest() {
