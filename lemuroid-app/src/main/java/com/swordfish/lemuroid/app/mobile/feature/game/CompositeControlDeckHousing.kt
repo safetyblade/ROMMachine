@@ -32,10 +32,12 @@ internal object CompositeOpenHousingPolicy {
         val seams = mutableListOf<CompositeMaterialSeam>()
 
         // Restrained top and bottom machined lips, not the filled island hull.
-        if (upper.width > 32f) seams +=
-            CompositeMaterialSeam(upper.left + 12f, upper.top + 3f, upper.right - 12f, upper.top + 3f)
-        if (lower.width > 32f) seams +=
-            CompositeMaterialSeam(lower.left + 12f, lower.bottom - 3f, lower.right - 12f, lower.bottom - 3f)
+        if (upper.width > 32f) {
+            seams += CompositeMaterialSeam(upper.left + 12f, upper.top + 3f, upper.right - 12f, upper.top + 3f)
+        }
+        if (lower.width > 32f) {
+            seams += CompositeMaterialSeam(lower.left + 12f, lower.bottom - 3f, lower.right - 12f, lower.bottom - 3f)
+        }
 
         // Joined foot is a short, non-interactive seam, never an artificial
         // full-width bridge across otherwise empty shell or game pixels.
