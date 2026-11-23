@@ -83,7 +83,10 @@ internal object CompositeControlDeckSolver {
                 listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)) +
                     listOf(48f, 96f).map { lift -> Triple(side, gripDx, gripDy - lift) }
             ).distinct()
+        val gripOffsetConfigured = gripDx != 0f || gripDy != 0f
+        val pivotOffsetConfigured = (pivotDx.isFinite() && pivotDx != 0f) || (pivotDy.isFinite() && pivotDy != 0f)
         var closest: CompositeDeckResolution.Fits? = null
+        var bestAdjustments = Int.MAX_VALUE
         var bestScore = Float.POSITIVE_INFINITY
         for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
             val dockFit =
@@ -131,7 +134,14 @@ internal object CompositeControlDeckSolver {
                 val whole = hull(source.values)
                 // Candidate edges derive from safe space and individual reserved material/targets.
                 // Translation applies to the complete approved constellation, never individual slots.
-                val xs = listOf(safe.left + EDGE + OUTLINE - whole.left, safe.right - EDGE - OUTLINE - whole.right)
+                val adjacentEdge =
+                    if (hand == GripArcSide.RIGHT) arms[0].left else safe.left + safe.right - arms[0].right
+                val xs =
+                    listOf(
+                        safe.left + EDGE + OUTLINE - whole.left,
+                        safe.right - EDGE - OUTLINE - whole.right,
+                        adjacentEdge - GAP - EDGE - OUTLINE - whole.right,
+                    )
                 val ys =
                     listOf(safeDeck.top + EDGE + OUTLINE - whole.top, arms[1].top - GAP - EDGE - OUTLINE - whole.bottom)
                 for (x in xs) for (y in ys) for (requested in listOf(true, false)) {
@@ -154,7 +164,7 @@ internal object CompositeControlDeckSolver {
                         }
                     val boxes = positions.values.toList()
                     if (boxes.any {
-                            !it.inside(safeDeck) ||
+                            it.width < 48f || it.height < 48f || !it.inside(safeDeck) ||
                                 reserved.any {
                                         r ->
                                     it.inset(GAP / 2).intersects(r)
@@ -249,7 +259,12 @@ internal object CompositeControlDeckSolver {
                     val score =
                         gap + (kotlin.math.abs(dy - gripDy) + kotlin.math.abs(dx - gripDx)) / 4f +
                             (1.08f - scale) * 40f
-                    if (score >= bestScore) continue
+                    val gripAdjusted = gripOffsetConfigured && (dx != gripDx || dy != gripDy)
+                    val pivotAdjusted = pivotOffsetConfigured && !requested
+                    val adjustments = (if (gripAdjusted) 1 else 0) + (if (pivotAdjusted) 1 else 0)
+                    val sameOffsetsNoCloser = adjustments == bestAdjustments && score >= bestScore
+                    if (adjustments > bestAdjustments || sameOffsetsNoCloser) continue
+                    bestAdjustments = adjustments
                     bestScore = score
                     closest =
                         CompositeDeckResolution.Fits(

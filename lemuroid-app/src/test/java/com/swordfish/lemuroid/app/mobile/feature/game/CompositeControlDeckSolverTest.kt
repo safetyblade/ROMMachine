@@ -163,6 +163,25 @@ class CompositeControlDeckSolverTest {
         }
     }
 
+    @Test fun safeCustomDockOffsetSurvivesJointLayoutRanking() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val side = GripArcSide.RIGHT
+        val expected =
+            GripArcPositionSolver.resolve(manifest, device.safe, device.viewport, emptyList(), side, -8f, 0f)
+                as GripArcFit.Fits
+        val result =
+            CompositeControlDeckSolver.resolve(
+                manifest,
+                baseline,
+                SystemID.GBA,
+                device.safe,
+                device.viewport,
+                side,
+                gripDx = -8f,
+            ) as CompositeDeckResolution.Fits
+        assertEquals(expected.placement.housing, result.placement.dock.housing)
+    }
+
     @Test fun unsupportedLandscapeAndImpossibleDeckFailAtomically() {
         val safe = PivotArcBounds(8f, 8f, 385f, 844f)
         assertEquals(

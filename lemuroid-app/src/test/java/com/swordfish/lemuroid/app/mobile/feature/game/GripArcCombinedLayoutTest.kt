@@ -88,6 +88,18 @@ class GripArcCombinedLayoutTest {
         assertTrue(kotlin.math.abs(bottom.centerY - lower.centerY) <= 24f)
     }
 
+    @Test fun safeCustomDockOffsetSurvivesStandardLayoutRanking() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val native = NativeControlInventory.forController(TouchControllerID.GBA)!!
+        val side = GripArcSide.RIGHT
+        val expected =
+            GripArcPositionSolver.resolve(manifest, device.safe, device.viewport, emptyList(), side, -8f, 0f)
+                as GripArcFit.Fits
+        val result =
+            GripArcCombinedLayout.resolveDockFirst(manifest, native, device.safe, device.viewport, side, -8f, 0f)
+        assertEquals(expected.placement.housing, result?.dock?.housing)
+    }
+
     @Test fun everySelectedNativeInventorySurvivesResolutionOnBothSides() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         for (controller in controllers) for (side in GripArcSide.values()) {
