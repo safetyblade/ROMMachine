@@ -78,7 +78,13 @@ internal object CompositeControlDeckSolver {
             )
         }
         val safeDeck = PivotArcBounds(safe.left, maxOf(safe.top, viewport.bottom + GAP), safe.right, safe.bottom)
-        val attempts = listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)).distinct()
+        val attempts =
+            (
+                listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)) +
+                    listOf(48f, 96f).map { lift -> Triple(side, gripDx, gripDy - lift) }
+            ).distinct()
+        var closest: CompositeDeckResolution.Fits? = null
+        var bestScore = Float.POSITIVE_INFINITY
         for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
             val dockFit =
                 GripArcPositionSolver.resolve(
@@ -239,22 +245,29 @@ internal object CompositeControlDeckSolver {
                             candidate.inside(island.upper) &&
                                 (boxes + reserved).none { candidate.inset(4f).intersects(it) }
                         }
-                    return CompositeDeckResolution.Fits(
-                        CompositeControlDeckPlacement(
-                            viewport,
-                            safeDeck,
-                            dock,
-                            arms,
-                            PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
-                            future,
-                            island,
-                            brand,
-                        ),
-                    )
+                    val gap = gripArcControlGap(dock, controls.filterKeys { it !in utilities }.values)
+                    val score =
+                        gap + (kotlin.math.abs(dy - gripDy) + kotlin.math.abs(dx - gripDx)) / 4f +
+                            (1.08f - scale) * 40f
+                    if (score >= bestScore) continue
+                    bestScore = score
+                    closest =
+                        CompositeDeckResolution.Fits(
+                            CompositeControlDeckPlacement(
+                                viewport,
+                                safeDeck,
+                                dock,
+                                arms,
+                                PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
+                                future,
+                                island,
+                                brand,
+                            ),
+                        )
                 }
             }
         }
-        return unavailable(
+        return closest ?: unavailable(
             CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE,
             "The joint PivotArc + GripArc deck cannot fit on your selected side, including its default position.",
         )

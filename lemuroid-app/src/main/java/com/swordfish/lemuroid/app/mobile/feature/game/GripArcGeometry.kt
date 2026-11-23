@@ -61,6 +61,21 @@ data class GripArcPlacement(
     val side: GripArcSide,
 )
 
+/** Mean clear distance from the fixed G targets to the native controls for the selected hand. */
+internal fun gripArcControlGap(
+    dock: GripArcPlacement,
+    nativeControls: Collection<PivotArcBounds>,
+): Float {
+    if (nativeControls.isEmpty() || dock.targets.isEmpty()) return Float.POSITIVE_INFINITY
+    return dock.targets.values.map { target ->
+        nativeControls.minOf { control ->
+            val horizontal = maxOf(0f, target.left - control.right, control.left - target.right)
+            val vertical = maxOf(0f, target.top - control.bottom, control.top - target.bottom)
+            kotlin.math.sqrt(horizontal * horizontal + vertical * vertical)
+        }
+    }.average().toFloat()
+}
+
 sealed interface GripArcFit {
     data class Fits(val placement: GripArcPlacement) : GripArcFit
 

@@ -109,6 +109,9 @@ internal object GripArcCombinedLayout {
                 listOf(48f, 96f, 144f).flatMap { lift ->
                     listOf(dx to (dy - lift), 0f to -lift)
                 }
+        val handKeys = native.controls.filter { it.leftHand == (side == GripArcSide.LEFT) }.map { it.key }
+        var closest: GripArcCombinedPlacement? = null
+        var bestScore = Float.POSITIVE_INFINITY
         for ((dockX, dockY) in dockOffsets.distinct()) {
             val fit = GripArcPositionSolver.resolve(manifest, safe, viewport, emptyList(), side, dockX, dockY)
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
@@ -218,16 +221,19 @@ internal object GripArcCombinedLayout {
                 ) {
                     continue
                 }
-                return GripArcCombinedPlacement(
-                    dock,
-                    controls,
-                    visuals,
-                    seats,
-                    native,
-                    observedInputIds.toSet(),
-                ).takeIf { it.complete }
+                val gap = gripArcControlGap(dock, handKeys.map(controls::getValue))
+                val adjustment = (kotlin.math.abs(dockX - dx) + kotlin.math.abs(dockY - dy) + up + inward) / 4f
+                val score = gap + adjustment
+                if (score < bestScore) {
+                    val candidate = GripArcCombinedPlacement(dock, controls, visuals, seats, native, observedInputIds)
+                    if (candidate.complete) {
+                        closest = candidate
+                        bestScore = score
+                    }
+                }
             }
         }
+        closest?.let { return it }
         if (!fallbackToNativeBaseline) return null
         val baseline = initialNativeConstellation(native, safe, viewport)
         val fitted =
