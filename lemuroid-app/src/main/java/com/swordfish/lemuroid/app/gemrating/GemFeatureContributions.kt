@@ -27,6 +27,10 @@ internal object GemFeatureContributions {
         val sourceRecord: String? = null,
         val sourceRevision: String? = null,
         val evidence: String? = null,
+        val sourceLicence: String? = null,
+        /** Never set from titles; requires independently corroborated work identity evidence. */
+        val verifiedWorkId: String? = null,
+        val workEvidence: String? = null,
     )
 
     @Serializable
@@ -93,10 +97,18 @@ internal object GemFeatureContributions {
                     release.title != row.title -> "Title does not match exact release ID"
                     values.any { it.isBlank() || it.length > 96 || it.any(Char::isISOControl) } ->
                         "Invalid feature field"
-                    listOfNotNull(row.sourceId, row.sourceRecord, row.sourceRevision, row.evidence).any {
+                    listOfNotNull(
+                        row.sourceId, row.sourceRecord, row.sourceRevision, row.evidence,
+                        row.sourceLicence, row.verifiedWorkId, row.workEvidence,
+                    ).any {
                         it.isBlank() || it.length > 512 || it.any(Char::isISOControl)
                     } -> "Invalid contribution provenance"
                     row.mechanics.orEmpty().size > 16 -> "Too many mechanics"
+                    row.verifiedWorkId != null &&
+                        (row.workEvidence.isNullOrBlank() || row.sourceId.isNullOrBlank()) ->
+                        "Verified work identity needs independent source and evidence"
+                    row.workEvidence != null && row.verifiedWorkId == null ->
+                        "Work evidence supplied without verified work identity"
                     values.isEmpty() -> "No gameplay features supplied"
                     else -> null
                 }
