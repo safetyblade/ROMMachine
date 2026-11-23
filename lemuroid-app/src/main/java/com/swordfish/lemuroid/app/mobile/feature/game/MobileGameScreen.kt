@@ -821,6 +821,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         accent = shellTokens.accent,
                         onToggleHold = viewModel::togglePivotArcHold,
                         combined = jointPlacement != null,
+                        touchController = currentControllerConfig.touchControllerID,
                     )
                 }
             }

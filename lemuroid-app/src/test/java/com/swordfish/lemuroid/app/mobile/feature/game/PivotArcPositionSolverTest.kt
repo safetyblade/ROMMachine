@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import android.view.KeyEvent
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -189,7 +191,6 @@ class PivotArcPositionSolverTest {
         for (system in listOf(
             SystemID.PSX,
             SystemID.N64,
-            SystemID.NDS,
             SystemID.GAMECUBE,
             SystemID.GENESIS,
         )) {
@@ -234,6 +235,28 @@ class PivotArcPositionSolverTest {
             )
         }
         assertEquals(baseline, PivotArcLayoutProfile.forSystem(baseline, SystemID.GBA, pspAnalogPrimary = true))
+    }
+
+    @Test fun dualScreenPivotArcKeepsStylusRegionAndBackendSpecificAuxiliaries() {
+        val viewport = PivotArcBounds(22f, 36f, 371f, 452f)
+        for (side in listOf(false, true)) {
+            val ds = (resolve(SystemID.NDS, leftHand = side, viewport = viewport) as PivotArcResolution.Fits).placement
+            val threeDs =
+                (
+                    resolve(
+                        SystemID.NINTENDO_3DS,
+                        leftHand = side,
+                        viewport = viewport,
+                    ) as PivotArcResolution.Fits
+                ).placement
+            assertTrue(ds.controls.keys.containsAll(listOf("Mic", "Lid", "L", "R", "Start", "Select")))
+            assertTrue(threeDs.controls.keys.containsAll(listOf("D", "Analog", "L", "R", "Start", "Select")))
+            assertTrue((ds.controls.values + threeDs.controls.values).all { !it.intersects(viewport) })
+        }
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, pivotArcDsAuxiliaryKey(TouchControllerID.DESMUME, "Mic"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, pivotArcDsAuxiliaryKey(TouchControllerID.DESMUME, "Lid"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, pivotArcDsAuxiliaryKey(TouchControllerID.MELONDS, "Mic"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, pivotArcDsAuxiliaryKey(TouchControllerID.MELONDS, "Lid"))
     }
 
     @Test fun handheldTwoButtonFamiliesKeepNativeLabelsAndOmitPhantomSelect() {

@@ -206,7 +206,7 @@ class CartdeckConsoleLayoutCoverageTest {
     fun pivotArcRemainsOptInAndUnsupportedConsolesRetainStandard() {
         assertNotNull(PivotArcLayoutProfile.activeFor(SystemID.GBA))
         assertNotNull(PivotArcLayoutProfile.activeFor(SystemID.SNES))
-        for (system in listOf(SystemID.PSX, SystemID.N64, SystemID.NDS)) {
+        for (system in listOf(SystemID.PSX, SystemID.N64)) {
             assertEquals(null, PivotArcLayoutProfile.activeFor(system))
         }
     }

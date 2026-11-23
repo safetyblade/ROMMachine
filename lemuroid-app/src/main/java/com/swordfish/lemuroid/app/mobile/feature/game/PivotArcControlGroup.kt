@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
@@ -33,6 +35,7 @@ import gg.padkit.controls.ControlAnalog
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
+import androidx.compose.runtime.key as compositionKey
 import com.swordfish.touchinput.controller.R as TouchR
 
 /**
@@ -47,6 +50,7 @@ fun PadKitScope.PivotArcControlGroup(
     accent: Color,
     onToggleHold: (Int) -> Unit,
     combined: Boolean = false,
+    touchController: TouchControllerID? = null,
 ) {
     val observe = LocalCartdeckControlBounds.current
     Box(Modifier.fillMaxSize()) {
@@ -121,6 +125,7 @@ fun PadKitScope.PivotArcControlGroup(
                         "Select" -> KeyEvent.KEYCODE_BUTTON_SELECT
                         "Start" -> KeyEvent.KEYCODE_BUTTON_START
                         "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
+                        "Mic", "Lid" -> touchController?.let { pivotArcDsAuxiliaryKey(it, key) }
                         else -> null
                     } ?: return@forEach
                 val label = PivotArcLayoutProfile.nativeLabel(system, key)
@@ -135,6 +140,8 @@ fun PadKitScope.PivotArcControlGroup(
                         "Select" -> TouchR.drawable.button_select
                         "Start" -> TouchR.drawable.button_start.takeIf { label == key }
                         "Menu" -> TouchR.drawable.button_menu
+                        "Mic" -> TouchR.drawable.button_mic
+                        "Lid" -> TouchR.drawable.button_close_screen
                         else -> null
                     }
                 val shape =
@@ -143,38 +150,40 @@ fun PadKitScope.PivotArcControlGroup(
                         "Select", "Start", "Menu" -> CartdeckButtonShape.PILL
                         else -> CartdeckButtonShape.FACE
                     }
-                ControlButton(
-                    modifier = position,
-                    id = Id.Key(inputKey),
-                    foreground = { pressed ->
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                LemuroidButtonForeground(
-                                    pressed = pressed,
-                                    label = label.takeIf { icon == null },
-                                    icon = icon,
-                                    shape = shape,
-                                )
-                                if ((key == "A" || key == "B") && inputKey in heldKeys) {
-                                    Canvas(Modifier.fillMaxSize()) {
-                                        val r = size.minDimension / 2f - 2.dp.toPx()
-                                        drawCircle(
-                                            color = accent.copy(alpha = 0.32f),
-                                            radius = r,
-                                            style = Stroke(width = 5.dp.toPx()),
-                                        )
-                                        drawCircle(
-                                            color = accent,
-                                            radius = r,
-                                            style = Stroke(width = 1.8.dp.toPx()),
-                                        )
+                compositionKey(key, inputKey) {
+                    ControlButton(
+                        modifier = position.semantics { contentDescription = label },
+                        id = Id.Key(inputKey),
+                        foreground = { pressed ->
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(visual.w.dp, visual.h.dp)) {
+                                    LemuroidButtonForeground(
+                                        pressed = pressed,
+                                        label = label.takeIf { icon == null },
+                                        icon = icon,
+                                        shape = shape,
+                                    )
+                                    if ((key == "A" || key == "B") && inputKey in heldKeys) {
+                                        Canvas(Modifier.fillMaxSize()) {
+                                            val r = size.minDimension / 2f - 2.dp.toPx()
+                                            drawCircle(
+                                                color = accent.copy(alpha = 0.32f),
+                                                radius = r,
+                                                style = Stroke(width = 5.dp.toPx()),
+                                            )
+                                            drawCircle(
+                                                color = accent,
+                                                radius = r,
+                                                style = Stroke(width = 1.8.dp.toPx()),
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                    },
-                    background = {},
-                )
+                        },
+                        background = {},
+                    )
+                }
             }
         }
     }
@@ -235,3 +244,8 @@ private fun PivotArcHoldSwitch(
         }
     }
 }
+
+internal fun pivotArcDsAuxiliaryKey(
+    controller: TouchControllerID,
+    control: String,
+): Int? = NativeControlInventory.forHoldTray(controller)?.controls?.singleOrNull { it.key == control }?.keyCode

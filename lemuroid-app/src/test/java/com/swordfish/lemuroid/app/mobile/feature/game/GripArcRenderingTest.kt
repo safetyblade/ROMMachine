@@ -137,6 +137,81 @@ class GripArcRenderingTest {
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun dsPivotArcRendersAndDispatchesTheSelectedCoresNativeAuxiliaries() {
+        val baseline =
+            PivotArcLayoutProfile.parse(
+                File("src/main/assets/pivotarc/candidate-c-baseline.json").readText(),
+            )
+        val safe = PivotArcBounds(8f, 8f, 385f, 844f)
+        val viewport = PivotArcBounds(22f, 36f, 371f, 452f)
+        val result =
+            PivotArcPositionSolver.resolve(
+                baseline,
+                PivotArcLayoutProfile.activeFor(SystemID.NDS).orEmpty(),
+                safe,
+                viewport,
+                false,
+                0f,
+                0f,
+                false,
+            ) as PivotArcResolution.Fits
+        val placement = result.placement
+        val controller = mutableStateOf(TouchControllerID.MELONDS)
+        val buttons = mutableListOf<InputEvent.Button>()
+        compose.setContent {
+            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+            ) {
+                Box(Modifier.requiredSize(393.dp, 852.dp).testTag("ds-pivotarc")) {
+                    PadKit(
+                        onInputEvents = { buttons.addAll(it.filterIsInstance<InputEvent.Button>()) },
+                        hapticFeedbackType = HapticFeedbackType.NONE,
+                        simulatedState = remember { mutableStateOf(InputState()) },
+                        simulatedControlIds = remember { mutableStateOf(emptySet()) },
+                    ) {
+                        PivotArcControlGroup(
+                            placement,
+                            SystemID.NDS,
+                            emptySet(),
+                            tokens.accent,
+                            {},
+                            touchController = controller.value,
+                        )
+                    }
+                }
+            }
+        }
+        val deck = compose.onNodeWithTag("ds-pivotarc")
+        for (backend in listOf(TouchControllerID.MELONDS, TouchControllerID.DESMUME)) {
+            compose.runOnIdle { controller.value = backend }
+            for (key in listOf("Mic", "Lid")) {
+                compose.onNodeWithContentDescription(
+                    key,
+                ).assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+                val bounds = placement.controls.getValue(key)
+                val code = pivotArcDsAuxiliaryKey(backend, key)
+                deck.performTouchInput { down(Offset(bounds.centerX, bounds.centerY)) }
+                compose.runOnIdle {
+                    assertTrue(
+                        "$backend $key should press $code: $buttons",
+                        buttons.last().let { it.id == code && it.pressed },
+                    )
+                }
+                deck.performTouchInput { up() }
+                compose.runOnIdle {
+                    assertTrue(
+                        "$backend $key should release $code: $buttons",
+                        buttons.last().let { it.id == code && !it.pressed },
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun portraitFixtureRendersNativeControlsAndFourAccessoryTargetsTogether() {
         val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v22-manifest.json").readText())
         val baseline =

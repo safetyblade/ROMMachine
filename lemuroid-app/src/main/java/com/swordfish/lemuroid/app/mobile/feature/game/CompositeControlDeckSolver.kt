@@ -42,7 +42,7 @@ internal object CompositeControlDeckSolver {
 
     // The housing renderer uses a centered 2dp outline. Reserve its painted edge too.
     private const val OUTLINE = PivotIslandShape.OUTLINE_WIDTH_DP / 2f
-    private val utilities = setOf("Select", "Start", "Menu")
+    private val utilities = setOf("Select", "Start", "Menu", "Mic", "Lid")
 
     fun resolve(
         manifest: GripArcManifest,
@@ -88,7 +88,10 @@ internal object CompositeControlDeckSolver {
         var closest: CompositeDeckResolution.Fits? = null
         var bestAdjustments = Int.MAX_VALUE
         var bestScore = Float.POSITIVE_INFINITY
-        for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
+        val dockAttempts = GripArcPositionSolver.housingScales.flatMap { scale -> attempts.map { scale to it } }
+        for ((dockScale, attempt) in dockAttempts) {
+            if (dockScale < 1f && closest?.placement?.dock?.scale == 1f) break
+            val (hand, dx, dy) = attempt
             val dockFit =
                 GripArcPositionSolver.resolve(
                     manifest,
@@ -121,12 +124,12 @@ internal object CompositeControlDeckSolver {
                 source["HoldA"] = PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
                 source["HoldB"] = PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
                 val hull = hull(source.values)
+                val rail = active.filter { it in utilities }
                 val railWidth =
-                    active.filter {
-                        it in utilities
-                    }.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() + 2 * GAP
+                    rail.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
+                        (rail.size - 1).coerceAtLeast(0) * GAP
                 var cursor = hull.centerX - railWidth / 2
-                for (key in active.filter { it in utilities }) {
+                for (key in rail) {
                     val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
                     source[key] = PivotArcBounds(cursor, hull.bottom + GAP, cursor + w, hull.bottom + GAP + 48f)
                     cursor += w + GAP

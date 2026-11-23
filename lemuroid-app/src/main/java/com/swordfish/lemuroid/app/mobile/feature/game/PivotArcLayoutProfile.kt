@@ -78,7 +78,9 @@ object PivotArcLayoutProfile {
             SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
             SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
-            SystemID.PSP -> listOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            SystemID.NDS -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu", "Mic", "Lid")
+            SystemID.PSP, SystemID.NINTENDO_3DS ->
+                listOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
             else -> null
         }
 
@@ -176,7 +178,7 @@ object PivotArcPositionSolver {
     private const val HOLD_VISUAL_SIZE = 28f
     private const val UTILITY_GAP = 9f
     private const val LOWER_TRIAL_OFFSET = 18f
-    private val utilities = setOf("Start", "Select", "Menu")
+    private val utilities = setOf("Start", "Select", "Menu", "Mic", "Lid")
     private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 
     fun resolve(
