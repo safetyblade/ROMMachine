@@ -56,6 +56,15 @@ struct Window {
             copy[(n * 99 + 99) / 100 - 1]};
   }
 };
+// S6: avoid even reading the clock on the Vulkan hot path unless a user has
+// explicitly opened diagnostics. This is a performance optimization, not a
+// change to the emulator guest, frame scheduling, or rendering policy.
+inline uint64_t capture_start() {
+  return capture_enabled.load(std::memory_order_relaxed) ? now() : 0;
+}
+inline void capture_finish(Window& window, uint64_t start) {
+  if (start) window.add(now() - start);
+}
 enum Metric { GuestSwap, HostPresent, Jit, Shader, Pipeline, Acquire, PresentCall,
               QueueLock, FrameFence, Submit, XgfxPageRefresh, XgfxPipelineQueueWait, MetricCount };
 inline std::array<Window, MetricCount> windows;
@@ -66,7 +75,7 @@ inline constexpr const char* names[] = {"guest_swap_interval", "host_present_int
 struct Scope {
   Metric metric;
   uint64_t start;
-  explicit Scope(Metric m) : metric(m), start(capture_enabled.load(std::memory_order_relaxed) ? now() : 0) {}
+  explicit Scope(Metric m) : metric(m), start(capture_start()) {}
   ~Scope() { if (start) windows[metric].add(now() - start); }
 };
 // 03A: read-only frame-boundary snapshot of the effective Xenia settings.

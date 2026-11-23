@@ -9,7 +9,15 @@ int main() {
   assert(!capture_enabled.load());
   test.add(999);
   assert(test.count == 0); // Ordinary gameplay never records diagnostics.
+  assert(capture_start() == 0); // No host clock read on the normal Vulkan hot path.
+  capture_finish(test, 0);
+  assert(test.count == 0);
   set_capture_enabled(true);
+  Window capture_window;
+  const auto started = capture_start();
+  assert(started > 0);
+  capture_finish(capture_window, started);
+  assert(capture_window.count == 1);
   for (uint64_t i = 1; i <= 100; ++i) test.add(i);
   assert((test.percentiles() == std::array<uint64_t,3>{50,95,99}));
   assert(test.count == 100 && test.sum == 5050 && test.maximum == 100);

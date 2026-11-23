@@ -11,6 +11,7 @@ import tarfile
 import zipfile
 
 from verify_hakux_native import verify
+from hakux_pipeline_cache_commit import apply as apply_pcache_commit
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 REVISION = 'a7cdb5a975e31730d488c47f6f10440b16c1e6f4'
@@ -63,13 +64,16 @@ def package(source, deps, build, output, ndk):
                 'license': 'GPL-3.0-or-later; see bundled per-component notices',
                 'core.sha256': digest(output / 'libhakuxcore.so'),
                 'android.ndk': '29.0.14206865', 'android.api': '28', 'arch': 'arm64-v8a',
-                'backend': 'SDL3-Vulkan', 'cartdeck.presentation': 'vk-present-guest-v1', 'cartdeck.pixelProbe': 'async-grid-v1', 'cartdeck.guestPublication': 'validated-source-v1', 'cartdeck.guestSubmission': 'fifo-put-wakeup-v1', 'fex.revision': capture('git', '-C', source / 'external/fex', 'rev-parse', 'HEAD')}
+                'backend': 'SDL3-Vulkan', 'cartdeck.presentation': 'vk-present-guest-v1', 'cartdeck.pixelProbe': 'async-grid-v1', 'cartdeck.guestPublication': 'validated-source-v1', 'cartdeck.guestSubmission': 'fifo-put-wakeup-v1',
+                'cartdeck.pipelineCacheCommit': 'successful-atomic-write-v1', 'fex.revision': capture('git', '-C', source / 'external/fex', 'rev-parse', 'HEAD')}
     names = sorted(library.name for library in libraries)
     manifest['library.names'] = ','.join(names)
     manifest.update({'library.' + name + '.sha256': digest(output / name) for name in names})
     (output / 'hakux.properties').write_text(''.join(k + '=' + v + '\n' for k, v in manifest.items()))
     inventory = {'hakuX': REVISION, **{k: {'repository': repo, 'revision': rev} for k, (repo, rev) in DEPS.items()},
                  'cartdeck.patches': {name: digest(ROOT / 'scripts/ci/patches' / name) for name in PATCHES},
+                 'cartdeck.sourceTransforms': {
+                     'hakux_pipeline_cache_commit.py': digest(ROOT / 'scripts/ci/hakux_pipeline_cache_commit.py')},
                  'submodules': capture('git', '-C', source, 'submodule', 'status', '--recursive'),
                  'deviations': ['nv2a_vsh_cpu documented short 561fe80 unavailable in published repository; pinned published 1115255, built against its ABI',
                                 'libslirp selected official mirrored 4.7.0 tag 3ad1710 instead of unavailable documented 26be815b'],
@@ -94,7 +98,8 @@ def package(source, deps, build, output, ndk):
         tar.add(source, arcname='hakuX', filter=filtered)
         tar.add(deps, arcname='dependencies', filter=filtered)
         tar.add(output / 'source-manifest.json', arcname='source-manifest.json')
-        for name in ('build_hakux_native.py', 'build_hakux_native.sh', 'verify_hakux_native.py'):
+        for name in ('build_hakux_native.py', 'build_hakux_native.sh',
+                     'verify_hakux_native.py', 'hakux_pipeline_cache_commit.py'):
             tar.add(ROOT / 'scripts/ci' / name, arcname='cartdeck-build/' + name)
         for name in PATCHES:
             tar.add(ROOT / 'scripts/ci/patches' / name, arcname='cartdeck-build/patches/' + name)
@@ -110,6 +115,7 @@ def main():
     checkout(source, 'rfandango/hakuX', REVISION)
     for name in PATCHES:
         run('git', '-C', source, 'apply', ROOT / 'scripts/ci/patches' / name)
+    apply_pcache_commit(source)
     run('git', '-C', source, 'submodule', 'update', '--init', '--depth', '1', 'external/fex')
     run('git', '-C', source / 'external/fex', 'submodule', 'update', '--init', '--depth', '1',
         'External/fmt', 'External/range-v3', 'External/rpmalloc', 'External/unordered_dense',

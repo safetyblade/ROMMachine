@@ -41,3 +41,59 @@ S1: native X360 guest progress indicators, Xbox host snapshot and strict Python 
 S2: existing XGFX tools retained; root-cause deformation and phone resolution **NOT YET DEMONSTRATED**.
 S3: Xendroid+ shader translation wait/publication candidate implemented in pinned native builder; actual binary rebuild/phone metrics pending.
 S4: original Xbox on-demand host telemetry implemented; bottleneck-specific native optimisation awaits measured evidence.
+
+
+## S5/S6 selective implementation — 23 November 2026 (owner-directed)
+
+**Actual code in this same draft PR:** stages S5a and S6a are bounded native
+performance improvements. They do NOT claim complete upstream fork migration,
+new device FPS, physical QA or graphics correction.
+
+### S5a — Original Xbox hakuX pipeline cache commit reliability
+
+The pinned hakuX code already has on-disk per-title Vulkan caches, SPIR-V
+reuse and asynchronous pipeline prebuild. Do NOT recreate them or blindly
+switch the native core. `scripts/ci/hakux_pipeline_cache_commit.py` now
+patches the *exact pinned native source* so `g_pc.saved` advances only after
+GLib successfully commits the pipeline cache blob (temp-file + rename). A
+failed background write remains dirty and retryable at the next timed or
+shutdown flush; the snapshot stamp prevents an in-flight shader compile from
+being incorrectly marked persisted. No shader quality, cache keys, SPIR-V
+version, renderer mode or FEX guest timing changes.
+
+The native build recipe applies it after the existing pinned patches,
+records its SHA in `source-manifest.json`, bundles its source in the
+GPL corresponding-source archive, and labels the resulting native receipt
+`cartdeck.pipelineCacheCommit=successful-atomic-write-v1`.
+Fail-closed anchor tests do NOT replace actual ARM64 build or game reopen proof.
+
+### S6a — Xbox 360 host Vulkan instrumentation idle overhead
+
+The native Xenia diagnostics already activate only through Advanced. However,
+five hot-path host instrumentation sites sampled the high-resolution clock
+even when capture was disabled. `capture_start()` now skips those clock
+reads unless capture is on, and `capture_finish()` keeps bounded timer
+samples only for enabled sessions. The shader wait/publish patch, renderer,
+buffers, frame policy, guest clocks, pipeline cache and CPU scheduler are
+unchanged. Portable C++ test verifies off=0 and on=real samples; no assumed
+FPS or frame-time gain without device A/B.
+
+### Promotion and remaining work
+
+1. Offline Python/C++ source gates including strict hakuX source anchors.
+2. Build pinned hakuX ARM64 + pinned modified Xenia ARM64 with actual receipt,
+   all 16KiB ABI/native build checks, no Gradle network timeout hidden as
+   source error.
+3. Build the same-head signed install-over APK, preserve native Xbox HDD,
+   Xbox 360 guest saves and per-game bindings.
+4. Compare A-B-B-A physical runs on Samsung SM-S721B Xclipse, and Adreno if
+   available, with cold/warm pipeline caches, 15–20 minute visuals, p95/p99
+   host timing, CPU/PSS/thermals, audio, input, save/reopen and rollback.
+5. Separate future source diffs required for **S5b** GPU surface/descriptor
+   reuse and FEX efficiency, and **S6b** Xenia Edge scheduler/I/O/audio/vertex
+   work. These are not implemented by S5a/S6a. Port only evidence-backed
+   individual changes, not wholesale forks or Adreno-specific driver hacks.
+6. FIFA Street 3 #295 remains DEFERRED. A cache or host pacing correction
+   never proves that progressive geometry corruption is repaired.
+
+No master merge/issue closure/release without Jonathan approval.
