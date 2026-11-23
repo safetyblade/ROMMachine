@@ -81,12 +81,19 @@ class CompositeControlDeckSolverTest {
         }
     }
 
-    @Test fun combinedHousingKeepsCARTDECKChassisOpenAcrossSides() {
+    @Test
+    fun combinedHousingKeepsCARTDECKChassisOpenAcrossSides() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         for (side in GripArcSide.values()) {
-            val result = CompositeControlDeckSolver.resolve(
-                manifest, baseline, SystemID.GBA, device.safe, device.viewport, side,
-            ) as CompositeDeckResolution.Fits
+            val result =
+                CompositeControlDeckSolver.resolve(
+                    manifest,
+                    baseline,
+                    SystemID.GBA,
+                    device.safe,
+                    device.viewport,
+                    side,
+                ) as CompositeDeckResolution.Fits
             val placement = result.placement
             val seams = CompositeOpenHousingPolicy.seams(placement)
             assertTrue("Combined V3 material must use an open shell, not a filled island", seams.size <= 3)
