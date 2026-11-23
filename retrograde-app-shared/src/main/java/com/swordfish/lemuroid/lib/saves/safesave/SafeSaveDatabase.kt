@@ -74,10 +74,19 @@ interface SafeSaveDao {
         files: List<SafeSaveFileEntity>,
         completion: SafeSaveJournalEntity,
     ) {
+        check(!conflictingOwner(snapshot.groupName, snapshot.cartridgeUuid)) {
+            "Savedata group is already bound to a different cartridge"
+        }
         insertSnapshot(snapshot)
         insertFiles(files)
         insertJournal(completion)
     }
+
+    @Query("SELECT EXISTS(SELECT 1 FROM safesave_snapshots WHERE groupName = :group AND cartridgeUuid != :owner)")
+    fun conflictingOwner(
+        group: String,
+        owner: String,
+    ): Boolean
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertJournal(entity: SafeSaveJournalEntity)

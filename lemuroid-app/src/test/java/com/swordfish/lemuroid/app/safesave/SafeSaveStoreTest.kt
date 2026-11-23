@@ -279,6 +279,37 @@ class SafeSaveStoreTest {
     }
 
     @Test
+    fun captureCommitRefusesAnOwnerThatChangedAfterDiscovery() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            executor.submit<Unit> {
+                val db = Room.inMemoryDatabaseBuilder(context, SafeSaveDatabase::class.java).build()
+                try {
+                    val index = RoomSafeSaveIndex(db.safeSaveDao())
+                    val original =
+                        SafeSaveStore(index, snapshotRoot).capture(saveRoot, "ULUS10001", cartridgeA, "v", true)
+                    val staleCapture = original.snapshot.copy(snapshotId = "stale", cartridgeUuid = cartridgeB)
+                    assertThrows(IllegalStateException::class.java) {
+                        index.registerCapture(
+                            staleCapture,
+                            SafeSaveJournalRecord("stale", "CAPTURE", "stale", "COMPLETE", "VERIFIED", 1L),
+                        )
+                    }
+                    assertEquals(listOf(original.snapshot), index.snapshotsForGroup(original.snapshot.groupName))
+                    assertEquals(1, index.journal().size)
+                } finally {
+                    db.close()
+                }
+            }.get(30, TimeUnit.SECONDS)
+        } finally {
+            executor.shutdownNow()
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
     fun roomIndexPersistsAcrossDatabaseReopen() {
         val (parent, saveRoot, snapshotRoot) = fixture()
         val executor = Executors.newSingleThreadExecutor()

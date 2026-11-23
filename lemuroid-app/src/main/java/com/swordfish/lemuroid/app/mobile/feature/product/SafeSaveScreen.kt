@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.BuildConfig
 import com.swordfish.lemuroid.app.gemrating.GemRatingLocalStore
 import com.swordfish.lemuroid.lib.library.GameSystem
-import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.mods.ModFiles
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
@@ -432,8 +431,8 @@ private fun export(
                         }
                     }
                 val exclusions =
-                    SystemID.entries.map {
-                        CartSaveArchive.Exclusion(it.dbname, "Engine-owned or unbound storage is outside this export")
+                    request.games.map { it.systemId }.distinct().sorted().map { system ->
+                        CartSaveArchive.Exclusion(system, "Engine-owned or unbound storage is outside this export")
                     }
                 val date =
                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).apply {
@@ -457,6 +456,8 @@ private fun export(
             } catch (_: java.io.FileNotFoundException) {
                 null
             } catch (_: UnsupportedOperationException) {
+                null
+            } catch (_: SecurityException) {
                 null
             } ?: return false
         val temp = File.createTempFile("cartsave-readback-", ".zip", context.cacheDir)
