@@ -62,18 +62,24 @@ def main():
                 or feature.get("crossoverGenre")
             ), f"No enriched feature beyond genre: {rid}"
             origin["source-derived, not independently gameplay-reviewed"] += 1
+        elif feature.get("sourceId") == "nintendo-published-description":
+            assert feature.get("sourceRecord", "").startswith("https://")
+            assert feature.get("evidence")
+            origin["publisher-referenced editorial records"] += 1
         else:
             assert feature.get("sourceId") == "cartdeck-curated", feature["sourceId"]
             assert feature.get("evidence")
             origin["prior curated editorial seed"] += 1
         systems[release["systemId"]] += 1
     assert origin["source-derived, not independently gameplay-reviewed"] == 1200
-    assert origin["prior curated editorial seed"] == 35
+    assert origin["prior curated editorial seed"] == 30
+    assert origin["publisher-referenced editorial records"] == 5
     print(json.dumps({
         "sourceCatalogueReleases": len(source),
         "featurePackRecords": len(records),
         "sourceDerived": origin["source-derived, not independently gameplay-reviewed"],
         "priorCurated": origin["prior curated editorial seed"],
+        "publisherReferenced": origin["publisher-referenced editorial records"],
         "platformCoverage": dict(sorted(systems.items())),
         "sha256": hashlib.sha256(data).hexdigest(),
         "sizeBytes": len(data),
