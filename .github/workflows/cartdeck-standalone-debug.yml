@@ -21,6 +21,8 @@ jobs:
     name: Verify current LibretroDroid receipt
     if: >-
       (github.ref == 'refs/heads/master' && github.event_name != 'pull_request') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+        github.head_ref == 'integration/cartdeck-gc-pc-xbox-20261123') ||
       (github.event_name == 'pull_request' && (github.head_ref == 'engineering/br001-regression-rollback' || github.head_ref == 'engineering/br001-safe-reintroduction' || github.head_ref == 'engineering/br001-br002-integrated' || github.head_ref == 'engineering/perf03-foundation' || github.head_ref == 'engineering/perf03-engine-config' || github.head_ref == 'engineering/master-consolidation-20261119'))
     runs-on: ubuntu-24.04
     outputs:
@@ -126,7 +128,8 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       !startsWith(github.head_ref, 'engineering/emu-recovery-') &&
       !startsWith(github.head_ref, 'engineering/perf-pc01-input-continuation-') &&
-      ((github.ref != 'refs/heads/master' && github.head_ref != 'engineering/br001-regression-rollback' && github.head_ref != 'engineering/br001-safe-reintroduction' && github.head_ref != 'engineering/br001-br002-integrated' && github.head_ref != 'engineering/perf03-foundation' && github.head_ref != 'engineering/perf03-engine-config' && github.head_ref != 'engineering/master-consolidation-20261119') ||
+      ((github.ref != 'refs/heads/master' && github.head_ref != 'engineering/br001-regression-rollback' && github.head_ref != 'engineering/br001-safe-reintroduction' && github.head_ref != 'engineering/br001-br002-integrated' && github.head_ref != 'engineering/perf03-foundation' && github.head_ref != 'engineering/perf03-engine-config' && github.head_ref != 'engineering/master-consolidation-20261119' &&
+        github.head_ref != 'integration/cartdeck-gc-pc-xbox-20261123') ||
         (needs.host-preflight.result == 'success' &&
           (needs.host-refresh.result == 'success' ||
             (needs.host-refresh.result == 'skipped' && needs.host-preflight.outputs.valid == 'true'))))

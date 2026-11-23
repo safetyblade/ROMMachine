@@ -235,18 +235,24 @@ internal fun GripArcHousing(
                 }
             }
         }
+        val first = placement.targets.getValue(1)
+        val second = placement.targets.getValue(2)
+        val engravingTop = first.centerY + placement.visuals.getValue(1).h / 2f + 2f
+        val engravingBottom = second.centerY - placement.visuals.getValue(2).h / 2f - 2f
         Box(
             modifier =
                 Modifier
-                    .offset(x = ((if (left) 36f else 124f) * placement.scale - 24f).dp, y = (4f * placement.scale).dp)
+                    .offset(x = (first.centerX - housing.left - 24f).dp, y = (engravingTop - housing.top).dp)
                     .width(48.dp)
-                    .height(10.dp),
+                    .height((engravingBottom - engravingTop).dp)
+                    .testTag("griparc-engraving"),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "GripArc",
                 color = tokens.onChassis,
-                fontSize = 8.sp,
+                fontSize = 10.sp,
+                lineHeight = 12.sp,
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 maxLines = 1,
             )

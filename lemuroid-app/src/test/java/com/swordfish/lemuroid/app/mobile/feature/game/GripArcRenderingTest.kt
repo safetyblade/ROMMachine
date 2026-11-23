@@ -105,6 +105,7 @@ class GripArcRenderingTest {
         val analog = compose.onNodeWithContentDescription("Analog stick")
         analog.assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         for (slot in 1..4) compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
+        compose.onNodeWithTag("griparc-engraving").assertIsDisplayed().assertHeightIsAtLeast(16.dp)
         val seat = joint.pivot.controls.getValue("Analog")
         val stickCenter = Offset(seat.centerX, seat.centerY)
         val deck = compose.onNodeWithTag("psp-pivotarc")
