@@ -243,8 +243,10 @@ object GemDeckFit {
      */
     fun baselineHalfStepsFor(systemId: String): Int? = platformHalfSteps[systemId]
 
-    fun estimate(release: GemCataloguePackage.Release): Estimate =
-        estimate(release.releaseId, release.systemId, release.primaryGenre, release.title)
+    fun estimate(release: GemCataloguePackage.Release): Estimate {
+        val genre = GemGenreTaxonomy.classify(release.primaryGenre, release.title).primary
+        return estimate(release.releaseId, release.systemId, genre, release.title)
+    }
 
     /** Optional explicit traits allow a versioned catalogue-sidecar to add exact-ID evidence. */
     fun estimate(
