@@ -156,6 +156,50 @@ class SafeSaveMetricsAndJournalTest {
     }
 
     @Test
+    fun lowStorageRejectsCaptureBeforeWritingOrChangingLiveProgress() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val index = RecordingIndex()
+            val store = SafeSaveStore(index, snapshotRoot, availableBytes = { 0L })
+            assertThrows(IllegalStateException::class.java) {
+                store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            }
+            assertTrue(index.snapshots.isEmpty())
+            assertTrue(index.journal.isEmpty())
+            assertFalse(snapshotRoot.exists())
+            assertEquals(
+                "level-3-progress",
+                File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText(),
+            )
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun lowStorageRejectsRestoreWithoutTouchingLiveProgressOrSnapshot() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val index = RecordingIndex()
+            val captured =
+                SafeSaveStore(index, snapshotRoot)
+                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val liveFile = File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN")
+            liveFile.writeText("newer-live-progress")
+            val priorJournal = index.journal.toList()
+            val store = SafeSaveStore(index, snapshotRoot, availableBytes = { 0L })
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("newer-live-progress", liveFile.readText())
+            assertTrue(store.verify(captured.snapshot.snapshotId))
+            assertEquals(priorJournal, index.journal)
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
     fun verifyReturnsFalseForUnknownOrMalformedSnapshotIds() {
         val (parent, _, snapshotRoot) = fixture()
         try {
