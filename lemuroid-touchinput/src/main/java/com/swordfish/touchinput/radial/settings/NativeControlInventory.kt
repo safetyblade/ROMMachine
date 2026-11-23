@@ -78,6 +78,7 @@ data class NativeControlInventory(
                 )
             val standardTrayOnly =
                 setOf(
+                    TouchControllerID.DESMUME,
                     TouchControllerID.MELONDS,
                     TouchControllerID.NINTENDO_3DS,
                     TouchControllerID.WS_LANDSCAPE,
@@ -250,9 +251,12 @@ data class NativeControlInventory(
                 )
             }
             if (id == TouchControllerID.GAMECUBE) button("Z", "aux-Z", KeyEvent.KEYCODE_BUTTON_R2)
-            if (id == TouchControllerID.MELONDS) {
-                button("Mic", "ds-mic", KeyEvent.KEYCODE_BUTTON_L2, left = true)
-                button("Lid", "ds-layout", KeyEvent.KEYCODE_BUTTON_THUMBL, left = true)
+            if (id == TouchControllerID.MELONDS || id == TouchControllerID.DESMUME) {
+                val melon = id == TouchControllerID.MELONDS
+                val mic = if (melon) KeyEvent.KEYCODE_BUTTON_L2 else KeyEvent.KEYCODE_BUTTON_THUMBL
+                val layout = if (melon) KeyEvent.KEYCODE_BUTTON_THUMBL else KeyEvent.KEYCODE_BUTTON_L2
+                button("Mic", "ds-mic", mic, left = true)
+                button("Lid", "ds-layout", layout, left = true)
             }
             if (id !in
                 setOf(

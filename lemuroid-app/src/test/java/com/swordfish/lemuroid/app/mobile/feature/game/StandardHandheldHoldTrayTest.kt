@@ -25,6 +25,18 @@ class StandardHandheldHoldTrayTest {
         assertFalse(vertical.supportsGripArc)
     }
 
+    @Test fun desmumeTrayUsesNativeSeatsAndKeepsItsAuxiliaryMappings() {
+        val native = NativeControlInventory.forHoldTray(TouchControllerID.DESMUME)!!
+        val bySeat = native.controls.groupBy { it.seat }
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, bySeat.getValue("ds-mic").single().keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, bySeat.getValue("ds-layout").single().keyCode)
+        val held = standardHoldTrayInputs(SystemID.NDS).map { it.code }.toSet()
+        assertTrue(held.all { key -> native.controls.any { it.keyCode == key } })
+        assertFalse(KeyEvent.KEYCODE_BUTTON_THUMBL in held)
+        assertFalse(KeyEvent.KEYCODE_BUTTON_L2 in held)
+        assertEquals(null, NativeControlInventory.forController(TouchControllerID.DESMUME))
+    }
+
     @Test fun dualScreenInventoriesReserveSpecialControlsWithoutMakingThemHoldTargets() {
         val ds = NativeControlInventory.forHoldTray(TouchControllerID.MELONDS)!!
         val threeDs = NativeControlInventory.forHoldTray(TouchControllerID.NINTENDO_3DS)!!
