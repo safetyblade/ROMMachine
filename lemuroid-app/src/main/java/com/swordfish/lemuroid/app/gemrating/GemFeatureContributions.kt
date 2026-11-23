@@ -98,8 +98,13 @@ internal object GemFeatureContributions {
                     values.any { it.isBlank() || it.length > 96 || it.any(Char::isISOControl) } ->
                         "Invalid feature field"
                     listOfNotNull(
-                        row.sourceId, row.sourceRecord, row.sourceRevision, row.evidence,
-                        row.sourceLicence, row.verifiedWorkId, row.workEvidence,
+                        row.sourceId,
+                        row.sourceRecord,
+                        row.sourceRevision,
+                        row.evidence,
+                        row.sourceLicence,
+                        row.verifiedWorkId,
+                        row.workEvidence,
                     ).any {
                         it.isBlank() || it.length > 512 || it.any(Char::isISOControl)
                     } -> "Invalid contribution provenance"
