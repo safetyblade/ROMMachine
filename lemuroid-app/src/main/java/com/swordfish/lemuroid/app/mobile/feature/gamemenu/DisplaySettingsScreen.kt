@@ -155,7 +155,7 @@ fun DisplaySettingsScreen(
         } else {
             Text("Image Quality is controlled by this game's native renderer.")
         }
-        Text("Screen aspect: Auto / Original", style = MaterialTheme.typography.titleMedium)
+        Text("Screen fit and surrounds", style = MaterialTheme.typography.titleMedium)
         for ((landscape, field) in listOf(true to "landscapeBorder", false to "portraitBorder")) {
             Text(if (landscape) "Landscape border" else "Portrait border", style = MaterialTheme.typography.titleMedium)
             val options =
