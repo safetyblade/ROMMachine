@@ -72,9 +72,11 @@ interface SafeSaveDao {
     fun registerSnapshot(
         snapshot: SafeSaveSnapshotEntity,
         files: List<SafeSaveFileEntity>,
+        completion: SafeSaveJournalEntity,
     ) {
         insertSnapshot(snapshot)
         insertFiles(files)
+        insertJournal(completion)
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -114,7 +116,10 @@ abstract class SafeSaveDatabase : RoomDatabase() {
 
 /** Room-backed [SafeSaveIndex]. Stores metadata only; save bytes stay on disk. */
 class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
-    override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
+    override fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    ) {
         dao.registerSnapshot(
             SafeSaveSnapshotEntity(
                 snapshotId = snapshot.snapshotId,
@@ -133,6 +138,7 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
             snapshot.files.map {
                 SafeSaveFileEntity(snapshot.snapshotId, it.relativePath, it.sizeBytes, it.sha256)
             },
+            completion.toEntity(),
         )
     }
 
@@ -148,17 +154,11 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
         dao.snapshotsForGroup(groupName).map { it.toRecord(dao.files(it.snapshotId)) }
 
     override fun appendJournal(record: SafeSaveJournalRecord) {
-        dao.insertJournal(
-            SafeSaveJournalEntity(
-                record.opId,
-                record.kind,
-                record.snapshotId,
-                record.stage,
-                record.result,
-                record.timestamp,
-            ),
-        )
+        dao.insertJournal(record.toEntity())
     }
+
+    private fun SafeSaveJournalRecord.toEntity() =
+        SafeSaveJournalEntity(opId, kind, snapshotId, stage, result, timestamp)
 
     override fun journal(): List<SafeSaveJournalRecord> =
         dao.journal().map { SafeSaveJournalRecord(it.opId, it.kind, it.snapshotId, it.stage, it.result, it.timestamp) }

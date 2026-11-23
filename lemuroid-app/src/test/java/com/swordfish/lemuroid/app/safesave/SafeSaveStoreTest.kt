@@ -26,8 +26,12 @@ private class InMemoryIndex : SafeSaveIndex {
     val snapshots = linkedMapOf<String, SafeSaveSnapshotRecord>()
     val journal = mutableListOf<SafeSaveJournalRecord>()
 
-    override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
+    override fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    ) {
         snapshots[snapshot.snapshotId] = snapshot
+        journal += completion
     }
 
     override fun snapshot(snapshotId: String) = snapshots[snapshotId]
@@ -231,7 +235,16 @@ class SafeSaveStoreTest {
     }
 
     @Test
-    fun fileIndexFailureDoesNotPublishAPartialSnapshot() {
+    fun fileIndexFailureDoesNotPublishAPartialSnapshot() = assertRegistrationRollsBack("safesave_files")
+
+    @Test
+    fun captureJournalFailureDoesNotPublishAPartialSnapshot() =
+        assertRegistrationRollsBack("safesave_journal", "WHEN NEW.stage = 'COMPLETE'")
+
+    private fun assertRegistrationRollsBack(
+        table: String,
+        condition: String = "",
+    ) {
         val (parent, saveRoot, snapshotRoot) = fixture()
         val executor = Executors.newSingleThreadExecutor()
         try {
@@ -240,8 +253,8 @@ class SafeSaveStoreTest {
                 val db = Room.inMemoryDatabaseBuilder(context, SafeSaveDatabase::class.java).build()
                 try {
                     db.openHelper.writableDatabase.execSQL(
-                        "CREATE TRIGGER fixture_reject_file BEFORE INSERT ON safesave_files " +
-                            "BEGIN SELECT RAISE(ABORT, 'fixture file failure'); END",
+                        "CREATE TRIGGER fixture_reject_registration BEFORE INSERT ON $table $condition " +
+                            "BEGIN SELECT RAISE(ABORT, 'fixture registration failure'); END",
                     )
                     val index = RoomSafeSaveIndex(db.safeSaveDao())
                     assertThrows(SQLiteConstraintException::class.java) {
@@ -251,6 +264,10 @@ class SafeSaveStoreTest {
                     assertTrue(index.snapshotsForCartridge(cartridgeA).isEmpty())
                     assertTrue(snapshotRoot.listFiles().orEmpty().isEmpty())
                     assertEquals("FAILED", index.journal().single().stage)
+                    assertEquals(
+                        "level-3-progress",
+                        File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText(),
+                    )
                 } finally {
                     db.close()
                 }

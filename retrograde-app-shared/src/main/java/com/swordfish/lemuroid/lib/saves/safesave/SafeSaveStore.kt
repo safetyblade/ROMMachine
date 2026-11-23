@@ -81,15 +81,23 @@ class SafeSaveStore(
                     files = records,
                 )
             check(staging.renameTo(destination)) { "Unable to activate SafeSave snapshot" }
-            index.insertSnapshot(snapshot)
-            index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()))
+            index.registerCapture(
+                snapshot,
+                SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()),
+            )
             return CaptureResult(snapshot, Metrics(clock() - started, records.size, group.totalBytes))
         } catch (error: Exception) {
-            staging.deleteRecursively()
-            if (destination.exists() && index.snapshot(snapshotId) == null) destination.deleteRecursively()
-            index.appendJournal(
-                SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
-            )
+            runCatching {
+                check(staging.deleteRecursively()) { "Could not clean up the staged capture" }
+                if (destination.exists() && index.snapshot(snapshotId) == null) {
+                    check(destination.deleteRecursively()) { "Could not clean up the unpublished capture" }
+                }
+            }.onFailure(error::addSuppressed)
+            runCatching {
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
+                )
+            }.onFailure(error::addSuppressed)
             throw error
         }
     }
