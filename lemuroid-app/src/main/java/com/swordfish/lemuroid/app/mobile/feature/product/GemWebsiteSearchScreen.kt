@@ -60,6 +60,12 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
         }
     }
 
+    fun openWebUrl(url: String) {
+        message =
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                .fold({ "" }, { "No browser available to open this website." })
+    }
+
     fun open(
         source: GemWebsiteSource,
         term: String,
@@ -69,9 +75,7 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
             message = "Enter a search term or correct the website address."
             return
         }
-        message =
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url.toASCIIString()))) }
-                .fold({ "" }, { "No browser available to open this website." })
+        openWebUrl(url.toASCIIString())
     }
 
     Column(
@@ -91,16 +95,48 @@ internal fun GemWebsiteSearchScreen(modifier: Modifier = Modifier) {
                 enabled = initial.isSuccess && sources.size < 100,
             ) { Text("Add website") }
         }
-        if (sources.any { it.enabled && it.template.isNotBlank() }) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it.take(500) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search websites") },
-                singleLine = true,
-                supportingText = { Text("Opens in browser. Do not enter private information.") },
-            )
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it.take(500) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Search games, mods or homebrew") },
+            singleLine = true,
+            supportingText = { Text("Include a console, such as PSP or GBA. Search opens your browser.") },
+        )
+        Text("Homebrew", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Explore homebrew from established creator communities. No sites are added to My Sources.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        TextButton(
+            onClick = {
+                HomebrewDirectory.searchUri(query)?.let { openWebUrl(it.toASCIIString()) }
+            },
+            enabled = HomebrewDirectory.searchUri(query) != null,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) { Text("Search curated sites") }
+        Text(
+            "External, site-restricted web search. Individual games, downloads and compatibility are not verified.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        HomebrewDirectory.links.forEach { link ->
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(link.name, style = MaterialTheme.typography.titleMedium)
+                        Text(link.consoles, style = MaterialTheme.typography.bodySmall)
+                    }
+                    TextButton(
+                        onClick = { openWebUrl(link.url) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Browse") }
+                }
+            }
         }
+        Text("My Sources", style = MaterialTheme.typography.titleMedium)
         if (initial.isFailure) {
             Text(
                 "Saved websites could not be read. Existing data is retained.",
