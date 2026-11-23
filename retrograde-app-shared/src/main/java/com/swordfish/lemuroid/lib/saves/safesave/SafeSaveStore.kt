@@ -20,6 +20,8 @@ import java.util.UUID
 class SafeSaveStore(
     private val index: SafeSaveIndex,
     private val snapshotRoot: File,
+    /** Production checks real disk availability; tests may inject a bounded low-space fixture. */
+    private val availableBytes: (File) -> Long = { it.usableSpace },
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
     data class Metrics(val durationMs: Long, val fileCount: Int, val totalBytes: Long)
@@ -208,7 +210,7 @@ class SafeSaveStore(
         neededBytes: Long,
     ) {
         val probe = generateSequence(root) { it.parentFile }.firstOrNull { it.exists() } ?: return
-        check(probe.usableSpace > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
+        check(availableBytes(probe) > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
     }
 
     companion object {
