@@ -26,7 +26,7 @@ TITLE_REJECT = re.compile(
     re.IGNORECASE,
 )
 TITLE_REVIEW = re.compile(
-    r"\\b(bios|firmware|system update|demo disc|test disc|bonus disc|soundtrack|map pack)\\b",
+    r"\b(bios|firmware|system update|demo disc|test disc|bonus disc|soundtrack|map pack)\b",
     re.IGNORECASE,
 )
 SPACE = re.compile(r"\s+")
