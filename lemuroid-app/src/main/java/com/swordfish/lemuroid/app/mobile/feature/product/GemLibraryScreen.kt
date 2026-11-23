@@ -686,7 +686,11 @@ internal fun GemIntelligenceRecord(
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(installedGame?.displayName() ?: release.title, style = MaterialTheme.typography.titleMedium)
-                Text(cartridgeSystemLabel(release.systemId) + " · " + (genre ?: "Genre unknown"))
+                Text(
+                    cartridgeSystemLabel(release.systemId) +
+                        " · " + (genre ?: "Genre unknown") +
+                        " · " + (source?.name ?: release.sourceId),
+                )
                 val traits = listOfNotNull(crossover, playstyle)
                 if (traits.isNotEmpty()) Text(traits.joinToString(" · "))
                 if (mechanics.isNotEmpty()) Text(mechanics.sorted().joinToString(" · "))
