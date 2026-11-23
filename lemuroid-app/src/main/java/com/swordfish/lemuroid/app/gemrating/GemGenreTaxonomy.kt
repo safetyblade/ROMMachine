@@ -204,13 +204,14 @@ internal object GemGenreTaxonomy {
                 "turn-based strategy" -> setOf("Strategy")
                 else -> emptySet()
             }
+        val flagged = reviewTitle.containsMatchIn(title)
         return Classification(
             primary = genre,
             crossover = crossover,
             playstyle = playstyle,
             mechanics = mechanics,
-            contentType = "Game",
-            reviewFlag = reviewTitle.containsMatchIn(title),
+            contentType = if (flagged) "Needs review" else "Game",
+            reviewFlag = flagged,
         )
     }
 
