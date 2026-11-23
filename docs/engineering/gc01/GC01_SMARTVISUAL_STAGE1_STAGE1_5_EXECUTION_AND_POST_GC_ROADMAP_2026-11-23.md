@@ -73,7 +73,7 @@ The 23 Nov Codex checkpoint delivered PSP PivotArc direction control + both-hand
 | G Xbox 360 continuity | XUID-bound player save-only mapping, verified native storage adapters, safe resume/restore, or specific external host dependency. |
 | H Integration | Exact-source build, install-over/data migration and shared shell/display/menu/TV regressions, source + unit + rendered evidence. |
 
-**Cross-cutting:** SafeSave PSP snapshot-to-Save-Centre integration, bounded native adapters, profile/Junior isolation and PIN recovery, manager-authorised transfers, GEM active-player/ratings/export scope. SIGNATURE #360 remains owner physical FAIL until tested. Do not force unavailable native inputs or automatic “fully backed up” labels.
+**Cross-cutting:** SafeSave PSP snapshot-to-Save-Centre integration, bounded native adapters, profile/Junior isolation and PIN recovery, manager-authorised transfers, GEM active-player/ratings/export scope. SIGNATURE #360 has owner-confirmed PASS on APK 91364396 and is closed; maintain launch-state, playback and form-factor automated non-regression only, with any separately untested routes retained under QA #248. Do not force unavailable native inputs or automatic “fully backed up” labels.
 
 ## 4. Owner-confirmed passes and remaining bounded work — 23 Nov 2026
 
