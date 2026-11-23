@@ -115,7 +115,11 @@ internal data class SaveInventoryRow(
     val resumeStates: Int,
     val cards: Int,
     val summary: String,
-)
+) {
+    /** A cartridge with only manual/resume state still contains recoverable progress. */
+    val hasSaveProgress: Boolean
+        get() = gameSaves > 0 || manualStates > 0 || resumeStates > 0 || cards > 0
+}
 
 @Composable
 internal fun SafeSaveSurface(
@@ -184,7 +188,7 @@ internal fun SafeSaveSurface(
             item {
                 val metrics =
                     listOf(
-                        "Games with saves" to inventory.count { it.gameSaves + it.cards > 0 },
+                        "Games with saves" to inventory.count { it.hasSaveProgress },
                         "Manual states" to inventory.sumOf { it.manualStates },
                         "Resume states" to inventory.sumOf { it.resumeStates },
                         "Full cards" to inventory.sumOf { it.cards },
@@ -222,7 +226,7 @@ internal fun SafeSaveSurface(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(cartridgeSystemLabel(system), style = MaterialTheme.typography.titleSmall)
-                                val games = saves.count { it.gameSaves + it.cards > 0 }
+                                val games = saves.count { it.hasSaveProgress }
                                 val states = saves.sumOf { it.manualStates + it.resumeStates }
                                 val cards = saves.sumOf { it.cards }
                                 Text("Games $games · States $states · Cards $cards")
