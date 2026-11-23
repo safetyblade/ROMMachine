@@ -10,6 +10,7 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 import re
+from validate_taxonomy import taxonomy
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "lemuroid-app/src/main/assets/gem"
@@ -24,6 +25,10 @@ TITLE_REJECT = re.compile(
     r"triple pack|compilation|soundtrack|system update|test disc|expansion pack|dlc)\b",
     re.IGNORECASE,
 )
+TITLE_REVIEW = re.compile(
+    r"\\b(bios|firmware|system update|demo disc|test disc|bonus disc|soundtrack|map pack)\\b",
+    re.IGNORECASE,
+)
 SPACE = re.compile(r"\s+")
 
 
@@ -36,6 +41,8 @@ def census():
     assert len(pins) == 53, "Expected 53 retained signed/approved source shards"
     rows_by_id = {}
     source_stats = defaultdict(Counter)
+    taxonomy_map, nongame, ambiguous = taxonomy()
+    tax = Counter()
     platform_stats = defaultdict(Counter)
     raw_genres = Counter()
     excluded_genres = Counter()
@@ -56,6 +63,19 @@ def census():
             system = row["systemId"]
             genre = (row.get("primaryGenre") or "").strip().casefold()
             is_genre_known = bool(genre)
+            if genre in taxonomy_map:
+                if TITLE_REVIEW.search(row["title"]):
+                    tax["needs_promotional_review"] += 1
+                else:
+                    tax["new_eligible_by_source_genre"] += 1
+            elif genre in nongame:
+                tax["explicit_non_game"] += 1
+            elif genre in ambiguous:
+                tax["source_ambiguous"] += 1
+            elif not genre:
+                tax["source_missing"] += 1
+            else:
+                tax["unmapped"] += 1
             is_recognised = genre in ACCEPTED_GENRES
             title_blocked = bool(TITLE_REJECT.search(row["title"]))
             s = source_stats[source]
@@ -121,6 +141,10 @@ def census():
             "currentlyEligibleForRecommendations": eligible,
             "eligiblePercent": rate(eligible, total),
             "notEligibleUnderCurrentRules": total - eligible,
+            "newCanonicalGenreProjectedEligible": tax["new_eligible_by_source_genre"],
+            "newCanonicalEligiblePercent": rate(tax["new_eligible_by_source_genre"], total),
+            "newEstimatedLiftVsLegacyEligibility": tax["new_eligible_by_source_genre"] - eligible,
+            "taxonomyExceptionCategories": dict(tax),
             "featuresEnrichedExactReleaseCount": enriched,
             "featuresEnrichedPercent": rate(enriched, total),
             "verifiedHashRows": sum(v["verified_sha256"] for v in source_stats.values()),
