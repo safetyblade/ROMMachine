@@ -16,24 +16,22 @@ PINS = ("vdg-pins-a.json", "vdg-pins-b.json", "titlescreen-pins.json")
 
 
 def _kotlin_string_set(code: str, name: str) -> set[str]:
-    """Read a simple Kotlin setOf string literal, independent of ktlint line wrapping."""
+    """Parse simple Kotlin setOf strings across ktlint formatting without guessing."""
     match = re.search(
-        rf"\\bprivate\\s+val\\s+{re.escape(name)}\\s*=\\s*setOf\\s*\\((.*?)\\)",
+        rf"\bprivate\s+val\s+{re.escape(name)}\s*=\s*setOf\s*\((.*?)\)",
         code,
         re.S,
     )
     if match is None:
         raise AssertionError(f"Missing Kotlin source set: {name}")
     body = match.group(1)
-    values = re.findall(r'"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"', body)
-    # Source taxonomy values are plain string literals, not expressions.
-    unparsed = re.sub(r'"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"\\s*,?', "", body)
+    values = re.findall(r'"([^"]+)"', body)
+    unparsed = re.sub(r'"[^"]+"\s*,?', "", body)
     if unparsed.strip():
         raise AssertionError(f"Unsupported Kotlin source set expression: {name}")
     if not values or len(values) != len(set(values)):
         raise AssertionError(f"Empty or duplicate Kotlin source set: {name}")
     return set(values)
-
 
 def taxonomy():
     code = KOTLIN.read_text(encoding="utf-8")
