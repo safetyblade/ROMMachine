@@ -281,6 +281,20 @@ object GemDeckFit {
         return Estimate((base + boundedDelta).coerceIn(2, 10), basis, base)
     }
 
+    /**
+     * Only exact-source gameplay evidence becomes a touch-adjustment. A first-person
+     * genre does not, by itself, prove dual-analogue controls or difficult text.
+     */
+    fun evidenceTraits(
+        playstyle: String?,
+        mechanics: Set<String>,
+    ): Set<Trait> =
+        buildSet {
+            if (playstyle.equals("Turn-based", ignoreCase = true)) add(Trait.TURN_BASED)
+            if (mechanics.any { it.equals("2D tactical", ignoreCase = true) }) add(Trait.SIMPLE_2D)
+            if (mechanics.any { it.equals("High speed", ignoreCase = true) }) add(Trait.PRECISION_ACTION)
+        }
+
     private fun curatedTraits(
         releaseId: String,
         title: String,
