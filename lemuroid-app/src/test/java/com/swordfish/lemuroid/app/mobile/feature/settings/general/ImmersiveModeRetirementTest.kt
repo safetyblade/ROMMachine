@@ -19,11 +19,12 @@ class ImmersiveModeRetirementTest {
         parser.use {
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                 if (parser.eventType == XmlPullParser.START_TAG) {
-                    val key = parser.getAttributeResourceValue(
-                        "http://schemas.android.com/apk/res/android",
-                        "key",
-                        0,
-                    )
+                    val key =
+                        parser.getAttributeResourceValue(
+                            "http://schemas.android.com/apk/res/android",
+                            "key",
+                            0,
+                        )
                     if (key == R.string.pref_key_enable_immersive_mode) hasImmersivePreference = true
                 }
                 parser.next()
