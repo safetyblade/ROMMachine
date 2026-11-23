@@ -58,6 +58,28 @@ class GemFeatureContributionsTest {
     }
 
     @Test
+    fun workIdentityNeedsIndependentEvidenceAndCanNeverBeInferredFromTitle() {
+        val raw =
+            """
+            {
+              "schemaVersion":1,
+              "records":[
+                {"releaseId":"r-1","title":"Rated","primaryGenre":"Strategy",
+                 "verifiedWorkId":"work:shared"},
+                {"releaseId":"r-2","title":"Candidate","primaryGenre":"Strategy",
+                 "verifiedWorkId":"work:shared","workEvidence":"Verified cross-edition work identifier",
+                 "sourceId":"independent-release-register"}
+              ]
+            }
+            """.trimIndent()
+        val report = GemFeatureContributions.parse(raw, releases)
+        assertEquals(setOf("r-2"), report.accepted.keys)
+        assertEquals(1, report.rejected.size)
+        assertEquals("Verified work identity needs independent source and evidence", report.rejected.single().reason)
+        assertEquals("work:shared", report.accepted.getValue("r-2").verifiedWorkId)
+    }
+
+    @Test
     fun addedMechanicsFlowIntoExistingOfflineRankingWithoutCreatingRatings() {
         val raw =
             """
