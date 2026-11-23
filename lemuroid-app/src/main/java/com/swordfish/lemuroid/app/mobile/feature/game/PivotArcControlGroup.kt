@@ -26,8 +26,10 @@ import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
+import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
 import com.swordfish.touchinput.radial.ui.LemuroidCrossForeground
 import gg.padkit.PadKitScope
+import gg.padkit.controls.ControlAnalog
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
@@ -60,6 +62,7 @@ fun PadKitScope.PivotArcControlGroup(
                                 observe(
                                     when (key) {
                                         "D" -> "dpad"
+                                        "Analog" -> "analog-left"
                                         "L", "R" -> "shoulder-$key"
                                         else -> key.lowercase()
                                     },
@@ -81,6 +84,14 @@ fun PadKitScope.PivotArcControlGroup(
                     active = code in heldKeys,
                     accent = accent,
                     onToggle = { onToggleHold(code) },
+                )
+            } else if (key == "Analog") {
+                ControlAnalog(
+                    modifier = position.semantics { contentDescription = "Analog stick" },
+                    id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
+                    analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
+                    background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
+                    foreground = { LemuroidButtonForeground(pressed = it) },
                 )
             } else if (key == "D") {
                 ControlCross(
@@ -114,7 +125,13 @@ fun PadKitScope.PivotArcControlGroup(
                     } ?: return@forEach
                 val label = PivotArcLayoutProfile.nativeLabel(system, key)
                 val icon =
-                    when (key) {
+                    when (label) {
+                        "Circle" -> TouchR.drawable.psx_circle
+                        "Cross" -> TouchR.drawable.psx_cross
+                        "Triangle" -> TouchR.drawable.psx_triangle
+                        "Square" -> TouchR.drawable.psx_square
+                        else -> null
+                    } ?: when (key) {
                         "Select" -> TouchR.drawable.button_select
                         "Start" -> TouchR.drawable.button_start.takeIf { label == key }
                         "Menu" -> TouchR.drawable.button_menu

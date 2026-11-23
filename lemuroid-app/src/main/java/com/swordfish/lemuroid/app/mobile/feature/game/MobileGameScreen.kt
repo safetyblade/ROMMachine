@@ -604,6 +604,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             } else {
                                 when (key) {
                                     "D" -> "dpad"
+                                    "Analog" -> "analog-left"
                                     "A", "B", "X", "Y" -> "face-${key.lowercase()}"
                                     "HoldA" -> "hold-a"
                                     "HoldB" -> "hold-b"

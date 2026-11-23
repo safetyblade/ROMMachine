@@ -188,7 +188,6 @@ class PivotArcPositionSolverTest {
     @Test fun expandedConsoleControlsNeverPretendToBeSupported() {
         for (system in listOf(
             SystemID.PSX,
-            SystemID.PSP,
             SystemID.N64,
             SystemID.NDS,
             SystemID.GAMECUBE,
@@ -196,6 +195,21 @@ class PivotArcPositionSolverTest {
         )) {
             assertEquals(null, PivotArcLayoutProfile.activeFor(system))
         }
+    }
+
+    @Test fun pspKeepsTheAnalogStickSeparateFromTheDpadAndFourFaceButtons() {
+        for (leftHand in listOf(false, true)) {
+            val placement = (resolve(SystemID.PSP, leftHand = leftHand) as PivotArcResolution.Fits).placement
+            val controls = placement.controls
+            val required = setOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            assertEquals(required + setOf("HoldA", "HoldB"), controls.keys)
+            val analog = controls.getValue("Analog")
+            assertTrue(analog.width >= 48f && analog.height >= 48f)
+            assertFalse(analog.intersects(referenceViewport))
+            assertTrue(controls.filterKeys { it != "Analog" }.values.none { it.intersects(analog) })
+        }
+        assertEquals("Circle", PivotArcLayoutProfile.nativeLabel(SystemID.PSP, "A"))
+        assertEquals("Cross", PivotArcLayoutProfile.nativeLabel(SystemID.PSP, "B"))
     }
 
     @Test fun handheldTwoButtonFamiliesKeepNativeLabelsAndOmitPhantomSelect() {

@@ -60,6 +60,7 @@ object PivotArcLayoutProfile {
             SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
             SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            SystemID.PSP -> listOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
             else -> null
         }
 
@@ -79,6 +80,14 @@ object PivotArcLayoutProfile {
                     "A" -> "B"
                     "B" -> "A"
                     "Start" -> "Option"
+                    else -> key
+                }
+            SystemID.PSP ->
+                when (key) {
+                    "A" -> "Circle"
+                    "B" -> "Cross"
+                    "X" -> "Triangle"
+                    "Y" -> "Square"
                     else -> key
                 }
             SystemID.LYNX ->

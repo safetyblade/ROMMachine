@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -20,19 +21,23 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
+import com.swordfish.lemuroid.app.shared.game.viewmodel.dispatchPadKitDirection
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
+import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import gg.padkit.PadKit
 import gg.padkit.config.HapticFeedbackType
+import gg.padkit.inputevents.InputEvent
 import gg.padkit.inputstate.InputState
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -48,6 +53,87 @@ import java.io.File
 @Config(sdk = [28], application = Application::class, qualifiers = "w393dp-h852dp-mdpi")
 class GripArcRenderingTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun pspPivotArcRendersAndDispatchesAnIndependentAnalogStick() {
+        val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v22-manifest.json").readText())
+        val baseline =
+            PivotArcLayoutProfile.parse(
+                File("src/main/assets/pivotarc/candidate-c-baseline.json").readText(),
+            )
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val side = GripArcSide.RIGHT
+        val result =
+            CompositeControlDeckSolver.resolve(manifest, baseline, SystemID.PSP, device.safe, device.viewport, side)
+        val joint = (result as CompositeDeckResolution.Fits).placement
+        val motions = java.util.concurrent.CopyOnWriteArrayList<Offset>()
+        compose.setContent {
+            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+            ) {
+                Box(Modifier.requiredSize(393.dp, 852.dp).testTag("psp-pivotarc")) {
+                    PadKit(
+                        onInputEvents = { events ->
+                            events.filterIsInstance<InputEvent.ContinuousDirection>().forEach { event ->
+                                dispatchPadKitDirection(event.id, event.direction) { id, x, y ->
+                                    if (id == ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK) motions.add(Offset(x, y))
+                                }
+                            }
+                        },
+                        hapticFeedbackType = HapticFeedbackType.NONE,
+                        simulatedState = remember { mutableStateOf(InputState()) },
+                        simulatedControlIds = remember { mutableStateOf(emptySet()) },
+                    ) {
+                        CompositeControlDeckHousing(joint, tokens)
+                        PivotArcControlGroup(joint.pivot, SystemID.PSP, emptySet(), tokens.accent, {}, combined = true)
+                        GripArcAccessory(
+                            joint.dock,
+                            GripArcProfile(ArcControlMode.PIVOTARC_GRIPARC, side, 4),
+                            tokens,
+                            fullscreenWithGamepad = false,
+                            isLoading = false,
+                            onPressed = { _, _, _ -> },
+                            drawHousing = false,
+                        )
+                    }
+                }
+            }
+        }
+        val analog = compose.onNodeWithContentDescription("Analog stick")
+        analog.assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        for (slot in 1..4) compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
+        val seat = joint.pivot.controls.getValue("Analog")
+        val stickCenter = Offset(seat.centerX, seat.centerY)
+        val deck = compose.onNodeWithTag("psp-pivotarc")
+        deck.performTouchInput { down(stickCenter) }
+        compose.runOnIdle { assertTrue("Analog down did not reach PadKit: $motions", motions.isNotEmpty()) }
+        deck.performTouchInput { moveTo(stickCenter + Offset(22f, 18f)) }
+        compose.runOnIdle {
+            assertTrue(
+                "Expected a finite diagonal before release, received $motions",
+                motions.any { it.x.isFinite() && it.y.isFinite() && it.x != 0f && it.y != 0f },
+            )
+        }
+        deck.performTouchInput { up() }
+        compose.runOnIdle {
+            val last = motions.last()
+            assertTrue("Expected a neutral release, received $motions", last.x == 0f && last.y == 0f)
+        }
+        val rect = compose.onNodeWithTag("psp-pivotarc").getUnclippedBoundsInRoot()
+        compose.runOnIdle {
+            val bitmap = Bitmap.createBitmap(393, 852, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.translate(-rect.left.value, -rect.top.value)
+            compose.activity.window.decorView.draw(canvas)
+            val image = File("build/reports/gc01-menu-screens/griparc", "psp-pivotarc-griparc.png")
+            image.parentFile!!.mkdirs()
+            image.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bitmap.recycle()
+        }
+    }
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
