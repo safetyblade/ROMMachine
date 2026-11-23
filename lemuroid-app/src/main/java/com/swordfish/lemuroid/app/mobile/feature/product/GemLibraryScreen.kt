@@ -38,6 +38,7 @@ import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemDeckFit
 import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
+import com.swordfish.lemuroid.app.gemrating.GemGenreTaxonomy
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
@@ -219,7 +220,10 @@ internal fun GemLibraryScreen(
                     }
                     .filter {
                         selected != null || genreFilter.isBlank() ||
-                            it.primaryGenre.orEmpty().contains(genreFilter.trim(), ignoreCase = true)
+                            GemGenreTaxonomy.classify(
+                                contributions[it.releaseId]?.primaryGenre ?: it.primaryGenre,
+                                it.title,
+                            ).primary.orEmpty().contains(genreFilter.trim(), ignoreCase = true)
                     }
                     .filter {
                         if (term.isEmpty()) {
@@ -654,13 +658,23 @@ internal fun GemIntelligenceRecord(
     installedGame: Game? = null,
 ) {
     val fallback = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
-    val genre = contribution?.primaryGenre ?: release.primaryGenre
-    val crossover = contribution?.crossoverGenre ?: fallback?.crossover
-    val playstyle = contribution?.playstyle ?: fallback?.playstyle
-    val mechanics = contribution?.mechanics ?: fallback?.mechanics.orEmpty()
+    val classification =
+        remember(release, contribution) {
+            GemGenreTaxonomy.classify(contribution?.primaryGenre ?: release.primaryGenre, release.title)
+        }
+    val genre = classification.primary
+    val crossover = contribution?.crossoverGenre ?: fallback?.crossover ?: classification.crossover
+    val playstyle = contribution?.playstyle ?: fallback?.playstyle ?: classification.playstyle
+    val mechanics = (contribution?.mechanics?.toSet() ?: fallback?.mechanics.orEmpty()) + classification.mechanics
     val deckFit =
-        remember(release, genre) {
-            GemDeckFit.estimate(release.releaseId, release.systemId, genre, release.title)
+        remember(release, genre, playstyle, mechanics) {
+            GemDeckFit.estimate(
+                release.releaseId,
+                release.systemId,
+                genre,
+                release.title,
+                GemDeckFit.evidenceTraits(playstyle, mechanics),
+            )
         }
     var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
@@ -685,6 +699,11 @@ internal fun GemIntelligenceRecord(
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
+                    Text("Source genre: ${release.primaryGenre ?: "Unknown"}", style = MaterialTheme.typography.bodySmall)
+                    if (classification.reviewFlag) {
+                        Text("Catalogue classification needs review", style = MaterialTheme.typography.bodySmall)
+                    }
+                    contribution?.sourceLicence?.let { Text("Feature rights: $it", style = MaterialTheme.typography.bodySmall) }
                     contribution?.evidence?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     Text(deckFit.evidenceText, style = MaterialTheme.typography.bodySmall)
                     Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
