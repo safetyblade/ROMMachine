@@ -75,21 +75,24 @@ The 23 Nov Codex checkpoint delivered PSP PivotArc direction control + both-hand
 
 **Cross-cutting:** SafeSave PSP snapshot-to-Save-Centre integration, bounded native adapters, profile/Junior isolation and PIN recovery, manager-authorised transfers, GEM active-player/ratings/export scope. SIGNATURE #360 remains owner physical FAIL until tested. Do not force unavailable native inputs or automatic “fully backed up” labels.
 
-## 4. Small, low-risk backlog candidates for the NEXT Codex execution
+## 4. Owner-confirmed passes and remaining bounded work — 23 Nov 2026
 
-These are **candidate quick wins, not automatic issue closures**. Implement only when source audit confirms a missing behavior and the work is bounded; prefer tests + small fixes before deeper host dependencies:
+**Owner testing on installed APK `91364396`, exact-source `9317b47a` (23 Nov):** **PASS** test IDs **1, 2, 4, 5, 6, 7, 11**: install-over data continuity; shelf sections/no phantom gaps; SafeSave header/dock; supported backup→restore→reopen; offline GEM ratings/cartridge link; curated Homebrew/My Sources; SIGNATURE intro framing, audible audio and Skip. **#183 shelf gap and #360 SIGNATURE intro closed at explicit owner direction** as accepted narrow defects; they are no longer Codex implementation quick wins. Retain these paths as normal automated non-regressions; do not rewrite their working UX solely to generate activity.
 
-| Priority | Source issue | Safe bounded unit of work (do not claim the entire issue closed) |
+**Still NOT TESTED by owner on this APK:** ID **3** (retired Immersive option, fullscreen/display), **8** (Standard+GripArc), **9** (PivotArc+GripArc), **10** (PSP PivotArc independent direction controls), **12** (menu/controller-only navigation), **13** (Hold B + D-pad). **#135 remains an engineering completion blocker** until all six full GripArc source gates in §6 are proven, not merely a screenshot or one fixture.
+
+**Partial acceptance is not whole-issue closure:** #290 SafeSave and #194 GEM retain separate missing engineering, including PSP snapshot inventory, active player/profile isolation, controlled save transfers and full validated catalogue/player integration. #248 and #262 stay open. Only the owner-tested, specifically passed portions are removed from this quick-win list.
+
+| Priority | Source issue | Remaining independent engineering (avoid accepted UI rework) |
 | --- | --- | --- |
-| Q1 | GC #262 + closed DISPLAY #162/#167 | Make displayed “HD scaling” wording truthful and replace contradictory/duplicated settings paths via Stage 1. Verify renderer-host capability, legacy reset and no stretch/crop/override regressions. |
-| Q2 | GC #262 + #194 | Add tests for original/game-specific cartridge preview, exact-ID explicit link, safe fallback on missing installed ROM, offline GEM and changed player rating while protecting 88,246 catalogue records. Avoid new database work. |
-| Q3 | #290 | Add Save Centre PSP snapshot listing/entry, accurate archive coverage and profile/auth fail-closed unit tests where current identity model supports it; no synthetic universal whole-console backup. |
-| Q4 | #135 | Fix one measurable cramped portrait/landscape combined-deck fixture, then test 48dp and original button/action preservation with left/right placements. This does NOT close physical geometry failure. |
-| Q5 | #177 | Add source-only stick/trigger dedup, neutral-release, right-stick/deadzone and reconnect regression fixtures. **Do not** silently change controller deadzones or promise a gameplay quality fix without evidence. |
-| Q6 | #146 / #147 | Add small, isolated guard tests for read-only SAF folders, cancel/low-storage on managed import, ZIP path traversal and malformed multi-disc members where existing staging already supports it. No new 7z/native archive stack in this run. |
-| Q7 | #360 | Add repeatable startup clip surface-loss/cold-start/rotation/skip/audio-focus state-machine tests, keeping the approved `02_Loading2.mp4` and source audio. Not a device audio PASS. |
+| Q1 | #262 / closed #162/#167 | **Approved SmartVisual Stage 1/1.5**: replace confusing HD/filter terminology, retain legacy preferences, verify actual shader/renderer capability and non-stretch/non-crop. Not present in APK 91364396. |
+| Q2 | #290 | **New work only**: PSP snapshot entry/inventory, real profile-owned Save Centre actions, fail-closed permission and coverage tests. Existing owner-PASS Save Centre chrome and supported backup/restore are regression baselines. |
+| Q3 | #194 | **New work only**: authoritative active-player GEM session, profile/backup linkage, source coverage and genuinely missing provenance; tested offline GEM rating/catalogue/link UI is already owner PASS. |
+| Q4 | #135 | **MANDATORY full engineering finish gate** in §6: both Standard/PivotArc+GripArc complete fit, all console buttons, missing WS/WSC/NDS/3DS layouts, real guest keys, persistence, full layout/input test matrix. Not a one-fixture quick win. |
+| Q5 | #177 | Only missing neutral release, stick/trigger dedup and reconnect unit fixtures; no blind deadzone change without evidence. |
+| Q6 | #146/#147 | Small storage/archive safeguards only: SAF cancellation/low-space, ZIP path traversal, malformed disc members; no unapproved archive-engine rewrite. |
 
-Closed #303 (navigation), #308 (TV), #162/#167 (display foundation), and #288/#289 (Junior/profile design) contain retained requirements but should not be reopened or reimplemented from scratch. #365 is PERF/native, not a new GC engine branch. PERF #295 FIFA deformation remains a deferred bug, not an easy win. CARTMOD maker beta remains separately scheduled.
+Closed #303 (navigation), #308 (TV), #162/#167 (display foundation), #183 (shelf gaps), #360 (SIGNATURE), and #288/#289 (Junior/profile design documents) are accepted or existing baselines, not new standalone tasks. This does **not** waive GC code work for Junior profiles or independent TV testing. #365 is PERF/native 3DS input; PERF #295 FIFA deformation deferred. CARTMOD maker beta remains separately planned.
 
 ## 5. Post-GC roadmap — DOCUMENT ONLY; not GC acceptance work
 
