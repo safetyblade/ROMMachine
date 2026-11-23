@@ -38,8 +38,8 @@ import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemDeckFit
 import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
-import com.swordfish.lemuroid.app.gemrating.GemGenreTaxonomy
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
+import com.swordfish.lemuroid.app.gemrating.GemGenreTaxonomy
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
 import com.swordfish.lemuroid.app.gemrating.GemRatingRepository
@@ -703,12 +703,19 @@ internal fun GemIntelligenceRecord(
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
-                    Text("Source genre: ${release.primaryGenre ?: "Unknown"}", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Source genre: ${release.primaryGenre ?: "Unknown"}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     if (classification.reviewFlag) {
                         Text("Catalogue classification needs review", style = MaterialTheme.typography.bodySmall)
                     }
-                    contribution?.sourceLicence?.let { Text("Feature rights: $it", style = MaterialTheme.typography.bodySmall) }
-                    contribution?.evidence?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    contribution?.sourceLicence?.let {
+                        Text("Feature rights: $it", style = MaterialTheme.typography.bodySmall)
+                    }
+                    contribution?.evidence?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(deckFit.evidenceText, style = MaterialTheme.typography.bodySmall)
                     Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
                 }
