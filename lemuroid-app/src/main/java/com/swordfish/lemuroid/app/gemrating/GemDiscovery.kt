@@ -23,18 +23,6 @@ internal object GemDiscovery {
             }
     }
 
-    private val genres =
-        setOf(
-            "action", "adventure", "fighting", "platform", "puzzle", "racing", "role-playing",
-            "shooter", "simulation", "sports", "strategy",
-        )
-    private val nonGames =
-        Regex(
-            "\\b(demo|prototype|bios|firmware|sample|trial|map pack|bonus disc|video disc|double pack|" +
-                "triple pack|compilation|soundtrack|system update|test disc|expansion pack|dlc)\\b",
-            RegexOption.IGNORE_CASE,
-        )
-
     private fun normalized(s: String): String = s.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
 
     fun prepare(
@@ -48,17 +36,21 @@ internal object GemDiscovery {
             releases.map { release ->
                 val features = GemGameplayFeatures.find(release.releaseId, release.title)
                 val contribution = contributions[release.releaseId]?.takeIf { it.title == release.title }
-                val genre = contribution?.primaryGenre ?: release.primaryGenre
-                val eligible =
-                    genre?.let(::normalized) in genres && !nonGames.containsMatchIn(release.title)
+                val classification =
+                    GemGenreTaxonomy.classify(contribution?.primaryGenre ?: release.primaryGenre, release.title)
+                val genre = classification.primary
+                val eligible = classification.gameEligible
                 GemRatingRecommender.Game(
                     releaseId = release.releaseId,
                     title = release.title,
                     platform = release.systemId,
                     primaryGenre = genre,
-                    crossoverGenre = contribution?.crossoverGenre ?: features?.crossover,
-                    playstyle = contribution?.playstyle ?: features?.playstyle,
-                    mechanics = contribution?.mechanics?.toSet() ?: features?.mechanics.orEmpty(),
+                    verifiedWorkId = contribution?.verifiedWorkId,
+                    crossoverGenre = contribution?.crossoverGenre ?: features?.crossover ?: classification.crossover,
+                    playstyle = contribution?.playstyle ?: features?.playstyle ?: classification.playstyle,
+                    mechanics =
+                        (contribution?.mechanics?.toSet() ?: features?.mechanics.orEmpty()) +
+                            classification.mechanics,
                     eligibility =
                         if (eligible) {
                             GemRatingRecommender.Eligibility.GAME
