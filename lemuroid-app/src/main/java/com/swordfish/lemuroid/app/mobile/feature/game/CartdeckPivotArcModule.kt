@@ -18,7 +18,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
@@ -135,8 +134,12 @@ internal object PivotArcPaintPolicy {
     }
 
     fun railAreaFraction(plate: Rect, width: Float): Float =
-        if (plate.width <= 0f || plate.height <= 0f) 0f
-        else rails(plate, width).sumOf { (it.width * it.height).toDouble() }.toFloat() / (plate.width * plate.height)
+        if (plate.width <= 0f || plate.height <= 0f) {
+            0f
+        } else {
+            rails(plate, width).sumOf { (it.width * it.height).toDouble() }.toFloat() /
+                (plate.width * plate.height)
+        }
 }
 
 /** Draw beneath PadKit and its artwork; never install pointer handlers. */
