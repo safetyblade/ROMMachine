@@ -450,12 +450,13 @@ internal fun GemLibraryScreen(
                             }
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
+                                val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 GemIntelligenceRecord(
                                     inspected,
                                     sources[inspected.sourceId],
                                     contributions[inspected.releaseId],
+                                    installedGame = installed.singleOrNull(),
                                 )
-                                val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 val libraryStatus = if (installed.isEmpty()) "No linked cartridge" else "Installed"
                                 Text(libraryStatus)
                                 if (installed.isEmpty()) {
@@ -491,9 +492,16 @@ internal fun GemLibraryScreen(
                                     deckFit = true,
                                 )
                                 installed.forEach { game ->
-                                    TextButton(
+                                    CartdeckMenuRow(
+                                        title = { Text("Open ${game.displayName()}", maxLines = 2) },
+                                        leading =
+                                            if (installed.size > 1) {
+                                                { CartridgeFront(game, Modifier.width(72.dp), offline = true) }
+                                            } else {
+                                                null
+                                            },
                                         onClick = { onOpenCartridge(game) },
-                                    ) { Text("Open ${game.displayName()}") }
+                                    )
                                 }
                             }
                         }
@@ -545,10 +553,12 @@ internal fun GemLibraryScreen(
                             }
                             items(results.take(pageLimit), key = { it.releaseId }) { release ->
                                 Column(Modifier.fillMaxWidth().padding(4.dp)) {
+                                    val copies = installedByRelease[release.releaseId].orEmpty()
                                     GemIntelligenceRecord(
                                         release,
                                         sources[release.sourceId],
                                         contributions[release.releaseId],
+                                        installedGame = copies.singleOrNull(),
                                     )
                                     if (selected != null) {
                                         TextButton(
@@ -557,7 +567,6 @@ internal fun GemLibraryScreen(
                                             modifier = Modifier.gemFocusTarget(),
                                         ) { Text("Confirm this entry") }
                                     } else {
-                                        val copies = installedByRelease[release.releaseId].orEmpty()
                                         TextButton(
                                             onClick = { inspectedId = release.releaseId },
                                             modifier = Modifier.gemFocusTarget(),
@@ -638,10 +647,11 @@ internal fun GemLibraryScreen(
 }
 
 @Composable
-private fun GemIntelligenceRecord(
+internal fun GemIntelligenceRecord(
     release: GemCataloguePackage.Release,
     source: GemCataloguePackage.Source?,
     contribution: GemFeatureContributions.Record?,
+    installedGame: Game? = null,
 ) {
     val fallback = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
     val genre = contribution?.primaryGenre ?: release.primaryGenre
@@ -655,9 +665,13 @@ private fun GemIntelligenceRecord(
     var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
+            if (installedGame == null) {
+                CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
+            } else {
+                CartridgeFront(installedGame, Modifier.width(100.dp), offline = true)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(release.title, style = MaterialTheme.typography.titleMedium)
+                Text(installedGame?.displayName() ?: release.title, style = MaterialTheme.typography.titleMedium)
                 Text(cartridgeSystemLabel(release.systemId) + " · " + (genre ?: "Genre unknown"))
                 val traits = listOfNotNull(crossover, playstyle)
                 if (traits.isNotEmpty()) Text(traits.joinToString(" · "))
@@ -665,6 +679,9 @@ private fun GemIntelligenceRecord(
                 Text(deckFit.displayText, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
                 if (details) {
+                    if (installedGame != null && installedGame.displayName() != release.title) {
+                        Text("Catalogue title: ${release.title}", style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)

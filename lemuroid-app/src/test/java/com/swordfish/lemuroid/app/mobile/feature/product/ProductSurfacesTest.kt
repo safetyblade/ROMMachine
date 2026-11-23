@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.pressKey
 import androidx.navigation.compose.rememberNavController
+import com.swordfish.lemuroid.app.gemrating.GemCataloguePackage
 import com.swordfish.lemuroid.app.mobile.feature.main.MainNavigationBar
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.MainTopBar
@@ -99,6 +100,27 @@ class ProductSurfacesTest {
         compose.onNodeWithText("unassigned backups are excluded", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Choose Backup File").assertDoesNotExist()
+    }
+
+    @Test fun gameIntelligenceUsesTheInstalledCartridgeTitleAndKeepsCatalogueFacts() {
+        val release = GemCataloguePackage.Release("fixture:01", "gb", "Catalogue title", "fixture", "01")
+        val game =
+            Game(
+                fileName = "fixture.gb",
+                fileUri = "content://fixture/installed",
+                title = "My cartridge title",
+                systemId = "gb",
+                developer = null,
+                coverFrontUrl = null,
+                lastIndexedAt = 1,
+            )
+        compose.setContent {
+            CartridgeLibraryTheme { GemIntelligenceRecord(release, null, null, installedGame = game) }
+        }
+        compose.onAllNodes(hasText("My cartridge title")).fetchSemanticsNodes().also { assertTrue(it.isNotEmpty()) }
+        compose.onNodeWithText("Catalogue title").assertDoesNotExist()
+        compose.onNodeWithText("More details").performClick()
+        compose.onNodeWithText("Catalogue title: Catalogue title").assertExists()
     }
 
     @Test fun juniorEmptyStateOffersOnlyParentRequest() {
