@@ -102,7 +102,7 @@ class ProductSurfacesTest {
         }
         compose.onNodeWithText("Back Up Everything").performClick()
         compose.onNodeWithText("Choose Backup File").assertIsDisplayed()
-        compose.onNodeWithText("unassigned backups are excluded", substring = true).assertIsDisplayed()
+        compose.onNodeWithText(SAFESAVE_BACKUP_COVERAGE).assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Choose Backup File").assertDoesNotExist()
     }
