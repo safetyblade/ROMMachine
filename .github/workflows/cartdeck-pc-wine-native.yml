@@ -51,9 +51,17 @@ jobs:
           name: pc-wine-native-build-logs-${{ github.sha }}
           path: ${{ runner.temp }}/pc-native-wine/logs/
           if-no-files-found: warn
+  console-host:
+    name: Build source-matched console host
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: libretrodroid
   integration:
     name: Assemble CARTDECK with DOSBox and native Wine (owner-test application ID)
-    needs: native-wine
+    needs: [native-wine, console-host]
     timeout-minutes: 70
     runs-on: ubuntu-24.04
     steps:
@@ -85,9 +93,7 @@ jobs:
       - name: Reuse unchanged verified console host
         uses: actions/download-artifact@v4
         with:
-          github-token: ${{ github.token }}
-          run-id: 44386451127
-          name: native-ci01-libretrodroid-fa6f2712d44cb4795771e3f72690090f2bcc2a6a
+          name: native-ci01-libretrodroid-${{ github.sha }}
           path: work/pc-console-host
       - name: Verify original host receipt and build independent PC candidate
         run: |

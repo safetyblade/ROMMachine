@@ -10,6 +10,16 @@ def edit_file(path, old, new):
         raise RuntimeError("Upstream anchor did not match: " + str(path) + ": " + old[:60])
     path.write_text(text.replace(old, new))
 
+# Wine stores this callback as a fixed-width value across the PE/Unix driver ABI.
+edit_file(
+    root / "dlls/wineandroid.drv/dllmain.c",
+    "    params.start_device_callback = android_start_device;",
+    "    params.start_device_callback = (UINT64)(ULONG_PTR)android_start_device;",
+)
+# CARTDECK compiles the upstream driver and Java surface itself. The separate
+# upstream APK depends on obsolete jcenter/AGP and is not a runtime input.
+edit_file(root / "dlls/wineandroid.drv/Makefile.in", "\nEXTRA_TARGETS = wine-debug.apk\n", "\n")
+
 loader = root / "dlls/ntdll/unix/loader.c"
 edit_file(loader, '    if (!(build_dir = remove_tail( ntdll_dir, "/dlls/ntdll" )))',
 '''#ifdef __ANDROID__
