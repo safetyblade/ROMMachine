@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import android.view.KeyEvent
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -186,8 +188,101 @@ class PivotArcPositionSolverTest {
     }
 
     @Test fun expandedConsoleControlsNeverPretendToBeSupported() {
-        for (system in listOf(SystemID.PSX, SystemID.PSP, SystemID.N64, SystemID.NDS, SystemID.NGC, SystemID.GENESIS)) {
+        for (system in listOf(
+            SystemID.PSX,
+            SystemID.N64,
+            SystemID.GAMECUBE,
+            SystemID.GENESIS,
+        )) {
             assertEquals(null, PivotArcLayoutProfile.activeFor(system))
         }
+    }
+
+    @Test fun pspKeepsTheAnalogStickSeparateFromTheDpadAndFourFaceButtons() {
+        for (leftHand in listOf(false, true)) {
+            val placement = (resolve(SystemID.PSP, leftHand = leftHand) as PivotArcResolution.Fits).placement
+            val controls = placement.controls
+            val required = setOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            assertEquals(required + setOf("HoldA", "HoldB"), controls.keys)
+            val analog = controls.getValue("Analog")
+            assertTrue(analog.width >= 48f && analog.height >= 48f)
+            assertFalse(analog.intersects(referenceViewport))
+            assertTrue(controls.filterKeys { it != "Analog" }.values.none { it.intersects(analog) })
+        }
+        assertEquals("Circle", PivotArcLayoutProfile.nativeLabel(SystemID.PSP, "A"))
+        assertEquals("Cross", PivotArcLayoutProfile.nativeLabel(SystemID.PSP, "B"))
+    }
+
+    @Test fun pspAnalogPrimarySwapsOnlyTheTwoDirectionalSeatsForBothHands() {
+        val primaryAnalog = PivotArcLayoutProfile.forSystem(baseline, SystemID.PSP, pspAnalogPrimary = true)
+        val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v22-manifest.json").readText())
+        for (side in GripArcSide.entries) {
+            fun joint(geometry: PivotArcBaseline): CompositeControlDeckPlacement =
+                (
+                    CompositeControlDeckSolver.resolve(
+                        manifest, geometry, SystemID.PSP, referenceSafe, referenceViewport, side,
+                        0f, 0f, 0f, 0f, false,
+                    ) as CompositeDeckResolution.Fits
+                ).placement
+            val original = joint(baseline)
+            val updated = joint(primaryAnalog)
+            assertEquals(original.pivot.controls.getValue("D"), updated.pivot.controls.getValue("Analog"))
+            assertEquals(original.pivot.controls.getValue("Analog"), updated.pivot.controls.getValue("D"))
+            assertEquals(original.dock, updated.dock)
+            assertEquals(
+                original.pivot.controls - setOf("D", "Analog"),
+                updated.pivot.controls - setOf("D", "Analog"),
+            )
+        }
+        assertEquals(baseline, PivotArcLayoutProfile.forSystem(baseline, SystemID.GBA, pspAnalogPrimary = true))
+    }
+
+    @Test fun dualScreenPivotArcKeepsStylusRegionAndBackendSpecificAuxiliaries() {
+        val viewport = PivotArcBounds(22f, 36f, 371f, 452f)
+        for (side in listOf(false, true)) {
+            val ds = (resolve(SystemID.NDS, leftHand = side, viewport = viewport) as PivotArcResolution.Fits).placement
+            val threeDs =
+                (
+                    resolve(
+                        SystemID.NINTENDO_3DS,
+                        leftHand = side,
+                        viewport = viewport,
+                    ) as PivotArcResolution.Fits
+                ).placement
+            assertTrue(ds.controls.keys.containsAll(listOf("Mic", "Lid", "L", "R", "Start", "Select")))
+            assertTrue(threeDs.controls.keys.containsAll(listOf("D", "Analog", "L", "R", "Start", "Select")))
+            assertTrue((ds.controls.values + threeDs.controls.values).all { !it.intersects(viewport) })
+        }
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, pivotArcDsAuxiliaryKey(TouchControllerID.DESMUME, "Mic"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, pivotArcDsAuxiliaryKey(TouchControllerID.DESMUME, "Lid"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, pivotArcDsAuxiliaryKey(TouchControllerID.MELONDS, "Mic"))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, pivotArcDsAuxiliaryKey(TouchControllerID.MELONDS, "Lid"))
+    }
+
+    @Test fun handheldTwoButtonFamiliesKeepNativeLabelsAndOmitPhantomSelect() {
+        for (system in listOf(SystemID.GG, SystemID.LYNX, SystemID.NGP, SystemID.NGC)) {
+            for (leftHand in listOf(false, true)) {
+                val controls = (resolve(system, leftHand = leftHand) as PivotArcResolution.Fits).placement.controls
+                assertTrue(controls.keys.containsAll(listOf("D", "A", "B", "Start", "Menu", "HoldA", "HoldB")))
+                assertEquals(null, controls["Select"])
+                assertEquals(system == SystemID.LYNX, "L" in controls && "R" in controls)
+            }
+        }
+        assertEquals("2", PivotArcLayoutProfile.nativeLabel(SystemID.GG, "A"))
+        assertEquals("1", PivotArcLayoutProfile.nativeLabel(SystemID.GG, "B"))
+        assertEquals("Pause", PivotArcLayoutProfile.nativeLabel(SystemID.LYNX, "Start"))
+        assertEquals("B", PivotArcLayoutProfile.nativeLabel(SystemID.NGC, "A"))
+        assertEquals("Option", PivotArcLayoutProfile.nativeLabel(SystemID.NGP, "Start"))
+    }
+
+    @Test fun standardTrayUsesOnlyMeasuredFreeSpaceAndKeepsFullTargets() {
+        val safe = PivotArcBounds(8f, 8f, 320f, 600f)
+        val occupied = listOf(PivotArcBounds(8f, 80f, 320f, 460f), PivotArcBounds(8f, 500f, 106f, 600f))
+        val slots = findStandardHoldTray(safe, occupied, 3)
+        assertEquals(3, slots.size)
+        assertTrue(slots.all { it.width == 48f && it.height == 48f && it.inside(safe) })
+        assertTrue(slots.none { slot -> occupied.any { slot.intersects(it) } })
+        assertTrue(findStandardHoldTray(safe, emptyList(), 1).isEmpty())
+        assertTrue(findStandardHoldTray(safe, listOf(safe), 1).isEmpty())
     }
 }

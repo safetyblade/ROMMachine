@@ -5,7 +5,7 @@ import java.io.Closeable
 import java.io.File
 import java.io.RandomAccessFile
 
-/** One process-safe fence shared by the Libretro host, Drive worker and local backup. */
+/** One process-safe fence shared by game hosts, the Drive worker and local backup. */
 object SaveStorageLease {
     private var held: Closeable? = null
     private var engineLease: Closeable? = null
@@ -37,7 +37,7 @@ object SaveStorageLease {
         }
     }
 
-    /** The Libretro host process exits after its save queue drains, releasing the OS lock. */
+    /** The game process retains the lease until it exits and the OS releases the lock. */
     @Synchronized
     fun enterGameProcess(context: Context): Boolean {
         if (engineLease == null) {

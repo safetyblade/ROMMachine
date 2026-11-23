@@ -189,7 +189,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             remember(appContext) {
                 runCatching { GripArcManifest.load(appContext) }.getOrNull()
             }
-        val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val basePivotGeometry =
+            remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val pivotBaseline =
+            remember(basePivotGeometry, viewModel.systemId, pivotSettings.pspAnalogPrimary) {
+                basePivotGeometry?.let {
+                    PivotArcLayoutProfile.forSystem(
+                        it,
+                        viewModel.systemId,
+                        pivotSettings.pspAnalogPrimary,
+                    )
+                }
+            }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val nativeInventory = touchGamePads?.nativeInventory
         val leftGamePad = touchGamePads?.leftComposable
@@ -333,11 +344,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                             "Standard remains available; saved settings are preserved.",
                                     )
                                 } else {
-                                    CompositeControlDeckSolver.resolve(
+                                    remember(
                                         gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
                                         effectiveArcSide, arcProfile.dx, arcProfile.dy,
                                         pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
-                                    )
+                                    ) {
+                                        CompositeControlDeckSolver.resolve(
+                                            gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
+                                        )
+                                    }
                                 }
                             when (val joint = compositeResolution) {
                                 is CompositeDeckResolution.Fits -> PivotArcResolution.Fits(joint.placement.pivot)
@@ -485,17 +502,22 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 nativeProfileValidated = true
                                 combinedPlacement =
                                     if (!isLandscape) {
-                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
-                                            GripArcCombinedLayout.resolve(
-                                                gripManifest, nativeInventory, observedIds,
-                                                measured, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
-                                        } else {
-                                            GripArcCombinedLayout.resolveDockFirst(
-                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
+                                        remember(
+                                            gripManifest, nativeInventory, observedIds, measured,
+                                            safeBounds, viewportBounds, effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        ) {
+                                            if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                                GripArcCombinedLayout.resolve(
+                                                    gripManifest, nativeInventory, observedIds,
+                                                    measured, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                )
+                                            } else {
+                                                GripArcCombinedLayout.resolveDockFirst(
+                                                    gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                )
+                                            }
                                         }
                                     } else {
                                         null
@@ -593,6 +615,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             } else {
                                 when (key) {
                                     "D" -> "dpad"
+                                    "Analog" -> "analog-left"
                                     "A", "B", "X", "Y" -> "face-${key.lowercase()}"
                                     "HoldA" -> "hold-a"
                                     "HoldB" -> "hold-b"
@@ -793,10 +816,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 ) {
                     PivotArcControlGroup(
                         placement = pivotPlacement,
+                        system = viewModel.systemId,
                         heldKeys = heldPivotKeys.value,
                         accent = shellTokens.accent,
                         onToggleHold = viewModel::togglePivotArcHold,
                         combined = jointPlacement != null,
+                        touchController = currentControllerConfig.touchControllerID,
                     )
                 }
             }
@@ -804,6 +829,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
+            }
+            if (effectiveArcMode == ArcControlMode.STANDARD && touchControlsVisibleState.value &&
+                !isLoading && isResumed.value
+            ) {
+                StandardHoldTray(
+                    system = viewModel.systemId,
+                    native = touchGamePads?.holdTrayInventory,
+                    root = fullPos,
+                    viewport = viewPos,
+                    measured = individualInputs,
+                    held = heldPivotKeys.value,
+                    onKeys = viewModel::setStandardHoldKeys,
+                    onToggle = viewModel::togglePivotArcHold,
+                )
             }
             GripArcAccessory(
                 placement = gripPlacement,

@@ -197,11 +197,7 @@ internal class CartdeckStartupPlayer(
                 maxOf(1f, viewAspect / videoAspect)
             }
         val progress = if (adjustingFraming) 0f else endFramingProgress
-        // The final wordmark spans 47% of the source width. Keep it prominent
-        // on phones and reserve margins on widescreen and overscanned displays.
-        val endZoom = if (viewAspect < 1f) 1.85f else 0.95f
-        val endScaleX = minOf(1f, videoAspect / viewAspect) * endZoom
-        val endScaleY = minOf(1f, viewAspect / videoAspect) * endZoom
+        val (endScaleX, endScaleY) = cartdeckIntroEndScale(videoAspect, viewAspect)
         texture.setTransform(
             Matrix().apply {
                 setScale(
@@ -319,7 +315,7 @@ internal class CartdeckStartupPlayer(
     }
 
     override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
-        stopPlayback()
+        if (!stopped) finishOnce()
         return true
     }
 
@@ -345,4 +341,17 @@ internal class CartdeckStartupPlayer(
         stopPlayback()
         super.onDetachedFromWindow()
     }
+}
+
+// The decoded end card occupies the central 50% of the source width and 66% of its height.
+internal fun cartdeckIntroEndScale(
+    videoAspect: Float,
+    viewAspect: Float,
+): Pair<Float, Float> {
+    val fitX = minOf(1f, videoAspect / viewAspect)
+    val fitY = minOf(1f, viewAspect / videoAspect)
+    val zoomToFill = 1f / minOf(fitX, fitY)
+    val targetZoom = if (viewAspect < 1f) 1.85f else zoomToFill
+    val safeZoom = minOf(targetZoom, 0.90f / (fitX * 0.50f), 0.90f / (fitY * 0.66f))
+    return fitX * safeZoom to fitY * safeZoom
 }

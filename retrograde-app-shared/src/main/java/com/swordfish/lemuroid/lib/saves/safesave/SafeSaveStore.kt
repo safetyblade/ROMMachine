@@ -20,6 +20,8 @@ import java.util.UUID
 class SafeSaveStore(
     private val index: SafeSaveIndex,
     private val snapshotRoot: File,
+    /** Production checks real disk availability; tests may inject a bounded low-space fixture. */
+    private val availableBytes: (File) -> Long = { it.usableSpace },
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
     data class Metrics(val durationMs: Long, val fileCount: Int, val totalBytes: Long)
@@ -81,15 +83,23 @@ class SafeSaveStore(
                     files = records,
                 )
             check(staging.renameTo(destination)) { "Unable to activate SafeSave snapshot" }
-            index.insertSnapshot(snapshot)
-            index.appendJournal(SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()))
+            index.registerCapture(
+                snapshot,
+                SafeSaveJournalRecord(opId, "CAPTURE", snapshotId, "COMPLETE", "VERIFIED", clock()),
+            )
             return CaptureResult(snapshot, Metrics(clock() - started, records.size, group.totalBytes))
         } catch (error: Exception) {
-            staging.deleteRecursively()
-            if (destination.exists() && index.snapshot(snapshotId) == null) destination.deleteRecursively()
-            index.appendJournal(
-                SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
-            )
+            runCatching {
+                check(staging.deleteRecursively()) { "Could not clean up the staged capture" }
+                if (destination.exists() && index.snapshot(snapshotId) == null) {
+                    check(destination.deleteRecursively()) { "Could not clean up the unpublished capture" }
+                }
+            }.onFailure(error::addSuppressed)
+            runCatching {
+                index.appendJournal(
+                    SafeSaveJournalRecord(opId, "CAPTURE", null, "FAILED", error.message ?: "capture failed", clock()),
+                )
+            }.onFailure(error::addSuppressed)
             throw error
         }
     }
@@ -200,7 +210,7 @@ class SafeSaveStore(
         neededBytes: Long,
     ) {
         val probe = generateSequence(root) { it.parentFile }.firstOrNull { it.exists() } ?: return
-        check(probe.usableSpace > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
+        check(availableBytes(probe) > neededBytes * 2) { "Insufficient storage for SafeSave operation" }
     }
 
     companion object {

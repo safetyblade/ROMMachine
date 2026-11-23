@@ -21,15 +21,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
+import com.swordfish.touchinput.radial.settings.NativeControlInventory
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
+import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
 import com.swordfish.touchinput.radial.ui.LemuroidCrossForeground
 import gg.padkit.PadKitScope
+import gg.padkit.controls.ControlAnalog
 import gg.padkit.controls.ControlButton
 import gg.padkit.controls.ControlCross
 import gg.padkit.ids.Id
+import androidx.compose.runtime.key as compositionKey
 import com.swordfish.touchinput.controller.R as TouchR
 
 /**
@@ -39,10 +45,12 @@ import com.swordfish.touchinput.controller.R as TouchR
 @Composable
 fun PadKitScope.PivotArcControlGroup(
     placement: PivotArcPlacement,
+    system: SystemID,
     heldKeys: Set<Int>,
     accent: Color,
     onToggleHold: (Int) -> Unit,
     combined: Boolean = false,
+    touchController: TouchControllerID? = null,
 ) {
     val observe = LocalCartdeckControlBounds.current
     Box(Modifier.fillMaxSize()) {
@@ -58,6 +66,7 @@ fun PadKitScope.PivotArcControlGroup(
                                 observe(
                                     when (key) {
                                         "D" -> "dpad"
+                                        "Analog" -> "analog-left"
                                         "L", "R" -> "shoulder-$key"
                                         else -> key.lowercase()
                                     },
@@ -69,15 +78,24 @@ fun PadKitScope.PivotArcControlGroup(
                         },
                     )
             if (key == "HoldA" || key == "HoldB") {
-                val code = if (key == "HoldA") KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
+                val face = if (key == "HoldA") "A" else "B"
+                val code = if (face == "A") KeyEvent.KEYCODE_BUTTON_A else KeyEvent.KEYCODE_BUTTON_B
                 PivotArcHoldSwitch(
                     modifier = position,
-                    label = if (key == "HoldA") "A" else "B",
+                    label = PivotArcLayoutProfile.nativeLabel(system, face),
                     showLabel = combined,
                     diameter = visual.w,
                     active = code in heldKeys,
                     accent = accent,
                     onToggle = { onToggleHold(code) },
+                )
+            } else if (key == "Analog") {
+                ControlAnalog(
+                    modifier = position.semantics { contentDescription = "Analog stick" },
+                    id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
+                    analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
+                    background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
+                    foreground = { LemuroidButtonForeground(pressed = it) },
                 )
             } else if (key == "D") {
                 ControlCross(
@@ -107,13 +125,23 @@ fun PadKitScope.PivotArcControlGroup(
                         "Select" -> KeyEvent.KEYCODE_BUTTON_SELECT
                         "Start" -> KeyEvent.KEYCODE_BUTTON_START
                         "Menu" -> KeyEvent.KEYCODE_BUTTON_MODE
+                        "Mic", "Lid" -> touchController?.let { pivotArcDsAuxiliaryKey(it, key) }
                         else -> null
                     } ?: return@forEach
+                val label = PivotArcLayoutProfile.nativeLabel(system, key)
                 val icon =
-                    when (key) {
+                    when (label) {
+                        "Circle" -> TouchR.drawable.psx_circle
+                        "Cross" -> TouchR.drawable.psx_cross
+                        "Triangle" -> TouchR.drawable.psx_triangle
+                        "Square" -> TouchR.drawable.psx_square
+                        else -> null
+                    } ?: when (key) {
                         "Select" -> TouchR.drawable.button_select
-                        "Start" -> TouchR.drawable.button_start
+                        "Start" -> TouchR.drawable.button_start.takeIf { label == key }
                         "Menu" -> TouchR.drawable.button_menu
+                        "Mic" -> TouchR.drawable.button_mic
+                        "Lid" -> TouchR.drawable.button_close_screen
                         else -> null
                     }
                 val shape =
@@ -122,38 +150,40 @@ fun PadKitScope.PivotArcControlGroup(
                         "Select", "Start", "Menu" -> CartdeckButtonShape.PILL
                         else -> CartdeckButtonShape.FACE
                     }
-                ControlButton(
-                    modifier = position,
-                    id = Id.Key(inputKey),
-                    foreground = { pressed ->
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                LemuroidButtonForeground(
-                                    pressed = pressed,
-                                    label = key.takeIf { icon == null },
-                                    icon = icon,
-                                    shape = shape,
-                                )
-                                if ((key == "A" || key == "B") && inputKey in heldKeys) {
-                                    Canvas(Modifier.fillMaxSize()) {
-                                        val r = size.minDimension / 2f - 2.dp.toPx()
-                                        drawCircle(
-                                            color = accent.copy(alpha = 0.32f),
-                                            radius = r,
-                                            style = Stroke(width = 5.dp.toPx()),
-                                        )
-                                        drawCircle(
-                                            color = accent,
-                                            radius = r,
-                                            style = Stroke(width = 1.8.dp.toPx()),
-                                        )
+                compositionKey(key, inputKey) {
+                    ControlButton(
+                        modifier = position.semantics { contentDescription = label },
+                        id = Id.Key(inputKey),
+                        foreground = { pressed ->
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(visual.w.dp, visual.h.dp)) {
+                                    LemuroidButtonForeground(
+                                        pressed = pressed,
+                                        label = label.takeIf { icon == null },
+                                        icon = icon,
+                                        shape = shape,
+                                    )
+                                    if ((key == "A" || key == "B") && inputKey in heldKeys) {
+                                        Canvas(Modifier.fillMaxSize()) {
+                                            val r = size.minDimension / 2f - 2.dp.toPx()
+                                            drawCircle(
+                                                color = accent.copy(alpha = 0.32f),
+                                                radius = r,
+                                                style = Stroke(width = 5.dp.toPx()),
+                                            )
+                                            drawCircle(
+                                                color = accent,
+                                                radius = r,
+                                                style = Stroke(width = 1.8.dp.toPx()),
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                    },
-                    background = {},
-                )
+                        },
+                        background = {},
+                    )
+                }
             }
         }
     }
@@ -214,3 +244,8 @@ private fun PivotArcHoldSwitch(
         }
     }
 }
+
+internal fun pivotArcDsAuxiliaryKey(
+    controller: TouchControllerID,
+    control: String,
+): Int? = NativeControlInventory.forHoldTray(controller)?.controls?.singleOrNull { it.key == control }?.keyCode

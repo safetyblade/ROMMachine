@@ -15,6 +15,26 @@ import org.robolectric.annotation.Config
 class DisplaySettingsStoreTest {
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun legacyCartridgeQualityWinsOverNewGlobalChoiceAndCanBeRestored() {
+        val root = temporary.newFolder()
+        val store = DisplaySettingsStore(root) { DisplaySettingsStore.Choices(filter = "sharp", quality = 2) }
+        store.set("one", "filter", "lcd")
+        store.set("one", "alignment", "top")
+        store.set(null, "imageQuality", "ENHANCED")
+        val reopened = DisplaySettingsStore(root) { DisplaySettingsStore.Choices(filter = "sharp", quality = 2) }
+        assertEquals(ImageQuality.ENHANCED, reopened.read("two").effective.imageQuality)
+        assertEquals(null, reopened.read("one").effective.imageQuality)
+        assertEquals("lcd", reopened.read("one").effective.filter)
+        reopened.set("one", "imageQuality", "ORIGINAL")
+        assertEquals(ImageQuality.ORIGINAL, reopened.read("one").effective.imageQuality)
+        assertEquals("top", reopened.read("one").effective.alignment)
+        reopened.set("one", "imageQuality", null)
+        assertEquals(null, reopened.read("one").effective.imageQuality)
+        assertEquals("lcd", reopened.read("one").effective.filter)
+        reopened.useGlobal("one")
+        assertEquals(ImageQuality.ENHANCED, reopened.read("one").effective.imageQuality)
+    }
+
     @Test fun defaultsOverridesAndResetSurviveReopenWithoutTouchingOtherCartridges() {
         val root = temporary.newFolder()
         val store = DisplaySettingsStore(root) { DisplaySettingsStore.Choices(filter = "auto", hd = true) }

@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.safesave
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.lib.saves.safesave.RoomSafeSaveIndex
@@ -25,8 +26,12 @@ private class InMemoryIndex : SafeSaveIndex {
     val snapshots = linkedMapOf<String, SafeSaveSnapshotRecord>()
     val journal = mutableListOf<SafeSaveJournalRecord>()
 
-    override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
+    override fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    ) {
         snapshots[snapshot.snapshotId] = snapshot
+        journal += completion
     }
 
     override fun snapshot(snapshotId: String) = snapshots[snapshotId]
@@ -225,6 +230,81 @@ class SafeSaveStoreTest {
             assertEquals(listOf(captured.snapshot.snapshotId), found.map { it.snapshotId })
             assertTrue(access.verifiedSavesForCartridge(cartridgeB).isEmpty())
         } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fileIndexFailureDoesNotPublishAPartialSnapshot() = assertRegistrationRollsBack("safesave_files")
+
+    @Test
+    fun captureJournalFailureDoesNotPublishAPartialSnapshot() =
+        assertRegistrationRollsBack("safesave_journal", "WHEN NEW.stage = 'COMPLETE'")
+
+    private fun assertRegistrationRollsBack(
+        table: String,
+        condition: String = "",
+    ) {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            executor.submit<Unit> {
+                val db = Room.inMemoryDatabaseBuilder(context, SafeSaveDatabase::class.java).build()
+                try {
+                    db.openHelper.writableDatabase.execSQL(
+                        "CREATE TRIGGER fixture_reject_registration BEFORE INSERT ON $table $condition " +
+                            "BEGIN SELECT RAISE(ABORT, 'fixture registration failure'); END",
+                    )
+                    val index = RoomSafeSaveIndex(db.safeSaveDao())
+                    assertThrows(SQLiteConstraintException::class.java) {
+                        SafeSaveStore(index, snapshotRoot)
+                            .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+                    }
+                    assertTrue(index.snapshotsForCartridge(cartridgeA).isEmpty())
+                    assertTrue(snapshotRoot.listFiles().orEmpty().isEmpty())
+                    assertEquals("FAILED", index.journal().single().stage)
+                    assertEquals(
+                        "level-3-progress",
+                        File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText(),
+                    )
+                } finally {
+                    db.close()
+                }
+            }.get(30, TimeUnit.SECONDS)
+        } finally {
+            executor.shutdownNow()
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun captureCommitRefusesAnOwnerThatChangedAfterDiscovery() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            executor.submit<Unit> {
+                val db = Room.inMemoryDatabaseBuilder(context, SafeSaveDatabase::class.java).build()
+                try {
+                    val index = RoomSafeSaveIndex(db.safeSaveDao())
+                    val original =
+                        SafeSaveStore(index, snapshotRoot).capture(saveRoot, "ULUS10001", cartridgeA, "v", true)
+                    val staleCapture = original.snapshot.copy(snapshotId = "stale", cartridgeUuid = cartridgeB)
+                    assertThrows(IllegalStateException::class.java) {
+                        index.registerCapture(
+                            staleCapture,
+                            SafeSaveJournalRecord("stale", "CAPTURE", "stale", "COMPLETE", "VERIFIED", 1L),
+                        )
+                    }
+                    assertEquals(listOf(original.snapshot), index.snapshotsForGroup(original.snapshot.groupName))
+                    assertEquals(1, index.journal().size)
+                } finally {
+                    db.close()
+                }
+            }.get(30, TimeUnit.SECONDS)
+        } finally {
+            executor.shutdownNow()
             parent.deleteRecursively()
         }
     }

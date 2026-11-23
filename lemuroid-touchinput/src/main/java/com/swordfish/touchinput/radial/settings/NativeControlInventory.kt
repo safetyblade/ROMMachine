@@ -23,7 +23,11 @@ data class NativeControlSpec(
     val roundButton: Boolean = false,
 )
 
-data class NativeControlInventory(val controller: TouchControllerID, val controls: List<NativeControlSpec>) {
+data class NativeControlInventory(
+    val controller: TouchControllerID,
+    val controls: List<NativeControlSpec>,
+    val supportsGripArc: Boolean = true,
+) {
     init {
         require(controls.map { it.key }.distinct().size == controls.size)
         require(
@@ -49,13 +53,20 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
     fun matchesNativeInputs(observed: Set<String>): Boolean = inputIds == observed
 
     companion object {
-        fun forController(id: TouchControllerID): NativeControlInventory? {
+        fun forController(id: TouchControllerID): NativeControlInventory? = inventory(id, allowTrayOnly = false)
+
+        fun forHoldTray(id: TouchControllerID): NativeControlInventory? = inventory(id, allowTrayOnly = true)
+
+        private fun inventory(
+            id: TouchControllerID,
+            allowTrayOnly: Boolean,
+        ): NativeControlInventory? {
             val sony = id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP)
             val twoFace =
                 id in
                     setOf(
                         TouchControllerID.GB, TouchControllerID.GBA, TouchControllerID.GG,
-                        TouchControllerID.LYNX, TouchControllerID.NGP,
+                        TouchControllerID.LYNX, TouchControllerID.NGP, TouchControllerID.WS_LANDSCAPE,
                     )
             val supported =
                 setOf(
@@ -65,8 +76,15 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                     TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
                     TouchControllerID.XBOX, TouchControllerID.XBOX360,
                 )
-            // Unmapped auxiliary variants retain native/Standard until their complete measured contract exists.
-            if (id !in supported) return null
+            val standardTrayOnly =
+                setOf(
+                    TouchControllerID.DESMUME,
+                    TouchControllerID.MELONDS,
+                    TouchControllerID.NINTENDO_3DS,
+                    TouchControllerID.WS_LANDSCAPE,
+                    TouchControllerID.WS_PORTRAIT,
+                )
+            if (id !in supported && (!allowTrayOnly || id !in standardTrayOnly)) return null
             val result =
                 mutableListOf(
                     NativeControlSpec(
@@ -129,6 +147,13 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                             when (id) {
                                 TouchControllerID.GG -> if (key == "A") "2" else "1"
                                 TouchControllerID.NGP -> if (key == "A") "B" else "A"
+                                TouchControllerID.WS_PORTRAIT ->
+                                    when (key) {
+                                        "A" -> "X3"
+                                        "B" -> "X4"
+                                        "Y" -> "X1"
+                                        else -> "X2"
+                                    }
                                 else -> key
                             },
                         faceX = offset.first, faceY = offset.second,
@@ -155,7 +180,12 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                         roundButton = key == "Z",
                     )
             }
-            if (id !in setOf(TouchControllerID.GB, TouchControllerID.GG, TouchControllerID.NGP)) {
+            if (id !in
+                setOf(
+                    TouchControllerID.GB, TouchControllerID.GG, TouchControllerID.NGP,
+                    TouchControllerID.WS_LANDSCAPE, TouchControllerID.WS_PORTRAIT,
+                )
+            ) {
                 val dcTriggers = id == TouchControllerID.DREAMCAST
                 val numbered = id in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK)
                 button(
@@ -221,10 +251,18 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                 )
             }
             if (id == TouchControllerID.GAMECUBE) button("Z", "aux-Z", KeyEvent.KEYCODE_BUTTON_R2)
+            if (id == TouchControllerID.MELONDS || id == TouchControllerID.DESMUME) {
+                val melon = id == TouchControllerID.MELONDS
+                val mic = if (melon) KeyEvent.KEYCODE_BUTTON_L2 else KeyEvent.KEYCODE_BUTTON_THUMBL
+                val layout = if (melon) KeyEvent.KEYCODE_BUTTON_THUMBL else KeyEvent.KEYCODE_BUTTON_L2
+                button("Mic", "ds-mic", mic, left = true)
+                button("Lid", "ds-layout", layout, left = true)
+            }
             if (id !in
                 setOf(
                     TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
                     TouchControllerID.GG, TouchControllerID.LYNX, TouchControllerID.NGP,
+                    TouchControllerID.WS_LANDSCAPE, TouchControllerID.WS_PORTRAIT,
                 )
             ) {
                 button(
@@ -256,7 +294,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                 setOf(
                     TouchControllerID.PSX_DUALSHOCK, TouchControllerID.PSP,
                     TouchControllerID.GAMECUBE, TouchControllerID.DREAMCAST,
-                    TouchControllerID.XBOX, TouchControllerID.XBOX360,
+                    TouchControllerID.XBOX, TouchControllerID.XBOX360, TouchControllerID.NINTENDO_3DS,
                 )
             ) {
                 result +=
@@ -280,7 +318,7 @@ data class NativeControlInventory(val controller: TouchControllerID, val control
                         label = if (id == TouchControllerID.GAMECUBE) "C-Stick" else "AnalogR",
                     )
             }
-            return NativeControlInventory(id, result)
+            return NativeControlInventory(id, result, supportsGripArc = id in supported)
         }
     }
 }

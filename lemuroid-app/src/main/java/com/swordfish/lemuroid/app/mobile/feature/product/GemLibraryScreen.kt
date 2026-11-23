@@ -39,6 +39,7 @@ import com.swordfish.lemuroid.app.gemrating.GemCatalogueVersions
 import com.swordfish.lemuroid.app.gemrating.GemDeckFit
 import com.swordfish.lemuroid.app.gemrating.GemFeatureContributions
 import com.swordfish.lemuroid.app.gemrating.GemGameplayFeatures
+import com.swordfish.lemuroid.app.gemrating.GemGenreTaxonomy
 import com.swordfish.lemuroid.app.gemrating.GemLocalCorrections
 import com.swordfish.lemuroid.app.gemrating.GemProductionCatalogue
 import com.swordfish.lemuroid.app.gemrating.GemRatingRepository
@@ -74,6 +75,7 @@ internal fun GemLibraryScreen(
     var pageLimit by rememberSaveable { mutableStateOf(48) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var inspectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var linkingReleaseId by rememberSaveable { mutableStateOf<String?>(null) }
     var customEditing by remember { mutableStateOf(false) }
     var customTitle by rememberSaveable { mutableStateOf("") }
     var customGenre by rememberSaveable { mutableStateOf("") }
@@ -94,6 +96,7 @@ internal fun GemLibraryScreen(
             page = "Browse"
             selectedId = initialCartridgeId
             inspectedId = null
+            linkingReleaseId = null
             query = ""
             onCartridgeIdConsumed()
         }
@@ -150,6 +153,11 @@ internal fun GemLibraryScreen(
     }
 
     val current = catalogue
+    val linkingRelease =
+        remember(current, linkingReleaseId) {
+            val id = linkingReleaseId ?: return@remember null
+            current?.manifest?.releases?.firstOrNull { it.releaseId == id }
+        }
     var contributions by remember(current) { mutableStateOf(emptyMap<String, GemFeatureContributions.Record>()) }
     LaunchedEffect(current) {
         val releases = current?.manifest?.releases ?: return@LaunchedEffect
@@ -212,7 +220,10 @@ internal fun GemLibraryScreen(
                     }
                     .filter {
                         selected != null || genreFilter.isBlank() ||
-                            it.primaryGenre.orEmpty().contains(genreFilter.trim(), ignoreCase = true)
+                            GemGenreTaxonomy.classify(
+                                contributions[it.releaseId]?.primaryGenre ?: it.primaryGenre,
+                                it.title,
+                            ).primary.orEmpty().contains(genreFilter.trim(), ignoreCase = true)
                     }
                     .filter {
                         if (term.isEmpty()) {
@@ -236,10 +247,19 @@ internal fun GemLibraryScreen(
             }
         searching = false
     }
-    BackHandler(enabled = page != "Menu") { page = "Menu" }
+    BackHandler(enabled = page != "Menu") {
+        linkingReleaseId = null
+        page = "Menu"
+    }
     Column(modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (page != "Menu") {
-            TextButton(onClick = { page = "Menu" }, modifier = Modifier.gemFocusTarget()) { Text("‹ GEM menu") }
+            TextButton(
+                onClick = {
+                    linkingReleaseId = null
+                    page = "Menu"
+                },
+                modifier = Modifier.gemFocusTarget(),
+            ) { Text("‹ GEM menu") }
         }
         when (page) {
             "Menu" -> {
@@ -250,12 +270,13 @@ internal fun GemLibraryScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(
-                        listOf("For You", "Browse", "My Ratings", "Game Intelligence", "Manage"),
+                        listOf("For You", "Browse", "My Ratings", "Search", "Game Intelligence", "Manage"),
                     ) { destination ->
                         val title =
                             when (destination) {
                                 "For You" -> "GemFinder"
                                 "Browse" -> "Browse Games"
+                                "Search" -> "Search & Homebrew"
                                 "Manage" -> "GEM settings"
                                 else -> destination
                             }
@@ -289,6 +310,7 @@ internal fun GemLibraryScreen(
                     modifier = Modifier.weight(1f),
                 )
             "My Ratings" -> GemMyRatingsScreen(games = games, modifier = Modifier.weight(1f))
+            "Search" -> GemWebsiteSearchScreen(modifier = Modifier.weight(1f))
             "For You" -> {
                 if (error) {
                     Text("Catalogue verification failed. Your ratings and saves remain unchanged.")
@@ -351,9 +373,12 @@ internal fun GemLibraryScreen(
                                 )
                             }
                             if (selected == null && inspected == null && current != null) {
-                                TextButton(onClick = { browseCatalogue = !browseCatalogue }) {
-                                    Text(if (browseCatalogue) "Identify my cartridges" else "Browse catalogue")
-                                }
+                                TextButton(
+                                    onClick = {
+                                        linkingReleaseId = null
+                                        browseCatalogue = !browseCatalogue
+                                    },
+                                ) { Text(if (browseCatalogue) "Identify my cartridges" else "Browse catalogue") }
                                 if (browseCatalogue) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedTextField(
@@ -429,14 +454,33 @@ internal fun GemLibraryScreen(
                             }
                             if (inspected != null) {
                                 TextButton(onClick = { inspectedId = null }) { Text("Back to browse") }
+                                val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 GemIntelligenceRecord(
                                     inspected,
                                     sources[inspected.sourceId],
                                     contributions[inspected.releaseId],
+                                    installedGame = installed.singleOrNull(),
                                 )
-                                val installed = installedByRelease[inspected.releaseId].orEmpty()
                                 val libraryStatus = if (installed.isEmpty()) "No linked cartridge" else "Installed"
                                 Text(libraryStatus)
+                                if (installed.isEmpty()) {
+                                    val candidates = games.count { it.systemId == inspected.systemId }
+                                    if (candidates > 0) {
+                                        TextButton(
+                                            onClick = {
+                                                linkingReleaseId = inspected.releaseId
+                                                selectedId = null
+                                                inspectedId = null
+                                                browseCatalogue = false
+                                                query = ""
+                                            },
+                                            modifier = Modifier.gemFocusTarget(),
+                                        ) { Text("Identify an existing cartridge") }
+                                    } else {
+                                        val console = cartridgeSystemLabel(inspected.systemId)
+                                        Text("Add a $console cartridge to your shelf to link it.")
+                                    }
+                                }
                                 val ratingId = GemRatingRepository.catalogueRatingId(inspected.releaseId)
                                 GemRatingRow(
                                     cartridgeId = ratingId,
@@ -452,9 +496,16 @@ internal fun GemLibraryScreen(
                                     deckFit = true,
                                 )
                                 installed.forEach { game ->
-                                    TextButton(
+                                    CartdeckMenuRow(
+                                        title = { Text("Open ${game.displayName()}", maxLines = 2) },
+                                        leading =
+                                            if (installed.size > 1) {
+                                                { CartridgeFront(game, Modifier.width(72.dp), offline = true) }
+                                            } else {
+                                                null
+                                            },
                                         onClick = { onOpenCartridge(game) },
-                                    ) { Text("Open ${game.displayName()}") }
+                                    )
                                 }
                             }
                         }
@@ -462,10 +513,22 @@ internal fun GemLibraryScreen(
                     if (current != null && inspected == null) {
                         if (selected == null && !browseCatalogue) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                Text("My cartridges", style = MaterialTheme.typography.titleMedium)
+                                Column {
+                                    Text("My cartridges", style = MaterialTheme.typography.titleMedium)
+                                    if (linkingRelease != null) {
+                                        val console = cartridgeSystemLabel(linkingRelease.systemId)
+                                        Text("Choose the $console cartridge for ${linkingRelease.title}.")
+                                        TextButton(
+                                            onClick = { linkingReleaseId = null },
+                                        ) { Text("Cancel identification") }
+                                    }
+                                }
                             }
                             items(
-                                games.filter { it.displayName().contains(query.trim(), ignoreCase = true) },
+                                games.filter {
+                                    (linkingRelease == null || it.systemId == linkingRelease.systemId) &&
+                                        it.displayName().contains(query.trim(), ignoreCase = true)
+                                },
                                 key = { it.cartridgeId },
                             ) { game ->
                                 com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow(
@@ -476,6 +539,10 @@ internal fun GemLibraryScreen(
                                     supporting = { Text(cartridgeSystemLabel(game.systemId)) },
                                     onClick = {
                                         selectedId = game.cartridgeId
+                                        if (linkingRelease != null) {
+                                            pending = linkingRelease
+                                            linkingReleaseId = null
+                                        }
                                         query = ""
                                     },
                                 )
@@ -490,10 +557,12 @@ internal fun GemLibraryScreen(
                             }
                             items(results.take(pageLimit), key = { it.releaseId }) { release ->
                                 Column(Modifier.fillMaxWidth().padding(4.dp)) {
+                                    val copies = installedByRelease[release.releaseId].orEmpty()
                                     GemIntelligenceRecord(
                                         release,
                                         sources[release.sourceId],
                                         contributions[release.releaseId],
+                                        installedGame = copies.singleOrNull(),
                                     )
                                     if (selected != null) {
                                         TextButton(
@@ -502,7 +571,6 @@ internal fun GemLibraryScreen(
                                             modifier = Modifier.gemFocusTarget(),
                                         ) { Text("Confirm this entry") }
                                     } else {
-                                        val copies = installedByRelease[release.releaseId].orEmpty()
                                         TextButton(
                                             onClick = { inspectedId = release.releaseId },
                                             modifier = Modifier.gemFocusTarget(),
@@ -583,37 +651,71 @@ internal fun GemLibraryScreen(
 }
 
 @Composable
-private fun GemIntelligenceRecord(
+internal fun GemIntelligenceRecord(
     release: GemCataloguePackage.Release,
     source: GemCataloguePackage.Source?,
     contribution: GemFeatureContributions.Record?,
+    installedGame: Game? = null,
 ) {
     val fallback = remember(release) { GemGameplayFeatures.find(release.releaseId, release.title) }
-    val genre = contribution?.primaryGenre ?: release.primaryGenre
-    val crossover = contribution?.crossoverGenre ?: fallback?.crossover
-    val playstyle = contribution?.playstyle ?: fallback?.playstyle
-    val mechanics = contribution?.mechanics ?: fallback?.mechanics.orEmpty()
+    val classification =
+        remember(release, contribution) {
+            GemGenreTaxonomy.classify(contribution?.primaryGenre ?: release.primaryGenre, release.title)
+        }
+    val genre = classification.primary
+    val crossover = contribution?.crossoverGenre ?: fallback?.crossover ?: classification.crossover
+    val playstyle = contribution?.playstyle ?: fallback?.playstyle ?: classification.playstyle
+    val mechanics = (contribution?.mechanics?.toSet() ?: fallback?.mechanics.orEmpty()) + classification.mechanics
     val deckFit =
-        remember(release, genre) {
-            GemDeckFit.estimate(release.releaseId, release.systemId, genre, release.title)
+        remember(release, genre, playstyle, mechanics) {
+            GemDeckFit.estimate(
+                release.releaseId,
+                release.systemId,
+                genre,
+                release.title,
+                GemDeckFit.evidenceTraits(playstyle, mechanics),
+            )
         }
     var details by remember(release.releaseId) { mutableStateOf(false) }
     androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
+            if (installedGame == null) {
+                CatalogueCartridgeFront(release.title, release.systemId, Modifier.width(100.dp))
+            } else {
+                CartridgeFront(installedGame, Modifier.width(100.dp), offline = true)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(release.title, style = MaterialTheme.typography.titleMedium)
-                Text(cartridgeSystemLabel(release.systemId) + " · " + (genre ?: "Genre unknown"))
+                Text(installedGame?.displayName() ?: release.title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    cartridgeSystemLabel(release.systemId) +
+                        " · " + (genre ?: "Genre unknown") +
+                        " · " + (source?.name ?: release.sourceId),
+                )
                 val traits = listOfNotNull(crossover, playstyle)
                 if (traits.isNotEmpty()) Text(traits.joinToString(" · "))
                 if (mechanics.isNotEmpty()) Text(mechanics.sorted().joinToString(" · "))
                 Text(deckFit.displayText, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "More details") }
                 if (details) {
+                    if (installedGame != null && installedGame.displayName() != release.title) {
+                        Text("Catalogue title: ${release.title}", style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(source?.name.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text(source?.licence.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     Text("Source record: ${release.releaseId}", style = MaterialTheme.typography.bodySmall)
-                    contribution?.evidence?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    Text(
+                        "Source genre: ${release.primaryGenre ?: "Unknown"}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (classification.reviewFlag) {
+                        Text("Catalogue classification needs review", style = MaterialTheme.typography.bodySmall)
+                    }
+                    contribution?.sourceLicence?.let {
+                        Text("Feature rights: $it", style = MaterialTheme.typography.bodySmall)
+                    }
+                    contribution?.evidence?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(deckFit.evidenceText, style = MaterialTheme.typography.bodySmall)
                     Text("Compatibility unverified", style = MaterialTheme.typography.bodySmall)
                 }

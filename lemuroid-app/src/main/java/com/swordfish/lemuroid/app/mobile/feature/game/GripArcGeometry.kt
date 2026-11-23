@@ -61,6 +61,21 @@ data class GripArcPlacement(
     val side: GripArcSide,
 )
 
+/** Mean clear distance from the fixed G targets to the native controls for the selected hand. */
+internal fun gripArcControlGap(
+    dock: GripArcPlacement,
+    nativeControls: Collection<PivotArcBounds>,
+): Float {
+    if (nativeControls.isEmpty() || dock.targets.isEmpty()) return Float.POSITIVE_INFINITY
+    return dock.targets.values.map { target ->
+        nativeControls.minOf { control ->
+            val horizontal = maxOf(0f, target.left - control.right, control.left - target.right)
+            val vertical = maxOf(0f, target.top - control.bottom, control.top - target.bottom)
+            kotlin.math.sqrt(horizontal * horizontal + vertical * vertical)
+        }
+    }.average().toFloat()
+}
+
 sealed interface GripArcFit {
     data class Fits(val placement: GripArcPlacement) : GripArcFit
 
@@ -69,9 +84,13 @@ sealed interface GripArcFit {
 
 /** One fixed compact 160×160dp assembly. No progressive shrinking of touch targets. */
 object GripArcPositionSolver {
+    internal const val HOUSING_ARM_INNER_X = 102f
+    internal const val HOUSING_ARM_INNER_Y = 118f
     private const val SAFE_GAP = 8f
     private const val MIN_TARGET = 48f
-    private val scales = listOf(1f)
+
+    // At 0.95 scale the 52dp vertical pitch still leaves a gap between 48dp targets.
+    internal val housingScales = listOf(1f, 0.95f)
 
     /** Same two physical arms as the V2.2 rendered contour; the inside corner remains open. */
     internal fun housingFootprint(
@@ -79,8 +98,8 @@ object GripArcPositionSolver {
         scale: Float,
         side: GripArcSide,
     ): List<PivotArcBounds> {
-        val armLeft = if (side == GripArcSide.RIGHT) 96f else 4f
-        val armRight = if (side == GripArcSide.RIGHT) 156f else 64f
+        val armLeft = if (side == GripArcSide.RIGHT) HOUSING_ARM_INNER_X else 4f
+        val armRight = if (side == GripArcSide.RIGHT) 156f else 160f - HOUSING_ARM_INNER_X
         return listOf(
             PivotArcBounds(
                 housing.left + armLeft * scale,
@@ -90,7 +109,7 @@ object GripArcPositionSolver {
             ),
             PivotArcBounds(
                 housing.left + 4f * scale,
-                housing.top + 116f * scale,
+                housing.top + HOUSING_ARM_INNER_Y * scale,
                 housing.left + 156f * scale,
                 housing.top + 156f * scale,
             ),
@@ -110,7 +129,7 @@ object GripArcPositionSolver {
         if (!dx.isFinite() || !dy.isFinite() || !safe.isFiniteArea() || !viewport.isFiniteArea()) {
             return GripArcFit.Unavailable("GripArc has invalid screen measurements.")
         }
-        for (scale in scales.filter { it <= maxScale }) {
+        for (scale in housingScales.filter { it <= maxScale }) {
             val width = manifest.artboard.width * scale
             val height = manifest.artboard.height * scale
             if (width > safe.width || height > safe.height) continue
@@ -137,8 +156,10 @@ object GripArcPositionSolver {
                 val targets =
                     manifest.slots.associate { slot ->
                         val center = if (side == GripArcSide.RIGHT) slot.centerRight else slot.centerLeft
-                        val touchWidth = maxOf(MIN_TARGET, slot.hitTarget.w * scale)
-                        val touchHeight = maxOf(MIN_TARGET, slot.hitTarget.h * scale)
+                        // Fractional scaled centres must still produce at least 48dp after float arithmetic.
+                        val minimum = if (scale < 1f) MIN_TARGET + 0.1f else MIN_TARGET
+                        val touchWidth = maxOf(minimum, slot.hitTarget.w * scale)
+                        val touchHeight = maxOf(minimum, slot.hitTarget.h * scale)
                         slot.n to
                             PivotArcBounds(
                                 x + center.x * scale - touchWidth / 2f,

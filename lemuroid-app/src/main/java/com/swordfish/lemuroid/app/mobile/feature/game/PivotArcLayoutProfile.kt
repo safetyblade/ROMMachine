@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 import android.content.Context
 import com.swordfish.lemuroid.lib.library.SystemID
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlin.math.max
 
@@ -30,6 +31,7 @@ data class PivotArcBaseline(
     val schema: String,
     val buttonCenters: Map<String, PivotArcButtonSpec>,
     val profiles: Map<String, List<String>>,
+    @Transient val scalingAnchor: PivotArcPoint? = null,
 )
 
 object PivotArcLayoutProfile {
@@ -53,12 +55,69 @@ object PivotArcLayoutProfile {
             parse(it.readText())
         }
 
+    /** Rotate the two PSP directional seats without changing guest input identities. */
+    fun forSystem(
+        baseline: PivotArcBaseline,
+        system: SystemID,
+        pspAnalogPrimary: Boolean,
+    ): PivotArcBaseline {
+        if (system != SystemID.PSP || !pspAnalogPrimary) return baseline
+        val seats = baseline.buttonCenters
+        val primary = seats["D"] ?: return baseline
+        val secondary = seats["Analog"] ?: return baseline
+        return baseline.copy(
+            buttonCenters = seats + mapOf("D" to secondary, "Analog" to primary),
+            scalingAnchor = primary.center,
+        )
+    }
+
     fun activeFor(system: SystemID): List<String>? =
         when (system) {
             SystemID.GB, SystemID.GBC -> listOf("D", "A", "B", "Select", "Start", "Menu")
+            SystemID.GG, SystemID.NGP, SystemID.NGC -> listOf("D", "A", "B", "Start", "Menu")
+            SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")
             SystemID.SNES -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
+            SystemID.NDS -> listOf("D", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu", "Mic", "Lid")
+            SystemID.PSP, SystemID.NINTENDO_3DS ->
+                listOf("D", "Analog", "A", "B", "X", "Y", "L", "R", "Select", "Start", "Menu")
             else -> null
+        }
+
+    fun nativeLabel(
+        system: SystemID,
+        key: String,
+    ): String =
+        when (system) {
+            SystemID.GG ->
+                when (key) {
+                    "A" -> "2"
+                    "B" -> "1"
+                    else -> key
+                }
+            SystemID.NGP, SystemID.NGC ->
+                when (key) {
+                    "A" -> "B"
+                    "B" -> "A"
+                    "Start" -> "Option"
+                    else -> key
+                }
+            SystemID.PSP ->
+                when (key) {
+                    "A" -> "Circle"
+                    "B" -> "Cross"
+                    "X" -> "Triangle"
+                    "Y" -> "Square"
+                    else -> key
+                }
+            SystemID.LYNX ->
+                when (key) {
+                    "L" -> "Opt 1"
+                    "R" -> "Opt 2"
+                    "Start" -> "Pause"
+                    else -> key
+                }
+            else -> key
         }
 }
 
@@ -119,7 +178,7 @@ object PivotArcPositionSolver {
     private const val HOLD_VISUAL_SIZE = 28f
     private const val UTILITY_GAP = 9f
     private const val LOWER_TRIAL_OFFSET = 18f
-    private val utilities = setOf("Start", "Select", "Menu")
+    private val utilities = setOf("Start", "Select", "Menu", "Mic", "Lid")
     private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 
     fun resolve(
@@ -190,7 +249,7 @@ object PivotArcPositionSolver {
     ): PivotArcResolution {
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
-        val anchor = baseline.buttonCenters.getValue("D").center
+        val anchor = baseline.scalingAnchor ?: baseline.buttonCenters.getValue("D").center
 
         fun rectangleFor(key: String): PivotArcBounds {
             val button = baseline.buttonCenters.getValue(key)

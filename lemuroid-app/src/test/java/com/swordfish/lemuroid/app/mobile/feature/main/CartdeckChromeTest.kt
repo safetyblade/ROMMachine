@@ -5,9 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.rememberNavController
@@ -66,6 +69,33 @@ class CartdeckChromeTest {
         compose.onNodeWithText("Shelf tools").performClick()
         compose.onNodeWithText("Shelf appearance").performClick()
         assertTrue(appearanceRequested == 1)
+    }
+
+    @Test fun safeSaveDockShowsOneMarkAndOneLabel() {
+        compose.setContent {
+            CartridgeLibraryTheme {
+                MainNavigationBar(
+                    currentRoute = MainRoute.SAFESAVE,
+                    navController = rememberNavController(),
+                )
+            }
+        }
+        compose.onNodeWithTag("product-dock-mark-safesave", useUnmergedTree = true).assertExists()
+        compose.onAllNodesWithText("SafeSave", useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test fun safeSaveUsesItsApprovedBrandInTheSharedHeader() {
+        compose.setContent {
+            CartridgeLibraryTheme {
+                MainTopBar(
+                    currentRoute = MainRoute.SAFESAVE,
+                    navController = rememberNavController(),
+                    onUpdateQueryString = {},
+                    mainUIState = MainViewModel.UiState(),
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("SafeSave").assertExists()
     }
 
     @Test fun contextualDockClosesWithoutReintroducingLegacyTabs() {

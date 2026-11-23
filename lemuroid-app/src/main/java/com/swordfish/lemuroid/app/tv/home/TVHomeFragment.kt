@@ -17,6 +17,7 @@ import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.leanback.widget.ObjectAdapter
 import androidx.leanback.widget.OnItemViewClickedListener
+import androidx.leanback.widget.OnItemViewSelectedListener
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -24,6 +25,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.gemrating.GemShelfPresentation
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
+import com.swordfish.lemuroid.app.mobile.feature.main.OPEN_SAFESAVE_EXTRA
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
@@ -56,6 +58,8 @@ class TVHomeFragment : BrowseSupportFragment() {
 
     private var shelfSections = emptyList<TVShelfSection>()
     private var gemRatings = emptyMap<String, Int>()
+    private var shelfFocus: TVShelfFocus? = null
+    private var pendingShelfFocus: TVShelfFocus? = null
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -95,6 +99,11 @@ class TVHomeFragment : BrowseSupportFragment() {
                                     Intent(requireContext(), MainActivity::class.java)
                                         .putExtra("cartdeck.open_gem", true),
                                 )
+                            TVSettingType.SAFESAVE ->
+                                startActivity(
+                                    Intent(requireContext(), MainActivity::class.java)
+                                        .putExtra(OPEN_SAFESAVE_EXTRA, true),
+                                )
                             TVSettingType.CONTROLLERS ->
                                 startActivity(Intent(requireContext(), ControllerSettingsActivity::class.java))
                             TVSettingType.SHOW_ALL_FAVORITES -> launchFavorites()
@@ -115,6 +124,17 @@ class TVHomeFragment : BrowseSupportFragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+        pendingShelfFocus =
+            shelfFocus ?: savedInstanceState?.getString(FOCUSED_ROW)?.let {
+                TVShelfFocus(it, savedInstanceState.getString(FOCUSED_CARTRIDGE))
+            }
+        onItemViewSelectedListener =
+            OnItemViewSelectedListener { _, item, _, row ->
+                if (pendingShelfFocus == null && row is ListRow) {
+                    val rowKey = tvShelfRowKey(row.headerItem.id, shelfSections)
+                    if (rowKey != null) shelfFocus = TVShelfFocus(rowKey, (item as? Game)?.cartridgeId)
+                }
+            }
 
         setTitle("CARTDECK")
         setBadgeDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.cartdeck_wordmark_native))
@@ -158,6 +178,14 @@ class TVHomeFragment : BrowseSupportFragment() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        (pendingShelfFocus ?: shelfFocus)?.let {
+            outState.putString(FOCUSED_ROW, it.rowKey)
+            outState.putString(FOCUSED_CARTRIDGE, it.cartridgeId)
+        }
+    }
+
     private fun update(
         viewState: TVHomeViewModel.HomeViewState,
         sections: List<TVShelfSection>,
@@ -172,7 +200,9 @@ class TVHomeFragment : BrowseSupportFragment() {
         val recentsChanged = adapterHasGames != viewState.recentGames.isNotEmpty()
         val systemsChanged = adapterHasSystems != viewState.metaSystems.isNotEmpty()
 
-        if (favoritesChanged || recentsChanged || systemsChanged || sectionsChanged) {
+        val rowsChanged = favoritesChanged || recentsChanged || systemsChanged || sectionsChanged
+        val focusToRestore = pendingShelfFocus ?: shelfFocus.takeIf { rowsChanged }
+        if (rowsChanged) {
             recreateAdapter(
                 viewState.favoritesGames.isNotEmpty(),
                 viewState.recentGames.isNotEmpty(),
@@ -206,6 +236,17 @@ class TVHomeFragment : BrowseSupportFragment() {
             buildSettingsRowItems(viewState.indexInProgress, viewState.scanInProgress),
             LEANBACK_SETTING_DIFF_CALLBACK,
         )
+
+        pendingShelfFocus = null
+        focusToRestore?.let { focus ->
+            locateTVShelfFocus(adapter, shelfSections, focus)?.let { (rowIndex, itemIndex) ->
+                if (itemIndex == null) {
+                    setSelectedPosition(rowIndex, false)
+                } else {
+                    setSelectedPosition(rowIndex, false, ListRowPresenter.SelectItemViewHolderTask(itemIndex))
+                }
+            }
+        }
     }
 
     private fun <T> findAdapterById(id: Long): T? {
@@ -268,6 +309,10 @@ class TVHomeFragment : BrowseSupportFragment() {
         gemItems.add(TVSetting(TVSettingType.GEM))
         result.add(ListRow(HeaderItem(GEM_ADAPTER, "GEM"), gemItems))
 
+        val saveItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
+        saveItems.add(TVSetting(TVSettingType.SAFESAVE))
+        result.add(ListRow(HeaderItem(SAFESAVE_ADAPTER, getString(R.string.cartdeck_safesave_title)), saveItems))
+
         val settingsItems = ArrayObjectAdapter(SettingPresenter(cardSize, settingsCardPadding))
         settingsItems.setItems(
             buildSettingsRowItems(indexInProgress = false, scanInProgress = false),
@@ -320,7 +365,10 @@ class TVHomeFragment : BrowseSupportFragment() {
         const val SYSTEM_ADAPTER = 2L
         const val SETTINGS_ADAPTER = 3L
         const val GEM_ADAPTER = 5L
+        const val SAFESAVE_ADAPTER = 6L
         const val FAVORITES_ADAPTER = 4L
+        private const val FOCUSED_ROW = "cartdeck.tv.focusedRow"
+        private const val FOCUSED_CARTRIDGE = "cartdeck.tv.focusedCartridge"
 
         private fun shelfRowId(index: Int) = -1L - index
 

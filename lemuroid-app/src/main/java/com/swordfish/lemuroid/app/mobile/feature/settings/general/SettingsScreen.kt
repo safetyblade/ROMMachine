@@ -241,7 +241,6 @@ private fun InputSettings(navController: NavController) {
 
 @Composable
 private fun GeneralSettings(navController: NavController) {
-    val immersiveMode = booleanPreferenceState(R.string.pref_key_enable_immersive_mode, false)
     var helpOpen by remember { mutableStateOf(false) }
 
     LemuroidCardSettingsGroup(
@@ -255,10 +254,6 @@ private fun GeneralSettings(navController: NavController) {
             state = booleanPreferenceState(R.string.pref_key_autosave, true),
             title = { Text(text = stringResource(id = R.string.settings_title_enable_autosave)) },
         )
-        LemuroidSettingsSwitch(
-            state = immersiveMode,
-            title = { Text(text = stringResource(id = R.string.settings_title_immersive_mode)) },
-        )
         TextButton(onClick = { helpOpen = true }) { Text("About display & gameplay") }
     }
     if (helpOpen) {
@@ -268,7 +263,6 @@ private fun GeneralSettings(navController: NavController) {
             text = {
                 androidx.compose.foundation.layout.Column {
                     Text(stringResource(R.string.settings_description_enable_autosave))
-                    Text(stringResource(R.string.settings_description_immersive_mode))
                 }
             },
             confirmButton = { TextButton(onClick = { helpOpen = false }) { Text("Done") } },

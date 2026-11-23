@@ -25,6 +25,7 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.mods.ModFiles
 import com.swordfish.lemuroid.lib.saves.CartridgeSaveBinding
 import com.swordfish.lemuroid.lib.saves.PlayStationMemoryCard
+import com.swordfish.lemuroid.lib.saves.safesave.Armsx2FileCards
 import com.swordfish.lemuroid.lib.saves.safesave.BoundSaveRestore
 import com.swordfish.lemuroid.lib.saves.safesave.CartSaveArchive
 import com.swordfish.lemuroid.lib.saves.safesave.SaveStorageLease
@@ -32,11 +33,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
+
+/** The action and the export confirmation must describe exactly the same bounded backup. */
+internal const val SAFESAVE_BACKUP_COVERAGE =
+    "Includes app-managed saves and states, recognized PS1 cards and standard ARMSX2 PS2 cards. " +
+        "Other native storage and Unassigned Backups are excluded."
 
 @Composable
 internal fun SafeSaveScreen(
@@ -50,32 +57,47 @@ internal fun SafeSaveScreen(
     var message by remember { mutableStateOf<String?>(null) }
     var selected by remember { mutableStateOf<Game?>(null) }
     var importPreview by remember { mutableStateOf<ImportPreview?>(null) }
+    var unassigned by remember { mutableStateOf<List<File>>(emptyList()) }
+    var showUnassigned by remember { mutableStateOf(false) }
+    var showBackupCoverage by remember { mutableStateOf(false) }
+    var keepUnassigned by remember { mutableStateOf<UnassignedBackup?>(null) }
     var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var pendingExport by remember { mutableStateOf<ExportRequest?>(null) }
 
     LaunchedEffect(games, binding, revision) {
         val result =
-            withContext(Dispatchers.IO) { runCatching { games.associate { it.cartridgeId to files(binding, it) } } }
+            withContext(
+                Dispatchers.IO,
+            ) { runCatching { games.associate { it.cartridgeId to files(context, binding, it) } } }
         result.onSuccess { inventory = it }.onFailure { message = "Save inventory could not be read." }
+    }
+
+    LaunchedEffect(revision) {
+        unassigned = withContext(Dispatchers.IO) { unassignedArchives(context) }
+    }
+
+    fun review(
+        uri: Uri,
+        alreadyStored: Boolean = false,
+    ) {
+        busy = true
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { previewDocument(context, binding, games, uri) } }
+            result.onSuccess { importPreview = it }.onFailure {
+                if (it is UnassignedBackup && !alreadyStored) {
+                    keepUnassigned = it
+                } else {
+                    message = (it as? RestoreRefused)?.message ?: "The backup is invalid or unreadable."
+                }
+            }
+            busy = false
+        }
     }
 
     val open =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                busy = true
-                scope.launch {
-                    val result =
-                        withContext(Dispatchers.IO) {
-                            runCatching { previewDocument(context, binding, games, uri) }
-                        }
-                    result.onSuccess { importPreview = it }
-                        .onFailure {
-                            message = (it as? RestoreRefused)?.message ?: "The backup is invalid or unreadable."
-                        }
-                    busy = false
-                }
-            }
+            if (uri != null) review(uri)
         }
     val save =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
@@ -121,12 +143,29 @@ internal fun SafeSaveScreen(
             SaveInventoryRow(
                 game.cartridgeId,
                 game.title,
+                game.systemId,
+                files.count { it.kind == CartSaveArchive.Kind.GAME_SAVE },
+                files.count { it.kind == CartSaveArchive.Kind.MANUAL_STATE },
+                files.count { it.kind == CartSaveArchive.Kind.AUTOSAVE },
+                files.count { it.kind == CartSaveArchive.Kind.MEMORY_CARD },
                 "${game.systemId} · $progress saves or cards · $states states · $bytes bytes",
             )
         }
     SafeSaveSurface(
-        playerName = "current local player",
+        playerName = "Current player",
         inventory = rows,
+        onBackUp =
+            if (!busy && rows.isNotEmpty()) {
+                { showBackupCoverage = true }
+            } else {
+                null
+            },
+        onRestore =
+            if (!busy) {
+                { open.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }
+            } else {
+                null
+            },
         availableActions =
             buildList {
                 if (!busy) {
@@ -155,29 +194,35 @@ internal fun SafeSaveScreen(
                             }
                         },
                     )
-                    if (rows.isNotEmpty()) {
-                        add(
-                            ProductAction("Export collection", "Export identified app-managed progress") {
-                                requestExport(games, CartSaveArchive.Scope.PLAYER)
-                            },
-                        )
-                    }
-                    add(
-                        ProductAction("Import backup", "Verify a .cartsave before restoring") {
-                            open.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-                        },
-                    )
                 }
                 add(
-                    ProductAction("Coverage", "View the limits of this backup") {
-                        message = "Includes bound save RAM, supported PS1 cards and known app-managed states. " +
-                            "Native engine storage and unresolved historical saves are excluded."
+                    ProductAction("Backup coverage", "View the limits of this backup") {
+                        message = SAFESAVE_BACKUP_COVERAGE
                     },
                 )
             },
         onDetails = { id -> if (!busy) selected = games.firstOrNull { it.cartridgeId == id } },
         modifier = modifier,
+        unassignedCount = unassigned.size,
+        onUnassigned = if (busy) null else ({ showUnassigned = true }),
     )
+
+    if (showBackupCoverage) {
+        AlertDialog(
+            onDismissRequest = { showBackupCoverage = false },
+            title = { Text("Back Up Everything") },
+            text = {
+                Text(SAFESAVE_BACKUP_COVERAGE)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackupCoverage = false
+                    requestExport(games, CartSaveArchive.Scope.PLAYER)
+                }) { Text("Choose Backup File") }
+            },
+            dismissButton = { TextButton(onClick = { showBackupCoverage = false }) { Text("Cancel") } },
+        )
+    }
 
     selected?.let { game ->
         val hasCard =
@@ -226,12 +271,14 @@ internal fun SafeSaveScreen(
                 val titles = preview.titles.take(3).joinToString()
                 val additional = (preview.titles.size - 3).coerceAtLeast(0)
                 val gamesSummary = if (additional > 0) "$titles and $additional more" else titles
-                val engines = manifest.saveGroups.map { it.engineId }.distinct().take(3).joinToString()
-                Text(
-                    "$groupCount save groups · $states states · $bytes bytes. " +
-                        "$gamesSummary · $engines · current local player. " +
-                        "${preview.existingFiles.size} existing files will be backed up before replacement.",
-                )
+                Column {
+                    Text("$groupCount save groups · $states states · $bytes bytes")
+                    Text(gamesSummary)
+                    Text("${preview.existingFiles.size} existing files will be backed up before replacement.")
+                    if (files.any { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD }) {
+                        Text("Restoring a full memory card can replace progress from other games.")
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -255,6 +302,51 @@ internal fun SafeSaveScreen(
             dismissButton = { TextButton(onClick = { importPreview = null }) { Text("Cancel") } },
         )
     }
+    keepUnassigned?.let { candidate ->
+        AlertDialog(
+            onDismissRequest = { keepUnassigned = null },
+            title = { Text("Keep unassigned backup?") },
+            text = { Text(candidate.message.orEmpty()) },
+            confirmButton = {
+                TextButton(onClick = {
+                    keepUnassigned = null
+                    busy = true
+                    scope.launch {
+                        val result =
+                            withContext(Dispatchers.IO) { runCatching { retainUnassigned(context, candidate) } }
+                        if (result.isSuccess) revision++
+                        message =
+                            if (result.isSuccess) "Backup kept in Unassigned Backups." else "Backup could not be kept."
+                        busy = false
+                    }
+                }) { Text("Keep Backup") }
+            },
+            dismissButton = { TextButton(onClick = { keepUnassigned = null }) { Text("Cancel") } },
+        )
+    }
+    if (showUnassigned) {
+        AlertDialog(
+            onDismissRequest = { showUnassigned = false },
+            title = { Text("Unassigned Backups") },
+            text = {
+                if (unassigned.isEmpty()) {
+                    Text("No unassigned backups.")
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(unassigned.size) { index ->
+                            val archive = unassigned[index]
+                            val date = java.text.DateFormat.getDateTimeInstance().format(Date(archive.lastModified()))
+                            TextButton(onClick = {
+                                showUnassigned = false
+                                review(Uri.fromFile(archive), alreadyStored = true)
+                            }, modifier = Modifier.gemFocusTarget()) { Text(date) }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showUnassigned = false }) { Text("Done") } },
+        )
+    }
     message?.let { info ->
         AlertDialog(
             onDismissRequest = { message = null },
@@ -271,16 +363,26 @@ private data class ImportPreview(
     val uri: Uri,
     val manifest: CartSaveArchive.Manifest,
     val titles: List<String>,
-    val existingFiles: Map<File, Pair<Long, Long>>,
+    val existingFiles: Map<File, String>,
 )
 
 private fun files(
+    context: Context,
     binding: CartridgeSaveBinding,
     game: Game,
     includeMissing: Boolean = false,
 ): List<CartridgeSaveBinding.BoundSaveGroup> {
     val system = GameSystem.all().firstOrNull { it.id.dbname == game.systemId }
-    return binding.inspectBoundSaves(game, system?.systemCoreConfigs.orEmpty(), includeMissing)
+    val managed = binding.inspectBoundSaves(game, system?.systemCoreConfigs.orEmpty(), includeMissing)
+    if (game.systemId != SystemID.PLAYSTATION_2.dbname) return managed
+    val cards = Armsx2FileCards.discover(context.filesDir, game.cartridgeId, includeMissing)
+    if (cards.isEmpty()) return managed
+    return managed +
+        CartridgeSaveBinding.BoundSaveGroup(
+            Armsx2FileCards.ENGINE_ID,
+            null,
+            cards.map { CartridgeSaveBinding.BoundSaveFile(it, CartSaveArchive.Kind.MEMORY_CARD, it.name) },
+        )
 }
 
 private fun inspectDocument(
@@ -314,7 +416,7 @@ private fun export(
                 val payloads = mutableMapOf<String, File>()
                 val groups =
                     request.games.flatMap { game ->
-                        files(binding, game).mapNotNull { group ->
+                        files(context, binding, game).mapNotNull { group ->
                             val eligible =
                                 if (request.scope == CartSaveArchive.Scope.CARD_BANK) {
                                     group.files.filter { it.kind == CartSaveArchive.Kind.MEMORY_CARD }
@@ -345,8 +447,8 @@ private fun export(
                         }
                     }
                 val exclusions =
-                    SystemID.entries.map {
-                        CartSaveArchive.Exclusion(it.dbname, "Engine-owned or unbound storage is outside this export")
+                    request.games.map { it.systemId }.distinct().sorted().map { system ->
+                        CartSaveArchive.Exclusion(system, "Engine-owned or unbound storage is outside this export")
                     }
                 val date =
                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).apply {
@@ -371,6 +473,8 @@ private fun export(
                 null
             } catch (_: UnsupportedOperationException) {
                 null
+            } catch (_: SecurityException) {
+                null
             } ?: return false
         val temp = File.createTempFile("cartsave-readback-", ".zip", context.cacheDir)
         try {
@@ -385,7 +489,58 @@ private fun export(
     }
 }
 
-private class RestoreRefused(message: String) : IllegalArgumentException(message)
+private open class RestoreRefused(message: String) : IllegalArgumentException(message)
+
+private class UnmatchedBackupTarget(message: String) : RestoreRefused(message)
+
+private class UnassignedBackup(
+    val uri: Uri,
+    val manifest: CartSaveArchive.Manifest,
+    reason: String,
+) : RestoreRefused(reason)
+
+private fun unassignedDirectory(context: Context): File = File(context.noBackupFilesDir, "safesave/unassigned")
+
+private fun unassignedArchives(context: Context): List<File> =
+    unassignedDirectory(context).listFiles().orEmpty()
+        .filter { it.isFile && it.extension == "cartsave" && it == it.canonicalFile }
+        .sortedByDescending(File::lastModified)
+
+private fun retainUnassigned(
+    context: Context,
+    candidate: UnassignedBackup,
+) {
+    val lease = checkNotNull(SaveStorageLease.acquire(context))
+    lease.use {
+        storeUnassignedArchive(unassignedDirectory(context), candidate.manifest) {
+            requireNotNull(context.contentResolver.openInputStream(candidate.uri))
+        }
+    }
+}
+
+internal fun storeUnassignedArchive(
+    root: File,
+    manifest: CartSaveArchive.Manifest,
+    openSource: () -> InputStream,
+): File {
+    val directory = root.canonicalFile
+    check(directory.isDirectory || directory.mkdirs())
+    val destination = File(directory, "${UUID.fromString(manifest.snapshotId)}.cartsave")
+    check(destination.canonicalFile == destination)
+    val staged = File.createTempFile("incoming-", ".tmp", directory)
+    try {
+        openSource().use { ModFiles.copyBounded(it, staged, CartSaveArchive.MAX_ARCHIVE_BYTES) }
+        check(CartSaveArchive.inspect(staged) == manifest)
+        if (destination.exists()) {
+            check(CartSaveArchive.inspect(destination) == manifest)
+        } else {
+            check(staged.renameTo(destination))
+        }
+        return destination
+    } finally {
+        staged.delete()
+    }
+}
 
 private fun previewDocument(
     context: Context,
@@ -400,8 +555,20 @@ private fun previewDocument(
             throw RestoreRefused("Complete the interrupted restore in Recovery first.")
         }
         val owner = GemRatingLocalStore.open(context).session.profileId
-        val targets = restoreTargets(binding, games, manifest, owner)
-        ImportPreview(uri, manifest, targets.map { it.game.title }.distinct(), existingFiles(targets))
+        val targets =
+            try {
+                restoreTargets(context, binding, games, manifest, owner)
+            } catch (unmatched: UnmatchedBackupTarget) {
+                throw UnassignedBackup(uri, manifest, unmatched.message.orEmpty())
+            }
+        ImportPreview(
+            uri,
+            manifest,
+            targets.map {
+                it.game.title
+            }.distinct(),
+            existingSaveFingerprints(targets.map { it.file }),
+        )
     }
 }
 
@@ -409,10 +576,10 @@ private fun compatibility(
     group: CartridgeSaveBinding.BoundSaveGroup,
     artifacts: List<CartSaveArchive.Artifact>,
 ): String =
-    if (artifacts.all { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD }) {
-        "ps1-raw-128k"
-    } else {
-        "cartdeck-${BuildConfig.VERSION_CODE}/state-protocol-${group.stateVersion}"
+    when {
+        group.engineId == Armsx2FileCards.ENGINE_ID -> Armsx2FileCards.FORMAT
+        artifacts.all { it.saveKind == CartSaveArchive.Kind.MEMORY_CARD } -> "ps1-raw-128k"
+        else -> "cartdeck-${BuildConfig.VERSION_CODE}/state-protocol-${group.stateVersion}"
     }
 
 private fun restoreDocument(
@@ -434,8 +601,8 @@ private fun restoreDocument(
                     ?: throw RestoreRefused("Close the game or wait for save sync to finish.")
             lease.use {
                 val owner = GemRatingLocalStore.open(context).session.profileId
-                val targets = restoreTargets(binding, games, manifest, owner)
-                if (existingFiles(targets) != preview.existingFiles) {
+                val targets = restoreTargets(context, binding, games, manifest, owner)
+                if (existingSaveFingerprints(targets.map { it.file }) != preview.existingFiles) {
                     throw RestoreRefused(
                         "The destination changed. Open the backup again to review what will be replaced.",
                     )
@@ -445,11 +612,14 @@ private fun restoreDocument(
                         val artifact = target.artifact
                         val source = File(extracted, artifact.path)
                         if (artifact.saveKind == CartSaveArchive.Kind.MEMORY_CARD) {
-                            if (source.length() != PlayStationMemoryCard.SIZE.toLong() ||
-                                !PlayStationMemoryCard.isRawCard(source.readBytes())
-                            ) {
-                                throw RestoreRefused("The PlayStation card image is invalid.")
-                            }
+                            val isValid =
+                                if (target.engineId == Armsx2FileCards.ENGINE_ID) {
+                                    Armsx2FileCards.isFormattedCard(source)
+                                } else {
+                                    source.length() == PlayStationMemoryCard.SIZE.toLong() &&
+                                        PlayStationMemoryCard.isRawCard(source.readBytes())
+                                }
+                            if (!isValid) throw RestoreRefused("The memory card image is invalid for this engine.")
                         }
                         if (artifact.saveKind == CartSaveArchive.Kind.MANUAL_STATE ||
                             artifact.saveKind == CartSaveArchive.Kind.AUTOSAVE
@@ -468,15 +638,24 @@ private fun restoreDocument(
     }
 }
 
-private data class RestoreTarget(val game: Game, val file: File, val artifact: CartSaveArchive.Artifact)
+private data class RestoreTarget(
+    val game: Game,
+    val file: File,
+    val artifact: CartSaveArchive.Artifact,
+    val engineId: String,
+)
 
-private fun existingFiles(targets: List<RestoreTarget>): Map<File, Pair<Long, Long>> =
-    targets.mapNotNull { target ->
-        val file = target.file
-        file.takeIf(File::isFile)?.let { it to (it.length() to it.lastModified()) }
+/** Both calls run under the save-storage lease, so preview approval applies to the same bytes. */
+internal fun existingSaveFingerprints(destinations: List<File>): Map<File, String> =
+    destinations.distinct().mapNotNull { file ->
+        if (file.absoluteFile != file.canonicalFile || (file.exists() && !file.isFile)) {
+            throw RestoreRefused("A save destination is no longer a regular file.")
+        }
+        if (file.isFile) file to ModFiles.sha256(file) else null
     }.toMap()
 
 private fun restoreTargets(
+    context: Context,
     binding: CartridgeSaveBinding,
     games: List<Game>,
     manifest: CartSaveArchive.Manifest,
@@ -484,17 +663,17 @@ private fun restoreTargets(
 ): List<RestoreTarget> =
     manifest.saveGroups.flatMap { group ->
         if (group.ownerId != owner || manifest.source.player?.id != owner) {
-            throw RestoreRefused("This backup belongs to a different local player.")
+            throw UnmatchedBackupTarget("This backup belongs to a different local player.")
         }
         val gameId = group.linkedCartridgeIds.singleOrNull()
         val game =
             games.singleOrNull { it.cartridgeId == gameId && it.systemId == group.platformId }
-                ?: throw RestoreRefused("A cartridge in this backup has no exact local match.")
+                ?: throw UnmatchedBackupTarget("A cartridge in this backup has no exact local match.")
         val destination =
-            files(binding, game, includeMissing = true).singleOrNull {
+            files(context, binding, game, includeMissing = true).singleOrNull {
                 it.engineId == group.engineId &&
                     compatibility(it, group.artifacts) == group.engineVersion
-            } ?: throw RestoreRefused("No compatible save binding.")
+            } ?: throw UnmatchedBackupTarget("No compatible save binding.")
         val archivedNames = group.artifacts.map { it.relativePath }.toSet()
         val archivedSlots = group.artifacts.mapNotNull { it.slot }.toSet()
         if (destination.files.any {
@@ -509,7 +688,7 @@ private fun restoreTargets(
                     it.logicalName == artifact.relativePath && it.kind == artifact.saveKind &&
                         it.slot == artifact.slot
                 } ?: throw RestoreRefused("A backup file has no safe destination.")
-            RestoreTarget(game, target.file, artifact)
+            RestoreTarget(game, target.file, artifact, destination.engineId)
         }
     }
 

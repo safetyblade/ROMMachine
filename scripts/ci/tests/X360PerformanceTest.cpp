@@ -9,7 +9,15 @@ int main() {
   assert(!capture_enabled.load());
   test.add(999);
   assert(test.count == 0); // Ordinary gameplay never records diagnostics.
+  assert(capture_start() == 0); // No host clock read on the normal Vulkan hot path.
+  capture_finish(test, 0);
+  assert(test.count == 0);
   set_capture_enabled(true);
+  Window capture_window;
+  const auto started = capture_start();
+  assert(started > 0);
+  capture_finish(capture_window, started);
+  assert(capture_window.count == 1);
   for (uint64_t i = 1; i <= 100; ++i) test.add(i);
   assert((test.percentiles() == std::array<uint64_t,3>{50,95,99}));
   assert(test.count == 100 && test.sum == 5050 && test.maximum == 100);
@@ -29,6 +37,14 @@ int main() {
   assert(std::strstr(report,"jit_compile count=1 p50_ms=123.456789"));
   assert(std::strstr(report,"unique_completed_frames=UNAVAILABLE"));
   assert(std::strstr(report,"guest_sequence_repeats=1"));
+  assert(std::strstr(report,"guest_sequence_advances=2"));
+  assert(std::strstr(report,"guest_image_integrity=UNVERIFIED"));
+  assert(std::strstr(report,"scope=PROCESS_CUMULATIVE"));
+  assert(std::strstr(report,"capture_sessions=1"));
+  presented(1);
+  char regression_report[16384] = {};
+  append(regression_report, sizeof(regression_report));
+  assert(std::strstr(regression_report,"guest_sequence_regressions=1"));
   // Both settings and real refresh work are reported without changing a cvar.
   note_xgfx_settings(false, true, true, true, 1300);
   windows[XgfxPageRefresh].add(5000000);

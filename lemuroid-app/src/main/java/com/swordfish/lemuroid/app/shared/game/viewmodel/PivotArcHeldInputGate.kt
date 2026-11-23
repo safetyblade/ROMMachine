@@ -19,6 +19,7 @@ class PivotArcHeldInputGate(
 
     private var pivotEnabled = false
     private var gripEnabled = false
+    private var trayKeys = emptySet<Int>()
 
     @Synchronized
     fun isEnabled(): Boolean = pivotEnabled
@@ -37,6 +38,14 @@ class PivotArcHeldInputGate(
         gripEnabled = value
     }
 
+    @Synchronized
+    fun setStandardHoldKeys(keys: Set<Int>) {
+        val supported = keys.filter { it in MANAGED_KEYS }.take(3).toSet()
+        if (supported == trayKeys) return
+        clear()
+        trayKeys = supported
+    }
+
     /**
      * False means Standard's original pipeline should send this input.
      * For active GripArc, all supported virtual/physical keys participate in
@@ -50,7 +59,7 @@ class PivotArcHeldInputGate(
     ): Boolean {
         val owns =
             (gripEnabled && keyCode in MANAGED_KEYS) ||
-                (pivotEnabled && keyCode in LATCHABLE_KEYS)
+                (pivotEnabled && keyCode in LATCHABLE_KEYS) || keyCode in trayKeys
         if (!owns) return false
         val wasDown = sources[keyCode]?.isNotEmpty() == true
         val owners = sources.getOrPut(keyCode) { mutableSetOf() }
@@ -65,11 +74,12 @@ class PivotArcHeldInputGate(
 
     @Synchronized
     fun toggleHold(keyCode: Int) {
-        if (!pivotEnabled || keyCode !in LATCHABLE_KEYS) return
+        val latchable = if (pivotEnabled) LATCHABLE_KEYS else trayKeys
+        if (keyCode !in latchable) return
         val active = sources[keyCode]?.contains(HOLD_SOURCE) == true
         setSource(keyCode, HOLD_SOURCE, !active)
         mutableHolds.value =
-            LATCHABLE_KEYS.filterTo(mutableSetOf()) { key ->
+            latchable.filterTo(mutableSetOf()) { key ->
                 sources[key]?.contains(HOLD_SOURCE) == true
             }
     }

@@ -22,6 +22,7 @@ internal object GripArcCombinedLayout {
     // Measured Standard constellations take priority over dock-first free-space packing.
     // Each entire hand group is translated together; console-specific identities stay fixed.
     private val closeFitOffsets = listOf(0f, 8f, 16f, 24f)
+    private val verticalCloseFitOffsets = closeFitOffsets + closeFitOffsets.drop(1).map { -it }
 
     internal fun closeFit(
         control: PivotArcBounds,
@@ -78,7 +79,7 @@ internal object GripArcCombinedLayout {
         dy: Float,
         fallbackToNativeBaseline: Boolean = true,
     ): GripArcCombinedPlacement? {
-        if (!safe.isFiniteArea() || !viewport.isFiniteArea() ||
+        if (!native.supportsGripArc || !safe.isFiniteArea() || !viewport.isFiniteArea() ||
             !native.matchesNativeInputs(observedInputIds) || !hasMeasurements(native, measured)
         ) {
             return null
@@ -109,24 +110,29 @@ internal object GripArcCombinedLayout {
                 listOf(48f, 96f, 144f).flatMap { lift ->
                     listOf(dx to (dy - lift), 0f to -lift)
                 }
+        val handKeys = native.controls.filter { it.leftHand == (side == GripArcSide.LEFT) }.map { it.key }
+        var closest: GripArcCombinedPlacement? = null
+        var bestScore = Float.POSITIVE_INFINITY
         for ((dockX, dockY) in dockOffsets.distinct()) {
             val fit = GripArcPositionSolver.resolve(manifest, safe, viewport, emptyList(), side, dockX, dockY)
             val dock = (fit as? GripArcFit.Fits)?.placement ?: continue
             val reserved = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side) + dock.targets.values
             // Preserve the selected native constellation; no replacement shoulder/face grid.
-            for (up in closeFitOffsets) for (inward in closeFitOffsets) {
+            for (vertical in verticalCloseFitOffsets) for (inward in closeFitOffsets) {
                 val controls = linkedMapOf<String, PivotArcBounds>()
                 val visuals = linkedMapOf<String, PivotArcSize>()
                 native.controls.forEach { spec ->
                     val r = bases.getValue(spec.key)
                     val anchor = if (spec.leftHand) leftAnchor else rightAnchor
+                    val nearDock = spec.leftHand == (side == GripArcSide.LEFT)
                     val shift =
-                        if (spec.leftHand == (side == GripArcSide.LEFT)) {
+                        if (nearDock) {
                             if (side == GripArcSide.LEFT) inward else -inward
                         } else {
                             0f
                         }
-                    controls[spec.key] = closeFit(r, anchor, 0.90f, shift, -up)
+                    val verticalShift = if (nearDock) vertical else maxOf(vertical, 0f)
+                    controls[spec.key] = closeFit(r, anchor, 0.90f, shift, -verticalShift)
                     visuals[spec.key] = PivotArcSize(r.width * 0.90f, r.height * 0.90f)
                 }
                 // Keep each native hand constellation intact when its painted edge needs a small safe-inset correction.
@@ -218,16 +224,23 @@ internal object GripArcCombinedLayout {
                 ) {
                     continue
                 }
-                return GripArcCombinedPlacement(
-                    dock,
-                    controls,
-                    visuals,
-                    seats,
-                    native,
-                    observedInputIds.toSet(),
-                ).takeIf { it.complete }
+                val gap = gripArcControlGap(dock, handKeys.map(controls::getValue))
+                val dockAdjustment = kotlin.math.abs(dockX - dx) + kotlin.math.abs(dockY - dy)
+                val adjustment = (dockAdjustment + kotlin.math.abs(vertical) + inward) / 4f
+                val score = gap + adjustment
+                if (score < bestScore) {
+                    val candidate = GripArcCombinedPlacement(dock, controls, visuals, seats, native, observedInputIds)
+                    if (candidate.complete) {
+                        closest = candidate
+                        bestScore = score
+                    }
+                }
+            }
+            if ((dx != 0f || dy != 0f) && dockX == dx && dockY == dy) {
+                closest?.let { return it }
             }
         }
+        closest?.let { return it }
         if (!fallbackToNativeBaseline) return null
         val baseline = initialNativeConstellation(native, safe, viewport)
         val fitted =

@@ -18,6 +18,7 @@ data class PivotArcSettings(
     val hand: PivotArcHand = PivotArcHand.RIGHT,
     val offsetXdp: Float = 0f,
     val offsetYdp: Float = 0f,
+    val pspAnalogPrimary: Boolean = false,
 )
 
 /**
@@ -42,7 +43,8 @@ class PivotArcSettingsStore(context: Context) {
         fun readOffset(key: String): Float =
             runCatching { preferences.getFloat(key, 0f) }
                 .getOrDefault(0f).takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f
-        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset("dy"))
+        val pspAnalogPrimary = runCatching { preferences.getBoolean("psp_analog_primary", false) }.getOrDefault(false)
+        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset("dy"), pspAnalogPrimary)
     }
 
     fun save(value: PivotArcSettings) {
@@ -53,6 +55,7 @@ class PivotArcSettingsStore(context: Context) {
             .putString("hand", value.hand.name)
             .putFloat("dx", value.offsetXdp)
             .putFloat("dy", value.offsetYdp)
+            .putBoolean("psp_analog_primary", value.pspAnalogPrimary)
             .apply()
     }
 

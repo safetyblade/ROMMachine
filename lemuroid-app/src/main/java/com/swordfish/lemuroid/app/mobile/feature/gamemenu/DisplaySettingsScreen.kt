@@ -21,14 +21,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.ImageQuality
+import com.swordfish.lemuroid.app.shared.game.SmartVisual
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
-import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -62,22 +64,13 @@ fun DisplaySettingsScreen(
     val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf<String?>(null) }
     var helpOpen by remember { mutableStateOf(false) }
-    val libretro =
-        libretroHost ?: remember(game?.systemId, cartridge) {
-            game == null ||
-                runCatching {
-                    val host = EngineSelectionPreferences(context).select(game, null).engine.host
-                    host == NativeEngineRegistry.Host.LIBRETRO
-                }.getOrDefault(GameSystem.findById(game.systemId).nativeBackend == null)
+    var advancedOpen by remember { mutableStateOf(false) }
+    val selectedEngine =
+        remember(game, libretroHost, coreConfig) {
+            game?.let { runCatching { EngineSelectionPreferences(context).select(it, null).engine }.getOrNull() }
         }
-
-    val selectedConfig =
-        remember(game?.systemId, cartridge, coreConfig) {
-            coreConfig ?: game?.let {
-                runCatching { EngineSelectionPreferences(context).select(it, null).engine.config }
-                    .getOrNull()
-            }
-        }
+    val libretro = libretroHost ?: (game == null || selectedEngine?.host == NativeEngineRegistry.Host.LIBRETRO)
+    val selectedConfig = coreConfig ?: selectedEngine?.config
     val namespace =
         game?.let {
                 current ->
@@ -135,7 +128,34 @@ fun DisplaySettingsScreen(
                 }
             }
         }
-        Text("Screen aspect: Auto / Original", style = MaterialTheme.typography.titleMedium)
+        Text("Image Quality", style = MaterialTheme.typography.titleMedium)
+        if (libretro) {
+            val legacy = SmartVisual.usesLegacyQuality(snapshot.effective)
+            val current = snapshot.effective.imageQuality ?: ImageQuality.AUTOMATIC.takeUnless { legacy }
+            if (legacy) {
+                val previous = snapshot.effective
+                val detail = if (previous.hd == true) "HD enhancement" else previous.filter ?: "Console default"
+                Text("Custom · existing preference ($detail)")
+            }
+            for ((quality, label) in listOf(
+                ImageQuality.AUTOMATIC to "Automatic (recommended)",
+                ImageQuality.ORIGINAL to "Original",
+                ImageQuality.ENHANCED to "Enhanced",
+            )) {
+                GameMenuLink(
+                    label + if (current == quality) " · selected" else "",
+                    enabled = editable,
+                    modifier = Modifier.semantics { selected = current == quality },
+                ) {
+                    save("imageQuality", quality.name)
+                }
+            }
+            Text("Applies when the game is opened again.")
+            if (game == null) Text("Applies to supported renderers.")
+        } else {
+            Text("Image Quality is controlled by this game's native renderer.")
+        }
+        Text("Screen fit and surrounds", style = MaterialTheme.typography.titleMedium)
         for ((landscape, field) in listOf(true to "landscapeBorder", false to "portraitBorder")) {
             Text(if (landscape) "Landscape border" else "Portrait border", style = MaterialTheme.typography.titleMedium)
             val options =
@@ -160,7 +180,12 @@ fun DisplaySettingsScreen(
                 }
             }
         }
-        if (libretro && namespace != null && game != null) {
+        if (libretro) {
+            GameMenuLink(
+                if (advancedOpen) "Hide advanced display" else "Advanced display",
+            ) { advancedOpen = !advancedOpen }
+        }
+        if (libretro && advancedOpen && namespace != null && game != null) {
             if (engineOptions.isEmpty()) Text("Launch this core once to verify its console-specific display options.")
             engineOptions.forEach { option ->
                 val legacy =
@@ -200,30 +225,12 @@ fun DisplaySettingsScreen(
                 }
             }
         }
+        if (libretro && advancedOpen && snapshot.effective.imageQuality != null &&
+            (if (cartridge == null) snapshot.effective else snapshot.own).hasLegacyQualityOverride()
+        ) {
+            GameMenuLink("Use previous image preference", enabled = editable) { save("imageQuality", null) }
+        }
         if (libretro) {
-            Text("Renderer options · apply on next launch", style = MaterialTheme.typography.titleMedium)
-            GameMenuLink("HD scaling: ${if (snapshot.effective.hd == true) "On" else "Off"}", enabled = editable) {
-                save("hd", (snapshot.effective.hd != true).toString())
-            }
-            GameMenuLink(
-                "HD quality: ${listOf(
-                    "Low",
-                    "Medium",
-                    "High",
-                ).getOrElse(snapshot.effective.quality ?: 1) { "Medium" }}",
-                enabled = editable && snapshot.effective.hd == true,
-            ) {
-                save("quality", (((snapshot.effective.quality ?: 1) + 1) % 3).toString())
-            }
-            val filters = context.resources.getStringArray(R.array.pref_key_shader_filter_values).toList()
-            val labels = context.resources.getStringArray(R.array.pref_key_shader_filter_display_names).toList()
-            val selected = filters.indexOf(snapshot.effective.filter).coerceAtLeast(0)
-            GameMenuLink(
-                "Screen filter: ${labels.getOrElse(selected) { filters[selected] }}",
-                enabled = editable && snapshot.effective.hd != true,
-            ) {
-                save("filter", filters[(selected + 1) % filters.size])
-            }
             val alignments = listOf("top", "center", "bottom")
             GameMenuLink("Position: ${snapshot.effective.alignment ?: "center"}", enabled = editable) {
                 save(
@@ -245,6 +252,7 @@ fun DisplaySettingsScreen(
                 ) {
                     Text("Global defaults apply unless a game has an override.")
                     Text("Original aspect preserves proportions. Border Off does not stretch or crop.")
+                    Text("Original uses unenhanced rendering. Enhanced uses a display shader where supported.")
                     Text("Widescreen and other engine options appear only when supported.")
                     Text("Native renderers control their own scaling and positioning.")
                     Text("Border changes apply immediately. Renderer changes may require reopening the game.")

@@ -27,6 +27,10 @@ internal object GemFeatureContributions {
         val sourceRecord: String? = null,
         val sourceRevision: String? = null,
         val evidence: String? = null,
+        val sourceLicence: String? = null,
+        /** Never set from titles; requires independently corroborated work identity evidence. */
+        val verifiedWorkId: String? = null,
+        val workEvidence: String? = null,
     )
 
     @Serializable
@@ -40,7 +44,18 @@ internal object GemFeatureContributions {
     data class Report(
         val accepted: Map<String, Record>,
         val rejected: List<Rejected>,
-    )
+    ) {
+        /** Compare a candidate with the currently bundled pack before publishing it. */
+        fun preview(current: Map<String, Record>): Changes =
+            Changes(
+                added = accepted.keys - current.keys,
+                changed =
+                    accepted.keys.intersect(current.keys).filterTo(mutableSetOf()) { accepted[it] != current[it] },
+                rejected = rejected,
+            )
+    }
+
+    data class Changes(val added: Set<String>, val changed: Set<String>, val rejected: List<Rejected>)
 
     fun load(
         input: InputStream,
@@ -66,25 +81,39 @@ internal object GemFeatureContributions {
         require(batch.schemaVersion == 1) { "Unsupported feature pack schema" }
         require(batch.records.size <= MAX_ROWS) { "Feature pack exceeds row limit" }
         val known = releases.associateBy { it.releaseId }
-        val seen = mutableSetOf<String>()
+        val duplicateIds = batch.records.groupingBy { it.releaseId }.eachCount().filterValues { it > 1 }.keys
         val accepted = linkedMapOf<String, Record>()
         val rejected = mutableListOf<Rejected>()
         for (row in batch.records) {
             val release = known[row.releaseId]
             val values =
                 listOfNotNull(
-                    row.primaryGenre, row.crossoverGenre, row.playstyle, row.sourceId,
+                    row.primaryGenre, row.crossoverGenre, row.playstyle,
                 ) + row.mechanics.orEmpty()
             val reason =
                 when {
-                    !seen.add(row.releaseId) -> "Duplicate release ID in contribution"
+                    row.releaseId in duplicateIds -> "Duplicate release ID in contribution"
                     release == null -> "Release ID not in active catalogue"
                     release.title != row.title -> "Title does not match exact release ID"
-                    values.any { it.isBlank() || it.length > 96 } -> "Invalid feature field"
-                    listOfNotNull(row.sourceRecord, row.sourceRevision, row.evidence).any {
+                    values.any { it.isBlank() || it.length > 96 || it.any(Char::isISOControl) } ->
+                        "Invalid feature field"
+                    listOfNotNull(
+                        row.sourceId,
+                        row.sourceRecord,
+                        row.sourceRevision,
+                        row.evidence,
+                        row.sourceLicence,
+                        row.verifiedWorkId,
+                        row.workEvidence,
+                    ).any {
                         it.isBlank() || it.length > 512 || it.any(Char::isISOControl)
                     } -> "Invalid contribution provenance"
                     row.mechanics.orEmpty().size > 16 -> "Too many mechanics"
+                    row.verifiedWorkId != null &&
+                        (row.workEvidence.isNullOrBlank() || row.sourceId.isNullOrBlank()) ->
+                        "Verified work identity needs independent source and evidence"
+                    row.workEvidence != null && row.verifiedWorkId == null ->
+                        "Work evidence supplied without verified work identity"
                     values.isEmpty() -> "No gameplay features supplied"
                     else -> null
                 }

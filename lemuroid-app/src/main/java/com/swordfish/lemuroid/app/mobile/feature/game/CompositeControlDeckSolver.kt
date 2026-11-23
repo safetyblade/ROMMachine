@@ -42,7 +42,7 @@ internal object CompositeControlDeckSolver {
 
     // The housing renderer uses a centered 2dp outline. Reserve its painted edge too.
     private const val OUTLINE = PivotIslandShape.OUTLINE_WIDTH_DP / 2f
-    private val utilities = setOf("Select", "Start", "Menu")
+    private val utilities = setOf("Select", "Start", "Menu", "Mic", "Lid")
 
     fun resolve(
         manifest: GripArcManifest,
@@ -78,8 +78,20 @@ internal object CompositeControlDeckSolver {
             )
         }
         val safeDeck = PivotArcBounds(safe.left, maxOf(safe.top, viewport.bottom + GAP), safe.right, safe.bottom)
-        val attempts = listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)).distinct()
-        for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
+        val attempts =
+            (
+                listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)) +
+                    listOf(48f, 96f).map { lift -> Triple(side, gripDx, gripDy - lift) }
+            ).distinct()
+        val gripOffsetConfigured = gripDx != 0f || gripDy != 0f
+        val pivotOffsetConfigured = (pivotDx.isFinite() && pivotDx != 0f) || (pivotDy.isFinite() && pivotDy != 0f)
+        var closest: CompositeDeckResolution.Fits? = null
+        var bestAdjustments = Int.MAX_VALUE
+        var bestScore = Float.POSITIVE_INFINITY
+        val dockAttempts = GripArcPositionSolver.housingScales.flatMap { scale -> attempts.map { scale to it } }
+        for ((dockScale, attempt) in dockAttempts) {
+            if (dockScale < 1f && closest?.placement?.dock?.scale == 1f) break
+            val (hand, dx, dy) = attempt
             val dockFit =
                 GripArcPositionSolver.resolve(
                     manifest,
@@ -112,12 +124,12 @@ internal object CompositeControlDeckSolver {
                 source["HoldA"] = PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
                 source["HoldB"] = PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
                 val hull = hull(source.values)
+                val rail = active.filter { it in utilities }
                 val railWidth =
-                    active.filter {
-                        it in utilities
-                    }.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() + 2 * GAP
+                    rail.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
+                        (rail.size - 1).coerceAtLeast(0) * GAP
                 var cursor = hull.centerX - railWidth / 2
-                for (key in active.filter { it in utilities }) {
+                for (key in rail) {
                     val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
                     source[key] = PivotArcBounds(cursor, hull.bottom + GAP, cursor + w, hull.bottom + GAP + 48f)
                     cursor += w + GAP
@@ -125,7 +137,14 @@ internal object CompositeControlDeckSolver {
                 val whole = hull(source.values)
                 // Candidate edges derive from safe space and individual reserved material/targets.
                 // Translation applies to the complete approved constellation, never individual slots.
-                val xs = listOf(safe.left + EDGE + OUTLINE - whole.left, safe.right - EDGE - OUTLINE - whole.right)
+                val adjacentEdge =
+                    if (hand == GripArcSide.RIGHT) arms[0].left else safe.left + safe.right - arms[0].right
+                val xs =
+                    listOf(
+                        safe.left + EDGE + OUTLINE - whole.left,
+                        safe.right - EDGE - OUTLINE - whole.right,
+                        adjacentEdge - GAP - EDGE - OUTLINE - whole.right,
+                    )
                 val ys =
                     listOf(safeDeck.top + EDGE + OUTLINE - whole.top, arms[1].top - GAP - EDGE - OUTLINE - whole.bottom)
                 for (x in xs) for (y in ys) for (requested in listOf(true, false)) {
@@ -148,7 +167,7 @@ internal object CompositeControlDeckSolver {
                         }
                     val boxes = positions.values.toList()
                     if (boxes.any {
-                            !it.inside(safeDeck) ||
+                            it.width < 48f || it.height < 48f || !it.inside(safeDeck) ||
                                 reserved.any {
                                         r ->
                                     it.inset(GAP / 2).intersects(r)
@@ -239,22 +258,34 @@ internal object CompositeControlDeckSolver {
                             candidate.inside(island.upper) &&
                                 (boxes + reserved).none { candidate.inset(4f).intersects(it) }
                         }
-                    return CompositeDeckResolution.Fits(
-                        CompositeControlDeckPlacement(
-                            viewport,
-                            safeDeck,
-                            dock,
-                            arms,
-                            PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
-                            future,
-                            island,
-                            brand,
-                        ),
-                    )
+                    val gap = gripArcControlGap(dock, controls.filterKeys { it !in utilities }.values)
+                    val score =
+                        gap + (kotlin.math.abs(dy - gripDy) + kotlin.math.abs(dx - gripDx)) / 4f +
+                            (1.08f - scale) * 40f
+                    val gripAdjusted = gripOffsetConfigured && (dx != gripDx || dy != gripDy)
+                    val pivotAdjusted = pivotOffsetConfigured && !requested
+                    val adjustments = (if (gripAdjusted) 1 else 0) + (if (pivotAdjusted) 1 else 0)
+                    val sameOffsetsNoCloser = adjustments == bestAdjustments && score >= bestScore
+                    if (adjustments > bestAdjustments || sameOffsetsNoCloser) continue
+                    bestAdjustments = adjustments
+                    bestScore = score
+                    closest =
+                        CompositeDeckResolution.Fits(
+                            CompositeControlDeckPlacement(
+                                viewport,
+                                safeDeck,
+                                dock,
+                                arms,
+                                PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
+                                future,
+                                island,
+                                brand,
+                            ),
+                        )
                 }
             }
         }
-        return unavailable(
+        return closest ?: unavailable(
             CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE,
             "The joint PivotArc + GripArc deck cannot fit on your selected side, including its default position.",
         )

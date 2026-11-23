@@ -16,6 +16,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [28], application = Application::class)
 class GemDeckFitTest {
     @Test
+    fun unmappedSystemIsUnassessedRatherThanAnInputHold() {
+        val estimate = GemDeckFit.estimate("fixture:unmapped", "unmapped", null)
+        assertNull(estimate.halfSteps)
+        assertNull(estimate.baselineHalfSteps)
+        assertEquals("DeckFit · Not yet assessed", estimate.displayText)
+    }
+
+    @Test
     fun `researched touch ratings take precedence without a controller bonus`() {
         val pokemon = GemDeckFit.estimate("VDG:gb:94", "gb", "Strategy")
         assertEquals(10, pokemon.halfSteps)
@@ -201,11 +209,7 @@ class GemDeckFitTest {
                 if (estimate.basis == GemDeckFit.Basis.REVIEWED_TOUCH) reviewedCount++
                 val score = requireNotNull(estimate.halfSteps)
                 assertTrue("${release.releaseId} missing valid DeckFit", score in 2..10)
-                if (score % 2 == 0) {
-                    assertTrue(estimate.displayText.contains("Provisional"))
-                } else {
-                    assertEquals("DeckFit · Not yet assessed", estimate.displayText)
-                }
+                assertTrue(estimate.displayText.contains("Provisional"))
             }
             assertTrue(estimate.evidenceText.contains("not device-tested"))
         }
