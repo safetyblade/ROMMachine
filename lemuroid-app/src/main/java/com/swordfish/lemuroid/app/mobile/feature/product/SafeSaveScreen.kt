@@ -40,6 +40,11 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 
+/** The action and the export confirmation must describe exactly the same bounded backup. */
+internal const val SAFESAVE_BACKUP_COVERAGE =
+    "Includes app-managed saves and states, recognized PS1 cards and standard ARMSX2 PS2 cards. " +
+        "Other native storage and Unassigned Backups are excluded."
+
 @Composable
 internal fun SafeSaveScreen(
     games: List<Game>,
@@ -192,8 +197,7 @@ internal fun SafeSaveScreen(
                 }
                 add(
                     ProductAction("Backup coverage", "View the limits of this backup") {
-                        message = "Includes bound save RAM, supported PS1 cards and known app-managed states. " +
-                            "Native engine storage and unresolved historical saves are excluded."
+                        message = SAFESAVE_BACKUP_COVERAGE
                     },
                 )
             },
@@ -208,10 +212,7 @@ internal fun SafeSaveScreen(
             onDismissRequest = { showBackupCoverage = false },
             title = { Text("Back Up Everything") },
             text = {
-                Text(
-                    "Includes managed saves and supported PS1 and ARMSX2 cards. " +
-                        "Other native saves and unassigned backups are excluded.",
-                )
+                Text(SAFESAVE_BACKUP_COVERAGE)
             },
             confirmButton = {
                 TextButton(onClick = {
