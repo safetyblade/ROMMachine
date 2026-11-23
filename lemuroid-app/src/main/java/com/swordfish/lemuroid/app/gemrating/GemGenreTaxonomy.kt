@@ -26,7 +26,7 @@ internal object GemGenreTaxonomy {
         "application", "firmware", "bios", "system utility", "operating system", "video",
     )
     private val ambiguous = setOf(
-        "miscellaneous", "misc", "unknown", "other", "none", "n/a", "compilation",
+        "miscellaneous", "misc", "unknown", "other", "none", "n/a",
     )
     // The keys preserve source vocabulary. The values are supported broad game styles, not
     // claims about specific controls or compatibility on a handset.
@@ -105,6 +105,8 @@ internal object GemGenreTaxonomy {
             "rhythm game" to "Music",
             "party" to "Party",
             "educational" to "Educational",
+            "compilation" to "Collection",
+            "anthology" to "Collection",
             "edutainment" to "Educational",
             "strategy" to "Strategy",
             "turn-based strategy" to "Strategy",
@@ -160,12 +162,11 @@ internal object GemGenreTaxonomy {
             }
         val mechanics =
             when (token) {
-                "platformer", "platform", "2d platformer", "3d platformer", "puzzle platformer" ->
-                    setOf("Platforming")
+                "platformer", "platform", "2d platformer", "3d platformer" -> setOf("Platforming")
+                "puzzle platformer" -> setOf("Platforming", "Puzzle solving")
                 "collectible card game" -> setOf("Card collecting", "Card play")
                 "card game" -> setOf("Card play")
                 "turn-based strategy" -> setOf("Strategy")
-                "puzzle platformer" -> setOf("Platforming", "Puzzle solving")
                 else -> emptySet()
             }
         return Classification(
