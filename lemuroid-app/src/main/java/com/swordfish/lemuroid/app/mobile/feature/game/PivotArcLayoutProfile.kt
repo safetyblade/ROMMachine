@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 import android.content.Context
 import com.swordfish.lemuroid.lib.library.SystemID
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlin.math.max
 
@@ -30,6 +31,7 @@ data class PivotArcBaseline(
     val schema: String,
     val buttonCenters: Map<String, PivotArcButtonSpec>,
     val profiles: Map<String, List<String>>,
+    @Transient val scalingAnchor: PivotArcPoint? = null,
 )
 
 object PivotArcLayoutProfile {
@@ -52,6 +54,22 @@ object PivotArcLayoutProfile {
         context.assets.open("pivotarc/candidate-c-baseline.json").bufferedReader().use {
             parse(it.readText())
         }
+
+    /** Rotate the two PSP directional seats without changing guest input identities. */
+    fun forSystem(
+        baseline: PivotArcBaseline,
+        system: SystemID,
+        pspAnalogPrimary: Boolean,
+    ): PivotArcBaseline {
+        if (system != SystemID.PSP || !pspAnalogPrimary) return baseline
+        val seats = baseline.buttonCenters
+        val primary = seats["D"] ?: return baseline
+        val secondary = seats["Analog"] ?: return baseline
+        return baseline.copy(
+            buttonCenters = seats + mapOf("D" to secondary, "Analog" to primary),
+            scalingAnchor = primary.center,
+        )
+    }
 
     fun activeFor(system: SystemID): List<String>? =
         when (system) {
@@ -229,7 +247,7 @@ object PivotArcPositionSolver {
     ): PivotArcResolution {
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
-        val anchor = baseline.buttonCenters.getValue("D").center
+        val anchor = baseline.scalingAnchor ?: baseline.buttonCenters.getValue("D").center
 
         fun rectangleFor(key: String): PivotArcBounds {
             val button = baseline.buttonCenters.getValue(key)

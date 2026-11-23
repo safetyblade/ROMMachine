@@ -95,6 +95,14 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
             ) {
                 store.save(current.copy(hand = PivotArcHand.LEFT))
             }
+            HorizontalDivider()
+            Text("PSP main direction", style = MaterialTheme.typography.titleSmall)
+            LayoutChoice("D-pad", "Analogue stick stays within reach", !current.pspAnalogPrimary) {
+                store.save(current.copy(pspAnalogPrimary = false))
+            }
+            LayoutChoice("Analogue stick", "D-pad stays within reach", current.pspAnalogPrimary) {
+                store.save(current.copy(pspAnalogPrimary = true))
+            }
             Button(onClick = { adjusting = true }, enabled = baseline != null) { Text("Adjust Position") }
             TextButton(onClick = { store.resetPosition() }) { Text("Reset Position") }
         } else {

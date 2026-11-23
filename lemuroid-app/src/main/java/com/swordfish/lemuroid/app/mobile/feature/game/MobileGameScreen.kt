@@ -189,7 +189,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             remember(appContext) {
                 runCatching { GripArcManifest.load(appContext) }.getOrNull()
             }
-        val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val basePivotGeometry =
+            remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val pivotBaseline =
+            remember(basePivotGeometry, viewModel.systemId, pivotSettings.pspAnalogPrimary) {
+                basePivotGeometry?.let {
+                    PivotArcLayoutProfile.forSystem(
+                        it,
+                        viewModel.systemId,
+                        pivotSettings.pspAnalogPrimary,
+                    )
+                }
+            }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val nativeInventory = touchGamePads?.nativeInventory
         val leftGamePad = touchGamePads?.leftComposable

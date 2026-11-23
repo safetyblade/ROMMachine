@@ -212,6 +212,30 @@ class PivotArcPositionSolverTest {
         assertEquals("Cross", PivotArcLayoutProfile.nativeLabel(SystemID.PSP, "B"))
     }
 
+    @Test fun pspAnalogPrimarySwapsOnlyTheTwoDirectionalSeatsForBothHands() {
+        val primaryAnalog = PivotArcLayoutProfile.forSystem(baseline, SystemID.PSP, pspAnalogPrimary = true)
+        val manifest = GripArcManifest.parse(File("src/main/assets/griparc/griparc-v22-manifest.json").readText())
+        for (side in GripArcSide.entries) {
+            fun joint(geometry: PivotArcBaseline): CompositeControlDeckPlacement =
+                (
+                    CompositeControlDeckSolver.resolve(
+                        manifest, geometry, SystemID.PSP, referenceSafe, referenceViewport, side,
+                        0f, 0f, 0f, 0f, false,
+                    ) as CompositeDeckResolution.Fits
+                ).placement
+            val original = joint(baseline)
+            val updated = joint(primaryAnalog)
+            assertEquals(original.pivot.controls.getValue("D"), updated.pivot.controls.getValue("Analog"))
+            assertEquals(original.pivot.controls.getValue("Analog"), updated.pivot.controls.getValue("D"))
+            assertEquals(original.dock, updated.dock)
+            assertEquals(
+                original.pivot.controls - setOf("D", "Analog"),
+                updated.pivot.controls - setOf("D", "Analog"),
+            )
+        }
+        assertEquals(baseline, PivotArcLayoutProfile.forSystem(baseline, SystemID.GBA, pspAnalogPrimary = true))
+    }
+
     @Test fun handheldTwoButtonFamiliesKeepNativeLabelsAndOmitPhantomSelect() {
         for (system in listOf(SystemID.GG, SystemID.LYNX, SystemID.NGP, SystemID.NGC)) {
             for (leftHand in listOf(false, true)) {
