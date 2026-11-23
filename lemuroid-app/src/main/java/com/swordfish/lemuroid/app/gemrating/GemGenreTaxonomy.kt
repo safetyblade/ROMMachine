@@ -19,15 +19,30 @@ internal object GemGenreTaxonomy {
     }
 
     private val whitespace = Regex("\\s+")
+
     private fun key(raw: String?): String? =
         raw?.trim()?.lowercase(Locale.ROOT)?.replace(whitespace, " ")?.takeIf { it.isNotEmpty() }
 
-    private val nonGame = setOf(
-        "application", "firmware", "bios", "system utility", "operating system", "video",
-    )
-    private val ambiguous = setOf(
-        "miscellaneous", "misc", "unknown", "other", "none", "n/a",
-    )
+    private val nonGame =
+        setOf(
+            "application",
+            "firmware",
+            "bios",
+            "system utility",
+            "operating system",
+            "video",
+        )
+
+    private val ambiguous =
+        setOf(
+            "miscellaneous",
+            "misc",
+            "unknown",
+            "other",
+            "none",
+            "n/a",
+        )
+
     // The keys preserve source vocabulary. The values are supported broad game styles, not
     // claims about specific controls or compatibility on a handset.
     private val genres =
