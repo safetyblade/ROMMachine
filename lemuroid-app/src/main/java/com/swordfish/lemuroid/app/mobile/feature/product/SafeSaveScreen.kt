@@ -363,7 +363,7 @@ private data class ImportPreview(
     val uri: Uri,
     val manifest: CartSaveArchive.Manifest,
     val titles: List<String>,
-    val existingFiles: Map<File, Pair<Long, Long>>,
+    val existingFiles: Map<File, String>,
 )
 
 private fun files(
@@ -561,7 +561,14 @@ private fun previewDocument(
             } catch (unmatched: UnmatchedBackupTarget) {
                 throw UnassignedBackup(uri, manifest, unmatched.message.orEmpty())
             }
-        ImportPreview(uri, manifest, targets.map { it.game.title }.distinct(), existingFiles(targets))
+        ImportPreview(
+            uri,
+            manifest,
+            targets.map {
+                it.game.title
+            }.distinct(),
+            existingSaveFingerprints(targets.map { it.file }),
+        )
     }
 }
 
@@ -595,7 +602,7 @@ private fun restoreDocument(
             lease.use {
                 val owner = GemRatingLocalStore.open(context).session.profileId
                 val targets = restoreTargets(context, binding, games, manifest, owner)
-                if (existingFiles(targets) != preview.existingFiles) {
+                if (existingSaveFingerprints(targets.map { it.file }) != preview.existingFiles) {
                     throw RestoreRefused(
                         "The destination changed. Open the backup again to review what will be replaced.",
                     )
@@ -638,10 +645,13 @@ private data class RestoreTarget(
     val engineId: String,
 )
 
-private fun existingFiles(targets: List<RestoreTarget>): Map<File, Pair<Long, Long>> =
-    targets.mapNotNull { target ->
-        val file = target.file
-        file.takeIf(File::isFile)?.let { it to (it.length() to it.lastModified()) }
+/** Both calls run under the save-storage lease, so preview approval applies to the same bytes. */
+internal fun existingSaveFingerprints(destinations: List<File>): Map<File, String> =
+    destinations.distinct().mapNotNull { file ->
+        if (file.absoluteFile != file.canonicalFile || (file.exists() && !file.isFile)) {
+            throw RestoreRefused("A save destination is no longer a regular file.")
+        }
+        if (file.isFile) file to ModFiles.sha256(file) else null
     }.toMap()
 
 private fun restoreTargets(
