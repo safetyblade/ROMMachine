@@ -333,11 +333,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                             "Standard remains available; saved settings are preserved.",
                                     )
                                 } else {
-                                    CompositeControlDeckSolver.resolve(
+                                    remember(
                                         gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
                                         effectiveArcSide, arcProfile.dx, arcProfile.dy,
                                         pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
-                                    )
+                                    ) {
+                                        CompositeControlDeckSolver.resolve(
+                                            gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
+                                        )
+                                    }
                                 }
                             when (val joint = compositeResolution) {
                                 is CompositeDeckResolution.Fits -> PivotArcResolution.Fits(joint.placement.pivot)
@@ -485,17 +491,22 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 nativeProfileValidated = true
                                 combinedPlacement =
                                     if (!isLandscape) {
-                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
-                                            GripArcCombinedLayout.resolve(
-                                                gripManifest, nativeInventory, observedIds,
-                                                measured, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
-                                        } else {
-                                            GripArcCombinedLayout.resolveDockFirst(
-                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
+                                        remember(
+                                            gripManifest, nativeInventory, observedIds, measured,
+                                            safeBounds, viewportBounds, effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                        ) {
+                                            if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                                GripArcCombinedLayout.resolve(
+                                                    gripManifest, nativeInventory, observedIds,
+                                                    measured, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                )
+                                            } else {
+                                                GripArcCombinedLayout.resolveDockFirst(
+                                                    gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                )
+                                            }
                                         }
                                     } else {
                                         null
