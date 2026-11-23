@@ -4,7 +4,10 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -14,11 +17,17 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.pressKey
+import androidx.navigation.compose.rememberNavController
+import com.swordfish.lemuroid.app.mobile.feature.main.MainNavigationBar
+import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
+import com.swordfish.lemuroid.app.mobile.feature.main.MainTopBar
+import com.swordfish.lemuroid.app.mobile.feature.main.MainViewModel
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeLibraryTheme
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -145,6 +154,37 @@ class ProductSurfacesTest {
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun saveCentreRendersCompactLandscapeWithBothPrimaryActions() = captureSaveCentre("landscape")
 
+    @Test
+    @Config(qualifiers = "w393dp-h852dp-port")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun saveCentreRendersInSharedProductChrome() {
+        compose.setContent {
+            CartridgeLibraryTheme {
+                val navigation = rememberNavController()
+                val route = MainRoute.SAFESAVE
+                Scaffold(
+                    topBar = { MainTopBar(route, navigation, {}, MainViewModel.UiState()) },
+                    bottomBar = { MainNavigationBar(route, navigation) },
+                ) { padding ->
+                    SafeSaveSurface(
+                        playerName = "Manager",
+                        inventory = listOf(SaveInventoryRow("fixture", "A cartridge", "psx", 0, 2, 1, 1, "3 states")),
+                        onBackUp = {},
+                        onRestore = {},
+                        availableActions = emptyList(),
+                        onDetails = {},
+                        onUnassigned = {},
+                        modifier = Modifier.padding(padding),
+                    )
+                }
+            }
+        }
+        compose.onNodeWithText("Save Centre").assertIsDisplayed()
+        compose.onNodeWithText("SafeSave").assertIsDisplayed()
+        compose.onNodeWithContentDescription("SafeSave").assertIsDisplayed()
+        saveCentreScreenshot("portrait-with-chrome")
+    }
+
     private fun captureSaveCentre(orientation: String) {
         val title = "A Long Cartridge Title With Save Slots and a Shared Card"
         var opened: String? = null
@@ -167,6 +207,16 @@ class ProductSurfacesTest {
         compose.onNodeWithText("Save Centre").assertIsDisplayed()
         compose.onNodeWithText("Back Up Everything").assertIsDisplayed()
         compose.onNodeWithText("Restore Backup").assertIsDisplayed()
+        saveCentreScreenshot(orientation)
+        val list = compose.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Games 1 · States 3 · Cards 1"))
+        compose.onNodeWithText("Games 1 · States 3 · Cards 1").performClick()
+        list.performScrollToNode(hasText(title))
+        compose.onNodeWithText("Open").performClick()
+        assertEquals("fixture", opened)
+    }
+
+    private fun saveCentreScreenshot(orientation: String) {
         compose.runOnIdle {
             val view = compose.activity.window.decorView
             val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
@@ -179,12 +229,6 @@ class ProductSurfacesTest {
                 image.recycle()
             }
         }
-        val list = compose.onNode(hasScrollAction())
-        list.performScrollToNode(hasText("Games 1 · States 3 · Cards 1"))
-        compose.onNodeWithText("Games 1 · States 3 · Cards 1").performClick()
-        list.performScrollToNode(hasText(title))
-        compose.onNodeWithText("Open").performClick()
-        assertEquals("fixture", opened)
     }
 
     @Test fun unresolvedSaveConflictCannotConfirm() {
