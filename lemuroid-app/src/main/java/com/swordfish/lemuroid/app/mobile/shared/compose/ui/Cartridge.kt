@@ -380,7 +380,11 @@ internal fun CatalogueCartridgeFront(
     modifier: Modifier = Modifier,
 ) {
     CartridgeFrontArtwork(
-        title, systemId, null, modifier, LocalShelfAppearance.current.edition == "pink",
+        title,
+        systemId,
+        null,
+        modifier,
+        LocalShelfAppearance.current.edition == "pink",
         cataloguePreview = true,
     )
 }
@@ -496,7 +500,10 @@ private fun CartridgeFrontArtwork(
 }
 
 /** Original title-specific CARTDECK artwork: catalogue preview only, never an installed cover. */
-internal fun catalogueCoverMotif(title: String, systemId: String): Int =
+internal fun catalogueCoverMotif(
+    title: String,
+    systemId: String,
+): Int =
     ("${title.trim().lowercase(Locale.ROOT)}|${systemId.trim().lowercase(Locale.ROOT)}").hashCode() and
         Int.MAX_VALUE
 
@@ -510,8 +517,12 @@ private fun CatalogueCoverArtwork(
     val seed = catalogueCoverMotif(title, systemId)
     val palette =
         listOf(
-            Color(0xFF19F5DA), Color(0xFFFF4FA3), Color(0xFFB69BFF),
-            Color(0xFFFFC56A), Color(0xFF76BDFF), Color(0xFFB2E876),
+            Color(0xFF19F5DA),
+            Color(0xFFFF4FA3),
+            Color(0xFFB69BFF),
+            Color(0xFFFFC56A),
+            Color(0xFF76BDFF),
+            Color(0xFFB2E876),
         )
     val accent = palette[seed % palette.size]
     val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
