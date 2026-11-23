@@ -76,6 +76,22 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
+    fun theSourceControlHullIsNotAnOpaquePaintedSlab() {
+        val fullPlate = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)!!.plate
+        val rails = PivotArcPaintPolicy.rails(fullPlate, 3f)
+        assertEquals(2, rails.size)
+        assertTrue(
+            "Oversized PivotArc must preserve the original open CARTDECK chassis",
+            PivotArcPaintPolicy.railAreaFraction(fullPlate, 3f) < 0.04f,
+        )
+        for (rail in rails) {
+            assertTrue(rail.left >= fullPlate.left && rail.right <= fullPlate.right)
+            assertTrue(rail.top >= fullPlate.top && rail.bottom <= fullPlate.bottom)
+        }
+        assertTrue(PivotArcPaintPolicy.rails(fullPlate, fullPlate.width).isEmpty())
+    }
+
+    @Test
     fun displayGeometryIsIndependentOfCustomPalette() {
         val first = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)
         val second = PivotArcModuleGeometry.resolve(controls.toMap(), video, root, 11f, 31f)
