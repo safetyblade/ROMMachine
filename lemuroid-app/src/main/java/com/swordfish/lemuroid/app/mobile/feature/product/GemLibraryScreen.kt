@@ -495,7 +495,11 @@ internal fun GemLibraryScreen(
                     }
                     if (current != null && inspected == null) {
                         if (selected == null && !browseCatalogue) {
-                            val linkingRelease = linkingReleaseId?.let { current.index.find(it) }
+                            val linkingRelease =
+                                remember(current, linkingReleaseId) {
+                                    val id = linkingReleaseId ?: return@remember null
+                                    current.manifest.releases.firstOrNull { it.releaseId == id }
+                                }
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 Column {
                                     Text("My cartridges", style = MaterialTheme.typography.titleMedium)
