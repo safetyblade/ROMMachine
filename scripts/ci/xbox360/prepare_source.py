@@ -129,3 +129,6 @@ int register_xendroid_Emulator(JNIEnv* env)''')
     apply_shader_wait(cpp)
     from instrument_performance import instrument
     instrument(cpp, support)
+    # Upstream Xendroid+ #123: don't yield on every guest audio change-bit query.
+    from remove_audio_stub_yield import apply as remove_audio_yield
+    remove_audio_yield(cpp)

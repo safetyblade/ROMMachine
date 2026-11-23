@@ -47,4 +47,5 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_shader_wait.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_xbox360_audio_yield.py' -v
           python3 -m unittest discover -s scripts/ci -p 'test_xbox360_xgfx04_counters.py' -v

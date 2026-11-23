@@ -89,9 +89,15 @@ FPS or frame-time gain without device A/B.
 4. Compare A-B-B-A physical runs on Samsung SM-S721B Xclipse, and Adreno if
    available, with cold/warm pipeline caches, 15–20 minute visuals, p95/p99
    host timing, CPU/PSS/thermals, audio, input, save/reopen and rollback.
-5. Separate future source diffs required for **S5b** GPU surface/descriptor
-   reuse and FEX efficiency, and **S6b** Xenia Edge scheduler/I/O/audio/vertex
-   work. These are not implemented by S5a/S6a. Port only evidence-backed
+5. **S6b-a implemented:** the bounded XenDroid+ #123 audio stub correction
+   removes the unnecessary `xe::threading::MaybeYield()` from the exact pinned
+   Xenia `XAudioGetVoiceCategoryVolumeChangeMask_entry`; it preserves the
+   query's guest result and all other scheduler yields. Fail-closed source
+   tests precede native compilation. Upstream commit `654777bb8e6b` (Xenia
+   BSD-3-Clause core) is credited in the source patcher.
+6. Separate future source diffs remain necessary for **S5b** GPU
+   surface/descriptor reuse and FEX efficiency, and the REST of **S6b** Xenia
+   Edge scheduler/I/O/XMA audio/vertex work. They are not implemented here. Port only evidence-backed
    individual changes, not wholesale forks or Adreno-specific driver hacks.
 6. FIFA Street 3 #295 remains DEFERRED. A cache or host pacing correction
    never proves that progressive geometry corruption is repaired.
