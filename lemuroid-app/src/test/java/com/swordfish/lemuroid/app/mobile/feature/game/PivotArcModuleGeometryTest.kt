@@ -70,6 +70,20 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
+    fun theWordmarkUsesClearSpaceBesideAHighFaceButton() {
+        val square = Rect(154f, 381f, 202f, 429f)
+        val pspControls =
+            mapOf(
+                "face-y" to square,
+                "dpad" to Rect(110f, 486f, 228f, 604f),
+                "analog-left" to Rect(293f, 511f, 367f, 585f),
+            )
+        val result = PivotArcModuleGeometry.resolve(pspControls, video, root, 11f, 20f)!!
+        assertNotNull(result.wordmark)
+        assertTrue(result.wordmark!!.left >= square.right)
+    }
+
+    @Test
     fun impossibleViewportOrNoControlsNeverBuildsAPlateOverTheVideo() {
         assertNull(PivotArcModuleGeometry.resolve(emptyMap(), video, root, 11f, 31f))
         assertNull(

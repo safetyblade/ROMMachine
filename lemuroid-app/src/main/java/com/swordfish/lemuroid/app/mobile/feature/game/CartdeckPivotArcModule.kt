@@ -121,10 +121,17 @@ internal object PivotArcModuleGeometry {
             return null
         }
         val plate = Rect(left, top, right, bottom)
+        val labelTop = top + edge / 3f
+        val labelWidth = minOf(plate.width - edge * 2f, edge * 10f)
         val label =
-            if (coreTop - top >= labelHeight + edge / 5f) {
-                Rect(left + edge, top + 2f, right - edge, top + labelHeight)
-                    .takeIf { it.width >= 105f && it.bottom < coreTop }
+            if (labelWidth >= edge * 8f) {
+                val center = (left + right - labelWidth) / 2f
+                listOf(center, right - edge - labelWidth, left + edge)
+                    .map { x -> Rect(x, labelTop, x + labelWidth, labelTop + labelHeight) }
+                    .firstOrNull { candidate ->
+                        candidate.bottom <= plate.bottom - edge &&
+                            controls.values.none { CartdeckHardwareGeometry.intersects(it, candidate) }
+                    }
             } else {
                 null
             }
