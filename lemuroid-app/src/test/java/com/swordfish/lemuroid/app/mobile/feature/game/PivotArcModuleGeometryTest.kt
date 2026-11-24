@@ -110,7 +110,7 @@ class PivotArcModuleGeometryTest {
         val pods = PivotArcPaintPolicy.pods(psp, 7f)
         assertEquals(3, pods.size)
         assertTrue(pods.all { it.width <= 175f && it.height <= 175f })
-        assertTrue(pods.none { it.intersects(video) })
+        assertTrue(pods.none { CartdeckHardwareGeometry.intersects(it, video) })
     }
 
     @Test
