@@ -259,14 +259,15 @@ class GripArcRenderingTest {
                 LocalLemuroidPadTheme provides LemuroidPadTheme(),
             ) {
                 Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
+                    val controls = if (mode.hasPivot) joint.pivot.controls else standard.seats
+                    val dock = if (mode.hasPivot) joint.dock else standard.dock
+                    CartdeckConsoleShell(tokens, video, root, false, controls.values.map { it.asRect() })
                     PadKit(
                         onInputEvents = {},
                         hapticFeedbackType = HapticFeedbackType.NONE,
                         simulatedState = remember { mutableStateOf(InputState()) },
                         simulatedControlIds = remember { mutableStateOf(emptySet()) },
                     ) {
-                        val controls = if (mode.hasPivot) joint.pivot.controls else standard.seats
-                        val dock = if (mode.hasPivot) joint.dock else standard.dock
                         CartdeckHardwareSeats(
                             rootBounds = root,
                             videoBounds = video,
@@ -318,6 +319,8 @@ class GripArcRenderingTest {
             }
             assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size <= 1)
             val dock = if (fixtureMode.hasPivot) joint.dock else standard.dock
+            val nativeTargets = if (fixtureMode.hasPivot) joint.pivot.controls.values else standard.controls.values
+            assertClearTargets(nativeTargets + dock.targets.values, device.viewport)
             captureHardware(fixtureMode.name.lowercase(), background, video) { bitmap ->
                 val cap = dock.targets.getValue(1)
                 bitmap.getPixel(cap.centerX.toInt(), cap.centerY.toInt()) != background.toArgb()
@@ -361,6 +364,13 @@ class GripArcRenderingTest {
                 LocalLemuroidPadTheme provides LemuroidPadTheme(),
             ) {
                 Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
+                    CartdeckConsoleShell(
+                        tokens,
+                        video,
+                        device.screen.asRect(),
+                        false,
+                        placement.controls.values.map { it.asRect() },
+                    )
                     CartdeckHardwareSeats(
                         rootBounds = device.screen.asRect(),
                         videoBounds = video,
@@ -388,6 +398,7 @@ class GripArcRenderingTest {
         for (fixtureSystem in systems) {
             compose.runOnIdle { system = fixtureSystem }
             val controls = placements.getValue(fixtureSystem).controls
+            assertClearTargets(controls.values.toList(), device.viewport)
             if (fixtureSystem == SystemID.PSP) {
                 compose.onNodeWithContentDescription("Analog stick").assertIsDisplayed()
                 assertTrue(!controls.getValue("D").intersects(controls.getValue("Analog")))
@@ -397,6 +408,20 @@ class GripArcRenderingTest {
                 val dpad = controls.getValue("D")
                 bitmap.getPixel(dpad.centerX.toInt(), dpad.centerY.toInt()) != background.toArgb()
             }
+        }
+    }
+
+    private fun assertClearTargets(
+        targets: List<PivotArcBounds>,
+        viewport: PivotArcBounds,
+    ) {
+        targets.forEachIndexed { index, target ->
+            assertTrue(
+                "Target must have a usable 48dp area: $target",
+                target.width >= 47.99f && target.height >= 47.99f,
+            )
+            assertTrue("Target overlaps viewport: $target", !target.intersects(viewport))
+            assertTrue("Overlapping targets near $target", targets.drop(index + 1).none(target::intersects))
         }
     }
 

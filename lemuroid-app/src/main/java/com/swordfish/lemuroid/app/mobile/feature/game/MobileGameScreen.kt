@@ -659,6 +659,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     resolved.lighting,
                     appearance.highContrast,
                     reactiveLightStrength,
+                    activeSlots = arcProfile.count,
                 )
             }
             if (
@@ -672,6 +673,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     resolved.lighting,
                     appearance.highContrast,
                     reactiveLightStrength,
+                    activeSlots = arcProfile.count,
                 )
             }
 

@@ -81,7 +81,7 @@ internal fun GripArcControlGroup(
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
         if (drawHousing) {
-            GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength)
+            GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength, profile.count)
         }
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
@@ -139,6 +139,7 @@ internal fun GripArcHousing(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    activeSlots: Int = 4,
 ) {
     val housing = placement.housing
     val left = placement.side == GripArcSide.LEFT
@@ -192,7 +193,7 @@ internal fun GripArcHousing(
                 if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(80f, 80f))
             }) {
                 drawControllerInset(outer, inner, Rect(4f, 4f, 156f, 156f), tokens, 2.2f)
-                for (slot in 1..4) {
+                for (slot in 1..activeSlots) {
                     val target = placement.targets.getValue(slot)
                     val cap = placement.visuals.getValue(slot)
                     val localX = (target.centerX - housing.left) / placement.scale

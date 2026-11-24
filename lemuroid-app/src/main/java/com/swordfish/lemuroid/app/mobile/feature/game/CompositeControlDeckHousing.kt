@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlin.math.abs
+import kotlin.math.hypot
 
 /**
  * Non-interactive, open-body material. The solver island is a *clearance*
@@ -71,6 +72,7 @@ internal fun CompositeControlDeckHousing(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    activeSlots: Int = 4,
 ) {
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
@@ -88,7 +90,7 @@ internal fun CompositeControlDeckHousing(
                 compact = true,
             )
         }
-        GripArcHousing(placement.dock, tokens, lighting, highContrast, feedbackStrength)
+        GripArcHousing(placement.dock, tokens, lighting, highContrast, feedbackStrength, activeSlots)
     }
 }
 
@@ -102,37 +104,44 @@ private fun DrawScope.drawDockSeam(
     drawLine(tokens.onChassis.copy(alpha = 0.38f), from, to, strokeWidth = 0.75.dp.toPx())
 }
 
-/** Tie an adjacent native seat to the dock along a shared horizontal band. */
+/** Find the shortest safe joint between the native seat bank and either arm of the dock. */
+internal fun standardGripArcSeam(placement: GripArcCombinedPlacement): CompositeMaterialSeam? {
+    val dock = placement.dock
+    val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, dock.side)
+    return arms.flatMap { arm ->
+        placement.seats.values.mapNotNull { seat ->
+            val startX = arm.centerX.coerceIn(seat.left, seat.right)
+            val startY = arm.centerY.coerceIn(seat.top, seat.bottom)
+            val endX = startX.coerceIn(arm.left + 5f, arm.right - 5f)
+            val endY = startY.coerceIn(arm.top + 5f, arm.bottom - 5f)
+            val bridge =
+                PivotArcBounds(
+                    minOf(startX, endX) - 3f,
+                    minOf(startY, endY) - 3f,
+                    maxOf(startX, endX) + 3f,
+                    maxOf(startY, endY) + 3f,
+                )
+            val obstructed =
+                placement.controls.values.any { control ->
+                    !control.intersects(seat) && control.intersects(bridge)
+                }
+            CompositeMaterialSeam(startX, startY, endX, endY)
+                .takeIf { !obstructed && hypot(endX - startX, endY - startY) <= 72f }
+        }
+    }.minByOrNull { hypot(it.endX - it.startX, it.endY - it.startY) }
+}
+
 @Composable
 internal fun StandardGripArcDockJoint(
     placement: GripArcCombinedPlacement,
     tokens: CartdeckEditionTokens,
 ) {
-    val dock = placement.dock
-    val right = dock.side == GripArcSide.RIGHT
-    val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, dock.side)
-    val joints =
-        arms.mapNotNull { arm ->
-            placement.seats.values.mapNotNull seatCandidate@{ seat ->
-                val fromX = if (right) seat.right else seat.left
-                val toX = if (right) arm.left else arm.right
-                val gap = if (right) toX - fromX else fromX - toX
-                val top = maxOf(arm.top, seat.top) + 8f
-                val bottom = minOf(arm.bottom, seat.bottom) - 8f
-                if (gap !in 0f..28f || top >= bottom) return@seatCandidate null
-                val y = (top + bottom) / 2f
-                val bridge = PivotArcBounds(minOf(fromX, toX), y - 3f, maxOf(fromX, toX), y + 3f)
-                if (placement.controls.values.any { it != seat && it.intersects(bridge) }) return@seatCandidate null
-                CompositeMaterialSeam(fromX, y, toX, y)
-            }.minByOrNull { abs(it.endX - it.startX) }
-        }
+    val joint = standardGripArcSeam(placement) ?: return
     Canvas(Modifier.fillMaxSize()) {
-        for (joint in joints) {
-            drawDockSeam(
-                Offset(joint.startX.dp.toPx(), joint.startY.dp.toPx()),
-                Offset(joint.endX.dp.toPx(), joint.endY.dp.toPx()),
-                tokens,
-            )
-        }
+        drawDockSeam(
+            Offset(joint.startX.dp.toPx(), joint.startY.dp.toPx()),
+            Offset(joint.endX.dp.toPx(), joint.endY.dp.toPx()),
+            tokens,
+        )
     }
 }
