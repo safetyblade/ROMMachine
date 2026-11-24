@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.ui.geometry.Rect
 import com.swordfish.lemuroid.lib.library.SystemID
 
 internal enum class CompositeDeckFailure {
@@ -32,8 +33,19 @@ internal data class CompositeControlDeckPlacement(
     val pivot: PivotArcPlacement,
     val futureFaces: Map<String, PivotArcBounds>,
     val island: PivotIslandShape,
-    val wordmark: PivotArcBounds? = null,
-)
+) {
+    val wordmark: PivotArcBounds?
+        get() {
+            fun PivotArcBounds.toRect() = Rect(left, top, right, bottom)
+
+            val enclosure = island.upper.toRect()
+            val band = enclosure.copy(top = maxOf(enclosure.top, viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP))
+            val protected = (pivot.controls.values + futureFaces.values + dockFootprint).map { it.toRect() }
+            return PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 20f)?.let {
+                PivotArcBounds(it.left, it.top, it.right, it.bottom)
+            }
+        }
+}
 
 /** Combined-only, dock-first resolution. Solo layouts and saved profiles are never modified. */
 internal object CompositeControlDeckSolver {
@@ -248,16 +260,6 @@ internal object CompositeControlDeckSolver {
                                 }
                             }
                         }
-                    val brand =
-                        PivotArcBounds(
-                            island.upper.right - 96f,
-                            island.upper.top + 10f,
-                            island.upper.right - 8f,
-                            island.upper.top + 34f,
-                        ).takeIf { candidate ->
-                            candidate.inside(island.upper) &&
-                                (boxes + reserved).none { candidate.inset(4f).intersects(it) }
-                        }
                     val gap = gripArcControlGap(dock, controls.filterKeys { it !in utilities }.values)
                     val score =
                         gap + (kotlin.math.abs(dy - gripDy) + kotlin.math.abs(dx - gripDx)) / 4f +
@@ -279,7 +281,6 @@ internal object CompositeControlDeckSolver {
                                 PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
                                 future,
                                 island,
-                                brand,
                             ),
                         )
                 }

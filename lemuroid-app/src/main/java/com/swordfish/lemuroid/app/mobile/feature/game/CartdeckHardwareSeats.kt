@@ -301,8 +301,7 @@ internal fun CartdeckHardwareSeats(
     customColours: Boolean,
     pivotArc: Boolean = false,
     measuredStandard: Boolean = false,
-    joinedPivotIsland: PivotIslandShape? = null,
-    showPivotWordmark: Boolean = true,
+    joint: CompositeControlDeckPlacement? = null,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
@@ -354,8 +353,7 @@ internal fun CartdeckHardwareSeats(
                 video = video,
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
-                joinedIsland = joinedPivotIsland,
-                showWordmark = showPivotWordmark,
+                joint = joint,
             )
         }
 

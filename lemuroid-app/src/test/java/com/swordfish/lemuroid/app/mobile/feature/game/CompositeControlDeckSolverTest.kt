@@ -71,6 +71,7 @@ class CompositeControlDeckSolverTest {
                     assertTrue(visual.w <= target.width && visual.h <= target.height)
                 }
                 p.wordmark?.let { brand ->
+                    assertEquals(p.island.upper.centerX, brand.centerX, 0.05f)
                     assertTrue(brand.inside(p.island.upper))
                     assertTrue(targets.none { brand.intersects(it) })
                 }

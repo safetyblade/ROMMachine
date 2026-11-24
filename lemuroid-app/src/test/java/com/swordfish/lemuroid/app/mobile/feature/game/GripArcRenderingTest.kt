@@ -288,8 +288,7 @@ class GripArcRenderingTest {
                             customColours = true,
                             pivotArc = mode.hasPivot,
                             measuredStandard = !mode.hasPivot,
-                            joinedPivotIsland = joint.island.takeIf { mode.hasPivot },
-                            showPivotWordmark = !mode.hasPivot || joint.wordmark == null,
+                            joint = joint.takeIf { mode.hasPivot },
                         )
                         if (mode.hasPivot) {
                             CompositeControlDeckHousing(joint, tokens)
@@ -325,7 +324,13 @@ class GripArcRenderingTest {
                 compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
                     .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
             }
-            assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size <= 1)
+            val expectedPivotWordmarks = if (fixtureMode.hasPivot) 1 else 0
+            assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size == expectedPivotWordmarks)
+            val surround = compose.onNodeWithTag("griparc-housing").getUnclippedBoundsInRoot()
+            val engraving = compose.onNodeWithTag("griparc-engraving").getUnclippedBoundsInRoot()
+            val surroundWidth = surround.right - surround.left
+            assertTrue(engraving.left > surround.left + surroundWidth * (106f / 160f))
+            assertTrue(engraving.right < surround.right - surroundWidth * (10f / 160f))
             val dock = if (fixtureMode.hasPivot) joint.dock else standard.dock
             val nativeTargets = if (fixtureMode.hasPivot) joint.pivot.controls.values else standard.controls.values
             assertClearTargets(nativeTargets + dock.targets.values, device.viewport)

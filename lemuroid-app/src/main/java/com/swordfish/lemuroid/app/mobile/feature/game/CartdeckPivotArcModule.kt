@@ -121,21 +121,26 @@ internal object PivotArcModuleGeometry {
             return null
         }
         val plate = Rect(left, top, right, bottom)
-        val labelTop = top + edge / 3f
-        val labelWidth = minOf(plate.width - edge * 2f, edge * 10f)
-        val label =
-            if (labelWidth >= edge * 8f) {
-                val center = (left + right - labelWidth) / 2f
-                listOf(center, right - edge - labelWidth, left + edge)
-                    .map { x -> Rect(x, labelTop, x + labelWidth, labelTop + labelHeight) }
-                    .firstOrNull { candidate ->
-                        candidate.bottom <= plate.bottom - edge &&
-                            controls.values.none { CartdeckHardwareGeometry.intersects(it, candidate) }
-                    }
-            } else {
-                null
+        return PivotArcModulePlacement(plate, centeredWordmark(plate, controls.values, edge, labelHeight))
+    }
+
+    fun centeredWordmark(
+        plate: Rect,
+        controls: Collection<Rect>,
+        edge: Float,
+        labelHeight: Float,
+    ): Rect? {
+        val width = minOf(plate.width - edge * 2f, edge * 10f)
+        if (width < edge * 8f) return null
+        val left = plate.center.x - width / 2f
+        val top = plate.top + edge / 3f
+        val rows = listOf(top) + controls.map { maxOf(top, it.bottom + edge / 3f) }.sorted()
+        return rows.asSequence()
+            .map { y -> Rect(left, y, left + width, y + labelHeight) }
+            .firstOrNull { candidate ->
+                candidate.bottom <= plate.bottom - edge &&
+                    controls.none { CartdeckHardwareGeometry.intersects(it, candidate) }
             }
-        return PivotArcModulePlacement(plate, label)
     }
 }
 
@@ -278,8 +283,7 @@ internal fun CartdeckPivotArcModule(
     video: Rect?,
     root: Rect,
     tokens: CartdeckEditionTokens,
-    joinedIsland: PivotIslandShape? = null,
-    showWordmark: Boolean = true,
+    joint: CompositeControlDeckPlacement? = null,
 ) {
     val density = LocalDensity.current
     val edge = with(density) { 11.dp.toPx() }
@@ -290,18 +294,21 @@ internal fun CartdeckPivotArcModule(
         listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             .maxBy { colorContrast(it, tokens.secondary) }
 
+    fun PivotArcBounds.pixels(): Rect =
+        with(density) { Rect(left.dp.toPx(), top.dp.toPx(), right.dp.toPx(), bottom.dp.toPx()) }
+
+    val joinedIsland = joint?.island
+    val plate = module.plate
+    val upper =
+        joinedIsland?.upper?.pixels()?.let {
+            it.copy(top = maxOf(it.top, (video?.bottom ?: 0f) + displayClearance))
+        } ?: plate
+    val lower = joinedIsland?.lower?.pixels()
+    val wordmark = if (joint == null) module.wordmark else joint.wordmark?.pixels()
+
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
-            val plate = module.plate
             val bevel = 15.dp.toPx()
-
-            fun PivotArcBounds.pixels(): Rect = Rect(left.dp.toPx(), top.dp.toPx(), right.dp.toPx(), bottom.dp.toPx())
-
-            val upper =
-                joinedIsland?.upper?.pixels()?.let {
-                    it.copy(top = maxOf(it.top, (video?.bottom ?: 0f) + displayClearance))
-                } ?: plate
-            val lower = joinedIsland?.lower?.pixels()
             val lip = 5.dp.toPx()
             if (upper.width > lip * 2f && upper.height > lip * 2f) {
                 val inset = upper.deflate(lip)
@@ -543,7 +550,7 @@ internal fun CartdeckPivotArcModule(
             }
         }
 
-        module.wordmark?.takeIf { showWordmark }?.let { region ->
+        wordmark?.let { region ->
             val width = with(density) { region.width.toDp() }
             val height = with(density) { region.height.toDp() }
             Box(

@@ -70,7 +70,7 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
-    fun theWordmarkUsesClearSpaceBesideAHighFaceButton() {
+    fun theWordmarkStaysCenteredBelowAHighFaceButton() {
         val square = Rect(154f, 381f, 202f, 429f)
         val pspControls =
             mapOf(
@@ -80,7 +80,8 @@ class PivotArcModuleGeometryTest {
             )
         val result = PivotArcModuleGeometry.resolve(pspControls, video, root, 11f, 20f)!!
         assertNotNull(result.wordmark)
-        assertTrue(result.wordmark!!.left >= square.right)
+        assertEquals(result.plate.center.x, result.wordmark!!.center.x, 0.01f)
+        assertTrue(result.wordmark!!.top >= square.bottom)
     }
 
     @Test

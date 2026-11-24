@@ -3,8 +3,6 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -87,15 +85,6 @@ internal fun CompositeControlDeckHousing(
                 val to = Offset(seam.endX.dp.toPx(), seam.endY.dp.toPx())
                 drawDockSeam(from, to, tokens)
             }
-        }
-        placement.wordmark?.let { brand ->
-            val top = maxOf(brand.top, placement.viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP + 2f)
-            PivotArcWordmark(
-                Modifier.offset(brand.left.dp, top.dp).size(brand.width.dp, brand.height.dp),
-                ink = tokens.onChassis,
-                accent = tokens.accent,
-                compact = true,
-            )
         }
         GripArcHousing(placement.dock, tokens, lighting, highContrast, feedbackStrength, activeSlots)
     }
