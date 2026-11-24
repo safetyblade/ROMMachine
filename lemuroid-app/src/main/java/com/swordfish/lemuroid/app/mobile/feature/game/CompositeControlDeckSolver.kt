@@ -187,14 +187,40 @@ internal object CompositeControlDeckSolver {
                 // Translation applies to the complete approved constellation, never individual slots.
                 val adjacentEdge =
                     if (hand == GripArcSide.RIGHT) arms[0].left else safe.left + safe.right - arms[0].right
+                val minX = safe.left + EDGE + OUTLINE - whole.left
+                val maxX = safe.right - EDGE - OUTLINE - whole.right
+                val minY = safeDeck.top + EDGE + OUTLINE - whole.top
+                val maxY = safeDeck.bottom - EDGE - OUTLINE - whole.bottom
+                // The historical three-edge/two-height search could not move
+                // the intact solo button group into the free centre space.
+                // Search translations of the WHOLE group, not individual keys.
                 val xs =
-                    listOf(
-                        safe.left + EDGE + OUTLINE - whole.left,
-                        safe.right - EDGE - OUTLINE - whole.right,
-                        adjacentEdge - GAP - EDGE - OUTLINE - whole.right,
-                    )
+                    (
+                        listOf(
+                            minX,
+                            maxX,
+                            adjacentEdge - GAP - EDGE - OUTLINE - whole.right,
+                            0f,
+                        ) +
+                            if (preserveSolo && minX <= maxX) {
+                                (0..16).map { step -> minX + (maxX - minX) * step / 16f }
+                            } else {
+                                emptyList()
+                            }
+                    ).distinct()
                 val ys =
-                    listOf(safeDeck.top + EDGE + OUTLINE - whole.top, arms[1].top - GAP - EDGE - OUTLINE - whole.bottom)
+                    (
+                        listOf(
+                            minY,
+                            arms[1].top - GAP - EDGE - OUTLINE - whole.bottom,
+                            0f,
+                        ) +
+                            if (preserveSolo && minY <= maxY) {
+                                (0..16).map { step -> minY + (maxY - minY) * step / 16f }
+                            } else {
+                                emptyList()
+                            }
+                    ).distinct()
                 for (x in xs) for (y in ys) for (requested in listOf(true, false)) {
                     val shiftX = x + if (requested && pivotDx.isFinite()) pivotDx else 0f
                     val shiftY = y + if (requested && pivotDy.isFinite()) pivotDy else 0f
