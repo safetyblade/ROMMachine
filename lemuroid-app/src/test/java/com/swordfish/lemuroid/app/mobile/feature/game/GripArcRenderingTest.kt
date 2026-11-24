@@ -325,7 +325,12 @@ class GripArcRenderingTest {
                     .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
             }
             val expectedPivotWordmarks = if (fixtureMode.hasPivot) 1 else 0
-            assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size == expectedPivotWordmarks)
+            val wordmarks = compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes()
+            assertTrue(
+                "$fixtureMode wordmarks=${wordmarks.size}, placement=${joint.wordmark}, " +
+                    "upper=${joint.island.upper}, controls=${joint.pivot.controls}, future=${joint.futureFaces}",
+                wordmarks.size == expectedPivotWordmarks,
+            )
             val surround = compose.onNodeWithTag("griparc-housing").getUnclippedBoundsInRoot()
             val engraving = compose.onNodeWithTag("griparc-engraving").getUnclippedBoundsInRoot()
             val surroundWidth = surround.right - surround.left

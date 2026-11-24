@@ -41,9 +41,10 @@ internal data class CompositeControlDeckPlacement(
             val enclosure = island.upper.toRect()
             val band = enclosure.copy(top = maxOf(enclosure.top, viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP))
             val protected = (pivot.controls.values + futureFaces.values + dockFootprint).map { it.toRect() }
-            return PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 20f)?.let {
-                PivotArcBounds(it.left, it.top, it.right, it.bottom)
-            }
+            val brand =
+                PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 20f)
+                    ?: PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 16f, preferredWidth = 55f)
+            return brand?.let { PivotArcBounds(it.left, it.top, it.right, it.bottom) }
         }
 }
 

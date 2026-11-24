@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
@@ -44,12 +45,13 @@ internal fun PivotArcWordmark(
     ink: Color,
     accent: Color,
     compact: Boolean = false,
+    compactFontSize: TextUnit = 16.sp,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "PivotArc",
             color = ink,
-            fontSize = if (compact) 16.sp else 19.sp,
+            fontSize = if (compact) compactFontSize else 19.sp,
             lineHeight = if (compact) 16.sp else 21.sp,
             fontStyle = FontStyle.Italic,
             fontWeight = FontWeight.Bold,
@@ -129,9 +131,10 @@ internal object PivotArcModuleGeometry {
         controls: Collection<Rect>,
         edge: Float,
         labelHeight: Float,
+        preferredWidth: Float = edge * 10f,
     ): Rect? {
-        val width = minOf(plate.width - edge * 2f, edge * 10f)
-        if (width < edge * 8f) return null
+        val width = minOf(plate.width - edge * 2f, preferredWidth)
+        if (width < minOf(edge * 8f, preferredWidth)) return null
         val left = plate.center.x - width / 2f
         val top = plate.top + edge / 3f
         val rows = listOf(top) + controls.map { maxOf(top, it.bottom + edge / 3f) }.sorted()
@@ -565,6 +568,7 @@ internal fun CartdeckPivotArcModule(
                     ink = ink,
                     accent = tokens.accent,
                     compact = true,
+                    compactFontSize = if (width < 66.dp) 13.sp else 16.sp,
                 )
             }
         }
