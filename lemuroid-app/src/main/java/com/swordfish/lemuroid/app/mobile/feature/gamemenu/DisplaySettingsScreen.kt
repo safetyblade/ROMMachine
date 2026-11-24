@@ -147,15 +147,18 @@ fun DisplaySettingsScreen(
             }
             for ((quality, label, detail) in listOf(
                 Triple(
-                    ImageQuality.AUTOMATIC, "Automatic (recommended)",
+                    ImageQuality.AUTOMATIC,
+                    "Automatic (recommended)",
                     "CARTDECK picks a safe console-aware finish.",
                 ),
                 Triple(
-                    ImageQuality.ORIGINAL, "Original",
+                    ImageQuality.ORIGINAL,
+                    "Original",
                     "The unfiltered picture, just as the renderer outputs it.",
                 ),
                 Triple(
-                    ImageQuality.ENHANCED, "Enhanced",
+                    ImageQuality.ENHANCED,
+                    "Enhanced",
                     "A crisp display treatment when this renderer supports it.",
                 ),
             )) {
@@ -165,8 +168,11 @@ fun DisplaySettingsScreen(
                     colors =
                         CardDefaults.cardColors(
                             containerColor =
-                                if (active) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                                if (active) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+                                },
                         ),
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
