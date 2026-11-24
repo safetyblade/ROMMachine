@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
@@ -76,8 +77,7 @@ internal fun CompositeControlDeckHousing(
             for (seam in CompositeOpenHousingPolicy.seams(placement)) {
                 val from = Offset(seam.startX.dp.toPx(), seam.startY.dp.toPx())
                 val to = Offset(seam.endX.dp.toPx(), seam.endY.dp.toPx())
-                drawLine(tokens.bezel.copy(alpha = 0.70f), from, to, strokeWidth = 3.dp.toPx())
-                drawLine(tokens.secondary.copy(alpha = 0.82f), from, to, strokeWidth = 1.4f.dp.toPx())
+                drawDockSeam(from, to, tokens)
             }
         }
         placement.wordmark?.let { brand ->
@@ -89,5 +89,50 @@ internal fun CompositeControlDeckHousing(
             )
         }
         GripArcHousing(placement.dock, tokens, lighting, highContrast, feedbackStrength)
+    }
+}
+
+private fun DrawScope.drawDockSeam(
+    from: Offset,
+    to: Offset,
+    tokens: CartdeckEditionTokens,
+) {
+    drawLine(tokens.bezel, from, to, strokeWidth = 5.dp.toPx())
+    drawLine(tokens.secondary, from, to, strokeWidth = 3.dp.toPx())
+    drawLine(tokens.onChassis.copy(alpha = 0.38f), from, to, strokeWidth = 0.75.dp.toPx())
+}
+
+/** Tie an adjacent native seat to the dock along a shared horizontal band. */
+@Composable
+internal fun StandardGripArcDockJoint(
+    placement: GripArcCombinedPlacement,
+    tokens: CartdeckEditionTokens,
+) {
+    val dock = placement.dock
+    val right = dock.side == GripArcSide.RIGHT
+    val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, dock.side)
+    val joints =
+        arms.mapNotNull { arm ->
+            placement.seats.values.mapNotNull seatCandidate@{ seat ->
+                val fromX = if (right) seat.right else seat.left
+                val toX = if (right) arm.left else arm.right
+                val gap = if (right) toX - fromX else fromX - toX
+                val top = maxOf(arm.top, seat.top) + 8f
+                val bottom = minOf(arm.bottom, seat.bottom) - 8f
+                if (gap !in 0f..28f || top >= bottom) return@seatCandidate null
+                val y = (top + bottom) / 2f
+                val bridge = PivotArcBounds(minOf(fromX, toX), y - 3f, maxOf(fromX, toX), y + 3f)
+                if (placement.controls.values.any { it != seat && it.intersects(bridge) }) return@seatCandidate null
+                CompositeMaterialSeam(fromX, y, toX, y)
+            }.minByOrNull { abs(it.endX - it.startX) }
+        }
+    Canvas(Modifier.fillMaxSize()) {
+        for (joint in joints) {
+            drawDockSeam(
+                Offset(joint.startX.dp.toPx(), joint.startY.dp.toPx()),
+                Offset(joint.endX.dp.toPx(), joint.endY.dp.toPx()),
+                tokens,
+            )
+        }
     }
 }

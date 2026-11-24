@@ -300,7 +300,8 @@ internal fun CartdeckHardwareSeats(
     isDualScreen: Boolean,
     customColours: Boolean,
     pivotArc: Boolean = false,
-    drawPivotModule: Boolean = true,
+    joinedPivot: Boolean = false,
+    showPivotWordmark: Boolean = true,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
@@ -346,12 +347,14 @@ internal fun CartdeckHardwareSeats(
     check(glowSources.size == 6 && glowSources.values.none { it.enabledByDefault })
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (pivotArc && drawPivotModule) {
+        if (pivotArc) {
             CartdeckPivotArcModule(
                 controls = controls,
                 video = video,
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
+                joined = joinedPivot,
+                showWordmark = showPivotWordmark,
             )
         }
 

@@ -191,10 +191,27 @@ internal fun GripArcHousing(
                 scale(scaleX = u, scaleY = u, pivot = Offset.Zero)
                 if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(80f, 80f))
             }) {
-                drawPath(outer, tokens.chassis)
-                drawPath(outer, tokens.secondary, style = Stroke(width = 2.2f))
-                drawPath(inner, tokens.secondary)
-                drawPath(inner, tokens.secondary.copy(alpha = 0.42f), style = Stroke(width = 1.4f))
+                drawControllerInset(outer, inner, Rect(4f, 4f, 156f, 156f), tokens, 2.2f)
+                for (slot in 1..4) {
+                    val target = placement.targets.getValue(slot)
+                    val cap = placement.visuals.getValue(slot)
+                    val localX = (target.centerX - housing.left) / placement.scale
+                    val centerX = if (left) 160f - localX else localX
+                    val centerY = (target.centerY - housing.top) / placement.scale
+                    val width = cap.w / placement.scale + 6f
+                    val height = cap.h / placement.scale + 6f
+                    val seat = Offset(centerX - width / 2f, centerY - height / 2f)
+                    val seatSize = androidx.compose.ui.geometry.Size(width, height)
+                    val radius = CornerRadius(height / 2f)
+                    drawRoundRect(tokens.bezel, seat, seatSize, radius)
+                    drawRoundRect(
+                        tokens.onChassis.copy(alpha = 0.36f),
+                        seat,
+                        seatSize,
+                        radius,
+                        style = Stroke(0.9f),
+                    )
+                }
                 drawMaterialTrack(
                     Rect(151f, 22f, 155f, 144f),
                     tokens,

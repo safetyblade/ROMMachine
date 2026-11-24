@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -14,6 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -21,6 +25,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -244,19 +249,39 @@ class GripArcRenderingTest {
                     side,
                 ) as CompositeDeckResolution.Fits
             ).placement
+        val background = Color(0xFF272233)
+        val root = device.screen.asRect()
+        val video = device.viewport.asRect()
         compose.setContent {
             val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
             CompositionLocalProvider(
                 LocalDensity provides Density(1f),
                 LocalLemuroidPadTheme provides LemuroidPadTheme(),
             ) {
-                Box(Modifier.requiredSize(393.dp, 852.dp).testTag("griparc-render")) {
+                Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
                     PadKit(
                         onInputEvents = {},
                         hapticFeedbackType = HapticFeedbackType.NONE,
                         simulatedState = remember { mutableStateOf(InputState()) },
                         simulatedControlIds = remember { mutableStateOf(emptySet()) },
                     ) {
+                        val controls = if (mode.hasPivot) joint.pivot.controls else standard.seats
+                        val dock = if (mode.hasPivot) joint.dock else standard.dock
+                        CartdeckHardwareSeats(
+                            rootBounds = root,
+                            videoBounds = video,
+                            inputBounds =
+                                controls.map { (key, bounds) ->
+                                    (if (mode.hasPivot) pivotArcHardwareSeatKey(key) else key) to bounds.asRect()
+                                }.toMap(),
+                            tokens = tokens,
+                            edition = CartdeckEditionPreset.ORIGINAL,
+                            isDualScreen = false,
+                            customColours = false,
+                            pivotArc = mode.hasPivot,
+                            joinedPivot = mode.hasPivot,
+                            showPivotWordmark = !mode.hasPivot || joint.wordmark == null,
+                        )
                         if (mode.hasPivot) {
                             CompositeControlDeckHousing(joint, tokens)
                             PivotArcControlGroup(
@@ -268,16 +293,18 @@ class GripArcRenderingTest {
                                 combined = true,
                             )
                         } else {
+                            StandardGripArcDockJoint(standard, tokens)
+                            GripArcHousing(dock, tokens)
                             GripArcCombinedControls(standard)
                         }
                         GripArcAccessory(
-                            if (mode.hasPivot) joint.dock else standard.dock,
+                            dock,
                             GripArcProfile(mode, side, 4),
                             tokens,
                             fullscreenWithGamepad = false,
                             isLoading = false,
                             onPressed = { _, _, _ -> },
-                            drawHousing = !mode.hasPivot,
+                            drawHousing = false,
                         )
                     }
                 }
@@ -285,18 +312,117 @@ class GripArcRenderingTest {
         }
         for (fixtureMode in listOf(ArcControlMode.STANDARD_GRIPARC, ArcControlMode.PIVOTARC_GRIPARC)) {
             compose.runOnIdle { mode = fixtureMode }
-            for (slot in 1..4) compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
-            val rect = compose.onNodeWithTag("griparc-render").getUnclippedBoundsInRoot()
-            compose.runOnIdle {
-                val bitmap = Bitmap.createBitmap(393, 852, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bitmap)
-                canvas.translate(-rect.left.value, -rect.top.value)
-                compose.activity.window.decorView.draw(canvas)
-                val file = File("build/reports/gc01-menu-screens/griparc", "${fixtureMode.name.lowercase()}.png")
-                file.parentFile!!.mkdirs()
-                file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
-                bitmap.recycle()
+            for (slot in 1..4) {
+                compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
+                    .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
             }
+            assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size <= 1)
+            val dock = if (fixtureMode.hasPivot) joint.dock else standard.dock
+            captureHardware(fixtureMode.name.lowercase(), background, video) { bitmap ->
+                val cap = dock.targets.getValue(1)
+                bitmap.getPixel(cap.centerX.toInt(), cap.centerY.toInt()) != background.toArgb()
+            }
+        }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun soloGbaAndPspRenderFromTheirNativePivotPlacements() {
+        val baseline =
+            PivotArcLayoutProfile.parse(
+                File("src/main/assets/pivotarc/candidate-c-baseline.json").readText(),
+            )
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val systems = listOf(SystemID.GBA, SystemID.PSP)
+        val placements =
+            systems.associateWith { system ->
+                val keys = PivotArcLayoutProfile.activeFor(system)!!
+                (
+                    PivotArcPositionSolver.resolve(
+                        baseline,
+                        keys,
+                        device.safe,
+                        device.viewport,
+                        false,
+                        0f,
+                        0f,
+                        false,
+                    ) as PivotArcResolution.Fits
+                ).placement
+            }
+        val background = Color(0xFF272233)
+        val video = device.viewport.asRect()
+        var system by mutableStateOf(SystemID.GBA)
+        compose.setContent {
+            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            val placement = placements.getValue(system)
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+            ) {
+                Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
+                    CartdeckHardwareSeats(
+                        rootBounds = device.screen.asRect(),
+                        videoBounds = video,
+                        inputBounds =
+                            placement.controls.mapKeys { pivotArcHardwareSeatKey(it.key) }.mapValues {
+                                it.value.asRect()
+                            },
+                        tokens = tokens,
+                        edition = CartdeckEditionPreset.ORIGINAL,
+                        isDualScreen = false,
+                        customColours = false,
+                        pivotArc = true,
+                    )
+                    PadKit(
+                        onInputEvents = {},
+                        hapticFeedbackType = HapticFeedbackType.NONE,
+                        simulatedState = remember { mutableStateOf(InputState()) },
+                        simulatedControlIds = remember { mutableStateOf(emptySet()) },
+                    ) {
+                        PivotArcControlGroup(placement, system, emptySet(), tokens.accent, {})
+                    }
+                }
+            }
+        }
+        for (fixtureSystem in systems) {
+            compose.runOnIdle { system = fixtureSystem }
+            val controls = placements.getValue(fixtureSystem).controls
+            if (fixtureSystem == SystemID.PSP) {
+                compose.onNodeWithContentDescription("Analog stick").assertIsDisplayed()
+                assertTrue(!controls.getValue("D").intersects(controls.getValue("Analog")))
+            }
+            assertTrue(compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes().size <= 1)
+            captureHardware("solo-${fixtureSystem.name.lowercase()}", background, video) { bitmap ->
+                val dpad = controls.getValue("D")
+                bitmap.getPixel(dpad.centerX.toInt(), dpad.centerY.toInt()) != background.toArgb()
+            }
+        }
+    }
+
+    private fun PivotArcBounds.asRect(): Rect = Rect(left, top, right, bottom)
+
+    private fun captureHardware(
+        name: String,
+        background: Color,
+        viewport: Rect,
+        hasHardware: (Bitmap) -> Boolean,
+    ) {
+        val rect = compose.onNodeWithTag("griparc-render").getUnclippedBoundsInRoot()
+        compose.runOnIdle {
+            val bitmap = Bitmap.createBitmap(393, 852, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.translate(-rect.left.value, -rect.top.value)
+            compose.activity.window.decorView.draw(canvas)
+            assertTrue("Hardware must render at the measured control", hasHardware(bitmap))
+            assertTrue(
+                "Controller material reached the viewport",
+                bitmap.getPixel(viewport.center.x.toInt(), viewport.center.y.toInt()) == background.toArgb(),
+            )
+            val file = File("build/reports/gc01-menu-screens/griparc", "$name.png")
+            file.parentFile!!.mkdirs()
+            file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bitmap.recycle()
         }
     }
 
@@ -365,15 +491,19 @@ class GripArcRenderingTest {
                 }
             }
         }
-        compose.onNodeWithTag("griparc-slot-1").performTouchInput { down(center) }
-        compose.waitForIdle()
-        compose.onNodeWithTag("griparc-slot-1").assertIsDisplayed()
-        compose.onNodeWithTag("griparc-slot-1").performTouchInput { up() }
-        compose.runOnIdle {
-            assertTrue(events.any { it == Triple(1, true, setOf(KeyEvent.KEYCODE_BUTTON_A)) })
-            assertTrue(events.any { it.first == 1 && !it.second })
-            loading = true
+        for (slot in 1..4) {
+            compose.runOnIdle { events.clear() }
+            val target = compose.onNodeWithTag("griparc-slot-$slot")
+            target.performTouchInput { down(center) }
+            compose.runOnIdle {
+                assertTrue(events.any { it == Triple(slot, true, setOf(KeyEvent.KEYCODE_BUTTON_A)) })
+            }
+            target.performTouchInput { up() }
+            compose.runOnIdle {
+                assertTrue(events.any { it == Triple(slot, false, setOf(KeyEvent.KEYCODE_BUTTON_A)) })
+            }
         }
+        compose.runOnIdle { loading = true }
         compose.onNodeWithTag("griparc-slot-1").assertDoesNotExist()
         compose.runOnIdle {
             loading = false

@@ -17,8 +17,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +145,7 @@ internal object PivotArcPaintPolicy {
     fun pods(
         controls: Map<String, Rect>,
         padding: Float,
+        density: Float = 1f,
     ): List<Rect> {
         if (padding <= 0f) return emptyList()
         val groups =
@@ -158,7 +163,7 @@ internal object PivotArcPaintPolicy {
                     seats.maxOf { it.bottom } + padding,
                 )
             // A scattered layout must not recreate the oversized black slab.
-            bounds.takeIf { it.width <= 175f && it.height <= 175f }
+            bounds.takeIf { it.width <= 175f * density && it.height <= 175f * density }
         }
     }
 
@@ -185,6 +190,59 @@ internal object PivotArcPaintPolicy {
         }
 }
 
+internal fun pivotArcHardwareSeatKey(key: String): String =
+    when (key) {
+        "D" -> "dpad"
+        "Analog", "AnalogL" -> "analog-left"
+        "AnalogR" -> "analog-right"
+        "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+        "HoldA" -> "hold-a"
+        "HoldB" -> "hold-b"
+        "L", "R", "L2", "R2" -> "shoulder-$key"
+        else -> key.lowercase()
+    }
+
+/** Bevel and recessed material shared by the controller islands and dock. */
+internal fun DrawScope.drawControllerInset(
+    rim: Path,
+    inset: Path,
+    bounds: Rect,
+    tokens: CartdeckEditionTokens,
+    edge: Float,
+) {
+    drawPath(rim, tokens.bezel)
+    drawPath(
+        inset,
+        Brush.verticalGradient(
+            listOf(
+                lerp(tokens.secondary, tokens.bezel, 0.55f),
+                tokens.secondary,
+                lerp(tokens.chassis, tokens.secondary, 0.42f),
+            ),
+            startY = bounds.top,
+            endY = bounds.bottom,
+        ),
+    )
+    drawPath(rim, tokens.secondary, style = Stroke(edge))
+    drawPath(inset, tokens.onChassis.copy(alpha = 0.24f), style = Stroke(edge / 2f))
+}
+
+private fun chamferedIsland(
+    bounds: Rect,
+    corner: Float,
+): Path =
+    Path().apply {
+        moveTo(bounds.left + corner, bounds.top)
+        lineTo(bounds.right - corner, bounds.top)
+        lineTo(bounds.right, bounds.top + corner)
+        lineTo(bounds.right, bounds.bottom - corner)
+        lineTo(bounds.right - corner, bounds.bottom)
+        lineTo(bounds.left + corner, bounds.bottom)
+        lineTo(bounds.left, bounds.bottom - corner)
+        lineTo(bounds.left, bounds.top + corner)
+        close()
+    }
+
 /** Draw beneath PadKit and its artwork; never install pointer handlers. */
 @Composable
 internal fun CartdeckPivotArcModule(
@@ -192,6 +250,8 @@ internal fun CartdeckPivotArcModule(
     video: Rect?,
     root: Rect,
     tokens: CartdeckEditionTokens,
+    joined: Boolean = false,
+    showWordmark: Boolean = true,
 ) {
     val density = LocalDensity.current
     val edge = with(density) { 11.dp.toPx() }
@@ -205,9 +265,18 @@ internal fun CartdeckPivotArcModule(
         Canvas(Modifier.fillMaxSize()) {
             val plate = module.plate
             val bevel = 15.dp.toPx()
-            // V3: no full-hull opaque plate. The CARTDECK chassis stays visible
-            // between thumb groups, including PlayStation's four-face/analog deck.
-            // Touch positions are unchanged; these rails never receive pointers.
+            if (!joined) {
+                val cradle = chamferedIsland(plate, minOf(bevel, plate.height / 4f, plate.width / 4f))
+                drawPath(
+                    cradle,
+                    Brush.verticalGradient(
+                        listOf(tokens.secondary.copy(alpha = 0.22f), tokens.bezel.copy(alpha = 0.14f)),
+                        startY = plate.top,
+                        endY = plate.bottom,
+                    ),
+                )
+                drawPath(cradle, tokens.bezel.copy(alpha = 0.7f), style = Stroke(1.dp.toPx()))
+            }
             val railWidth = 3.dp.toPx()
             for (rail in PivotArcPaintPolicy.rails(plate, railWidth)) {
                 drawRoundRect(
@@ -223,33 +292,36 @@ internal fun CartdeckPivotArcModule(
                     strokeWidth = 1.dp.toPx(),
                 )
             }
-            // Three restrained, machined local pods join genuine native controls
-            // without recreating the former full-width opaque PivotArc slab.
-            for (pod in PivotArcPaintPolicy.pods(controls, 7.dp.toPx())) {
+            val utility = controls.filterKeys { it in setOf("start", "select", "menu") }
+            val rail =
+                utility.values.takeIf { it.isNotEmpty() }?.let { seats ->
+                    Rect(
+                        seats.minOf { it.left },
+                        seats.minOf { it.top },
+                        seats.maxOf { it.right },
+                        seats.maxOf { it.bottom },
+                    ).takeIf { band ->
+                        controls.filterKeys { it !in utility }.values.none {
+                            CartdeckHardwareGeometry.intersects(it, band)
+                        } && band.height <= 56.dp.toPx()
+                    }
+                }
+            val shoulders = controls.filterKeys { it.startsWith("shoulder-") }.values
+            val pods = PivotArcPaintPolicy.pods(controls, 6.dp.toPx(), density.density)
+            val islands = pods + shoulders + listOfNotNull(rail)
+            for (pod in islands) {
                 if (pod.left < 0f || pod.top < (video?.bottom ?: 0f) ||
                     pod.right > size.width || pod.bottom > size.height
                 ) {
                     continue
                 }
-                val corner = CornerRadius(minOf(22.dp.toPx(), pod.height / 3f))
-                drawRoundRect(
-                    tokens.bezel.copy(alpha = 0.28f),
-                    topLeft = pod.topLeft,
-                    size = pod.size,
-                    cornerRadius = corner,
-                )
-                drawRoundRect(
-                    tokens.secondary.copy(alpha = 0.78f),
-                    topLeft = pod.topLeft,
-                    size = pod.size,
-                    cornerRadius = corner,
-                    style = Stroke(width = 1.2.dp.toPx()),
-                )
-                drawLine(
-                    tokens.accent.copy(alpha = 0.35f),
-                    Offset(pod.left + 12.dp.toPx(), pod.top + 3.dp.toPx()),
-                    Offset(pod.right - 12.dp.toPx(), pod.top + 3.dp.toPx()),
-                    strokeWidth = 1.dp.toPx(),
+                val corner = minOf(13.dp.toPx(), minOf(pod.width, pod.height) / 4f)
+                drawControllerInset(
+                    chamferedIsland(pod, corner),
+                    chamferedIsland(pod.inflate(-3.dp.toPx()), corner / 2f),
+                    pod,
+                    tokens,
+                    1.5.dp.toPx(),
                 )
             }
             // Local machined wells below are preserved; no opaque full hull.
@@ -417,7 +489,7 @@ internal fun CartdeckPivotArcModule(
             }
         }
 
-        module.wordmark?.let { region ->
+        module.wordmark?.takeIf { showWordmark }?.let { region ->
             val width = with(density) { region.width.toDp() }
             val height = with(density) { region.height.toDp() }
             Box(

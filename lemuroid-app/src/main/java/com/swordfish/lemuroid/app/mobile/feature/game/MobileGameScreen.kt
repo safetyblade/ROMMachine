@@ -614,17 +614,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             if (combinedPlacement != null) {
                                 key
                             } else {
-                                when (key) {
-                                    "D" -> "dpad"
-                                    "Analog" -> "analog-left"
-                                    "A", "B", "X", "Y" -> "face-${key.lowercase()}"
-                                    "HoldA" -> "hold-a"
-                                    "HoldB" -> "hold-b"
-                                    "L", "R", "L2", "R2" -> "shoulder-$key"
-                                    "AnalogL" -> "analog-left"
-                                    "AnalogR" -> "analog-right"
-                                    else -> key.lowercase()
-                                }
+                                pivotArcHardwareSeatKey(key)
                             }
                         seatKey to
                             Rect(
@@ -637,15 +627,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
-            if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
-                CompositeControlDeckHousing(
-                    jointPlacement,
-                    shellTokens,
-                    resolved.lighting,
-                    appearance.highContrast,
-                    reactiveLightStrength,
-                )
-            }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -662,14 +643,36 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
-                        // Draw the SAME restrained physical PivotArc pods in solo
-                        // and combined modes. The joint seam alone looked detached.
-                        drawPivotModule = true,
+                        joinedPivot = jointPlacement != null,
+                        showPivotWordmark = jointPlacement?.wordmark == null,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
                         feedbackStrength = reactiveLightStrength,
                     )
                 }
+            }
+
+            if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
+                CompositeControlDeckHousing(
+                    jointPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                )
+            }
+            if (
+                hardwareBorder && jointPlacement == null && gripPlacement != null &&
+                !fullscreenWithGamepad && !isLoading
+            ) {
+                combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
+                GripArcHousing(
+                    gripPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                )
             }
 
             LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, hardwareBorder) {
@@ -854,7 +857,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 fullscreenWithGamepad = fullscreenWithGamepad,
                 isLoading = isLoading,
                 onPressed = viewModel::pressGripArcSlot,
-                drawHousing = hardwareBorder && jointPlacement == null,
+                drawHousing = false,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
                 feedbackStrength = reactiveLightStrength,
