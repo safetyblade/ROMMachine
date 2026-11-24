@@ -250,9 +250,10 @@ internal fun GripArcHousing(
         ) {
             Text(
                 text = "GripArc",
-                color = tokens.onChassis,
-                fontSize = 10.sp,
-                lineHeight = 12.sp,
+                color = tokens.accent,
+                fontSize = 11.sp,
+                lineHeight = 13.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 maxLines = 1,
             )

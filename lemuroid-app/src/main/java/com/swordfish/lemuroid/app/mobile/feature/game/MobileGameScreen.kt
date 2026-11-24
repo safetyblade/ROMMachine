@@ -662,7 +662,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
-                        drawPivotModule = jointPlacement == null,
+                        // Draw the SAME restrained physical PivotArc pods in solo
+                        // and combined modes. The joint seam alone looked detached.
+                        drawPivotModule = true,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
                         feedbackStrength = reactiveLightStrength,

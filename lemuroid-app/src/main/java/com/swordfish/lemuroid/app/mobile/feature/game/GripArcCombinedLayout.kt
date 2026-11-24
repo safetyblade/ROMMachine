@@ -21,7 +21,9 @@ internal data class GripArcCombinedPlacement(
 internal object GripArcCombinedLayout {
     // Measured Standard constellations take priority over dock-first free-space packing.
     // Each entire hand group is translated together; console-specific identities stay fixed.
-    private val closeFitOffsets = listOf(0f, 8f, 16f, 24f)
+    // Let the complete native hand group clear the fixed L attachment, rather than
+    // falling straight into the disconnected generic seat-packing fallback.
+    internal val closeFitOffsets = listOf(0f, 12f, 24f, 36f, 48f)
     private val verticalCloseFitOffsets = closeFitOffsets + closeFitOffsets.drop(1).map { -it }
 
     internal fun closeFit(
@@ -148,8 +150,10 @@ internal object GripArcCombinedLayout {
                             max + 3f > safe.right -> safe.right - 3f - max
                             else -> 0f
                         }
-                    val dockShift = if (left == (side == GripArcSide.LEFT)) inward else 0f
-                    if (kotlin.math.abs(correction) + dockShift > 24f) {
+                    // Inward shift is an intentional dock clearance move, not a
+                    // safe-edge correction. Charging both against the same 24dp
+                    // allowance silently disallowed all offsets above 24dp.
+                    if (kotlin.math.abs(correction) > 24f) {
                         edgeFits = false
                         break
                     }

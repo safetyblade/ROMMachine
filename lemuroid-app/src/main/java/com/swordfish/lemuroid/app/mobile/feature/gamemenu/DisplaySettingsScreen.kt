@@ -1,6 +1,9 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -129,6 +132,11 @@ fun DisplaySettingsScreen(
             }
         }
         Text("Image Quality", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Set the mood of your game. Your cartridge keeps its own look when you choose an override.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (libretro) {
             val legacy = SmartVisual.usesLegacyQuality(snapshot.effective)
             val current = snapshot.effective.imageQuality ?: ImageQuality.AUTOMATIC.takeUnless { legacy }
@@ -137,17 +145,47 @@ fun DisplaySettingsScreen(
                 val detail = if (previous.hd == true) "HD enhancement" else previous.filter ?: "Console default"
                 Text("Custom · existing preference ($detail)")
             }
-            for ((quality, label) in listOf(
-                ImageQuality.AUTOMATIC to "Automatic (recommended)",
-                ImageQuality.ORIGINAL to "Original",
-                ImageQuality.ENHANCED to "Enhanced",
+            for ((quality, label, detail) in listOf(
+                Triple(
+                    ImageQuality.AUTOMATIC, "Automatic (recommended)",
+                    "CARTDECK picks a safe console-aware finish.",
+                ),
+                Triple(
+                    ImageQuality.ORIGINAL, "Original",
+                    "The unfiltered picture, just as the renderer outputs it.",
+                ),
+                Triple(
+                    ImageQuality.ENHANCED, "Enhanced",
+                    "A crisp display treatment when this renderer supports it.",
+                ),
             )) {
-                GameMenuLink(
-                    label + if (current == quality) " · selected" else "",
-                    enabled = editable,
-                    modifier = Modifier.semantics { selected = current == quality },
+                val active = current == quality
+                Card(
+                    modifier = Modifier.fillMaxWidth().semantics { selected = active },
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                if (active) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                        ),
                 ) {
-                    save("imageQuality", quality.name)
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        GameMenuLink(label, enabled = editable) {
+                            save("imageQuality", quality.name)
+                        }
+                        Text(
+                            detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (active) {
+                            Text(
+                                "CURRENT LOOK",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
             Text("Applies when the game is opened again.")

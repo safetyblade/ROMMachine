@@ -88,6 +88,15 @@ class GripArcCombinedLayoutTest {
         assertTrue(kotlin.math.abs(bottom.centerY - lower.centerY) <= 24f)
     }
 
+    @Test fun nativeHandGroupsMayShiftFortyEightDpWithoutLosingTouchTargetSize() {
+        assertTrue(48f in GripArcCombinedLayout.closeFitOffsets)
+        val original = PivotArcBounds(270f, 600f, 322f, 652f)
+        val anchor = PivotArcBounds(270f, 600f, 322f, 652f)
+        val shifted = GripArcCombinedLayout.closeFit(original, anchor, 0.90f, -48f, 0f)
+        assertEquals(original.centerX - 48f, shifted.centerX, 0.001f)
+        assertTrue(shifted.width >= 48f && shifted.height >= 48f)
+    }
+
     @Test fun safeCustomDockOffsetSurvivesStandardLayoutRanking() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         val native = NativeControlInventory.forController(TouchControllerID.GBA)!!

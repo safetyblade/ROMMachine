@@ -125,6 +125,43 @@ internal object PivotArcModuleGeometry {
  * This is invariant across compact screens, themes and active controller inventories.
  */
 internal object PivotArcPaintPolicy {
+    /** Hardware-seat names, not raw gamepad keys, arrive from MobileGameScreen. */
+    fun materialKey(key: String): String =
+        when {
+            key.startsWith("face-") -> key.removePrefix("face-").uppercase()
+            key == "dpad" || key == "c-direction" -> "D"
+            key.startsWith("analog-") -> "ANALOG"
+            key.startsWith("shoulder-") -> key.removePrefix("shoulder-").uppercase()
+            key == "hold-a" -> "HOLDA"
+            key == "hold-b" -> "HOLDB"
+            else -> key.uppercase()
+        }
+
+    /** Compact local control pods; NEVER paint the full clearance hull. */
+    fun pods(
+        controls: Map<String, Rect>,
+        padding: Float,
+    ): List<Rect> {
+        if (padding <= 0f) return emptyList()
+        val groups =
+            listOf(
+                controls.filterKeys { materialKey(it) == "D" }.values,
+                controls.filterKeys { materialKey(it) == "ANALOG" }.values,
+                controls.filterKeys { materialKey(it) in setOf("A", "B", "X", "Y") }.values,
+            )
+        return groups.filter { it.isNotEmpty() }.mapNotNull { seats ->
+            val bounds =
+                Rect(
+                    seats.minOf { it.left } - padding,
+                    seats.minOf { it.top } - padding,
+                    seats.maxOf { it.right } + padding,
+                    seats.maxOf { it.bottom } + padding,
+                )
+            // A scattered layout must not recreate the oversized black slab.
+            bounds.takeIf { it.width <= 175f && it.height <= 175f }
+        }
+    }
+
     fun rails(
         plate: Rect,
         width: Float,
@@ -186,8 +223,36 @@ internal fun CartdeckPivotArcModule(
                     strokeWidth = 1.dp.toPx(),
                 )
             }
-            // Local machined wells below are preserved; the large rectangular
-            // material fill and opaque inset are intentionally retired.
+            // Three restrained, machined local pods join genuine native controls
+            // without recreating the former full-width opaque PivotArc slab.
+            for (pod in PivotArcPaintPolicy.pods(controls, 7.dp.toPx())) {
+                if (pod.left < 0f || pod.top < (video?.bottom ?: 0f) ||
+                    pod.right > size.width || pod.bottom > size.height
+                ) {
+                    continue
+                }
+                val corner = CornerRadius(minOf(22.dp.toPx(), pod.height / 3f))
+                drawRoundRect(
+                    tokens.bezel.copy(alpha = 0.28f),
+                    topLeft = pod.topLeft,
+                    size = pod.size,
+                    cornerRadius = corner,
+                )
+                drawRoundRect(
+                    tokens.secondary.copy(alpha = 0.78f),
+                    topLeft = pod.topLeft,
+                    size = pod.size,
+                    cornerRadius = corner,
+                    style = Stroke(width = 1.2.dp.toPx()),
+                )
+                drawLine(
+                    tokens.accent.copy(alpha = 0.35f),
+                    Offset(pod.left + 12.dp.toPx(), pod.top + 3.dp.toPx()),
+                    Offset(pod.right - 12.dp.toPx(), pod.top + 3.dp.toPx()),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
+            // Local machined wells below are preserved; no opaque full hull.
             // The face, D-pad well and shoulders get individual machined
             // seats. The existing caps/pressed feedback remain authoritative.
             val gameplaySeats =
@@ -197,7 +262,7 @@ internal fun CartdeckPivotArcModule(
             for ((key, bounds) in gameplaySeats) {
                 val center = bounds.center
                 val radius = minOf(bounds.width, bounds.height) / 2f
-                when (key.uppercase()) {
+                when (PivotArcPaintPolicy.materialKey(key)) {
                     "A", "B", "X", "Y" -> {
                         val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
                         drawCircle(tokens.bezel.copy(alpha = 0.89f), radius = collar, center = center)
@@ -215,6 +280,16 @@ internal fun CartdeckPivotArcModule(
                             topLeft = Offset(center.x - collar, center.y - collar),
                             size = Size(collar * 2, collar * 2),
                             style = Stroke(width = 1.2.dp.toPx()),
+                        )
+                    }
+                    "ANALOG" -> {
+                        val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
+                        drawCircle(tokens.bezel.copy(alpha = 0.84f), radius = collar, center = center)
+                        drawCircle(
+                            tokens.accent.copy(alpha = 0.35f),
+                            radius = (collar - 3.dp.toPx()).coerceAtLeast(0f),
+                            center = center,
+                            style = Stroke(width = 1.6.dp.toPx()),
                         )
                     }
                     "D" -> {

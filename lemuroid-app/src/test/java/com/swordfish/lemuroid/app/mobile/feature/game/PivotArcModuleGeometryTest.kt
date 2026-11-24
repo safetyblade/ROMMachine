@@ -92,6 +92,28 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
+    fun productionHardwareSeatNamesPaintRealFaceDirectionAndPspAnalogMaterial() {
+        assertEquals("A", PivotArcPaintPolicy.materialKey("face-a"))
+        assertEquals("B", PivotArcPaintPolicy.materialKey("face-b"))
+        assertEquals("D", PivotArcPaintPolicy.materialKey("dpad"))
+        assertEquals("ANALOG", PivotArcPaintPolicy.materialKey("analog-left"))
+        assertEquals("ANALOG", PivotArcPaintPolicy.materialKey("analog-right"))
+        assertEquals("L2", PivotArcPaintPolicy.materialKey("shoulder-L2"))
+        assertEquals("HOLDA", PivotArcPaintPolicy.materialKey("hold-a"))
+        val psp =
+            mapOf(
+                "dpad" to Rect(32f, 550f, 108f, 626f),
+                "analog-left" to Rect(35f, 690f, 99f, 754f),
+                "face-a" to Rect(280f, 620f, 332f, 672f),
+                "face-b" to Rect(220f, 660f, 272f, 712f),
+            )
+        val pods = PivotArcPaintPolicy.pods(psp, 7f)
+        assertEquals(3, pods.size)
+        assertTrue(pods.all { it.width <= 175f && it.height <= 175f })
+        assertTrue(pods.none { it.intersects(video) })
+    }
+
+    @Test
     fun displayGeometryIsIndependentOfCustomPalette() {
         val first = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)
         val second = PivotArcModuleGeometry.resolve(controls.toMap(), video, root, 11f, 31f)
