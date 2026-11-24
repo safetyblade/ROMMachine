@@ -308,6 +308,14 @@ internal object CompositeControlDeckSolver {
                     val gripAdjusted = gripOffsetConfigured && (dx != gripDx || dy != gripDy)
                     val pivotAdjusted = pivotOffsetConfigured && !requested
                     val adjustments = (if (gripAdjusted) 1 else 0) + (if (pivotAdjusted) 1 else 0)
+                    // Hardware parity beats a saved-offset preference. Without this,
+                    // the legacy scattered layout could replace a valid solo-shaped
+                    // candidate solely because it required fewer dock adjustments.
+                    if (closest?.placement?.preservesSolo == true && !preserveSolo) continue
+                    if (preserveSolo && closest?.placement?.preservesSolo == false) {
+                        bestAdjustments = Int.MAX_VALUE
+                        bestScore = Float.POSITIVE_INFINITY
+                    }
                     val sameOffsetsNoCloser = adjustments == bestAdjustments && score >= bestScore
                     if (adjustments > bestAdjustments || sameOffsetsNoCloser) continue
                     bestAdjustments = adjustments
