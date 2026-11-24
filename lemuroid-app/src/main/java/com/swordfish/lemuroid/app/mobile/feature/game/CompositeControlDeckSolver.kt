@@ -140,32 +140,36 @@ internal object CompositeControlDeckSolver {
                     if (preserveSolo) {
                         scaleSoloConstellation(soloSource!!, scale)
                     } else {
-                        (active.filterNot { it in utilities } + listOf("X", "Y")).distinct().associateWith { key ->
-                        val spec = baseline.buttonCenters.getValue(key)
-                        val w = maxOf(48f, spec.touch.w * scale)
-                        val h = maxOf(48f, spec.touch.h * scale)
-                        PivotArcBounds(
-                            spec.center.x * scale - w / 2,
-                            spec.center.y * scale - h / 2,
-                            spec.center.x * scale + w / 2,
-                            spec.center.y * scale + h / 2,
-                        )
-                    }.toMutableMap()
-                val a = source.getValue("A")
-                val b = source.getValue("B")
-                source["HoldA"] = PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
-                source["HoldB"] = PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
-                val hull = hull(source.values)
-                val rail = active.filter { it in utilities }
-                val railWidth =
-                    rail.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
-                        (rail.size - 1).coerceAtLeast(0) * GAP
-                var cursor = hull.centerX - railWidth / 2
-                for (key in rail) {
-                    val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
-                    source[key] = PivotArcBounds(cursor, hull.bottom + GAP, cursor + w, hull.bottom + GAP + 48f)
-                    cursor += w + GAP
-                }
+                        val native = (active.filterNot { it in utilities } + listOf("X", "Y"))
+                            .distinct().associateWith { key ->
+                                val spec = baseline.buttonCenters.getValue(key)
+                                val w = maxOf(48f, spec.touch.w * scale)
+                                val h = maxOf(48f, spec.touch.h * scale)
+                                PivotArcBounds(
+                                    spec.center.x * scale - w / 2,
+                                    spec.center.y * scale - h / 2,
+                                    spec.center.x * scale + w / 2,
+                                    spec.center.y * scale + h / 2,
+                                )
+                            }.toMutableMap()
+                        val a = native.getValue("A")
+                        val b = native.getValue("B")
+                        native["HoldA"] =
+                            PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
+                        native["HoldB"] =
+                            PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
+                        val coreHull = hull(native.values)
+                        val rail = active.filter { it in utilities }
+                        val railWidth =
+                            rail.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
+                                (rail.size - 1).coerceAtLeast(0) * GAP
+                        var cursor = coreHull.centerX - railWidth / 2
+                        for (key in rail) {
+                            val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
+                            native[key] = PivotArcBounds(cursor, coreHull.bottom + GAP, cursor + w, coreHull.bottom + GAP + 48f)
+                            cursor += w + GAP
+                        }
+                        native
                     }
                 val whole = hull(source.values)
                 // Candidate edges derive from safe space and individual reserved material/targets.

@@ -211,6 +211,38 @@ class CompositeControlDeckSolverTest {
         assertEquals(expected.placement.housing, result.placement.dock.housing)
     }
 
+    @Test fun preferredCombinedSourceCopiesSoloControlsWithoutChangingTheirSpacing() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!
+        val solo =
+            PivotArcPositionSolver.resolve(
+                baseline, active, device.safe, device.viewport,
+                leftHanded = false, requestedDx = 0f, requestedDy = 0f, isLandscape = false,
+            ) as PivotArcResolution.Fits
+        val source = CompositeControlDeckSolver.soloPivotSource(baseline, active, device.safe, solo.placement)
+        for ((key, original) in solo.placement.controls) {
+            assertEquals("Native solo target $key must be retained", original, source.getValue(key))
+        }
+        val full = CompositeControlDeckSolver.scaleSoloConstellation(source, 1f)
+        assertEquals(source, full)
+        val compact = CompositeControlDeckSolver.scaleSoloConstellation(source, 0.94f)
+        val originalA = source.getValue("A")
+        val originalB = source.getValue("B")
+        val compactA = compact.getValue("A")
+        val compactB = compact.getValue("B")
+        assertEquals(
+            (originalA.centerX - originalB.centerX) * 0.94f,
+            compactA.centerX - compactB.centerX,
+            0.05f,
+        )
+        assertEquals(
+            (originalA.centerY - originalB.centerY) * 0.94f,
+            compactA.centerY - compactB.centerY,
+            0.05f,
+        )
+        assertTrue(compact.values.all { it.width >= 48f && it.height >= 48f })
+    }
+
     @Test fun unsupportedLandscapeAndImpossibleDeckFailAtomically() {
         val safe = PivotArcBounds(8f, 8f, 385f, 844f)
         assertEquals(
