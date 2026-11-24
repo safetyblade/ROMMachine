@@ -521,8 +521,7 @@ internal fun CartdeckHardwareSeats(
 
         controls.toSortedMap().forEach { (key, control) ->
             val singleFaceSeat =
-                (pivotArc && key in setOf("face-a", "face-b", "face-x", "face-y")) ||
-                    key in setOf("aux-C", "aux-Z")
+                key in setOf("face-a", "face-b", "face-x", "face-y", "aux-C", "aux-Z")
             if (!singleFaceSeat && CartdeckHardwareResource.seat(edition, key) == null) {
                 return@forEach
             }

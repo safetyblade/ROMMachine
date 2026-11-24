@@ -238,6 +238,10 @@ class GripArcRenderingTest {
                 0f,
                 0f,
             )!!
+        for (key in listOf("A", "B")) {
+            assertTrue(standard.hardwareSeats.getValue("face-${key.lowercase()}") == standard.controls.getValue(key))
+        }
+        assertTrue("face-ab" !in standard.hardwareSeats)
         val joint =
             (
                 CompositeControlDeckSolver.resolve(
@@ -259,7 +263,7 @@ class GripArcRenderingTest {
                 LocalLemuroidPadTheme provides LemuroidPadTheme(),
             ) {
                 Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
-                    val controls = if (mode.hasPivot) joint.pivot.controls else standard.seats
+                    val controls = if (mode.hasPivot) joint.pivot.controls else standard.hardwareSeats
                     val dock = if (mode.hasPivot) joint.dock else standard.dock
                     CartdeckConsoleShell(tokens, video, root, false, controls.values.map { it.asRect() })
                     PadKit(

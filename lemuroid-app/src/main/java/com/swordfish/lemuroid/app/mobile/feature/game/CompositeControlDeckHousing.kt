@@ -109,7 +109,7 @@ internal fun standardGripArcSeam(placement: GripArcCombinedPlacement): Composite
     val dock = placement.dock
     val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, dock.side)
     return arms.flatMap { arm ->
-        placement.seats.values.mapNotNull { seat ->
+        placement.hardwareSeats.values.mapNotNull { seat ->
             val startX = arm.centerX.coerceIn(seat.left, seat.right)
             val startY = arm.centerY.coerceIn(seat.top, seat.bottom)
             val endX = startX.coerceIn(arm.left + 5f, arm.right - 5f)

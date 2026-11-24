@@ -13,6 +13,18 @@ internal data class GripArcCombinedPlacement(
     val native: NativeControlInventory,
     val observedInputIds: Set<String>,
 ) {
+    val hardwareSeats: Map<String, PivotArcBounds>
+        get() =
+            if (native.controller == TouchControllerID.GBA) {
+                seats - "face-ab" +
+                    mapOf(
+                        "face-a" to controls.getValue("A"),
+                        "face-b" to controls.getValue("B"),
+                    )
+            } else {
+                seats
+            }
+
     val complete: Boolean get() =
         controls.keys == native.controls.map { it.key }.toSet() && visuals.keys == controls.keys &&
             native.matchesNativeInputs(observedInputIds)

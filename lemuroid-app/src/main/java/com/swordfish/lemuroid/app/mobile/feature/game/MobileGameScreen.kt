@@ -609,7 +609,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // the first frame. Standard retains its original bound observers.
             val hardwareInputBounds =
                 if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                    (combinedPlacement?.seats ?: pivotPlacement!!.controls).map { (key, bounds) ->
+                    (combinedPlacement?.hardwareSeats ?: pivotPlacement!!.controls).map { (key, bounds) ->
                         val seatKey =
                             if (combinedPlacement != null) {
                                 key
