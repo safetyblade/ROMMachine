@@ -72,6 +72,30 @@ class GripArcCombinedLayoutTest {
         return result
     }
 
+    @Test fun savedStandardGeometryCannotBeReplacedByTheDefaultConstellation() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val native = NativeControlInventory.forController(TouchControllerID.GBA)!!
+        val measurements =
+            GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)!!
+                .mapValues { (_, area) -> area.copy(top = area.top - 400f, bottom = area.bottom - 400f) }
+
+        val result =
+            GripArcCombinedLayout.resolve(
+                manifest,
+                native,
+                native.inputIds,
+                measurements,
+                device.safe,
+                device.viewport,
+                GripArcSide.RIGHT,
+                0f,
+                0f,
+                fallbackToNativeBaseline = false,
+            )
+
+        assertTrue(result == null)
+    }
+
     @Test fun closeFitPreservesControllerConstellationsAndMinimumTargets() {
         val anchor = PivotArcBounds(20f, 200f, 120f, 300f)
         val upper = PivotArcBounds(40f, 212f, 88f, 260f)

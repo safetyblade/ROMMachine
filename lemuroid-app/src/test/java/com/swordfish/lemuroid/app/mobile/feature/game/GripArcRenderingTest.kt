@@ -287,6 +287,7 @@ class GripArcRenderingTest {
                             isDualScreen = false,
                             customColours = true,
                             pivotArc = mode.hasPivot,
+                            measuredStandard = !mode.hasPivot,
                             joinedPivotIsland = joint.island.takeIf { mode.hasPivot },
                             showPivotWordmark = !mode.hasPivot || joint.wordmark == null,
                         )
@@ -344,29 +345,36 @@ class GripArcRenderingTest {
             )
         val device = ControlDeckDeviceFixture(393f, 852f)
         val systems = listOf(SystemID.GBA, SystemID.PSP)
-        val placements =
-            systems.associateWith { system ->
-                val keys = PivotArcLayoutProfile.activeFor(system)!!
-                (
-                    PivotArcPositionSolver.resolve(
-                        baseline,
-                        keys,
-                        device.safe,
-                        device.viewport,
-                        false,
-                        0f,
-                        0f,
-                        false,
-                    ) as PivotArcResolution.Fits
-                ).placement
-            }
+
+        fun resolve(
+            system: SystemID,
+            leftHand: Boolean,
+            dx: Float = 0f,
+        ): PivotArcPlacement =
+            (
+                PivotArcPositionSolver.resolve(
+                    baseline,
+                    PivotArcLayoutProfile.activeFor(system)!!,
+                    device.safe,
+                    device.viewport,
+                    leftHand,
+                    dx,
+                    0f,
+                    false,
+                ) as PivotArcResolution.Fits
+            ).placement
+
+        val placements = systems.associateWith { resolve(it, leftHand = it == SystemID.GBA) }
+        val adjusted = resolve(SystemID.GBA, leftHand = false, dx = 12f)
+        assertTrue(placements.getValue(SystemID.GBA).controls.getValue("D") != adjusted.controls.getValue("D"))
         val background = Color(0xFF272233)
         val video = device.viewport.asRect()
         var system by mutableStateOf(SystemID.GBA)
+        var useAdjustedLayout by mutableStateOf(false)
         compose.setContent {
             val appearance = referenceAppearance()
             val tokens = appearance.tokens
-            val placement = placements.getValue(system)
+            val placement = if (useAdjustedLayout) adjusted else placements.getValue(system)
             CompositionLocalProvider(
                 LocalDensity provides Density(1f),
                 LocalLemuroidPadTheme provides LemuroidPadTheme(appearance.controllerPalette),
@@ -416,6 +424,15 @@ class GripArcRenderingTest {
                 val dpad = controls.getValue("D")
                 bitmap.getPixel(dpad.centerX.toInt(), dpad.centerY.toInt()) != background.toArgb()
             }
+        }
+        compose.runOnIdle {
+            system = SystemID.GBA
+            useAdjustedLayout = true
+        }
+        assertClearTargets(adjusted.controls.values.toList(), device.viewport)
+        captureHardware("solo-gba-adjusted", background, video) { bitmap ->
+            val dpad = adjusted.controls.getValue("D")
+            bitmap.getPixel(dpad.centerX.toInt(), dpad.centerY.toInt()) != background.toArgb()
         }
     }
 

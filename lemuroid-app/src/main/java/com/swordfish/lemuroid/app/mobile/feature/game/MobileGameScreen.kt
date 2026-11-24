@@ -77,6 +77,7 @@ import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
 import gg.padkit.PadKit
@@ -291,6 +292,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val viewPos = viewportPosition.value
             val currentDensity = LocalDensity.current
             val layoutDirection = LocalLayoutDirection.current
+            val requireMeasuredStandard =
+                touchControllerSettings != null &&
+                    touchControllerSettings !=
+                    TouchControllerSettingsManager.defaultSettings(currentDensity, WindowInsets.displayCutout)
             val insetSafe = WindowInsets.safeDrawing
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
@@ -491,7 +496,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 }
                             val observedIds = snapshot?.second ?: liveIds
                             val measurementsReady = GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)
-                            if (measurementsReady && observedIds.isNotEmpty() &&
+                            if (!isLandscape && requireMeasuredStandard && !measurementsReady) {
+                                // Wait for live controls at the new size, margins or rotation.
+                                null
+                            } else if (measurementsReady && observedIds.isNotEmpty() &&
                                 !nativeInventory.matchesNativeInputs(observedIds)
                             ) {
                                 GripArcFit.Unavailable(
@@ -505,13 +513,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                         remember(
                                             gripManifest, nativeInventory, observedIds, measured,
                                             safeBounds, viewportBounds, effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            requireMeasuredStandard,
                                         ) {
                                             if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
                                                 GripArcCombinedLayout.resolve(
                                                     gripManifest, nativeInventory, observedIds,
                                                     measured, safeBounds, viewportBounds,
                                                     effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                    fallbackToNativeBaseline = !requireMeasuredStandard,
                                                 )
+                                            } else if (requireMeasuredStandard) {
+                                                null
                                             } else {
                                                 GripArcCombinedLayout.resolveDockFirst(
                                                     gripManifest, nativeInventory, safeBounds, viewportBounds,
@@ -643,6 +655,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
+                        measuredStandard = combinedPlacement?.native?.controller == TouchControllerID.GBA,
                         joinedPivotIsland = jointPlacement?.island,
                         showPivotWordmark = jointPlacement?.wordmark == null,
                         lighting = resolved.lighting,

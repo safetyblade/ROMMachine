@@ -300,6 +300,7 @@ internal fun CartdeckHardwareSeats(
     isDualScreen: Boolean,
     customColours: Boolean,
     pivotArc: Boolean = false,
+    measuredStandard: Boolean = false,
     joinedPivotIsland: PivotIslandShape? = null,
     showPivotWordmark: Boolean = true,
     lighting: CartdeckLighting = CartdeckLighting(),
@@ -562,6 +563,28 @@ internal fun CartdeckHardwareSeats(
                         color = tokens.accent.copy(alpha = 0.38f),
                         radius = outer - 4.dp.toPx(),
                         style = Stroke(width = 1.dp.toPx()),
+                    )
+                }
+                return@forEach
+            }
+            val measuredMachinedSeat =
+                (pivotArc || measuredStandard) &&
+                    (
+                        key == "dpad" || key.startsWith("analog-") || key.startsWith("shoulder-") ||
+                            key in setOf("start", "select", "menu")
+                    )
+            if (measuredMachinedSeat) {
+                Canvas(base) {
+                    val marginPx = 2.dp.toPx()
+                    val rect = Rect(0f, 0f, size.width, size.height).deflate(marginPx)
+                    val cut = minOf(rect.width, rect.height) * 0.22f
+                    drawControllerInset(
+                        rim = chamferedIsland(rect, cut),
+                        inset = chamferedIsland(rect.deflate(marginPx * 2f), cut * 0.8f),
+                        bounds = rect,
+                        tokens = tokens,
+                        edge = 1.dp.toPx(),
+                        housing = tokens.chassis,
                     )
                 }
                 return@forEach

@@ -225,7 +225,7 @@ internal fun DrawScope.drawControllerInset(
     drawPath(inset, tokens.onChassis.copy(alpha = 0.24f), style = Stroke(edge / 2f))
 }
 
-private fun chamferedIsland(
+internal fun chamferedIsland(
     bounds: Rect,
     corner: Float,
 ): Path =
@@ -324,9 +324,7 @@ internal fun CartdeckPivotArcModule(
                         } && band.height <= 56.dp.toPx()
                     }
                 }
-            val directionSeats = controls.filterKeys { PivotArcPaintPolicy.materialKey(it) in setOf("D", "ANALOG") }
-            val wells = PivotArcPaintPolicy.pods(directionSeats, 3.dp.toPx(), density.density)
-            for (pod in wells + listOfNotNull(rail)) {
+            for (pod in listOfNotNull(rail)) {
                 if (pod.left < 0f || pod.top < (video?.bottom ?: 0f) ||
                     pod.right > size.width || pod.bottom > size.height
                 ) {
