@@ -300,7 +300,7 @@ internal fun CartdeckHardwareSeats(
     isDualScreen: Boolean,
     customColours: Boolean,
     pivotArc: Boolean = false,
-    joinedPivot: Boolean = false,
+    joinedPivotIsland: PivotIslandShape? = null,
     showPivotWordmark: Boolean = true,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
@@ -353,7 +353,7 @@ internal fun CartdeckHardwareSeats(
                 video = video,
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
-                joined = joinedPivot,
+                joinedIsland = joinedPivotIsland,
                 showWordmark = showPivotWordmark,
             )
         }

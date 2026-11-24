@@ -31,7 +31,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.viewmodel.dispatchPadKitDirection
 import com.swordfish.lemuroid.lib.library.SystemID
@@ -257,10 +259,11 @@ class GripArcRenderingTest {
         val root = device.screen.asRect()
         val video = device.viewport.asRect()
         compose.setContent {
-            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            val appearance = referenceAppearance()
+            val tokens = appearance.tokens
             CompositionLocalProvider(
                 LocalDensity provides Density(1f),
-                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(appearance.controllerPalette),
             ) {
                 Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
                     val controls = if (mode.hasPivot) joint.pivot.controls else standard.hardwareSeats
@@ -282,9 +285,9 @@ class GripArcRenderingTest {
                             tokens = tokens,
                             edition = CartdeckEditionPreset.ORIGINAL,
                             isDualScreen = false,
-                            customColours = false,
+                            customColours = true,
                             pivotArc = mode.hasPivot,
-                            joinedPivot = mode.hasPivot,
+                            joinedPivotIsland = joint.island.takeIf { mode.hasPivot },
                             showPivotWordmark = !mode.hasPivot || joint.wordmark == null,
                         )
                         if (mode.hasPivot) {
@@ -361,11 +364,12 @@ class GripArcRenderingTest {
         val video = device.viewport.asRect()
         var system by mutableStateOf(SystemID.GBA)
         compose.setContent {
-            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            val appearance = referenceAppearance()
+            val tokens = appearance.tokens
             val placement = placements.getValue(system)
             CompositionLocalProvider(
                 LocalDensity provides Density(1f),
-                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(appearance.controllerPalette),
             ) {
                 Box(Modifier.requiredSize(393.dp, 852.dp).background(background).testTag("griparc-render")) {
                     CartdeckConsoleShell(
@@ -385,7 +389,7 @@ class GripArcRenderingTest {
                         tokens = tokens,
                         edition = CartdeckEditionPreset.ORIGINAL,
                         isDualScreen = false,
-                        customColours = false,
+                        customColours = true,
                         pivotArc = true,
                     )
                     PadKit(
@@ -414,6 +418,22 @@ class GripArcRenderingTest {
             }
         }
     }
+
+    private fun referenceAppearance() =
+        resolveCartdeckAppearance(
+            ShelfAppearance(
+                custom =
+                    mapOf(
+                        "chassis" to 0xFF17171E,
+                        "secondary" to 0xFF2C2538,
+                        "bezel" to 0xFF111015,
+                        "glass" to 0xFF100E14,
+                        "button" to 0xFF402A4C,
+                        "accent" to 0xFFE9599E,
+                    ),
+            ),
+            compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL),
+        )
 
     private fun assertClearTargets(
         targets: List<PivotArcBounds>,

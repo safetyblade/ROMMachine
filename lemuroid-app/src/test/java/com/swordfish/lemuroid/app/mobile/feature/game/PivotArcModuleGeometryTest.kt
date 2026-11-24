@@ -76,12 +76,12 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
-    fun theSourceControlHullIsNotAnOpaquePaintedSlab() {
+    fun machinedGroovesStayInsideTheMeasuredPlate() {
         val fullPlate = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)!!.plate
         val rails = PivotArcPaintPolicy.rails(fullPlate, 3f)
         assertEquals(2, rails.size)
         assertTrue(
-            "Oversized PivotArc must preserve the original open CARTDECK chassis",
+            "Machined grooves should occupy only a small fraction of the PivotArc plate",
             PivotArcPaintPolicy.railAreaFraction(fullPlate, 3f) < 0.04f,
         )
         for (rail in rails) {

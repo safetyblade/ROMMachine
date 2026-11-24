@@ -643,7 +643,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
-                        joinedPivot = jointPlacement != null,
+                        joinedPivotIsland = jointPlacement?.island,
                         showPivotWordmark = jointPlacement?.wordmark == null,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,

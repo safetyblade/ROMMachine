@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
@@ -123,11 +124,7 @@ internal object PivotArcModuleGeometry {
     }
 }
 
-/**
- * The control hull is a safe-placement envelope, NOT an opaque replacement faceplate.
- * Only thin top/bottom machined rails and the original per-button seats are painted.
- * This is invariant across compact screens, themes and active controller inventories.
- */
+/** Material and trim dimensions for the measured PivotArc housing. */
 internal object PivotArcPaintPolicy {
     /** Hardware-seat names, not raw gamepad keys, arrive from MobileGameScreen. */
     fun materialKey(key: String): String =
@@ -209,15 +206,16 @@ internal fun DrawScope.drawControllerInset(
     bounds: Rect,
     tokens: CartdeckEditionTokens,
     edge: Float,
+    housing: Color = tokens.secondary,
 ) {
     drawPath(rim, tokens.bezel)
     drawPath(
         inset,
         Brush.verticalGradient(
             listOf(
-                lerp(tokens.secondary, tokens.bezel, 0.55f),
-                tokens.secondary,
-                lerp(tokens.chassis, tokens.secondary, 0.42f),
+                lerp(housing, tokens.bezel, 0.55f),
+                housing,
+                lerp(tokens.chassis, housing, 0.65f),
             ),
             startY = bounds.top,
             endY = bounds.bottom,
@@ -243,6 +241,21 @@ private fun chamferedIsland(
         close()
     }
 
+/** Trace a single recessed face with an optional cutout for the mounted GripArc. */
+private fun cradleContour(
+    bounds: Rect,
+    notch: Rect?,
+    corner: Float,
+): Path {
+    val upper = chamferedIsland(bounds, minOf(corner, bounds.height / 4f, bounds.width / 4f))
+    return if (notch == null) {
+        upper
+    } else {
+        val lower = chamferedIsland(notch, minOf(corner, notch.height / 4f, notch.width / 4f))
+        Path.combine(PathOperation.Union, upper, lower)
+    }
+}
+
 /** Draw beneath PadKit and its artwork; never install pointer handlers. */
 @Composable
 internal fun CartdeckPivotArcModule(
@@ -250,7 +263,7 @@ internal fun CartdeckPivotArcModule(
     video: Rect?,
     root: Rect,
     tokens: CartdeckEditionTokens,
-    joined: Boolean = false,
+    joinedIsland: PivotIslandShape? = null,
     showWordmark: Boolean = true,
 ) {
     val density = LocalDensity.current
@@ -265,32 +278,37 @@ internal fun CartdeckPivotArcModule(
         Canvas(Modifier.fillMaxSize()) {
             val plate = module.plate
             val bevel = 15.dp.toPx()
-            if (!joined) {
-                val cradle = chamferedIsland(plate, minOf(bevel, plate.height / 4f, plate.width / 4f))
-                drawPath(
-                    cradle,
-                    Brush.verticalGradient(
-                        listOf(tokens.secondary.copy(alpha = 0.22f), tokens.bezel.copy(alpha = 0.14f)),
-                        startY = plate.top,
-                        endY = plate.bottom,
-                    ),
+
+            fun PivotArcBounds.pixels(): Rect = Rect(left.dp.toPx(), top.dp.toPx(), right.dp.toPx(), bottom.dp.toPx())
+
+            val upper = joinedIsland?.upper?.pixels() ?: plate
+            val lower = joinedIsland?.lower?.pixels()
+            val lip = 5.dp.toPx()
+            if (upper.width > lip * 2f && upper.height > lip * 2f) {
+                val inset = upper.deflate(lip)
+                drawControllerInset(
+                    rim = cradleContour(upper, lower?.let { it.copy(top = it.top - lip * 2f) }, bevel),
+                    inset =
+                        cradleContour(
+                            inset,
+                            lower?.deflate(lip)?.let { it.copy(top = it.top - lip * 4f) },
+                            bevel / 2f,
+                        ),
+                    bounds = upper.copy(bottom = lower?.bottom ?: upper.bottom),
+                    tokens = tokens,
+                    edge = 2.dp.toPx(),
+                    housing = lerp(tokens.chassis, tokens.secondary, 0.24f),
                 )
-                drawPath(cradle, tokens.bezel.copy(alpha = 0.7f), style = Stroke(1.dp.toPx()))
             }
-            val railWidth = 3.dp.toPx()
-            for (rail in PivotArcPaintPolicy.rails(plate, railWidth)) {
-                drawRoundRect(
-                    color = tokens.bezel.copy(alpha = 0.80f),
-                    topLeft = Offset(rail.left, rail.top),
-                    size = Size(rail.width, rail.height),
-                    cornerRadius = CornerRadius(railWidth / 2f),
-                )
-                drawLine(
-                    color = tokens.secondary.copy(alpha = 0.82f),
-                    start = Offset(rail.left + bevel, rail.center.y),
-                    end = Offset(rail.right - bevel, rail.center.y),
-                    strokeWidth = 1.dp.toPx(),
-                )
+            if (joinedIsland == null) {
+                for (groove in PivotArcPaintPolicy.rails(plate.deflate(lip), 1.dp.toPx())) {
+                    drawRoundRect(
+                        color = tokens.bezel.copy(alpha = 0.68f),
+                        topLeft = groove.topLeft,
+                        size = groove.size,
+                        cornerRadius = CornerRadius(groove.height / 2f),
+                    )
+                }
             }
             val utility = controls.filterKeys { it in setOf("start", "select", "menu") }
             val rail =
@@ -306,10 +324,9 @@ internal fun CartdeckPivotArcModule(
                         } && band.height <= 56.dp.toPx()
                     }
                 }
-            val shoulders = controls.filterKeys { it.startsWith("shoulder-") }.values
-            val pods = PivotArcPaintPolicy.pods(controls, 6.dp.toPx(), density.density)
-            val islands = pods + shoulders + listOfNotNull(rail)
-            for (pod in islands) {
+            val directionSeats = controls.filterKeys { PivotArcPaintPolicy.materialKey(it) in setOf("D", "ANALOG") }
+            val wells = PivotArcPaintPolicy.pods(directionSeats, 3.dp.toPx(), density.density)
+            for (pod in wells + listOfNotNull(rail)) {
                 if (pod.left < 0f || pod.top < (video?.bottom ?: 0f) ||
                     pod.right > size.width || pod.bottom > size.height
                 ) {
@@ -434,57 +451,59 @@ internal fun CartdeckPivotArcModule(
                     cornerRadius = CornerRadius(9.dp.toPx()),
                 )
             }
-            val foot = 11.dp.toPx()
-            val inset = 4.dp.toPx()
-            drawLine(
-                tokens.accent.copy(alpha = 0.72f),
-                Offset(plate.left + bevel, plate.top + inset),
-                Offset(minOf(plate.left + bevel + 27.dp.toPx(), plate.right - bevel), plate.top + inset),
-                strokeWidth = 2.dp.toPx(),
-            )
-            drawLine(
-                tokens.accent.copy(alpha = 0.72f),
-                Offset(maxOf(plate.right - bevel - 27.dp.toPx(), plate.left + bevel), plate.top + inset),
-                Offset(plate.right - bevel, plate.top + inset),
-                strokeWidth = 2.dp.toPx(),
-            )
-            drawLine(
-                tokens.accent.copy(alpha = 0.42f),
-                Offset(plate.left + bevel, plate.bottom - inset),
-                Offset(minOf(plate.left + bevel + 22.dp.toPx(), plate.right - bevel), plate.bottom - inset),
-                strokeWidth = 1.8.dp.toPx(),
-            )
-            // Machined bolt heads remain away from active control surfaces.
-            val bolts =
-                listOf(
-                    Offset(plate.left + foot, plate.top + foot),
-                    Offset(plate.right - foot, plate.top + foot),
-                    Offset(plate.left + foot, plate.bottom - foot),
-                    Offset(plate.right - foot, plate.bottom - foot),
+            if (joinedIsland == null) {
+                val foot = 11.dp.toPx()
+                val inset = 4.dp.toPx()
+                drawLine(
+                    tokens.accent.copy(alpha = 0.72f),
+                    Offset(plate.left + bevel, plate.top + inset),
+                    Offset(minOf(plate.left + bevel + 27.dp.toPx(), plate.right - bevel), plate.top + inset),
+                    strokeWidth = 2.dp.toPx(),
                 )
-            val gameplay = controls.filterKeys { it !in setOf("start", "select", "menu") }.values
-            for (center in bolts) {
-                val protected =
-                    Rect(
-                        center.x - 7.dp.toPx(),
-                        center.y - 7.dp.toPx(),
-                        center.x + 7.dp.toPx(),
-                        center.y + 7.dp.toPx(),
+                drawLine(
+                    tokens.accent.copy(alpha = 0.72f),
+                    Offset(maxOf(plate.right - bevel - 27.dp.toPx(), plate.left + bevel), plate.top + inset),
+                    Offset(plate.right - bevel, plate.top + inset),
+                    strokeWidth = 2.dp.toPx(),
+                )
+                drawLine(
+                    tokens.accent.copy(alpha = 0.42f),
+                    Offset(plate.left + bevel, plate.bottom - inset),
+                    Offset(minOf(plate.left + bevel + 22.dp.toPx(), plate.right - bevel), plate.bottom - inset),
+                    strokeWidth = 1.8.dp.toPx(),
+                )
+                // Machined bolt heads remain away from active control surfaces.
+                val bolts =
+                    listOf(
+                        Offset(plate.left + foot, plate.top + foot),
+                        Offset(plate.right - foot, plate.top + foot),
+                        Offset(plate.left + foot, plate.bottom - foot),
+                        Offset(plate.right - foot, plate.bottom - foot),
                     )
-                if (gameplay.none { CartdeckHardwareGeometry.intersects(it, protected) }) {
-                    drawCircle(tokens.bezel, radius = 3.dp.toPx(), center = center)
-                    drawCircle(
-                        tokens.accent.copy(alpha = 0.34f),
-                        radius = 2.dp.toPx(),
-                        center = center,
-                        style = Stroke(0.8.dp.toPx()),
-                    )
-                    drawLine(
-                        tokens.onChassis.copy(alpha = 0.40f),
-                        center - Offset(1.5.dp.toPx(), 0f),
-                        center + Offset(1.5.dp.toPx(), 0f),
-                        strokeWidth = 0.8.dp.toPx(),
-                    )
+                val gameplay = controls.filterKeys { it !in setOf("start", "select", "menu") }.values
+                for (center in bolts) {
+                    val protected =
+                        Rect(
+                            center.x - 7.dp.toPx(),
+                            center.y - 7.dp.toPx(),
+                            center.x + 7.dp.toPx(),
+                            center.y + 7.dp.toPx(),
+                        )
+                    if (gameplay.none { CartdeckHardwareGeometry.intersects(it, protected) }) {
+                        drawCircle(tokens.bezel, radius = 3.dp.toPx(), center = center)
+                        drawCircle(
+                            tokens.accent.copy(alpha = 0.34f),
+                            radius = 2.dp.toPx(),
+                            center = center,
+                            style = Stroke(0.8.dp.toPx()),
+                        )
+                        drawLine(
+                            tokens.onChassis.copy(alpha = 0.40f),
+                            center - Offset(1.5.dp.toPx(), 0f),
+                            center + Offset(1.5.dp.toPx(), 0f),
+                            strokeWidth = 0.8.dp.toPx(),
+                        )
+                    }
                 }
             }
         }
