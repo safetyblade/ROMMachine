@@ -35,6 +35,8 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlin.math.roundToInt
 
+internal const val PIVOT_ARC_DISPLAY_CLEARANCE_DP = 20f
+
 /** One approved PivotArc identity across the installed shell and Layout settings. */
 @Composable
 internal fun PivotArcWordmark(
@@ -48,6 +50,7 @@ internal fun PivotArcWordmark(
             text = "PivotArc",
             color = ink,
             fontSize = if (compact) 16.sp else 19.sp,
+            lineHeight = if (compact) 16.sp else 21.sp,
             fontStyle = FontStyle.Italic,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.6.sp,
@@ -88,6 +91,7 @@ internal object PivotArcModuleGeometry {
         root: Rect,
         edge: Float,
         labelHeight: Float,
+        displayClearance: Float = edge * 1.8f,
     ): PivotArcModulePlacement? {
         if (root.width <= 0f || root.height <= 0f || edge <= 0f || labelHeight <= 0f) return null
         val gameplay = controls.filterKeys { it !in utilityKeys }.values
@@ -103,7 +107,11 @@ internal object PivotArcModuleGeometry {
             controls.filterKeys { it in utilityKeys }.values
                 .filter { it.bottom <= coreTop }
                 .maxOfOrNull { it.bottom } ?: 0f
-        val excludedTop = maxOf(video?.bottom ?: 0f, utilitiesAboveCore) + edge / 2f
+        val excludedTop =
+            maxOf(
+                (video?.bottom ?: 0f) + displayClearance,
+                utilitiesAboveCore + edge / 2f,
+            )
 
         val left = maxOf(edge / 2f, coreLeft - edge)
         val top = maxOf(excludedTop, coreTop - edge - labelHeight)
@@ -114,7 +122,7 @@ internal object PivotArcModuleGeometry {
         }
         val plate = Rect(left, top, right, bottom)
         val label =
-            if (coreTop - top >= labelHeight + edge / 2f) {
+            if (coreTop - top >= labelHeight + edge / 5f) {
                 Rect(left + edge, top + 2f, right - edge, top + labelHeight)
                     .takeIf { it.width >= 105f && it.bottom < coreTop }
             } else {
@@ -268,8 +276,9 @@ internal fun CartdeckPivotArcModule(
 ) {
     val density = LocalDensity.current
     val edge = with(density) { 11.dp.toPx() }
-    val labelHeight = with(density) { 31.dp.toPx() }
-    val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight) ?: return
+    val labelHeight = with(density) { 20.dp.toPx() }
+    val displayClearance = with(density) { PIVOT_ARC_DISPLAY_CLEARANCE_DP.dp.toPx() }
+    val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight, displayClearance) ?: return
     val ink =
         listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             .maxBy { colorContrast(it, tokens.secondary) }
@@ -281,7 +290,10 @@ internal fun CartdeckPivotArcModule(
 
             fun PivotArcBounds.pixels(): Rect = Rect(left.dp.toPx(), top.dp.toPx(), right.dp.toPx(), bottom.dp.toPx())
 
-            val upper = joinedIsland?.upper?.pixels() ?: plate
+            val upper =
+                joinedIsland?.upper?.pixels()?.let {
+                    it.copy(top = maxOf(it.top, (video?.bottom ?: 0f) + displayClearance))
+                } ?: plate
             val lower = joinedIsland?.lower?.pixels()
             val lip = 5.dp.toPx()
             if (upper.width > lip * 2f && upper.height > lip * 2f) {
@@ -370,14 +382,32 @@ internal fun CartdeckPivotArcModule(
                         )
                     }
                     "ANALOG" -> {
-                        val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
-                        drawCircle(tokens.bezel.copy(alpha = 0.84f), radius = collar, center = center)
+                        val collar = radius - 3.dp.toPx()
+                        val inner = collar - 5.dp.toPx()
+                        drawCircle(tokens.bezel, radius = collar, center = center)
                         drawCircle(
-                            tokens.accent.copy(alpha = 0.35f),
-                            radius = (collar - 3.dp.toPx()).coerceAtLeast(0f),
+                            tokens.secondary,
+                            radius = collar - 1.dp.toPx(),
                             center = center,
-                            style = Stroke(width = 1.6.dp.toPx()),
+                            style = Stroke(width = 2.dp.toPx()),
                         )
+                        drawCircle(
+                            tokens.accent.copy(alpha = 0.52f),
+                            radius = inner,
+                            center = center,
+                            style = Stroke(width = 1.dp.toPx()),
+                        )
+                        for (angle in listOf(42f, 132f, 222f, 312f)) {
+                            drawArc(
+                                tokens.onChassis.copy(alpha = 0.42f),
+                                startAngle = angle,
+                                sweepAngle = 6f,
+                                useCenter = false,
+                                topLeft = center - Offset(collar, collar),
+                                size = Size(collar * 2f, collar * 2f),
+                                style = Stroke(width = 1.3.dp.toPx()),
+                            )
+                        }
                     }
                     "D" -> {
                         val margin = 3.dp.toPx()

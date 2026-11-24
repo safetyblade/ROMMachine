@@ -589,6 +589,7 @@ internal fun CartdeckHardwareSeats(
                 }
                 return@forEach
             }
+            if (pivotArc && key.startsWith("analog-")) return@forEach
             val drawable = CartdeckHardwareResource.seat(edition, key) ?: return@forEach
             if (key == "start" || key == "select") {
                 // The approved SVG is a *pair* of pill seats. Crop its first

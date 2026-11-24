@@ -20,11 +20,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -78,7 +80,7 @@ internal fun GripArcControlGroup(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
 ) {
-    val scale = placement.scale
+    val capInset = 3f * placement.scale
     Box(Modifier.fillMaxSize()) {
         if (drawHousing) {
             GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength, profile.count)
@@ -122,7 +124,7 @@ internal fun GripArcControlGroup(
                 contentAlignment = Alignment.Center,
             ) {
                 GripArcShoulderButton(
-                    modifier = Modifier.size(size.w.dp, size.h.dp),
+                    modifier = Modifier.size((size.w - capInset * 2f).dp, (size.h - capInset * 2f).dp),
                     label = "G$slot",
                     tokens = tokens,
                     pressed = pressed,
@@ -193,25 +195,27 @@ internal fun GripArcHousing(
                 if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(80f, 80f))
             }) {
                 drawControllerInset(outer, inner, Rect(4f, 4f, 156f, 156f), tokens, 2.2f)
-                for (slot in 1..activeSlots) {
-                    val target = placement.targets.getValue(slot)
-                    val cap = placement.visuals.getValue(slot)
-                    val localX = (target.centerX - housing.left) / placement.scale
-                    val centerX = if (left) 160f - localX else localX
-                    val centerY = (target.centerY - housing.top) / placement.scale
-                    val width = cap.w / placement.scale + 6f
-                    val height = cap.h / placement.scale + 6f
-                    val seat = Offset(centerX - width / 2f, centerY - height / 2f)
-                    val seatSize = androidx.compose.ui.geometry.Size(width, height)
-                    val radius = CornerRadius(height / 2f)
-                    drawRoundRect(tokens.bezel, seat, seatSize, radius)
-                    drawRoundRect(
-                        tokens.onChassis.copy(alpha = 0.36f),
-                        seat,
-                        seatSize,
-                        radius,
-                        style = Stroke(0.9f),
-                    )
+                clipPath(inner) {
+                    for (slot in 1..activeSlots) {
+                        val target = placement.targets.getValue(slot)
+                        val cap = placement.visuals.getValue(slot)
+                        val localX = (target.centerX - housing.left) / placement.scale
+                        val centerX = if (left) 160f - localX else localX
+                        val centerY = (target.centerY - housing.top) / placement.scale
+                        val width = cap.w / placement.scale + 1f
+                        val height = cap.h / placement.scale + 1f
+                        val seat = Offset(centerX - width / 2f, centerY - height / 2f)
+                        val seatSize = androidx.compose.ui.geometry.Size(width, height)
+                        val radius = CornerRadius(height / 2f)
+                        drawRoundRect(tokens.bezel, seat, seatSize, radius)
+                        drawRoundRect(
+                            tokens.onChassis.copy(alpha = 0.36f),
+                            seat,
+                            seatSize,
+                            radius,
+                            style = Stroke(0.9f),
+                        )
+                    }
                 }
                 drawMaterialTrack(
                     Rect(151f, 22f, 155f, 144f),
@@ -286,7 +290,7 @@ private fun GripArcShoulderButton(
     tokens: CartdeckEditionTokens,
     pressed: Boolean,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val r = size.height / 2.5f
             drawRoundRect(

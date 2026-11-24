@@ -27,7 +27,7 @@ class PivotArcModuleGeometryTest {
         val result = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)
         assertNotNull(result)
         val plate = result!!.plate
-        assertTrue(plate.top > video.bottom)
+        assertTrue(plate.top >= video.bottom + 19.7f)
         assertTrue(plate.top > controls.getValue("start").bottom)
         assertTrue(plate.left < controls.getValue("shoulder-L").left)
         assertTrue(plate.right > controls.getValue("shoulder-R").right)
@@ -59,6 +59,14 @@ class PivotArcModuleGeometryTest {
             assertTrue(rect.right < extra.plate.right)
             assertTrue(rect.bottom < extra.plate.bottom)
         }
+    }
+
+    @Test
+    fun theUpperSurroundKeepsAClearGapEvenWhenTheFirstControlIsNearTheScreen() {
+        val nearScreen = mapOf("face-a" to Rect(120f, 374f, 174f, 428f))
+        val result = PivotArcModuleGeometry.resolve(nearScreen, video, root, 11f, 20f)!!
+        assertEquals(video.bottom + 19.8f, result.plate.top, 0.01f)
+        assertTrue(result.plate.top < nearScreen.getValue("face-a").top)
     }
 
     @Test

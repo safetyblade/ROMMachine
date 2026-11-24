@@ -35,7 +35,13 @@ internal object CompositeOpenHousingPolicy {
 
         // Restrained top and bottom machined lips, not the filled island hull.
         if (upper.width > 32f) {
-            seams += CompositeMaterialSeam(upper.left + 12f, upper.top + 3f, upper.right - 12f, upper.top + 3f)
+            seams +=
+                CompositeMaterialSeam(
+                    upper.left + 12f,
+                    maxOf(upper.top, placement.viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP) + 3f,
+                    upper.right - 12f,
+                    maxOf(upper.top, placement.viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP) + 3f,
+                )
         }
         if (lower.width > 32f) {
             seams += CompositeMaterialSeam(lower.left + 12f, lower.bottom - 3f, lower.right - 12f, lower.bottom - 3f)
@@ -83,8 +89,9 @@ internal fun CompositeControlDeckHousing(
             }
         }
         placement.wordmark?.let { brand ->
+            val top = maxOf(brand.top, placement.viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP + 2f)
             PivotArcWordmark(
-                Modifier.offset(brand.left.dp, brand.top.dp).size(brand.width.dp, brand.height.dp),
+                Modifier.offset(brand.left.dp, top.dp).size(brand.width.dp, brand.height.dp),
                 ink = tokens.onChassis,
                 accent = tokens.accent,
                 compact = true,
