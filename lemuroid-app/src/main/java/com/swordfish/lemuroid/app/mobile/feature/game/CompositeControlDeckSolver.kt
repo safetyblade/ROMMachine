@@ -96,7 +96,10 @@ internal object CompositeControlDeckSolver {
         val solo =
             (
                 PivotArcPositionSolver.resolve(
-                    baseline, active, safe, viewport,
+                    baseline,
+                    active,
+                    safe,
+                    viewport,
                     leftHanded = false,
                     requestedDx = pivotDx.takeIf { it.isFinite() } ?: 0f,
                     requestedDy = pivotDy.takeIf { it.isFinite() } ?: 0f,
@@ -140,8 +143,9 @@ internal object CompositeControlDeckSolver {
                     if (preserveSolo) {
                         scaleSoloConstellation(soloSource!!, scale)
                     } else {
-                        val native = (active.filterNot { it in utilities } + listOf("X", "Y"))
-                            .distinct().associateWith { key ->
+                        val native =
+                            (active.filterNot { it in utilities } + listOf("X", "Y"))
+                                .distinct().associateWith { key ->
                                 val spec = baseline.buttonCenters.getValue(key)
                                 val w = maxOf(48f, spec.touch.w * scale)
                                 val h = maxOf(48f, spec.touch.h * scale)
@@ -166,7 +170,13 @@ internal object CompositeControlDeckSolver {
                         var cursor = coreHull.centerX - railWidth / 2
                         for (key in rail) {
                             val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
-                            native[key] = PivotArcBounds(cursor, coreHull.bottom + GAP, cursor + w, coreHull.bottom + GAP + 48f)
+                            native[key] =
+                                PivotArcBounds(
+                                    cursor,
+                                    coreHull.bottom + GAP,
+                                    cursor + w,
+                                    coreHull.bottom + GAP + 48f,
+                                )
                             cursor += w + GAP
                         }
                         native

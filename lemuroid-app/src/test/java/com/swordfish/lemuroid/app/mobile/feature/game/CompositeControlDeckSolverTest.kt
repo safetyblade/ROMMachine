@@ -216,8 +216,14 @@ class CompositeControlDeckSolverTest {
         val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!
         val solo =
             PivotArcPositionSolver.resolve(
-                baseline, active, device.safe, device.viewport,
-                leftHanded = false, requestedDx = 0f, requestedDy = 0f, isLandscape = false,
+                baseline,
+                active,
+                device.safe,
+                device.viewport,
+                leftHanded = false,
+                requestedDx = 0f,
+                requestedDy = 0f,
+                isLandscape = false,
             ) as PivotArcResolution.Fits
         val source = CompositeControlDeckSolver.soloPivotSource(baseline, active, device.safe, solo.placement)
         for ((key, original) in solo.placement.controls) {
