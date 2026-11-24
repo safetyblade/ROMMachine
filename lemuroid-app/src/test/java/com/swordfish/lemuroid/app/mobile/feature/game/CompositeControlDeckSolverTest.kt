@@ -215,7 +215,12 @@ class CompositeControlDeckSolverTest {
         val device = ControlDeckDeviceFixture(393f, 852f)
         val joined =
             CompositeControlDeckSolver.resolve(
-                manifest, baseline, SystemID.GBA, device.safe, device.viewport, GripArcSide.RIGHT,
+                manifest,
+                baseline,
+                SystemID.GBA,
+                device.safe,
+                device.viewport,
+                GripArcSide.RIGHT,
             ) as CompositeDeckResolution.Fits
         assertTrue(
             "GripArc must not replace the approved solo PivotArc grouping",

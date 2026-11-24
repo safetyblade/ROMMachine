@@ -147,16 +147,16 @@ internal object CompositeControlDeckSolver {
                         val native =
                             (active.filterNot { it in utilities } + listOf("X", "Y"))
                                 .distinct().associateWith { key ->
-                                val spec = baseline.buttonCenters.getValue(key)
-                                val w = maxOf(48f, spec.touch.w * scale)
-                                val h = maxOf(48f, spec.touch.h * scale)
-                                PivotArcBounds(
-                                    spec.center.x * scale - w / 2,
-                                    spec.center.y * scale - h / 2,
-                                    spec.center.x * scale + w / 2,
-                                    spec.center.y * scale + h / 2,
-                                )
-                            }.toMutableMap()
+                                    val spec = baseline.buttonCenters.getValue(key)
+                                    val w = maxOf(48f, spec.touch.w * scale)
+                                    val h = maxOf(48f, spec.touch.h * scale)
+                                    PivotArcBounds(
+                                        spec.center.x * scale - w / 2,
+                                        spec.center.y * scale - h / 2,
+                                        spec.center.x * scale + w / 2,
+                                        spec.center.y * scale + h / 2,
+                                    )
+                                }.toMutableMap()
                         val a = native.getValue("A")
                         val b = native.getValue("B")
                         native["HoldA"] =
@@ -362,6 +362,7 @@ internal object CompositeControlDeckSolver {
         source: Map<String, PivotArcBounds>,
         factor: Float,
     ): MutableMap<String, PivotArcBounds> {
+        if (factor == 1f) return source.toMutableMap()
         val original = hull(source.values)
         return source.mapValues { (_, r) ->
             val cx = original.centerX + (r.centerX - original.centerX) * factor
