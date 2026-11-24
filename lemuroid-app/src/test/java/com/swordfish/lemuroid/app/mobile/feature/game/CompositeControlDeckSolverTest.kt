@@ -211,6 +211,18 @@ class CompositeControlDeckSolverTest {
         assertEquals(expected.placement.housing, result.placement.dock.housing)
     }
 
+    @Test fun ownerClassCombinedGbaUsesSoloDerivedGeometryRatherThanScatteredFallback() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val joined =
+            CompositeControlDeckSolver.resolve(
+                manifest, baseline, SystemID.GBA, device.safe, device.viewport, GripArcSide.RIGHT,
+            ) as CompositeDeckResolution.Fits
+        assertTrue(
+            "GripArc must not replace the approved solo PivotArc grouping",
+            joined.placement.preservesSolo,
+        )
+    }
+
     @Test fun preferredCombinedSourceCopiesSoloControlsWithoutChangingTheirSpacing() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!

@@ -33,6 +33,7 @@ internal data class CompositeControlDeckPlacement(
     val pivot: PivotArcPlacement,
     val futureFaces: Map<String, PivotArcBounds>,
     val island: PivotIslandShape,
+    val preservesSolo: Boolean = false,
 ) {
     val wordmark: PivotArcBounds?
         get() {
@@ -321,6 +322,7 @@ internal object CompositeControlDeckSolver {
                                 PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
                                 future,
                                 island,
+                                preservesSolo = preserveSolo,
                             ),
                         )
                 }
