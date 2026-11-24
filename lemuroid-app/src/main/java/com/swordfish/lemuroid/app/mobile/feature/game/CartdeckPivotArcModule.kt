@@ -297,17 +297,11 @@ internal fun CartdeckPivotArcModule(
         listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             .maxBy { colorContrast(it, tokens.secondary) }
 
-    fun PivotArcBounds.pixels(): Rect =
-        with(density) { Rect(left.dp.toPx(), top.dp.toPx(), right.dp.toPx(), bottom.dp.toPx()) }
-
-    val joinedIsland = joint?.island
+    // The dock may not replace solo PivotArc's machined housing or wordmark.
+    // Combined mode uses precisely the same visual material and shape.
     val plate = module.plate
-    val upper =
-        joinedIsland?.upper?.pixels()?.let {
-            it.copy(top = maxOf(it.top, (video?.bottom ?: 0f) + displayClearance))
-        } ?: plate
-    val lower = joinedIsland?.lower?.pixels()
-    val wordmark = if (joint == null) module.wordmark else joint.wordmark?.pixels()
+    val upper = plate
+    val wordmark = module.wordmark
 
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
@@ -316,28 +310,21 @@ internal fun CartdeckPivotArcModule(
             if (upper.width > lip * 2f && upper.height > lip * 2f) {
                 val inset = upper.deflate(lip)
                 drawControllerInset(
-                    rim = cradleContour(upper, lower?.let { it.copy(top = it.top - lip * 2f) }, bevel),
-                    inset =
-                        cradleContour(
-                            inset,
-                            lower?.deflate(lip)?.let { it.copy(top = it.top - lip * 4f) },
-                            bevel / 2f,
-                        ),
-                    bounds = upper.copy(bottom = lower?.bottom ?: upper.bottom),
+                    rim = chamferedIsland(upper, bevel),
+                    inset = chamferedIsland(inset, bevel / 2f),
+                    bounds = upper,
                     tokens = tokens,
                     edge = 2.dp.toPx(),
                     housing = lerp(tokens.chassis, tokens.secondary, 0.24f),
                 )
             }
-            if (joinedIsland == null) {
-                for (groove in PivotArcPaintPolicy.rails(plate.deflate(lip), 1.dp.toPx())) {
-                    drawRoundRect(
-                        color = tokens.bezel.copy(alpha = 0.68f),
-                        topLeft = groove.topLeft,
-                        size = groove.size,
-                        cornerRadius = CornerRadius(groove.height / 2f),
-                    )
-                }
+            for (groove in PivotArcPaintPolicy.rails(plate.deflate(lip), 1.dp.toPx())) {
+                drawRoundRect(
+                    color = tokens.bezel.copy(alpha = 0.68f),
+                    topLeft = groove.topLeft,
+                    size = groove.size,
+                    cornerRadius = CornerRadius(groove.height / 2f),
+                )
             }
             val utility = controls.filterKeys { it in setOf("start", "select", "menu") }
             val rail =
@@ -496,7 +483,7 @@ internal fun CartdeckPivotArcModule(
                     cornerRadius = CornerRadius(9.dp.toPx()),
                 )
             }
-            if (joinedIsland == null) {
+            run {
                 val foot = 11.dp.toPx()
                 val inset = 4.dp.toPx()
                 drawLine(
