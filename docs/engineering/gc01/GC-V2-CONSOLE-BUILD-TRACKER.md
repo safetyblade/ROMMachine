@@ -18,7 +18,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | NGP | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | NGC | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | PC_ENGINE | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
-| GBA | Four-button/shoulders | Accepted solo visual | Full-body code; CI pending | Not built | GBA-V2B-02 (a1eac63f) |
+| GBA | Four-button/shoulders | Accepted solo visual | Full-body code; CI pending | Not built | GBA-V2B-03 (def9ed0a) |
 | SNES | Four-button/shoulders | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | GENESIS | Six-button | Not built | Not built | Not built | — |
 | SEGACD | Six-button | Not built | Not built | Not built | — |
@@ -51,6 +51,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | Previous accepted baseline | PASS; frozen | Legacy detached L-piece, FAIL visually | Overlap / scattered, FAIL | Master 68a6c161 | PivotArc PASS, Grip/Joint FAIL |
 | GBA-V2B-01 | Unmodified | Full-piece faceplate replaces L-piece on Standard+GripArc portrait only | Not touched (LAST) | Commit 7e10b4c4; new geometry tests; CI pending | Not tested |
 | GBA-V2B-02 | Unmodified | Same full faceplate with integrated GripArc engraving (no new floating element) | Not touched (LAST) | Commit a1eac63f; exact-head CI pending | Not tested |
+| GBA-V2B-03 | Unmodified | Full body geometry uses correct dp→pixel conversion for all four programmable keys | Not touched (LAST) | Commit def9ed0a; exact-head CI pending | Not tested |
 
 ## Advance criteria
 
