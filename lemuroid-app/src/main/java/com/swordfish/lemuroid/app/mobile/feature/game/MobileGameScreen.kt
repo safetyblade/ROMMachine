@@ -646,6 +646,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gbaFullGripPanel =
                 if (
                     hardwareBorder && !isLandscape && !selectedPivot &&
+                    touchControlsVisibleState.value && !fullscreenWithGamepad && !isLoading &&
                     effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
                     viewModel.systemId == SystemID.GBA &&
                     gripPlacement != null && fullPos != null && viewPos != null
