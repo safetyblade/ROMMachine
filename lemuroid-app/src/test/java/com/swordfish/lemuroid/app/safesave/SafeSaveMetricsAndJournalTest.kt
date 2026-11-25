@@ -18,8 +18,12 @@ private class RecordingIndex : SafeSaveIndex {
     val snapshots = linkedMapOf<String, SafeSaveSnapshotRecord>()
     val journal = mutableListOf<SafeSaveJournalRecord>()
 
-    override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
+    override fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    ) {
         snapshots[snapshot.snapshotId] = snapshot
+        journal += completion
     }
 
     override fun snapshot(snapshotId: String) = snapshots[snapshotId]
@@ -39,7 +43,7 @@ private class RecordingIndex : SafeSaveIndex {
 /**
  * SAVE-A01 follow-up: the capture/restore metrics and journal contract.
  *
- * PR #363 reported capture/restore duration, file count and bytes as
+ * Original SAVE-A02 #369 reported capture/restore duration, file count and bytes as
  * unmeasured in-app evidence, and no test asserted the journal sequence.
  * SafeSaveStore takes an injected clock, so both are testable exactly:
  * a stepped clock must produce an exact duration, and every outcome —
@@ -146,6 +150,50 @@ class SafeSaveMetricsAndJournalTest {
             assertEquals("not a directory", blockedRoot.readText())
             // The live save was never touched.
             assertEquals("level-3-progress", File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText())
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun lowStorageRejectsCaptureBeforeWritingOrChangingLiveProgress() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val index = RecordingIndex()
+            val store = SafeSaveStore(index, snapshotRoot, availableBytes = { 0L })
+            assertThrows(IllegalStateException::class.java) {
+                store.capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            }
+            assertTrue(index.snapshots.isEmpty())
+            assertTrue(index.journal.isEmpty())
+            assertFalse(snapshotRoot.exists())
+            assertEquals(
+                "level-3-progress",
+                File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN").readText(),
+            )
+        } finally {
+            parent.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun lowStorageRejectsRestoreWithoutTouchingLiveProgressOrSnapshot() {
+        val (parent, saveRoot, snapshotRoot) = fixture()
+        try {
+            val index = RecordingIndex()
+            val captured =
+                SafeSaveStore(index, snapshotRoot)
+                    .capture(saveRoot, "ULUS10001", cartridgeA, "v", engineQuiesced = true)
+            val liveFile = File(saveRoot, "PSP/SAVEDATA/ULUS10001/DATA.BIN")
+            liveFile.writeText("newer-live-progress")
+            val priorJournal = index.journal.toList()
+            val store = SafeSaveStore(index, snapshotRoot, availableBytes = { 0L })
+            assertThrows(IllegalStateException::class.java) {
+                store.restore(captured.snapshot.snapshotId, saveRoot, engineQuiesced = true)
+            }
+            assertEquals("newer-live-progress", liveFile.readText())
+            assertTrue(store.verify(captured.snapshot.snapshotId))
+            assertEquals(priorJournal, index.journal)
         } finally {
             parent.deleteRecursively()
         }

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.ImageQuality
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -38,13 +39,18 @@ class DisplaySettingsScreenTest {
         compose.setContent {
             MaterialTheme { DisplaySettingsScreen(game, libretroHost = !nativeRoute.value) }
         }
-        compose.onNodeWithText("Use Global Default").performClick()
+        compose.onNodeWithText("Enhanced").performScrollTo().performClick()
+        compose.waitUntil(5000) { store.read(game.cartridgeId).own.imageQuality == ImageQuality.ENHANCED }
+        assertEquals(DisplaySettingsStore.Border.OFF, store.read(game.cartridgeId).effective.border(true))
+        compose.onNodeWithText("Use Global Default").performScrollTo().performClick()
         compose.waitUntil(5000) { store.read(game.cartridgeId).own.landscapeBorder == null }
         compose.runOnIdle { nativeRoute.value = true }
+        compose.onNodeWithText("Image Quality is controlled by this game's native renderer.").assertExists()
+        compose.onNodeWithText("Enhanced", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Widescreen", substring = true).assertDoesNotExist()
         compose.onNodeWithText("HD scaling:", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Help").assertIsDisplayed()
-        compose.onAllNodesWithText("Hardware · selected")[0].assertIsDisplayed()
+        compose.onAllNodesWithText("Hardware · selected")[0].performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Use Global Default").performScrollTo().assertIsDisplayed()
         assertEquals(DisplaySettingsStore.Border.STANDARD, store.read(game.cartridgeId).effective.border(true))
     }

@@ -249,10 +249,17 @@ object GemRatingRecommender {
                             targetStyle?.takeIf { styleDifference },
                             targetCross?.takeIf { crossoverDifference },
                         ).distinct()
+                    val bridgeDetails =
+                        common.filter { it.startsWith("mechanic:") || it.startsWith("crossover:") }
+                            .map { it.substringAfter(':') }.distinct()
                     val explanation =
-                        "Similar to ${best.game.title}: " +
-                            common.map { it.substringAfter(':') }.distinct().joinToString(", ") +
-                            (if (differences.isEmpty()) "" else ". Explore: ${differences.joinToString(", ")}")
+                        if (meaningfulBridge) {
+                            "Shared with ${best.game.title}: ${bridgeDetails.joinToString(", ")}" +
+                                (if (differences.isEmpty()) "" else ". Explore: ${differences.joinToString(", ")}")
+                        } else {
+                            val exploration = clean(game.primaryGenre) ?: clean(game.playstyle) ?: "new"
+                            "Explore $exploration games based on your ratings"
+                        }
                     val wildcard = meaningfulBridge && novelty >= 0.25
                     Recommendation(
                         game = game,

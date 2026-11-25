@@ -43,7 +43,10 @@ class DisplaySettingsStore(
         val hd: Boolean? = null,
         val quality: Int? = null,
         val engineOptions: Map<String, String> = emptyMap(),
+        val imageQuality: ImageQuality? = null,
     ) {
+        fun hasLegacyQualityOverride() = filter != null || hd != null || quality != null
+
         fun over(parent: Choices) =
             Choices(
                 landscapeBorder ?: parent.landscapeBorder,
@@ -53,6 +56,7 @@ class DisplaySettingsStore(
                 hd ?: parent.hd,
                 quality ?: parent.quality,
                 parent.engineOptions + engineOptions,
+                imageQuality ?: parent.imageQuality.takeUnless { hasLegacyQualityOverride() },
             )
 
         fun border(landscape: Boolean): Border =
@@ -65,11 +69,13 @@ class DisplaySettingsStore(
         File(context.filesDir, "cartdeck/display-preferences-v1"),
         {
             val prefs = SharedPreferencesHelper.getSharedPreferences(context)
+
+            fun key(id: Int) = context.getString(id)
             Choices(
-                alignment = prefs.getString(context.getString(R.string.pref_key_viewport_alignment), "center"),
-                filter = prefs.getString(context.getString(R.string.pref_key_shader_filter), "auto"),
-                hd = prefs.getBoolean(context.getString(R.string.pref_key_hd_mode), false),
-                quality = prefs.getInt(context.getString(R.string.pref_key_hd_mode_quality), 1),
+                alignment = prefs.getString(key(R.string.pref_key_viewport_alignment), "center"),
+                filter = prefs.getString(key(R.string.pref_key_shader_filter), null),
+                hd = key(R.string.pref_key_hd_mode).takeIf(prefs::contains)?.let { prefs.getBoolean(it, false) },
+                quality = key(R.string.pref_key_hd_mode_quality).takeIf(prefs::contains)?.let { prefs.getInt(it, 1) },
             )
         },
     )
@@ -130,6 +136,7 @@ class DisplaySettingsStore(
             when (field) {
                 "landscapeBorder", "portraitBorder" -> value == null || value in Border.entries.map { it.name }
                 "alignment" -> value == null || value in listOf("top", "center", "bottom")
+                "imageQuality" -> value == null || ImageQuality.entries.any { it.name == value }
                 "hd" -> value == null || value in listOf("true", "false")
                 "quality" -> value == null || value.toIntOrNull()?.let { it in 0..2 } == true
                 "filter" -> value == null || value.matches(Regex("[a-zA-Z0-9_-]{1,80}"))

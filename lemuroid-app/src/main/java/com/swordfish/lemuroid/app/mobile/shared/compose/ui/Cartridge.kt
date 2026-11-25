@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -51,6 +53,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -69,6 +72,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.feature.shelf.drawCartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfMaterials
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import java.util.Locale
 
 @Composable
 fun CartridgeLibraryTheme(
@@ -376,7 +380,14 @@ internal fun CatalogueCartridgeFront(
     systemId: String,
     modifier: Modifier = Modifier,
 ) {
-    CartridgeFrontArtwork(title, systemId, null, modifier, LocalShelfAppearance.current.edition == "pink")
+    CartridgeFrontArtwork(
+        title,
+        systemId,
+        null,
+        modifier,
+        LocalShelfAppearance.current.edition == "pink",
+        cataloguePreview = true,
+    )
 }
 
 @Composable
@@ -386,6 +397,7 @@ private fun CartridgeFrontArtwork(
     artwork: ImageRequest?,
     modifier: Modifier,
     pink: Boolean,
+    cataloguePreview: Boolean = false,
 ) {
     val edition = if (pink) "pink" else LocalShelfAppearance.current.edition
     val cartridgeInk =
@@ -408,20 +420,23 @@ private fun CartridgeFrontArtwork(
             painterResource(
                 cartridgeAsset(edition, "fallback"),
             )
-        // Preserve the existing custom > indexed > original fallback artwork contract.
-        AsyncImage(
-            model = artwork,
-            contentDescription = null,
-            fallback = fallback,
-            error = fallback,
-            placeholder = fallback,
-            contentScale = ContentScale.Fit,
-            modifier =
-                Modifier.offset(
-                    unit * 40,
-                    unit * 113,
-                ).size(unit * 240, unit * 200).clip(RoundedCornerShape(unit * 8)),
-        )
+        val coverBounds =
+            Modifier.offset(unit * 40, unit * 113).size(unit * 240, unit * 200)
+                .clip(RoundedCornerShape(unit * 8))
+        if (cataloguePreview) {
+            CatalogueCoverArtwork(title, systemId, unit, coverBounds)
+        } else {
+            // Installed cartridges retain custom > indexed > original fallback artwork.
+            AsyncImage(
+                model = artwork,
+                contentDescription = null,
+                fallback = fallback,
+                error = fallback,
+                placeholder = fallback,
+                contentScale = ContentScale.Fit,
+                modifier = coverBounds,
+            )
+        }
         Image(
             cartridgePainter(
                 cartridgeAsset(edition, "overlay"),
@@ -479,6 +494,84 @@ private fun CartridgeFrontArtwork(
                 color = MaterialTheme.colorScheme.onSurface,
                 style = plateStyle,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Original title-specific CARTDECK artwork: catalogue preview only, never an installed cover. */
+internal fun catalogueCoverMotif(
+    title: String,
+    systemId: String,
+): Int =
+    ("${title.trim().lowercase(Locale.ROOT)}|${systemId.trim().lowercase(Locale.ROOT)}").hashCode() and
+        Int.MAX_VALUE
+
+@Composable
+private fun CatalogueCoverArtwork(
+    title: String,
+    systemId: String,
+    unit: Dp,
+    modifier: Modifier,
+) {
+    val seed = catalogueCoverMotif(title, systemId)
+    val palette =
+        listOf(
+            Color(0xFF19F5DA),
+            Color(0xFFFF4FA3),
+            Color(0xFFB69BFF),
+            Color(0xFFFFC56A),
+            Color(0xFF76BDFF),
+            Color(0xFFB2E876),
+        )
+    val accent = palette[seed % palette.size]
+    val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    Box(modifier.background(Color(0xFF101424))) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val count = 4 + seed % 3
+            repeat(count) { index ->
+                val offset = (seed ushr (index * 4)) and 7
+                val y = h * (0.14f + index * 0.12f)
+                drawLine(
+                    color = accent.copy(alpha = 0.27f),
+                    start = Offset(w * (0.06f + offset * 0.018f), y),
+                    end = Offset(w * 0.95f, y - h * (0.04f + offset * 0.012f)),
+                    strokeWidth = (w / 110f).coerceAtLeast(1f),
+                )
+            }
+            drawCircle(
+                color = accent.copy(alpha = 0.18f),
+                radius = w * (0.20f + (seed % 4) * 0.025f),
+                center = Offset(w * (0.47f + (seed % 3) * 0.10f), h * 0.54f),
+            )
+        }
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = unit * 12, vertical = unit * 10),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "CATALOGUE · ${cartridgeSystemLabel(systemId)}",
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = (unit.value * 11f / scale).sp,
+                        lineHeight = (unit.value * 14f / scale).sp,
+                    ),
+                color = accent,
+                maxLines = 1,
+            )
+            Text(
+                shelfPresentationTitle(title),
+                style =
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = (unit.value * 23f / scale).sp,
+                        lineHeight = (unit.value * 27f / scale).sp,
+                    ),
+                color = Color(0xFFF4F5FA),
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
         }

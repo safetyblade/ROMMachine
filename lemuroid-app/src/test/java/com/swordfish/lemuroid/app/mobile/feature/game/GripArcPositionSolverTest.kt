@@ -75,6 +75,29 @@ class GripArcPositionSolverTest {
         assertTrue(fit.scale <= 1f)
     }
 
+    @Test fun compactLandscapeFitsTheFullAttachmentBesideViewportAndOriginalInputs() {
+        val safe = PivotArcBounds(8f, 8f, 692f, 164f)
+        val viewport = PivotArcBounds(205f, 8f, 495f, 164f)
+        for (side in GripArcSide.entries) {
+            val native =
+                if (side == GripArcSide.RIGHT) {
+                    PivotArcBounds(515f, 24f, 563f, 72f)
+                } else {
+                    PivotArcBounds(137f, 24f, 185f, 72f)
+                }
+            val result = GripArcPositionSolver.resolve(source, safe, viewport, listOf(native), side)
+            assertTrue("$side should fit: $result", result is GripArcFit.Fits)
+            val dock = (result as GripArcFit.Fits).placement
+            assertTrue(dock.scale < 1f)
+            val slots = dock.targets.values.toList()
+            assertEquals(setOf(1, 2, 3, 4), dock.targets.keys)
+            assertTrue(slots.all { it.width >= 48f && it.height >= 48f && it.inside(safe) })
+            val painted = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, side)
+            assertTrue((painted + slots).none { it.intersects(native) || it.intersects(viewport) })
+            assertTrue(slots.indices.all { i -> slots.drop(i + 1).none(slots[i]::intersects) })
+        }
+    }
+
     @Test fun impossibleFitNeverCropsHousingOrButtons() {
         val unavailable =
             GripArcPositionSolver.resolve(

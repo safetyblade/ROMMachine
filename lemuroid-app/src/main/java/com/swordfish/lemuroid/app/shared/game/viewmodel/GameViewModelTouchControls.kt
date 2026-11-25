@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.shared.game.viewmodel
 
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
@@ -143,11 +144,11 @@ class GameViewModelTouchControls(
                 }
 
                 is InputEvent.DiscreteDirection -> {
-                    handleVirtualInputDirection(event.id, event.direction.x, -event.direction.y)
+                    dispatchPadKitDirection(event.id, event.direction, ::handleVirtualInputDirection)
                 }
 
                 is InputEvent.ContinuousDirection -> {
-                    handleVirtualInputDirection(event.id, event.direction.x, -event.direction.y)
+                    dispatchPadKitDirection(event.id, event.direction, ::handleVirtualInputDirection)
                 }
             }
         }
@@ -202,6 +203,15 @@ class GameViewModelTouchControls(
         yAxis: Float,
     ) {
         when (id) {
+            WonderSwanPivotInput.HORIZONTAL_SOURCE, WonderSwanPivotInput.VERTICAL_SOURCE -> {
+                val mapping = WonderSwanPivotInput.forController(touchControlId.value)
+                if (mapping?.source == id) {
+                    mapping.dispatch(xAxis, yAxis) { key, pressed ->
+                        pivotArcHoldGate.setSource(key, "touch:ws-cursor", pressed)
+                    }
+                }
+            }
+
             ComposeTouchLayouts.MOTION_SOURCE_DPAD -> {
                 retroGameView.retroGameView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, xAxis, yAxis)
             }
@@ -243,5 +253,18 @@ class GameViewModelTouchControls(
 
     companion object {
         const val MENU_LOADING_ANIMATION_MILLIS = 500
+    }
+}
+
+/** PadKit signals a released direction with Offset.Unspecified. Guest axes require neutral values. */
+internal fun dispatchPadKitDirection(
+    id: Int,
+    direction: Offset,
+    dispatch: (Int, Float, Float) -> Unit,
+) {
+    if (direction == Offset.Unspecified) {
+        dispatch(id, 0f, 0f)
+    } else {
+        dispatch(id, direction.x, -direction.y)
     }
 }

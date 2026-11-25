@@ -49,7 +49,10 @@ data class SafeSaveJournalRecord(
 
 /** Metadata index. Save bytes never live in index rows; they live on disk. */
 interface SafeSaveIndex {
-    fun insertSnapshot(snapshot: SafeSaveSnapshotRecord)
+    fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    )
 
     fun snapshot(snapshotId: String): SafeSaveSnapshotRecord?
 

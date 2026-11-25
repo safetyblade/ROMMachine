@@ -144,10 +144,28 @@
       },
       "kind": "module"
     },
+    "Mic": {
+      "center": {"x": 271, "y": 811},
+      "visual": {"w": 38, "h": 24},
+      "touch": {"w": 48, "h": 48},
+      "kind": "utility"
+    },
+    "Lid": {
+      "center": {"x": 329, "y": 811},
+      "visual": {"w": 38, "h": 24},
+      "touch": {"w": 48, "h": 48},
+      "kind": "utility"
+    },
+    "Cursor": {
+      "center": {"x": 322, "y": 643},
+      "visual": {"w": 58, "h": 58},
+      "touch": {"w": 64, "h": 64},
+      "kind": "dpad"
+    },
     "Analog": {
       "center": {
-        "x": 329,
-        "y": 769
+        "x": 322,
+        "y": 643
       },
       "visual": {
         "w": 58,

@@ -51,8 +51,17 @@ def resolve_component(required, artifact_dir):
     if not receipt_path.is_file() or receipt_path.is_symlink():
         raise ValueError("missing signed-off provenance receipt")
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    if not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA or receipt.get("identity") != expected:
-        raise ValueError("native build identity mismatch")
+    if not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA:
+        raise ValueError("native build identity mismatch: invalid receipt schema")
+    supplied = receipt.get("identity")
+    if not isinstance(supplied, dict):
+        raise ValueError("native build identity mismatch: missing identity fields")
+    if supplied != expected:
+        changed = [key for key in REQUIRED_IDENTITY if supplied.get(key) != expected[key]]
+        if set(supplied) != set(expected):
+            changed.append("unexpected/missing fields")
+        # Reveal field names only. Never log identities, paths, compiler flags or binary bytes.
+        raise ValueError("native build identity mismatch: " + ", ".join(changed))
     notices = receipt.get("licence_notices")
     if not isinstance(notices, str) or not notices:
         raise ValueError("missing licence notices reference")

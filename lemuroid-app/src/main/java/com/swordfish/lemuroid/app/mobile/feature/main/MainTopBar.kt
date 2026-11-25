@@ -93,6 +93,7 @@ fun LemuroidTopAppBar(
                     )
                 MainRoute.HOME -> BrandHeader("CARTDECK", R.drawable.cartdeck_brand_shelf)
                 MainRoute.GEM -> BrandHeader("GEM", R.drawable.cartdeck_brand_gem)
+                MainRoute.SAFESAVE -> BrandHeader("SafeSave", R.drawable.cartdeck_brand_safesave_mark)
                 MainRoute.CARTMOD -> BrandHeader("CARTMOD", R.drawable.cartdeck_brand_cartmod)
                 MainRoute.SETTINGS -> BrandHeader("Settings", R.drawable.cartdeck_brand_settings)
                 else -> Text(text = stringResource(route.titleId))
@@ -144,6 +145,7 @@ private fun BrandHeader(
             when (title) {
                 "CARTDECK" -> R.drawable.cartdeck_wordmark_native
                 "GEM" -> R.drawable.cartdeck_brand_gem_wordmark
+                "SafeSave" -> R.drawable.cartdeck_brand_safesave_wordmark
                 "CARTMOD" -> R.drawable.cartdeck_brand_cartmod_wordmark
                 else -> null
             }

@@ -241,22 +241,98 @@ index 50f066e..a189bfa 100644
      std::vector<std::unique_ptr<ES3Utils::Framebuffer>> blurFramebuffers;
 
 diff --git a/libretrodroid/src/main/cpp/video.cpp b/libretrodroid/src/main/cpp/video.cpp
-index a75dbaf..aac2910 100644
+index a75dbaf..37974cf 100644
 --- a/libretrodroid/src/main/cpp/video.cpp
 +++ b/libretrodroid/src/main/cpp/video.cpp
-@@ -141,7 +141,8 @@ void Video::renderFrame() {
+@@ -104,44 +104,57 @@ void Video::updateProgram() {
+         return;
+     }
+ 
+-    loadedShaderType = requestedShaderConfig;
++    std::vector<ShaderChainEntry> candidate;
++    auto compile = [&](const ShaderManager::Chain& chain) {
++        for (const auto& pass : chain.passes) {
++            ShaderChainEntry entry{};
++            entry.gProgram = createProgram(pass.vertex.data(), pass.fragment.data());
++            if (!entry.gProgram) {
++                for (const auto& program : candidate) glDeleteProgram(program.gProgram);
++                candidate.clear();
++                return false;
++            }
++            entry.gvPositionHandle = glGetAttribLocation(entry.gProgram, "vPosition");
++            entry.gvCoordinateHandle = glGetAttribLocation(entry.gProgram, "vCoordinate");
++            entry.gTextureHandle = glGetUniformLocation(entry.gProgram, "texture");
++            entry.gPreviousPassTextureHandle = glGetUniformLocation(entry.gProgram, "previousPass");
++            entry.gTextureSizeHandle = glGetUniformLocation(entry.gProgram, "textureSize");
++            entry.gScreenDensityHandle = glGetUniformLocation(entry.gProgram, "screenDensity");
++            candidate.push_back(entry);
++        }
++        return !candidate.empty();
++    };
+ 
+     auto shaders = ShaderManager::getShader(requestedShaderConfig);
+-
+-    shadersChain = {};
+-
+-    std::for_each(shaders.passes.begin(), shaders.passes.end(), [&](const auto& item){
+-        auto shader = ShaderChainEntry { };
+-
+-        shader.gProgram = createProgram(item.vertex.data(), item.fragment.data());
+-        if (!shader.gProgram) {
+-            LOGE("Could not create gl program.");
+-            throw std::runtime_error("Cannot create gl program");
++    if (!compile(shaders)) {
++        if (requestedShaderConfig.type == ShaderManager::Type::SHADER_DEFAULT) {
++            throw std::runtime_error("Cannot create pass-through GL program");
+         }
++        LOGE("Presentation shader failed; using the pass-through shader.");
++        shaders = ShaderManager::getShader({ShaderManager::Type::SHADER_DEFAULT, {}});
++        if (!compile(shaders)) {
++            throw std::runtime_error("Cannot create pass-through GL program");
++        }
++    }
+ 
+-        shader.gvPositionHandle = glGetAttribLocation(shader.gProgram, "vPosition");
+-
+-        shader.gvCoordinateHandle = glGetAttribLocation(shader.gProgram, "vCoordinate");
+-
+-        shader.gTextureHandle = glGetUniformLocation(shader.gProgram, "texture");
+-
+-        shader.gPreviousPassTextureHandle = glGetUniformLocation(shader.gProgram, "previousPass");
+-
+-        shader.gTextureSizeHandle = glGetUniformLocation(shader.gProgram, "textureSize");
+-
+-        shader.gScreenDensityHandle = glGetUniformLocation(shader.gProgram, "screenDensity");
+-
+-        shadersChain.push_back(shader);
+-    });
+-
+-    renderer->setShaders(shaders);
++    try {
++        renderer->setShaders(shaders);
++    } catch (...) {
++        for (const auto& program : candidate) glDeleteProgram(program.gProgram);
++        throw;
++    }
++    for (const auto& program : shadersChain) glDeleteProgram(program.gProgram);
++    shadersChain = std::move(candidate);
++    // Remember the attempted configuration so fallback will not recompile on every frame.
++    loadedShaderType = requestedShaderConfig;
+ }
+ 
+ void Video::renderFrame() {
      if (skipDuplicateFrames && !isDirty) return;
      isDirty = false;
-
+ 
 -    glDisable(GL_DEPTH_TEST);
 +    FrontendGLState coreState(glesVersion >= 3, hardwareAccelerated);
 +    coreState.prepare();
-
+ 
      glBindFramebuffer(GL_FRAMEBUFFER, 0);
      glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
-@@ -176,12 +177,9 @@ void Video::renderFrame() {
+@@ -176,12 +189,9 @@ void Video::renderFrame() {
          glUseProgram(shader.gProgram);
-
+ 
          auto vertices = isLastPass ? videoLayout.getForegroundVertices() : videoLayout.getFramebufferVertices();
 -        glVertexAttribPointer(shader.gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, vertices.data());
 -        glEnableVertexAttribArray(shader.gvPositionHandle);
@@ -266,22 +342,22 @@ index a75dbaf..aac2910 100644
 -        glEnableVertexAttribArray(shader.gvCoordinateHandle);
 +        frontendVertices.bind(glesVersion >= 3, shader.gvPositionHandle, shader.gvCoordinateHandle,
 +                              vertices.data(), coordinates.data(), vertices.size());
-
+ 
          glActiveTexture(GL_TEXTURE0);
          glBindTexture(GL_TEXTURE_2D, renderer->getTexture());
-@@ -199,8 +197,8 @@ void Video::renderFrame() {
-
+@@ -199,8 +209,8 @@ void Video::renderFrame() {
+ 
          glDrawArrays(GL_TRIANGLES, 0, 6);
-
+ 
 -        glDisableVertexAttribArray(shader.gvPositionHandle);
 -        glDisableVertexAttribArray(shader.gvCoordinateHandle);
 +        if (shader.gvPositionHandle >= 0) glDisableVertexAttribArray(shader.gvPositionHandle);
 +        if (shader.gvCoordinateHandle >= 0) glDisableVertexAttribArray(shader.gvCoordinateHandle);
-
+ 
          if (shader.gPreviousPassTextureHandle != -1 && passData.texture.has_value()) {
              glActiveTexture(GL_TEXTURE0 + 1);
-@@ -227,7 +225,13 @@ float Video::getTextureHeight() {
-
+@@ -227,7 +237,13 @@ float Video::getTextureHeight() {
+ 
  void Video::onNewFrame(const void *data, unsigned width, unsigned height, size_t pitch) {
      if (data != nullptr) {
 +        FrontendGLState coreState(glesVersion >= 3, hardwareAccelerated);
@@ -294,10 +370,10 @@ index a75dbaf..aac2910 100644
          isDirty = true;
      }
  }
-@@ -270,6 +274,9 @@ Video::Video(
+@@ -270,6 +286,9 @@ Video::Video(
      immersiveMode(immersiveModeConfig),
      videoLayout(bottomLeftOrigin, rotation, viewportRect, viewportAlignment) {
-
+ 
 +    glesVersion = renderingOptions.openglESVersion;
 +    hardwareAccelerated = renderingOptions.hardwareAccelerated;
 +    immersiveMode.setGLESVersion(glesVersion);

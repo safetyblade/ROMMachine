@@ -1,13 +1,10 @@
 package com.swordfish.touchinput.radial.settings
 
 import android.content.SharedPreferences
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.max
 import androidx.core.content.edit
-import com.swordfish.lemuroid.common.compose.pxToDp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,20 +28,6 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         val marginY: Float = DEFAULT_MARGIN_Y,
     )
 
-    private fun computeInsetsPaddings(
-        density: Density,
-        insets: WindowInsets,
-    ): PaddingValues {
-        val result =
-            PaddingValues(
-                insets.getLeft(density, layoutDirection = LayoutDirection.Ltr).pxToDp(density),
-                insets.getTop(density).pxToDp(density),
-                insets.getRight(density, layoutDirection = LayoutDirection.Ltr).pxToDp(density),
-                insets.getBottom(density).pxToDp(density),
-            )
-        return result
-    }
-
     private val cachedSettings = mutableMapOf<String, MutableStateFlow<Settings?>>()
 
     fun observeSettings(
@@ -53,20 +36,7 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         density: Density,
         insets: WindowInsets,
     ): Flow<Settings> {
-        val paddings = computeInsetsPaddings(density, insets)
-        val horizontalPadding =
-            max(
-                paddings.calculateLeftPadding(LayoutDirection.Ltr),
-                paddings.calculateRightPadding(LayoutDirection.Ltr),
-            )
-        val verticalPadding = paddings.calculateBottomPadding()
-        val defaultSettings =
-            Settings(
-                scale = DEFAULT_SCALE,
-                rotation = DEFAULT_ROTATION,
-                marginX = horizontalPadding.value / MAX_MARGINS,
-                marginY = verticalPadding.value / MAX_MARGINS,
-            )
+        val defaultSettings = defaultSettings(density, insets)
         val settingsKey = getPreferenceString(touchControllerID, orientation)
         val cachedStateFlow =
             cachedSettings.getOrPut(settingsKey) {
@@ -119,6 +89,21 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
     }
 
     companion object {
+        fun defaultSettings(
+            density: Density,
+            insets: WindowInsets,
+        ): Settings =
+            with(density) {
+                Settings(
+                    marginX =
+                        maxOf(
+                            insets.getLeft(density, LayoutDirection.Ltr),
+                            insets.getRight(density, LayoutDirection.Ltr),
+                        ).toDp().value / MAX_MARGINS,
+                    marginY = insets.getBottom(density).toDp().value / MAX_MARGINS,
+                )
+            }
+
         const val DEFAULT_SCALE = 0.5f
         const val DEFAULT_ROTATION = 0.0f
         const val DEFAULT_MARGIN_X = 0.0f

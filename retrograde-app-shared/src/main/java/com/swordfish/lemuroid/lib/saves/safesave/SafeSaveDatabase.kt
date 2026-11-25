@@ -10,6 +10,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 
 /**
  * SAVE-A01: separately versioned SafeSave metadata database.
@@ -67,6 +68,26 @@ interface SafeSaveDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertFiles(files: List<SafeSaveFileEntity>)
 
+    @Transaction
+    fun registerSnapshot(
+        snapshot: SafeSaveSnapshotEntity,
+        files: List<SafeSaveFileEntity>,
+        completion: SafeSaveJournalEntity,
+    ) {
+        check(!conflictingOwner(snapshot.groupName, snapshot.cartridgeUuid)) {
+            "Savedata group is already bound to a different cartridge"
+        }
+        insertSnapshot(snapshot)
+        insertFiles(files)
+        insertJournal(completion)
+    }
+
+    @Query("SELECT EXISTS(SELECT 1 FROM safesave_snapshots WHERE groupName = :group AND cartridgeUuid != :owner)")
+    fun conflictingOwner(
+        group: String,
+        owner: String,
+    ): Boolean
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertJournal(entity: SafeSaveJournalEntity)
 
@@ -104,8 +125,11 @@ abstract class SafeSaveDatabase : RoomDatabase() {
 
 /** Room-backed [SafeSaveIndex]. Stores metadata only; save bytes stay on disk. */
 class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
-    override fun insertSnapshot(snapshot: SafeSaveSnapshotRecord) {
-        dao.insertSnapshot(
+    override fun registerCapture(
+        snapshot: SafeSaveSnapshotRecord,
+        completion: SafeSaveJournalRecord,
+    ) {
+        dao.registerSnapshot(
             SafeSaveSnapshotEntity(
                 snapshotId = snapshot.snapshotId,
                 cartridgeUuid = snapshot.cartridgeUuid,
@@ -120,11 +144,10 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
                 totalBytes = snapshot.totalBytes,
                 fileCount = snapshot.fileCount,
             ),
-        )
-        dao.insertFiles(
             snapshot.files.map {
                 SafeSaveFileEntity(snapshot.snapshotId, it.relativePath, it.sizeBytes, it.sha256)
             },
+            completion.toEntity(),
         )
     }
 
@@ -140,17 +163,11 @@ class RoomSafeSaveIndex(private val dao: SafeSaveDao) : SafeSaveIndex {
         dao.snapshotsForGroup(groupName).map { it.toRecord(dao.files(it.snapshotId)) }
 
     override fun appendJournal(record: SafeSaveJournalRecord) {
-        dao.insertJournal(
-            SafeSaveJournalEntity(
-                record.opId,
-                record.kind,
-                record.snapshotId,
-                record.stage,
-                record.result,
-                record.timestamp,
-            ),
-        )
+        dao.insertJournal(record.toEntity())
     }
+
+    private fun SafeSaveJournalRecord.toEntity() =
+        SafeSaveJournalEntity(opId, kind, snapshotId, stage, result, timestamp)
 
     override fun journal(): List<SafeSaveJournalRecord> =
         dao.journal().map { SafeSaveJournalRecord(it.opId, it.kind, it.snapshotId, it.stage, it.result, it.timestamp) }

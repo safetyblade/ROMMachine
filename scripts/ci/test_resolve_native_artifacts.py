@@ -71,6 +71,15 @@ class NativeResolverTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.resolve(invalid)
 
+    def test_mismatch_reports_field_names_without_leaking_identity_values(self):
+        self.receipt["identity"]["build_script_sha256"] = "e" * 64
+        self.write_receipt()
+        result = self.resolve()
+        message = result["missing_or_invalid"]["ps1"]
+        self.assertIn("native build identity mismatch", message)
+        self.assertIn("build_script_sha256", message)
+        self.assertNotIn("e" * 64, message)
+
     def test_toolchain_change_invalidates_only_component(self):
         changed = dict(IDENTITY, ndk_version="28.0")
         self.assertIn("ps1", self.resolve(changed)["missing_or_invalid"])

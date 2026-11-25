@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game
 
 import android.content.Context
+import com.swordfish.lemuroid.lib.saves.safesave.SaveStorageLease
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
@@ -86,6 +87,9 @@ object GameProcessLock {
     fun acquireExclusive(appContext: Context) {
         acquire(appContext)
         check(lock?.isValid == true) { "Another CARTDECK game or storage operation is active" }
+        check(SaveStorageLease.enterGameProcess(appContext)) {
+            "Save storage is busy or needs recovery. Finish the SafeSave operation before reopening the game."
+        }
     }
 
     @Synchronized

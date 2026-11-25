@@ -20,11 +20,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -33,6 +35,12 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckLighting
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlinx.coroutines.flow.collect
+
+// GripArc artboard dimensions keep a visible margin inside the inner L on both hands.
+private const val GRIP_ARC_POCKET_WIDTH = 28f
+private const val GRIP_ARC_POCKET_HEIGHT = 16f
+private const val GRIP_ARC_CAP_WIDTH = 24f
+private const val GRIP_ARC_CAP_HEIGHT = 12f
 
 /** Shared production visibility gate, exercised by Compose rendering tests. */
 @Composable
@@ -81,11 +89,10 @@ internal fun GripArcControlGroup(
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
         if (drawHousing) {
-            GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength)
+            GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength, profile.count)
         }
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
-            val size = placement.visuals.getValue(slot)
             val mapping = profile.mappings.getOrNull(slot - 1).orEmpty().toSet()
             val interaction = remember(slot) { MutableInteractionSource() }
             var pressed by remember(slot) { mutableStateOf(false) }
@@ -122,7 +129,7 @@ internal fun GripArcControlGroup(
                 contentAlignment = Alignment.Center,
             ) {
                 GripArcShoulderButton(
-                    modifier = Modifier.size(size.w.dp, size.h.dp),
+                    modifier = Modifier.size((GRIP_ARC_CAP_WIDTH * scale).dp, (GRIP_ARC_CAP_HEIGHT * scale).dp),
                     label = "G$slot",
                     tokens = tokens,
                     pressed = pressed,
@@ -139,13 +146,16 @@ internal fun GripArcHousing(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    activeSlots: Int = 4,
 ) {
     val housing = placement.housing
     val left = placement.side == GripArcSide.LEFT
+    val insideX = GripArcPositionSolver.HOUSING_ARM_INNER_X
+    val insideY = GripArcPositionSolver.HOUSING_ARM_INNER_Y
     val outer =
         remember {
             Path().apply {
-                moveTo(104f, 4f)
+                moveTo(insideX + 8f, 4f)
                 lineTo(148f, 4f)
                 lineTo(156f, 12f)
                 lineTo(156f, 148f)
@@ -153,16 +163,16 @@ internal fun GripArcHousing(
                 lineTo(12f, 156f)
                 lineTo(4f, 148f)
                 lineTo(4f, 124f)
-                lineTo(12f, 116f)
-                lineTo(96f, 116f)
-                lineTo(96f, 12f)
+                lineTo(12f, insideY)
+                lineTo(insideX, insideY)
+                lineTo(insideX, 12f)
                 close()
             }
         }
     val inner =
         remember {
             Path().apply {
-                moveTo(106f, 10f)
+                moveTo(insideX + 10f, 8f)
                 lineTo(146f, 10f)
                 lineTo(150f, 16f)
                 lineTo(150f, 145f)
@@ -170,9 +180,9 @@ internal fun GripArcHousing(
                 lineTo(14f, 150f)
                 lineTo(10f, 145f)
                 lineTo(10f, 127f)
-                lineTo(15f, 122f)
-                lineTo(102f, 122f)
-                lineTo(102f, 16f)
+                lineTo(15f, insideY + 3f)
+                lineTo(insideX + 3f, insideY + 3f)
+                lineTo(insideX + 3f, 16f)
                 close()
             }
         }
@@ -189,10 +199,23 @@ internal fun GripArcHousing(
                 scale(scaleX = u, scaleY = u, pivot = Offset.Zero)
                 if (left) scale(scaleX = -1f, scaleY = 1f, pivot = Offset(80f, 80f))
             }) {
-                drawPath(outer, tokens.chassis)
-                drawPath(outer, tokens.secondary, style = Stroke(width = 2.2f))
-                drawPath(inner, tokens.secondary)
-                drawPath(inner, tokens.secondary.copy(alpha = 0.42f), style = Stroke(width = 1.4f))
+                drawControllerInset(outer, inner, Rect(4f, 4f, 156f, 156f), tokens, 2.2f)
+                clipPath(inner) {
+                    for (slot in 1..activeSlots) {
+                        val target = placement.targets.getValue(slot)
+                        val localX = (target.centerX - housing.left) / placement.scale
+                        val centerX = if (left) 160f - localX else localX
+                        val centerY = (target.centerY - housing.top) / placement.scale
+                        val seat =
+                            Offset(centerX - GRIP_ARC_POCKET_WIDTH / 2f, centerY - GRIP_ARC_POCKET_HEIGHT / 2f)
+                        drawRoundRect(
+                            color = tokens.bezel,
+                            topLeft = seat,
+                            size = androidx.compose.ui.geometry.Size(GRIP_ARC_POCKET_WIDTH, GRIP_ARC_POCKET_HEIGHT),
+                            cornerRadius = CornerRadius(3f),
+                        )
+                    }
+                }
                 drawMaterialTrack(
                     Rect(151f, 22f, 155f, 144f),
                     tokens,
@@ -217,11 +240,11 @@ internal fun GripArcHousing(
                 )
                 drawLine(
                     tokens.onChassis.copy(alpha = 0.26f),
-                    Offset(99f, 24f),
-                    Offset(99f, 108f),
+                    Offset(insideX + 3f, 24f),
+                    Offset(insideX + 3f, 108f),
                     strokeWidth = 1.2f,
                 )
-                for (p in listOf(Offset(102f, 14f), Offset(147f, 14f), Offset(14f, 144f), Offset(147f, 145f))) {
+                for (p in listOf(Offset(insideX + 6f, 14f), Offset(147f, 14f), Offset(14f, 144f), Offset(147f, 145f))) {
                     drawCircle(tokens.bezel, radius = 2.8f, center = p)
                     drawCircle(tokens.secondary, radius = 2.8f, center = p, style = Stroke(width = 1.3f))
                     drawLine(
@@ -233,18 +256,28 @@ internal fun GripArcHousing(
                 }
             }
         }
+        val first = placement.targets.getValue(1)
+        val second = placement.targets.getValue(2)
+        val engravingTop = first.centerY + placement.visuals.getValue(1).h / 2f + 2f
+        val engravingBottom = second.centerY - placement.visuals.getValue(2).h / 2f - 2f
+        val engravingWidth = 36f * placement.scale
+        val engravingCenter = (if (left) 32f else 128f) * placement.scale
         Box(
             modifier =
                 Modifier
-                    .offset(x = ((if (left) 36f else 124f) * placement.scale - 24f).dp, y = (4f * placement.scale).dp)
-                    .width(48.dp)
-                    .height(10.dp),
+                    .offset(x = (engravingCenter - engravingWidth / 2f).dp, y = (engravingTop - housing.top).dp)
+                    .width(engravingWidth.dp)
+                    .height((engravingBottom - engravingTop).dp)
+                    .clipToBounds()
+                    .testTag("griparc-engraving"),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "GripArc",
-                color = tokens.onChassis,
-                fontSize = 8.sp,
+                color = tokens.accent,
+                fontSize = 9.sp,
+                lineHeight = 11.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 maxLines = 1,
             )
@@ -259,30 +292,30 @@ private fun GripArcShoulderButton(
     tokens: CartdeckEditionTokens,
     pressed: Boolean,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            val r = size.height / 2.5f
+            val r = 3.dp.toPx()
             drawRoundRect(
                 color = tokens.bezel,
                 cornerRadius = CornerRadius(r),
             )
             drawRoundRect(
                 color = if (pressed) tokens.accent.copy(alpha = 0.62f) else tokens.secondary,
-                topLeft = Offset(2.dp.toPx(), (if (pressed) 4 else 2).dp.toPx()),
+                topLeft = Offset(1.dp.toPx(), (if (pressed) 2 else 1).dp.toPx()),
                 size =
                     androidx.compose.ui.geometry.Size(
-                        size.width - 4.dp.toPx(),
-                        size.height - 6.dp.toPx(),
+                        size.width - 2.dp.toPx(),
+                        size.height - 3.dp.toPx(),
                     ),
                 cornerRadius = CornerRadius(r),
             )
             drawRoundRect(
                 color = if (pressed) tokens.accent else tokens.onButton.copy(alpha = 0.36f),
-                topLeft = Offset(2.dp.toPx(), (if (pressed) 4 else 2).dp.toPx()),
+                topLeft = Offset(1.dp.toPx(), (if (pressed) 2 else 1).dp.toPx()),
                 size =
                     androidx.compose.ui.geometry.Size(
-                        size.width - 4.dp.toPx(),
-                        size.height - 6.dp.toPx(),
+                        size.width - 2.dp.toPx(),
+                        size.height - 3.dp.toPx(),
                     ),
                 cornerRadius = CornerRadius(r),
                 style = Stroke(width = 1.1.dp.toPx()),
@@ -294,6 +327,6 @@ private fun GripArcShoulderButton(
                 strokeWidth = 1.dp.toPx(),
             )
         }
-        Text(label, fontSize = 10.sp, color = tokens.onButton, maxLines = 1)
+        Text(label, fontSize = 9.sp, lineHeight = 9.sp, color = tokens.onButton, maxLines = 1)
     }
 }

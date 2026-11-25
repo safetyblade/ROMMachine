@@ -17,19 +17,26 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.feature.shelf.colorContrast
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlin.math.roundToInt
+
+internal const val PIVOT_ARC_DISPLAY_CLEARANCE_DP = 20f
 
 /** One approved PivotArc identity across the installed shell and Layout settings. */
 @Composable
@@ -38,12 +45,14 @@ internal fun PivotArcWordmark(
     ink: Color,
     accent: Color,
     compact: Boolean = false,
+    compactFontSize: TextUnit = 16.sp,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "PivotArc",
             color = ink,
-            fontSize = if (compact) 16.sp else 19.sp,
+            fontSize = if (compact) compactFontSize else 19.sp,
+            lineHeight = if (compact) 16.sp else 21.sp,
             fontStyle = FontStyle.Italic,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.6.sp,
@@ -84,6 +93,7 @@ internal object PivotArcModuleGeometry {
         root: Rect,
         edge: Float,
         labelHeight: Float,
+        displayClearance: Float = edge * 1.8f,
     ): PivotArcModulePlacement? {
         if (root.width <= 0f || root.height <= 0f || edge <= 0f || labelHeight <= 0f) return null
         val gameplay = controls.filterKeys { it !in utilityKeys }.values
@@ -99,7 +109,11 @@ internal object PivotArcModuleGeometry {
             controls.filterKeys { it in utilityKeys }.values
                 .filter { it.bottom <= coreTop }
                 .maxOfOrNull { it.bottom } ?: 0f
-        val excludedTop = maxOf(video?.bottom ?: 0f, utilitiesAboveCore) + edge / 2f
+        val excludedTop =
+            maxOf(
+                (video?.bottom ?: 0f) + displayClearance,
+                utilitiesAboveCore + edge / 2f,
+            )
 
         val left = maxOf(edge / 2f, coreLeft - edge)
         val top = maxOf(excludedTop, coreTop - edge - labelHeight)
@@ -109,14 +123,159 @@ internal object PivotArcModuleGeometry {
             return null
         }
         val plate = Rect(left, top, right, bottom)
-        val label =
-            if (coreTop - top >= labelHeight + edge / 2f) {
-                Rect(left + edge, top + 2f, right - edge, top + labelHeight)
-                    .takeIf { it.width >= 105f && it.bottom < coreTop }
-            } else {
-                null
+        return PivotArcModulePlacement(plate, centeredWordmark(plate, controls.values, edge, labelHeight))
+    }
+
+    fun centeredWordmark(
+        plate: Rect,
+        controls: Collection<Rect>,
+        edge: Float,
+        labelHeight: Float,
+        preferredWidth: Float = edge * 10f,
+    ): Rect? {
+        val width = minOf(plate.width - edge * 2f, preferredWidth)
+        if (width < minOf(edge * 8f, preferredWidth)) return null
+        val left = plate.center.x - width / 2f
+        val top = plate.top + edge / 3f
+        val rows = listOf(top) + controls.map { maxOf(top, it.bottom + edge / 3f) }.sorted()
+        return rows.asSequence()
+            .map { y -> Rect(left, y, left + width, y + labelHeight) }
+            .firstOrNull { candidate ->
+                candidate.bottom <= plate.bottom - edge &&
+                    controls.none { CartdeckHardwareGeometry.intersects(it, candidate) }
             }
-        return PivotArcModulePlacement(plate, label)
+    }
+}
+
+/** Material and trim dimensions for the measured PivotArc housing. */
+internal object PivotArcPaintPolicy {
+    /** Hardware-seat names, not raw gamepad keys, arrive from MobileGameScreen. */
+    fun materialKey(key: String): String =
+        when {
+            key.startsWith("face-") -> key.removePrefix("face-").uppercase()
+            key == "dpad" || key == "c-direction" -> "D"
+            key.startsWith("analog-") -> "ANALOG"
+            key.startsWith("shoulder-") -> key.removePrefix("shoulder-").uppercase()
+            key == "hold-a" -> "HOLDA"
+            key == "hold-b" -> "HOLDB"
+            else -> key.uppercase()
+        }
+
+    /** Compact local control pods; NEVER paint the full clearance hull. */
+    fun pods(
+        controls: Map<String, Rect>,
+        padding: Float,
+        density: Float = 1f,
+    ): List<Rect> {
+        if (padding <= 0f) return emptyList()
+        val groups =
+            listOf(
+                controls.filterKeys { materialKey(it) == "D" }.values,
+                controls.filterKeys { materialKey(it) == "ANALOG" }.values,
+                controls.filterKeys { materialKey(it) in setOf("A", "B", "X", "Y") }.values,
+            )
+        return groups.filter { it.isNotEmpty() }.mapNotNull { seats ->
+            val bounds =
+                Rect(
+                    seats.minOf { it.left } - padding,
+                    seats.minOf { it.top } - padding,
+                    seats.maxOf { it.right } + padding,
+                    seats.maxOf { it.bottom } + padding,
+                )
+            // A scattered layout must not recreate the oversized black slab.
+            bounds.takeIf { it.width <= 175f * density && it.height <= 175f * density }
+        }
+    }
+
+    fun rails(
+        plate: Rect,
+        width: Float,
+    ): List<Rect> {
+        if (width <= 0f || plate.width <= width * 4f || plate.height <= width * 4f) return emptyList()
+        return listOf(
+            Rect(plate.left + width, plate.top, plate.right - width, plate.top + width),
+            Rect(plate.left + width, plate.bottom - width, plate.right - width, plate.bottom),
+        )
+    }
+
+    fun railAreaFraction(
+        plate: Rect,
+        width: Float,
+    ): Float =
+        if (plate.width <= 0f || plate.height <= 0f) {
+            0f
+        } else {
+            rails(plate, width).sumOf { (it.width * it.height).toDouble() }.toFloat() /
+                (plate.width * plate.height)
+        }
+}
+
+internal fun pivotArcHardwareSeatKey(key: String): String =
+    when (key) {
+        "D" -> "dpad"
+        "Analog", "AnalogL" -> "analog-left"
+        "AnalogR" -> "analog-right"
+        "A", "B", "X", "Y" -> "face-${key.lowercase()}"
+        "HoldA" -> "hold-a"
+        "HoldB" -> "hold-b"
+        "L", "R", "L2", "R2" -> "shoulder-$key"
+        else -> key.lowercase()
+    }
+
+/** Bevel and recessed material shared by the controller islands and dock. */
+internal fun DrawScope.drawControllerInset(
+    rim: Path,
+    inset: Path,
+    bounds: Rect,
+    tokens: CartdeckEditionTokens,
+    edge: Float,
+    housing: Color = tokens.secondary,
+) {
+    drawPath(rim, tokens.bezel)
+    drawPath(
+        inset,
+        Brush.verticalGradient(
+            listOf(
+                lerp(housing, tokens.bezel, 0.55f),
+                housing,
+                lerp(tokens.chassis, housing, 0.65f),
+            ),
+            startY = bounds.top,
+            endY = bounds.bottom,
+        ),
+    )
+    drawPath(rim, tokens.secondary, style = Stroke(edge))
+    drawPath(inset, tokens.onChassis.copy(alpha = 0.24f), style = Stroke(edge / 2f))
+}
+
+internal fun chamferedIsland(
+    bounds: Rect,
+    corner: Float,
+): Path =
+    Path().apply {
+        moveTo(bounds.left + corner, bounds.top)
+        lineTo(bounds.right - corner, bounds.top)
+        lineTo(bounds.right, bounds.top + corner)
+        lineTo(bounds.right, bounds.bottom - corner)
+        lineTo(bounds.right - corner, bounds.bottom)
+        lineTo(bounds.left + corner, bounds.bottom)
+        lineTo(bounds.left, bounds.bottom - corner)
+        lineTo(bounds.left, bounds.top + corner)
+        close()
+    }
+
+/** Trace a single recessed face with an optional cutout for the mounted GripArc. */
+private fun cradleContour(
+    bounds: Rect,
+    notch: Rect?,
+    corner: Float,
+): Path {
+    val upper = chamferedIsland(bounds, minOf(corner, bounds.height / 4f, bounds.width / 4f))
+    return if (notch == null) {
+        upper
+    } else {
+        val lower = chamferedIsland(notch, minOf(corner, notch.height / 4f, notch.width / 4f))
+        Path.combine(PathOperation.Union, upper, lower)
     }
 }
 
@@ -127,83 +286,76 @@ internal fun CartdeckPivotArcModule(
     video: Rect?,
     root: Rect,
     tokens: CartdeckEditionTokens,
+    joint: CompositeControlDeckPlacement? = null,
 ) {
     val density = LocalDensity.current
     val edge = with(density) { 11.dp.toPx() }
-    val labelHeight = with(density) { 31.dp.toPx() }
-    val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight) ?: return
+    val labelHeight = with(density) { 20.dp.toPx() }
+    val displayClearance = with(density) { PIVOT_ARC_DISPLAY_CLEARANCE_DP.dp.toPx() }
+    val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight, displayClearance) ?: return
     val ink =
         listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             .maxBy { colorContrast(it, tokens.secondary) }
 
+    // The dock may not replace solo PivotArc's machined housing or wordmark.
+    // Combined mode uses precisely the same visual material and shape.
+    val plate = module.plate
+    val upper = plate
+    val wordmark = module.wordmark
+
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
-            val plate = module.plate
             val bevel = 15.dp.toPx()
-            val face =
-                Path().apply {
-                    moveTo(plate.left + bevel, plate.top)
-                    lineTo(plate.right - bevel, plate.top)
-                    lineTo(plate.right, plate.top + bevel)
-                    lineTo(plate.right, plate.bottom - bevel)
-                    lineTo(plate.right - bevel, plate.bottom)
-                    lineTo(plate.left + bevel, plate.bottom)
-                    lineTo(plate.left, plate.bottom - bevel)
-                    lineTo(plate.left, plate.top + bevel)
-                    close()
+            val lip = 5.dp.toPx()
+            if (upper.width > lip * 2f && upper.height > lip * 2f) {
+                val inset = upper.deflate(lip)
+                drawControllerInset(
+                    rim = chamferedIsland(upper, bevel),
+                    inset = chamferedIsland(inset, bevel / 2f),
+                    bounds = upper,
+                    tokens = tokens,
+                    edge = 2.dp.toPx(),
+                    housing = lerp(tokens.chassis, tokens.secondary, 0.24f),
+                )
+            }
+            for (groove in PivotArcPaintPolicy.rails(plate.deflate(lip), 1.dp.toPx())) {
+                drawRoundRect(
+                    color = tokens.bezel.copy(alpha = 0.68f),
+                    topLeft = groove.topLeft,
+                    size = groove.size,
+                    cornerRadius = CornerRadius(groove.height / 2f),
+                )
+            }
+            val utility = controls.filterKeys { it in setOf("start", "select", "menu") }
+            val rail =
+                utility.values.takeIf { it.isNotEmpty() }?.let { seats ->
+                    Rect(
+                        seats.minOf { it.left },
+                        seats.minOf { it.top },
+                        seats.maxOf { it.right },
+                        seats.maxOf { it.bottom },
+                    ).takeIf { band ->
+                        controls.filterKeys { it !in utility }.values.none {
+                            CartdeckHardwareGeometry.intersects(it, band)
+                        } && band.height <= 56.dp.toPx()
+                    }
                 }
-            // V2: multiple material levels are painted UNDER PadKit. This
-            // layer never owns input, changes control coordinates, or extends
-            // into the game viewport (the plate comes from measured geometry).
-            val depth = 3.dp.toPx()
-            val insetEdge = 7.dp.toPx()
-
-            fun chamferedPlate(
-                bounds: Rect,
-                corner: Float,
-            ) = Path().apply {
-                moveTo(bounds.left + corner, bounds.top)
-                lineTo(bounds.right - corner, bounds.top)
-                lineTo(bounds.right, bounds.top + corner)
-                lineTo(bounds.right, bounds.bottom - corner)
-                lineTo(bounds.right - corner, bounds.bottom)
-                lineTo(bounds.left + corner, bounds.bottom)
-                lineTo(bounds.left, bounds.bottom - corner)
-                lineTo(bounds.left, bounds.top + corner)
-                close()
-            }
-            val contactShadow =
-                Rect(plate.left, plate.top + depth, plate.right, plate.bottom)
-            drawPath(chamferedPlate(contactShadow, bevel), tokens.bezel.copy(alpha = 0.68f))
-            drawPath(face, tokens.secondary)
-            drawPath(
-                face,
-                tokens.onChassis.copy(alpha = 0.23f),
-                style = Stroke(width = 2.dp.toPx()),
-            )
-            drawPath(face, tokens.bezel, style = Stroke(width = 3.dp.toPx()))
-            val innerPlate =
-                Rect(
-                    plate.left + insetEdge,
-                    plate.top + insetEdge,
-                    plate.right - insetEdge,
-                    plate.bottom - insetEdge,
-                )
-            if (innerPlate.width > 2 * bevel && innerPlate.height > 2 * bevel) {
-                val inner = chamferedPlate(innerPlate, bevel * 0.60f)
-                drawPath(inner, tokens.chassis.copy(alpha = 0.46f))
-                drawPath(
-                    inner,
-                    tokens.onChassis.copy(alpha = 0.13f),
-                    style = Stroke(width = 1.1.dp.toPx()),
-                )
-                drawLine(
-                    tokens.bezel.copy(alpha = 0.64f),
-                    Offset(innerPlate.left + bevel, innerPlate.bottom - 2.dp.toPx()),
-                    Offset(innerPlate.right - bevel, innerPlate.bottom - 2.dp.toPx()),
-                    strokeWidth = 2.2.dp.toPx(),
+            for (pod in listOfNotNull(rail)) {
+                if (pod.left < 0f || pod.top < (video?.bottom ?: 0f) ||
+                    pod.right > size.width || pod.bottom > size.height
+                ) {
+                    continue
+                }
+                val corner = minOf(13.dp.toPx(), minOf(pod.width, pod.height) / 4f)
+                drawControllerInset(
+                    chamferedIsland(pod, corner),
+                    chamferedIsland(pod.inflate(-3.dp.toPx()), corner / 2f),
+                    pod,
+                    tokens,
+                    1.5.dp.toPx(),
                 )
             }
+            // Local machined wells below are preserved; no opaque full hull.
             // The face, D-pad well and shoulders get individual machined
             // seats. The existing caps/pressed feedback remain authoritative.
             val gameplaySeats =
@@ -213,7 +365,7 @@ internal fun CartdeckPivotArcModule(
             for ((key, bounds) in gameplaySeats) {
                 val center = bounds.center
                 val radius = minOf(bounds.width, bounds.height) / 2f
-                when (key.uppercase()) {
+                when (PivotArcPaintPolicy.materialKey(key)) {
                     "A", "B", "X", "Y" -> {
                         val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
                         drawCircle(tokens.bezel.copy(alpha = 0.89f), radius = collar, center = center)
@@ -232,6 +384,34 @@ internal fun CartdeckPivotArcModule(
                             size = Size(collar * 2, collar * 2),
                             style = Stroke(width = 1.2.dp.toPx()),
                         )
+                    }
+                    "ANALOG" -> {
+                        val collar = radius - 3.dp.toPx()
+                        val inner = collar - 5.dp.toPx()
+                        drawCircle(tokens.bezel, radius = collar, center = center)
+                        drawCircle(
+                            tokens.secondary,
+                            radius = collar - 1.dp.toPx(),
+                            center = center,
+                            style = Stroke(width = 2.dp.toPx()),
+                        )
+                        drawCircle(
+                            tokens.accent.copy(alpha = 0.52f),
+                            radius = inner,
+                            center = center,
+                            style = Stroke(width = 1.dp.toPx()),
+                        )
+                        for (angle in listOf(42f, 132f, 222f, 312f)) {
+                            drawArc(
+                                tokens.onChassis.copy(alpha = 0.42f),
+                                startAngle = angle,
+                                sweepAngle = 6f,
+                                useCenter = false,
+                                topLeft = center - Offset(collar, collar),
+                                size = Size(collar * 2f, collar * 2f),
+                                style = Stroke(width = 1.3.dp.toPx()),
+                            )
+                        }
                     }
                     "D" -> {
                         val margin = 3.dp.toPx()
@@ -303,62 +483,64 @@ internal fun CartdeckPivotArcModule(
                     cornerRadius = CornerRadius(9.dp.toPx()),
                 )
             }
-            val foot = 11.dp.toPx()
-            val inset = 4.dp.toPx()
-            drawLine(
-                tokens.accent.copy(alpha = 0.72f),
-                Offset(plate.left + bevel, plate.top + inset),
-                Offset(minOf(plate.left + bevel + 27.dp.toPx(), plate.right - bevel), plate.top + inset),
-                strokeWidth = 2.dp.toPx(),
-            )
-            drawLine(
-                tokens.accent.copy(alpha = 0.72f),
-                Offset(maxOf(plate.right - bevel - 27.dp.toPx(), plate.left + bevel), plate.top + inset),
-                Offset(plate.right - bevel, plate.top + inset),
-                strokeWidth = 2.dp.toPx(),
-            )
-            drawLine(
-                tokens.accent.copy(alpha = 0.42f),
-                Offset(plate.left + bevel, plate.bottom - inset),
-                Offset(minOf(plate.left + bevel + 22.dp.toPx(), plate.right - bevel), plate.bottom - inset),
-                strokeWidth = 1.8.dp.toPx(),
-            )
-            // Machined bolt heads remain away from active control surfaces.
-            val bolts =
-                listOf(
-                    Offset(plate.left + foot, plate.top + foot),
-                    Offset(plate.right - foot, plate.top + foot),
-                    Offset(plate.left + foot, plate.bottom - foot),
-                    Offset(plate.right - foot, plate.bottom - foot),
+            run {
+                val foot = 11.dp.toPx()
+                val inset = 4.dp.toPx()
+                drawLine(
+                    tokens.accent.copy(alpha = 0.72f),
+                    Offset(plate.left + bevel, plate.top + inset),
+                    Offset(minOf(plate.left + bevel + 27.dp.toPx(), plate.right - bevel), plate.top + inset),
+                    strokeWidth = 2.dp.toPx(),
                 )
-            val gameplay = controls.filterKeys { it !in setOf("start", "select", "menu") }.values
-            for (center in bolts) {
-                val protected =
-                    Rect(
-                        center.x - 7.dp.toPx(),
-                        center.y - 7.dp.toPx(),
-                        center.x + 7.dp.toPx(),
-                        center.y + 7.dp.toPx(),
+                drawLine(
+                    tokens.accent.copy(alpha = 0.72f),
+                    Offset(maxOf(plate.right - bevel - 27.dp.toPx(), plate.left + bevel), plate.top + inset),
+                    Offset(plate.right - bevel, plate.top + inset),
+                    strokeWidth = 2.dp.toPx(),
+                )
+                drawLine(
+                    tokens.accent.copy(alpha = 0.42f),
+                    Offset(plate.left + bevel, plate.bottom - inset),
+                    Offset(minOf(plate.left + bevel + 22.dp.toPx(), plate.right - bevel), plate.bottom - inset),
+                    strokeWidth = 1.8.dp.toPx(),
+                )
+                // Machined bolt heads remain away from active control surfaces.
+                val bolts =
+                    listOf(
+                        Offset(plate.left + foot, plate.top + foot),
+                        Offset(plate.right - foot, plate.top + foot),
+                        Offset(plate.left + foot, plate.bottom - foot),
+                        Offset(plate.right - foot, plate.bottom - foot),
                     )
-                if (gameplay.none { CartdeckHardwareGeometry.intersects(it, protected) }) {
-                    drawCircle(tokens.bezel, radius = 3.dp.toPx(), center = center)
-                    drawCircle(
-                        tokens.accent.copy(alpha = 0.34f),
-                        radius = 2.dp.toPx(),
-                        center = center,
-                        style = Stroke(0.8.dp.toPx()),
-                    )
-                    drawLine(
-                        tokens.onChassis.copy(alpha = 0.40f),
-                        center - Offset(1.5.dp.toPx(), 0f),
-                        center + Offset(1.5.dp.toPx(), 0f),
-                        strokeWidth = 0.8.dp.toPx(),
-                    )
+                val gameplay = controls.filterKeys { it !in setOf("start", "select", "menu") }.values
+                for (center in bolts) {
+                    val protected =
+                        Rect(
+                            center.x - 7.dp.toPx(),
+                            center.y - 7.dp.toPx(),
+                            center.x + 7.dp.toPx(),
+                            center.y + 7.dp.toPx(),
+                        )
+                    if (gameplay.none { CartdeckHardwareGeometry.intersects(it, protected) }) {
+                        drawCircle(tokens.bezel, radius = 3.dp.toPx(), center = center)
+                        drawCircle(
+                            tokens.accent.copy(alpha = 0.34f),
+                            radius = 2.dp.toPx(),
+                            center = center,
+                            style = Stroke(0.8.dp.toPx()),
+                        )
+                        drawLine(
+                            tokens.onChassis.copy(alpha = 0.40f),
+                            center - Offset(1.5.dp.toPx(), 0f),
+                            center + Offset(1.5.dp.toPx(), 0f),
+                            strokeWidth = 0.8.dp.toPx(),
+                        )
+                    }
                 }
             }
         }
 
-        module.wordmark?.let { region ->
+        wordmark?.let { region ->
             val width = with(density) { region.width.toDp() }
             val height = with(density) { region.height.toDp() }
             Box(
@@ -373,6 +555,7 @@ internal fun CartdeckPivotArcModule(
                     ink = ink,
                     accent = tokens.accent,
                     compact = true,
+                    compactFontSize = if (width < 66.dp) 13.sp else 16.sp,
                 )
             }
         }

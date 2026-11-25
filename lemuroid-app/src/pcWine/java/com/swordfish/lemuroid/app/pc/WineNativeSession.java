@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.SystemClock;
-import android.system.Os;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
@@ -224,8 +223,10 @@ public final class WineNativeSession {
             env.put("WINEDEBUG","-all,err+all"); env.put("WINEDLLOVERRIDES","mscoree,mshtml=");
             env.put("WINEDEBUGLOG",new File(wineRoot,"wine-session.log").getPath());
             env.put("LANG","C.UTF-8");
-            // Do not execute extracted files with Android execve or lower targetSdk.
-            Os.chdir(working.getPath());
+            // Android's public Os facade does not expose chdir(). Keep the
+            // absolute Wine executable path and verified working directory;
+            // the native host must establish process cwd before entering Wine.
+            env.put("PWD",working.getPath());
             String winPath="Z:"+executable.getAbsolutePath().replace('/','\\');
             String[] argv={loader.getPath(),"c:\\windows\\system32\\explorer.exe","/desktop=shell,,android",winPath};
             return new WineNativeSession(game,ntdll,argv,env,server,prefix,working);

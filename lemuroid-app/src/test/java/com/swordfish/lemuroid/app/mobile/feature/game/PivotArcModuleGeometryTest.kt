@@ -27,7 +27,7 @@ class PivotArcModuleGeometryTest {
         val result = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)
         assertNotNull(result)
         val plate = result!!.plate
-        assertTrue(plate.top > video.bottom)
+        assertTrue(plate.top >= video.bottom + 19.7f)
         assertTrue(plate.top > controls.getValue("start").bottom)
         assertTrue(plate.left < controls.getValue("shoulder-L").left)
         assertTrue(plate.right > controls.getValue("shoulder-R").right)
@@ -62,6 +62,29 @@ class PivotArcModuleGeometryTest {
     }
 
     @Test
+    fun theUpperSurroundKeepsAClearGapEvenWhenTheFirstControlIsNearTheScreen() {
+        val nearScreen = mapOf("face-a" to Rect(120f, 374f, 174f, 428f))
+        val result = PivotArcModuleGeometry.resolve(nearScreen, video, root, 11f, 20f)!!
+        assertEquals(video.bottom + 19.8f, result.plate.top, 0.01f)
+        assertTrue(result.plate.top < nearScreen.getValue("face-a").top)
+    }
+
+    @Test
+    fun theWordmarkStaysCenteredBelowAHighFaceButton() {
+        val square = Rect(154f, 381f, 202f, 429f)
+        val pspControls =
+            mapOf(
+                "face-y" to square,
+                "dpad" to Rect(110f, 486f, 228f, 604f),
+                "analog-left" to Rect(293f, 511f, 367f, 585f),
+            )
+        val result = PivotArcModuleGeometry.resolve(pspControls, video, root, 11f, 20f)!!
+        assertNotNull(result.wordmark)
+        assertEquals(result.plate.center.x, result.wordmark!!.center.x, 0.01f)
+        assertTrue(result.wordmark!!.top >= square.bottom)
+    }
+
+    @Test
     fun impossibleViewportOrNoControlsNeverBuildsAPlateOverTheVideo() {
         assertNull(PivotArcModuleGeometry.resolve(emptyMap(), video, root, 11f, 31f))
         assertNull(
@@ -73,6 +96,44 @@ class PivotArcModuleGeometryTest {
                 31f,
             ),
         )
+    }
+
+    @Test
+    fun machinedGroovesStayInsideTheMeasuredPlate() {
+        val fullPlate = PivotArcModuleGeometry.resolve(controls, video, root, 11f, 31f)!!.plate
+        val rails = PivotArcPaintPolicy.rails(fullPlate, 3f)
+        assertEquals(2, rails.size)
+        assertTrue(
+            "Machined grooves should occupy only a small fraction of the PivotArc plate",
+            PivotArcPaintPolicy.railAreaFraction(fullPlate, 3f) < 0.04f,
+        )
+        for (rail in rails) {
+            assertTrue(rail.left >= fullPlate.left && rail.right <= fullPlate.right)
+            assertTrue(rail.top >= fullPlate.top && rail.bottom <= fullPlate.bottom)
+        }
+        assertTrue(PivotArcPaintPolicy.rails(fullPlate, fullPlate.width).isEmpty())
+    }
+
+    @Test
+    fun productionHardwareSeatNamesPaintRealFaceDirectionAndPspAnalogMaterial() {
+        assertEquals("A", PivotArcPaintPolicy.materialKey("face-a"))
+        assertEquals("B", PivotArcPaintPolicy.materialKey("face-b"))
+        assertEquals("D", PivotArcPaintPolicy.materialKey("dpad"))
+        assertEquals("ANALOG", PivotArcPaintPolicy.materialKey("analog-left"))
+        assertEquals("ANALOG", PivotArcPaintPolicy.materialKey("analog-right"))
+        assertEquals("L2", PivotArcPaintPolicy.materialKey("shoulder-L2"))
+        assertEquals("HOLDA", PivotArcPaintPolicy.materialKey("hold-a"))
+        val psp =
+            mapOf(
+                "dpad" to Rect(32f, 550f, 108f, 626f),
+                "analog-left" to Rect(35f, 690f, 99f, 754f),
+                "face-a" to Rect(280f, 620f, 332f, 672f),
+                "face-b" to Rect(220f, 660f, 272f, 712f),
+            )
+        val pods = PivotArcPaintPolicy.pods(psp, 7f)
+        assertEquals(3, pods.size)
+        assertTrue(pods.all { it.width <= 175f && it.height <= 175f })
+        assertTrue(pods.none { CartdeckHardwareGeometry.intersects(it, video) })
     }
 
     @Test
