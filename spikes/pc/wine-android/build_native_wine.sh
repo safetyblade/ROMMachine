@@ -25,7 +25,7 @@ export PATH="$work/mingw/bin:$toolchain:$PATH"
 mkdir "$work/host-tools"
 (
     cd "$work/host-tools"
-    "$work/wine/configure" --enable-win64 --disable-tests --without-x --without-wayland --without-freetype --without-mingw > "$work/logs/host-configure.log" 2>&1 || { tail -80 "$work/logs/host-configure.log"; exit 1; }
+    "$work/wine/configure" --enable-win64 --disable-tests --without-x --without-wayland --with-freetype --without-mingw > "$work/logs/host-configure.log" 2>&1 || { tail -80 "$work/logs/host-configure.log"; exit 1; }
     make -j4 __tooldeps__ > "$work/logs/host-tools.log" 2>&1 || { tail -80 "$work/logs/host-tools.log"; exit 1; }
     # wrc/wmc locate locale and codepage tables relative to their own host binary.
     # The out-of-tree tools-only target does not populate nls/; use the exact pinned source data.

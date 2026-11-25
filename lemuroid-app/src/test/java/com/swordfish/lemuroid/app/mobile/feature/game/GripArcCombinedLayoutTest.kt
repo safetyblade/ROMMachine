@@ -26,6 +26,19 @@ class GripArcCombinedLayoutTest {
             TouchControllerID.XBOX,
         )
 
+    @Test fun paintedArmsAreCompactAndMirrorAroundTheFixedSlotGrid() {
+        val housing = PivotArcBounds(0f, 0f, 160f, 160f)
+        val right = GripArcPositionSolver.housingFootprint(housing, 1f, GripArcSide.RIGHT)
+        val left = GripArcPositionSolver.housingFootprint(housing, 1f, GripArcSide.LEFT)
+        assertEquals(54f, right[0].width, 0.001f)
+        assertEquals(38f, right[1].height, 0.001f)
+        right.zip(left).forEach { (r, l) ->
+            assertEquals(160f - r.right, l.left, 0.001f)
+            assertEquals(160f - r.left, l.right, 0.001f)
+        }
+        assertTrue(manifest.slots.all { it.hitTarget.w == 48f && it.hitTarget.h == 48f })
+    }
+
     // Synthetic native-bound fixture. Runtime uses the actual native composable observations.
     private fun measured(native: NativeControlInventory): Map<String, PivotArcBounds> {
         fun box(
@@ -59,6 +72,30 @@ class GripArcCombinedLayoutTest {
         return result
     }
 
+    @Test fun savedStandardGeometryCannotBeReplacedByTheDefaultConstellation() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val native = NativeControlInventory.forController(TouchControllerID.GBA)!!
+        val measurements =
+            GripArcCombinedLayout.initialNativeConstellation(native, device.safe, device.viewport)!!
+                .mapValues { (_, area) -> area.copy(top = area.top - 400f, bottom = area.bottom - 400f) }
+
+        val result =
+            GripArcCombinedLayout.resolve(
+                manifest,
+                native,
+                native.inputIds,
+                measurements,
+                device.safe,
+                device.viewport,
+                GripArcSide.RIGHT,
+                0f,
+                0f,
+                fallbackToNativeBaseline = false,
+            )
+
+        assertTrue(result == null)
+    }
+
     @Test fun closeFitPreservesControllerConstellationsAndMinimumTargets() {
         val anchor = PivotArcBounds(20f, 200f, 120f, 300f)
         val upper = PivotArcBounds(40f, 212f, 88f, 260f)
@@ -73,6 +110,27 @@ class GripArcCombinedLayoutTest {
         assertTrue(bottom.width >= 48f && bottom.height >= 48f)
         assertTrue(kotlin.math.abs(top.centerY - upper.centerY) <= 24f)
         assertTrue(kotlin.math.abs(bottom.centerY - lower.centerY) <= 24f)
+    }
+
+    @Test fun nativeHandGroupsMayShiftFortyEightDpWithoutLosingTouchTargetSize() {
+        assertTrue(48f in GripArcCombinedLayout.closeFitOffsets)
+        val original = PivotArcBounds(270f, 600f, 322f, 652f)
+        val anchor = PivotArcBounds(270f, 600f, 322f, 652f)
+        val shifted = GripArcCombinedLayout.closeFit(original, anchor, 0.90f, -48f, 0f)
+        assertEquals(original.centerX - 48f, shifted.centerX, 0.001f)
+        assertTrue(shifted.width >= 48f && shifted.height >= 48f)
+    }
+
+    @Test fun safeCustomDockOffsetSurvivesStandardLayoutRanking() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val native = NativeControlInventory.forController(TouchControllerID.GBA)!!
+        val side = GripArcSide.RIGHT
+        val expected =
+            GripArcPositionSolver.resolve(manifest, device.safe, device.viewport, emptyList(), side, -8f, 0f)
+                as GripArcFit.Fits
+        val result =
+            GripArcCombinedLayout.resolveDockFirst(manifest, native, device.safe, device.viewport, side, -8f, 0f)
+        assertEquals(expected.placement.housing, result?.dock?.housing)
     }
 
     @Test fun everySelectedNativeInventorySurvivesResolutionOnBothSides() {

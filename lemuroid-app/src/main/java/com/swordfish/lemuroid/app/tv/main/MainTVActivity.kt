@@ -146,7 +146,7 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
                 .setTitle(game.displayName())
                 .setMessage(com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel(game.systemId))
                 .setNegativeButton(R.string.cartdeck_back_to_shelf, null)
-                .setPositiveButton(R.string.cartdeck_open) { _, _ -> onPlay(game) }
+                .setPositiveButton(R.string.cartdeck_play) { _, _ -> onPlay(game) }
                 .create()
         cartridgeDialog = dialog
         dialog.setOnDismissListener {

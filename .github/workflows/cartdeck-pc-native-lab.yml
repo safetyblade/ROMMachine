@@ -210,9 +210,17 @@ jobs:
           name: pc-integrated-host-${{ github.sha }}
           path: ${{ runner.temp }}/pc-integration-delivery/
           if-no-files-found: error
+  console-host:
+    name: Build source-matched console host
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/cartdeck-ci01-native-engine.yml
+    with:
+      engine: libretrodroid
   pc-integrated-apk:
     name: Assemble opt-in CARTDECK PC integration APK
-    needs: [pc-integrated-host, pc-lab-core, guest-probe]
+    needs: [pc-integrated-host, pc-lab-core, guest-probe, console-host]
     runs-on: ubuntu-24.04
     timeout-minutes: 80
     steps:
@@ -235,9 +243,7 @@ jobs:
       - name: Download pinned verified console host (never substitute PC host)
         uses: actions/download-artifact@v4
         with:
-          github-token: ${{ github.token }}
-          run-id: 44386451127
-          name: native-ci01-libretrodroid-fa6f2712d44cb4795771e3f72690090f2bcc2a6a
+          name: native-ci01-libretrodroid-${{ github.sha }}
           path: work/pc-console-host
       - name: Verify unchanged console receipt and stage independent PC artifacts
         run: |

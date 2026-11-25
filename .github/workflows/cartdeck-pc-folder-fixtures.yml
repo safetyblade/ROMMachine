@@ -1,0 +1,39 @@
+name: CARTDECK PC full-folder game source audit
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'scripts/ci/pc_folder_fixture_audit.py'
+      - '.github/workflows/cartdeck-pc-folder-fixtures.yml'
+      - 'docs/research/pc/PC_EXE_FOLDER_FINAL_LEG_20261123.md'
+permissions:
+  contents: read
+jobs:
+  source-fixtures:
+    name: Audit official NetHack and OpenTTD x86 ZIPs (no app packaging)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate downloaded official Windows test folders
+        run: |
+          set -euo pipefail
+          mkdir -p work/fixtures work/evidence
+          curl --fail --location --retry 3 --max-time 120 \
+            'https://nethack.org/download/3.6.7/nethack-367-win-x86-tty-curses.zip' \
+            --output work/fixtures/nethack.zip
+          echo '63de6c0122288031ef2edc050e99c3b3f7aba8b9483a45baa03e01dde1c1c6fb  work/fixtures/nethack.zip' | sha256sum -c -
+          curl --fail --location --retry 3 --max-time 120 \
+            'https://cdn.openttd.org/openttd-releases/15.3/openttd-15.3-windows-win32.zip' \
+            --output work/fixtures/openttd.zip
+          echo '3f092edc8f381c3d2d3a59458703899da6f876345b3850a3c76c0dffe68f0e74  work/fixtures/openttd.zip' | sha256sum -c -
+          python3 scripts/ci/pc_folder_fixture_audit.py \
+            work/fixtures/nethack.zip work/fixtures/openttd.zip work/evidence/games.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc-folder-source-evidence
+          path: work/evidence/games.json
+          if-no-files-found: error

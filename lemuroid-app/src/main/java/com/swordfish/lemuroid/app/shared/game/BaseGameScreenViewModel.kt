@@ -23,6 +23,7 @@ import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelSideEffects
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTilt
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelTouchControls
 import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
+import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
@@ -39,6 +40,7 @@ import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import gg.padkit.inputevents.InputEvent
 import gg.padkit.inputstate.InputState
@@ -442,12 +444,24 @@ class BaseGameScreenViewModel(
 
     fun pivotArcHolds(): Flow<Set<Int>> = pivotArcHeldInputGate.holds
 
-    fun setPivotArcHoldsEnabled(enabled: Boolean) {
-        pivotArcHeldInputGate.setEnabled(enabled)
+    fun setPivotArcHoldsEnabled(
+        enabled: Boolean,
+        controller: TouchControllerID? = null,
+    ) {
+        val wonderSwan = WonderSwanPivotInput.forController(controller)
+        if (wonderSwan == null) {
+            pivotArcHeldInputGate.setEnabled(enabled)
+        } else {
+            pivotArcHeldInputGate.setEnabled(enabled, wonderSwan.faceKeys, wonderSwan.cursorKeys)
+        }
     }
 
     fun togglePivotArcHold(keyCode: Int) {
         pivotArcHeldInputGate.toggleHold(keyCode)
+    }
+
+    fun setStandardHoldKeys(keys: Set<Int>) {
+        pivotArcHeldInputGate.setStandardHoldKeys(keys)
     }
 
     override fun onResume(owner: LifecycleOwner) {

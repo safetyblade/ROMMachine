@@ -71,12 +71,41 @@ class CompositeControlDeckSolverTest {
                     assertTrue(visual.w <= target.width && visual.h <= target.height)
                 }
                 p.wordmark?.let { brand ->
+                    assertEquals(p.island.upper.centerX, brand.centerX, 0.05f)
                     assertTrue(brand.inside(p.island.upper))
                     assertTrue(targets.none { brand.intersects(it) })
                 }
                 assertTrue(p.island.upper.width > p.island.lower.width)
                 // Counts only change which of these permanent slots receive input/rendered buttons.
                 for (count in 1..4) assertEquals((1..count).toList(), p.dock.targets.keys.take(count))
+            }
+        }
+    }
+
+    @Test
+    fun combinedHousingKeepsCARTDECKChassisOpenAcrossSides() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (side in GripArcSide.values()) {
+            val result =
+                CompositeControlDeckSolver.resolve(
+                    manifest,
+                    baseline,
+                    SystemID.GBA,
+                    device.safe,
+                    device.viewport,
+                    side,
+                ) as CompositeDeckResolution.Fits
+            val placement = result.placement
+            val seams = CompositeOpenHousingPolicy.seams(placement)
+            assertTrue("Combined V3 material must use an open shell, not a filled island", seams.size <= 3)
+            assertTrue("Open island should retain visible machined upper and lower rails", seams.size >= 2)
+            for (segment in seams) {
+                assertTrue(segment.startY > placement.viewport.bottom)
+                assertTrue(segment.endY > placement.viewport.bottom)
+                assertTrue(segment.startX >= placement.safeDeck.left)
+                assertTrue(segment.endX <= placement.safeDeck.right)
+                assertTrue(segment.startY >= placement.safeDeck.top)
+                assertTrue(segment.endY <= placement.safeDeck.bottom)
             }
         }
     }
@@ -161,6 +190,111 @@ class CompositeControlDeckSolverTest {
             assertEquals(r.centerY, l.centerY, 0.05f)
             assertEquals(r.width, l.width, 0.05f)
         }
+    }
+
+    @Test fun safeCustomDockOffsetSurvivesJointLayoutRanking() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val side = GripArcSide.RIGHT
+        val expected =
+            GripArcPositionSolver.resolve(manifest, device.safe, device.viewport, emptyList(), side, -8f, 0f)
+                as GripArcFit.Fits
+        val result =
+            CompositeControlDeckSolver.resolve(
+                manifest,
+                baseline,
+                SystemID.GBA,
+                device.safe,
+                device.viewport,
+                side,
+                gripDx = -8f,
+            ) as CompositeDeckResolution.Fits
+        assertEquals(expected.placement.housing, result.placement.dock.housing)
+    }
+
+    @Test fun scaledSoloKeepsFixedSizeHoldAndSeparatedUtilityRailOutsideEveryNativeTarget() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!
+        val solo =
+            PivotArcPositionSolver.resolve(
+                baseline,
+                active,
+                device.safe,
+                device.viewport,
+                leftHanded = false,
+                requestedDx = 0f,
+                requestedDy = 0f,
+                isLandscape = false,
+            ) as PivotArcResolution.Fits
+        val source = CompositeControlDeckSolver.soloPivotSource(baseline, active, device.safe, solo.placement)
+        for (factor in listOf(0.94f, 0.88f, 0.82f)) {
+            val scaled = CompositeControlDeckSolver.scaleSoloConstellation(source, factor)
+            val a = scaled.getValue("A")
+            val b = scaled.getValue("B")
+            val holdA = scaled.getValue("HoldA")
+            val holdB = scaled.getValue("HoldB")
+            assertEquals(a.bottom + 8f, holdA.top, 0.05f)
+            assertEquals(b.left - 8f, holdB.right, 0.05f)
+            assertEquals(48f, holdA.width, 0.05f)
+            assertEquals(48f, holdB.height, 0.05f)
+            val rail = listOf("Select", "Start", "Menu").map(scaled::getValue)
+            val gameplay = scaled.filterKeys { it !in setOf("Select", "Start", "Menu") }.values
+            assertTrue(rail.minOf { it.top } >= gameplay.maxOf { it.bottom } + 7.95f)
+        }
+    }
+
+    @Test fun ownerClassCombinedGbaUsesSoloDerivedGeometryRatherThanScatteredFallback() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val joined =
+            CompositeControlDeckSolver.resolve(
+                manifest,
+                baseline,
+                SystemID.GBA,
+                device.safe,
+                device.viewport,
+                GripArcSide.RIGHT,
+            ) as CompositeDeckResolution.Fits
+        assertTrue(
+            "GripArc must not replace the approved solo PivotArc grouping",
+            joined.placement.preservesSolo,
+        )
+    }
+
+    @Test fun preferredCombinedSourceCopiesSoloControlsWithoutChangingTheirSpacing() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!
+        val solo =
+            PivotArcPositionSolver.resolve(
+                baseline,
+                active,
+                device.safe,
+                device.viewport,
+                leftHanded = false,
+                requestedDx = 0f,
+                requestedDy = 0f,
+                isLandscape = false,
+            ) as PivotArcResolution.Fits
+        val source = CompositeControlDeckSolver.soloPivotSource(baseline, active, device.safe, solo.placement)
+        for ((key, original) in solo.placement.controls) {
+            assertEquals("Native solo target $key must be retained", original, source.getValue(key))
+        }
+        val full = CompositeControlDeckSolver.scaleSoloConstellation(source, 1f)
+        assertEquals(source, full)
+        val compact = CompositeControlDeckSolver.scaleSoloConstellation(source, 0.94f)
+        val originalA = source.getValue("A")
+        val originalB = source.getValue("B")
+        val compactA = compact.getValue("A")
+        val compactB = compact.getValue("B")
+        assertEquals(
+            (originalA.centerX - originalB.centerX) * 0.94f,
+            compactA.centerX - compactB.centerX,
+            0.05f,
+        )
+        assertEquals(
+            (originalA.centerY - originalB.centerY) * 0.94f,
+            compactA.centerY - compactB.centerY,
+            0.05f,
+        )
+        assertTrue(compact.values.all { it.width >= 48f && it.height >= 48f })
     }
 
     @Test fun unsupportedLandscapeAndImpossibleDeckFailAtomically() {

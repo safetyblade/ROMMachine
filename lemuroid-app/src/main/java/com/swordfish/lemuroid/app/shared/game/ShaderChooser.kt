@@ -1,8 +1,6 @@
 package com.swordfish.lemuroid.app.shared.game
 
-import android.content.Context
 import com.swordfish.lemuroid.app.shared.settings.HDModeQuality
-import com.swordfish.lemuroid.app.utils.android.getGLSLVersion
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.libretrodroid.ShaderConfig
@@ -10,25 +8,20 @@ import timber.log.Timber
 
 object ShaderChooser {
     fun getShaderForSystem(
-        context: Context,
-        hdMode: Boolean,
-        requestedHdModeQuality: HDModeQuality,
-        screenFilter: String,
+        glEsMajor: Int,
+        choices: DisplaySettingsStore.Choices,
         system: GameSystem,
     ): ShaderConfig {
-        Timber.i(
-            "Choosing shader for this config: screenFilter= $screenFilter hdMode=$hdMode hdModeQuality=$requestedHdModeQuality",
-        )
-        val hdModeQuality =
-            if (context.getGLSLVersion() >= 3) {
-                requestedHdModeQuality
-            } else {
-                HDModeQuality.LOW
-            }
-        return when {
-            hdMode -> getHDShaderForSystem(system, hdModeQuality)
-            else ->
-                when (screenFilter) {
+        val selection = SmartVisual.resolve(choices, system.id, libretro = true, glEsMajor = glEsMajor)
+        Timber.i("SmartVisual: ${system.id} uses $selection")
+        return when (selection.shader) {
+            // LibretroDroid's default fragment directly samples the source texture and outputs opaque RGB.
+            SmartVisual.Shader.NATIVE, SmartVisual.Shader.UNFILTERED -> ShaderConfig.Default
+            SmartVisual.Shader.SHARP -> ShaderConfig.Sharp
+            SmartVisual.Shader.LCD -> ShaderConfig.LCD
+            SmartVisual.Shader.CUT -> getHDShaderForSystem(system, selection.tier)
+            SmartVisual.Shader.LEGACY_FILTER ->
+                when (choices.filter) {
                     "crt" -> ShaderConfig.CRT
                     "lcd" -> ShaderConfig.LCD
                     "smooth" -> ShaderConfig.Default

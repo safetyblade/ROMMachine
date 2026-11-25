@@ -16,7 +16,7 @@ object PcWineCartridges {
     private const val PAYLOAD = "CARTWINE.EXE"
     private const val LIMIT = 512L * 1024 * 1024
 
-    fun isWine(entry: PcCartridgeStore.Entry): Boolean = marker(entry) != null
+    fun isWine(entry: PcCartridgeStore.Entry): Boolean = PcWineFolderBundle.isFolder(entry) || marker(entry) != null
 
     private fun marker(entry: PcCartridgeStore.Entry): String? {
         val parent = checkNotNull(entry.content.parentFile)
@@ -74,6 +74,7 @@ object PcWineCartridges {
         entry: PcCartridgeStore.Entry,
         workspace: PcWorkspace,
     ): File {
+        if (PcWineFolderBundle.isFolder(entry)) return PcWineFolderBundle.prepareExecutable(entry, workspace)
         val expected = checkNotNull(marker(entry))
         workspace.prepareWritableDirectories()
         val content = File(workspace.runtime, "content")

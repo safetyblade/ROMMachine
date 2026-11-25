@@ -29,6 +29,7 @@ class BoundSaveRestore(context: Context) {
     private val pending = File(directory, "pending")
     private val journal = AtomicFile(File(pending, "journal.json"))
     private val stores = DirectoriesManager(context)
+    private val filesDir = context.filesDir
 
     fun restore(replacements: List<Replacement>) {
         require(replacements.isNotEmpty())
@@ -36,11 +37,16 @@ class BoundSaveRestore(context: Context) {
         check(!pending.exists()) { "Recover the interrupted restore before replacing more saves" }
         check(pending.mkdirs()) { "SafeSave could not create recovery storage" }
         try {
-            val requiredBytes = replacements.sumOf { it.destination.length() }
-            check(pending.usableSpace > requiredBytes) { "Not enough room for the original saves" }
+            val originals = replacements.sumOf { it.destination.length() }
+            val largestStage = replacements.maxOf { it.artifact.byteLength }
+            check(pending.usableSpace > originals + largestStage) { "Not enough room to back up and stage the saves" }
             val entries =
                 replacements.mapIndexed { index, replacement ->
                     val target = target(replacement.destination.path)
+                    if (Armsx2FileCards.isPrivateCardPath(filesDir, target)) {
+                        require(replacement.artifact.saveKind == CartSaveArchive.Kind.MEMORY_CARD)
+                        require(Armsx2FileCards.isFormattedCard(replacement.source))
+                    }
                     val priorHash = if (target.exists()) ModFiles.sha256(target) else null
                     val priorSize = target.length()
                     require(replacement.source.length() == replacement.artifact.byteLength)
@@ -126,7 +132,8 @@ class BoundSaveRestore(context: Context) {
         val file = File(path)
         val roots = listOf(stores.getSavesDirectory(), stores.getStatesDirectory(), stores.getStatesPreviewDirectory())
         require(file.isAbsolute && file == file.canonicalFile)
-        require(roots.any { file.path.startsWith(File(it.canonicalFile, "cartridges").path + File.separator) })
+        val managed = roots.any { file.path.startsWith(File(it.canonicalFile, "cartridges").path + File.separator) }
+        require(managed || Armsx2FileCards.isPrivateCardPath(filesDir, file))
         require(file.parentFile?.isDirectory == true && (!file.exists() || file.isFile))
         return file
     }

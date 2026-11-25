@@ -115,6 +115,20 @@ class GemRatingRecommenderTest {
         }
     }
 
+    @Test fun genericGenreOverlapNeverClaimsUnrelatedNamedSimilarity() {
+        val catalogue =
+            listOf(
+                game("Bayonetta 2", genre = "Action", mechanic = "Hack and slash"),
+                game("Battle Bull", genre = "Action", mechanic = "Maze chase"),
+            )
+        val result = GemRatingRecommender.recommend(catalogue, listOf(Rating("Bayonetta 2", 9.0))).single()
+        assertEquals("Battle Bull", result.game.title)
+        assertTrue(result.reason.contains("action"))
+        assertTrue(!result.reason.contains("Bayonetta 2"))
+        assertTrue(!result.reason.contains("Similar to"))
+        assertTrue(!result.meaningfulBridge)
+    }
+
     @Test fun recommendationReasonReferencesActualEvidence() {
         val data = listOf(game("rated"), game("candidate"))
         val rec = GemRatingRecommender.recommend(data, listOf(Rating("rated", 10.0))).single()

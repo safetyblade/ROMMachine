@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.ui.geometry.Rect
 import com.swordfish.lemuroid.lib.library.SystemID
 
 internal enum class CompositeDeckFailure {
@@ -32,8 +33,21 @@ internal data class CompositeControlDeckPlacement(
     val pivot: PivotArcPlacement,
     val futureFaces: Map<String, PivotArcBounds>,
     val island: PivotIslandShape,
-    val wordmark: PivotArcBounds? = null,
-)
+    val preservesSolo: Boolean = false,
+) {
+    val wordmark: PivotArcBounds?
+        get() {
+            fun PivotArcBounds.toRect() = Rect(left, top, right, bottom)
+
+            val enclosure = island.upper.toRect()
+            val band = enclosure.copy(top = maxOf(enclosure.top, viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP))
+            val protected = (pivot.controls.values + futureFaces.values + dockFootprint).map { it.toRect() }
+            val brand =
+                PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 20f)
+                    ?: PivotArcModuleGeometry.centeredWordmark(band, protected, 11f, 16f, preferredWidth = 55f)
+            return brand?.let { PivotArcBounds(it.left, it.top, it.right, it.bottom) }
+        }
+}
 
 /** Combined-only, dock-first resolution. Solo layouts and saved profiles are never modified. */
 internal object CompositeControlDeckSolver {
@@ -42,7 +56,7 @@ internal object CompositeControlDeckSolver {
 
     // The housing renderer uses a centered 2dp outline. Reserve its painted edge too.
     private const val OUTLINE = PivotIslandShape.OUTLINE_WIDTH_DP / 2f
-    private val utilities = setOf("Select", "Start", "Menu")
+    private val utilities = setOf("Select", "Start", "Menu", "Mic", "Lid")
 
     fun resolve(
         manifest: GripArcManifest,
@@ -78,8 +92,36 @@ internal object CompositeControlDeckSolver {
             )
         }
         val safeDeck = PivotArcBounds(safe.left, maxOf(safe.top, viewport.bottom + GAP), safe.right, safe.bottom)
-        val attempts = listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)).distinct()
-        for ((hand, dx, dy) in attempts) for (dockScale in listOf(1f)) {
+        // The joined controller must reuse the approved solo PivotArc grouping.
+        // Its accessory may translate/scale the complete module, never scatter keys.
+        val solo =
+            (
+                PivotArcPositionSolver.resolve(
+                    baseline,
+                    active,
+                    safe,
+                    viewport,
+                    leftHanded = false,
+                    requestedDx = pivotDx.takeIf { it.isFinite() } ?: 0f,
+                    requestedDy = pivotDy.takeIf { it.isFinite() } ?: 0f,
+                    isLandscape = false,
+                ) as? PivotArcResolution.Fits
+            )?.placement
+        val soloSource = solo?.let { soloPivotSource(baseline, active, safe, it) }
+        val attempts =
+            (
+                listOf(Triple(side, gripDx, gripDy), Triple(side, 0f, 0f)) +
+                    listOf(48f, 96f).map { lift -> Triple(side, gripDx, gripDy - lift) }
+            ).distinct()
+        val gripOffsetConfigured = gripDx != 0f || gripDy != 0f
+        val pivotOffsetConfigured = (pivotDx.isFinite() && pivotDx != 0f) || (pivotDy.isFinite() && pivotDy != 0f)
+        var closest: CompositeDeckResolution.Fits? = null
+        var bestAdjustments = Int.MAX_VALUE
+        var bestScore = Float.POSITIVE_INFINITY
+        val dockAttempts = GripArcPositionSolver.housingScales.flatMap { scale -> attempts.map { scale to it } }
+        for ((dockScale, attempt) in dockAttempts) {
+            if (dockScale < 1f && closest?.placement?.dock?.scale == 1f) break
+            val (hand, dx, dy) = attempt
             val dockFit =
                 GripArcPositionSolver.resolve(
                     manifest,
@@ -94,40 +136,91 @@ internal object CompositeControlDeckSolver {
             val dock = (dockFit as? GripArcFit.Fits)?.placement ?: continue
             val arms = GripArcPositionSolver.housingFootprint(dock.housing, dock.scale, hand)
             val reserved = arms + dock.targets.values
-            for (scale in listOf(1.08f, 1f, 0.9f, 0.8f, 0.7f)) {
+            val layoutAttempts =
+                (if (soloSource != null) listOf(1f, 0.94f, 0.88f, 0.82f).map { it to true } else emptyList()) +
+                    listOf(1.08f, 1f, 0.9f, 0.8f, 0.7f).map { it to false }
+            for ((scale, preserveSolo) in layoutAttempts) {
                 val source =
-                    (active.filterNot { it in utilities } + listOf("X", "Y")).distinct().associateWith { key ->
-                        val spec = baseline.buttonCenters.getValue(key)
-                        val w = maxOf(48f, spec.touch.w * scale)
-                        val h = maxOf(48f, spec.touch.h * scale)
-                        PivotArcBounds(
-                            spec.center.x * scale - w / 2,
-                            spec.center.y * scale - h / 2,
-                            spec.center.x * scale + w / 2,
-                            spec.center.y * scale + h / 2,
-                        )
-                    }.toMutableMap()
-                val a = source.getValue("A")
-                val b = source.getValue("B")
-                source["HoldA"] = PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
-                source["HoldB"] = PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
-                val hull = hull(source.values)
-                val railWidth =
-                    active.filter {
-                        it in utilities
-                    }.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() + 2 * GAP
-                var cursor = hull.centerX - railWidth / 2
-                for (key in active.filter { it in utilities }) {
-                    val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
-                    source[key] = PivotArcBounds(cursor, hull.bottom + GAP, cursor + w, hull.bottom + GAP + 48f)
-                    cursor += w + GAP
-                }
+                    if (preserveSolo) {
+                        scaleSoloConstellation(soloSource!!, scale)
+                    } else {
+                        val native =
+                            (active.filterNot { it in utilities } + listOf("X", "Y"))
+                                .distinct().associateWith { key ->
+                                    val spec = baseline.buttonCenters.getValue(key)
+                                    val w = maxOf(48f, spec.touch.w * scale)
+                                    val h = maxOf(48f, spec.touch.h * scale)
+                                    PivotArcBounds(
+                                        spec.center.x * scale - w / 2,
+                                        spec.center.y * scale - h / 2,
+                                        spec.center.x * scale + w / 2,
+                                        spec.center.y * scale + h / 2,
+                                    )
+                                }.toMutableMap()
+                        val a = native.getValue("A")
+                        val b = native.getValue("B")
+                        native["HoldA"] =
+                            PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
+                        native["HoldB"] =
+                            PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
+                        val coreHull = hull(native.values)
+                        val rail = active.filter { it in utilities }
+                        val railWidth =
+                            rail.sumOf { baseline.buttonCenters.getValue(it).touch.w.toDouble() }.toFloat() +
+                                (rail.size - 1).coerceAtLeast(0) * GAP
+                        var cursor = coreHull.centerX - railWidth / 2
+                        for (key in rail) {
+                            val w = maxOf(48f, baseline.buttonCenters.getValue(key).touch.w)
+                            native[key] =
+                                PivotArcBounds(
+                                    cursor,
+                                    coreHull.bottom + GAP,
+                                    cursor + w,
+                                    coreHull.bottom + GAP + 48f,
+                                )
+                            cursor += w + GAP
+                        }
+                        native
+                    }
                 val whole = hull(source.values)
                 // Candidate edges derive from safe space and individual reserved material/targets.
                 // Translation applies to the complete approved constellation, never individual slots.
-                val xs = listOf(safe.left + EDGE + OUTLINE - whole.left, safe.right - EDGE - OUTLINE - whole.right)
+                val adjacentEdge =
+                    if (hand == GripArcSide.RIGHT) arms[0].left else safe.left + safe.right - arms[0].right
+                val minX = safe.left + EDGE + OUTLINE - whole.left
+                val maxX = safe.right - EDGE - OUTLINE - whole.right
+                val minY = safeDeck.top + EDGE + OUTLINE - whole.top
+                val maxY = safeDeck.bottom - EDGE - OUTLINE - whole.bottom
+                // The historical three-edge/two-height search could not move
+                // the intact solo button group into the free centre space.
+                // Search translations of the WHOLE group, not individual keys.
+                val xs =
+                    (
+                        listOf(
+                            minX,
+                            maxX,
+                            adjacentEdge - GAP - EDGE - OUTLINE - whole.right,
+                            0f,
+                        ) +
+                            if (preserveSolo && minX <= maxX) {
+                                (0..16).map { step -> minX + (maxX - minX) * step / 16f }
+                            } else {
+                                emptyList()
+                            }
+                    ).distinct()
                 val ys =
-                    listOf(safeDeck.top + EDGE + OUTLINE - whole.top, arms[1].top - GAP - EDGE - OUTLINE - whole.bottom)
+                    (
+                        listOf(
+                            minY,
+                            arms[1].top - GAP - EDGE - OUTLINE - whole.bottom,
+                            0f,
+                        ) +
+                            if (preserveSolo && minY <= maxY) {
+                                (0..16).map { step -> minY + (maxY - minY) * step / 16f }
+                            } else {
+                                emptyList()
+                            }
+                    ).distinct()
                 for (x in xs) for (y in ys) for (requested in listOf(true, false)) {
                     val shiftX = x + if (requested && pivotDx.isFinite()) pivotDx else 0f
                     val shiftY = y + if (requested && pivotDy.isFinite()) pivotDy else 0f
@@ -148,7 +241,7 @@ internal object CompositeControlDeckSolver {
                         }
                     val boxes = positions.values.toList()
                     if (boxes.any {
-                            !it.inside(safeDeck) ||
+                            it.width < 48f || it.height < 48f || !it.inside(safeDeck) ||
                                 reserved.any {
                                         r ->
                                     it.inset(GAP / 2).intersects(r)
@@ -193,25 +286,33 @@ internal object CompositeControlDeckSolver {
                         } else {
                             bounds.right
                         }
+                    // The joined island is a PAINTED OPEN RAIL, not a solid
+                    // bounding rectangle that must contain every gamepad key.
+                    // The native controls and all four G targets have already
+                    // passed the real safe-area / collision gates above.
+                    // Clip only the lower decorative rail before the first
+                    // overlapping GripArc arm or G target; never reject a safe
+                    // original controller arrangement for an invisible hull.
+                    val lowerClearance =
+                        reserved.filter { r ->
+                            r.left < innerRight + OUTLINE &&
+                                r.right > innerLeft - OUTLINE &&
+                                r.bottom > notchY
+                        }.minOfOrNull { it.top - GAP - OUTLINE }
+                    val lowerBottom =
+                        minOf(
+                            bounds.bottom,
+                            safeDeck.bottom - EDGE - OUTLINE,
+                            lowerClearance ?: bounds.bottom,
+                        )
                     val island =
                         PivotIslandShape(
                             PivotArcBounds(bounds.left, bounds.top, bounds.right, notchY),
-                            PivotArcBounds(innerLeft, notchY, innerRight, bounds.bottom),
+                            PivotArcBounds(innerLeft, notchY, innerRight, lowerBottom),
                         )
                     if (island.regions.any {
                             it.width <= 0f || it.height <= 0f || !it.inset(OUTLINE).inside(safeDeck) ||
-                                reserved.any {
-                                        r ->
-                                    it.inset(OUTLINE).intersects(r)
-                                }
-                        }
-                    ) {
-                        continue
-                    }
-                    // Reject a notch that cuts through any actual or future touch region.
-                    if (boxes.map { it.inset(EDGE) }.any { r ->
-                            island.regions.none { r.inside(it) } &&
-                                !(r.left >= innerLeft && r.right <= innerRight && r.inside(bounds))
+                                reserved.any { r -> it.inset(OUTLINE).intersects(r) }
                         }
                     ) {
                         continue
@@ -225,39 +326,136 @@ internal object CompositeControlDeckSolver {
                             } else {
                                 baseline.buttonCenters.getValue(key).visual.let {
                                     val factor = if (key in utilities) 1f else scale
-                                    PivotArcSize(it.w * factor, it.h * factor)
+                                    val base = if (preserveSolo) solo!!.visuals[key] ?: it else it
+                                    val visualScale = if (preserveSolo) scale else factor
+                                    PivotArcSize(
+                                        minOf(positions.getValue(key).width, base.w * visualScale),
+                                        minOf(positions.getValue(key).height, base.h * visualScale),
+                                    )
                                 }
                             }
                         }
-                    val brand =
-                        PivotArcBounds(
-                            island.upper.right - 96f,
-                            island.upper.top + 10f,
-                            island.upper.right - 8f,
-                            island.upper.top + 34f,
-                        ).takeIf { candidate ->
-                            candidate.inside(island.upper) &&
-                                (boxes + reserved).none { candidate.inset(4f).intersects(it) }
+                    val gap = gripArcControlGap(dock, controls.filterKeys { it !in utilities }.values)
+                    val score =
+                        gap + (kotlin.math.abs(dy - gripDy) + kotlin.math.abs(dx - gripDx)) / 4f +
+                            (1.08f - scale) * 40f - (if (preserveSolo) 1000f else 0f)
+                    val gripAdjusted = gripOffsetConfigured && (dx != gripDx || dy != gripDy)
+                    val pivotAdjusted = pivotOffsetConfigured && !requested
+                    val adjustments = (if (gripAdjusted) 1 else 0) + (if (pivotAdjusted) 1 else 0)
+                    // A manually saved GripArc offset takes precedence over
+                    // the automatic layout preference, but never bypasses the
+                    // physical target and viewport collision gates above.
+                    // Among equally faithful offsets prefer the original solo
+                    // PivotArc grouping rather than a scattered fallback.
+                    val existingPreservesSolo = closest?.placement?.preservesSolo == true
+                    if (!gripOffsetConfigured) {
+                        // Without a requested dock offset, keep solo geometry
+                        // even if the accessory must choose another safe anchor.
+                        if (existingPreservesSolo && !preserveSolo) continue
+                        if (preserveSolo && closest != null && !existingPreservesSolo) {
+                            bestAdjustments = Int.MAX_VALUE
+                            bestScore = Float.POSITIVE_INFINITY
                         }
-                    return CompositeDeckResolution.Fits(
-                        CompositeControlDeckPlacement(
-                            viewport,
-                            safeDeck,
-                            dock,
-                            arms,
-                            PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
-                            future,
-                            island,
-                            brand,
-                        ),
-                    )
+                    } else if (adjustments == bestAdjustments) {
+                        if (existingPreservesSolo && !preserveSolo) continue
+                        if (preserveSolo && closest != null && !existingPreservesSolo) {
+                            bestScore = Float.POSITIVE_INFINITY
+                        }
+                    }
+                    val sameOffsetsNoCloser = adjustments == bestAdjustments && score >= bestScore
+                    if (adjustments > bestAdjustments || sameOffsetsNoCloser) continue
+                    bestAdjustments = adjustments
+                    bestScore = score
+                    closest =
+                        CompositeDeckResolution.Fits(
+                            CompositeControlDeckPlacement(
+                                viewport,
+                                safeDeck,
+                                dock,
+                                arms,
+                                PivotArcPlacement(controls, visuals, shiftX, shiftY, scale),
+                                future,
+                                island,
+                                preservesSolo = preserveSolo,
+                            ),
+                        )
                 }
             }
         }
-        return unavailable(
+        return closest ?: unavailable(
             CompositeDeckFailure.INSUFFICIENT_SAFE_SPACE,
             "The joint PivotArc + GripArc deck cannot fit on your selected side, including its default position.",
         )
+    }
+
+    /** Copy solo controls exactly; reconstruct inactive X/Y clearance only. */
+    internal fun soloPivotSource(
+        baseline: PivotArcBaseline,
+        active: List<String>,
+        safe: PivotArcBounds,
+        solo: PivotArcPlacement,
+    ): Map<String, PivotArcBounds> {
+        val anchor = baseline.scalingAnchor ?: baseline.buttonCenters.getValue("D").center
+        val scale = solo.visualScale
+        val shiftX = safe.centerX - 393f / 2f + solo.appliedDx
+        val shiftY = safe.bottom - 852f + solo.appliedDy
+        val future =
+            listOf("X", "Y").filter { it !in active && it in baseline.buttonCenters }.associateWith { key ->
+                val spec = baseline.buttonCenters.getValue(key)
+                val centerX = anchor.x + (spec.center.x - anchor.x) * scale + shiftX
+                val centerY = anchor.y + (spec.center.y - anchor.y) * scale + shiftY
+                val w = spec.touch.w * scale
+                val h = spec.touch.h * scale
+                PivotArcBounds(centerX - w / 2f, centerY - h / 2f, centerX + w / 2f, centerY + h / 2f)
+            }
+        return solo.controls + future
+    }
+
+    /** Preserve relative thumb positions; resize the complete approved unit. */
+    internal fun scaleSoloConstellation(
+        source: Map<String, PivotArcBounds>,
+        factor: Float,
+    ): MutableMap<String, PivotArcBounds> {
+        if (factor == 1f) return source.toMutableMap()
+        val original = hull(source.values)
+        val scaled =
+            source.mapValues { (_, r) ->
+                val cx = original.centerX + (r.centerX - original.centerX) * factor
+                val cy = original.centerY + (r.centerY - original.centerY) * factor
+                val w = maxOf(48f, r.width * factor)
+                val h = maxOf(48f, r.height * factor)
+                PivotArcBounds(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f)
+            }.toMutableMap()
+        // Hold switches stay 48dp even as the whole deck scales. Scaling
+        // their original centres moves them INTO A/B, so attach each hold
+        // to its native key again with a true 8dp clear touch gap.
+        scaled["A"]?.let { a ->
+            if ("HoldA" in scaled) {
+                scaled["HoldA"] =
+                    PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
+            }
+        }
+        scaled["B"]?.let { b ->
+            if ("HoldB" in scaled) {
+                scaled["HoldB"] =
+                    PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
+            }
+        }
+        // The separated Start/Select/Menu rail moves AS ONE group. Keep
+        // its intended clearance beneath the reattached Hold A, without
+        // altering any gameplay button spacing or key identity.
+        val rail = scaled.filterKeys { it in utilities }
+        if (rail.isNotEmpty()) {
+            val gameplayBottom = scaled.filterKeys { it !in utilities }.values.maxOf { it.bottom }
+            val railTop = rail.values.minOf { it.top }
+            val railDrop = maxOf(0f, gameplayBottom + GAP - railTop)
+            if (railDrop > 0f) {
+                rail.forEach { (key, r) ->
+                    scaled[key] = r.copy(top = r.top + railDrop, bottom = r.bottom + railDrop)
+                }
+            }
+        }
+        return scaled
     }
 
     private fun hull(rects: Collection<PivotArcBounds>) =

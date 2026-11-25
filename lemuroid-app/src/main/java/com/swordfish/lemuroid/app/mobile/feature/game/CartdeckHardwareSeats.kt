@@ -300,7 +300,8 @@ internal fun CartdeckHardwareSeats(
     isDualScreen: Boolean,
     customColours: Boolean,
     pivotArc: Boolean = false,
-    drawPivotModule: Boolean = true,
+    measuredStandard: Boolean = false,
+    joint: CompositeControlDeckPlacement? = null,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
@@ -346,12 +347,13 @@ internal fun CartdeckHardwareSeats(
     check(glowSources.size == 6 && glowSources.values.none { it.enabledByDefault })
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (pivotArc && drawPivotModule) {
+        if (pivotArc) {
             CartdeckPivotArcModule(
                 controls = controls,
                 video = video,
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
+                joint = joint,
             )
         }
 
@@ -518,8 +520,7 @@ internal fun CartdeckHardwareSeats(
 
         controls.toSortedMap().forEach { (key, control) ->
             val singleFaceSeat =
-                (pivotArc && key in setOf("face-a", "face-b", "face-x", "face-y")) ||
-                    key in setOf("aux-C", "aux-Z")
+                key in setOf("face-a", "face-b", "face-x", "face-y", "aux-C", "aux-Z")
             if (!singleFaceSeat && CartdeckHardwareResource.seat(edition, key) == null) {
                 return@forEach
             }
@@ -560,6 +561,29 @@ internal fun CartdeckHardwareSeats(
                         color = tokens.accent.copy(alpha = 0.38f),
                         radius = outer - 4.dp.toPx(),
                         style = Stroke(width = 1.dp.toPx()),
+                    )
+                }
+                return@forEach
+            }
+            if (pivotArc && key.startsWith("analog-")) return@forEach
+            val measuredMachinedSeat =
+                (pivotArc || measuredStandard) &&
+                    (
+                        key == "dpad" || key.startsWith("analog-") || key.startsWith("shoulder-") ||
+                            key in setOf("start", "select", "menu")
+                    )
+            if (measuredMachinedSeat) {
+                Canvas(base) {
+                    val marginPx = 2.dp.toPx()
+                    val rect = Rect(0f, 0f, size.width, size.height).deflate(marginPx)
+                    val cut = minOf(rect.width, rect.height) * 0.22f
+                    drawControllerInset(
+                        rim = chamferedIsland(rect, cut),
+                        inset = chamferedIsland(rect.deflate(marginPx * 2f), cut * 0.8f),
+                        bounds = rect,
+                        tokens = tokens,
+                        edge = 1.dp.toPx(),
+                        housing = tokens.chassis,
                     )
                 }
                 return@forEach

@@ -44,6 +44,8 @@ fun LemuroidControlButton(
             label == "Back" -> "select"
             label == "White" -> "shoulder-L1"
             label == "Black" -> "shoulder-R1"
+            label == "OPTION 1" -> "shoulder-L"
+            label == "OPTION 2" -> "shoulder-R"
             label == "LT" -> "shoulder-L2"
             label == "RT" -> "shoulder-R2"
             icon == R.drawable.button_start -> "start"

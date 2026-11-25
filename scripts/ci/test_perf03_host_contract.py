@@ -70,6 +70,80 @@ int main() {
 '''
 
 
+SHADER_FIXTURE = r'''
+#include <cassert>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+namespace {
+struct ShaderManager {
+    enum class Type { SHADER_DEFAULT, EFFECT };
+    struct Config {
+        Type type;
+        int params;
+        bool operator==(const Config& other) const { return type == other.type && params == other.params; }
+    };
+    struct Pass { std::string vertex, fragment; };
+    struct Chain { std::vector<Pass> passes; };
+    static Chain getShader(Config config) {
+        return config.type == Type::SHADER_DEFAULT ? Chain{{{"plain", "plain"}}}
+                                                  : Chain{{{"effect", "good"}, {"effect", "bad"}}};
+    }
+};
+struct ShaderChainEntry {
+    unsigned gProgram;
+    int gvPositionHandle, gvCoordinateHandle, gTextureHandle, gPreviousPassTextureHandle,
+        gTextureSizeHandle, gScreenDensityHandle;
+};
+struct Renderer {
+    std::string shader;
+    void setShaders(const ShaderManager::Chain& chain) { shader = chain.passes.front().vertex; }
+};
+struct Video {
+    ShaderManager::Config requestedShaderConfig{ShaderManager::Type::EFFECT, 0};
+    std::optional<ShaderManager::Config> loadedShaderType;
+    std::vector<ShaderChainEntry> shadersChain;
+    Renderer *renderer;
+    void updateProgram();
+};
+std::vector<unsigned> deleted;
+unsigned compileAttempts = 0;
+bool failPlain = false;
+
+void glDeleteProgram(unsigned program) { deleted.push_back(program); }
+int glGetAttribLocation(unsigned, const char*) { return 1; }
+int glGetUniformLocation(unsigned, const char*) { return 1; }
+unsigned createProgram(const char* vertex, const char* fragment) {
+    ++compileAttempts;
+    if (std::string(fragment) == "bad" || (failPlain && std::string(vertex) == "plain")) return 0;
+    return compileAttempts;
+}
+#define LOGE(...) ((void)0)
+'''
+
+SHADER_ASSERTIONS = r'''
+}
+int main() {
+    Renderer renderer;
+    Video video;
+    video.renderer = &renderer;
+    video.updateProgram();
+    assert(renderer.shader == "plain");
+    assert(video.shadersChain.size() == 1 && video.shadersChain[0].gProgram == 3);
+    assert(deleted == std::vector<unsigned>{1});
+    video.updateProgram();
+    assert(compileAttempts == 3);
+    failPlain = true;
+    video.requestedShaderConfig.params = 1;
+    bool threw = false;
+    try { video.updateProgram(); } catch (const std::runtime_error&) { threw = true; }
+    assert(threw && video.shadersChain[0].gProgram == 3);
+    assert(deleted == (std::vector<unsigned>{1, 4}));
+}
+'''
+
 def main(source):
     cpp = pathlib.Path(source) / "libretrodroid/src/main/cpp"
     with tempfile.TemporaryDirectory(prefix="cartdeck-perf03-") as tmp:
@@ -85,7 +159,15 @@ def main(source):
             cwd=work, check=True, timeout=120,
         )
         subprocess.run([str(work / "fixture")], check=True, timeout=15)
-        print("PERF-03 patched scheduler, resampler, geometry and frame-signal contracts PASS")
+        video = (cpp / "video.cpp").read_text()
+        update_program = video[video.index("void Video::updateProgram()"):video.index("void Video::renderFrame()")]
+        (work / "shader-fixture.cpp").write_text(SHADER_FIXTURE + update_program + SHADER_ASSERTIONS)
+        subprocess.run(
+            ["c++", "-std=c++17", "-Wall", "-Wextra", "-Werror", "shader-fixture.cpp", "-o", "shader-fixture"],
+            cwd=work, check=True, timeout=120,
+        )
+        subprocess.run([str(work / "shader-fixture")], check=True, timeout=15)
+        print("PERF-03 patched scheduler, resampler, frame signal and shader fallback contracts PASS")
 
 
 if __name__ == "__main__":

@@ -389,11 +389,10 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     modifier = Modifier.fillMaxSize(),
                     navController = navController,
                     startDestination =
-                        if (intent.getBooleanExtra("cartdeck.open_gem", false)) {
-                            MainRoute.GEM.route
-                        } else {
-                            MainRoute.HOME.route
-                        },
+                        initialProductRoute(
+                            openSafeSave = intent.getBooleanExtra(OPEN_SAFESAVE_EXTRA, false),
+                            openGem = intent.getBooleanExtra("cartdeck.open_gem", false),
+                        ).route,
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(

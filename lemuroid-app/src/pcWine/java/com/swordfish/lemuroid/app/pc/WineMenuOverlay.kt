@@ -43,7 +43,8 @@ object WineMenuOverlay {
                             }
                             "Save & Load" ->
                                 Text(
-                                    "Use the game's own save system. Its Wine prefix and working directory are retained.",
+                                    "Use the game's own save system. " +
+                                        "Its Wine prefix and working directory are retained.",
                                 )
                             "Advanced" ->
                                 Text(

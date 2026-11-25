@@ -19,7 +19,7 @@ import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
-import com.swordfish.lemuroid.app.shared.settings.HDModeQuality
+import com.swordfish.lemuroid.app.utils.android.getGLSLVersion
 import com.swordfish.lemuroid.common.coroutines.MutableStateProperty
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.view.disableTouchEvents
@@ -36,7 +36,6 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroViewData
-import com.swordfish.libretrodroid.ImmersiveMode
 import com.swordfish.libretrodroid.Variable
 import com.swordfish.libretrodroid.ViewportAlignment
 import com.swordfish.libretrodroid.VirtualFile
@@ -165,14 +164,10 @@ class GameViewModelRetroGameView(
                     },
                 ).effective
             }
-        val filter = display.filter ?: settingsManager.screenFilter()
-        val hdMode = display.hd ?: settingsManager.hdMode()
-        val hdModeQuality = display.quality?.let { HDModeQuality.parse(it) } ?: settingsManager.hdModeQuality()
         val alignment = display.alignment ?: settingsManager.viewportAlignment()
         val lowLatencyAudio = settingsManager.lowLatencyAudio()
         val enableRumble = settingsManager.enableRumble()
         val directLoad = settingsManager.allowDirectGameLoad()
-        val enableImmersiveMode = settingsManager.enableImmersiveMode()
 
         val hasMicrophonePermission =
             ContextCompat.checkSelfPermission(
@@ -233,14 +228,11 @@ class GameViewModelRetroGameView(
                                 applicationContext,
                                 systemCoreConfig,
                                 loadingState.gameData,
-                                hdMode,
-                                hdModeQuality,
-                                filter,
+                                display,
                                 alignment,
                                 lowLatencyAudio,
                                 enableRumble,
                                 enableMicrophone,
-                                enableImmersiveMode,
                             )
                         GameState.Loaded(
                             gameData = loadingState.gameData,
@@ -360,14 +352,11 @@ class GameViewModelRetroGameView(
         appContext: Context,
         systemCoreConfig: SystemCoreConfig,
         gameData: GameLoader.GameData,
-        hdMode: Boolean,
-        hdModeQuality: HDModeQuality,
-        screenFilter: String,
+        display: DisplaySettingsStore.Choices,
         alignment: String,
         lowLatencyAudio: Boolean,
         requestRumble: Boolean,
         requestMicrophone: Boolean,
-        enableImmersiveMode: Boolean,
     ): GLRetroViewData {
         return GLRetroViewData(appContext).apply {
             coreFilePath = gameData.coreLibrary
@@ -388,10 +377,8 @@ class GameViewModelRetroGameView(
             saveRAMState = gameData.saveRAMData
             shader =
                 ShaderChooser.getShaderForSystem(
-                    appContext,
-                    hdMode,
-                    hdModeQuality,
-                    screenFilter,
+                    appContext.getGLSLVersion(),
+                    display,
                     GameSystem.findById(gameData.game.systemId),
                 )
             viewportAlignment =
@@ -404,15 +391,7 @@ class GameViewModelRetroGameView(
             rumbleEventsEnabled = requestRumble
             skipDuplicateFrames = systemCoreConfig.skipDuplicateFrames
             enableMicrophone = requestMicrophone
-            immersiveMode = buildImmersiveModeConfiguration(enableImmersiveMode)
-        }
-    }
-
-    private fun buildImmersiveModeConfiguration(enableImmersiveMode: Boolean): ImmersiveMode? {
-        return if (enableImmersiveMode) {
-            ImmersiveMode(blendFactor = 0.05f)
-        } else {
-            null
+            immersiveMode = null
         }
     }
 

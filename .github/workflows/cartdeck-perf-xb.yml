@@ -1,0 +1,51 @@
+name: CARTDECK PERF-XB native diagnostics and regression gates
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ci/xbox_perf_benchmark.py'
+      - 'scripts/ci/hakux_pipeline_cache_commit.py'
+      - 'scripts/ci/test_hakux_pipeline_cache_commit.py'
+      - 'scripts/ci/build_hakux_native.py'
+      - 'scripts/ci/test_xbox_perf_benchmark.py'
+      - 'scripts/ci/test_xbox360_shader_wait.py'
+      - 'scripts/ci/xbox360/**'
+      - 'scripts/ci/tests/X360PerformanceTest.cpp'
+      - 'scripts/ci/test_x360_*.py'
+      - 'scripts/ci/test_xbox360_*.py'
+      - 'lemuroid-app/src/main/java/com/rfandango/haku_x/NativeCoreActivity.kt'
+      - '.github/workflows/cartdeck-perf-xb.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartdeck-perf-xb-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-observability:
+    name: Independent Xbox and Xbox 360 source tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Python source
+        run: |
+          python3 -m compileall -q scripts/ci/xbox_perf_benchmark.py scripts/ci/xbox360 scripts/ci/hakux_pipeline_cache_commit.py
+      - name: Compare only grounded gaming sessions
+        run: python3 -m unittest discover -s scripts/ci -p 'test_xbox_perf_benchmark.py' -v
+      - name: Verify fail-closed hakuX pipeline cache write correction
+        run: python3 -m unittest discover -s scripts/ci -p 'test_hakux_pipeline_cache_commit.py' -v
+      - name: Validate concurrent native timing and shader wait
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_xbox360_shader_wait.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_xbox360_audio_yield.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_xbox360_xgfx04_counters.py' -v

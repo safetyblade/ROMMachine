@@ -29,6 +29,18 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts/gem -p 'test_b7_catalogue_coverage.py' -v
           python3 scripts/gem/verify_titlescreen_packages.py
+      - name: Produce one-pass GEM quality census
+        run: python3 scripts/gem/audit_data_quality.py --output "$RUNNER_TEMP/gem-quality-audit.json"
+      - name: Verify all-system source taxonomy normalization
+        run: python3 scripts/gem/validate_taxonomy.py
+      - name: Verify exact-ID GEM gameplay feature pack and rights
+        run: python3 scripts/gem/verify_feature_pack.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-quality-census
+          path: ${{ runner.temp }}/gem-quality-audit.json
+          if-no-files-found: error
+          retention-days: 30
 
   ingest-title-screen:
     if: github.event_name == 'workflow_dispatch'

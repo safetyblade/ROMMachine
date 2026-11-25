@@ -77,6 +77,7 @@ import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
 import gg.padkit.PadKit
@@ -189,7 +190,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             remember(appContext) {
                 runCatching { GripArcManifest.load(appContext) }.getOrNull()
             }
-        val pivotBaseline = remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val basePivotGeometry =
+            remember(appContext) { runCatching { PivotArcLayoutProfile.load(appContext) }.getOrNull() }
+        val pivotBaseline =
+            remember(basePivotGeometry, viewModel.systemId, pivotSettings.pspAnalogPrimary) {
+                basePivotGeometry?.let {
+                    PivotArcLayoutProfile.forSystem(
+                        it,
+                        viewModel.systemId,
+                        pivotSettings.pspAnalogPrimary,
+                    )
+                }
+            }
         val touchGamePads = currentControllerConfig?.getTouchControllerConfig()
         val nativeInventory = touchGamePads?.nativeInventory
         val leftGamePad = touchGamePads?.leftComposable
@@ -280,6 +292,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val viewPos = viewportPosition.value
             val currentDensity = LocalDensity.current
             val layoutDirection = LocalLayoutDirection.current
+            val requireMeasuredStandard =
+                touchControllerSettings != null &&
+                    touchControllerSettings !=
+                    TouchControllerSettingsManager.defaultSettings(currentDensity, WindowInsets.displayCutout)
             val insetSafe = WindowInsets.safeDrawing
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
@@ -333,11 +349,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                             "Standard remains available; saved settings are preserved.",
                                     )
                                 } else {
-                                    CompositeControlDeckSolver.resolve(
+                                    remember(
                                         gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
                                         effectiveArcSide, arcProfile.dx, arcProfile.dy,
                                         pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
-                                    )
+                                    ) {
+                                        CompositeControlDeckSolver.resolve(
+                                            gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                            effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
+                                        )
+                                    }
                                 }
                             when (val joint = compositeResolution) {
                                 is CompositeDeckResolution.Fits -> PivotArcResolution.Fits(joint.placement.pivot)
@@ -474,7 +496,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 }
                             val observedIds = snapshot?.second ?: liveIds
                             val measurementsReady = GripArcCombinedLayout.hasMeasurements(nativeInventory, measured)
-                            if (measurementsReady && observedIds.isNotEmpty() &&
+                            if (!isLandscape && requireMeasuredStandard && !measurementsReady) {
+                                // Wait for live controls at the new size, margins or rotation.
+                                null
+                            } else if (measurementsReady && observedIds.isNotEmpty() &&
                                 !nativeInventory.matchesNativeInputs(observedIds)
                             ) {
                                 GripArcFit.Unavailable(
@@ -485,17 +510,26 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 nativeProfileValidated = true
                                 combinedPlacement =
                                     if (!isLandscape) {
-                                        if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
-                                            GripArcCombinedLayout.resolve(
-                                                gripManifest, nativeInventory, observedIds,
-                                                measured, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
-                                        } else {
-                                            GripArcCombinedLayout.resolveDockFirst(
-                                                gripManifest, nativeInventory, safeBounds, viewportBounds,
-                                                effectiveArcSide, arcProfile.dx, arcProfile.dy,
-                                            )
+                                        remember(
+                                            gripManifest, nativeInventory, observedIds, measured,
+                                            safeBounds, viewportBounds, effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                            requireMeasuredStandard,
+                                        ) {
+                                            if (measurementsReady && nativeInventory.matchesNativeInputs(observedIds)) {
+                                                GripArcCombinedLayout.resolve(
+                                                    gripManifest, nativeInventory, observedIds,
+                                                    measured, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                    fallbackToNativeBaseline = !requireMeasuredStandard,
+                                                )
+                                            } else if (requireMeasuredStandard) {
+                                                null
+                                            } else {
+                                                GripArcCombinedLayout.resolveDockFirst(
+                                                    gripManifest, nativeInventory, safeBounds, viewportBounds,
+                                                    effectiveArcSide, arcProfile.dx, arcProfile.dy,
+                                                )
+                                            }
                                         }
                                     } else {
                                         null
@@ -536,8 +570,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             val pivotHoldsEnabled =
                 pivotPlacement != null && touchControlsVisibleState.value && !isLoading
-            DisposableEffect(viewModel, pivotHoldsEnabled) {
-                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled)
+            val pivotController = currentControllerConfig?.touchControllerID
+            DisposableEffect(viewModel, pivotHoldsEnabled, pivotController) {
+                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled, pivotController)
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 
@@ -586,21 +621,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // the first frame. Standard retains its original bound observers.
             val hardwareInputBounds =
                 if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                    (combinedPlacement?.seats ?: pivotPlacement!!.controls).map { (key, bounds) ->
+                    (combinedPlacement?.hardwareSeats ?: pivotPlacement!!.controls).map { (key, bounds) ->
                         val seatKey =
                             if (combinedPlacement != null) {
                                 key
                             } else {
-                                when (key) {
-                                    "D" -> "dpad"
-                                    "A", "B", "X", "Y" -> "face-${key.lowercase()}"
-                                    "HoldA" -> "hold-a"
-                                    "HoldB" -> "hold-b"
-                                    "L", "R", "L2", "R2" -> "shoulder-$key"
-                                    "AnalogL" -> "analog-left"
-                                    "AnalogR" -> "analog-right"
-                                    else -> key.lowercase()
-                                }
+                                pivotArcHardwareSeatKey(key)
                             }
                         seatKey to
                             Rect(
@@ -613,15 +639,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
-            if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
-                CompositeControlDeckHousing(
-                    jointPlacement,
-                    shellTokens,
-                    resolved.lighting,
-                    appearance.highContrast,
-                    reactiveLightStrength,
-                )
-            }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -638,12 +655,38 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
-                        drawPivotModule = jointPlacement == null,
+                        measuredStandard = combinedPlacement?.native?.controller == TouchControllerID.GBA,
+                        joint = jointPlacement,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
                         feedbackStrength = reactiveLightStrength,
                     )
                 }
+            }
+
+            if (hardwareBorder && jointPlacement != null && touchControlsVisibleState.value) {
+                CompositeControlDeckHousing(
+                    jointPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                    activeSlots = arcProfile.count,
+                )
+            }
+            if (
+                hardwareBorder && jointPlacement == null && gripPlacement != null &&
+                !fullscreenWithGamepad && !isLoading
+            ) {
+                combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
+                GripArcHousing(
+                    gripPlacement,
+                    shellTokens,
+                    resolved.lighting,
+                    appearance.highContrast,
+                    reactiveLightStrength,
+                    activeSlots = arcProfile.count,
+                )
             }
 
             LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, hardwareBorder) {
@@ -793,10 +836,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 ) {
                     PivotArcControlGroup(
                         placement = pivotPlacement,
+                        system = viewModel.systemId,
                         heldKeys = heldPivotKeys.value,
                         accent = shellTokens.accent,
                         onToggleHold = viewModel::togglePivotArcHold,
                         combined = jointPlacement != null,
+                        touchController = currentControllerConfig.touchControllerID,
                     )
                 }
             }
@@ -805,6 +850,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     GripArcCombinedControls(combinedPlacement!!)
                 }
             }
+            if (effectiveArcMode == ArcControlMode.STANDARD && touchControlsVisibleState.value &&
+                !isLoading && isResumed.value
+            ) {
+                StandardHoldTray(
+                    system = viewModel.systemId,
+                    native = touchGamePads?.holdTrayInventory,
+                    root = fullPos,
+                    viewport = viewPos,
+                    measured = individualInputs,
+                    held = heldPivotKeys.value,
+                    onKeys = viewModel::setStandardHoldKeys,
+                    onToggle = viewModel::togglePivotArcHold,
+                )
+            }
             GripArcAccessory(
                 placement = gripPlacement,
                 profile = arcProfile,
@@ -812,7 +871,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 fullscreenWithGamepad = fullscreenWithGamepad,
                 isLoading = isLoading,
                 onPressed = viewModel::pressGripArcSlot,
-                drawHousing = hardwareBorder && jointPlacement == null,
+                drawHousing = false,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
                 feedbackStrength = reactiveLightStrength,
