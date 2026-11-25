@@ -1,0 +1,33 @@
+name: CARTDECK GC Arc design packets (no APK)
+
+on:
+  push:
+    branches:
+      - design/gc-arc-33-console-packets-20261126
+    paths:
+      - 'docs/engineering/gc01/design-packets/**'
+      - 'scripts/ci/validate_arc_design_packets.py'
+      - '.github/workflows/cartdeck-gc-arc-design.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gc-arc-design-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-design-packets:
+    name: Verify 33 console design packets (no Gradle or native backends)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check all console IDs, stage boundaries, packets and owner approvals
+        run: python3 scripts/ci/validate_arc_design_packets.py
