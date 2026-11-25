@@ -1,12 +1,20 @@
 # GB — controller design packet
 
-**Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** A · **Hardware family:** Two-button · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
+
+## Owner layout lock — GB-PA-01 (26 Nov 2026)
+
+Owner approved the supplied GBA runtime screenshot as the governing visual reference, including close-grip one-handed digital operation and individual face-button Hold. This supersedes the earlier conventional left/right controller sketch in #377. Preserve the accepted GBA shell, artwork, control sizes and actual native geometry: D-pad upper-left, B upper-right, A diagonally down-left of B, Hold B immediately right of B and Hold A directly below A. Remove GBA-only L/R controls and their visible/touch elements; do not spread or reflow the remaining controls. Preserve the existing separate three-button Menu/Start/Select utility rail and existing mapping/legends. No additional buttons or stick. Mirror the complete group for handedness without reversing native key/direction identities. Existing source-owned Hold behavior must allow latched B + direction, independent A/B, clear held inputs on exit/reset and avoid duplicate or stuck guest presses.
+
+Screenshot-derived normalized centre targets (approximate visual reference, not measured dp, panel bounds x165–694 / y740–1345 in supplied 708×1536 image): D-pad (0.29,0.28), B (0.66,0.54), A (0.40,0.71), Hold B (0.88,0.54), Hold A (0.40,0.90). Existing utility rail outside panel below it. Engineering must reuse exact accepted GBA source positions/scale, not treat these approximations as a new geometry solver or pixel-perfect source export. Preserve game viewport, safe areas, independent >=48dp targets and close reach; check both hands, portrait and any supported orientation. If no safe fit, do not silently spread the cluster or hide controls.
+
+Native inventory: D-pad, A, B, Start, Select; Menu and two H affordances are CARTDECK controls, not extra guest keys. Historical source-backed reference: [PIV-HH-01](../../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) identifies GB/GBC as existing supported source profiles with common input topology; current PR #376 exact-head source binding/geometry validation and handset acceptance still required. GBA visual reference does not confer GB physical PASS. GripArc and Joint remain deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -29,8 +37,8 @@
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact source geometry audit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
