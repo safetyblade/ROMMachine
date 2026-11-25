@@ -639,6 +639,24 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
+            // GBA GripArc is a complete physical controller chassis. The
+            // existing native controls and G1-G4 input positions stay intact.
+            // Joined PivotArc + GripArc is intentionally NOT changed here:
+            // its final body/placement is gated after both solo styles.
+            val gbaFullGripPanel =
+                if (
+                    hardwareBorder && !isLandscape && !selectedPivot &&
+                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                    viewModel.systemId == SystemID.GBA &&
+                    gripPlacement != null && fullPos != null && viewPos != null
+                ) {
+                    GbaGripArcFullBodyGeometry.resolve(fullPos, viewPos, gripPlacement.targets.values)
+                } else {
+                    null
+                }
+            if (gbaFullGripPanel != null) {
+                GbaGripArcFullHousing(gbaFullGripPanel, shellTokens)
+            }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
@@ -678,15 +696,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 hardwareBorder && jointPlacement == null && gripPlacement != null &&
                 !fullscreenWithGamepad && !isLoading
             ) {
-                combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
-                GripArcHousing(
+                if (gbaFullGripPanel == null) {
+                    combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
+                }
+                if (gbaFullGripPanel == null) {
+                    GripArcHousing(
                     gripPlacement,
                     shellTokens,
                     resolved.lighting,
                     appearance.highContrast,
                     reactiveLightStrength,
                     activeSlots = arcProfile.count,
-                )
+                    )
+                }
             }
 
             LaunchedEffect(fullPos, viewPos, portraitMode, fullscreenWithGamepad, hardwareBorder) {
