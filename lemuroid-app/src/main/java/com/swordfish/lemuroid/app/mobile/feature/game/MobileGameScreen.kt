@@ -650,7 +650,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     viewModel.systemId == SystemID.GBA &&
                     gripPlacement != null && fullPos != null && viewPos != null
                 ) {
-                    GbaGripArcFullBodyGeometry.resolve(fullPos, viewPos, gripPlacement.targets.values)
+                    GbaGripArcFullBodyGeometry.resolve(
+                        fullPos,
+                        viewPos,
+                        gripPlacement.targets.values.map { bounds ->
+                            PivotArcBounds(
+                                fullPos.left + bounds.left * currentDensity.density,
+                                fullPos.top + bounds.top * currentDensity.density,
+                                fullPos.left + bounds.right * currentDensity.density,
+                                fullPos.top + bounds.bottom * currentDensity.density,
+                            )
+                        },
+                    )
                 } else {
                     null
                 }
