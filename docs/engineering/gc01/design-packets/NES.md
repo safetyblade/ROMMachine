@@ -2,11 +2,15 @@
 
 **Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
+
+## NES-PA-01 — review candidate (26 Nov 2026)
+
+Original NES standard pad uses D-pad, B and A, Select and Start (no sticks/shoulders); Nintendo original control deck instructions: https://www.world-of-nintendo.com/manuals/nes/control_deck.shtml . Primary D-pad/A/B, secondary Select/Start (some games use Select during play). Propose identical GB-PA-01/GBC-PA-01 compact GBA-derived one-thumb geometry, including B upper-right, A diagonally below-left, Hold B immediately right and Hold A below; preserve separate Menu/Start/Select rail and actual guest mappings. Deliberately do not copy the original widely separated horizontal arrangement: one-handed operation is the universal PivotArc aim. Special peripherals and additional player controllers outside this standard-pad layout decision. Owner approval, exact source binding and physical acceptance pending. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
