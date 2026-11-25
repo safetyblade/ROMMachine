@@ -49,7 +49,11 @@ class GbaGripArcLayoutTest {
     fun incompleteInputAndInsufficientHeightFailClosed() {
         assertNull(
             GbaGripArcLayout.resolve(
-                native, emptySet(), safe, viewport, GripArcSide.RIGHT,
+                native,
+                emptySet(),
+                safe,
+                viewport,
+                GripArcSide.RIGHT,
             ),
         )
         assertNull(
