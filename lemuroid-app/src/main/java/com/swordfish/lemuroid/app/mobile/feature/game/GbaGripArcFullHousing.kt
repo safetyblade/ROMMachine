@@ -86,14 +86,14 @@ internal fun GbaGripArcFullHousing(
             }
             val sx = 12.dp.toPx()
             val sy = 17.dp.toPx()
-            for (
-                p in listOf(
+            val fasteners =
+                listOf(
                     Offset(panel.left + sx, panel.top + sy),
                     Offset(panel.right - sx, panel.top + sy),
                     Offset(panel.left + sx, panel.bottom - sy),
                     Offset(panel.right - sx, panel.bottom - sy),
                 )
-            ) {
+            for (p in fasteners) {
                 drawCircle(tokens.bezel, 3.dp.toPx(), p)
                 drawCircle(tokens.onChassis.copy(alpha = 0.45f), 3.dp.toPx(), p, style = Stroke(1.dp.toPx()))
             }
