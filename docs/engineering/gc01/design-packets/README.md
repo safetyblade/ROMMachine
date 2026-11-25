@@ -4,6 +4,8 @@
 
 **Non-negotiable order:** GBA full GripArc physical proof → all solo PivotArc → all solo GripArc → Joint LAST (placement-only, artwork and key layouts unchanged).
 
+**Universal PivotArc design authority (owner, 26 Nov 2026):** Every PivotArc aims for one-handed use, including stick-based and home consoles. Use GBA as the digital reference and PSP as the stick reference (PSP hold/reach and placement review pending). Keep primary gameplay inputs close in a thumb island, individual face-button Hold as a defining feature, secondary controls reachable but separated, full native input identity, handedness and safe hit targets. Do not duplicate a wide two-hand controller's geometry or silently omit keys. Where a game genuinely requires independent simultaneous controls, disclose the limit; do not imply universal one-hand playability. GB-PA-01 and GBC-PA-01 are owner layout locked; physical and exact-head engineering evidence remain pending.
+
 Each SystemID has its own design packet. Never describe a planned controller as runtime-supported merely because its draft exists.
 
 | Batch | Console packets | Proposed build strategy |
