@@ -8,6 +8,10 @@
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
 
+## GBC-PA-01 — review candidate (26 Nov 2026)
+
+Propose inheriting [GB-PA-01](GB.md) unchanged: same original D-pad/A/B/Start/Select inventory, same close-grip D/A/B triangle, both individual Hold affordances, same GBA-derived chassis and utility rail, same handedness and native input semantics. No L/R or sticks. Game Boy Color game screen/palette and platform identity remain independent; no forced console-specific skin or geometry. Original control reference: https://www.manualslib.com/manual/4039910/Nintendo-Game-Boy-Color.html?page=4 and https://en.wikipedia.org/wiki/Game_Boy_Color . Owner approval pending; current exact-head native/source validation pending. No physical or build PASS.
+
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
 - [ ] Specify console-specific labels, paired face buttons, analogue/trigger geometry, menu/hold controls and physical artwork
