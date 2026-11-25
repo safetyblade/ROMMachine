@@ -42,6 +42,21 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "NES-PA-01 owner approved identical GB/GBC one-thumb layout, individual Hold A/B; source and physical pending."
+    },
+    {
+      "id": "SMS",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -50,22 +65,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "NES-PA-01 proposes GB/GBC one-thumb geometry with native A/B/Start/Select and Hold A/B; approval pending."
-    },
-    {
-      "id": "SMS",
-      "batch": "A",
-      "family": "Two-button",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "SMS-PA-01 proposes Digital 2 geometry with 1/START lower-left, 2 upper-right, both Holds, Menu and native Pause; no Select; approval pending."
     },
     {
       "id": "GG",
