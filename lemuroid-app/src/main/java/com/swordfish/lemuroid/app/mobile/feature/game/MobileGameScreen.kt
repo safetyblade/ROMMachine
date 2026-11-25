@@ -472,6 +472,24 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
                                     "Standard remains available; GripArc settings are preserved.",
                             )
+                        } else if (!selectedPivot && viewModel.systemId == SystemID.GBA && !isLandscape) {
+                            // Full-piece GBA GripArc owns its complete native constellation.
+                            // Do not redistribute Standard measurements or render the old
+                            // L-dock; Joint and the approved solo PivotArc stay unchanged.
+                            nativeProfileValidated = true
+                            combinedPlacement =
+                                GbaGripArcLayout.resolve(
+                                    nativeInventory,
+                                    nativeInventory.inputIds,
+                                    safeBounds,
+                                    viewportBounds,
+                                    effectiveArcSide,
+                                )
+                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
+                                ?: GripArcFit.Unavailable(
+                                    "The complete GBA GripArc controller cannot fit every native " +
+                                        "and programmable button safely on this display.",
+                                )
                         } else if (!selectedPivot) {
                             val liveIds = nativeInputInventory.values.flatten().toSet()
                             val liveBounds = individualInputs.toMap()
