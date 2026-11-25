@@ -3,14 +3,22 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 
 /**
@@ -51,6 +59,7 @@ internal fun GbaGripArcFullHousing(
 ) {
     // No pointer handlers: native PadKit owns gameplay; G1-G4 retain their
     // saved bindings, hit rectangles, hold semantics and simultaneous presses.
+    val density = LocalDensity.current
     Box(Modifier.fillMaxSize().testTag("gba-griparc-full-hardware")) {
         Canvas(Modifier.fillMaxSize()) {
             val corner = 17.dp.toPx()
@@ -88,5 +97,23 @@ internal fun GbaGripArcFullHousing(
                 drawCircle(tokens.onChassis.copy(alpha = 0.45f), 3.dp.toPx(), p, style = Stroke(1.dp.toPx()))
             }
         }
+        // GBA-specific full-chassis engraving, not another floating tower.
+        // The wordmark is decorative only and cannot become an input owner.
+        val engravingX = with(density) { (panel.center.x - 55.dp.toPx()).toDp() }
+        val engravingY = with(density) { (panel.top + 19.dp.toPx()).toDp() }
+        Text(
+            text = "GripArc",
+            color = tokens.accent,
+            fontSize = 13.sp,
+            fontStyle = FontStyle.Italic,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier =
+                Modifier
+                    .offset(x = engravingX, y = engravingY)
+                    .width(110.dp)
+                    .testTag("gba-griparc-full-wordmark"),
+        )
     }
 }
