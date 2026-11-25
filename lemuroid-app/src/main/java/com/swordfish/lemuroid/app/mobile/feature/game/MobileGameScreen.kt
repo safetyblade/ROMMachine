@@ -713,12 +713,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 }
                 if (gbaFullGripPanel == null) {
                     GripArcHousing(
-                    gripPlacement,
-                    shellTokens,
-                    resolved.lighting,
-                    appearance.highContrast,
-                    reactiveLightStrength,
-                    activeSlots = arcProfile.count,
+                        gripPlacement,
+                        shellTokens,
+                        resolved.lighting,
+                        appearance.highContrast,
+                        reactiveLightStrength,
+                        activeSlots = arcProfile.count,
                     )
                 }
             }
