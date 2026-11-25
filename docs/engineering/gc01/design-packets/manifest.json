@@ -27,6 +27,21 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "GBC-PA-01 owner approved exact GB-PA-01 geometry, one-handed, individual Hold A/B; engineering and physical pending."
+    },
+    {
+      "id": "NES",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -35,22 +50,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "GBC-PA-01 proposed unchanged GB-PA-01 geometry and input topology; owner review pending."
-    },
-    {
-      "id": "NES",
-      "batch": "A",
-      "family": "Two-button",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "NES-PA-01 proposes GB/GBC one-thumb geometry with native A/B/Start/Select and Hold A/B; approval pending."
     },
     {
       "id": "SMS",
