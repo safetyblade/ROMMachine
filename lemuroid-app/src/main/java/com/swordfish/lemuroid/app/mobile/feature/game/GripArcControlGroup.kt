@@ -129,7 +129,10 @@ internal fun GripArcControlGroup(
                 contentAlignment = Alignment.Center,
             ) {
                 GripArcShoulderButton(
-                    modifier = Modifier.size((GRIP_ARC_CAP_WIDTH * scale).dp, (GRIP_ARC_CAP_HEIGHT * scale).dp),
+                    modifier =
+                        placement.visuals.getValue(slot).let { visual ->
+                            Modifier.size(visual.w.dp, visual.h.dp)
+                        },
                     label = "G$slot",
                     tokens = tokens,
                     pressed = pressed,
