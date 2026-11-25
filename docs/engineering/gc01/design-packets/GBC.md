@@ -1,16 +1,16 @@
 # GBC — controller design packet
 
-**Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** A · **Hardware family:** Two-button · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
 
-## GBC-PA-01 — review candidate (26 Nov 2026)
+## GBC-PA-01 — owner layout lock (26 Nov 2026)
 
-Propose inheriting [GB-PA-01](GB.md) unchanged: same original D-pad/A/B/Start/Select inventory, same close-grip D/A/B triangle, both individual Hold affordances, same GBA-derived chassis and utility rail, same handedness and native input semantics. No L/R or sticks. Game Boy Color game screen/palette and platform identity remain independent; no forced console-specific skin or geometry. Original control reference: https://www.manualslib.com/manual/4039910/Nintendo-Game-Boy-Color.html?page=4 and https://en.wikipedia.org/wiki/Game_Boy_Color . Owner approval pending; current exact-head native/source validation pending. No physical or build PASS.
+Owner approved inheriting [GB-PA-01](GB.md) unchanged: same original D-pad/A/B/Start/Select inventory, same close-grip D/A/B triangle, both individual Hold affordances, same GBA-derived chassis and utility rail, same handedness and native input semantics. No L/R or sticks. Game Boy Color game screen/palette and platform identity remain independent; no forced console-specific skin or geometry. Original control reference: https://www.manualslib.com/manual/4039910/Nintendo-Game-Boy-Color.html?page=4 and https://en.wikipedia.org/wiki/Game_Boy_Color . Owner design approval granted 26 Nov 2026; current exact-head native/source validation pending. No physical or build PASS.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Propose inheriting [GB-PA-01](GB.md) unchanged: same original D-pad/A/B/Start/Se
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact source geometry audit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
