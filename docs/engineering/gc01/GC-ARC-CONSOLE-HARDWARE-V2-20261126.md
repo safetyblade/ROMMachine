@@ -1,5 +1,8 @@
 # GC-ARC-V2 — complete console-native PivotArc and GripArc hardware
 
+> **Owner-revised rollout 26 Nov 2026 (supersedes earlier phase ordering below):** First **prove full-piece GBA GripArc** physically using the successful `e7815a71` APK; second build/accept **all PivotArc** console designs; third build/accept **all full-piece GripArc** console designs; finally implement **Joint as placement-only**, without altering either completed pad. The [live 33-console register](GC-V2-CONSOLE-BUILD-TRACKER.md) is the single source of progress truth. Legacy V2B/V2C labels below describe implementation scope, not the new execution order.
+
+
 Owner decision (26 November 2026): **solo PivotArc accepted**. Its original hardware outline, density, logo/wordmark, control-relative spacing and standalone visual language are locked. The submitted screenshots show PivotArc + GripArc still overlapping/compromising this accepted panel and Standard + GripArc still presenting as a separate L-shaped accessory. Therefore retire the concept of a single universal GripArc dock as the *final* product presentation.
 
 ## Product rule
