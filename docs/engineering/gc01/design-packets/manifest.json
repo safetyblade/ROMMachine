@@ -1,0 +1,506 @@
+{
+  "schema": "cartdeck.arc.design-packets/1",
+  "order": [
+    "GBA GripArc proof",
+    "ALL solo PivotArc",
+    "ALL solo GripArc",
+    "Joint LAST"
+  ],
+  "systems": [
+    {
+      "id": "GB",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "GBC",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "NES",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "SMS",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "GG",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "NGP",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "NGC",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Neo Geo Pocket Color, NOT GameCube."
+    },
+    {
+      "id": "PC_ENGINE",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "GBA",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "solo_visual_accepted",
+        "physical": "visual_only"
+      },
+      "grip": {
+        "design": "full_body_candidate_pr376",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Solo PivotArc owner-accepted; large GripArc full-body prototype in draft PR #376; pending new GBA button-position acceptance."
+    },
+    {
+      "id": "SNES",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "GENESIS",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Distinct 3-button/6-button controller profiles."
+    },
+    {
+      "id": "SEGACD",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Verify 3-button/6-button game input mode."
+    },
+    {
+      "id": "WS",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Two directional clusters and handheld orientation."
+    },
+    {
+      "id": "WSC",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Two directional clusters and handheld orientation."
+    },
+    {
+      "id": "NDS",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Two screens, stylus and real mic/lid capabilities."
+    },
+    {
+      "id": "NINTENDO_3DS",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Two screens and circle pad; verify runtime."
+    },
+    {
+      "id": "PSP",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
+        "design": "solo_visual_accepted",
+        "physical": "visual_only"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Solo PivotArc appearance owner-accepted."
+    },
+    {
+      "id": "N64",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Real analogue, Z and C-button identity."
+    },
+    {
+      "id": "PSX",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Separate digital and DualShock profiles."
+    },
+    {
+      "id": "PLAYSTATION_2",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "PLAYSTATION_3",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "DREAMCAST",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "GAMECUBE",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "C-stick / Z / analogue triggers need real native input audit."
+    },
+    {
+      "id": "XBOX",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Real independent native host input bridge required."
+    },
+    {
+      "id": "XBOX360",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Xenia native host controls; not original Xbox."
+    },
+    {
+      "id": "FBNEO",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "4/6 button arcade control modes and coin/start."
+    },
+    {
+      "id": "MAME2003PLUS",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "4/6 button arcade control modes and coin/start."
+    },
+    {
+      "id": "ATARI2600",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Single fire button and console switches."
+    },
+    {
+      "id": "ATARI7800",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Two fire buttons and console switches."
+    },
+    {
+      "id": "WII",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Separate remote/nunchuk/classic; do not invent pointer/motion support."
+    },
+    {
+      "id": "DOS",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Keyboard/mouse and DOS gamepad profile options."
+    },
+    {
+      "id": "LYNX",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Audit the active native controller input inventory and physical console-specific legends."
+    },
+    {
+      "id": "WII_U",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Native host and GamePad control proof needed."
+    }
+  ]
+}
