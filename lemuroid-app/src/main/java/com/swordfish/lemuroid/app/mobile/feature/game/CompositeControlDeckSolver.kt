@@ -342,13 +342,25 @@ internal object CompositeControlDeckSolver {
                     val gripAdjusted = gripOffsetConfigured && (dx != gripDx || dy != gripDy)
                     val pivotAdjusted = pivotOffsetConfigured && !requested
                     val adjustments = (if (gripAdjusted) 1 else 0) + (if (pivotAdjusted) 1 else 0)
-                    // Hardware parity beats a saved-offset preference. Without this,
-                    // the legacy scattered layout could replace a valid solo-shaped
-                    // candidate solely because it required fewer dock adjustments.
-                    if (closest?.placement?.preservesSolo == true && !preserveSolo) continue
-                    if (preserveSolo && closest?.placement?.preservesSolo == false) {
-                        bestAdjustments = Int.MAX_VALUE
-                        bestScore = Float.POSITIVE_INFINITY
+                    // A manually saved GripArc offset takes precedence over
+                    // the automatic layout preference, but never bypasses the
+                    // physical target and viewport collision gates above.
+                    // Among equally faithful offsets prefer the original solo
+                    // PivotArc grouping rather than a scattered fallback.
+                    val existingPreservesSolo = closest?.placement?.preservesSolo == true
+                    if (!gripOffsetConfigured) {
+                        // Without a requested dock offset, keep solo geometry
+                        // even if the accessory must choose another safe anchor.
+                        if (existingPreservesSolo && !preserveSolo) continue
+                        if (preserveSolo && closest != null && !existingPreservesSolo) {
+                            bestAdjustments = Int.MAX_VALUE
+                            bestScore = Float.POSITIVE_INFINITY
+                        }
+                    } else if (adjustments == bestAdjustments) {
+                        if (existingPreservesSolo && !preserveSolo) continue
+                        if (preserveSolo && closest != null && !existingPreservesSolo) {
+                            bestScore = Float.POSITIVE_INFINITY
+                        }
                     }
                     val sameOffsetsNoCloser = adjustments == bestAdjustments && score >= bestScore
                     if (adjustments > bestAdjustments || sameOffsetsNoCloser) continue
