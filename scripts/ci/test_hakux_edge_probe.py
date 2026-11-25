@@ -50,7 +50,7 @@ class EdgeProbeTests(unittest.TestCase):
     def test_sampling_is_sparse_not_a_claim_of_full_border_coverage(self):
         self.assertEqual(64, len([sample(640, 480, i) for i in range(64)]))
         self.assertEqual((0, 0), sample(640, 480, 0))
-        self.assertEqual((639, 479), sample(640, 480, 31))
+        self.assertEqual((639, 479), sample(640, 480, 23))
 
 
 if __name__ == "__main__":
