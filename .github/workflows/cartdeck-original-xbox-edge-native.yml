@@ -1,0 +1,79 @@
+name: CARTDECK Original Xbox edge native candidate
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ci/build_hakux_native.py'
+      - 'scripts/ci/hakux_edge_probe.py'
+      - 'scripts/ci/test_hakux_edge_probe.py'
+      - 'scripts/ci/hakux_pipeline_cache_commit.py'
+      - 'scripts/ci/patches/hakux-*.patch'
+      - '.github/workflows/cartdeck-original-xbox-edge-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cartdeck-original-xbox-edge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-hakux:
+    name: Pinned hakuX ARM64 source and binary proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fail-closed offline source checks
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/ci -p 'test_hakux_edge_probe.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_hakux_pipeline_cache_commit.py' -v
+          python3 -m unittest discover -s scripts/ci -p 'test_verify_hakux_native.py' -v
+      - name: Install pinned Android toolchain
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --sdk_root="$sdk_root" --licenses < <(yes) > "$RUNNER_TEMP/xbox-sdk-licenses.log"
+          "$manager" --sdk_root="$sdk_root" --install 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=$sdk_root/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/xbox-tools"
+          "$RUNNER_TEMP/xbox-tools/bin/pip" install 'cmake==3.31.6' 'ninja==1.11.1.4'
+          echo "$RUNNER_TEMP/xbox-tools/bin" >> "$GITHUB_PATH"
+      - name: Compile exact pinned source with on-demand edge probe
+        env:
+          NATIVE_BUILD_JOBS: '2'
+        run: bash scripts/ci/build_hakux_native.sh work/native-packages/xbox
+      - name: Verify source-transform receipt
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from configparser import ConfigParser
+          root = Path('work/native-packages/xbox')
+          properties = (root / 'hakux.properties').read_text()
+          assert 'cartdeck.pixelProbe=async-edges-outer-inner-v1' in properties
+          assert (root / 'libhakuxcore.so').is_file()
+          import json
+          manifest = json.loads((root / 'source-manifest.json').read_text())
+          assert manifest['cartdeck.sourceTransforms']['hakux_edge_probe.py'] == hashlib.sha256(
+              Path('scripts/ci/hakux_edge_probe.py').read_bytes()).hexdigest()
+          print('Native artifact contains matching edge probe version and exact source-transform SHA')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hakux-edge-native-${{ github.sha }}
+          path: work/native-packages/xbox/
+          if-no-files-found: error
+          retention-days: 30
