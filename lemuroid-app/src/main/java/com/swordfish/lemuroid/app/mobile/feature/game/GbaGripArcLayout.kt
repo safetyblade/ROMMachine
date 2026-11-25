@@ -32,8 +32,9 @@ internal object GbaGripArcLayout {
         fun target(
             x: Float,
             y: Float,
-            width: Float = 48f,
-            height: Float = 48f,
+            // Maintain >48dp after IEEE-754 coordinate subtraction.
+            width: Float = 48.5f,
+            height: Float = 48.5f,
         ): PivotArcBounds {
             val actualX = if (side == GripArcSide.LEFT) 1f - x else x
             val cx = panel.left + panel.width * actualX
