@@ -59,7 +59,12 @@ internal object GbaGripArcLayout {
         val visuals =
             native.controls.associate { spec ->
                 val hit = controls.getValue(spec.key)
-                val factor = if (spec.key == "D") 0.96f else if (spec.key in setOf("A", "B")) 0.88f else 0.78f
+                val factor =
+                    when (spec.key) {
+                        "D" -> 0.96f
+                        "A", "B" -> 0.88f
+                        else -> 0.78f
+                    }
                 spec.key to PivotArcSize(hit.width * factor, hit.height * factor)
             }
         val seats =

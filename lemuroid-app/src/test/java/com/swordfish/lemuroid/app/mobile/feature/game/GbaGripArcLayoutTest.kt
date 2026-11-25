@@ -33,8 +33,14 @@ class GbaGripArcLayoutTest {
             )
             val a = placement.controls.getValue("A")
             val b = placement.controls.getValue("B")
-            assertTrue("Face buttons must be in a shared reachable cluster", kotlin.math.abs(a.centerX - b.centerX) < 90f)
-            assertTrue("Face buttons must be in a shared reachable cluster", kotlin.math.abs(a.centerY - b.centerY) < 75f)
+            assertTrue(
+                "Face buttons must be in a shared reachable cluster",
+                kotlin.math.abs(a.centerX - b.centerX) < 90f,
+            )
+            assertTrue(
+                "Face buttons must be in a shared reachable cluster",
+                kotlin.math.abs(a.centerY - b.centerY) < 75f,
+            )
             assertEquals(4, placement.dock.visuals.size)
         }
     }
@@ -42,13 +48,17 @@ class GbaGripArcLayoutTest {
     @Test
     fun incompleteInputAndInsufficientHeightFailClosed() {
         assertNull(
-            GbaGripArcLayout.resolve(native, emptySet(), safe, viewport, GripArcSide.RIGHT),
+            GbaGripArcLayout.resolve(
+                native, emptySet(), safe, viewport, GripArcSide.RIGHT,
+            ),
         )
         assertNull(
             GbaGripArcLayout.resolve(
-                native, native.inputIds,
+                native,
+                native.inputIds,
                 PivotArcBounds(8f, 8f, 385f, 600f),
-                viewport, GripArcSide.RIGHT,
+                viewport,
+                GripArcSide.RIGHT,
             ),
         )
     }
