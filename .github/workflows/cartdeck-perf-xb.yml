@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/ci/xbox_perf_benchmark.py'
       - 'scripts/ci/hakux_pipeline_cache_commit.py'
+      - 'scripts/ci/hakux_edge_probe.py'
+      - 'scripts/ci/test_hakux_edge_probe.py'
       - 'scripts/ci/test_hakux_pipeline_cache_commit.py'
       - 'scripts/ci/build_hakux_native.py'
       - 'scripts/ci/test_xbox_perf_benchmark.py'
@@ -38,11 +40,13 @@ jobs:
           python-version: '3.12'
       - name: Validate Python source
         run: |
-          python3 -m compileall -q scripts/ci/xbox_perf_benchmark.py scripts/ci/xbox360 scripts/ci/hakux_pipeline_cache_commit.py
+          python3 -m compileall -q scripts/ci/xbox_perf_benchmark.py scripts/ci/xbox360 scripts/ci/hakux_pipeline_cache_commit.py scripts/ci/hakux_edge_probe.py
       - name: Compare only grounded gaming sessions
         run: python3 -m unittest discover -s scripts/ci -p 'test_xbox_perf_benchmark.py' -v
       - name: Verify fail-closed hakuX pipeline cache write correction
         run: python3 -m unittest discover -s scripts/ci -p 'test_hakux_pipeline_cache_commit.py' -v
+      - name: Verify pinned native outer and inner edge sampling transform
+        run: python3 -m unittest discover -s scripts/ci -p 'test_hakux_edge_probe.py' -v
       - name: Validate concurrent native timing and shader wait
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_x360_performance.py' -v
