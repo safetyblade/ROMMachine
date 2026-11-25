@@ -73,7 +73,9 @@ object PivotArcLayoutProfile {
 
     fun activeFor(system: SystemID): List<String>? =
         when (system) {
-            SystemID.GB, SystemID.GBC -> listOf("D", "A", "B", "Select", "Start", "Menu")
+            SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.PC_ENGINE ->
+                listOf("D", "A", "B", "Select", "Start", "Menu")
+            SystemID.SMS -> listOf("D", "A", "B", "Start", "Menu")
             SystemID.GG, SystemID.NGP, SystemID.NGC -> listOf("D", "A", "B", "Start", "Menu")
             SystemID.LYNX -> listOf("D", "A", "B", "L", "R", "Start", "Menu")
             SystemID.GBA -> listOf("D", "A", "B", "L", "R", "Select", "Start", "Menu")

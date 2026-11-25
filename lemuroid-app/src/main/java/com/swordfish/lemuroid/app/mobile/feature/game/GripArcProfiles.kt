@@ -42,7 +42,9 @@ object GripArcInputCatalog {
 
     fun forSystem(system: SystemID?): List<GripArcInput> =
         when (system) {
-            SystemID.GB, SystemID.GBC -> listOf(a, b, start, select)
+            SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.PC_ENGINE ->
+                listOf(a, b, start, select)
+            SystemID.SMS -> listOf(a, b, start)
             SystemID.GBA -> listOf(a, b, l, r, start, select)
             // Labels follow the existing PadKit touch layouts, not guessed console ABXY.
             // Game Gear uses Button 2 on Android A and Button 1 on Android B.
