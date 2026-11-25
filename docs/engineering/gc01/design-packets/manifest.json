@@ -12,7 +12,7 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
-        "design": "to_design",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -20,14 +20,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "GB-PA-01 owner layout locked: exact GBA D/A/B and Hold A/B geometry, remove L/R, compact one-handed use; source and physical pending."
     },
     {
       "id": "GBC",
       "batch": "A",
       "family": "Two-button",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -35,7 +35,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "GBC-PA-01 proposed unchanged GB-PA-01 geometry and input topology; owner review pending."
     },
     {
       "id": "NES",
