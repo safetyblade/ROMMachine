@@ -18,7 +18,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | NGP | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | NGC | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | PC_ENGINE | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
-| GBA | Four-button/shoulders | Accepted solo visual | Full-body code; CI pending | Not built | GBA-V2B-04 (8869755c) |
+| GBA | Four-button/shoulders | Accepted solo visual | Full-body code; CI pending | Not built | GBA-V2B-05 (750bedb9) |
 | SNES | Four-button/shoulders | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | GENESIS | Six-button | Not built | Not built | Not built | — |
 | SEGACD | Six-button | Not built | Not built | Not built | — |
@@ -53,6 +53,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | GBA-V2B-02 | Unmodified | Same full faceplate with integrated GripArc engraving (no new floating element) | Not touched (LAST) | Commit a1eac63f; exact-head CI pending | Not tested |
 | GBA-V2B-03 | Unmodified | Full body geometry uses correct dp→pixel conversion for all four programmable keys | Not touched (LAST) | Commit def9ed0a; exact-head CI pending | Not tested |
 | GBA-V2B-04 | Unmodified | Full body hidden whenever touch controls/gameplay hardware are not visible | Not touched (LAST) | Commit 8869755c; exact-head CI pending | Not tested |
+| GBA-V2B-05 | Unmodified | Same full-piece GBA style; Kotlin formatting repaired | Not touched (LAST) | Commit 750bedb9; exact-head CI pending | Not tested |
 
 ## Advance criteria
 
