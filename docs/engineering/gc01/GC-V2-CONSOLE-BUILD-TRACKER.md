@@ -8,6 +8,18 @@ This is the canonical progress register for PR #376 and its successors. Update *
 
 **Frozen reference:** solo GBA and PSP PivotArc screenshot appearance and relative control placements. Keep both source and owner acceptance when working on GripArc. Legacy L-style GripArc remains the fallback until full-body style is validated on device; don't assert Joint complete.
 
+## GBA full-piece hardware — owner screenshot review (26 Nov 2026)
+
+**Evidence:** GBA BattleBots menu screenshot, after successful `e7815a71` APK. The new full-height GripArc housing appears as a single cohesive physical panel immediately below the game viewport. It is visibly large, but owner is considering that a desirable **shared GripArc hardware chassis standard**, not necessarily a sizing failure. This is a *provisional design direction*, **not yet a PASS** for spacing or gameplay.
+
+**Observed placement defects:** Standard-layout L/R buttons remain at extreme top corners; D-pad far left and B/A stagger far right; Start/Select separated; Menu isolated; G1–G4 small and scattered along the right/lower edge. Most empty space belongs to *control layout*, not to wrong outer shell size.
+
+**Design decision to test next:** Keep the full-size GripArc body's silhouette, bevels, corner mounts, rails, and wordmark consistent across console families. Create **per-console compact native-control constellations** within a reserved main control area, and a deliberate, legible four-button G1–G4 bank inside the same hardware face. Preserve native PadKit control input, hold gestures, touch target safety, per-game mappings, video and saves. Do not simply stretch existing Standard positions into a bigger panel.
+
+**Future Joint**, only after standalone PivotArc and GripArc for all consoles have been accepted: mount the already finished PivotArc module onto this shared GripArc chassis as a complete immutable hardware component. Joint is a rigid placement/fit problem; no changing either module's physical style, relative controls, logos, button sizes or mapping; no overlapping or duplicate live inputs.
+
+**Required next GBA gate:** Implement a GBA-specific compact native-control layout and cohesive G1–G4 bank in the shared full-height chassis, exact-head format/unit/APK checks, then owner physical appearance and game-input retest. Current GBA status: full-body chassis **candidate accepted for further design exploration**, button placement **needs redesign**, functional acceptance **unverified**. Other consoles remain unbuilt and this screenshot does not promote them.
+
 ## Console-by-console build matrix
 
 | Console | Input family | PivotArc SOLO (specific style) | GripArc SOLO (full hardware) | Joint (pad placement only, LAST) | Latest GC run/commit |
@@ -20,7 +32,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | NGP | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | NGC | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | PC_ENGINE | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
-| GBA | Four-button/shoulders | Accepted solo visual | Full-body build PASS; owner proof pending | Not built | GBA-V2B-06 (e7815a71) |
+| GBA | Four-button/shoulders | Accepted solo visual | Full-body built/CI PASS; chassis promising, control positions need refinement | Not built | GBA-V2B-06 (e7815a71) |
 | SNES | Four-button/shoulders | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | GENESIS | Six-button | Not built | Not built | Not built | — |
 | SEGACD | Six-button | Not built | Not built | Not built | — |
@@ -56,7 +68,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | GBA-V2B-03 | Unmodified | Full body geometry uses correct dp→pixel conversion for all four programmable keys | Not touched (LAST) | Commit def9ed0a; exact-head CI pending | Not tested |
 | GBA-V2B-04 | Unmodified | Full body hidden whenever touch controls/gameplay hardware are not visible | Not touched (LAST) | Commit 8869755c; exact-head CI pending | Not tested |
 | GBA-V2B-05 | Unmodified | Same full-piece GBA style; Kotlin formatting repaired | Not touched (LAST) | Commit 750bedb9; superseded by 06 | Not tested |
-| GBA-V2B-06 | Unmodified | Full-body candidate; fastener-loop formatting fixed | Not touched (LAST) | e7815a71; Kotlin PASS; Room PASS; APK PASS; run 45711515604; artifact 15067444903 | **OWNER PROOF PENDING** |
+| GBA-V2B-06 | Unmodified | Full-body candidate; fastener-loop formatting fixed | Not touched (LAST) | e7815a71; Kotlin PASS; Room PASS; APK PASS; run 45711515604; artifact 15067444903 | **Screenshot reviewed: outer chassis promising; control positioning NOT ACCEPTED; input unverified** |
 
 ## Phase gate and progress roll-up
 
