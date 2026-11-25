@@ -35,7 +35,8 @@ internal object GbaGripArcLayout {
             width: Float = 48f,
             height: Float = 48f,
         ): PivotArcBounds {
-            val cx = panel.left + panel.width * x
+            val actualX = if (side == GripArcSide.LEFT) 1f - x else x
+            val cx = panel.left + panel.width * actualX
             val cy = panel.top + panel.height * y
             return PivotArcBounds(cx - width / 2f, cy - height / 2f, cx + width / 2f, cy + height / 2f)
         }
@@ -74,7 +75,7 @@ internal object GbaGripArcLayout {
 
         // G1–G4 form a real two-column control bank instead of four labels
         // scattered around the old corner tower.
-        val columns = if (side == GripArcSide.RIGHT) listOf(0.64f, 0.83f) else listOf(0.17f, 0.36f)
+        val columns = listOf(0.64f, 0.83f)
         val programmable =
             mapOf(
                 1 to target(columns[0], 0.72f),
