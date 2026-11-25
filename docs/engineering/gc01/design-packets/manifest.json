@@ -57,6 +57,21 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "SMS-PA-01 owner approved Digital 2 geometry, 1/START lower-left, 2 upper-right, Holds, Menu and guest Pause; engineering and physical pending."
+    },
+    {
+      "id": "GG",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -65,22 +80,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "SMS-PA-01 proposes Digital 2 geometry with 1/START lower-left, 2 upper-right, both Holds, Menu and native Pause; no Select; approval pending."
-    },
-    {
-      "id": "GG",
-      "batch": "A",
-      "family": "Two-button",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "GG-PA-01 proposes SMS Digital 2 geometry with dedicated Start instead of Pause; native B=1 and A=2 per prior source audit; approval pending."
     },
     {
       "id": "NGP",
