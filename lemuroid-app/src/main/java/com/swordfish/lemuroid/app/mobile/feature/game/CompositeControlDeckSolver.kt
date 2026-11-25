@@ -286,25 +286,33 @@ internal object CompositeControlDeckSolver {
                         } else {
                             bounds.right
                         }
+                    // The joined island is a PAINTED OPEN RAIL, not a solid
+                    // bounding rectangle that must contain every gamepad key.
+                    // The native controls and all four G targets have already
+                    // passed the real safe-area / collision gates above.
+                    // Clip only the lower decorative rail before the first
+                    // overlapping GripArc arm or G target; never reject a safe
+                    // original controller arrangement for an invisible hull.
+                    val lowerClearance =
+                        reserved.filter { r ->
+                            r.left < innerRight + OUTLINE &&
+                                r.right > innerLeft - OUTLINE &&
+                                r.bottom > notchY
+                        }.minOfOrNull { it.top - GAP - OUTLINE }
+                    val lowerBottom =
+                        minOf(
+                            bounds.bottom,
+                            safeDeck.bottom - EDGE - OUTLINE,
+                            lowerClearance ?: bounds.bottom,
+                        )
                     val island =
                         PivotIslandShape(
                             PivotArcBounds(bounds.left, bounds.top, bounds.right, notchY),
-                            PivotArcBounds(innerLeft, notchY, innerRight, bounds.bottom),
+                            PivotArcBounds(innerLeft, notchY, innerRight, lowerBottom),
                         )
                     if (island.regions.any {
                             it.width <= 0f || it.height <= 0f || !it.inset(OUTLINE).inside(safeDeck) ||
-                                reserved.any {
-                                        r ->
-                                    it.inset(OUTLINE).intersects(r)
-                                }
-                        }
-                    ) {
-                        continue
-                    }
-                    // Reject a notch that cuts through any actual or future touch region.
-                    if (boxes.map { it.inset(EDGE) }.any { r ->
-                            island.regions.none { r.inside(it) } &&
-                                !(r.left >= innerLeft && r.right <= innerRight && r.inside(bounds))
+                                reserved.any { r -> it.inset(OUTLINE).intersects(r) }
                         }
                     ) {
                         continue
@@ -398,13 +406,44 @@ internal object CompositeControlDeckSolver {
     ): MutableMap<String, PivotArcBounds> {
         if (factor == 1f) return source.toMutableMap()
         val original = hull(source.values)
-        return source.mapValues { (_, r) ->
-            val cx = original.centerX + (r.centerX - original.centerX) * factor
-            val cy = original.centerY + (r.centerY - original.centerY) * factor
-            val w = maxOf(48f, r.width * factor)
-            val h = maxOf(48f, r.height * factor)
-            PivotArcBounds(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f)
-        }.toMutableMap()
+        val scaled =
+            source.mapValues { (_, r) ->
+                val cx = original.centerX + (r.centerX - original.centerX) * factor
+                val cy = original.centerY + (r.centerY - original.centerY) * factor
+                val w = maxOf(48f, r.width * factor)
+                val h = maxOf(48f, r.height * factor)
+                PivotArcBounds(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f)
+            }.toMutableMap()
+        // Hold switches stay 48dp even as the whole deck scales. Scaling
+        // their original centres moves them INTO A/B, so attach each hold
+        // to its native key again with a true 8dp clear touch gap.
+        scaled["A"]?.let { a ->
+            if ("HoldA" in scaled) {
+                scaled["HoldA"] =
+                    PivotArcBounds(a.centerX - 24f, a.bottom + GAP, a.centerX + 24f, a.bottom + GAP + 48f)
+            }
+        }
+        scaled["B"]?.let { b ->
+            if ("HoldB" in scaled) {
+                scaled["HoldB"] =
+                    PivotArcBounds(b.left - GAP - 48f, b.centerY - 24f, b.left - GAP, b.centerY + 24f)
+            }
+        }
+        // The separated Start/Select/Menu rail moves AS ONE group. Keep
+        // its intended clearance beneath the reattached Hold A, without
+        // altering any gameplay button spacing or key identity.
+        val rail = scaled.filterKeys { it in utilities }
+        if (rail.isNotEmpty()) {
+            val gameplayBottom = scaled.filterKeys { it !in utilities }.values.maxOf { it.bottom }
+            val railTop = rail.values.minOf { it.top }
+            val railDrop = maxOf(0f, gameplayBottom + GAP - railTop)
+            if (railDrop > 0f) {
+                rail.forEach { (key, r) ->
+                    scaled[key] = r.copy(top = r.top + railDrop, bottom = r.bottom + railDrop)
+                }
+            }
+        }
+        return scaled
     }
 
     private fun hull(rects: Collection<PivotArcBounds>) =

@@ -211,6 +211,31 @@ class CompositeControlDeckSolverTest {
         assertEquals(expected.placement.housing, result.placement.dock.housing)
     }
 
+    @Test fun scaledSoloKeepsFixedSizeHoldAndSeparatedUtilityRailOutsideEveryNativeTarget() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        val active = PivotArcLayoutProfile.activeFor(SystemID.GBA)!!
+        val solo =
+            PivotArcPositionSolver.resolve(
+                baseline, active, device.safe, device.viewport,
+                leftHanded = false, requestedDx = 0f, requestedDy = 0f, isLandscape = false,
+            ) as PivotArcResolution.Fits
+        val source = CompositeControlDeckSolver.soloPivotSource(baseline, active, device.safe, solo.placement)
+        for (factor in listOf(0.94f, 0.88f, 0.82f)) {
+            val scaled = CompositeControlDeckSolver.scaleSoloConstellation(source, factor)
+            val a = scaled.getValue("A")
+            val b = scaled.getValue("B")
+            val holdA = scaled.getValue("HoldA")
+            val holdB = scaled.getValue("HoldB")
+            assertEquals(a.bottom + 8f, holdA.top, 0.05f)
+            assertEquals(b.left - 8f, holdB.right, 0.05f)
+            assertEquals(48f, holdA.width, 0.05f)
+            assertEquals(48f, holdB.height, 0.05f)
+            val rail = listOf("Select", "Start", "Menu").map(scaled::getValue)
+            val gameplay = scaled.filterKeys { it !in setOf("Select", "Start", "Menu") }.values
+            assertTrue(rail.minOf { it.top } >= gameplay.maxOf { it.bottom } + 7.95f)
+        }
+    }
+
     @Test fun ownerClassCombinedGbaUsesSoloDerivedGeometryRatherThanScatteredFallback() {
         val device = ControlDeckDeviceFixture(393f, 852f)
         val joined =
