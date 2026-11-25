@@ -34,7 +34,8 @@ internal object ArcConsoleHardwareCatalog {
     fun family(system: SystemID): ArcHardwareFamily =
         when (system) {
             SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.SMS, SystemID.GG,
-            SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE -> ArcHardwareFamily.TWO_BUTTON
+            SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE,
+            -> ArcHardwareFamily.TWO_BUTTON
 
             SystemID.GBA, SystemID.SNES -> ArcHardwareFamily.FOUR_BUTTON_SHOULDERS
             SystemID.GENESIS, SystemID.SEGACD -> ArcHardwareFamily.SIX_BUTTON
@@ -42,7 +43,8 @@ internal object ArcConsoleHardwareCatalog {
             SystemID.NDS, SystemID.NINTENDO_3DS -> ArcHardwareFamily.TOUCH_DUAL_SCREEN
             SystemID.PSP, SystemID.N64 -> ArcHardwareFamily.SINGLE_ANALOG
             SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3,
-            SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.XBOX, SystemID.XBOX360 ->
+            SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.XBOX, SystemID.XBOX360,
+            ->
                 ArcHardwareFamily.DUAL_ANALOG
 
             SystemID.FBNEO, SystemID.MAME2003PLUS -> ArcHardwareFamily.ARCADE

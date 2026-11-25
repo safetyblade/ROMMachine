@@ -32,7 +32,10 @@ class ArcConsoleHardwareCatalogTest {
             assertTrue(system.name, ArcConsoleHardwareCatalog.gripInputMapped(system))
         }
         for (system in listOf(SystemID.N64, SystemID.PSX, SystemID.WII_U)) {
-            assertFalse("Do not falsely claim support for $system", ArcConsoleHardwareCatalog.pivotRuntimeMapped(system))
+            assertFalse(
+                "Do not falsely claim support for $system",
+                ArcConsoleHardwareCatalog.pivotRuntimeMapped(system),
+            )
         }
     }
 }
