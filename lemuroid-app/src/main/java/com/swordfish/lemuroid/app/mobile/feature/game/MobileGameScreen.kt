@@ -477,10 +477,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             // Do not redistribute Standard measurements or render the old
                             // L-dock; Joint and the approved solo PivotArc stay unchanged.
                             nativeProfileValidated = true
+                            val gbaNative = nativeInventory!!
                             combinedPlacement =
                                 GbaGripArcLayout.resolve(
-                                    nativeInventory,
-                                    nativeInventory.inputIds,
+                                    gbaNative,
+                                    gbaNative.inputIds,
                                     safeBounds,
                                     viewportBounds,
                                     effectiveArcSide,
