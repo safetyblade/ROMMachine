@@ -125,7 +125,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PCE-PA-01A standard owner approved; six-button rows withdrawn for thumb conflict; Avenue Pad 3 alias and radial 3/4/6 study open; physical and source pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
+      "note": "Standard Digital 2 and revised D6-PA-01 six-button radial profiles owner approved; fixed Holds I/II; Avenue Pad 3 alias open; source, mode and physical pending."
     },
     {
       "id": "GBA",
@@ -162,7 +162,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "standard_layout_locked_variants_open",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -170,14 +170,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "MD-PA-01 three-button radial A/B/C with fixed Hold B owner approved; six-button open; source and physical validation pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
+      "note": "Standard Digital 3 and D6-PA-01 six-button radial profiles owner approved; fixed Hold B; source, mode and physical acceptance pending."
     },
     {
       "id": "SEGACD",
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "standard_layout_locked_variants_open",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -185,14 +185,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "SCD-PA-01 owner approved exact Mega Drive Digital 3 inheritance; six-button open; source/physical pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
+      "note": "Standard Digital 3 and D6-PA-01 six-button radial profiles owner approved; fixed Hold B; source, mode and physical acceptance pending."
     },
     {
       "id": "WS",
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -200,7 +200,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Two directional clusters and handheld orientation."
+      "note": "WS-PA-01 dual directional proposal: X primary horizontal/Y primary vertical, other group independent, fixed A/B Holds; owner review pending."
     },
     {
       "id": "WSC",
