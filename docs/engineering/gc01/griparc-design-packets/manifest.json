@@ -538,7 +538,8 @@
   ],
   "designGate": {
     "id": "GA-D00",
-    "status": "review_candidate",
-    "scope": "Universal Controls Hub, physical controller discovery/mapping and portrait/landscape GripARC design standard"
+    "status": "owner_layout_locked",
+    "scope": "Universal Controls Hub, physical controller discovery/mapping and portrait/landscape GripARC design standard",
+    "note": "Approved with PivotARC description On-the-go play and CARTDECK primary landscape logo, GripARC secondary hardware wordmark. GA-R00 Controls UI implementation separately authorized; no console layout or Joint implementation authority."
   }
 }
