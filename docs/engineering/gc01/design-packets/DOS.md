@@ -1,16 +1,16 @@
 # DOS — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Keyboard/mouse and DOS gamepad profile options.
 
-## DOS-PA-01A/B/C — PC input review candidates (26 Nov 2026)
+## DOS-PA-01A/B/C — PC input owner layout lock (26 Nov 2026)
 
-A — Gamepad: inherit approved Sony side-mounted dual analogue chassis, D-pad, radial X/Y/A/B, 2×2 mid-arc L1/R1/L2/R2 and fixed X/Y/A/B Holds; Menu/Start/Select and explicit keyboard icon on utility rail. DOS has no universal guest gamepad mapping: preserve DOSBox Pure DOS_AUTO per-game actual mapping; do not claim all DOS games use these controls. Existing engineering DOS.kt blob 01176c39c3e994af6ffdea087be2a638a882033f uses ABXY, both analogue helpers, D-pad, L1/L2/R1/R2, Start/Select, THUMBL keyboard icon and CARTDECK Menu. Keyboard seat is not guest L3; no invented R3. B — Keyboard action profile: compact D-pad + four radial action seats with explicit saved game-specific key legends, fixed Holds for mapped actions only; accessible full keyboard, modifiers, Esc/Enter and other required keys, no silent removal of controls; actual key dispatch and key-up/lifecycle verification required before enabling. C — Mouse profile: accessible left/right click with optional fixed left/right Holds if real button-down/up supported, separate keyboard/menu access, touchscreen relative mouse or actual absolute mapping where supported, no fake joystick as mouse. Preserve screen viewport, pointer drag/release and independent mouse/keyboard concurrency. No game-specific macros or automatic mappings guessed from genre. B/C are proposed capability designs, not source-confirmed existing modes; verify DOSBox Pure guest keyboard/mouse bridge and native gamepad mapping before implementing. Keep conventional Standard available where unsupported. Representative tests Commander Keen, Jazz Jackrabbit, DOOM, SimCity 2000, The Secret of Monkey Island, with actual input requirements verified. Windows/Wine independent PC runtime remains separate, no claims of EXE compatibility from DOS profile. All geometry illustrative, 48dp independent targets, full analogue travel, mirror, saved per-game mapping, input release and viewport clearance measured. Owner approval pending; no implementation/build. GripArc/Joint deferred.
+A — Gamepad: inherit approved Sony side-mounted dual analogue chassis, D-pad, radial X/Y/A/B, 2×2 mid-arc L1/R1/L2/R2 and fixed X/Y/A/B Holds; Menu/Start/Select and explicit keyboard icon on utility rail. DOS has no universal guest gamepad mapping: preserve DOSBox Pure DOS_AUTO per-game actual mapping; do not claim all DOS games use these controls. Existing engineering DOS.kt blob 01176c39c3e994af6ffdea087be2a638a882033f uses ABXY, both analogue helpers, D-pad, L1/L2/R1/R2, Start/Select, THUMBL keyboard icon and CARTDECK Menu. Keyboard seat is not guest L3; no invented R3. B — Keyboard action profile: compact D-pad + four radial action seats with explicit saved game-specific key legends, fixed Holds for mapped actions only; accessible full keyboard, modifiers, Esc/Enter and other required keys, no silent removal of controls; actual key dispatch and key-up/lifecycle verification required before enabling. C — Mouse profile: accessible left/right click with optional fixed left/right Holds if real button-down/up supported, separate keyboard/menu access, touchscreen relative mouse or actual absolute mapping where supported, no fake joystick as mouse. Preserve screen viewport, pointer drag/release and independent mouse/keyboard concurrency. No game-specific macros or automatic mappings guessed from genre. B/C are proposed capability designs, not source-confirmed existing modes; verify DOSBox Pure guest keyboard/mouse bridge and native gamepad mapping before implementing. Keep conventional Standard available where unsupported. Representative tests Commander Keen, Jazz Jackrabbit, DOOM, SimCity 2000, The Secret of Monkey Island, with actual input requirements verified. Windows/Wine independent PC runtime remains separate, no claims of EXE compatibility from DOS profile. All geometry illustrative, 48dp independent targets, full analogue travel, mirror, saved per-game mapping, input release and viewport clearance measured. Owner approved 26 Nov 2026; native capability and physical gates remain open; no implementation/build. GripArc/Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ A — Gamepad: inherit approved Sony side-mounted dual analogue chassis, D-pad, 
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — capability and fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
