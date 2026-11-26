@@ -2,11 +2,15 @@
 
 **Batch:** D · **Hardware family:** Console native / analogue · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** C-stick / Z / analogue triggers need real native input audit.
+
+## GC-PA-01 — Analogue 4 Asymmetric review candidate (26 Nov 2026)
+
+Inherit approved Sony side-mounted dual-stick architecture, main analogue above smaller C-stick, independently accessible central D-pad. GameCube-specific action constellation: larger A at nucleus, B lower-left, Y upper-left, X upper-right; retain native guest identity. L/R adjacent mid-arc, Z immediately below trigger bank, never top shoulder row. Propose four fixed Holds A/B/L/R, favor sustained A and trigger functions; X/Y/Z remain momentary. L/R full-press Holds only, not invented variable pressure. Provide distinct L-half/R-half at reachable mid-arc only if real backend mappings verified; no fake L3/R3 labels because original GameCube sticks do not click. Illustrative 448×410 body centres: main analogue (62,116), C-stick (62,253), D (157,170), A (254,200), B (207,268), Y (241,105), X (303,118), L (347,190), R (402,190), L-half (347,247), R-half (402,247), Z (375,304), H A (270,267), H B (207,333), H L (347,365), H R (402,365), separate Menu/Start utility rail below. Half-trigger positions conditional; if real half presses absent, disclose and keep unused positions inactive rather than misrepresenting input. All centres illustrative, not measured dp or verified fit. Exact engineering GameCube.kt blob b2b90aeeb36082b6d6f35148139c937b1d618ab6 documents Android A/B/X/Y guest same-label keys, L1/R1 full shoulders, R2 Z, left/right axes for main/C-stick, and stick-click host mappings for analog half-triggers (verify actual Dolphin core/native host mapping independently). No automatic half trigger on stick movement; explicit intended action only. Require independent real axes, full/half trigger semantics, no phantom L3/R3, independent 48dp+ discrete targets, directional/analogue travel, held ownership/release, mirror, viewport and measured fit. Proposed enhanced gameplay tests Mario Kart: Double Dash!!, Super Smash Bros. Melee, Super Mario Sunshine, Luigi's Mansion; check trigger depth in titles requiring it and actual C-stick control. If safe fit or input capability fails, return for redesign or retain supported Standard, never omit essential inputs silently. Owner approval pending; no implementation/build. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
