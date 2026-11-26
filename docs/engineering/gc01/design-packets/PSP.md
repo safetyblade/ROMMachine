@@ -8,6 +8,12 @@
 
 **Console-specific input consideration:** Solo PivotArc appearance owner-accepted.
 
+## PSP-PA-02 — ergonomic review, owner gameplay feedback (26 Nov 2026)
+
+Reviewed 58-second owner-supplied recording 1000097281.mp4. Visible working reference: analogue left, central D-pad, Square above, Triangle upper-right, Cross lower-right, Circle lower-centre, L between Triangle/Cross, R lower-left, separate Hold Cross to right and Hold Circle below, rear three-control utility rail. Sampled gameplay uses stick, Square and Triangle; touch indicators do not prove one-hand operation or comfortable reach. Owner reports full circle and rear utility placement acceptable in practice, concerns L/R reach, whether X/O are the best lower pair and whether Square/Triangle need Holds. Retain approved visual language, radial layout, analogue and D-pad, and rear utility rail.
+
+Review proposal only: preserve face positions for first comparison; relocate L next to existing R on lower-left shoulder bank, side-by-side L/R, only if independent >=48dp targets, stick sweep and lower face reach fit. Compare with current split layout; if pair fails, examine upper-left pair before changing accepted face geometry. Do not treat touching adjacent buttons as simultaneous input proof. Keep X/O Holds initially as baseline; review game-specific sustained use of Square/Triangle (e.g. charge/continuous actions), configurable/relabelled Hold assignments or extra dedicated H only if actual repeated need and ergonomic fit. Do not assume active Square/Triangle usage means sustained holding is needed. Test representative action, racing, RPG titles, stick/shoulder combinations and mirroring. Exact source geometry and user approval of alternatives pending; no runtime changes.
+
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
 - [ ] Specify console-specific labels, paired face buttons, analogue/trigger geometry, menu/hold controls and physical artwork
