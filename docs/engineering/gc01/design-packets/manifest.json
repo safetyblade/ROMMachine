@@ -117,7 +117,7 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
-        "design": "review_candidate",
+        "design": "standard_layout_locked_variants_open",
         "physical": "pending"
       },
       "grip": {
@@ -125,7 +125,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PCE-PA-01A standard Digital 2 I/II, Holds, Run/Select; PCE-PA-01B optional Digital 6 concept, separate geometry and native mode verification pending."
+      "note": "PCE-PA-01A standard owner approved; six-button rows withdrawn for thumb conflict; Avenue Pad 3 alias and radial 3/4/6 study open; physical and source pending."
     },
     {
       "id": "GBA",
