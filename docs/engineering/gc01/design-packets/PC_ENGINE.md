@@ -1,20 +1,24 @@
 # PC_ENGINE — controller design packet
 
-**Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** A · **Hardware family:** Two-button · **Status: STANDARD PIVOTARC OWNER LAYOUT LOCKED; MULTI-BUTTON REVIEW OPEN**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** standard_layout_locked_variants_open; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
 
-## PCE-PA-01A/B — review candidates (26 Nov 2026)
+## PCE-PA-01A/B — owner decision (26 Nov 2026)
 
 Original PC Engine/TurboGrafx standard pad: D-pad, I/II, Run, Select. Optional Avenue Pad 6 has additional III–VI. Repository registers MEDNAFEN_PCE_FAST; upstream [Beetle PCE FAST controller documentation](https://docs.libretro.com/library/beetle_pce_fast/) distinguishes 2/6-button mode; III/IV can be turbo functions in 2-button mode. This is upstream capability, not current CARTDECK input proof.
 
-A — standard (default): exact approved Digital 2 geometry: D-pad unchanged, I in lower-left action seat, II upper-right, independent H below I and right of II; Run/Select in existing Start/Select seats and Menu unchanged. No phantom buttons or automatic turbo. Preserve existing visual treatment and one-handed reach.
+A — standard (default), OWNER APPROVED: exact approved Digital 2 geometry: D-pad unchanged, I in lower-left action seat, II upper-right, independent H below I and right of II; Run/Select in existing Start/Select seats and Menu unchanged. No phantom buttons or automatic turbo. Preserve existing visual treatment and one-handed reach.
 
-B — optional six-button mode: separate compact Digital 6 prototype, D-pad nucleus left/upper-left and two staggered rows of three face controls (upper IV/V/VI, lower III/II/I; preserve original Avenue Pad 6 relative order). Independent Hold for each face button required; exact coordinates and fit to be separately reviewed when the shared six-button family is designed. Retain Run/Select/Menu utility rail. No forced default, phantom input or claiming full 6-button operation until exact installed backend and PadKit mode/key routing verified; III/IV must not activate turbo instead of face keys. Mode selection intentional and per game if supported; no automatic gameplay. One-handed aim applies to both modes; require independent >=48dp targets, neutral release, simultaneous input, mirroring and physical reach; if six buttons and Holds cannot safely fit, flag limitation rather than silently remove controls. Standard and optional six-button concept await owner approval; B geometry remains unapproved until separate review. GripArc and Joint deferred.
+B — optional six-button mode: previous staggered two-row / six permanent Hold proposal WITHDRAWN by owner due to thumb path clashes. No implementation authorized for that geometry. Pull forward common three/four/six-button design study; use accepted PSP radial distribution as the starting reference, not the rejected rows. Six-button mode remains open until deliberate one-hand reach and real guest mappings are approved.
+
+C — historical Avenue Pad 3: third physical button mirrors Run or Select, not an independent extra guest key. Consider as a configurable near-thumb duplicate only for games benefiting from this affordance; separate approval and current core validation required. See https://docs.joypad.ai/protocols/PCENGINE/ and https://www.classicplastic.net/trt/issue039/ . No extra default button in locked standard layout.
+
+For multi-button variants retain all guest face inputs, select dedicated Hold affordances by sustained-action usage rather than installing one per face key; two-button approvals unchanged. See [multi-button study](../GC-ARC-MULTIBUTTON-STUDY.md). Standard geometry source/physical verification pending; variants open; GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -37,8 +41,8 @@ B — optional six-button mode: separate compact Digital 6 prototype, D-pad nucl
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | STANDARD OWNER LAYOUT LOCKED; variants open |
+| Solo PivotArc visual | STANDARD DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
