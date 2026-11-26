@@ -297,7 +297,7 @@
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -305,13 +305,28 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PS2-PA-01 proposed PSX-PA-03 side stack inheritance; native pressure/trigger/host capabilities and physical fit pending approval."
+      "note": "PS2-PA-01 owner accepted PSX-PA-03 Sony side-stack inheritance; native capabilities and physical fit pending."
     },
     {
       "id": "PLAYSTATION_3",
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "PS3-PA-01 owner accepted PSX-PA-03 Sony side-stack inheritance; native capabilities and physical fit pending."
+    },
+    {
+      "id": "DREAMCAST",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -320,22 +335,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PS3-PA-01 proposed PSX-PA-03 side stack inheritance; native pressure/trigger/host capabilities and physical fit pending approval."
-    },
-    {
-      "id": "DREAMCAST",
-      "batch": "D",
-      "family": "Console native / analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "DC-PA-01 candidate: side analogue, central D-pad, X/Y/A/B radial arc, mid-arc L/R triggers, fixed A/B/L/R Holds proposed; trigger semantics and fit pending."
     },
     {
       "id": "GAMECUBE",
