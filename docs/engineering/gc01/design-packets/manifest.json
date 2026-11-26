@@ -125,7 +125,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PCE-PA-01A standard owner approved; six-button rows withdrawn for thumb conflict; Avenue Pad 3 alias and radial 3/4/6 study open; physical and source pending."
+      "note": "PCE-PA-01A standard owner approved; six-button rows withdrawn for thumb conflict; Avenue Pad 3 alias and radial 3/4/6 study open; physical and source pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
     },
     {
       "id": "GBA",
@@ -147,7 +147,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -155,7 +155,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "SNES-PA-01 proposes PSP-derived Digital 4, X/A/B/Y radial, four fixed Holds, adjacent L/R, clearance; owner review pending."
+      "note": "SNES-PA-01 owner approved PSP-derived Digital 4 X/A/B/Y circle, four Holds and adjacent L/R; engineering and physical pending."
     },
     {
       "id": "GENESIS",
@@ -170,7 +170,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "MD-PA-01 three-button radial A/B/C with fixed Hold B owner approved; six-button open; source and physical validation pending."
+      "note": "MD-PA-01 three-button radial A/B/C with fixed Hold B owner approved; six-button open; source and physical validation pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
     },
     {
       "id": "SEGACD",
@@ -185,7 +185,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "SCD-PA-01 owner approved exact Mega Drive Digital 3 inheritance; six-button open; source/physical pending."
+      "note": "SCD-PA-01 owner approved exact Mega Drive Digital 3 inheritance; six-button open; source/physical pending. D6-PA-01 extended radial six-button review candidate; standard lock unchanged; mode and fit pending."
     },
     {
       "id": "WS",
