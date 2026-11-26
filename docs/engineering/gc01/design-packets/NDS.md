@@ -1,8 +1,8 @@
 # NDS — controller design packet
 
-**Batch:** C · **Hardware family:** Dual-screen / single-analogue · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** C · **Hardware family:** Dual-screen / single-analogue · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
@@ -14,7 +14,7 @@ Owner constraint: two vertical screens leave less space than other systems. Exis
 
 ## NDS-PA-01B — tighter control island (26 Nov 2026)
 
-Owner approved the compactness adjustment: bring the D-pad substantially nearer the face cluster; smaller visible caps acceptable, not smaller effective targets. This supersedes the PA-01 candidate coordinates only; all screen, stylus, native input, handedness and fallback constraints remain. Revised illustrative 360×280 canvas centres: D (112,109), X (166,32), A (226,68), B (226,128), Y (166,185), adjacent L (300,38)/R (300,98), H B (300,158), H Y (102,198); Menu/Start/Select rail y250. Illustrative D-pad envelope 92×92; individual face and Hold visual caps can shrink independently of hit regions. The D-to-face centre distances are reduced relative to PA-01. Keep the space between D and face buttons free of Holds. Two fixed Holds B/Y remain the proposed default; assess four only with measured safe clearance and owner review. These are reference coordinates, not dp, exact runtime geometry or proof of adequate directional hit areas. Geometry solver must ensure >=48dp discrete targets, full D-pad directional accessibility, non-overlap, and actual free lower-band fit; if impossible, return for redesign or retain existing Standard, never shrink screens or intercept stylus. Compactness direction owner approved; full revised layout awaiting approval, no APK. GripArc/Joint deferred.
+Owner approved the compactness adjustment: bring the D-pad substantially nearer the face cluster; smaller visible caps acceptable, not smaller effective targets. This supersedes the PA-01 candidate coordinates only; all screen, stylus, native input, handedness and fallback constraints remain. Revised illustrative 360×280 canvas centres: D (112,109), X (166,32), A (226,68), B (226,128), Y (166,185), adjacent L (300,38)/R (300,98), H B (300,158), H Y (102,198); Menu/Start/Select rail y250. Illustrative D-pad envelope 92×92; individual face and Hold visual caps can shrink independently of hit regions. The D-to-face centre distances are reduced relative to PA-01. Keep the space between D and face buttons free of Holds. Two fixed Holds B/Y remain the proposed default; assess four only with measured safe clearance and owner review. These are reference coordinates, not dp, exact runtime geometry or proof of adequate directional hit areas. Geometry solver must ensure >=48dp discrete targets, full D-pad directional accessibility, non-overlap, and actual free lower-band fit; if impossible, return for redesign or retain existing Standard, never shrink screens or intercept stylus. Full NDS-PA-01B layout owner approved 26 Nov 2026 by progression to next console; measured source/physical fit pending, no APK. GripArc/Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -37,8 +37,8 @@ Owner approved the compactness adjustment: bring the D-pad substantially nearer 
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — measured fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
