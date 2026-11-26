@@ -1,16 +1,16 @@
 # FBNEO — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** 4/6 button arcade control modes and coin/start.
 
-## ARC-PA-01 — shared arcade digital profiles review candidate (26 Nov 2026)
+## ARC-PA-01 — shared arcade digital profiles owner layout lock (26 Nov 2026)
 
-For FBNeo, reuse approved GB Digital 2, MD-PA-01 Digital 3, SNES-PA-01 Digital 4 (remove shoulder seats without reflow), and D6-PA-01 Digital 6 radial geometry. Do not introduce conventional two-row fighting-game buttons into the one-thumb path. User-facing numbers 1–6 are physical legends, not assumed guest identity: proposed 2-button B/A seats = 2/1; 3-button A/B/C = 1/2/3; 4-button X/A/B/Y = 3/4/2/1; 6-button X/Y/Z/A/B/C = 4/5/6/1/2/3. Fixed Holds 1/2 for 2-button, 2 for 3-button, all four for 4-button, 2 for 6-button. These numbering and Hold choices are proposals, not verified core mappings; verify each actual game/core control port and explicit active mode before labelling or dispatch; game-specific controls must remain accessible. Dedicated Menu/Coin/Start utility rail, no invented guest credits, test coin/start identity and held release. Source GameSystem.kt exact engineering branch registers only FB_NEO_4/FB_NEO_6 and MAME_2003_4/MAME_2003_6; initial implementation 4/6 only. 2/3 are conditional compact profiles only if active game and backend mapping are verified and unused controls are genuinely unnecessary; no claim of current support. No automatic inference from ROM genre. Specialized trackball, spinner, light gun, twin-stick, >6-button and nonstandard games remain separate capability review/fallback, not silently converted. Native digital direction sectors and diagonals, 48dp independent effective targets, mirrored control geometry, measured viewport clearance, real guest input identity and release ownership required. Proposed tests: Metal Slug (four-button mapping/hold), Street Fighter II (six distinct actions and combinations), a simple shooter and beat-em-up for optional compact profiles only if supported. No runtime/build; owner review pending. GripArc/Joint deferred.
+For FBNeo, reuse approved GB Digital 2, MD-PA-01 Digital 3, SNES-PA-01 Digital 4 (remove shoulder seats without reflow), and D6-PA-01 Digital 6 radial geometry. Do not introduce conventional two-row fighting-game buttons into the one-thumb path. User-facing numbers 1–6 are physical legends, not assumed guest identity: proposed 2-button B/A seats = 2/1; 3-button A/B/C = 1/2/3; 4-button X/A/B/Y = 3/4/2/1; 6-button X/Y/Z/A/B/C = 4/5/6/1/2/3. Fixed Holds 1/2 for 2-button, 2 for 3-button, all four for 4-button, 2 for 6-button. These numbering and Hold choices are proposals, not verified core mappings; verify each actual game/core control port and explicit active mode before labelling or dispatch; game-specific controls must remain accessible. Dedicated Menu/Coin/Start utility rail, no invented guest credits, test coin/start identity and held release. Source GameSystem.kt exact engineering branch registers only FB_NEO_4/FB_NEO_6 and MAME_2003_4/MAME_2003_6; initial implementation 4/6 only. 2/3 are conditional compact profiles only if active game and backend mapping are verified and unused controls are genuinely unnecessary; no claim of current support. No automatic inference from ROM genre. Specialized trackball, spinner, light gun, twin-stick, >6-button and nonstandard games remain separate capability review/fallback, not silently converted. Native digital direction sectors and diagonals, 48dp independent effective targets, mirrored control geometry, measured viewport clearance, real guest input identity and release ownership required. Proposed tests: Metal Slug (four-button mapping/hold), Street Fighter II (six distinct actions and combinations), a simple shooter and beat-em-up for optional compact profiles only if supported. Owner approved ARC-PA-01 on 26 Nov 2026; no runtime/build. GripArc/Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ For FBNeo, reuse approved GB Digital 2, MD-PA-01 Digital 3, SNES-PA-01 Digital 4
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — conditional 2/3 modes and fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
