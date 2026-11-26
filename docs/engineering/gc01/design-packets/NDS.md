@@ -2,11 +2,15 @@
 
 **Batch:** C · **Hardware family:** Dual-screen / single-analogue · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Two screens, stylus and real mic/lid capabilities.
+
+## NDS-PA-01 — Digital 4 Compact review candidate (26 Nov 2026)
+
+Owner constraint: two vertical screens leave less space than other systems. Existing approved stacked screen bounds, aspect, lower touchscreen/stylus coordinates and viewport separation take priority. Reserve the measured free lower band after system insets and existing utility rail; no overlay, transparent hit intercept or automatic shrinking of screens. Adapt SNES radial topology, not its full-sized housing. Proposed compact wide/short housing: D-pad (87,110), X (168,40), A (238,70), B (238,138), Y (168,174), adjacent vertical L/R right bank (297,40)/(297,92), H B (303,145), H Y (108,190) on an illustrative 360×280 reference canvas, rear Menu/Start/Select rail at y250. These are candidate positions only, not dp or validated handset fit; compact measured chassis and control group mirroring required. Two fixed Holds Y and B proposed as run/action and lower face defaults, no per-game remap; A/X remain directly accessible. Four Holds not ruled out if safe clearance exists; if two insufficient or targets cannot fit, return for owner review, don't silently hide native inputs or shrink touch targets below 48dp. Keep auxiliary microphone/lid/screen actions accessible separately in the existing supported menu where real backend functionality exists, not invented guest controls; core-specific DeSmuME/melonDS auxiliary codes require exact current source verification (historical PIV-HH-01). Screen swap if already available must preserve stylus coordinate mapping. Verify real two-screen rendered bounds, touch pass-through/tap/drag, guest keys, held input/release, screen rotation, L/R, one-hand reach, no overlap and clearance at 320/360/393dp and actual owner handset. If safe fit fails, retain existing Standard or supported alternative layout; no universal one-thumb guarantee for simultaneous stylus/digital input. Owner review pending; no build/physical acceptance. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
