@@ -261,7 +261,7 @@ fun XboxGameControls(
                     minimal = !hardwareBorder,
                 )
             }
-            if (hardwareBorder) {
+            if (hardwareBorder || activePivot) {
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
@@ -271,6 +271,7 @@ fun XboxGameControls(
                     isDualScreen = false,
                     customColours = resolved.customColours,
                     pivotArc = activePivot,
+                    pivotUtilities = pivotProfile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                 )

@@ -118,6 +118,7 @@ object GameScreenLayout {
         gripArcLandscape: Boolean = false,
         availableWidth: Dp = 852.dp,
         availableHeight: Dp = 393.dp,
+        dualScreenSoloPivot: Boolean = false,
     ): ConstraintSet {
         return when {
             !isLandscape ->
@@ -127,6 +128,7 @@ object GameScreenLayout {
                     portraitApertureRatio,
                     availableWidth,
                     availableHeight,
+                    dualScreenSoloPivot,
                 )
             allowTouchOverlay -> buildConstraintSetLandscape()
             else ->
@@ -145,6 +147,7 @@ object GameScreenLayout {
         apertureRatio: String,
         availableWidth: Dp,
         availableHeight: Dp,
+        dualScreenSoloPivot: Boolean,
     ): ConstraintSet {
         val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
         val insets = portraitHardwareInsets(availableWidth, availableHeight, expanded)
@@ -172,9 +175,14 @@ object GameScreenLayout {
                 } else {
                     // The tested v2101 DS layout stays flexible, including
                     // its original stylus/touch coordinate mapping.
-                    height = Dimension.fillToConstraints
+                    height =
+                        if (dualScreenSoloPivot) {
+                            Dimension.value(availableHeight * 0.46f)
+                        } else {
+                            Dimension.fillToConstraints
+                        }
                     top.linkTo(parent.top, margin = 18.dp)
-                    bottom.linkTo(leftPad.top, margin = 18.dp)
+                    if (!dualScreenSoloPivot) bottom.linkTo(leftPad.top, margin = 18.dp)
                     absoluteLeft.linkTo(parent.absoluteLeft, margin = 18.dp)
                     absoluteRight.linkTo(parent.absoluteRight, margin = 18.dp)
                 }

@@ -37,6 +37,8 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionTokens
 import kotlin.math.roundToInt
 
 internal const val PIVOT_ARC_DISPLAY_CLEARANCE_DP = 20f
+internal const val PIVOT_ARC_EDGE_DP = 11f
+internal const val PIVOT_ARC_LABEL_HEIGHT_DP = 20f
 
 /** One approved PivotArc identity across the installed shell and Layout settings. */
 @Composable
@@ -85,7 +87,7 @@ internal data class PivotArcModulePlacement(
 )
 
 internal object PivotArcModuleGeometry {
-    private val utilityKeys = setOf("start", "select", "menu")
+    val legacyUtilityKeys = setOf("start", "select", "menu")
 
     fun resolve(
         controls: Map<String, Rect>,
@@ -94,6 +96,7 @@ internal object PivotArcModuleGeometry {
         edge: Float,
         labelHeight: Float,
         displayClearance: Float = edge * 1.8f,
+        utilityKeys: Set<String> = legacyUtilityKeys,
     ): PivotArcModulePlacement? {
         if (root.width <= 0f || root.height <= 0f || edge <= 0f || labelHeight <= 0f) return null
         val gameplay = controls.filterKeys { it !in utilityKeys }.values
@@ -286,12 +289,15 @@ internal fun CartdeckPivotArcModule(
     root: Rect,
     tokens: CartdeckEditionTokens,
     joint: CompositeControlDeckPlacement? = null,
+    utilityKeys: Set<String> = PivotArcModuleGeometry.legacyUtilityKeys,
 ) {
     val density = LocalDensity.current
-    val edge = with(density) { 11.dp.toPx() }
-    val labelHeight = with(density) { 20.dp.toPx() }
+    val edge = with(density) { PIVOT_ARC_EDGE_DP.dp.toPx() }
+    val labelHeight = with(density) { PIVOT_ARC_LABEL_HEIGHT_DP.dp.toPx() }
     val displayClearance = with(density) { PIVOT_ARC_DISPLAY_CLEARANCE_DP.dp.toPx() }
-    val module = PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight, displayClearance) ?: return
+    val module =
+        PivotArcModuleGeometry.resolve(controls, video, root, edge, labelHeight, displayClearance, utilityKeys)
+            ?: return
     val ink =
         listOf(tokens.onChassis, tokens.onButton, Color.White, Color.Black)
             .maxBy { colorContrast(it, tokens.secondary) }
@@ -325,7 +331,7 @@ internal fun CartdeckPivotArcModule(
                     cornerRadius = CornerRadius(groove.height / 2f),
                 )
             }
-            val utility = controls.filterKeys { it in setOf("start", "select", "menu") }
+            val utility = controls.filterKeys { it in utilityKeys }
             val rail =
                 utility.values.takeIf { it.isNotEmpty() }?.let { seats ->
                     Rect(
@@ -359,13 +365,13 @@ internal fun CartdeckPivotArcModule(
             // seats. The existing caps/pressed feedback remain authoritative.
             val gameplaySeats =
                 controls.filterKeys {
-                    it.lowercase() !in setOf("start", "select", "menu")
+                    it !in utilityKeys
                 }
             for ((key, bounds) in gameplaySeats) {
                 val center = bounds.center
                 val radius = minOf(bounds.width, bounds.height) / 2f
                 when (PivotArcPaintPolicy.materialKey(key)) {
-                    "A", "B", "C", "X", "Y", "Z" -> {
+                    "A", "B", "C", "X", "Y", "Z", "LS", "RS", "SHAKE", "SHAKEN" -> {
                         val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
                         drawCircle(tokens.bezel.copy(alpha = 0.89f), radius = collar, center = center)
                         drawCircle(
@@ -470,7 +476,7 @@ internal fun CartdeckPivotArcModule(
             }
             // Small hardware utility seats, but never alter Standard's rail.
             for ((key, bounds) in controls) {
-                if (key.lowercase() !in setOf("start", "select", "menu")) continue
+                if (key !in utilityKeys) continue
                 drawRoundRect(
                     tokens.bezel.copy(alpha = 0.82f),
                     topLeft = Offset(bounds.left + 2.dp.toPx(), bounds.top + 2.dp.toPx()),
@@ -511,7 +517,7 @@ internal fun CartdeckPivotArcModule(
                         Offset(plate.left + foot, plate.bottom - foot),
                         Offset(plate.right - foot, plate.bottom - foot),
                     )
-                val gameplay = controls.filterKeys { it !in setOf("start", "select", "menu") }.values
+                val gameplay = controls.filterKeys { it !in utilityKeys }.values
                 for (center in bolts) {
                     val protected =
                         Rect(

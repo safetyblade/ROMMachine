@@ -76,6 +76,7 @@ import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
 import com.swordfish.touchinput.radial.LocalCartdeckNativeInputs
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
+import com.swordfish.touchinput.radial.layouts.LocalWiiNunchukPointerStick
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -300,12 +301,64 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
             val selectedPivot = effectiveArcMode.hasPivot
+            val wiiPointerMode = viewModel.retroGameView.activeWiiPointerMode.collectAsState().value
+            val wiiPointerStick = wiiPointerMode == "1" || wiiPointerMode == "0"
+            val standardWiiProfile =
+                if (currentControllerConfig?.touchControllerID == TouchControllerID.WII_NUNCHUK &&
+                    !effectiveArcMode.hasGrip && !isLandscape
+                ) {
+                    remember(wiiPointerStick) { PivotArcSoloProfiles.wiiNunchuk(wiiPointerStick, fixedHolds = false) }
+                } else {
+                    null
+                }
+            val scale = currentDensity.density
+            val safeBounds =
+                fullPos?.let {
+                    PivotArcBounds(
+                        maxOf(
+                            insetSafe.getLeft(currentDensity, layoutDirection),
+                            gestureSafe.getLeft(currentDensity, layoutDirection),
+                        ) / scale + 8f,
+                        maxOf(
+                            insetSafe.getTop(currentDensity),
+                            gestureSafe.getTop(currentDensity),
+                        ) / scale + 8f,
+                        it.width / scale -
+                            maxOf(
+                                insetSafe.getRight(currentDensity, layoutDirection),
+                                gestureSafe.getRight(currentDensity, layoutDirection),
+                            ) / scale - 8f,
+                        it.height / scale -
+                            maxOf(
+                                insetSafe.getBottom(currentDensity),
+                                gestureSafe.getBottom(currentDensity),
+                            ) / scale - 8f,
+                    )
+                }
+            val viewportBounds =
+                if (fullPos != null && viewPos != null) {
+                    PivotArcBounds(
+                        (viewPos.left - fullPos.left) / scale,
+                        (viewPos.top - fullPos.top) / scale,
+                        (viewPos.right - fullPos.left) / scale,
+                        (viewPos.bottom - fullPos.top) / scale,
+                    )
+                } else {
+                    null
+                }
+            val standardWiiPlacement =
+                if (standardWiiProfile != null && safeBounds != null && viewportBounds != null) {
+                    PivotArcSoloProfiles.standardWiiNunchuk(standardWiiProfile, safeBounds, viewportBounds)
+                } else {
+                    null
+                }
             val soloProfile =
                 if (!effectiveArcMode.hasGrip) {
                     PivotArcSoloProfiles.forMode(
                         viewModel.systemId,
                         currentControllerConfig?.touchControllerID,
                         pivotSettings.pspAnalogPrimary,
+                        wiiPointerStick,
                     )
                 } else {
                     null
@@ -313,8 +366,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             var compositeResolution: CompositeDeckResolution? = null
             val pivotResolution: PivotArcResolution? =
-                if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
-                    if (pivotBaseline == null) {
+                if (selectedPivot && touchControlsVisibleState.value && safeBounds != null && viewportBounds != null &&
+                    currentControllerConfig != null
+                ) {
+                    if (pivotBaseline == null && soloProfile == null) {
                         PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
                     } else if (soloProfile == null &&
                         (
@@ -326,35 +381,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             "PivotArc controls are not supported for this system. Standard controls remain available.",
                         )
                     } else {
-                        val scale = currentDensity.density
-                        val safeBounds =
-                            PivotArcBounds(
-                                maxOf(
-                                    insetSafe.getLeft(currentDensity, layoutDirection),
-                                    gestureSafe.getLeft(currentDensity, layoutDirection),
-                                ) / scale + 8f,
-                                maxOf(
-                                    insetSafe.getTop(currentDensity),
-                                    gestureSafe.getTop(currentDensity),
-                                ) / scale + 8f,
-                                fullPos.width / scale -
-                                    maxOf(
-                                        insetSafe.getRight(currentDensity, layoutDirection),
-                                        gestureSafe.getRight(currentDensity, layoutDirection),
-                                    ) / scale - 8f,
-                                fullPos.height / scale -
-                                    maxOf(
-                                        insetSafe.getBottom(currentDensity),
-                                        gestureSafe.getBottom(currentDensity),
-                                    ) / scale - 8f,
-                            )
-                        val viewportBounds =
-                            PivotArcBounds(
-                                (viewPos.left - fullPos.left) / scale,
-                                (viewPos.top - fullPos.top) / scale,
-                                (viewPos.right - fullPos.left) / scale,
-                                (viewPos.bottom - fullPos.top) / scale,
-                            )
                         if (effectiveArcMode.hasGrip) {
                             compositeResolution =
                                 if (gripManifest == null) {
@@ -370,7 +396,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                         pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
                                     ) {
                                         CompositeControlDeckSolver.resolve(
-                                            gripManifest, pivotBaseline, viewModel.systemId, safeBounds, viewportBounds,
+                                            gripManifest, checkNotNull(pivotBaseline), viewModel.systemId,
+                                            safeBounds, viewportBounds,
                                             effectiveArcSide, arcProfile.dx, arcProfile.dy,
                                             pivotSettings.offsetXdp, pivotSettings.offsetYdp, isLandscape,
                                         )
@@ -382,18 +409,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 null -> null
                             }
                         } else if (soloProfile != null) {
-                            PivotArcSoloSolver.resolve(
-                                profile = soloProfile,
-                                safe = safeBounds,
-                                viewport = viewportBounds,
-                                leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
-                                requestedDx = pivotSettings.offsetXdp,
-                                requestedDy = pivotSettings.offsetYdp,
-                                landscape = isLandscape,
-                            )
+                            remember(soloProfile, safeBounds, viewportBounds, pivotSettings, isLandscape) {
+                                PivotArcSoloSolver.resolve(
+                                    profile = soloProfile,
+                                    safe = safeBounds,
+                                    viewport = viewportBounds,
+                                    leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
+                                    requestedDx = pivotSettings.offsetXdp,
+                                    requestedDy = pivotSettings.offsetYdp,
+                                    landscape = isLandscape,
+                                )
+                            }
                         } else {
                             PivotArcPositionSolver.resolve(
-                                baseline = pivotBaseline,
+                                baseline = checkNotNull(pivotBaseline),
                                 active = checkNotNull(requiredPivotControls),
                                 safe = safeBounds,
                                 viewport = viewportBounds,
@@ -409,6 +438,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 }
             val jointPlacement = (compositeResolution as? CompositeDeckResolution.Fits)?.placement
             val pivotPlacement = (pivotResolution as? PivotArcResolution.Fits)?.placement
+            val measuredWiiStandard = standardWiiPlacement.takeIf { pivotPlacement == null }
             var combinedPlacement: GripArcCombinedPlacement? = null
             var nativeProfileValidated = false
             val gripResolution: GripArcFit? =
@@ -621,6 +651,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 
+            val fittedControls =
+                combinedPlacement?.controls ?: pivotPlacement?.controls ?: measuredWiiStandard?.controls
+            val fittedHardwareSeats = combinedPlacement?.hardwareSeats ?: fittedControls
             if (showBorder) {
                 CartdeckConsoleShell(
                     tokens = shellTokens,
@@ -637,8 +670,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     minimal = !hardwareBorder || fullscreenWithGamepad,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
-                            if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                                (combinedPlacement?.controls ?: pivotPlacement!!.controls).values.map { bounds ->
+                            if (fittedControls != null && fullPos != null) {
+                                fittedControls.values.map {
+                                        bounds ->
                                     Rect(
                                         fullPos.left + bounds.left * currentDensity.density,
                                         fullPos.top + bounds.top * currentDensity.density,
@@ -665,8 +699,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // finish, rails, speaker and indicator art remain present from
             // the first frame. Standard retains its original bound observers.
             val hardwareInputBounds =
-                if ((pivotPlacement != null || combinedPlacement != null) && fullPos != null) {
-                    (combinedPlacement?.hardwareSeats ?: pivotPlacement!!.controls).map { (key, bounds) ->
+                if (fittedHardwareSeats != null && fullPos != null) {
+                    fittedHardwareSeats.map {
+                            (key, bounds) ->
                         val seatKey =
                             if (combinedPlacement != null) {
                                 key
@@ -719,7 +754,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 touchControllerSettings != null &&
                 currentControllerConfig != null
             ) {
-                if (hardwareBorder) {
+                if (hardwareBorder || (pivotPlacement != null && jointPlacement == null)) {
                     CartdeckHardwareSeats(
                         tokens = shellTokens,
                         edition = edition,
@@ -730,7 +765,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
-                        measuredStandard = combinedPlacement?.native?.controller == TouchControllerID.GBA,
+                        pivotUtilities = soloProfile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
+                        measuredStandard =
+                            measuredWiiStandard != null ||
+                                combinedPlacement?.native?.controller == TouchControllerID.GBA,
                         joint = jointPlacement,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
@@ -822,6 +860,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         gripArcLandscape = gripArcLandscape,
                         availableWidth = maxWidth,
                         availableHeight = maxHeight,
+                        dualScreenSoloPivot =
+                            selectedPivot && soloProfile != null &&
+                                touchControlsVisibleState.value,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,
@@ -848,6 +889,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     CompositionLocalProvider(
                         LocalLemuroidPadTheme provides controllerTheme,
                         LocalCartdeckControlBounds provides observeBounds,
+                        LocalWiiNunchukPointerStick provides wiiPointerStick.takeUnless { effectiveArcMode.hasGrip },
                         LocalCartdeckNativeInputs provides
                             if (effectiveArcMode == ArcControlMode.STANDARD_GRIPARC) {
                                 observeNativeInputs
@@ -868,7 +910,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             )
                         }
 
-                        if (pivotPlacement != null || combinedPlacement != null) {
+                        if (pivotPlacement != null || combinedPlacement != null || measuredWiiStandard != null) {
                             // Keep ConstraintLayout viewport anchors but do NOT
                             // register the Standard controls as extra input owners.
                             Box(Modifier.layoutId(GameScreenLayout.CONSTRAINTS_LEFT_PAD).size(1.dp))
@@ -922,6 +964,18 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         combined = jointPlacement != null,
                         touchController = currentControllerConfig.touchControllerID,
                         soloProfile = soloProfile,
+                    )
+                }
+            }
+            if (measuredWiiStandard != null && touchControllerSettings != null && touchControlsVisibleState.value) {
+                CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
+                    PivotArcControlGroup(
+                        placement = measuredWiiStandard,
+                        system = viewModel.systemId,
+                        heldKeys = emptySet(),
+                        accent = shellTokens.accent,
+                        onToggleHold = {},
+                        soloProfile = standardWiiProfile,
                     )
                 }
             }

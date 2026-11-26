@@ -30,39 +30,58 @@ Phase 1 chassis proof satisfied; all 33 PivotARC system designs approved (batch 
 
 | Console | Input family | PivotArc SOLO (specific style) | GripArc SOLO (full hardware) | Joint (pad placement only, LAST) | Latest GC run/commit |
 |---|---|---|---|---|---|
-| GB | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| GBC | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| NES | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| SMS | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| GG | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| NGP | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| NGC | Two-button | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| PC_ENGINE | Two-button | Approved standard + six-button design; Avenue Pad 3 alias open; runtime pending | Input mapped; full-body not built | Not built | — |
-| GBA | Four-button/shoulders | Owner-approved solo visual; frozen, regression test pending | Full-body owner physical PASS; spatial utilisation FAIL; final layout open | Not built | a627a713 CI PASS; owner screenshot build unverified |
-| SNES | Four-button/shoulders | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| GENESIS | Six-button | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| SEGACD | Six-button | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| WS | Handheld dual direction | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| WSC | Handheld dual direction | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| NDS | Touch dual-screen | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| NINTENDO_3DS | Touch dual-screen | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| PSP | Single analog | Owner-approved revised layout; source/clearance and physical retest pending | Input mapped; full-body not built | Not built | Previously owner-approved solo |
-| N64 | Single analog | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| PSX | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| PLAYSTATION_2 | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| PLAYSTATION_3 | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| DREAMCAST | Single analogue | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| GAMECUBE | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| XBOX | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| XBOX360 | Dual analog | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| FBNEO | Arcade | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| MAME2003PLUS | Arcade | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| ATARI2600 | Atari | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| ATARI7800 | Atari | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| WII | Wii Remote | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| DOS | Desktop | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
-| LYNX | Handheld options | Owner layout approved; source/CI and physical pending | Input mapped; full-body not built | Not built | — |
-| WII_U | Wii U | Owner layout approved; source/CI and physical pending | Not built | Not built | — |
+| GB | Two-button | Candidate source — GB. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| GBC | Two-button | Candidate source — GB. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| NES | Two-button | Candidate source — NES. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| SMS | Two-button | Candidate source — SMS. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| GG | Two-button | Candidate source — GG. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| NGP | Two-button | Candidate source — NGP. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| NGC | Two-button | Candidate source — NGP. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| PC_ENGINE | Two-button | Candidate source — PCE two-button. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| GBA | Four-button/shoulders | Candidate source — GBA. See PA-R01F register below. | Full-body owner physical PASS; spatial utilisation FAIL; final layout open | Not built | a627a713 CI PASS; owner screenshot build unverified |
+| SNES | Four-button/shoulders | Candidate source — SNES. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| GENESIS | Six-button | Candidate source — Three-button, six-button. See PA-R01F register below. | Not built | Not built | — |
+| SEGACD | Six-button | Candidate source — Three-button, six-button. See PA-R01F register below. | Not built | Not built | — |
+| WS | Handheld dual direction | Candidate source — Landscape and portrait controls. See PA-R01F register below. | Not built | Not built | — |
+| WSC | Handheld dual direction | Candidate source — Landscape and portrait controls. See PA-R01F register below. | Not built | Not built | — |
+| NDS | Touch dual-screen | Candidate source — DeSmuME and melonDS. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| NINTENDO_3DS | Touch dual-screen | Candidate source — Citra. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| PSP | Single analog | Candidate source — D-pad primary and analogue primary. See PA-R01F register below. | Input mapped; full-body not built | Not built | Previously owner-approved solo |
+| N64 | Single analog | Candidate source — RetroPad with C directions. See PA-R01F register below. | Not built | Not built | — |
+| PSX | Dual analog | Candidate source — Digital and DualShock. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| PLAYSTATION_2 | Dual analog | Candidate source — Play! DualShock and ARMSX2 host. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| PLAYSTATION_3 | Dual analog | Candidate source — PS3 engineering host. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| DREAMCAST | Single analogue | Candidate source — Flycast Dreamcast. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| GAMECUBE | Dual analog | Candidate source — Dolphin GameCube (including half-trigger keys). See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| XBOX | Dual analog | Candidate source — Xemu host. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| XBOX360 | Dual analog | Candidate source — Xenia host. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| FBNEO | Arcade | Candidate source — Four-button and six-button. See PA-R01F register below. | Not built | Not built | — |
+| MAME2003PLUS | Arcade | Candidate source — Four-button and six-button. See PA-R01F register below. | Not built | Not built | — |
+| ATARI2600 | Atari | Candidate source — Stella with difficulty switches. See PA-R01F register below. | Not built | Not built | — |
+| ATARI7800 | Atari | Candidate source — ProSystem. See PA-R01F register below. | Not built | Not built | — |
+| WII | Wii Remote | Candidate source — Sideways, Classic, GameCube, Nunchuk. Nunchuk PivotARC and Standard each cover touch, stick and relative IR. See PA-R01F register below. | Not built | Not built | — |
+| DOS | Desktop | Candidate source — DOSBox Pure gamepad and keyboard entry. See PA-R01F register below. | Not built | Not built | — |
+| LYNX | Handheld options | Candidate source — Lynx. See PA-R01F register below. | Input mapped; full-body not built | Not built | — |
+| WII_U | Wii U | Candidate source — Cemu shared pad route. See PA-R01F register below. | Not built | Not built | — |
+
+## PA-R01F verification register — PR #378
+
+The candidate uses the historical GBA/PSP renderer (source reference `a627a713`) with the approved seat profiles. The configured-mode regression enumerates port 1 from the core registry, adds the native host routes, and tests both PivotARC hands at 360×740, 393×852 and 412×915dp. The Compose capture includes GBA and PSP baseline recreations, all configured PivotARC modes and both Standard Nunchuk pointer geometries. Stick and relative IR share right-stick geometry.
+
+| Gate | Candidate evidence |
+|---|---|
+| Shared hardware | The solo solver reserves the display gap, plate and wordmark, then verifies the same geometry the renderer uses. Utility metadata comes from each profile. |
+| Dreamcast | The Flycast controller registration is present. Gameplay waits for controller selection before evaluating unsupported status. Compact fixture fit passes in the standalone geometry probe. The original handset failure still needs replay. |
+| GameCube | The compact approved trigger/action positions and native half-trigger keys remain in the shared hardware plate. Thumb reach, C-stick and half/full trigger behavior need handset replay. |
+| Wii Nunchuk | The pinned Dolphin input source confirms distinct Shake keys, Home, 1/2 and +/−, and the touch and right-axis IR routes. The new Standard deck and PivotARC use those same routes. Native gameplay across titles needs replay. |
+| Visual and installation acceptance | Pending production Compose contact sheet, exact-revision connected APK gate, install-over and owner handset acceptance. |
+
+### Native capability limits
+
+- Wii upright Remote, phone-sensor tilt and swing, physical Wii Remotes and MotionPlus lack a verified CARTDECK guest route. The implemented motion actions are Dolphin’s two button-based Shake inputs.
+- PC Engine’s supported touch controller is the registered two-button mode. Six-button and Avenue Pad 3 remain open. DOS uses the registered gamepad profile and existing keyboard entry. Dedicated keyboard-action and mouse layouts remain open.
+- Touch trigger and fixed Hold controls emit the existing discrete input. Proportional touch pressure, PS3 PS/Sixaxis and Xbox Guide are outside the verified touch inventory. GameCube retains the distinct Dolphin half-trigger inputs.
+- Wii U uses the existing host pad route. Separate guest GamePad/Pro selection, simultaneous TV and GamePad views and gyro remain unverified. PS3 binary distribution remains governed by the existing owner-only packaging workflow.
 
 ## GBA execution ledger
 
@@ -81,7 +100,7 @@ Phase 1 chassis proof satisfied; all 33 PivotARC system designs approved (batch 
 | Phase | Scope | Code/CI state | Owner acceptance | Unlock condition |
 |---|---|---|---|---|
 | 1 — GBA GripArc proof | Full-piece GBA Standard+GripArc | a627a713 — Room/Kotlin/APK PASS | Owner physical proof PASS; spatial utilisation FAIL | Phase 2 unlocked; final GripArc layout remains open |
-| 2 — All PivotArc | 33 consoles, console-specific visual and input architecture | 33/33 designs approved, batch 01 + batch 02; implementation not established | 33/33 design directions; device gates pending | All supported standalone PivotARC profiles implemented and exact-head verified; owner physical acceptance |
+| 2 — All PivotArc | 33 consoles, console-specific visual and input architecture | Candidate runtime and test matrix in PR #378; see PA-R01F verification register | 33/33 design directions; device gates pending | All supported standalone PivotARC profiles implemented and exact-head verified; owner physical acceptance |
 | 3 — All GripArc | 33 consoles using proven GBA full-piece style contract | Only GBA proof candidate implemented | Pending | Every applicable console built and accepted after PivotArc |
 | 4 — Joint | Whole-pad placement using immutable PivotArc + GripArc | Existing legacy combination NOT accepted; new Joint not started | Previous combined overlap FAIL | All standalone pad designs locked and accepted |
 

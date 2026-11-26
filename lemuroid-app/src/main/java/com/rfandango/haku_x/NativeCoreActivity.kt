@@ -428,8 +428,9 @@ class NativeCoreActivity : SDLActivity() {
                                 capabilities =
                                     XboxMenuCapabilities(
                                         BuildConfig.DEBUG,
-                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-edges-outer-inner-v1" &&
-                                            !pixelProbeRequested,
+                                        !pixelProbeRequested &&
+                                            engine.properties.getProperty("cartdeck.pixelProbe") ==
+                                            "async-edges-outer-inner-v1",
                                         runCatching {
                                             XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
                                         }.getOrDefault(false),

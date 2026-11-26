@@ -107,7 +107,12 @@ fun PadKitScope.PivotArcControlGroup(
                     id = Id.ContinuousDirection(seat?.direction ?: ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
                     analogPressId = if (seat == null) Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL) else null,
                     background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
-                    foreground = { LemuroidButtonForeground(pressed = it) },
+                    foreground = {
+                        LemuroidButtonForeground(
+                            pressed = it,
+                            label = "IR".takeIf { seat?.label == "IR pointer" },
+                        )
+                    },
                 )
             } else if (seat?.direction != null || key == "D" || (key == "Cursor" && wonderSwan != null)) {
                 val secondary = key == "Cursor"

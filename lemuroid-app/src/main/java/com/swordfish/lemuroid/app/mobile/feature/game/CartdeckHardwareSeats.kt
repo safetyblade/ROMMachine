@@ -301,6 +301,7 @@ internal fun CartdeckHardwareSeats(
     customColours: Boolean,
     pivotArc: Boolean = false,
     measuredStandard: Boolean = false,
+    pivotUtilities: Set<String> = PivotArcModuleGeometry.legacyUtilityKeys,
     joint: CompositeControlDeckPlacement? = null,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
@@ -354,6 +355,7 @@ internal fun CartdeckHardwareSeats(
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
                 joint = joint,
+                utilityKeys = pivotUtilities,
             )
         }
 
