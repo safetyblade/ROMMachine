@@ -192,6 +192,36 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Owner approved WS-PA-01B dual directional layout (secondary above B), shared WS/WSC orientation mapping and fixed Holds A/B; source/physical pending."
+    },
+    {
+      "id": "WSC",
+      "batch": "B",
+      "family": "Four/six-button and handheld",
+      "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "Owner approved WS-PA-01B dual directional layout (secondary above B), shared WS/WSC orientation mapping and fixed Holds A/B; source/physical pending."
+    },
+    {
+      "id": "NDS",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -200,37 +230,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "WS-PA-01 revised per owner: secondary directional cluster directly above B, primary X/Y nucleus and A/B Holds unchanged; review and measured fit pending."
-    },
-    {
-      "id": "WSC",
-      "batch": "B",
-      "family": "Four/six-button and handheld",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Two directional clusters and handheld orientation."
-    },
-    {
-      "id": "NDS",
-      "batch": "C",
-      "family": "Dual-screen / single-analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Two screens, stylus and real mic/lid capabilities."
+      "note": "NDS-PA-01 Digital 4 Compact: preserve stacked screens/stylus; short wide band, radial ABXY, adjacent L/R, fixed Y/B Holds proposed; fit/owner approval pending."
     },
     {
       "id": "NINTENDO_3DS",
