@@ -26,6 +26,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportReport
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
@@ -52,8 +54,10 @@ internal fun XboxGameMenu(
     pipelineABQueued: String = "Engine default",
     onQueuePipelineAB: ((Xbox360PipelineAB.Mode) -> Unit)? = null,
     recovery: @Composable () -> Unit = {},
+    supportDiagnostic: (() -> String?)? = null,
     controls: @Composable () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val safeResume = canResume && capabilities.resume
     GameMenuTheme(appearance) {
         val nav = rememberNavController()
@@ -86,13 +90,25 @@ internal fun XboxGameMenu(
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
                     SharedGameMenuHome(
-                        capabilities = capabilities.home,
+                        capabilities = capabilities.home.copy(reporting = supportDiagnostic != null),
                         onAction = { action ->
                             when (action) {
                                 GameMenuAction.RESUME -> if (safeResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
                                 GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
+                                GameMenuAction.REPORT_PROBLEM -> {
+                                    val report =
+                                        SupportReport.create(
+                                            "gameplay",
+                                            "Game problem",
+                                            runCatching { supportDiagnostic?.invoke() }.getOrNull(),
+                                            gameTitle = playerMenuTitle(title),
+                                            system = console,
+                                            engine = engineInfo,
+                                        )
+                                    context.startActivity(SupportActivity.intent(context, report))
+                                }
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                                 else -> Unit // Not advertised by this backend.

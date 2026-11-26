@@ -39,6 +39,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
@@ -252,6 +253,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 canResume = game != null && !failure && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
+                                supportDiagnostic = { report },
                                 onCopyReport = {
                                     (
                                         getSystemService(
@@ -830,6 +832,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave(reopen: Boolean = false) {
         if (leaving) return
         leaving = true
+        EngineShutdownDeadline.arm(applicationContext)
         preparation.requestCancellation()
         release()
         lifecycleScope.launch {

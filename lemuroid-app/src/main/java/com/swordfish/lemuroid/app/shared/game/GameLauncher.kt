@@ -10,7 +10,9 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession
+import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2Onboarding
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
+import com.swordfish.lemuroid.app.shared.gamecrash.GameCrashActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.core.CoresSelection
@@ -117,7 +119,7 @@ class GameLauncher(
                                 Intent().setClassName(activity, host)
                                     .putExtra("cartdeck.game", game)
                                     .putExtra("cartdeck.leanback", leanback)
-                            activity.startActivityForResult(target, BaseGameActivity.REQUEST_PLAY_GAME)
+                            GameSessionCheckpoint.launch(activity, target, game, if (wine) "Wine" else "DOSBox")
                             gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
                             return@launch
                         }
@@ -133,7 +135,8 @@ class GameLauncher(
                     val eligibility = NativeEngineRegistry.eligibility(activity, engine)
                     check(eligibility.eligible) { eligibility.reason ?: "Cemu is unavailable" }
                     EngineSelectionPreferences(activity.applicationContext).beginLaunch(game, engine)
-                    activity.startActivityForResult(
+                    GameSessionCheckpoint.launch(
+                        activity,
                         Intent().setClassName(
                             activity,
                             "com.swordfish.lemuroid.app.debug.WiiuVulkanRuntimeProbeActivity",
@@ -141,7 +144,8 @@ class GameLauncher(
                             .putExtra("cartdeck.game", game)
                             .putExtra("cartdeck.leanback", leanback)
                             .putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
-                        BaseGameActivity.REQUEST_PLAY_GAME,
+                        game,
+                        engine.id,
                     )
                     gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
                     return@launch
@@ -180,6 +184,13 @@ class GameLauncher(
                     EmulatorModernAssetsProvisioner.installIfBundled(activity.applicationContext)
                 }
                 val enginePreferences = EngineSelectionPreferences(activity.applicationContext)
+                if (system.id == SystemID.PLAYSTATION_2 &&
+                    Ps2Onboarding.showIfNeeded(activity, game, enginePreferences) {
+                        launchGameAsync(activity, game, loadSave, leanback)
+                    }
+                ) {
+                    return@launch
+                }
                 val legacyCoreConfig =
                     if (system.nativeBackend == null) {
                         coresSelection.getCoreConfigForSystem(
@@ -191,22 +202,26 @@ class GameLauncher(
                 val selection = withContext(Dispatchers.IO) { enginePreferences.select(game, legacyCoreConfig) }
                 if (system.id == SystemID.PLAYSTATION_3) {
                     enginePreferences.beginLaunch(game, selection.engine)
-                    activity.startActivityForResult(
+                    GameSessionCheckpoint.launch(
+                        activity,
                         Intent().setClassName(activity, com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine.ACTIVITY)
                             .putExtra("cartdeck.game", game).putExtra("cartdeck.engine", selection.engine.id)
                             .putExtra("cartdeck.leanback", leanback),
-                        BaseGameActivity.REQUEST_PLAY_GAME,
+                        game,
+                        selection.engine.id,
                     )
                     gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
                     return@launch
                 }
                 if (selection.engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID) {
                     enginePreferences.beginLaunch(game, selection.engine)
-                    activity.startActivityForResult(
+                    GameSessionCheckpoint.launch(
+                        activity,
                         Intent().setClassName(activity, "com.swordfish.lemuroid.app.debug.Armsx2RuntimeProbeActivity")
                             .putExtra("cartdeck.game", game).putExtra("cartdeck.leanback", leanback)
                             .putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
-                        BaseGameActivity.REQUEST_PLAY_GAME,
+                        game,
+                        selection.engine.id,
                     )
                     gameLaunchTaskHandler.handleGameStart(activity.applicationContext)
                     return@launch
@@ -262,15 +277,19 @@ class GameLauncher(
                 // exposing game names, ROM paths or ContentResolver URIs.
                 Timber.e(error, "CARTDECK game launch setup failed")
                 if (!activity.isFinishing && !activity.isDestroyed) {
-                    Toast.makeText(
+                    GameCrashActivity.launch(
                         activity,
+                        if (error is EngineSelectionPreferences.SelectionException) {
+                            "Check the cartridge's compatibility settings before trying again."
+                        } else {
+                            "The game could not start."
+                        },
                         if (error is EngineSelectionPreferences.SelectionException) {
                             error.message
                         } else {
-                            "CARTDECK could not start this game (${error.javaClass.simpleName})."
+                            error.javaClass.simpleName
                         },
-                        Toast.LENGTH_LONG,
-                    ).show()
+                    )
                 }
             }
         }

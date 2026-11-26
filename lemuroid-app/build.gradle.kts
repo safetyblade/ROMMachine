@@ -22,8 +22,19 @@ val pcIntegration = providers.gradleProperty("cartdeckPcIntegrationDir").orNull
 val pcWine = providers.gradleProperty("cartdeckPcWineDir").orNull
 require(pcWine == null || pcIntegration != null) { "Wine requires the isolated CARTDECK PC integration build" }
 
+val supportSourceRevision =
+    providers.exec {
+        workingDir(rootProject.projectDir)
+        commandLine("git", "rev-parse", "--verify", "HEAD")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.map { result ->
+        val revision = result.trim()
+        if (revision.matches(Regex("[a-f0-9]{40}"))) revision else "UNKNOWN"
+    }
+
 android {
     defaultConfig {
+        buildConfigField("String", "SUPPORT_SOURCE_REVISION", "\"${supportSourceRevision.get()}\"")
         buildConfigField("boolean", "PC_INTEGRATION_ENABLED", (pcIntegration != null).toString())
         buildConfigField("boolean", "PC_WINE_NATIVE_ENABLED", (pcWine != null).toString())
         if (pcIntegration != null) {

@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.shared.GameInteractor
@@ -45,6 +46,7 @@ import dagger.Provides
 import dagger.android.ContributesAndroidInjector
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -63,6 +65,11 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) {
+            lifecycleScope.launch {
+                gameLaunchTaskHandler.recoverInterruptedGame(this@MainTVActivity)
+            }
+        }
         volumeControlStream = android.media.AudioManager.STREAM_MUSIC
         setContentView(R.layout.activity_tv_main)
         if (savedInstanceState == null && CartdeckStartupVideo.claimColdStart()) showSignatureStartupVideo()

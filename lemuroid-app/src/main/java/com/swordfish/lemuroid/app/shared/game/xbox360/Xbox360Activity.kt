@@ -44,6 +44,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
@@ -254,6 +255,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
+                                supportDiagnostic = { Xbox360Reports.read(filesDir) },
                                 onCopyReport = ::copyReport,
                                 performanceCaptureEnabled = xgfxDiagnosticsEnabled,
                                 onTogglePerformanceCapture =
@@ -678,6 +680,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         runCatching { emulator?.cartdeck_set_xgfx_diagnostics(false) }
         xgfxDiagnosticsEnabled = false
         leaving = true
+        EngineShutdownDeadline.arm(applicationContext)
         preparation.requestCancellation()
         releaseInputs()
         syncPause()

@@ -52,7 +52,7 @@ class EngineSelectionPreferences(private val context: Context) {
             val event = outcome(game)
             if (engineId == null) {
                 event.stringPropertyNames().filter { it.startsWith("failed.") }.forEach { event.remove(it) }
-                event.remove("successful")
+                if (system.id != SystemID.PLAYSTATION_2) event.remove("successful")
             } else {
                 event.remove("failed.$engineId")
             }
@@ -61,6 +61,16 @@ class EngineSelectionPreferences(private val context: Context) {
         }
         return committed
     }
+
+    internal fun retrySelectedEngine(game: Game) {
+        val event = outcome(game)
+        val engine = event.getProperty("lastSelected") ?: return
+        event.remove("failed.$engine")
+        event.remove("failureStage")
+        writeOutcome(game, event)
+    }
+
+    fun hasLaunchHistory(game: Game): Boolean = outcome(game).containsKey("lastSelected")
 
     fun inheritConsole(game: Game): Boolean = preferences.edit().remove(gameKey(game)).commit()
 
@@ -75,11 +85,10 @@ class EngineSelectionPreferences(private val context: Context) {
     ): Boolean = preferences.edit().putString("fallback_${system.dbname}", policy.name).commit()
 
     internal fun requestedEngine(
-        system: SystemID,
         explicit: String?,
         stable: String?,
         default: String?,
-    ): String? = explicit ?: if (system == SystemID.PLAYSTATION_2) default else stable ?: default
+    ): String? = explicit ?: stable ?: default
 
     internal fun ps2AutomaticEngine(
         play: String?,
@@ -128,7 +137,8 @@ class EngineSelectionPreferences(private val context: Context) {
                     }?.id ?: playDefault
                 else -> playDefault
             }
-        val requested = requestedEngine(system.id, explicit, stable, default)
+        val establishedPs2 = if (ps2) stable ?: event.getProperty("lastSelected") else stable
+        val requested = requestedEngine(explicit, establishedPs2, default)
         val engine =
             engines.firstOrNull { it.id == requested }
                 ?: throw SelectionException("Engine unavailable. Choose an installed engine in cartridge settings.")
@@ -146,7 +156,7 @@ class EngineSelectionPreferences(private val context: Context) {
         val failed = event.getProperty("failed.${engine.id}") == identity(engine)
         if (failed) {
             val alternative =
-                if (fallbackPolicy(system.id) == FallbackPolicy.NEXT_MANUAL_LAUNCH) {
+                if (!ps2 && fallbackPolicy(system.id) == FallbackPolicy.NEXT_MANUAL_LAUNCH) {
                     // Only an established, previously successful engine is eligible for unattended fallback.
                     engines.firstOrNull {
                         it.id in proven && it.id != engine.id &&

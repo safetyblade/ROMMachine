@@ -26,6 +26,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
+
     <application
         android:name="com.swordfish.lemuroid.app.LemuroidApplication"
         android:allowBackup="true"
@@ -175,6 +182,21 @@
 
         <activity
             android:name=".app.shared.gamecrash.GameCrashActivity"
+            android:theme="@style/LemuroidMaterialTheme.Game" />
+
+        <provider
+            android:name=".app.shared.support.SupportFileProvider"
+            android:authorities="${applicationId}.support"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/support_package_paths" />
+        </provider>
+
+        <activity
+            android:name=".app.shared.support.SupportActivity"
+            android:exported="false"
             android:theme="@style/LemuroidMaterialTheme.Game" />
 
         <receiver android:name=".app.shared.library.LibraryIndexBroadcastReceiver" />

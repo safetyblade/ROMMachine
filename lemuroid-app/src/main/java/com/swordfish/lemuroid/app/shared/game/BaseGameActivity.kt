@@ -108,6 +108,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
             finish()
             return
         }
+        runCatching { GameSessionCheckpoint(applicationContext).bindProcess() }
         GameService.startService(applicationContext, intent)
         game = intent.getSerializableExtra(EXTRA_GAME) as Game
         systemCoreConfig = intent.getSerializableExtra(EXTRA_SYSTEM_CORE_CONFIG) as SystemCoreConfig
@@ -460,6 +461,7 @@ abstract class BaseGameActivity : ImmersiveActivity() {
     }
 
     private fun finishAndExitProcess() {
+        EngineShutdownDeadline.arm(applicationContext)
         onFinishTriggered()
         GlobalScope.launch {
             delay(animationDuration().toLong())
@@ -592,16 +594,15 @@ abstract class BaseGameActivity : ImmersiveActivity() {
                     putExtra(EXTRA_LEANBACK, useLeanback)
                     putExtra(EXTRA_SYSTEM_CORE_CONFIG, systemCoreConfig)
                 }
-            val launchIntent =
-                if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
-                    Intent(
-                        activity,
-                        PS2RecoveryActivity::class.java,
-                    ).putExtra(PS2RecoveryActivity.EXTRA_TARGET, gameIntent)
-                } else {
-                    gameIntent
-                }
-            activity.startActivityForResult(launchIntent, REQUEST_PLAY_GAME)
+            if (systemCoreConfig.coreID == CoreID.PLAY_MODERN) {
+                activity.startActivityForResult(
+                    Intent(activity, PS2RecoveryActivity::class.java)
+                        .putExtra(PS2RecoveryActivity.EXTRA_TARGET, gameIntent),
+                    REQUEST_PLAY_GAME,
+                )
+            } else {
+                GameSessionCheckpoint.launch(activity, gameIntent, game, systemCoreConfig.coreID.coreName)
+            }
             activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }
     }

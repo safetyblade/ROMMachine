@@ -20,6 +20,7 @@ import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.app.shared.startup.CartdeckStartupSound
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.kotlin.NTuple2
@@ -106,6 +107,13 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.tv_settings, rootKey)
         if (rootKey == null) {
             addStartupSoundSettings()
+            preferenceScreen.addPreference(
+                Preference(requireContext()).apply {
+                    key = "cartdeck_support"
+                    title = "CARTDECK Support"
+                    intent = SupportActivity.intent(requireContext())
+                },
+            )
             preferenceScreen.addPreference(
                 Preference(requireContext()).apply {
                     key = "cartdeck_controller_editor"
