@@ -357,7 +357,7 @@
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -365,13 +365,28 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "XB-PA-02 owner-directed Sony PSX-PA-03 geometry inheritance; same side stacks/radial arc/2x2 shoulder bank, Xbox-native legends, four face Holds proposed; approval/host/fit pending."
+      "note": "XB-PA-02 owner approved Sony PSX-PA-03 geometry, native labels and four fixed face Holds; host/fit pending."
     },
     {
       "id": "XBOX360",
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "X360-PA-02 owner approved Sony PSX-PA-03 geometry, native labels and four fixed face Holds; host/fit pending."
+    },
+    {
+      "id": "FBNEO",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -380,29 +395,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "X360-PA-02 owner-directed Sony PSX-PA-03 geometry inheritance; same side stacks/radial arc/2x2 shoulder bank, Xbox-native legends, four face Holds proposed; approval/host/fit pending."
-    },
-    {
-      "id": "FBNEO",
-      "batch": "E",
-      "family": "Specialist",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "4/6 button arcade control modes and coin/start."
+      "note": "ARC-PA-01 shared numbered radial digital 4/6, conditional 2/3 only if verified, fixed Holds by profile, Menu/Coin/Start; owner approval and mapping/fit pending."
     },
     {
       "id": "MAME2003PLUS",
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -410,7 +410,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "4/6 button arcade control modes and coin/start."
+      "note": "ARC-PA-01 shared numbered radial digital 4/6, conditional 2/3 only if verified, fixed Holds by profile, Menu/Coin/Start; owner approval and mapping/fit pending."
     },
     {
       "id": "ATARI2600",
