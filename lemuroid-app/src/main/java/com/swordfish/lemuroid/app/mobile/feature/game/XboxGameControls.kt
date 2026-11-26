@@ -259,7 +259,7 @@ fun XboxGameControls(
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                     minimal = !hardwareBorder,
-                    separatePivotDeck = activePivot,
+                    mountedPivotDeck = activePivot,
                 )
             }
             if (hardwareBorder || activePivot) {

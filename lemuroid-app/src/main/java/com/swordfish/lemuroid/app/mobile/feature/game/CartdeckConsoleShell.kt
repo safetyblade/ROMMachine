@@ -19,11 +19,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -56,7 +58,7 @@ internal fun CartdeckConsoleShell(
     feedbackStrength: Float = 0f,
     isDualScreen: Boolean = false,
     minimal: Boolean = false,
-    separatePivotDeck: Boolean = false,
+    mountedPivotDeck: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -164,7 +166,7 @@ internal fun CartdeckConsoleShell(
             // Draw the P1-C2A solid control-deck.svg geometry directly on
             // the noninteractive shell. That places decorative hardware seats
             // ABOVE the manufactured deck but BELOW the functional PadKit.
-            if (!isLandscape && !separatePivotDeck && controls.isNotEmpty()) {
+            if (!isLandscape && controls.isNotEmpty()) {
                 val earliestControl = controls.minOf { it.top }
                 val rimBottom = (hole?.bottom ?: 0f) + 12.dp.toPx()
                 val deckTop = maxOf(rimBottom, earliestControl - 23.dp.toPx())
@@ -184,7 +186,42 @@ internal fun CartdeckConsoleShell(
                             lineTo(inset, deckTop + cut)
                             close()
                         }
-                    drawPath(panel, tokens.secondary)
+                    // The module has its own face and bezel. These planes belong to the chassis beneath it.
+                    if (mountedPivotDeck && deckBottom - deckTop >= 44.dp.toPx()) {
+                        val frame = Rect(inset, deckTop, size.width - inset, deckBottom)
+                        val bevel = 9.dp.toPx()
+                        val insetFace = frame.deflate(bevel)
+                        val face = chamferedIsland(insetFace, cut - bevel / 2f)
+                        clipPath(panel) {
+                            drawPath(
+                                panel,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        lerp(tokens.secondary, tokens.onChassis, 0.19f),
+                                        tokens.secondary,
+                                        lerp(tokens.secondary, tokens.bezel, 0.30f),
+                                    ),
+                                    startY = deckTop,
+                                    endY = deckBottom,
+                                ),
+                            )
+                            drawPath(
+                                face,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        lerp(tokens.secondary, tokens.chassis, 0.14f),
+                                        tokens.secondary,
+                                        lerp(tokens.secondary, tokens.bezel, 0.18f),
+                                    ),
+                                    startY = insetFace.top,
+                                    endY = insetFace.bottom,
+                                ),
+                            )
+                            drawPath(face, tokens.onChassis.copy(alpha = 0.16f), style = Stroke(1.dp.toPx()))
+                        }
+                    } else {
+                        drawPath(panel, tokens.secondary)
+                    }
                     drawPath(
                         panel,
                         tokens.bezel,

@@ -267,7 +267,7 @@ class PivotArcFamilyRenderingTest {
                         device.screen.rect(),
                         false,
                         placement.hardware().values.toList(),
-                        separatePivotDeck = contouredPivot,
+                        mountedPivotDeck = contouredPivot,
                     )
                     CartdeckHardwareSeats(
                         rootBounds = device.screen.rect(),
@@ -354,6 +354,12 @@ class PivotArcFamilyRenderingTest {
                     background.toArgb(),
                     bitmap.getPixel(video.centerX.toInt(), video.centerY.toInt()),
                 )
+                if (mode.controller == TouchControllerID.GENESIS_3 && mode.system == SystemID.GENESIS) {
+                    // The exposed side of the chassis has a rim and a separate recessed surface.
+                    val rimX = if (left) 378 else 14
+                    val faceX = if (left) 365 else 27
+                    assertTrue(bitmap.getPixel(rimX, 740) != bitmap.getPixel(faceX, 740))
+                }
                 File(
                     output,
                     "${mode.id}$suffix.png",

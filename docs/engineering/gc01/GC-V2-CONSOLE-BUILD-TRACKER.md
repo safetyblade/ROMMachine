@@ -99,6 +99,10 @@ The fitted contact sheets use the same 393×852dp handset for every system and v
 
 The reach figures measure target centres on the reference handset. The Sony variants share the tighter radial cluster and shoulder bank. GameCube retains the approved stick, face, half-trigger and Hold order. Dreamcast keeps the side stick and full-trigger Hold assignments. The housing uses the same bevel, palette and fasteners with a perimeter cut around the controller footprint and a shallow utility rail. Legacy two-button families retain their GBA-derived control targets and use the fitted faceplate. The GBA render is covered by a pixel comparison with its source reference. Physical thumb reach and gameplay acceptance remain open.
 
+## PivotARC lower-body integration — PR #378
+
+The contoured PivotARC decks use the same lower CARTDECK body panel as the GBA references. A recessed face and shaded chamfer define the exposed side planes. The module casts a short contact shadow onto that body. The follow-up changes the draw layers, with identical controller coordinates, touch targets, input assignments and silhouettes. The gallery checks the recessed body surface on the exposed side in each hand and retains the GBA source-reference pixel comparison.
+
 ## GBA execution ledger
 
 | Build gate | PivotArc solo | GripArc solo | Joint | Source & test evidence | Owner visual |

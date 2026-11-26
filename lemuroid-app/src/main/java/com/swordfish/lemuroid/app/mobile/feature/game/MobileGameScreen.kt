@@ -674,7 +674,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     feedbackStrength = reactiveLightStrength,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     minimal = !hardwareBorder || fullscreenWithGamepad,
-                    separatePivotDeck = contouredPivot,
+                    mountedPivotDeck = contouredPivot,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if (fittedControls != null && fullPos != null) {

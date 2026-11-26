@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
@@ -398,6 +399,12 @@ internal fun CartdeckPivotArcModule(
                 if (contoured) machinedPlate(blank, plate, edge, bevel) else chamferedIsland(upper, bevel)
             if (upper.width > lip * 2f && upper.height > lip * 2f) {
                 val inset = upper.deflate(lip)
+                if (contoured) {
+                    translate(top = 3.dp.toPx()) {
+                        drawPath(rim, tokens.bezel.copy(alpha = 0.25f), style = Stroke(6.dp.toPx()))
+                        drawPath(rim, tokens.bezel.copy(alpha = 0.58f))
+                    }
+                }
                 drawControllerInset(
                     rim = rim,
                     inset =
