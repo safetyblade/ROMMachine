@@ -350,7 +350,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "GC-PA-01 candidate: asymmetric A nucleus, side main/C sticks, central D-pad, mid-arc L/R/Z, conditional half presses, fixed A/B/L/R Holds; owner approval and fit pending."
+      "note": "GC-PA-02 owner reach correction: normal A close to D/stick, mid-arc L/R/Z integrated immediately above A/X, side main/C sticks; fixed A/B/L/R Holds and conditional half presses; revised approval/fit pending."
     },
     {
       "id": "XBOX",
