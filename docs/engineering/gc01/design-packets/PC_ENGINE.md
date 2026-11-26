@@ -20,6 +20,12 @@ C — historical Avenue Pad 3: third physical button mirrors Run or Select, not 
 
 For multi-button variants retain all guest face inputs, select dedicated Hold affordances by sustained-action usage rather than installing one per face key; two-button approvals unchanged. See [multi-button study](../GC-ARC-MULTIBUTTON-STUDY.md). Standard geometry source/physical verification pending; variants open; GripArc and Joint deferred.
 
+## PCE-PA-01B — revised Digital 6 review candidate (26 Nov 2026)
+
+Shared Digital 6 review candidate D6-PA-01 (not owner-approved): single extended radial face arc around D-pad; concept canvas 350×405, centres D-pad (140,172), X/IV (61,84), Y/V (137,48), Z/VI (215,72), A/III (257,140), B/II (242,222), C/I (177,285), H B/II (310,222), H I for PCE only (177,350). Coordinates illustrative, not dp or source geometry. Keep primary A/B/C in lower/right sectors; upper three additions outside D-pad travel corridor. No automatic per-game Hold mapping, no Hold inside arc, no turbo/macros. Six independent actual face keys and safe >=48dp hit regions, measured collar/chassis clearance, one-handed reach, both hands, directional-to-face transitions and fighting-game combinations require proof; if unsafe, return for review rather than shrinking/hiding buttons. Standard approved controller geometry stays unchanged; six-button profile opt-in/actual mode-aware, no false runtime claims.
+
+PCE legends IV/V/VI upper, III/II/I right/lower. Fixed Holds II and I (retain standard two-button Hold identities, not identical seat positions in extended mode). Run/Select/Menu rail and verified native Mode Switch (upstream [Beetle PCE FAST](https://docs.libretro.com/library/beetle_pce_fast/)); verify mode really exposes III–VI, not turbo aliases. Earlier two-row sketch remains withdrawn. Avenue Pad 3 Run/Select alias separately open; no additional guest key assumed. Owner review pending; no APK.
+
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
 - [ ] Specify console-specific labels, paired face buttons, analogue/trigger geometry, menu/hold controls and physical artwork
