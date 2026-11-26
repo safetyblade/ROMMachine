@@ -365,7 +365,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "XB-PA-01 proposed side-mounted dual sticks, compact mid-arc trigger/action island, fixed A/B/LT/RT Holds, native secondary legends; approval/host/fit pending."
+      "note": "XB-PA-02 owner-directed Sony PSX-PA-03 geometry inheritance; same side stacks/radial arc/2x2 shoulder bank, Xbox-native legends, four face Holds proposed; approval/host/fit pending."
     },
     {
       "id": "XBOX360",
@@ -380,7 +380,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "X360-PA-01 proposed side-mounted dual sticks, compact mid-arc trigger/action island, fixed A/B/LT/RT Holds, native secondary legends; approval/host/fit pending."
+      "note": "X360-PA-02 owner-directed Sony PSX-PA-03 geometry inheritance; same side stacks/radial arc/2x2 shoulder bank, Xbox-native legends, four face Holds proposed; approval/host/fit pending."
     },
     {
       "id": "FBNEO",
