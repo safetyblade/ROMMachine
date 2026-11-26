@@ -162,7 +162,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             TouchControllerID.XBOX360,
                             pivotGate = pivotGate,
                             onTogglePivotHold = { code ->
-                                if (!leaving && !menuOpen && foreground) pivotGate.toggleHold(code)
+                                if (!leaving && !menuOpen && this@Xbox360Activity.foreground) pivotGate.toggleHold(code)
                             },
                             physicalControllerConnected = physicalConnected,
                             presentationAspect =

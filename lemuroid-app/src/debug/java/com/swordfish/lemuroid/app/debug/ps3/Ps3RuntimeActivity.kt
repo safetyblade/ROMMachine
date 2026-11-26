@@ -203,7 +203,9 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             pivotSystem = SystemID.PLAYSTATION_3,
                             pivotGate = pivotGate,
                             onTogglePivotHold = { code ->
-                                if (loaded && booting && !menu && foreground && !leaving) pivotGate.toggleHold(code)
+                                if (loaded && booting && !menu && this@Ps3RuntimeActivity.foreground && !leaving) {
+                                    pivotGate.toggleHold(code)
+                                }
                             },
                             onGripPressed = { slot, down, codes ->
                                 if (down && !menu && this@Ps3RuntimeActivity.foreground) {
