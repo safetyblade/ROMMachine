@@ -2,11 +2,17 @@
 
 **Batch:** D · **Hardware family:** Console native / analogue · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Separate digital and DualShock profiles.
+
+## PSX-PA-01A/B — Digital 4 and DualShock review candidates (26 Nov 2026)
+
+A — original digital controller: D-pad primary nucleus, PSP-derived Square top, Triangle upper-right, Cross lower-right, Circle lower-centre, four fixed per-face H outboard, two adjacent shoulder pairs L1/L2 and R1/R2 in upper bank, Menu/Start/Select separate utility rail. No analogue controls in digital mode. Illustrative 360×400 body centres: D (93,185), Square (180,108), Triangle (248,148), Cross (248,222), Circle (180,280), H Square (180,50), H Triangle (314,148), H Cross (314,222), H Circle (180,344); shoulder centres L1 (48,35), L2 (108,35), R1 (252,35), R2 (312,35). B — DualShock: inherit action and H arc and shoulder banks; left analogue at digital D nucleus (93,185), independent D-pad (58,104), right analogue (58,300), L3/R3 separate explicit controls if actual backend supports stick click; illustrative placement (48,368)/(112,368) subject to clearance and actual native identity. No automatic stick-click on moving or touching the analogue. Preserve independent left/right axes and D-pad, no silent substitution. Separate explicit digital and DualShock controller modes with core/device mode verification and preserved preferences; no claim of analogue support for digital-only games.
+
+Exact source inventory observed in engineering PSX.kt and PSXDualShock.kt: Android A=Circle, B=Cross, Y=Square, X=Triangle; native L1/L2/R1/R2, Start/Select, D-pad; DualShock adds SecondaryAnalogLeft/Right. Verify actual guest mode, axis and L3/R3 dispatch independently; unsupported click must be disclosed, not simulated. All proposed coordinates illustrative, not dp or verified hitboxes. Require >=48dp independent targets, full analogue travel, native identity, Hold ownership/release, correct mode, handedness, viewport and physical fit. Keep original material and utility conventions. Digital-first for games that support it; dual-analogue simultaneous gameplay may not be achievable one-thumb. No removal of required controls or false support if fit or mode fails; return for redesign. Owner approval pending, no build. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
