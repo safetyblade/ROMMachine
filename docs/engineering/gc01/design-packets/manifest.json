@@ -177,7 +177,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -185,7 +185,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Verify 3-button/6-button game input mode."
+      "note": "SCD-PA-01 proposes exact MD-PA-01 three-button radial inheritance with fixed Hold B; six-button separate; approval and validation pending."
     },
     {
       "id": "WS",
@@ -252,15 +252,15 @@
       "batch": "C",
       "family": "Dual-screen / single-analogue",
       "pivot": {
-        "design": "solo_visual_accepted",
-        "physical": "visual_only"
+        "design": "owner_layout_locked",
+        "physical": "pending"
       },
       "grip": {
         "design": "to_design",
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Visual accepted; owner corrects R to immediately right of existing L. PSP-PA-03 four fixed face Holds proposed, preserve circle and rail; fit and approval pending."
+      "note": "PSP-PA-03 owner approved four fixed face Holds, R right of L, existing circle/rail; mandatory rigid downward translation for measured chassis clearance; revised physical/source pending."
     },
     {
       "id": "N64",
