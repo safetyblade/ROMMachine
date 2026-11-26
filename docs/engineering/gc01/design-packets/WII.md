@@ -1,8 +1,8 @@
 # WII — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENHANCED PHYSICAL TESTING REQUIRED**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
@@ -20,7 +20,7 @@ C — Classic: inherit PSX-PA-03 side stacks, D-pad, action arc X/Y/A/B and four
 
 D — GameCube: exact GC-PA-02 owner-approved geometry, conditional half triggers, fixed A/B/L/R Holds, enhanced gameplay acceptance; select only in Wii software with real GameCube support and verify actual port/mode.
 
-Capability expansion (not assumed available): upright Remote variant, real IR, phone sensor tilt/swing/shake, MotionPlus, extension-specific and simultaneous motions. Establish actual Dolphin bridge and guest action evidence before adding any control or claiming compatibility; if absent record engineering gap, preserve working modes. Never map MotionPlus to generic shake. No gesture macros or simulated gyro claims. Test representative titles New Super Mario Bros. Wii (sideways and shake), Mario Kart Wii (steering), Super Mario Galaxy (pointing + movement), Metroid Prime Trilogy (IR aiming), Wii Sports Resort and Skyward Sword (MotionPlus), Super Smash Bros. Brawl (Classic/GameCube where supported). Exact requirements verify against titles; distinguish performance/compatibility from input defects. Require >=48dp independent discrete targets, full stick travel, nonoverlap, actual pointer coordinate transform, motion neutral/release, orientation, handedness, saved-mode persistence, measured fit and owner physical evidence. All coordinates illustrative; if fit fails return for review, do not shrink hit targets or hide essential inputs. Owner approval pending; no build. GripArc and Joint deferred.
+Capability expansion (not assumed available): upright Remote variant, real IR, phone sensor tilt/swing/shake, MotionPlus, extension-specific and simultaneous motions. Establish actual Dolphin bridge and guest action evidence before adding any control or claiming compatibility; if absent record engineering gap, preserve working modes. Never map MotionPlus to generic shake. No gesture macros or simulated gyro claims. Test representative titles New Super Mario Bros. Wii (sideways and shake), Mario Kart Wii (steering), Super Mario Galaxy (pointing + movement), Metroid Prime Trilogy (IR aiming), Wii Sports Resort and Skyward Sword (MotionPlus), Super Smash Bros. Brawl (Classic/GameCube where supported). Exact requirements verify against titles; distinguish performance/compatibility from input defects. Require >=48dp independent discrete targets, full stick travel, nonoverlap, actual pointer coordinate transform, motion neutral/release, orientation, handedness, saved-mode persistence, measured fit and owner physical evidence. All coordinates illustrative; if fit fails return for review, do not shrink hit targets or hide essential inputs. Owner approved WII-PA-01A–D 26 Nov 2026; capability expansion and enhanced physical tests pending; no build. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -43,8 +43,8 @@ Capability expansion (not assumed available): upright Remote variant, real IR, p
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — capability and fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
