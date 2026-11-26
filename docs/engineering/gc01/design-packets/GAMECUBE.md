@@ -1,8 +1,8 @@
 # GAMECUBE — controller design packet
 
-**Batch:** D · **Hardware family:** Console native / analogue · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** D · **Hardware family:** Console native / analogue · **Status: OWNER LAYOUT LOCKED; ENHANCED PHYSICAL TESTING REQUIRED**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
@@ -14,7 +14,11 @@ Inherit approved Sony side-mounted dual-stick architecture, main analogue above 
 
 ## GC-PA-02 — compact action/trigger island (26 Nov 2026)
 
-Owner correction: A button size is not the issue; thumb reach between movement, A and back buttons is. Supersede PA-01 oversized A emphasis and remote right-side trigger bank. Use a normal/slightly prominent A, move A toward central D-pad and main stick; bring L/R/Z into the immediate action cluster, in a mid-arc row directly above A/X rather than at the top edge or beyond X. Keep side-mounted main/C sticks. Proposed 400×360 reference canvas centres: main stick (55,140), C-stick (55,263), D (137,175), A (215,177), B (215,245), Y (157,105), X (280,177), L (215,105), R (280,105), Z (344,105), H L (215,48), H R (280,48), H A (280,245), H B (215,309), conditional L-half (344,177), R-half (344,245); separate Menu/Start rail below. A visible cap radius 21, no oversized button requirement. L/R/Z occupy the same reachable cluster as A and X; half-press controls outboard of primary action path only when real backend capability exists. Proposed fixed A/B/L/R Holds retained, full press only. Prior illustrative A-to-R centre distance ~148 reference units; new ~97; A-to-L ~72 and A-to-D ~78 (concept, not physical measurements; no inference of actual thumb comfort). All native input/trigger capability, 48dp independent targets, measured nonoverlap, full stick travel, release, mirroring and enhanced game testing requirements from PA-01 retained. Specifically test repeated stick-to-A-to-L/R/Z transitions, A plus R/L/Z using separate fingers where required, and sustained full trigger Hold with movement; compare against PA-01 if available. If width cannot support safe targets, reflow with owner approval, do not compress hitboxes or relegate native inputs to inaccessible areas. Owner correction recorded; revised proposal awaits approval, no implementation/build. GripArc/Joint deferred.
+Owner correction: A button size is not the issue; thumb reach between movement, A and back buttons is. Supersede PA-01 oversized A emphasis and remote right-side trigger bank. Use a normal/slightly prominent A, move A toward central D-pad and main stick; bring L/R/Z into the immediate action cluster, in a mid-arc row directly above A/X rather than at the top edge or beyond X. Keep side-mounted main/C sticks. Proposed 400×360 reference canvas centres: main stick (55,140), C-stick (55,263), D (137,175), A (215,177), B (215,245), Y (157,105), X (280,177), L (215,105), R (280,105), Z (344,105), H L (215,48), H R (280,48), H A (280,245), H B (215,309), conditional L-half (344,177), R-half (344,245); separate Menu/Start rail below. A visible cap radius 21, no oversized button requirement. L/R/Z occupy the same reachable cluster as A and X; half-press controls outboard of primary action path only when real backend capability exists. Proposed fixed A/B/L/R Holds retained, full press only. Prior illustrative A-to-R centre distance ~148 reference units; new ~97; A-to-L ~72 and A-to-D ~78 (concept, not physical measurements; no inference of actual thumb comfort). All native input/trigger capability, 48dp independent targets, measured nonoverlap, full stick travel, release, mirroring and enhanced game testing requirements from PA-01 retained. Specifically test repeated stick-to-A-to-L/R/Z transitions, A plus R/L/Z using separate fingers where required, and sustained full trigger Hold with movement; compare against PA-01 if available. If width cannot support safe targets, reflow with owner approval, do not compress hitboxes or relegate native inputs to inaccessible areas. Owner accepted GC-PA-02 on 26 Nov 2026 and directed considerable additional physical testing; no implementation/build. GripArc/Joint deferred.
+
+## Enhanced GameCube acceptance — owner-directed
+
+Required additional representative gameplay: Super Mario Sunshine (main stick/A and real partial/full R trigger transitions), Mario Kart: Double Dash!! (sustained A plus steering/drifting), Super Smash Bros. Melee (A/B/X/Y and C-stick response), Luigi's Mansion (dual analogue and trigger control). Record repeated D/stick-to-A-to-L/R/Z reach, accidental presses, both handedness modes, simultaneous action where feasible and actual independent half/full trigger dispatch and release. Compare one-hand operation against Standard; flag two-hand requirements. No physical PASS until owner review. Proposed test titles, not executed results.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -37,8 +41,8 @@ Owner correction: A button size is not the issue; thumb reach between movement, 
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — enhanced test gate pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
