@@ -200,7 +200,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "WS-PA-01 dual directional proposal: X primary horizontal/Y primary vertical, other group independent, fixed A/B Holds; owner review pending."
+      "note": "WS-PA-01 revised per owner: secondary directional cluster directly above B, primary X/Y nucleus and A/B Holds unchanged; review and measured fit pending."
     },
     {
       "id": "WSC",
