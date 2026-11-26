@@ -659,6 +659,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val fittedControls =
                 combinedPlacement?.controls ?: pivotPlacement?.controls ?: measuredWiiStandard?.controls
             val fittedHardwareSeats = combinedPlacement?.hardwareSeats ?: fittedControls
+            val contouredPivot = pivotPlacement != null && jointPlacement == null && viewModel.systemId != SystemID.GBA
             if (showBorder) {
                 CartdeckConsoleShell(
                     tokens = shellTokens,
@@ -673,6 +674,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     feedbackStrength = reactiveLightStrength,
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     minimal = !hardwareBorder || fullscreenWithGamepad,
+                    separatePivotDeck = contouredPivot,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if (fittedControls != null && fullPos != null) {
@@ -770,6 +772,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             portraitMode == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN,
                         customColours = resolved.customColours,
                         pivotArc = pivotPlacement != null,
+                        contouredPivot = contouredPivot,
                         pivotUtilities = soloProfile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
                         measuredStandard =
                             measuredWiiStandard != null ||

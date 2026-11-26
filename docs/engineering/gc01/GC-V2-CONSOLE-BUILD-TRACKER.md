@@ -85,6 +85,20 @@ The candidate uses the historical GBA/PSP renderer (source reference `a627a713`)
 - Touch trigger and fixed Hold controls emit the existing discrete input. Proportional touch pressure, PS3 PS/Sixaxis and Xbox Guide are outside the verified touch inventory. GameCube retains the distinct Dolphin half-trigger inputs.
 - Wii U uses the existing host pad route. Separate guest GamePad/Pro selection, simultaneous TV and GamePad views and gyro remain unverified. PS3 binary distribution remains governed by the existing owner-only packaging workflow.
 
+## PivotARC compact hardware refinement — PR #378
+
+The fitted contact sheets use the same 393×852dp handset for every system and variant. The right-hand sheet also includes both Standard Wii Nunchuk pointer geometries and the historical GBA and PSP source renders. The left-hand sheet mirrors all active PivotARC configurations. The geometry suite checks both hands at 360×740, 393×852 and 412×915dp, with independent targets of at least 48dp and a clear display aperture.
+
+| Representative configuration | Gameplay and utility target envelope before → after | Farthest A/B target from D-pad before → after |
+|---|---|---|
+| Dreamcast | 370×388 → 335×286dp | 133 → 97dp |
+| PlayStation digital | 373×422 → 267×346dp | 177 → 109dp |
+| PlayStation DualShock | 370×422 → 334×351dp | 123 → 107dp |
+| GameCube | 370×392 → 310×320dp | 123 → 97dp |
+| PSP | 370×422 → 334×330dp | 145 → 118dp |
+
+The reach figures measure target centres on the reference handset. The Sony variants share the tighter radial cluster and shoulder bank. GameCube retains the approved stick, face, half-trigger and Hold order. Dreamcast keeps the side stick and full-trigger Hold assignments. The housing uses the same bevel, palette and fasteners with a perimeter cut around the controller footprint and a shallow utility rail. Legacy two-button families retain their GBA-derived control targets and use the fitted faceplate. The GBA render is covered by a pixel comparison with its source reference. Physical thumb reach and gameplay acceptance remain open.
+
 ## GBA execution ledger
 
 | Build gate | PivotArc solo | GripArc solo | Joint | Source & test evidence | Owner visual |

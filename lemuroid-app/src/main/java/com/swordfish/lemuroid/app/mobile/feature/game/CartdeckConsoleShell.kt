@@ -56,6 +56,7 @@ internal fun CartdeckConsoleShell(
     feedbackStrength: Float = 0f,
     isDualScreen: Boolean = false,
     minimal: Boolean = false,
+    separatePivotDeck: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -163,7 +164,7 @@ internal fun CartdeckConsoleShell(
             // Draw the P1-C2A solid control-deck.svg geometry directly on
             // the noninteractive shell. That places decorative hardware seats
             // ABOVE the manufactured deck but BELOW the functional PadKit.
-            if (!isLandscape && controls.isNotEmpty()) {
+            if (!isLandscape && !separatePivotDeck && controls.isNotEmpty()) {
                 val earliestControl = controls.minOf { it.top }
                 val rimBottom = (hole?.bottom ?: 0f) + 12.dp.toPx()
                 val deckTop = maxOf(rimBottom, earliestControl - 23.dp.toPx())

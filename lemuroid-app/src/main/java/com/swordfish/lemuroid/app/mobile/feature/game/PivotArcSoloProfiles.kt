@@ -133,14 +133,14 @@ object PivotArcSoloProfiles {
         val seats =
             buildList {
                 add(dpad(24 + dx, 185, 72f))
-                add(button("Y", 76 + dx, 84, y, if (dos) "X" else "Square"))
-                add(button("X", 136 + dx, 120, x, if (dos) "Y" else "Triangle"))
-                add(button("B", 136 + dx, 272, b, if (dos) "A" else "Cross"))
-                add(button("A", 76 + dx, 318, a, if (dos) "B" else "Circle"))
-                add(hold("Y", 76 + dx, 24))
-                add(hold("X", 212 + dx, 110))
-                add(hold("B", 212 + dx, 300))
-                add(hold("A", 76 + dx, 376))
+                add(button("Y", 76 + dx, 105, y, if (dos) "X" else "Square"))
+                add(button("X", 136 + dx, 132, x, if (dos) "Y" else "Triangle"))
+                add(button("B", 136 + dx, 256, b, if (dos) "A" else "Cross"))
+                add(button("A", 76 + dx, 289, a, if (dos) "B" else "Circle"))
+                add(hold("Y", 76 + dx, 48))
+                add(hold("X", 195 + dx, 109))
+                add(hold("B", 194 + dx, 284))
+                add(hold("A", 76 + dx, 346))
                 add(button("L", 190 + dx, 173, l, "L1"))
                 add(button("R", 244 + dx, 173, r, "R1"))
                 add(button("L2", 190 + dx, 227, l2))
@@ -283,16 +283,16 @@ object PivotArcSoloProfiles {
             listOf(
                 stick("AnalogL", 44, 160, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
                 dpad(124, 160, 72f),
-                button("X", 174, 70, y),
+                button("X", 171, 82, y),
                 button("Y", 227, 110, x),
-                button("A", 227, 230, b),
-                button("B", 174, 275, a),
+                button("A", 227, 224, b),
+                button("B", 170, 257, a),
                 button("L", 282, 150, l2),
                 button("R", 336, 150, r2),
                 hold("L", 282, 205),
                 hold("R", 336, 205),
-                hold("A", 300, 260),
-                hold("B", 174, 335),
+                hold("A", 285, 260),
+                hold("B", 170, 313),
             ) + rail(select = false),
         )
 
@@ -650,12 +650,12 @@ object PivotArcSoloProfiles {
 object PivotArcSoloSolver {
     private const val GAP = 2f
     private const val RIM = 8f
-    private val scales = (80..150 step 2).reversed().map { it / 100f }
+    private val scales = (80..150 step 2).map { it / 100f }
     private val centerScales =
         scales.flatMap { horizontal ->
             scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
         }.sortedBy { (horizontal, vertical) ->
-            kotlin.math.abs(horizontal - vertical) + (1.5f - minOf(horizontal, vertical)) / 2f
+            horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
         }
 
     fun resolve(
@@ -692,13 +692,16 @@ object PivotArcSoloSolver {
                     seat.id to PivotArcBounds(cx - half, cy - half, cx + half, cy + half)
                 }
             if (!independent(core.values)) continue
-            val packed = fitHeight(core, available.height - utility.maxOf { it.target } - GAP - RIM - 0.01f) ?: continue
+            val railGap = 8f
+            val maxCoreHeight = available.height - utility.maxOf { it.target } - railGap - 0.01f
+            val compactHeight = minOf(maxCoreHeight, hull(core.values).height * 0.88f)
+            val packed = fitHeight(core, compactHeight) ?: fitHeight(core, maxCoreHeight) ?: continue
             val coreHull = hull(packed.values)
             val railWidth =
                 utility.sumOf { it.target.toDouble() }.toFloat() +
                     (utility.size - 1).coerceAtLeast(0) * GAP
             var cursor = coreHull.centerX - railWidth / 2f
-            val railTop = coreHull.bottom + GAP + RIM
+            val railTop = coreHull.bottom + railGap
             val rail =
                 utility.associate { seat ->
                     val rect = PivotArcBounds(cursor, railTop, cursor + seat.target, railTop + seat.target)
@@ -710,7 +713,7 @@ object PivotArcSoloSolver {
             if (bounds.width > available.width || bounds.height > available.height) continue
             if (!independent(all.values)) continue
             val dx =
-                (available.right - bounds.right + requestedDx)
+                (available.right - bounds.right - minOf(8f, available.width - bounds.width) + requestedDx)
                     .coerceIn(available.left - bounds.left, available.right - bounds.right)
             val dy =
                 (available.bottom - bounds.bottom + requestedDy)
@@ -740,7 +743,19 @@ object PivotArcSoloSolver {
             return PivotArcResolution.Fits(
                 PivotArcPlacement(
                     controls = placed,
-                    visuals = profile.seats.associate { it.id to PivotArcSize(it.cap, it.cap) },
+                    visuals =
+                        profile.seats.associate { seat ->
+                            val cap =
+                                when {
+                                    seat.utility -> 44f
+                                    seat.holdOf != null || seat.analog -> seat.cap
+                                    seat.direction != null -> seat.cap + 4f
+                                    seat.id in setOf("A", "B") -> maxOf(seat.cap, 44f)
+                                    seat.id in setOf("X", "Y", "C", "Z") -> maxOf(seat.cap, 42f)
+                                    else -> seat.cap
+                                }
+                            seat.id to PivotArcSize(cap, cap)
+                        },
                     appliedDx = dx,
                     appliedDy = dy,
                     visualScale = minOf(horizontal, vertical),

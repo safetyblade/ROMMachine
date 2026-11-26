@@ -259,6 +259,7 @@ fun XboxGameControls(
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                     minimal = !hardwareBorder,
+                    separatePivotDeck = activePivot,
                 )
             }
             if (hardwareBorder || activePivot) {
@@ -271,6 +272,7 @@ fun XboxGameControls(
                     isDualScreen = false,
                     customColours = resolved.customColours,
                     pivotArc = activePivot,
+                    contouredPivot = activePivot,
                     pivotUtilities = pivotProfile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,

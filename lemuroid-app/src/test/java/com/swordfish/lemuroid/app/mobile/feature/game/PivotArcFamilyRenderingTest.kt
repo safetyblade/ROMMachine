@@ -221,15 +221,39 @@ class PivotArcFamilyRenderingTest {
     }
 
     @Test
+    fun representativeComplexDecksKeepPrimaryControlsCloseWithoutShrinkingCaps() {
+        val device = ControlDeckDeviceFixture(393f, 852f)
+        for (mode in listOf(
+            Mode(SystemID.DREAMCAST, TouchControllerID.DREAMCAST),
+            Mode(SystemID.PSX, TouchControllerID.PSX_DUALSHOCK),
+            Mode(SystemID.GAMECUBE, TouchControllerID.GAMECUBE),
+        )) {
+            val deck = placement(mode, device)
+            val dpad = deck.controls.getValue("D")
+            val actions = listOf("A", "B").map { deck.controls.getValue(it) }
+            assertEquals(44f, deck.visuals.getValue("A").w)
+            assertTrue(
+                mode.id,
+                actions.all {
+                    kotlin.math.hypot(it.centerX - dpad.centerX, it.centerY - dpad.centerY) <= 134f
+                },
+            )
+            val hull = deck.controls.values
+            assertTrue(mode.id, hull.maxOf { it.bottom } - hull.minOf { it.top } < 395f)
+        }
+    }
+
+    @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun renderFamilyContactSheet() {
         val modes = modes()
         val device = ControlDeckDeviceFixture(393f, 852f)
-        val current = mutableStateOf(modes.first())
+        val current = mutableStateOf(modes.first() to false)
         val background = Color(0xFF272233)
         compose.setContent {
-            val mode = current.value
-            val placement = remember(mode) { placement(mode, device) }
+            val (mode, left) = current.value
+            val placement = remember(mode, left) { placement(mode, device, left) }
+            val contouredPivot = !mode.standard && !mode.historical && mode.system != SystemID.GBA
             val video = viewport(mode, device).rect()
             val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
             CompositionLocalProvider(
@@ -243,6 +267,7 @@ class PivotArcFamilyRenderingTest {
                         device.screen.rect(),
                         false,
                         placement.hardware().values.toList(),
+                        separatePivotDeck = contouredPivot,
                     )
                     CartdeckHardwareSeats(
                         rootBounds = device.screen.rect(),
@@ -256,6 +281,7 @@ class PivotArcFamilyRenderingTest {
                         customColours = false,
                         pivotArc = !mode.standard,
                         measuredStandard = mode.standard,
+                        contouredPivot = contouredPivot,
                         pivotUtilities = mode.profile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
                     )
                     PadKit(
@@ -278,6 +304,24 @@ class PivotArcFamilyRenderingTest {
             }
         }
 
+        val output = File("build/reports/gc01-menu-screens/pivotarc-family").apply { mkdirs() }
+        captureGallery(modes, false, output, background, device) { current.value = it to false }
+        captureGallery(modes.filterNot { it.standard || it.historical }, true, output, background, device) {
+            current.value = it to true
+        }
+        val golden = File(output, "gba-gba-reference.png").readBytes()
+        assertTrue(File(output, "gba-gba.png").readBytes().contentEquals(golden))
+    }
+
+    private fun captureGallery(
+        modes: List<Mode>,
+        left: Boolean,
+        output: File,
+        background: Color,
+        device: ControlDeckDeviceFixture,
+        select: (Mode) -> Unit,
+    ) {
+        val suffix = if (left) "-left" else ""
         val tileWidth = 210
         val tileHeight = 476
         val columns = 6
@@ -295,9 +339,8 @@ class PivotArcFamilyRenderingTest {
                 textSize = 11f
             }
         val imagePaint = Paint(Paint.FILTER_BITMAP_FLAG)
-        val output = File("build/reports/gc01-menu-screens/pivotarc-family").apply { mkdirs() }
         for ((index, mode) in modes.withIndex()) {
-            compose.runOnIdle { current.value = mode }
+            compose.runOnIdle { select(mode) }
             if (!mode.standard) compose.onNodeWithText("PivotArc").assertIsDisplayed()
             val rect = compose.onNodeWithTag("pivotarc-family").getUnclippedBoundsInRoot()
             compose.runOnIdle {
@@ -313,7 +356,7 @@ class PivotArcFamilyRenderingTest {
                 )
                 File(
                     output,
-                    "${mode.id}.png",
+                    "${mode.id}$suffix.png",
                 ).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 val x = index % columns * tileWidth
                 val y = index / columns * tileHeight
@@ -322,7 +365,9 @@ class PivotArcFamilyRenderingTest {
                 bitmap.recycle()
             }
         }
-        File(output, "contact-sheet.png").outputStream().use { sheet.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        File(output, "contact-sheet$suffix.png").outputStream().use {
+            assertTrue(sheet.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
         sheet.recycle()
     }
 }
