@@ -72,6 +72,21 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "GG-PA-01 owner advanced with Next; Digital 2 geometry with native Start, 1/2 Holds and mapping preservation; source and physical pending."
+    },
+    {
+      "id": "NGP",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -80,22 +95,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "GG-PA-01 proposes SMS Digital 2 geometry with dedicated Start instead of Pause; native B=1 and A=2 per prior source audit; approval pending."
-    },
-    {
-      "id": "NGP",
-      "batch": "A",
-      "family": "Two-button",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "NGP-PA-01 proposes Digital 2 Click: eight-way digital click-stick in D-pad seat, A/B Holds, Menu/Option; Android A=B and B=A visible per prior audit; review pending."
     },
     {
       "id": "NGC",
