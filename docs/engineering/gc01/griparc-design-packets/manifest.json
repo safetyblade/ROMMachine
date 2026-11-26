@@ -360,6 +360,34 @@
       "id": "PSP",
       "batch": "C",
       "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "dpad_primary",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "analogue_primary",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved both movement priorities, both orientations and preset; runtime/fit pending."
+    },
+    {
+      "id": "N64",
+      "batch": "C",
+      "family": "Touch / single analogue",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -370,34 +398,7 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "variants": [
-        {
-          "id": "dpad_primary",
-          "design": "review_candidate",
-          "runtime": "pending"
-        },
-        {
-          "id": "analogue_primary",
-          "design": "review_candidate",
-          "runtime": "pending"
-        }
-      ],
-      "note": "Single analogue + independent D-pad, Sony diamond, four programmable seats; owner review pending."
-    },
-    {
-      "id": "N64",
-      "batch": "C",
-      "family": "Touch / single analogue",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Analogue primary, independent D-pad and discrete C directions, Z beside movement, Hold A/B/Z and L+R; owner review pending."
     },
     {
       "id": "PSX",
