@@ -237,7 +237,7 @@
       "batch": "C",
       "family": "Dual-screen / single-analogue",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -245,7 +245,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "3DS-PA-01 Analogue 4 Compact proposal: primary Circle Pad, independent adjacent D-pad, radial ABXY, paired L/R, fixed B/Y Holds; extra New 3DS/motion conditional; approval and fit pending."
+      "note": "3DS-PA-01 owner approved Analogue 4 Compact: Circle Pad, independent D-pad, ABXY, adjacent L/R, fixed B/Y Holds; conditional New 3DS/motion, engineering/physical pending."
     },
     {
       "id": "PSP",
@@ -267,7 +267,7 @@
       "batch": "C",
       "family": "Dual-screen / single-analogue",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -275,7 +275,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Real analogue, Z and C-button identity."
+      "note": "N64-PA-01 Analogue 2 + C-Pad candidate: analogue nucleus, D-pad, A/B/Z action arc, C directional cluster, adjacent L/R, fixed A/B/Z Holds; approval and measured fit pending."
     },
     {
       "id": "PSX",
