@@ -417,7 +417,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -425,14 +425,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "A26-PA-01 proposed GB-derived compact digital single Fire/Hold and real console switches; review and fit pending."
+      "note": "A26-PA-01 approved compact Digital 1, Fire/Hold Fire and native console switches; mapping and physical pending."
     },
     {
       "id": "ATARI7800",
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -440,7 +440,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "A78-PA-01 proposed GB-derived compact digital two Fire buttons and fixed H1/H2; review and fit pending."
+      "note": "A78-PA-01 approved GB-derived Digital 2, fixed H1/H2 and native switch semantics; mapping and physical pending."
     },
     {
       "id": "WII",
@@ -477,7 +477,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -485,7 +485,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "LYNX-PA-01 proposed GBA geometry with Option 1/2 replacing L/R, fixed A/B Holds, Menu/Pause; rotation and mapping/fit pending."
     },
     {
       "id": "WII_U",
