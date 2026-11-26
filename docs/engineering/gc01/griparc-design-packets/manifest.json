@@ -44,22 +44,38 @@
       "id": "GB",
       "batch": "A",
       "family": "Classic retro",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Shared GB/GBC GA-01P/L candidate; Hold B replaces GBA L+R; owner review and real action/fit gates pending."
+      "note": "Owner approved 27 Nov; Hold B is tap-to-latch, remains depressed until deselected. Runtime/fit pending."
     },
     {
       "id": "GBC",
       "batch": "A",
       "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; Hold B is tap-to-latch, remains depressed until deselected. Runtime/fit pending."
+    },
+    {
+      "id": "NES",
+      "batch": "A",
+      "family": "Classic retro",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -70,22 +86,7 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Shared GB/GBC GA-01P/L candidate; Hold B replaces GBA L+R; owner review and real action/fit gates pending."
-    },
-    {
-      "id": "NES",
-      "batch": "A",
-      "family": "Classic retro",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Digital 2 inherited GB/GBC geometry and preset; owner review pending."
     },
     {
       "id": "SMS",
@@ -544,5 +545,11 @@
     "status": "owner_layout_locked",
     "scope": "Universal Controls Hub, physical controller discovery/mapping and portrait/landscape GripARC design standard",
     "note": "Approved with PivotARC description On-the-go play and CARTDECK primary landscape logo, GripARC secondary hardware wordmark. GA-R00 Controls UI implementation separately authorized; no console layout or Joint implementation authority."
+  },
+  "holdAction": {
+    "status": "owner_approved_requirement",
+    "semantics": "tap latch DOWN; next tap release; visible depressed state; lifecycle safe release",
+    "scope": "all GripARC supported digital inputs, both orientations",
+    "runtime": "pending"
   }
 }

@@ -1,0 +1,18 @@
+# NES-GA-01P/L — Digital 2 Power User (review candidate)
+Inherit owner-approved GB/GBC Digital 2 layout, independent NES preset and cartridge overrides. Inherit approved GBA manufactured materials and full two-handed controller identity; remove shoulder controls because NES has no native L/R. Native NES.kt uses Android A/B same labels, D-pad, Select, Start and CARTDECK Menu. Verify actual NES active core/controller configurations; preserve NES-specific mapping and native aspect. No invented guest buttons.
+
+## Portrait (360×380 illustrative units)
+D-pad (86,155), native A (278,129), B (210,185), Turbo A (318,195), Turbo B (236,252), A+B (147,260), Hold B (210,60). Select (80,330), Menu (180,330), Start (280,330). Keep primary geometry inherited from GBA, eliminate L/R and their chord; use shallow upper body detailing rather than fake shoulders, programmable Hold B seated above native B in the same right-hand reach zone. Prefer a reduced top shell where fit and brand allow, no mandatory fixed GBA chassis height. Large visible controls, functional labels and matching trim.
+
+## Landscape (730×390 illustrative units)
+Retain CARTDECK landscape chassis and native NES/core-reported game aspect (normally 4:3 presentation; preserve selected supported aspect); central screen not stretched. Left D-pad (82,159), A+B (114,253), Select (82,322). Right Hold B (650,65), A (681,143), B (612,202), Turbo A (684,220), Turbo B (613,278), Start (674,322). Menu (365,365); CARTDECK main logo above screen, small GripArc wordmark lower right. No native shoulder caps, reuse top empty deck for panel detailing. Same stable assignment IDs in both orientations.
+
+## Proposed preset
+1 Hold B — toggles B down/up, real typed Hold capability required; useful for sustained run in platform games where B is run.
+2 Turbo A — repeat A while pressed, real typed action required.
+3 Turbo B — repeat B while pressed, real typed action required.
+4 A+B — momentary simultaneous Android A/B (existing mapping representation, dispatch verification pending).
+All programmable; labels update, preserve existing assignments, factory defaults only unconfigured/explicit reset. Hold/turbo not established by existing chord store; no fake label. Independent >=48dp effective hit targets, actual viewport fit, lifecycle release/ownership, rotation continuity, native inputs and two-hand reach. Candidate tests Super Mario Bros. 3, Contra, Mega Man 2; actual game mappings and actions verify. Owner review pending; no implementation, no physical claims, Joint deferred.
+
+## Owner-approved universal GripARC Hold contract — 27 Nov 2026
+Hold is an assignable typed action across every GripARC system and orientation, for supported digital guest inputs. Tap once to send DOWN and latch independent of finger release; cap remains visibly depressed with active accent/state and accessible active status; tap again sends UP when no other source owns the key. Never implement as ordinary momentary or long press; no repeating pulses. Keep source ownership independent of native touch/physical/chord inputs, release/neutralize on menu/pause/background, mode or mapping change, rotation, game exit, relevant device disconnect and lifecycle loss; no automatic relatch on resume. Persist assignment, not active latch state. Reuse the existing verified PivotARC hold gate where appropriate without altering PivotARC behaviour; actual dispatch capability still needs engineering. Include Hold in Controls assignment menu, factory presets, preview and tester, available for every supported native digital key, not invented analogue semantics. No requirement to assign Hold by default on every console.

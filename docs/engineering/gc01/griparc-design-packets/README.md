@@ -17,15 +17,18 @@ GA-D00 Universal Controls Experience design approval FIRST, then GBA portrait an
 ## Register
 | Batch | Systems | Owner design approval |
 |---|---|---|
-| A — Classic retro | GB, GBC, NES, SMS, GG, NGP, NGC, PC_ENGINE | 0/8 |
+| A — Classic retro | GB, GBC, NES, SMS, GG, NGP, NGC, PC_ENGINE | 2/8 |
 | B — Handheld / multi-button | GBA, SNES, GENESIS, SEGACD, WS, WSC | 1/6 |
 | C — Touch / single analogue | NDS, NINTENDO_3DS, PSP, N64 | 0/4 |
 | D — Modern consoles | PSX, PLAYSTATION_2, PLAYSTATION_3, DREAMCAST, GAMECUBE, XBOX, XBOX360 | 0/7 |
 | E — Specialist | FBNEO, MAME2003PLUS, ATARI2600, ATARI7800, LYNX, WII, WII_U, DOS | 0/8 |
-Total 1/33; GA-D00 and GBA portrait/landscape/preset approved; GB/GBC candidates ready for review. No system design complete without both orientations. Existing PivotARC register remains historical; this charter supersedes outdated GripARC/JOIN geometry decisions only.
+Total 3/33; GBA, GB, GBC portrait/landscape/presets approved; NES candidate ready for review. No system design complete without both orientations. Existing PivotARC register remains historical; this charter supersedes outdated GripARC/JOIN geometry decisions only.
 
 ## Owner additions — 27 Nov 2026
 Unified Controls experience first, before console layout approvals. Same user-friendly hub from cartridge setup, in-game Controls and global Settings; visual layout selection, native controller mode, orientation, guided GripARC assignments and actual connected-controller capability discovery/mapping. Reference GA-D00-CONTROLS-EXPERIENCE.md. Preserve current physical input and per-device/per-cartridge profile architecture; no separate mapping system. All 33 GripARC systems require purpose-designed portrait AND landscape layouts inside existing CARTDECK landscape chassis, not rotated portrait or Standard fallback. Joint remains separate L attachment, last. No runtime work in design branch.
 
 ## GA-D00 owner approval — 27 Nov 2026
 Approved universal Controls UX with PivotARC description **On-the-go play** and landscape primary CARTDECK logo retained in chassis position; smaller GripARC wordmark relocated to controller hardware (exact seat per landscape packet). GA-R00 Controls interface implementation may proceed independently while console portrait/landscape design approvals continue. No authorization to implement unfinished GripARC console layouts or Joint.
+
+## Owner-approved universal GripARC Hold contract — 27 Nov 2026
+Hold is an assignable typed action across every GripARC system and orientation, for supported digital guest inputs. Tap once to send DOWN and latch independent of finger release; cap remains visibly depressed with active accent/state and accessible active status; tap again sends UP when no other source owns the key. Never implement as ordinary momentary or long press; no repeating pulses. Keep source ownership independent of native touch/physical/chord inputs, release/neutralize on menu/pause/background, mode or mapping change, rotation, game exit, relevant device disconnect and lifecycle loss; no automatic relatch on resume. Persist assignment, not active latch state. Reuse the existing verified PivotARC hold gate where appropriate without altering PivotARC behaviour; actual dispatch capability still needs engineering. Include Hold in Controls assignment menu, factory presets, preview and tester, available for every supported native digital key, not invented analogue semantics. No requirement to assign Hold by default on every console.
