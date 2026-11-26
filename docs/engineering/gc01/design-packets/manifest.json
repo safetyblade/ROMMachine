@@ -222,6 +222,21 @@
       "batch": "C",
       "family": "Dual-screen / single-analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "NDS-PA-01B owner approved tighter radial D/ABXY island, fixed B/Y Holds, adjacent L/R, protected stacked screens and stylus; engineering/physical pending."
+    },
+    {
+      "id": "NINTENDO_3DS",
+      "batch": "C",
+      "family": "Dual-screen / single-analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -230,22 +245,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "NDS-PA-01B: owner approved tighter D-to-face island and smaller visible caps, preserve 48dp targets and stacked screens/stylus; revised geometry and fixed B/Y Holds awaiting full design approval; physical pending."
-    },
-    {
-      "id": "NINTENDO_3DS",
-      "batch": "C",
-      "family": "Dual-screen / single-analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Two screens and circle pad; verify runtime."
+      "note": "3DS-PA-01 Analogue 4 Compact proposal: primary Circle Pad, independent adjacent D-pad, radial ABXY, paired L/R, fixed B/Y Holds; extra New 3DS/motion conditional; approval and fit pending."
     },
     {
       "id": "PSP",
