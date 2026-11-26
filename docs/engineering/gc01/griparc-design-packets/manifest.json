@@ -344,6 +344,22 @@
       "id": "NINTENDO_3DS",
       "batch": "C",
       "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 3DS base portrait/landscape and two-slot preset; measured fit, guest mapping and New 3DS optional capability pending."
+    },
+    {
+      "id": "PSP",
+      "batch": "C",
+      "family": "Touch / single analogue",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -354,22 +370,19 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Compact Circle Pad + independent D-pad, dual screens, two programmable seats Hold Y/B; New 3DS extras conditional separate scope; owner review pending."
-    },
-    {
-      "id": "PSP",
-      "batch": "C",
-      "family": "Touch / single analogue",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "dpad_primary",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "analogue_primary",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Single analogue + independent D-pad, Sony diamond, four programmable seats; owner review pending."
     },
     {
       "id": "N64",
