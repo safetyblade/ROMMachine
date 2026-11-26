@@ -387,7 +387,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -395,13 +395,28 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "ARC-PA-01 shared numbered radial digital 4/6, conditional 2/3 only if verified, fixed Holds by profile, Menu/Coin/Start; owner approval and mapping/fit pending."
+      "note": "ARC-PA-01 approved numbered 4/6 radial profiles; conditional 2/3 only where mapping verified; fixed Holds by profile, Coin/Start; engineering/physical pending."
     },
     {
       "id": "MAME2003PLUS",
       "batch": "E",
       "family": "Specialist",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "ARC-PA-01 approved numbered 4/6 radial profiles; conditional 2/3 only where mapping verified; fixed Holds by profile, Coin/Start; engineering/physical pending."
+    },
+    {
+      "id": "ATARI2600",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -410,29 +425,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "ARC-PA-01 shared numbered radial digital 4/6, conditional 2/3 only if verified, fixed Holds by profile, Menu/Coin/Start; owner approval and mapping/fit pending."
-    },
-    {
-      "id": "ATARI2600",
-      "batch": "E",
-      "family": "Specialist",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Single fire button and console switches."
+      "note": "A26-PA-01 proposed GB-derived compact digital single Fire/Hold and real console switches; review and fit pending."
     },
     {
       "id": "ATARI7800",
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -440,7 +440,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Two fire buttons and console switches."
+      "note": "A78-PA-01 proposed GB-derived compact digital two Fire buttons and fixed H1/H2; review and fit pending."
     },
     {
       "id": "WII",
