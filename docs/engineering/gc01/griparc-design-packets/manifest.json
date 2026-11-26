@@ -328,6 +328,22 @@
       "id": "NDS",
       "batch": "C",
       "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and two-slot preset; actual screen fit, mic/lid and runtime pending."
+    },
+    {
+      "id": "NINTENDO_3DS",
+      "batch": "C",
+      "family": "Touch / single analogue",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -338,22 +354,7 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Compact dual-screen Digital 4 with two programmable seats Hold Y/B; preserve stylus and real mic/lid actions. Owner review pending."
-    },
-    {
-      "id": "NINTENDO_3DS",
-      "batch": "C",
-      "family": "Touch / single analogue",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Compact Circle Pad + independent D-pad, dual screens, two programmable seats Hold Y/B; New 3DS extras conditional separate scope; owner review pending."
     },
     {
       "id": "PSP",
