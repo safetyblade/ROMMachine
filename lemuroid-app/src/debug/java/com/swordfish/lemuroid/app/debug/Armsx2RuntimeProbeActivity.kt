@@ -56,6 +56,7 @@ import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2PadMapping
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360Pad
@@ -65,6 +66,7 @@ import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -113,6 +115,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val reportCheckpoint = NativeReportCheckpoint()
     private val hardware = XboxPadState()
     private val touch = XboxPadState()
+    private val pivotGate =
+        PivotArcHeldInputGate { action, code ->
+            touch.key(code, action == KeyEvent.ACTION_DOWN)
+            sendInput()
+        }
     private val grip = XboxPadState()
     private val slots = mutableMapOf<Int, Set<Int>>()
     private val presence by lazy { GameplayControllerPresence(this) }
@@ -214,6 +221,11 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             ::touchInput,
                             settings,
                             TouchControllerID.PSX_DUALSHOCK,
+                            pivotSystem = SystemID.PLAYSTATION_2,
+                            pivotGate = pivotGate,
+                            onTogglePivotHold = { code ->
+                                if (ready && started && !menu && hostForeground && !leaving) pivotGate.toggleHold(code)
+                            },
                             physicalControllerConnected = connected,
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
@@ -525,7 +537,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 is InputEvent.Button ->
                     if (it.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                         if (!it.pressed) openMenu()
-                    } else {
+                    } else if (!pivotGate.setSource(it.id, "native-touch", it.pressed)) {
                         touch.key(it.id, it.pressed)
                     }
                 is InputEvent.DiscreteDirection -> touch.direction(it.id, it.direction.x, it.direction.y)
@@ -566,6 +578,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun releaseInput() {
+        pivotGate.clear()
         hardware.clear()
         touch.clear()
         grip.clear()

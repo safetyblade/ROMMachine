@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInRoot
@@ -59,6 +60,7 @@ fun PadKitScope.PivotArcControlGroup(
     Box(Modifier.fillMaxSize()) {
         placement.controls.forEach { (key, bounds) ->
             val seat = soloProfile?.seat(key)
+            val legacyKey = pivotArcLegacyKey(system, key, combined)
             val visual = placement.visuals.getValue(key)
             val position =
                 Modifier
@@ -83,15 +85,16 @@ fun PadKitScope.PivotArcControlGroup(
                     )
             if (seat?.holdOf != null || key == "HoldA" || key == "HoldB") {
                 val face = seat?.holdOf ?: if (key == "HoldA") "A" else "B"
+                val nativeFace = pivotArcLegacyKey(system, face, combined)
                 val code =
-                    soloProfile?.seat(face)?.keyCode ?: if (face == "A") {
+                    soloProfile?.seat(face)?.keyCode ?: if (nativeFace == "A") {
                         wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
                     } else {
                         wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
                     }
                 PivotArcHoldSwitch(
                     modifier = position,
-                    label = soloProfile?.seat(face)?.label ?: PivotArcLayoutProfile.nativeLabel(system, face),
+                    label = soloProfile?.seat(face)?.label ?: pivotArcLegacyLabel(system, face, combined),
                     showLabel = combined,
                     diameter = visual.w,
                     active = code in heldKeys,
@@ -100,7 +103,7 @@ fun PadKitScope.PivotArcControlGroup(
                 )
             } else if (key == "Analog" || seat?.analog == true) {
                 ControlAnalog(
-                    modifier = position.semantics { contentDescription = "Analog stick" },
+                    modifier = position.semantics { contentDescription = seat?.label ?: "Analog stick" },
                     id = Id.ContinuousDirection(seat?.direction ?: ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
                     analogPressId = if (seat == null) Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL) else null,
                     background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
@@ -123,10 +126,14 @@ fun PadKitScope.PivotArcControlGroup(
                     foreground = { direction ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                LemuroidCrossForeground(
-                                    allowDiagonals = seat?.diagonals ?: true,
-                                    directionState = direction,
-                                )
+                                if (!combined && system in setOf(SystemID.NGP, SystemID.NGC)) {
+                                    PivotArcDigitalClickStick(direction.value, accent)
+                                } else {
+                                    LemuroidCrossForeground(
+                                        allowDiagonals = seat?.diagonals ?: true,
+                                        directionState = direction,
+                                    )
+                                }
                                 if (label != null) {
                                     Text(
                                         label.take(1),
@@ -141,7 +148,7 @@ fun PadKitScope.PivotArcControlGroup(
                 )
             } else {
                 val inputKey =
-                    seat?.keyCode ?: when (key) {
+                    seat?.keyCode ?: when (legacyKey) {
                         "A" -> wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
                         "B" -> wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
                         "X" -> KeyEvent.KEYCODE_BUTTON_X
@@ -156,7 +163,7 @@ fun PadKitScope.PivotArcControlGroup(
                         "Mic", "Lid" -> touchController?.let { pivotArcDsAuxiliaryKey(it, key) }
                         else -> null
                     } ?: return@forEach
-                val label = seat?.label ?: PivotArcLayoutProfile.nativeLabel(system, key)
+                val label = seat?.label ?: pivotArcLegacyLabel(system, key, combined)
                 val icon =
                     when (label) {
                         "Circle" -> TouchR.drawable.psx_circle
@@ -215,6 +222,71 @@ fun PadKitScope.PivotArcControlGroup(
                 }
             }
         }
+    }
+}
+
+/** Preserve the accepted Digital 2 seats while routing their actual numbered/native legends. */
+internal fun pivotArcLegacyKey(
+    system: SystemID,
+    seat: String,
+    combined: Boolean,
+): String =
+    if (!combined && system in setOf(SystemID.SMS, SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE)) {
+        when (seat) {
+            "A" -> "B"
+            "B" -> "A"
+            else -> seat
+        }
+    } else {
+        seat
+    }
+
+internal fun pivotArcLegacyLabel(
+    system: SystemID,
+    seat: String,
+    combined: Boolean,
+): String {
+    if (!combined) {
+        when (system) {
+            SystemID.SMS ->
+                when (seat) {
+                    "A" -> return "1"
+                    "B" -> return "2"
+                    "Start" -> return "Pause"
+                }
+            SystemID.PC_ENGINE ->
+                when (seat) {
+                    "A" -> return "I"
+                    "B" -> return "II"
+                    "Start" -> return "Run"
+                }
+            else -> Unit
+        }
+    }
+    return PivotArcLayoutProfile.nativeLabel(system, pivotArcLegacyKey(system, seat, combined))
+}
+
+@Composable
+private fun PivotArcDigitalClickStick(
+    direction: Offset,
+    accent: Color,
+) {
+    Canvas(Modifier.fillMaxSize()) {
+        val radius = size.minDimension / 2f
+        drawCircle(Color.Black.copy(alpha = 0.76f), radius)
+        drawCircle(accent.copy(alpha = 0.3f), radius * 0.89f, style = Stroke(width = 2.dp.toPx()))
+        drawCircle(Color.DarkGray, radius * 0.68f)
+        for (sector in 0..7) {
+            val angle = sector * kotlin.math.PI / 4
+            val vector = Offset(kotlin.math.cos(angle).toFloat(), kotlin.math.sin(angle).toFloat())
+            val active = direction != Offset.Zero && vector.x * direction.x + vector.y * direction.y > 0.7f
+            drawCircle(
+                if (active) accent else Color.LightGray.copy(alpha = 0.35f),
+                radius * 0.06f,
+                center + vector * radius * 0.79f,
+            )
+        }
+        drawCircle(Color.Gray.copy(alpha = 0.65f), radius * 0.52f, style = Stroke(width = 1.dp.toPx()))
     }
 }
 

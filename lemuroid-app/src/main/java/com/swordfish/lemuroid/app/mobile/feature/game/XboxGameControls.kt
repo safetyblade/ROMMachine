@@ -50,6 +50,7 @@ fun XboxGameControls(
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
     presentationAspect: Float = 4f / 3f,
+    pivotSystem: SystemID? = null,
     pivotGate: PivotArcHeldInputGate? = null,
     onTogglePivotHold: (Int) -> Unit = {},
     onViewport: (AndroidRect) -> Unit,
@@ -152,9 +153,10 @@ fun XboxGameControls(
         val pivotSettings = rememberPivotArcSettings().value
         val safeDrawing = WindowInsets.safeDrawing
         val safeGestures = WindowInsets.safeGestures
+        val hostSystem = pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
         val pivotProfile =
             if (arc?.mode == ArcControlMode.PIVOTARC && pivotGate != null && !physicalControllerConnected && !isTv) {
-                PivotArcSoloProfiles.forNativeXbox(controllerId)
+                PivotArcSoloProfiles.forNativeHost(hostSystem, controllerId)
             } else {
                 null
             }
@@ -205,12 +207,13 @@ fun XboxGameControls(
             if (pivotPlacement != null && origin != null) {
                 pivotPlacement.controls.map { (key, rect) ->
                     val scale = density.density
-                    pivotArcHardwareSeatKey(key) to Rect(
-                        origin.left + rect.left * scale,
-                        origin.top + rect.top * scale,
-                        origin.left + rect.right * scale,
-                        origin.top + rect.bottom * scale,
-                    )
+                    pivotArcHardwareSeatKey(key) to
+                        Rect(
+                            origin.left + rect.left * scale,
+                            origin.top + rect.top * scale,
+                            origin.left + rect.right * scale,
+                            origin.top + rect.bottom * scale,
+                        )
                 }.toMap()
             } else {
                 bounds
@@ -355,7 +358,7 @@ fun XboxGameControls(
                 if (pivotPlacement != null && pivotProfile != null) {
                     PivotArcControlGroup(
                         placement = pivotPlacement,
-                        system = if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX,
+                        system = hostSystem,
                         heldKeys = pivotHeld,
                         accent = tokens.accent,
                         onToggleHold = onTogglePivotHold,

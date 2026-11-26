@@ -44,12 +44,14 @@ import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Content
 import com.swordfish.lemuroid.app.shared.game.ps3.Ps3Engine
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
 import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.ps3.Ps3Storage
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -83,6 +85,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var report = "PS3_PREPARING; gameplay=UNVERIFIED"
     private val reportCheckpoint = NativeReportCheckpoint()
     private val touchKeys = mutableSetOf<Int>()
+    private val pivotGate =
+        PivotArcHeldInputGate { action, code ->
+            if (action == KeyEvent.ACTION_DOWN) touchKeys.add(code) else touchKeys.remove(code)
+            send(0)
+        }
     private val touchSticks = intArrayOf(128, 128, 128, 128)
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
     private val rawPressed = mutableMapOf<Int, MutableSet<Int>>()
@@ -193,6 +200,11 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             connected,
                             game,
                             presentationAspect = NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.PS3),
+                            pivotSystem = SystemID.PLAYSTATION_3,
+                            pivotGate = pivotGate,
+                            onTogglePivotHold = { code ->
+                                if (loaded && booting && !menu && foreground && !leaving) pivotGate.toggleHold(code)
+                            },
                             onGripPressed = { slot, down, codes ->
                                 if (down && !menu && this@Ps3RuntimeActivity.foreground) {
                                     gripSlots[slot] = codes
@@ -552,6 +564,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun release() {
+        pivotGate.clear()
         pressed.clear()
         sticks.clear()
         touchKeys.clear()
@@ -574,7 +587,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
             is InputEvent.Button ->
                 if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                     if (!event.pressed) openMenu()
-                } else {
+                } else if (!pivotGate.setSource(event.id, "native-touch", event.pressed)) {
                     if (event.pressed) touchKeys.add(event.id) else touchKeys.remove(event.id)
                     send(0)
                 }

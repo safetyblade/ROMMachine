@@ -451,7 +451,7 @@ class BaseGameScreenViewModel(
     ) {
         val wonderSwan = WonderSwanPivotInput.forController(controller)
         if (approvedHoldKeys != null) {
-            pivotArcHeldInputGate.setEnabled(enabled, approvedHoldKeys)
+            pivotArcHeldInputGate.setEnabled(enabled, approvedHoldKeys, wonderSwan?.cursorKeys.orEmpty())
         } else if (wonderSwan == null) {
             pivotArcHeldInputGate.setEnabled(enabled)
         } else {

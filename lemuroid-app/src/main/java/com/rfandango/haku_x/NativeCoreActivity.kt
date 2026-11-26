@@ -51,12 +51,12 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxHardwareKeyRouter
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxLaunchWatchdog
-import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPixelProbeCapture
 import com.swordfish.lemuroid.app.shared.input.ControllerHardwareProfile

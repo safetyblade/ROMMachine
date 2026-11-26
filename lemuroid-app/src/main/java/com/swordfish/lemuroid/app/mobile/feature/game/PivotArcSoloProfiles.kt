@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
+import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.settings.TouchControllerID
@@ -40,8 +41,8 @@ data class PivotArcSoloProfile(val seats: List<PivotArcSoloSeat>) {
 }
 
 /**
- * PA-R01 source-backed solo profiles. Legacy GBA/PSP and Joint are not routed
- * through this new solver. Native-host modes require a separate verified bridge.
+ * PA-R01 source-backed solo profiles. Legacy GBA and Joint are not routed
+ * through this new solver. Native hosts opt in through their own input bridge.
  */
 object PivotArcSoloProfiles {
     private val a = KeyEvent.KEYCODE_BUTTON_A
@@ -447,6 +448,73 @@ object PivotArcSoloProfiles {
         )
     }
 
+    private fun psp(analogPrimary: Boolean): PivotArcSoloProfile {
+        val source = sony(true).seats.filterNot { it.id in setOf("AnalogR", "LS", "RS", "L2", "R2") }
+        val direction = source.first { it.id == "D" }
+        val analog = source.first { it.id == "AnalogL" }
+        return PivotArcSoloProfile(
+            source.map { seat ->
+                when (seat.id) {
+                    "L" -> seat.copy(y = 197f, label = "L")
+                    "R" -> seat.copy(y = 197f, label = "R")
+                    "D" ->
+                        if (analogPrimary) {
+                            seat.copy(x = analog.x, y = analog.y, target = analog.target, cap = analog.cap)
+                        } else {
+                            seat
+                        }
+                    "AnalogL" ->
+                        if (analogPrimary) {
+                            seat.copy(x = direction.x, y = direction.y, target = direction.target, cap = direction.cap)
+                        } else {
+                            seat
+                        }
+                    else -> seat
+                }
+            },
+        )
+    }
+
+    private fun wonderSwan(mapping: WonderSwanPivotInput): PivotArcSoloProfile =
+        PivotArcSoloProfile(
+            listOf(
+                dpad(100, 148, 88f),
+                dpad(203, 72, 64f, mapping.source, id = "Cursor"),
+                button("B", 203, 177, mapping.b),
+                button("A", 148, 235, mapping.a),
+                hold("B", 260, 177),
+                hold("A", 148, 290),
+            ) + rail(select = false),
+        )
+
+    /** Native debug hosts retain their existing pad translation and screen-mode ownership. */
+    fun forNativeHost(
+        system: SystemID,
+        controller: TouchControllerID,
+    ): PivotArcSoloProfile? =
+        when (system) {
+            SystemID.XBOX, SystemID.XBOX360 -> forNativeXbox(controller)
+            SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3 ->
+                if (controller == TouchControllerID.PSX_DUALSHOCK) sony(true) else null
+            SystemID.WII_U ->
+                if (controller == TouchControllerID.WII_CLASSIC) {
+                    PivotArcSoloProfile(
+                        classicWii().seats.map { seat ->
+                            when (seat.id) {
+                                "L" -> seat.copy(label = "L", keyCode = l2)
+                                "R" -> seat.copy(label = "R", keyCode = r2)
+                                "L2" -> seat.copy(label = "ZL", keyCode = l)
+                                "R2" -> seat.copy(label = "ZR", keyCode = r)
+                                else -> seat
+                            }
+                        },
+                    )
+                } else {
+                    null
+                }
+            else -> null
+        }
+
     fun supportsSystem(system: SystemID): Boolean =
         system in
             setOf(
@@ -455,15 +523,19 @@ object PivotArcSoloProfiles {
                 SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.DREAMCAST,
                 SystemID.ATARI7800, SystemID.ATARI2600, SystemID.WII, SystemID.DOS,
                 SystemID.GAMECUBE, SystemID.FBNEO, SystemID.MAME2003PLUS,
-                SystemID.XBOX, SystemID.XBOX360,
+                SystemID.XBOX, SystemID.XBOX360, SystemID.PLAYSTATION_3, SystemID.WII_U,
+                SystemID.PSP, SystemID.WS, SystemID.WSC,
             )
 
     fun forMode(
         system: SystemID,
         controller: TouchControllerID?,
+        pspAnalogPrimary: Boolean = false,
     ): PivotArcSoloProfile? =
         when (system) {
             SystemID.SNES -> if (controller == TouchControllerID.SNES) snes() else null
+            SystemID.PSP -> if (controller == TouchControllerID.PSP) psp(pspAnalogPrimary) else null
+            SystemID.WS, SystemID.WSC -> WonderSwanPivotInput.forController(controller)?.let(::wonderSwan)
             SystemID.NDS ->
                 if (controller == TouchControllerID.DESMUME || controller == TouchControllerID.MELONDS) {
                     ds(controller)

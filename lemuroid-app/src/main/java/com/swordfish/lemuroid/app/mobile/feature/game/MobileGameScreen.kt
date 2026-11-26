@@ -302,7 +302,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val selectedPivot = effectiveArcMode.hasPivot
             val soloProfile =
                 if (!effectiveArcMode.hasGrip) {
-                    PivotArcSoloProfiles.forMode(viewModel.systemId, currentControllerConfig?.touchControllerID)
+                    PivotArcSoloProfiles.forMode(
+                        viewModel.systemId,
+                        currentControllerConfig?.touchControllerID,
+                        pivotSettings.pspAnalogPrimary,
+                    )
                 } else {
                     null
                 }

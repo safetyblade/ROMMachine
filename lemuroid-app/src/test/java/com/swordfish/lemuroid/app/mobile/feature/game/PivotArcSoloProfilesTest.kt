@@ -76,6 +76,29 @@ class PivotArcSoloProfilesTest {
     }
 
     @Test
+    fun remainingHostAndHandheldModesKeepNativeIdentities() {
+        val psp = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.PSP, TouchControllerID.PSP))
+        val analog = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.PSP, TouchControllerID.PSP, true))
+        assertEquals(4, psp.holdKeys.size)
+        assertEquals(psp.seat("D")?.x, analog.seat("AnalogL")?.x)
+        assertEquals(psp.seat("L")?.y, psp.seat("R")?.y)
+        val ws = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.WS, TouchControllerID.WS_PORTRAIT))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L1, ws.seat("A")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R1, ws.seat("B")?.keyCode)
+        assertTrue(checkNotNull(ws.seat("Cursor")).y < checkNotNull(ws.seat("B")).y)
+        val ps3 = PivotArcSoloProfiles.forNativeHost(SystemID.PLAYSTATION_3, TouchControllerID.PSX_DUALSHOCK)
+        assertNotNull(ps3?.seat("AnalogR"))
+        val wiiu = PivotArcSoloProfiles.forNativeHost(SystemID.WII_U, TouchControllerID.WII_CLASSIC)
+        assertEquals("L", wiiu?.seat("L")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, wiiu?.seat("L")?.keyCode)
+        assertEquals("B", pivotArcLegacyKey(SystemID.SMS, "A", false))
+        assertEquals("1", pivotArcLegacyLabel(SystemID.SMS, "A", false))
+        assertEquals("I", pivotArcLegacyLabel(SystemID.PC_ENGINE, "A", false))
+        assertEquals("A", pivotArcLegacyKey(SystemID.GBA, "A", false))
+        assertEquals("A", pivotArcLegacyKey(SystemID.SMS, "A", true))
+    }
+
+    @Test
     fun fitsKeepEverySeatOrExplainFallback() {
         val profile = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.PSX, TouchControllerID.PSX))
         val safe = PivotArcBounds(8f, 8f, 620f, 1100f)

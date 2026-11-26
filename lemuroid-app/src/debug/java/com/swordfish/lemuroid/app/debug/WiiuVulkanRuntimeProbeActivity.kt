@@ -47,6 +47,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuContent
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuEngine
 import com.swordfish.lemuroid.app.shared.game.wiiu.WiiuLaunchStatus
@@ -60,6 +61,7 @@ import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -107,6 +109,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val reportCheckpoint = NativeReportCheckpoint()
     private val touch = XboxPadState()
+    private val pivotGate =
+        PivotArcHeldInputGate { action, code ->
+            touch.key(WiiuPad.touchKey(code), action == KeyEvent.ACTION_DOWN)
+            sendInput()
+        }
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
@@ -250,6 +257,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             ::touchInput,
                             settings,
                             TouchControllerID.WII_CLASSIC,
+                            pivotSystem = SystemID.WII_U,
+                            pivotGate = pivotGate,
+                            onTogglePivotHold = { code ->
+                                if (loaded && started && !menuOpen && hostForeground && !leaving) pivotGate.toggleHold(code)
+                            },
                             physicalControllerConnected = physicalConnected,
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
@@ -518,7 +530,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 is InputEvent.Button ->
                     if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                         if (!event.pressed) openMenu()
-                    } else {
+                    } else if (!pivotGate.setSource(event.id, "native-touch", event.pressed)) {
                         touch.key(WiiuPad.touchKey(event.id), event.pressed)
                     }
                 is InputEvent.DiscreteDirection -> touch.direction(event.id, event.direction.x, event.direction.y)
@@ -541,6 +553,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     }
 
     private fun releaseInput() {
+        pivotGate.clear()
         touch.clear()
         hardware.clear()
         grip.clear()
