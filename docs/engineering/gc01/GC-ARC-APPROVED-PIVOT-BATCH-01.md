@@ -2,6 +2,14 @@
 
 Owner authorized pushing completed designs before resuming Nintendo DS on 26 Nov 2026. Scope: 15 system IDs; issue #377, draft engineering PR #376. This is an immutable design handoff snapshot, NOT a runtime implementation or physical/CI acceptance. Prior accepted GBA and PSP artwork remains protected; only owner-approved ergonomic PSP-PA-03 adjustments authorized. DS, 3DS, PC Engine Avenue Pad 3 alias, all other unapproved variants, new GripARC designs and Joint excluded. GBA GripARC physical acceptance remains a prerequisite for new solo PivotARC runtime implementation per #377. No merge authorized. Do not use historical candidate geometry where a later owner decision supersedes it. In particular use revised PCE six-button radial profile, not rejected rows; PSP-PA-03 overrides PSP-PA-02 proposals. Retain all approved fixed Hold assignments, native input identity and 48dp+ targets.
 
+## Execution authorization — 26 Nov 2026
+
+Owner has explicitly authorized finishing and implementing all standalone PivotARC, returning to GripARC only after this lane. GBA full-piece physical proof passed with spatial design failure; phase 1 proof prerequisite is satisfied (tracker commit 6a08c56c). Retain full-size GripArc chassis and existing functional path; defer its space utilisation correction and all other GripArc/Joint work. This addendum supersedes the prerequisite and handset status in the historical handoff above, not the frozen packet snapshots.
+
+Batch 01 (15 approved system profiles) is released for source implementation in draft PR #376. Remaining 18 systems require design approval before implementation; DS next. No merge approval. Existing working inputs, video, saves, mapping preferences and accepted artwork protected.
+
+Exact engineering source audit at 6a08c56c: `PivotArcLayoutProfile.kt` activeFor has partial system coverage; `PivotArcControlGroup.kt` only renders HoldA/HoldB and uses fixed A/B guest key resolution (WS has special routing); `PivotArcHeldInputGate.kt` pivotFaceKeys is limited to Android A/B. Expand these coherently to support approved per-profile fixed Hold keys, real guest identity and release/ownership behavior. Do not globally enable all holds or all systems. Explicit variants and verified native mode/bridge required. Use the approved packets, not historical proposed geometry. Batch 01 source change not yet implemented by this documentation commit.
+
 ## Engineering acceptance sequence
 
 1. Verify exact current source mappings and active backend/mode for each approved profile; keep unsupported variants unavailable. Preserve GBA visual geometry and existing working controls.
