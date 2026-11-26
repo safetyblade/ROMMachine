@@ -1,12 +1,16 @@
 # WSC — controller design packet
 
-**Batch:** B · **Hardware family:** Four/six-button and handheld · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** B · **Hardware family:** Four/six-button and handheld · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING PENDING**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Two directional clusters and handheld orientation.
+
+## WSC-PA-01 — owner layout lock (26 Nov 2026)
+
+Owner approved exact inheritance of [WS-PA-01B](WS.md): primary D-pad, separate four-direction secondary cluster directly above B, A/B and fixed Holds, Start/Menu rail; X primary in horizontal and Y primary in vertical, other cluster independently available. Preserve distinct WSC system identity, saved preferences and native direction/key semantics. Verify selected source/PadKit orientation routing, >=48dp touch targets, reach, safe clearance and physical fit independently. No runtime or physical PASS. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -29,8 +33,8 @@
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact source/geometry pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
