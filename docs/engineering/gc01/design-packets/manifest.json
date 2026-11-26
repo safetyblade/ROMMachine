@@ -447,7 +447,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -455,7 +455,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Separate remote/nunchuk/classic; do not invent pointer/motion support."
+      "note": "WII-PA-01A–D Sideways Remote, Remote+Nunchuk dedicated designs, Classic Sony inheritance, GameCube GC-PA-02 inheritance; explicit IR/motion/MotionPlus capability testing; approval/fit pending."
     },
     {
       "id": "DOS",
@@ -477,7 +477,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -485,7 +485,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "LYNX-PA-01 proposed GBA geometry with Option 1/2 replacing L/R, fixed A/B Holds, Menu/Pause; rotation and mapping/fit pending."
+      "note": "LYNX-PA-01 owner approved GBA geometry with Option 1/2 replacing L/R, fixed A/B Holds and Menu/Pause; rotation and physical pending."
     },
     {
       "id": "WII_U",
