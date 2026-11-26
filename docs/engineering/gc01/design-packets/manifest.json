@@ -87,6 +87,21 @@
       "batch": "A",
       "family": "Two-button",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "NGP-PA-01 owner approved Digital 2 Click, A/B Holds and Menu/Option; engineering and physical pending."
+    },
+    {
+      "id": "NGC",
+      "batch": "A",
+      "family": "Two-button",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -95,22 +110,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "NGP-PA-01 proposes Digital 2 Click: eight-way digital click-stick in D-pad seat, A/B Holds, Menu/Option; Android A=B and B=A visible per prior audit; review pending."
-    },
-    {
-      "id": "NGC",
-      "batch": "A",
-      "family": "Two-button",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Neo Geo Pocket Color, NOT GameCube."
+      "note": "Neo Geo Pocket Color, NOT GameCube. NGC-PA-01 proposes exact inheritance of approved NGP Digital 2 Click; separate backend and physical validation pending owner approval."
     },
     {
       "id": "PC_ENGINE",
