@@ -198,10 +198,11 @@ object PivotArcSoloProfiles {
                 button("R", 300, 98, r),
                 hold("B", 300, 158),
                 hold("Y", 102, 198),
-            ) + rail() + listOf(
-                utility("Mic", if (melon) l2 else ls, "Mic"),
-                utility("Lid", if (melon) ls else l2, "Layout"),
-            ),
+            ) + rail() +
+                listOf(
+                    utility("Mic", if (melon) l2 else ls, "Mic"),
+                    utility("Lid", if (melon) ls else l2, "Layout"),
+                ),
         )
     }
 
@@ -314,13 +315,99 @@ object PivotArcSoloProfiles {
             ) + rail(selectLabel = "−", startLabel = "+") + utility("Home", rs, "Home"),
         )
 
+    private fun gameCube(): PivotArcSoloProfile =
+        PivotArcSoloProfile(
+            listOf(
+                stick("AnalogL", 38, 140, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
+                stick("AnalogR", 38, 263, ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK, 64f),
+                dpad(115, 169),
+                button("Y", 140, 55, y),
+                button("L", 200, 105, l),
+                button("R", 255, 105, r),
+                button("Z", 310, 105, r2),
+                button("A", 200, 169, a),
+                button("X", 255, 169, x),
+                button("B", 200, 235, b),
+                hold("L", 200, 45),
+                hold("R", 255, 45),
+                hold("A", 255, 235),
+                hold("B", 200, 295),
+                // Dolphin GameCube's existing stick-click IDs are half triggers, not L3/R3.
+                button("HalfL", 310, 169, ls, "L½"),
+                button("HalfR", 310, 235, rs, "R½"),
+            ) + rail(select = false),
+        )
+
+    private fun arcade(six: Boolean): PivotArcSoloProfile {
+        val seats =
+            if (six) {
+                listOf(
+                    dpad(140, 172, 72f, ComposeTouchLayouts.MOTION_SOURCE_DPAD_AND_LEFT_STICK),
+                    button("X", 61, 84, x, "4"),
+                    button("Y", 137, 48, y, "5"),
+                    button("Z", 215, 72, r, "6"),
+                    button("A", 257, 140, a, "1"),
+                    button("B", 242, 222, b, "2"),
+                    button("C", 177, 285, l, "3"),
+                    hold("B", 310, 222),
+                )
+            } else {
+                listOf(
+                    dpad(136, 153, 72f, ComposeTouchLayouts.MOTION_SOURCE_DPAD_AND_LEFT_STICK),
+                    button("X", 164, 64, x, "3"),
+                    button("A", 217, 103, a, "4"),
+                    button("B", 212, 213, b, "2"),
+                    button("Y", 159, 253, y, "1"),
+                    hold("X", 212, 64),
+                    hold("A", 264, 103),
+                    hold("B", 264, 213),
+                    hold("Y", 159, 313),
+                )
+            }
+        // Numbers identify physical seats; each core/game retains its existing RetroPad mapping.
+        return PivotArcSoloProfile(seats + rail(selectLabel = "Coin"))
+    }
+
+    private fun atari2600(): PivotArcSoloProfile =
+        PivotArcSoloProfile(
+            listOf(
+                dpad(85, 100, 88f),
+                button("B", 190, 170, b, "Fire"),
+                hold("B", 253, 170),
+            ) + rail(selectLabel = "Select", startLabel = "Reset") +
+                listOf(
+                    utility("DifficultyA", l, "Diff A"),
+                    utility("DifficultyB", l2, "Diff B"),
+                ),
+        )
+
+    private fun classicWii(): PivotArcSoloProfile =
+        PivotArcSoloProfile(
+            sony(true).seats.filterNot { it.id in setOf("LS", "RS") }.map { seat ->
+                when (seat.id) {
+                    "Y" -> seat.copy(label = "X", keyCode = x)
+                    "X" -> seat.copy(label = "A", keyCode = a)
+                    "B" -> seat.copy(label = "B", keyCode = b)
+                    "A" -> seat.copy(label = "Y", keyCode = y)
+                    "L" -> seat.copy(label = "ZL")
+                    "R" -> seat.copy(label = "ZR")
+                    "L2" -> seat.copy(label = "L")
+                    "R2" -> seat.copy(label = "R")
+                    "Start" -> seat.copy(label = "+")
+                    "Select" -> seat.copy(label = "−")
+                    else -> seat
+                }
+            },
+        )
+
     fun supportsSystem(system: SystemID): Boolean =
         system in
             setOf(
                 SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS,
                 SystemID.GENESIS, SystemID.SEGACD, SystemID.N64,
                 SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.DREAMCAST,
-                SystemID.ATARI7800, SystemID.WII, SystemID.DOS,
+                SystemID.ATARI7800, SystemID.ATARI2600, SystemID.WII, SystemID.DOS,
+                SystemID.GAMECUBE, SystemID.FBNEO, SystemID.MAME2003PLUS,
             )
 
     fun forMode(
@@ -351,7 +438,21 @@ object PivotArcSoloProfiles {
                 }
             SystemID.DREAMCAST -> if (controller == TouchControllerID.DREAMCAST) dreamcast() else null
             SystemID.ATARI7800 -> if (controller == TouchControllerID.ATARI7800) atari7800() else null
-            SystemID.WII -> if (controller == TouchControllerID.WII_SIDEWAYS) sidewaysWii() else null
+            SystemID.ATARI2600 -> if (controller == TouchControllerID.ATARI2600) atari2600() else null
+            SystemID.GAMECUBE -> if (controller == TouchControllerID.GAMECUBE) gameCube() else null
+            SystemID.FBNEO, SystemID.MAME2003PLUS ->
+                when (controller) {
+                    TouchControllerID.ARCADE_4 -> arcade(false)
+                    TouchControllerID.ARCADE_6 -> arcade(true)
+                    else -> null
+                }
+            SystemID.WII ->
+                when (controller) {
+                    TouchControllerID.WII_SIDEWAYS -> sidewaysWii()
+                    TouchControllerID.WII_CLASSIC -> classicWii()
+                    TouchControllerID.GAMECUBE -> gameCube()
+                    else -> null
+                }
             SystemID.DOS -> if (controller == TouchControllerID.DOS) sony(true, dos = true) else null
             else -> null
         }

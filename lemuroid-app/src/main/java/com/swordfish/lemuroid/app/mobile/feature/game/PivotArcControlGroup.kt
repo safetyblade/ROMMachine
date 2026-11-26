@@ -175,9 +175,9 @@ fun PadKitScope.PivotArcControlGroup(
                     }
                 val shape =
                     when (key) {
-                        "L", "R", "L2", "R2" -> CartdeckButtonShape.SHOULDER
+                        "L", "R", "L2", "R2", "HalfL", "HalfR" -> CartdeckButtonShape.SHOULDER
                         "Select", "Start", "Menu", "Keyboard", "Home", "Mic", "Lid" -> CartdeckButtonShape.PILL
-                        else -> CartdeckButtonShape.FACE
+                        else -> if (seat?.utility == true) CartdeckButtonShape.PILL else CartdeckButtonShape.FACE
                     }
                 compositionKey(key, inputKey) {
                     ControlButton(

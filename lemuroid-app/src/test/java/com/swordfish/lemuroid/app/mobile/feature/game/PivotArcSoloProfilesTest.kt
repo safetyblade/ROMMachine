@@ -32,6 +32,31 @@ class PivotArcSoloProfilesTest {
     }
 
     @Test
+    fun arcadeAtariAndDolphinPreserveModeSpecificInputs() {
+        for (system in listOf(SystemID.FBNEO, SystemID.MAME2003PLUS)) {
+            val four = checkNotNull(PivotArcSoloProfiles.forMode(system, TouchControllerID.ARCADE_4))
+            val six = checkNotNull(PivotArcSoloProfiles.forMode(system, TouchControllerID.ARCADE_6))
+            assertEquals(4, four.holdKeys.size)
+            assertEquals(setOf(KeyEvent.KEYCODE_BUTTON_B), six.holdKeys)
+            assertEquals("Coin", six.seat("Select")?.label)
+            assertEquals(6, six.seats.count { !it.utility && it.keyCode != null })
+        }
+        val atari = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.ATARI2600, TouchControllerID.ATARI2600))
+        assertEquals(setOf(KeyEvent.KEYCODE_BUTTON_B), atari.holdKeys)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L1, atari.seat("DifficultyA")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, atari.seat("DifficultyB")?.keyCode)
+        val gc = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.GAMECUBE, TouchControllerID.GAMECUBE))
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, gc.seat("Z")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, gc.seat("HalfL")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBR, gc.seat("HalfR")?.keyCode)
+        assertEquals(gc, PivotArcSoloProfiles.forMode(SystemID.WII, TouchControllerID.GAMECUBE))
+        val classic = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.WII, TouchControllerID.WII_CLASSIC))
+        assertEquals("ZL", classic.seat("L")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_A, classic.seat("X")?.keyCode)
+        assertNull(classic.seat("LS"))
+    }
+
+    @Test
     fun fitsKeepEverySeatOrExplainFallback() {
         val profile = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.PSX, TouchControllerID.PSX))
         val safe = PivotArcBounds(8f, 8f, 620f, 1100f)
