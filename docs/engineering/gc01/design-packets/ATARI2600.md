@@ -1,16 +1,16 @@
 # ATARI2600 — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Single fire button and console switches.
 
-## A26-PA-01 — Atari digital review candidate (26 Nov 2026)
+## A26-PA-01 — Atari digital owner layout lock (26 Nov 2026)
 
-One digital D-pad, one Fire and fixed Hold Fire. Inherit GB accepted D-pad/B/Hold B geometry without other face or shoulder seats; tighten chassis silhouette around retained seats without spreading controls. Use native Fire label, existing Android B guest mapping from Atari2600.kt blob cd5f063c735c1a5898bcf28085371f4f3a8d2af3. Dedicated Menu/Reset/Select utility rail, DIFF.A/B console switches accessible separately in gameplay menu (existing L1/L2 host identities), only real core dispatch. No fake analogue/paddle substitution; paddle/driving/keypad and colour/BW switch capabilities separately verified or explicitly limited. Preserve existing guest input identities, one-thumb proximity, no top shoulder buttons, mirrored layout, >=48dp independent touch targets, lifecycle release and measured screen clearance. Representative games Adventure, River Raid, Pitfall!, Space Invaders subject to actual compatible ROM and control requirements. Owner review pending; no runtime/build; GripArc and Joint deferred.
+One digital D-pad, one Fire and fixed Hold Fire. Inherit GB accepted D-pad/B/Hold B geometry without other face or shoulder seats; tighten chassis silhouette around retained seats without spreading controls. Use native Fire label, existing Android B guest mapping from Atari2600.kt blob cd5f063c735c1a5898bcf28085371f4f3a8d2af3. Dedicated Menu/Reset/Select utility rail, DIFF.A/B console switches accessible separately in gameplay menu (existing L1/L2 host identities), only real core dispatch. No fake analogue/paddle substitution; paddle/driving/keypad and colour/BW switch capabilities separately verified or explicitly limited. Preserve existing guest input identities, one-thumb proximity, no top shoulder buttons, mirrored layout, >=48dp independent touch targets, lifecycle release and measured screen clearance. Representative games Adventure, River Raid, Pitfall!, Space Invaders subject to actual compatible ROM and control requirements. Owner approved 26 Nov 2026; no runtime/build; GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ One digital D-pad, one Fire and fixed Hold Fire. Inherit GB accepted D-pad/B/Hol
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
