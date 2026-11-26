@@ -447,6 +447,21 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "WII-PA-01A–D approved; enhanced IR/motion/MotionPlus and physical testing mandatory, capability gaps explicit."
+    },
+    {
+      "id": "DOS",
+      "batch": "E",
+      "family": "Specialist",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -455,22 +470,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "WII-PA-01A–D Sideways Remote, Remote+Nunchuk dedicated designs, Classic Sony inheritance, GameCube GC-PA-02 inheritance; explicit IR/motion/MotionPlus capability testing; approval/fit pending."
-    },
-    {
-      "id": "DOS",
-      "batch": "E",
-      "family": "Specialist",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Keyboard/mouse and DOS gamepad profile options."
+      "note": "DOS-PA-01A/B/C Sony-derived DOS_AUTO gamepad plus proposed keyboard action and mouse modes; native mapping/fit/approval pending."
     },
     {
       "id": "LYNX",
@@ -492,7 +492,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -500,7 +500,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Native host and GamePad control proof needed."
+      "note": "WU-PA-01A/B Sony-derived GamePad and Pro, separate touch/dual-screen/gyro capability verification, enhanced testing; approval pending."
     }
   ]
 }
