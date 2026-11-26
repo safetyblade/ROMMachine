@@ -200,6 +200,22 @@
       "id": "SNES",
       "batch": "B",
       "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved SNES both orientations and preset; runtime and measured fit pending."
+    },
+    {
+      "id": "GENESIS",
+      "batch": "B",
+      "family": "Handheld / multi-button",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -210,37 +226,47 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Digital 4 shoulder controller, conventional ABXY diamond, Hold Y, L+R, Turbo B, Hold X; owner review pending."
-    },
-    {
-      "id": "GENESIS",
-      "batch": "B",
-      "family": "Handheld / multi-button",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "digital3",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Shared Sega Digital 3 and 6 candidate; Mode in six only if actual guest routing verified; owner review pending."
     },
     {
       "id": "SEGACD",
       "batch": "B",
       "family": "Handheld / multi-button",
-      "design": "to_design",
-      "preset": "to_design",
+      "design": "review_candidate",
+      "preset": "candidate",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
+      "portrait": "review_candidate",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital3",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Shared Sega Digital 3 and 6 candidate; Mode in six only if actual guest routing verified; owner review pending."
     },
     {
       "id": "WS",

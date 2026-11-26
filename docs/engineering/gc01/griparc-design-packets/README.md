@@ -18,11 +18,11 @@ GA-D00 Universal Controls Experience design approval FIRST, then GBA portrait an
 | Batch | Systems | Owner design approval |
 |---|---|---|
 | A — Classic retro | GB, GBC, NES, SMS, GG, NGP, NGC, PC_ENGINE | 8/8 |
-| B — Handheld / multi-button | GBA, SNES, GENESIS, SEGACD, WS, WSC | 1/6 |
+| B — Handheld / multi-button | GBA, SNES, GENESIS, SEGACD, WS, WSC | 2/6 |
 | C — Touch / single analogue | NDS, NINTENDO_3DS, PSP, N64 | 0/4 |
 | D — Modern consoles | PSX, PLAYSTATION_2, PLAYSTATION_3, DREAMCAST, GAMECUBE, XBOX, XBOX360 | 0/7 |
 | E — Specialist | FBNEO, MAME2003PLUS, ATARI2600, ATARI7800, LYNX, WII, WII_U, DOS | 0/8 |
-Total 9/33; classic retro batch A complete (8/8); GBA also approved. PC Engine Digital 2 and Digital 6 approved; SNES candidate ready for review. No system design complete without both orientations. Existing PivotARC register remains historical; this charter supersedes outdated GripARC/JOIN geometry decisions only.
+Total 10/33; classic retro batch A complete; GBA and SNES approved. Mega Drive / Sega CD Digital 3 and 6 candidates ready for review. No system design complete without both orientations. Existing PivotARC register remains historical; this charter supersedes outdated GripARC/JOIN geometry decisions only.
 
 ## Owner additions — 27 Nov 2026
 Unified Controls experience first, before console layout approvals. Same user-friendly hub from cartridge setup, in-game Controls and global Settings; visual layout selection, native controller mode, orientation, guided GripARC assignments and actual connected-controller capability discovery/mapping. Reference GA-D00-CONTROLS-EXPERIENCE.md. Preserve current physical input and per-device/per-cartridge profile architecture; no separate mapping system. All 33 GripARC systems require purpose-designed portrait AND landscape layouts inside existing CARTDECK landscape chassis, not rotated portrait or Standard fallback. Joint remains separate L attachment, last. No runtime work in design branch.
