@@ -53,7 +53,15 @@ class PivotArcSoloProfilesTest {
         }
         val tooSmall = PivotArcBounds(8f, 8f, 300f, 390f)
         assertTrue(
-            PivotArcSoloSolver.resolve(profile, tooSmall, video, false, 0f, 0f, false) is PivotArcResolution.Unavailable,
+            PivotArcSoloSolver.resolve(
+                profile,
+                tooSmall,
+                video,
+                false,
+                0f,
+                0f,
+                false,
+            ) is PivotArcResolution.Unavailable,
         )
     }
 }

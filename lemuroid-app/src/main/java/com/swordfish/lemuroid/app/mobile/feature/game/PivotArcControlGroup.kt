@@ -123,7 +123,10 @@ fun PadKitScope.PivotArcControlGroup(
                     foreground = { direction ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                LemuroidCrossForeground(allowDiagonals = seat?.diagonals ?: true, directionState = direction)
+                                LemuroidCrossForeground(
+                                    allowDiagonals = seat?.diagonals ?: true,
+                                    directionState = direction,
+                                )
                                 if (label != null) {
                                     Text(
                                         label.take(1),

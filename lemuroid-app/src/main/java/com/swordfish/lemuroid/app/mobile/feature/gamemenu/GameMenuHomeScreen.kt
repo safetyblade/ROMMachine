@@ -227,7 +227,10 @@ fun GameMenuControlsScreen(
         controllerOptions()
         TiltControls(gameMenuRequest, onResult)
         val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
-        if (system != null && (PivotArcLayoutProfile.activeFor(system) != null || PivotArcSoloProfiles.supportsSystem(system))) {
+        val pivotAvailable =
+            system != null &&
+                (PivotArcLayoutProfile.activeFor(system) != null || PivotArcSoloProfiles.supportsSystem(system))
+        if (pivotAvailable) {
             GameMenuLink("PivotArc", R.drawable.ic_menu_controls) {
                 navController.navigateToRoute(GameMenuRoute.PIVOTARC)
             }
