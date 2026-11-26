@@ -13,3 +13,6 @@ Owner 58s PSP recording confirms circular design reference (stick left, D-pad ce
 
 ## 26 Nov — owner correction and Digital 3 lock
 MD-PA-01 three-button Mega Drive approved as presented, one fixed Hold B; six-button remains open. PSP owner correction: move R next to existing L, not L next to R. Preserve circular face geometry and rear rail. Universal Hold access preferred over per-game setup; PSP-PA-03 proposes four fixed H (one per face), outboard of thumb movement, with measured fit and owner review pending. Hold count remains console-specific; approved simpler layouts are unchanged. If four cannot safely fit, return for decision, not silent remapping or hit target shrinkage. See updated PSP packet.
+
+## 26 Nov — PSP-PA-03 owner approval and Sega CD review
+PSP-PA-03 approved with four dedicated face Holds and R immediately right of L; mandatory rigid downward translation of the complete gameplay control island to achieve measured chassis clearance. Preserve internal geometry and rear utility rail, 48dp+ targets, and no overlap; exact vertical offset remains engineering measurement, no revised physical PASS. SCD-PA-01 proposes exact inheritance of locked MD-PA-01 Digital 3; six-button variant open for common design review. See individual packets.
