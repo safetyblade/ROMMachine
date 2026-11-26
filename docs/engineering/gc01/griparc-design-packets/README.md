@@ -26,3 +26,6 @@ Total 0/33; GBA portrait candidate retained but landscape and universal UX appro
 
 ## Owner additions — 27 Nov 2026
 Unified Controls experience first, before console layout approvals. Same user-friendly hub from cartridge setup, in-game Controls and global Settings; visual layout selection, native controller mode, orientation, guided GripARC assignments and actual connected-controller capability discovery/mapping. Reference GA-D00-CONTROLS-EXPERIENCE.md. Preserve current physical input and per-device/per-cartridge profile architecture; no separate mapping system. All 33 GripARC systems require purpose-designed portrait AND landscape layouts inside existing CARTDECK landscape chassis, not rotated portrait or Standard fallback. Joint remains separate L attachment, last. No runtime work in design branch.
+
+## GA-D00 owner approval — 27 Nov 2026
+Approved universal Controls UX with PivotARC description **On-the-go play** and landscape primary CARTDECK logo retained in chassis position; smaller GripARC wordmark relocated to controller hardware (exact seat per landscape packet). GA-R00 Controls interface implementation may proceed independently while console portrait/landscape design approvals continue. No authorization to implement unfinished GripARC console layouts or Joint.
