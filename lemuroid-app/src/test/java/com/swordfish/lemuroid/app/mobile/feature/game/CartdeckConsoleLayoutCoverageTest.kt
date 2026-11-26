@@ -206,6 +206,12 @@ class CartdeckConsoleLayoutCoverageTest {
     fun pivotArcRemainsOptInAndUnsupportedConsolesRetainStandard() {
         assertNotNull(PivotArcLayoutProfile.activeFor(SystemID.GBA))
         assertNotNull(PivotArcLayoutProfile.activeFor(SystemID.SNES))
+        for (system in listOf(SystemID.NES, SystemID.SMS, SystemID.PC_ENGINE)) {
+            val mapped = PivotArcLayoutProfile.activeFor(system)
+            assertNotNull("New low-complexity PivotArc console mapping: $system", mapped)
+            assertTrue(mapped!!.containsAll(listOf("D", "A", "B", "Start", "Menu")))
+            assertTrue("GripArc must retain physical mapped keys", GripArcInputCatalog.forSystem(system).isNotEmpty())
+        }
         for (system in listOf(SystemID.PSX, SystemID.N64)) {
             assertEquals(null, PivotArcLayoutProfile.activeFor(system))
         }

@@ -17,6 +17,7 @@ import com.alorma.compose.settings.storage.memory.rememberMemoryBooleanSettingSt
 import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
+import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.input.WiiControllerCompatibility
@@ -226,7 +227,10 @@ fun GameMenuControlsScreen(
         controllerOptions()
         TiltControls(gameMenuRequest, onResult)
         val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
-        if (system != null && PivotArcLayoutProfile.activeFor(system) != null) {
+        val pivotAvailable =
+            system != null &&
+                (PivotArcLayoutProfile.activeFor(system) != null || PivotArcSoloProfiles.supportsSystem(system))
+        if (pivotAvailable) {
             GameMenuLink("PivotArc", R.drawable.ic_menu_controls) {
                 navController.navigateToRoute(GameMenuRoute.PIVOTARC)
             }

@@ -46,6 +46,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
 import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
@@ -77,6 +78,11 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     private var menuPauseFeedback by mutableStateOf("Menu open. Engine pause is not confirmed.")
     private val viewportAudit = NativeRendererAudit.Tracker(NativeViewportPolicy.Host.XBOX360)
     private val touch = XboxPadState()
+    private val pivotGate =
+        PivotArcHeldInputGate { action, code ->
+            touch.key(code, action == KeyEvent.ACTION_DOWN)
+            sendInputs()
+        }
     private val hardware = XboxPadState()
     private val grip = XboxPadState()
     private val gripSlots = mutableMapOf<Int, Set<Int>>()
@@ -154,6 +160,10 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             ::onTouchInput,
                             settings,
                             TouchControllerID.XBOX360,
+                            pivotGate = pivotGate,
+                            onTogglePivotHold = { code ->
+                                if (!leaving && !menuOpen && this@Xbox360Activity.foreground) pivotGate.toggleHold(code)
+                            },
                             physicalControllerConnected = physicalConnected,
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.XBOX360),
@@ -400,6 +410,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             releaseInputs()
             physicalConnected = devices.isNotEmpty()
             if (physicalConnected) {
+                pivotGate.clear()
                 touch.clear()
                 grip.clear()
                 gripSlots.clear()
@@ -474,6 +485,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun releaseInputs() {
+        pivotGate.clear()
         touch.clear()
         hardware.clear()
         grip.clear()
@@ -504,7 +516,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 is InputEvent.Button ->
                     if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                         if (!event.pressed) openMenu()
-                    } else {
+                    } else if (!pivotGate.setSource(event.id, "native-touch", event.pressed)) {
                         touch.key(event.id, event.pressed)
                     }
                 is InputEvent.DiscreteDirection -> touch.direction(event.id, event.direction.x, event.direction.y)

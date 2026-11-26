@@ -51,6 +51,7 @@ import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.FramePixelSummary
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxButtonBindingStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
@@ -143,6 +144,11 @@ class NativeCoreActivity : SDLActivity() {
     private var selectedMappingId by mutableStateOf(-1)
     private var mappingNotice by mutableStateOf<String?>(null)
     private val touch = XboxPadState(stickDeadzone = 0f)
+    private val pivotGate =
+        PivotArcHeldInputGate { action, code ->
+            touch.key(code, action == KeyEvent.ACTION_DOWN)
+            if (ready) sendTouch()
+        }
     private val watchdog = XboxLaunchWatchdog()
     private var lastPoll = 0L
 
@@ -377,6 +383,10 @@ class NativeCoreActivity : SDLActivity() {
                         XboxGameControls(
                             game = registryGame(),
                             onInput = ::onTouchInput,
+                            pivotGate = pivotGate,
+                            onTogglePivotHold = { code ->
+                                if (ready && !leaving && !paused && !menuShowing) pivotGate.toggleHold(code)
+                            },
                             settingsManager = settingsManager,
                             physicalControllerConnected = physicalPadConnected,
                             presentationAspect =
@@ -856,7 +866,7 @@ class NativeCoreActivity : SDLActivity() {
                 is InputEvent.Button -> {
                     if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                         if (!event.pressed) showMenu()
-                    } else {
+                    } else if (!pivotGate.setSource(event.id, "native-touch", event.pressed)) {
                         touch.key(event.id, event.pressed)
                     }
                 }
@@ -868,6 +878,7 @@ class NativeCoreActivity : SDLActivity() {
     }
 
     private fun releaseTouch() {
+        pivotGate.clear()
         touch.clear()
         if (ready) sendTouch()
     }

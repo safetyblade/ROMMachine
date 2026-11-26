@@ -447,9 +447,12 @@ class BaseGameScreenViewModel(
     fun setPivotArcHoldsEnabled(
         enabled: Boolean,
         controller: TouchControllerID? = null,
+        approvedHoldKeys: Set<Int>? = null,
     ) {
         val wonderSwan = WonderSwanPivotInput.forController(controller)
-        if (wonderSwan == null) {
+        if (approvedHoldKeys != null) {
+            pivotArcHeldInputGate.setEnabled(enabled, approvedHoldKeys, wonderSwan?.cursorKeys.orEmpty())
+        } else if (wonderSwan == null) {
             pivotArcHeldInputGate.setEnabled(enabled)
         } else {
             pivotArcHeldInputGate.setEnabled(enabled, wonderSwan.faceKeys, wonderSwan.cursorKeys)
