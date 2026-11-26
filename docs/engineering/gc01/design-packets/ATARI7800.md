@@ -1,16 +1,16 @@
 # ATARI7800 — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Two fire buttons and console switches.
 
-## A78-PA-01 — Atari digital review candidate (26 Nov 2026)
+## A78-PA-01 — Atari digital owner layout lock (26 Nov 2026)
 
-Use exact approved GB Digital 2 geometry with native 1 lower-left and 2 upper-right, fixed H1/H2 adjacent/outboard. Atari7800.kt blob a83e870cac8ff14c744e9c53c8079034cf3c402f maps Android B=1 and Android A=2; current Start/Select controls retained on separate Menu/Start/Select utility rail with guest switch semantics verified (including Reset/Pause where actually supported); no invented difficulty controls. 2600 compatibility/paddle modes not assumed. Preserve existing guest input identities, one-thumb proximity, no top shoulder buttons, mirrored layout, >=48dp independent touch targets, lifecycle release and measured screen clearance. Representative games Food Fight, Robotron: 2084, Ninja Golf, Asteroids subject to actual compatible ROM and control requirements. Owner review pending; no runtime/build; GripArc and Joint deferred.
+Use exact approved GB Digital 2 geometry with native 1 lower-left and 2 upper-right, fixed H1/H2 adjacent/outboard. Atari7800.kt blob a83e870cac8ff14c744e9c53c8079034cf3c402f maps Android B=1 and Android A=2; current Start/Select controls retained on separate Menu/Start/Select utility rail with guest switch semantics verified (including Reset/Pause where actually supported); no invented difficulty controls. 2600 compatibility/paddle modes not assumed. Preserve existing guest input identities, one-thumb proximity, no top shoulder buttons, mirrored layout, >=48dp independent touch targets, lifecycle release and measured screen clearance. Representative games Food Fight, Robotron: 2084, Ninja Golf, Asteroids subject to actual compatible ROM and control requirements. Owner approved 26 Nov 2026; no runtime/build; GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Use exact approved GB Digital 2 geometry with native 1 lower-left and 2 upper-ri
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
