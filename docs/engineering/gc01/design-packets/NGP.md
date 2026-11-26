@@ -1,16 +1,16 @@
 # NGP — controller design packet
 
-**Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** A · **Hardware family:** Two-button · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
 
-## NGP-PA-01 — review candidate (26 Nov 2026)
+## NGP-PA-01 — owner layout lock (26 Nov 2026)
 
-Original Neo Geo Pocket: eight-way digital click-stick, A/B, Option. Use approved GB Digital 2 GBA-derived one-hand shell and exact action/Hold geometry: B upper-right, A diagonally lower-left, H immediately right of B and below A. Replace D-pad artwork only in its existing seat with circular tactile digital click-stick (eight directional sectors, clear diagonal feedback, no analogue axis, no invented push-click input). Preserve the original directional event identities, compact reach and existing mirrored group. Separate rail: CARTDECK Menu and native Option; no invented Start/Select. The historical repository source audit [PIV-HH-01](../../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) records Android A displayed B and Android B displayed A. Match Hold to actual guest key, not label-derived Android key. Preserve simultaneous A+B and directional combinations through existing input ownership; validate exact-head mapping, Option routing, diagonal transitions/neutral release, >=48dp discrete targets and physical fit. No claim of physical mechanical click or analogue support. Proposed shared variant for NGC after separate owner review. Owner approval pending, no physical/CI PASS. GripArc and Joint deferred.
+Original Neo Geo Pocket: eight-way digital click-stick, A/B, Option. Use approved GB Digital 2 GBA-derived one-hand shell and exact action/Hold geometry: B upper-right, A diagonally lower-left, H immediately right of B and below A. Replace D-pad artwork only in its existing seat with circular tactile digital click-stick (eight directional sectors, clear diagonal feedback, no analogue axis, no invented push-click input). Preserve the original directional event identities, compact reach and existing mirrored group. Separate rail: CARTDECK Menu and native Option; no invented Start/Select. The historical repository source audit [PIV-HH-01](../../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) records Android A displayed B and Android B displayed A. Match Hold to actual guest key, not label-derived Android key. Preserve simultaneous A+B and directional combinations through existing input ownership; validate exact-head mapping, Option routing, diagonal transitions/neutral release, >=48dp discrete targets and physical fit. No claim of physical mechanical click or analogue support. Proposed shared variant for NGC after separate owner review. Owner design approval granted 26 Nov 2026; no physical/CI PASS. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Original Neo Geo Pocket: eight-way digital click-stick, A/B, Option. Use approve
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact source geometry audit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
