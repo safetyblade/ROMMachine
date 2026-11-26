@@ -171,9 +171,10 @@
       "input": "pending",
       "joint": "deferred",
       "portrait": "review_candidate",
-      "landscape": "to_design",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "note": "GBA-GA-01P/L and factory preset ready for sequential owner approval; no measured fit, native input, implementation or physical pass."
     },
     {
       "id": "SNES",
