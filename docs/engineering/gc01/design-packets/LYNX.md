@@ -1,16 +1,16 @@
 # LYNX — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
 
-## LYNX-PA-01 — Digital 2 + Options review candidate (26 Nov 2026)
+## LYNX-PA-01 — Digital 2 + Options owner layout lock (26 Nov 2026)
 
-Inherit approved GBA manufactured geometry and compact D-pad/A/B/Hold A/Hold B seats, substitute native Option 1/Option 2 for GBA L/R at existing shoulder seats (do not introduce top shoulder row or new remote bank); independent momentary options and separate Menu/Pause utility rail, no Select. Existing Lynx.kt engineering blob 8cd7e34107a98b23cf2f13ca7545db5e920899ab maps same-label Android A/B, Option 1=L1, Option 2=R1 and Start helper for Pause; verify actual Handy core guest identity, including option combinations and Pause, and no accidental reset. Preserve genuine vertical/rotated Lynx titles' display and directional mapping; mirror the full group without changing guest input identities, distinguish handedness from game orientation. No pretend rotation support; if unavailable disclose. Fixed A/B Holds proposed. Retain 48dp+ discrete targets, lifecycle release, existing video, measured fit and one-handed reach. Suggested tests California Games, Chip's Challenge, Blue Lightning, Gauntlet: The Third Encounter (orientation and input requirements to verify). Owner review pending; no implementation/build. GripArc/Joint deferred.
+Inherit approved GBA manufactured geometry and compact D-pad/A/B/Hold A/Hold B seats, substitute native Option 1/Option 2 for GBA L/R at existing shoulder seats (do not introduce top shoulder row or new remote bank); independent momentary options and separate Menu/Pause utility rail, no Select. Existing Lynx.kt engineering blob 8cd7e34107a98b23cf2f13ca7545db5e920899ab maps same-label Android A/B, Option 1=L1, Option 2=R1 and Start helper for Pause; verify actual Handy core guest identity, including option combinations and Pause, and no accidental reset. Preserve genuine vertical/rotated Lynx titles' display and directional mapping; mirror the full group without changing guest input identities, distinguish handedness from game orientation. No pretend rotation support; if unavailable disclose. Fixed A/B Holds proposed. Retain 48dp+ discrete targets, lifecycle release, existing video, measured fit and one-handed reach. Suggested tests California Games, Chip's Challenge, Blue Lightning, Gauntlet: The Third Encounter (orientation and input requirements to verify). Owner approved 26 Nov 2026; no implementation/build. GripArc/Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Inherit approved GBA manufactured geometry and compact D-pad/A/B/Hold A/Hold B s
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
