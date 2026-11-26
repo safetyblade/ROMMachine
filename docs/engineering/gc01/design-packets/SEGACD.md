@@ -2,11 +2,15 @@
 
 **Batch:** B · **Hardware family:** Four/six-button and handheld · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Verify 3-button/6-button game input mode.
+
+## SCD-PA-01 — Digital 3 review candidate (26 Nov 2026)
+
+Sega CD / Mega-CD uses the Mega Drive controller family. Propose exact inheritance of owner-locked [MD-PA-01](GENESIS.md) standard three-button radial geometry: D-pad nucleus, A upper-right, B right/lower-right, C lower-centre, fixed Hold B outboard, Start and CARTDECK Menu on separate rear utility rail. Preserve one-hand reach, GBA digital styling, mirroring and all native identities. No invented Select or shoulder. No per-game Hold configuration required; do not change approved Mega Drive geometry or add controls solely for CD media. Separate Sega CD platform identity and saved preferences; verify actual selected backend, guest key mapping, Start, combinations, Hold release, >=48dp independent targets, chassis clearance and physical fit. Six-button compatibility/design remains open and will be reviewed with Genesis/PCE Digital 6; do not infer current backend support. Owner approval pending. GripArc and Joint deferred; no build.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
