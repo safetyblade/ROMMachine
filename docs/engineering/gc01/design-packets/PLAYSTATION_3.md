@@ -2,11 +2,15 @@
 
 **Batch:** D · **Hardware family:** Console native / analogue · **Status: DESIGN PREPARATION ONLY**.
 
-**PivotArc:** to_design; owner physical pending.  
+**PivotArc:** review_candidate; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Audit the active native controller input inventory and physical console-specific legends.
+
+## PS3-PA-01 — shared Sony side-stack review candidate (26 Nov 2026)
+
+Propose exact inheritance of owner-approved [PSX-PA-03](PSX.md) DualShock topology: central D-pad, left-side independent L/R analogue stack (L above R), explicit corresponding L3/R3 only through real native inputs; PSP-derived Square/Triangle/Cross/Circle radial face arc and four fixed face Holds, mid-arc 2×2 L1/R1 and L2/R2 shoulder bank, rear Menu/Start/Select rail. Same chassis design language, not a bottom stick row or upper shoulder bank. Source and actual engine differences are separate from visual inheritance. DualShock 3 includes analogue L2/R2 and pressure-sensitive buttons plus PS and Sixaxis motion. Retain same bank, verify real proportional trigger axes, digital/pressure semantics and actual native PS/motion support separately; PS action in utility/menu only if real dispatch exists, never substitute CARTDECK Menu as guest PS. Engineering NativeGameSystems.kt identifies nativeBackend ps3 and empty systemCoreConfigs; do not assume Libretro input mappings or claim working native bridge. Preserve real independent axes and click semantics, verify actual backend, measured >=48dp discrete targets, full analogue travel, shoulder/trigger reach, mirror, holds/release, no overlap, viewport and exact physical fit. Dual-analogue simultaneous actions may require two hands. Enhanced gameplay tests required; unsupported engine features explicitly limited rather than simulated. Candidate awaiting owner approval; no code/build. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
