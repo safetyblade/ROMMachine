@@ -342,6 +342,21 @@
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "GC-PA-02 owner approved compact A/trigger reach; enhanced four-title physical acceptance required, half/full trigger and C-stick verification pending."
+    },
+    {
+      "id": "XBOX",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -350,29 +365,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "GC-PA-02 owner reach correction: normal A close to D/stick, mid-arc L/R/Z integrated immediately above A/X, side main/C sticks; fixed A/B/L/R Holds and conditional half presses; revised approval/fit pending."
-    },
-    {
-      "id": "XBOX",
-      "batch": "D",
-      "family": "Console native / analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Real independent native host input bridge required."
+      "note": "XB-PA-01 proposed side-mounted dual sticks, compact mid-arc trigger/action island, fixed A/B/LT/RT Holds, native secondary legends; approval/host/fit pending."
     },
     {
       "id": "XBOX360",
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -380,7 +380,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Xenia native host controls; not original Xbox."
+      "note": "X360-PA-01 proposed side-mounted dual sticks, compact mid-arc trigger/action island, fixed A/B/LT/RT Holds, native secondary legends; approval/host/fit pending."
     },
     {
       "id": "FBNEO",
