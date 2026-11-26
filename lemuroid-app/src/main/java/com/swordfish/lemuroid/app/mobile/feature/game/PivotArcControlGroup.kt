@@ -52,11 +52,13 @@ fun PadKitScope.PivotArcControlGroup(
     onToggleHold: (Int) -> Unit,
     combined: Boolean = false,
     touchController: TouchControllerID? = null,
+    soloProfile: PivotArcSoloProfile? = null,
 ) {
     val observe = LocalCartdeckControlBounds.current
     val wonderSwan = WonderSwanPivotInput.forController(touchController)
     Box(Modifier.fillMaxSize()) {
         placement.controls.forEach { (key, bounds) ->
+            val seat = soloProfile?.seat(key)
             val visual = placement.visuals.getValue(key)
             val position =
                 Modifier
@@ -79,36 +81,36 @@ fun PadKitScope.PivotArcControlGroup(
                             Modifier
                         },
                     )
-            if (key == "HoldA" || key == "HoldB") {
-                val face = if (key == "HoldA") "A" else "B"
+            if (seat?.holdOf != null || key == "HoldA" || key == "HoldB") {
+                val face = seat?.holdOf ?: if (key == "HoldA") "A" else "B"
                 val code =
-                    if (face == "A") {
+                    soloProfile?.seat(face)?.keyCode ?: if (face == "A") {
                         wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
                     } else {
                         wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
                     }
                 PivotArcHoldSwitch(
                     modifier = position,
-                    label = PivotArcLayoutProfile.nativeLabel(system, face),
+                    label = soloProfile?.seat(face)?.label ?: PivotArcLayoutProfile.nativeLabel(system, face),
                     showLabel = combined,
                     diameter = visual.w,
                     active = code in heldKeys,
                     accent = accent,
                     onToggle = { onToggleHold(code) },
                 )
-            } else if (key == "Analog") {
+            } else if (key == "Analog" || seat?.analog == true) {
                 ControlAnalog(
                     modifier = position.semantics { contentDescription = "Analog stick" },
-                    id = Id.ContinuousDirection(ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
-                    analogPressId = Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
+                    id = Id.ContinuousDirection(seat?.direction ?: ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
+                    analogPressId = if (seat == null) Id.Key(KeyEvent.KEYCODE_BUTTON_THUMBL) else null,
                     background = { LemuroidControlBackground(Modifier.fillMaxSize(0.8f)) },
                     foreground = { LemuroidButtonForeground(pressed = it) },
                 )
-            } else if (key == "D" || (key == "Cursor" && wonderSwan != null)) {
+            } else if (seat?.direction != null || key == "D" || (key == "Cursor" && wonderSwan != null)) {
                 val secondary = key == "Cursor"
                 val label = if (secondary) wonderSwan?.secondaryLabel else wonderSwan?.primaryLabel
                 val directionSource =
-                    if (secondary) {
+                    seat?.direction ?: if (secondary) {
                         checkNotNull(wonderSwan).source
                     } else {
                         ComposeTouchLayouts.MOTION_SOURCE_DPAD
@@ -116,12 +118,12 @@ fun PadKitScope.PivotArcControlGroup(
                 ControlCross(
                     modifier = if (label == null) position else position.semantics { contentDescription = label },
                     id = Id.DiscreteDirection(directionSource),
-                    allowDiagonals = true,
+                    allowDiagonals = seat?.diagonals ?: true,
                     background = {},
                     foreground = { direction ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                LemuroidCrossForeground(allowDiagonals = true, directionState = direction)
+                                LemuroidCrossForeground(allowDiagonals = seat?.diagonals ?: true, directionState = direction)
                                 if (label != null) {
                                     Text(
                                         label.take(1),
@@ -136,7 +138,7 @@ fun PadKitScope.PivotArcControlGroup(
                 )
             } else {
                 val inputKey =
-                    when (key) {
+                    seat?.keyCode ?: when (key) {
                         "A" -> wonderSwan?.a ?: KeyEvent.KEYCODE_BUTTON_A
                         "B" -> wonderSwan?.b ?: KeyEvent.KEYCODE_BUTTON_B
                         "X" -> KeyEvent.KEYCODE_BUTTON_X
@@ -151,7 +153,7 @@ fun PadKitScope.PivotArcControlGroup(
                         "Mic", "Lid" -> touchController?.let { pivotArcDsAuxiliaryKey(it, key) }
                         else -> null
                     } ?: return@forEach
-                val label = PivotArcLayoutProfile.nativeLabel(system, key)
+                val label = seat?.label ?: PivotArcLayoutProfile.nativeLabel(system, key)
                 val icon =
                     when (label) {
                         "Circle" -> TouchR.drawable.psx_circle
@@ -160,7 +162,8 @@ fun PadKitScope.PivotArcControlGroup(
                         "Square" -> TouchR.drawable.psx_square
                         else -> null
                     } ?: when (key) {
-                        "Select" -> TouchR.drawable.button_select
+                        "Select" -> TouchR.drawable.button_select.takeIf { label == key }
+                        "Keyboard" -> TouchR.drawable.button_keyboard
                         "Start" -> TouchR.drawable.button_start.takeIf { label == key }
                         "Menu" -> TouchR.drawable.button_menu
                         "Mic" -> TouchR.drawable.button_mic
@@ -170,7 +173,7 @@ fun PadKitScope.PivotArcControlGroup(
                 val shape =
                     when (key) {
                         "L", "R", "L2", "R2" -> CartdeckButtonShape.SHOULDER
-                        "Select", "Start", "Menu" -> CartdeckButtonShape.PILL
+                        "Select", "Start", "Menu", "Keyboard", "Home", "Mic", "Lid" -> CartdeckButtonShape.PILL
                         else -> CartdeckButtonShape.FACE
                     }
                 compositionKey(key, inputKey) {
@@ -186,7 +189,7 @@ fun PadKitScope.PivotArcControlGroup(
                                         icon = icon,
                                         shape = shape,
                                     )
-                                    if ((key == "A" || key == "B") && inputKey in heldKeys) {
+                                    if (inputKey in heldKeys && (seat != null || key == "A" || key == "B")) {
                                         Canvas(Modifier.fillMaxSize()) {
                                             val r = size.minDimension / 2f - 2.dp.toPx()
                                             drawCircle(

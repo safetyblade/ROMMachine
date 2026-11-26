@@ -300,13 +300,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val gestureSafe = WindowInsets.safeGestures
             // Per-cartridge mode overrides the legacy global PivotArc choice.
             val selectedPivot = effectiveArcMode.hasPivot
+            val soloProfile =
+                if (!effectiveArcMode.hasGrip) {
+                    PivotArcSoloProfiles.forMode(viewModel.systemId, currentControllerConfig?.touchControllerID)
+                } else {
+                    null
+                }
             val requiredPivotControls = PivotArcLayoutProfile.activeFor(viewModel.systemId)
             var compositeResolution: CompositeDeckResolution? = null
             val pivotResolution: PivotArcResolution? =
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
                     if (pivotBaseline == null) {
                         PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
-                    } else if (requiredPivotControls == null) {
+                    } else if (requiredPivotControls == null && soloProfile == null) {
                         PivotArcResolution.Unavailable(
                             "PivotArc controls are not supported for this system. Standard controls remain available.",
                         )
@@ -366,10 +372,20 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 is CompositeDeckResolution.Unavailable -> PivotArcResolution.Unavailable(joint.reason)
                                 null -> null
                             }
+                        } else if (soloProfile != null) {
+                            PivotArcSoloSolver.resolve(
+                                profile = soloProfile,
+                                safe = safeBounds,
+                                viewport = viewportBounds,
+                                leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
+                                requestedDx = pivotSettings.offsetXdp,
+                                requestedDy = pivotSettings.offsetYdp,
+                                landscape = isLandscape,
+                            )
                         } else {
                             PivotArcPositionSolver.resolve(
                                 baseline = pivotBaseline,
-                                active = requiredPivotControls,
+                                active = checkNotNull(requiredPivotControls),
                                 safe = safeBounds,
                                 viewport = viewportBounds,
                                 leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
@@ -590,8 +606,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val pivotHoldsEnabled =
                 pivotPlacement != null && touchControlsVisibleState.value && !isLoading
             val pivotController = currentControllerConfig?.touchControllerID
-            DisposableEffect(viewModel, pivotHoldsEnabled, pivotController) {
-                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled, pivotController)
+            val approvedHoldKeys = soloProfile?.holdKeys
+            DisposableEffect(viewModel, pivotHoldsEnabled, pivotController, approvedHoldKeys) {
+                viewModel.setPivotArcHoldsEnabled(pivotHoldsEnabled, pivotController, approvedHoldKeys)
                 onDispose { viewModel.setPivotArcHoldsEnabled(false) }
             }
 
@@ -895,6 +912,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         onToggleHold = viewModel::togglePivotArcHold,
                         combined = jointPlacement != null,
                         touchController = currentControllerConfig.touchControllerID,
+                        soloProfile = soloProfile,
                     )
                 }
             }
