@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
@@ -19,6 +20,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.CartdeckMenuRow
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckCuratedDesigns
@@ -209,13 +211,14 @@ private fun MiscSettings(
 
 @Composable
 private fun InputSettings(navController: NavController) {
+    val context = LocalContext.current
     LemuroidCardSettingsGroup(
         title = { Text("Controllers") },
     ) {
         LemuroidSettingsMenuLink(
-            title = { Text("Layout") },
-            subtitle = { Text("Standard or One Hand Mode · PivotArc") },
-            onClick = { navController.navigateToRoute(MainRoute.SETTINGS_LAYOUT) },
+            title = { Text("Controls") },
+            subtitle = { Text("Layout defaults and physical controller mapping") },
+            onClick = { context.startActivity(Intent(context, ControllerSettingsActivity::class.java)) },
         )
         LemuroidSettingsList(
             state =
@@ -230,7 +233,7 @@ private fun InputSettings(navController: NavController) {
             items = stringListResource(R.array.pref_key_haptic_feedback_mode_display_names),
         )
         LemuroidSettingsMenuLink(
-            title = { Text(text = "Controllers") },
+            title = { Text("Advanced controller settings") },
             subtitle = {
                 Text(text = stringResource(id = R.string.settings_description_gamepad_settings))
             },

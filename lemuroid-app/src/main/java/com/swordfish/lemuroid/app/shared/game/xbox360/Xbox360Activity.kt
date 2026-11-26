@@ -53,6 +53,7 @@ import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -170,7 +171,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             game =
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
-                                ) as? com.swordfish.lemuroid.lib.library.db.entity.Game,
+                                ) as? Game,
                             onGripPressed = { slot, pressed, codes ->
                                 if (pressed && !menuOpen && this@Xbox360Activity.foreground) {
                                     gripSlots[slot] = codes
@@ -238,7 +239,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 game =
                                     intent.getSerializableExtra(
                                         "cartdeck.game",
-                                    ) as? com.swordfish.lemuroid.lib.library.db.entity.Game,
+                                    ) as? Game,
                                 title = intent.getStringExtra("cartdeck.gameTitle").orEmpty(),
                                 engineInfo = if (::engine.isInitialized) engine.id else "Engine unavailable",
                                 capabilities =
@@ -272,9 +273,15 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                             "Presentation is not gameplay acceptance."
                                     },
                             ) {
-                                XboxMenuControls(settings, TouchControllerID.XBOX360, physicalMapping = {
-                                    physicalMapping.Panel()
-                                }) { orientation, edited ->
+                                XboxMenuControls(
+                                    settings,
+                                    TouchControllerID.XBOX360,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                    game =
+                                        intent.getSerializableExtra(
+                                            "cartdeck.game",
+                                        ) as? Game,
+                                ) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.XBOX360,

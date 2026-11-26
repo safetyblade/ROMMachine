@@ -476,7 +476,18 @@ class GameViewModelRetroGameView(
                     chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            val desired = options.filterNot { it.key in keys } + overrides
+            val pointerKey = "dolphin_ir_mode"
+            val pointer = display.engineOptions["$namespace:$pointerKey"]
+            val pointerOverride =
+                pointer?.takeIf { value ->
+                    system.id == SystemID.WII && pointerKey in current &&
+                        systemCoreConfig.exposedSettings.any { setting ->
+                            setting.key == pointerKey && setting.values.any { it.key == value }
+                        }
+                }?.let { CoreVariable(pointerKey, it) }
+            val desired =
+                options.filterNot { it.key in keys || it.key == pointerOverride?.key } + overrides +
+                    listOfNotNull(pointerOverride)
             updateCoreVariables(CoreOptionRefresh.changed(desired, current))
             if (system.id == SystemID.WII) {
                 wiiPointerMode.value =

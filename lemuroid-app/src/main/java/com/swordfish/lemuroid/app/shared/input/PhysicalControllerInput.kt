@@ -66,7 +66,7 @@ object PhysicalControllerInput {
         )
 
     fun hardware(device: InputDevice): Hardware {
-        val codes = keys.keys.toIntArray()
+        val codes = (keys.keys + (KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_16)).toIntArray()
         val available = runCatching { device.hasKeys(*codes) }.getOrDefault(BooleanArray(codes.size))
         return Hardware(
             device.descriptor,

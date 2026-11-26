@@ -287,6 +287,7 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     settings,
                                     Ps3Engine.CONTROLLER,
                                     physicalMapping = { physicalMapping.Panel() },
+                                    game = game,
                                 ) { orientation, edit ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(

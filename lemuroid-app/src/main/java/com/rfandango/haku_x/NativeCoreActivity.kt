@@ -454,6 +454,7 @@ class NativeCoreActivity : SDLActivity() {
                                         }
                                     },
                                     physicalMapping = { physicalMapping.Panel() },
+                                    game = registryGame(),
                                 )
                             }
                         }

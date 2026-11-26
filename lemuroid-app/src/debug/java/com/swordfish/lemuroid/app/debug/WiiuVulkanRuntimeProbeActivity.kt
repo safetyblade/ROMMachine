@@ -342,9 +342,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 GameMenuLink(
                                     "Import user-owned keys.txt for next launch",
                                 ) { importKeys.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC, physicalMapping = {
-                                    physicalMapping.Panel()
-                                }) { orientation, edited ->
+                                XboxMenuControls(
+                                    settings,
+                                    TouchControllerID.WII_CLASSIC,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                    game = game,
+                                ) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.WII_CLASSIC,

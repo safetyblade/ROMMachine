@@ -319,9 +319,12 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 GameMenuLink(
                                     "Import user-owned PS2 BIOS after a failed launch",
                                 ) { importBios.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.PSX_DUALSHOCK, physicalMapping = {
-                                    physicalMapping.Panel()
-                                }) { orientation, edited ->
+                                XboxMenuControls(
+                                    settings,
+                                    TouchControllerID.PSX_DUALSHOCK,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                    game = game,
+                                ) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.PSX_DUALSHOCK,

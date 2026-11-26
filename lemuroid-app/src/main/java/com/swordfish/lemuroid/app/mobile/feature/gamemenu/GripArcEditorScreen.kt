@@ -1,16 +1,19 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,130 +25,147 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInputCatalog
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcManifest
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcSide
+import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
-/**
- * Game Menu > Controls > GripArc.
- * Store writes are per-game and atomic, and the running ViewModel reloads
- * them on activity resume without restarting or modifying emulator saves.
- */
 @Composable
-fun GripArcEditorScreen(game: Game) {
-    val context = LocalContext.current.applicationContext
+fun GripArcEditorScreen(
+    game: Game,
+    embedded: Boolean = false,
+) {
+    val context = LocalContext.current
     val store = remember(context) { GripArcProfileStore(context) }
+    val manifest = remember(context) { GripArcManifest.load(context) }
     val options = remember(game.systemId) { GripArcInputCatalog.forGame(game) }
-    var profile by remember(game.systemId, game.fileUri) { mutableStateOf(store.read(game)) }
-    var saveFailed by remember { mutableStateOf(false) }
+    val profile by rememberGripArcProfile(game)
+    var message by remember(game.cartridgeId) { mutableStateOf<String?>(null) }
+    var slot by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
+    var draft by remember(game.cartridgeId) { mutableStateOf(emptyList<Int>()) }
+    var showAdvanced by remember { mutableStateOf(false) }
+    var resetting by remember { mutableStateOf(false) }
+
+    fun label(keys: List<Int>): String =
+        keys.mapNotNull { key -> options.firstOrNull { it.code == key }?.label }
+            .joinToString("+").ifEmpty { "Assign" }
 
     fun save(updated: GripArcProfile) {
-        val valid = updated.validated(options.map { it.code }.toSet())
-        if (store.save(game, valid)) {
-            profile = valid
-            saveFailed = false
-        } else {
-            saveFailed = true
-        }
+        message = if (store.save(game, updated)) "Saved for this cartridge." else "Could not save controls."
     }
-
     Column(
-        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier =
+            Modifier.fillMaxWidth().then(
+                if (embedded) Modifier else Modifier.verticalScroll(rememberScrollState()),
+            ).padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("GripArc · ${game.displayName()}")
-        if (saveFailed) Text("Could not save the control profile. Previous settings remain available.")
-        if (!profile.mode.hasGrip) {
-            Text("Choose Standard + GripArc or PivotArc + GripArc in the cartridge's Hold Controls menu.")
-        }
         if (options.isEmpty()) {
-            Text("Programmable button identities are not available for this system.")
+            Text("Programmable inputs are unavailable for this controller.")
             return@Column
         }
-        HorizontalDivider()
-        Text("Attachment side")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GripArcChoice("Left", profile.side == GripArcSide.LEFT) {
-                save(profile.copy(side = GripArcSide.LEFT))
-            }
-            GripArcChoice("Right", profile.side == GripArcSide.RIGHT) {
-                save(profile.copy(side = GripArcSide.RIGHT))
-            }
-        }
-        Text("Active buttons")
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            (1..4).forEach { count ->
-                GripArcChoice("$count", profile.count == count) { save(profile.copy(count = count)) }
-            }
-        }
-        Text("Full L housing and fixed G1–G4 positions remain unchanged for every count.")
-        HorizontalDivider()
-        val names = listOf("upper side", "lower side", "bottom corner", "bottom inward")
-        for (slot in 1..profile.count) {
-            val current = profile.mappings.getOrNull(slot - 1).orEmpty()
-            Text("G$slot · ${names[slot - 1]}")
-            Text(
-                if (current.isEmpty()) {
-                    "Not assigned"
-                } else {
-                    "Current: " + options.filter { it.code in current }.joinToString(" + ") { it.label }
-                },
-            )
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                options.forEach { option ->
-                    GripArcChoice(option.label, option.code in current) {
-                        val newKeys =
-                            if (option.code in current) {
-                                current.filterNot { it == option.code }
-                            } else {
-                                (current + option.code).distinct().take(4)
-                            }
-                        save(
-                            profile.copy(
-                                mappings =
-                                    profile.mappings.mapIndexed { index, keys ->
-                                        if (index == slot - 1) newKeys else keys
-                                    },
-                            ),
-                        )
-                    }
+        Text("Tap a button to assign an input or a simultaneous combination.")
+        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+            Box(Modifier.size(222.dp)) {
+                for (seat in manifest.slots.take(profile.count)) {
+                    val center = if (profile.side == GripArcSide.RIGHT) seat.centerRight else seat.centerLeft
+                    val assigned = profile.mappings[seat.n - 1]
+                    FilterChip(
+                        selected = assigned.isNotEmpty(),
+                        onClick = {
+                            slot = seat.n - 1
+                            draft = assigned
+                        },
+                        modifier =
+                            Modifier.offset((center.x * 1.35f - 34).dp, (center.y * 1.35f - 24).dp)
+                                .size(width = 68.dp, height = 48.dp),
+                        label = {
+                            Text(
+                                label(assigned),
+                                maxLines = 2,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                    )
                 }
             }
         }
-        Text("Select multiple inputs to create a simultaneous combination. No timed sequences.")
-        HorizontalDivider()
-        Text("Position · whole attachment only")
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            OutlinedButton(onClick = { save(profile.copy(dx = profile.dx - 12f)) }) { Text("←") }
-            OutlinedButton(onClick = { save(profile.copy(dx = profile.dx + 12f)) }) { Text("→") }
-            OutlinedButton(onClick = { save(profile.copy(dy = profile.dy - 12f)) }) { Text("↑") }
-            OutlinedButton(onClick = { save(profile.copy(dy = profile.dy + 12f)) }) { Text("↓") }
+        message?.let { Text(it) }
+        TextButton(onClick = { resetting = true }) { Text("Restore factory assignments") }
+        TextButton(onClick = { showAdvanced = !showAdvanced }) { Text("Programmable control positioning") }
+        if (showAdvanced) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (side in GripArcSide.entries) {
+                    FilterChip(
+                        profile.side == side,
+                        { save(profile.copy(side = side)) },
+                        { Text(side.name.lowercase()) },
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (count in 1..4) {
+                    FilterChip(profile.count == count, { save(profile.copy(count = count)) }, { Text("$count") })
+                }
+            }
+            Row {
+                TextButton(onClick = { save(profile.copy(dx = profile.dx - 12f)) }) { Text("←") }
+                TextButton(onClick = { save(profile.copy(dx = profile.dx + 12f)) }) { Text("→") }
+                TextButton(onClick = { save(profile.copy(dy = profile.dy - 12f)) }) { Text("↑") }
+                TextButton(onClick = { save(profile.copy(dy = profile.dy + 12f)) }) { Text("↓") }
+            }
+            TextButton(onClick = { save(profile.copy(dx = 0f, dy = 0f)) }) { Text("Reset position") }
         }
-        Text("Offset: ${profile.dx.toInt()}dp X, ${profile.dy.toInt()}dp Y")
-        TextButton(onClick = { save(profile.copy(dx = 0f, dy = 0f)) }) {
-            Text("Reset position")
-        }
-        TextButton(
-            onClick = {
-                save(store.defaultFor(game).copy(mode = profile.mode))
-            },
-        ) { Text("Reset GripArc settings") }
-        Text("Changes are saved to this cartridge and take effect when you return to gameplay.")
     }
-}
-
-@Composable
-private fun GripArcChoice(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    FilterChip(selected = selected, onClick = onClick, label = { Text(text) })
+    slot?.let { selected ->
+        AlertDialog(
+            onDismissRequest = { slot = null },
+            title = { Text("Assign button") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(label(draft))
+                    for (option in options) {
+                        FilterChip(
+                            selected = option.code in draft,
+                            onClick = {
+                                draft = if (option.code in draft) draft - option.code else (draft + option.code).take(4)
+                            },
+                            enabled = draft.size < 4 || option.code in draft,
+                            label = { Text(option.label) },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    save(
+                        profile.copy(
+                            mappings =
+                                profile.mappings.mapIndexed { index, keys ->
+                                    if (index == selected) draft else keys
+                                },
+                        ),
+                    )
+                    slot = null
+                }) { Text("Save assignment") }
+            },
+            dismissButton = { TextButton(onClick = { slot = null }) { Text("Cancel") } },
+        )
+    }
+    if (resetting) {
+        AlertDialog(
+            onDismissRequest = { resetting = false },
+            title = { Text("Restore factory assignments?") },
+            text = { Text("This replaces the programmable assignments on this cartridge.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    save(profile.copy(mappings = store.defaultFor(game).mappings))
+                    resetting = false
+                }) { Text("Restore") }
+            },
+            dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel") } },
+        )
+    }
 }

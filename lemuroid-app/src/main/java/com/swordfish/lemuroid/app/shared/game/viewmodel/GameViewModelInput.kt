@@ -141,6 +141,7 @@ class GameViewModelInput(
             systemCoreConfig.controllerConfigs[0]?.firstOrNull { it.name == name } ?: return
         scope.launch {
             if (controllerConfigsManager.selectController(system.id, systemCoreConfig, 0, name, game)) {
+                releasePhysicalInputs()
                 controllerConfigsState.value = controllerConfigsState.value + (0 to controller)
             }
         }
@@ -329,7 +330,7 @@ class GameViewModelInput(
             }?.id
     }
 
-    private fun releasePhysicalInputs() {
+    fun releasePhysicalInputs() {
         inputGeneration++
         menuChord.clear()
         pivotArcHoldGate.clear()

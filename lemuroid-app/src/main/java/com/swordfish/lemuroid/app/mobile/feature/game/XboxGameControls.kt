@@ -379,6 +379,7 @@ fun XboxGameControls(
                         false,
                         false,
                         onGripPressed,
+                        inputLabels = GripArcInputCatalog.forSystem(hostSystem).associate { it.code to it.label },
                         drawHousing = hardwareBorder,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
