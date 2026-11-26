@@ -147,7 +147,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -155,7 +155,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "SNES-PA-01 proposes PSP-derived Digital 4, X/A/B/Y radial, four fixed Holds, adjacent L/R, clearance; owner review pending."
     },
     {
       "id": "GENESIS",
@@ -177,7 +177,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "review_candidate",
+        "design": "standard_layout_locked_variants_open",
         "physical": "pending"
       },
       "grip": {
@@ -185,7 +185,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "SCD-PA-01 proposes exact MD-PA-01 three-button radial inheritance with fixed Hold B; six-button separate; approval and validation pending."
+      "note": "SCD-PA-01 owner approved exact Mega Drive Digital 3 inheritance; six-button open; source/physical pending."
     },
     {
       "id": "WS",
