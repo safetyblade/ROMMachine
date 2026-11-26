@@ -316,7 +316,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 if (selectedPivot && touchControlsVisibleState.value && fullPos != null && viewPos != null) {
                     if (pivotBaseline == null) {
                         PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
-                    } else if (requiredPivotControls == null && soloProfile == null) {
+                    } else if (soloProfile == null &&
+                        (requiredPivotControls == null ||
+                            (!effectiveArcMode.hasGrip && PivotArcSoloProfiles.supportsSystem(viewModel.systemId)))
+                    ) {
                         PivotArcResolution.Unavailable(
                             "PivotArc controls are not supported for this system. Standard controls remain available.",
                         )

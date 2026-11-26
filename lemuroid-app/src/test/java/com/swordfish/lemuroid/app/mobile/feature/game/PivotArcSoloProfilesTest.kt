@@ -90,12 +90,25 @@ class PivotArcSoloProfilesTest {
         assertNotNull(ps3?.seat("AnalogR"))
         val wiiu = PivotArcSoloProfiles.forNativeHost(SystemID.WII_U, TouchControllerID.WII_CLASSIC)
         assertEquals("L", wiiu?.seat("L")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, wiiu?.seat("LS")?.keyCode)
+        assertNull(PivotArcSoloProfiles.forNativeHost(SystemID.XBOX, TouchControllerID.XBOX360))
         assertEquals(KeyEvent.KEYCODE_BUTTON_L2, wiiu?.seat("L")?.keyCode)
         assertEquals("B", pivotArcLegacyKey(SystemID.SMS, "A", false))
         assertEquals("1", pivotArcLegacyLabel(SystemID.SMS, "A", false))
         assertEquals("I", pivotArcLegacyLabel(SystemID.PC_ENGINE, "A", false))
         assertEquals("A", pivotArcLegacyKey(SystemID.GBA, "A", false))
         assertEquals("A", pivotArcLegacyKey(SystemID.SMS, "A", true))
+    }
+
+    @Test
+    fun allThirtyThreeSystemsHaveADeclaredSoloSourcePath() {
+        val systems = SystemID.entries
+        assertEquals(33, systems.size)
+        assertTrue(
+            systems.all {
+                PivotArcLayoutProfile.activeFor(it) != null || PivotArcSoloProfiles.supportsSystem(it)
+            },
+        )
     }
 
     @Test

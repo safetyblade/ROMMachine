@@ -457,6 +457,7 @@ object PivotArcSoloProfiles {
                 when (seat.id) {
                     "L" -> seat.copy(y = 197f, label = "L")
                     "R" -> seat.copy(y = 197f, label = "R")
+                    "HoldY" -> seat.copy(x = 224f, y = 54f)
                     "D" ->
                         if (analogPrimary) {
                             seat.copy(x = analog.x, y = analog.y, target = analog.target, cap = analog.cap)
@@ -493,7 +494,8 @@ object PivotArcSoloProfiles {
         controller: TouchControllerID,
     ): PivotArcSoloProfile? =
         when (system) {
-            SystemID.XBOX, SystemID.XBOX360 -> forNativeXbox(controller)
+            SystemID.XBOX -> if (controller == TouchControllerID.XBOX) forNativeXbox(controller) else null
+            SystemID.XBOX360 -> if (controller == TouchControllerID.XBOX360) forNativeXbox(controller) else null
             SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3 ->
                 if (controller == TouchControllerID.PSX_DUALSHOCK) sony(true) else null
             SystemID.WII_U ->
@@ -507,7 +509,7 @@ object PivotArcSoloProfiles {
                                 "R2" -> seat.copy(label = "ZR", keyCode = r)
                                 else -> seat
                             }
-                        },
+                        } + sony(true).seats.filter { it.id in setOf("LS", "RS") }.map { it.copy(label = it.id) },
                     )
                 } else {
                     null

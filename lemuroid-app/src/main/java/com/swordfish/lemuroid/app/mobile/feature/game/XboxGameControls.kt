@@ -153,7 +153,8 @@ fun XboxGameControls(
         val pivotSettings = rememberPivotArcSettings().value
         val safeDrawing = WindowInsets.safeDrawing
         val safeGestures = WindowInsets.safeGestures
-        val hostSystem = pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
+        val hostSystem =
+            pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
         val pivotProfile =
             if (arc?.mode == ArcControlMode.PIVOTARC && pivotGate != null && !physicalControllerConnected && !isTv) {
                 PivotArcSoloProfiles.forNativeHost(hostSystem, controllerId)

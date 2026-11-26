@@ -156,8 +156,7 @@ internal object PivotArcPaintPolicy {
             key == "dpad" || key == "c-direction" -> "D"
             key.startsWith("analog-") -> "ANALOG"
             key.startsWith("shoulder-") -> key.removePrefix("shoulder-").uppercase()
-            key == "hold-a" -> "HOLDA"
-            key == "hold-b" -> "HOLDB"
+            key.startsWith("hold-") -> "HOLD${key.removePrefix("hold-").uppercase()}"
             else -> key.uppercase()
         }
 
@@ -213,12 +212,12 @@ internal object PivotArcPaintPolicy {
 internal fun pivotArcHardwareSeatKey(key: String): String =
     when (key) {
         "D" -> "dpad"
+        "CDirection", "Cursor" -> "c-direction"
         "Analog", "AnalogL" -> "analog-left"
         "AnalogR" -> "analog-right"
-        "A", "B", "X", "Y" -> "face-${key.lowercase()}"
-        "HoldA" -> "hold-a"
-        "HoldB" -> "hold-b"
-        "L", "R", "L2", "R2" -> "shoulder-$key"
+        "A", "B", "C", "X", "Y", "Z" -> "face-${key.lowercase()}"
+        "HoldA", "HoldB", "HoldX", "HoldY", "HoldZ", "HoldL", "HoldR" -> "hold-${key.removePrefix("Hold").lowercase()}"
+        "L", "R", "L2", "R2", "HalfL", "HalfR" -> "shoulder-$key"
         else -> key.lowercase()
     }
 
@@ -366,7 +365,7 @@ internal fun CartdeckPivotArcModule(
                 val center = bounds.center
                 val radius = minOf(bounds.width, bounds.height) / 2f
                 when (PivotArcPaintPolicy.materialKey(key)) {
-                    "A", "B", "X", "Y" -> {
+                    "A", "B", "C", "X", "Y", "Z" -> {
                         val collar = (radius - 2.dp.toPx()).coerceAtLeast(0f)
                         drawCircle(tokens.bezel.copy(alpha = 0.89f), radius = collar, center = center)
                         drawCircle(
@@ -435,7 +434,7 @@ internal fun CartdeckPivotArcModule(
                             style = Stroke(width = 1.7.dp.toPx()),
                         )
                     }
-                    "L", "R", "L2", "R2" -> {
+                    "L", "R", "L2", "R2", "HALFL", "HALFR" -> {
                         val margin = 2.dp.toPx()
                         drawRoundRect(
                             tokens.bezel.copy(alpha = 0.86f),
@@ -454,7 +453,7 @@ internal fun CartdeckPivotArcModule(
                             strokeWidth = 1.2.dp.toPx(),
                         )
                     }
-                    "HOLDA", "HOLDB" -> {
+                    "HOLDA", "HOLDB", "HOLDX", "HOLDY", "HOLDZ", "HOLDL", "HOLDR" -> {
                         drawCircle(
                             tokens.bezel.copy(alpha = 0.85f),
                             radius = (radius - 2.dp.toPx()).coerceAtLeast(0f),

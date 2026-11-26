@@ -253,12 +253,14 @@ internal fun pivotArcLegacyLabel(
                     "A" -> return "1"
                     "B" -> return "2"
                     "Start" -> return "Pause"
+                    else -> Unit
                 }
             SystemID.PC_ENGINE ->
                 when (seat) {
                     "A" -> return "I"
                     "B" -> return "II"
                     "Start" -> return "Run"
+                    else -> Unit
                 }
             else -> Unit
         }

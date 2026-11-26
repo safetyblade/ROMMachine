@@ -260,7 +260,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             pivotSystem = SystemID.WII_U,
                             pivotGate = pivotGate,
                             onTogglePivotHold = { code ->
-                                if (loaded && started && !menuOpen && hostForeground && !leaving) pivotGate.toggleHold(code)
+                                if (loaded && started && !menuOpen && hostForeground && !leaving) {
+                                    pivotGate.toggleHold(code)
+                                }
                             },
                             physicalControllerConnected = physicalConnected,
                             presentationAspect =
