@@ -162,7 +162,7 @@
       "batch": "B",
       "family": "Four/six-button and handheld",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -170,7 +170,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Distinct 3-button/6-button controller profiles."
+      "note": "MD-PA-01 Digital 3 radial candidate A upper-right/B lower-right/C lower-centre, one provisional Hold B, Menu/Start; six-button open; owner approval pending."
     },
     {
       "id": "SEGACD",
@@ -260,7 +260,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Solo PivotArc appearance owner-accepted."
+      "note": "Solo PivotArc appearance accepted; owner video reviewed, PSP-PA-02 ergonomic review open: L/R adjacency, X/O lower pair, Square/Triangle Hold needs; no new geometry approved."
     },
     {
       "id": "N64",
