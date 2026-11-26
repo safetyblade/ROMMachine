@@ -4,7 +4,7 @@ Owner revised order (26 Nov 2026): **1. Prove full-piece GripArc on GBA; 2. Desi
 
 This is the canonical progress register for PR #376 and its successors. Update **each console row after each build** with commit, source/CI gate, visual owner decision and actual input acceptance. Never change status to accepted based on code or screenshot alone. Console-specific variant inventory is in `GC-ARC-CONSOLE-HARDWARE-V2-20261126.md`.
 
-**Current rollout gate: GBA GripArc physical proof only. Do not advance a broad PivotArc or GripArc rollout until the GBA-specific complete housing is confirmed by the owner. Console-specific PivotArc may have existing code but is not considered complete until console styling and physical acceptance. New Joint work is deferred until both solo programmes have finished.**
+**Current rollout gate: GBA full-piece physical proof PASS (owner, 26 Nov 2026); spatial utilisation FAIL. Phase 2 PivotArc batch 01 may proceed under #377; final GBA GripArc design and wider GripArc rollout remain open/deferred to phase 3. No Joint work until both solo programmes finish.**
 
 **Frozen reference:** solo GBA and PSP PivotArc screenshot appearance and relative control placements. Keep both source and owner acceptance when working on GripArc. Legacy L-style GripArc remains the fallback until full-body style is validated on device; don't assert Joint complete.
 
@@ -20,6 +20,12 @@ This is the canonical progress register for PR #376 and its successors. Update *
 
 **Required next GBA gate:** Implement a GBA-specific compact native-control layout and cohesive G1–G4 bank in the shared full-height chassis, exact-head format/unit/APK checks, then owner physical appearance and game-input retest. Current GBA status: full-body chassis **candidate accepted for further design exploration**, button placement **needs redesign**, functional acceptance **unverified**. Other consoles remain unbuilt and this screenshot does not promote them.
 
+## GBA physical proof — owner decision, 26 Nov 2026
+
+Owner reports "GripARC physically passed but also failed as not utilising the space enough" with GBA BattleBots gameplay screenshot (1000097297.jpg). Physical proof PASS as reported; separate spatial/design FAIL. Full-size housing is retained as shared chassis foundation; exact final layout is NOT approved. Observed small visible L/R and G1–G4 caps, large gaps and unused lower face; propose larger native controls and a prominent G1–G4 bank, deliberate utility placement and better reach using the existing body. Exact geometry awaits phase 3 design approval. Preserve viewport, native mapping, saves, >=48dp effective targets, and no overlap. Owner physical report does not establish individual G-slot programming or exhaustive input/rotation/handedness tests; those remain final acceptance gates. Latest known GBA prototype a627a713 had Room/Kotlin/APK workflow PASS; screenshot does not display version or commit, so exact installed build is not independently verified.
+
+Phase 1 chassis proof satisfied; approved PivotArc batch 01 (15 systems, commit 885a2eca) may enter source implementation. No final GripArc layout acceptance or Joint authorization.
+
 ## Console-by-console build matrix
 
 | Console | Input family | PivotArc SOLO (specific style) | GripArc SOLO (full hardware) | Joint (pad placement only, LAST) | Latest GC run/commit |
@@ -32,7 +38,7 @@ This is the canonical progress register for PR #376 and its successors. Update *
 | NGP | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | NGC | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | PC_ENGINE | Two-button | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
-| GBA | Four-button/shoulders | Accepted solo visual | Full-body built/CI PASS; chassis promising, control positions need refinement | Not built | GBA-V2B-06 (e7815a71) |
+| GBA | Four-button/shoulders | Accepted solo visual | Full-body owner physical PASS; spatial utilisation FAIL; final layout open | Not built | a627a713 CI PASS; owner screenshot build unverified |
 | SNES | Four-button/shoulders | Mapped; console styling unapproved | Input mapped; full-body not built | Not built | — |
 | GENESIS | Six-button | Not built | Not built | Not built | — |
 | SEGACD | Six-button | Not built | Not built | Not built | — |
@@ -74,8 +80,8 @@ This is the canonical progress register for PR #376 and its successors. Update *
 
 | Phase | Scope | Code/CI state | Owner acceptance | Unlock condition |
 |---|---|---|---|---|
-| 1 — GBA GripArc proof | Full-piece GBA Standard+GripArc, touch + G1–G4 | e7815a71 — all three CI gates PASS | Pending physical screenshot/gameplay | Owner confirms the GBA full-piece style and functional controls |
-| 2 — All PivotArc | 33 consoles, console-specific visual and input architecture | Existing coverage mixed, not complete | GBA and PSP solo visual accepted; rest unapproved | Each console individually verified; no family-wide automatic PASS |
+| 1 — GBA GripArc proof | Full-piece GBA Standard+GripArc | a627a713 — Room/Kotlin/APK PASS | Owner physical proof PASS; spatial utilisation FAIL | Phase 2 unlocked; final GripArc layout remains open |
+| 2 — All PivotArc | 33 consoles, console-specific visual and input architecture | Batch 01 design handoff 885a2eca; runtime implementation pending | 15 system designs/reference approved; DS open | Each console individually verified; no family-wide automatic PASS |
 | 3 — All GripArc | 33 consoles using proven GBA full-piece style contract | Only GBA proof candidate implemented | Pending | Every applicable console built and accepted after PivotArc |
 | 4 — Joint | Whole-pad placement using immutable PivotArc + GripArc | Existing legacy combination NOT accepted; new Joint not started | Previous combined overlap FAIL | All standalone pad designs locked and accepted |
 
