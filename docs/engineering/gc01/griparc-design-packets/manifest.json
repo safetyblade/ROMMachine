@@ -49,7 +49,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "GBC",
@@ -60,7 +64,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "NES",
@@ -71,7 +79,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "SMS",
@@ -82,7 +94,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "GG",
@@ -93,7 +109,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "NGP",
@@ -104,7 +124,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "NGC",
@@ -115,7 +139,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "PC_ENGINE",
@@ -126,7 +154,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "GBA",
@@ -137,7 +169,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "review_candidate",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "SNES",
@@ -148,7 +184,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "GENESIS",
@@ -159,7 +199,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "SEGACD",
@@ -170,7 +214,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "WS",
@@ -181,7 +229,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "WSC",
@@ -192,7 +244,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "NDS",
@@ -203,7 +259,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "NINTENDO_3DS",
@@ -214,7 +274,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "PSP",
@@ -225,7 +289,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "N64",
@@ -236,7 +304,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "PSX",
@@ -247,7 +319,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "PLAYSTATION_2",
@@ -258,7 +334,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "PLAYSTATION_3",
@@ -269,7 +349,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "DREAMCAST",
@@ -280,7 +364,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "GAMECUBE",
@@ -291,7 +379,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "XBOX",
@@ -302,7 +394,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "XBOX360",
@@ -313,7 +409,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "FBNEO",
@@ -324,7 +424,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "MAME2003PLUS",
@@ -335,7 +439,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "ATARI2600",
@@ -346,7 +454,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "ATARI7800",
@@ -357,7 +469,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "LYNX",
@@ -368,7 +484,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "WII",
@@ -379,7 +499,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "WII_U",
@@ -390,7 +514,11 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     },
     {
       "id": "DOS",
@@ -401,7 +529,16 @@
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
-      "joint": "deferred"
+      "joint": "deferred",
+      "portrait": "to_design",
+      "landscape": "to_design",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending"
     }
-  ]
+  ],
+  "designGate": {
+    "id": "GA-D00",
+    "status": "review_candidate",
+    "scope": "Universal Controls Hub, physical controller discovery/mapping and portrait/landscape GripARC design standard"
+  }
 }
