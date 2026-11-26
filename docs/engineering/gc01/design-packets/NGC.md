@@ -1,16 +1,16 @@
 # NGC — controller design packet
 
-**Batch:** A · **Hardware family:** Two-button · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** A · **Hardware family:** Two-button · **Status: PIVOTARC OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Neo Geo Pocket Color, NOT GameCube.
 
-## NGC-PA-01 — review candidate (26 Nov 2026)
+## NGC-PA-01 — owner layout lock (26 Nov 2026)
 
-Neo Geo Pocket Color (SystemID.NGC, not GameCube) has the same eight-way digital click-stick, A/B and Option topology as NGP. Propose exact inheritance of owner-approved [NGP-PA-01](NGP.md): Digital 2 Click shell and directional seat, B upper-right and A lower-left, individual H immediately right of B and below A, Menu/Option utility rail, one-handed reach and handedness. No analogue axis, push-click input, shoulders or fabricated Start/Select. Maintain distinct platform identity and saved preferences. Historical source-backed [PIV-HH-01](../../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) identifies shared NGP/NGC control family; validate active NGC backend, exact guest mapping and Hold ownership, diagonals/neutral release, 48dp+ targets and physical fit independently. Owner approval pending; no build or physical PASS. GripArc and Joint deferred.
+Neo Geo Pocket Color (SystemID.NGC, not GameCube) has the same eight-way digital click-stick, A/B and Option topology as NGP. Owner approved exact inheritance of owner-approved [NGP-PA-01](NGP.md): Digital 2 Click shell and directional seat, B upper-right and A lower-left, individual H immediately right of B and below A, Menu/Option utility rail, one-handed reach and handedness. No analogue axis, push-click input, shoulders or fabricated Start/Select. Maintain distinct platform identity and saved preferences. Historical source-backed [PIV-HH-01](../../../design/gc01/GC01_PIVOTARC_HANDHELD_ONE_HAND_LAYOUTS_2026-11-22.md) identifies shared NGP/NGC control family; validate active NGC backend, exact guest mapping and Hold ownership, diagonals/neutral release, 48dp+ targets and physical fit independently. Owner design approval granted 26 Nov 2026; no build or physical PASS. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Neo Geo Pocket Color (SystemID.NGC, not GameCube) has the same eight-way digital
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact source geometry audit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
