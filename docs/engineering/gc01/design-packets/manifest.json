@@ -282,6 +282,21 @@
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "PSX-PA-02A Digital approved unchanged; PSX-PA-03 DualShock owner approved side-mounted L/R stack, central D-pad, mid-arc shoulders/four Holds; measured fit and native input pending."
+    },
+    {
+      "id": "PLAYSTATION_2",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -290,29 +305,14 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PSX-PA-02A/B revised at owner direction: reject top shoulders, PSP-style mid-arc 2×2 L1/R1 then L2/R2 bank, radial four fixed Holds, Digital/DualShock variants; approval and measured fit pending."
-    },
-    {
-      "id": "PLAYSTATION_2",
-      "batch": "D",
-      "family": "Console native / analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "PS2-PA-01 proposed PSX-PA-03 side stack inheritance; native pressure/trigger/host capabilities and physical fit pending approval."
     },
     {
       "id": "PLAYSTATION_3",
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
-        "design": "to_design",
+        "design": "review_candidate",
         "physical": "pending"
       },
       "grip": {
@@ -320,7 +320,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "Audit the active native controller input inventory and physical console-specific legends."
+      "note": "PS3-PA-01 proposed PSX-PA-03 side stack inheritance; native pressure/trigger/host capabilities and physical fit pending approval."
     },
     {
       "id": "DREAMCAST",
