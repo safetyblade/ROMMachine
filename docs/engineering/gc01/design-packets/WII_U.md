@@ -1,16 +1,16 @@
 # WII_U — controller design packet
 
-**Batch:** E · **Hardware family:** Specialist · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** E · **Hardware family:** Specialist · **Status: OWNER LAYOUT LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Native host and GamePad control proof needed.
 
-## WU-PA-01A/B — GamePad and Pro Controller review candidates (26 Nov 2026)
+## WU-PA-01A/B — GamePad and Pro Controller owner layout lock (26 Nov 2026)
 
-Inherit exact approved PSX-PA-03 448×400 reference chassis and side-mounted sticks, central D-pad, radial face seats Square=X, Triangle=A, Cross=B, Circle=Y (Nintendo compass rotated as approved SNES), fixed independent Holds X/A/B/Y, mid-arc 2×2 L/R upper and ZL/ZR lower, L/R stick-click seats only with verified guest dispatch. Rail Menu/Minus/Plus, native Home only if separately verified. A GamePad mode must protect independent GamePad interactive screen and TV viewport, support true guest touchscreen coordinate mapping and release, dual-screen switching/layout where available, and genuine gyro only via proven backend. Never treat TV touch as GamePad input without explicit mapped mode. B Pro Controller uses same geometry without GamePad touch or motion claims; actual guest device selection required. No fabricated Wii Remote support in Wii U mode. Engineering NativeGameSystems.kt registers Wii U as nativeBackend=cemu, hasTouchScreen=true and empty systemCoreConfigs; WiiuEngine.kt blob 98736e8db022f34d34471e83779fe41c4d0273f9 requires engineering build. These declarations do not prove working native input bridge, dual-display or gyro. Verify Cemu host actual capabilities before enabling each profile; absent support is explicit engineering gap, not a visual pass. Challenge games proposed Nintendo Land, Splatoon, ZombiU, Super Mario Maker, The Wind Waker HD; verify game-specific device requirements, screen dependencies, touch, gyro and simultaneous inputs. Require >=48dp independent discrete targets, full analogue travel, mirror, safe viewport, held ownership/release, native mode, and enhanced handset acceptance. Geometry inherited, not measured. Owner approval pending; no implementation/build. GripArc/Joint deferred.
+Inherit exact approved PSX-PA-03 448×400 reference chassis and side-mounted sticks, central D-pad, radial face seats Square=X, Triangle=A, Cross=B, Circle=Y (Nintendo compass rotated as approved SNES), fixed independent Holds X/A/B/Y, mid-arc 2×2 L/R upper and ZL/ZR lower, L/R stick-click seats only with verified guest dispatch. Rail Menu/Minus/Plus, native Home only if separately verified. A GamePad mode must protect independent GamePad interactive screen and TV viewport, support true guest touchscreen coordinate mapping and release, dual-screen switching/layout where available, and genuine gyro only via proven backend. Never treat TV touch as GamePad input without explicit mapped mode. B Pro Controller uses same geometry without GamePad touch or motion claims; actual guest device selection required. No fabricated Wii Remote support in Wii U mode. Engineering NativeGameSystems.kt registers Wii U as nativeBackend=cemu, hasTouchScreen=true and empty systemCoreConfigs; WiiuEngine.kt blob 98736e8db022f34d34471e83779fe41c4d0273f9 requires engineering build. These declarations do not prove working native input bridge, dual-display or gyro. Verify Cemu host actual capabilities before enabling each profile; absent support is explicit engineering gap, not a visual pass. Challenge games proposed Nintendo Land, Splatoon, ZombiU, Super Mario Maker, The Wind Waker HD; verify game-specific device requirements, screen dependencies, touch, gyro and simultaneous inputs. Require >=48dp independent discrete targets, full analogue travel, mirror, safe viewport, held ownership/release, native mode, and enhanced handset acceptance. Geometry inherited, not measured. Owner approved 26 Nov 2026; native capability and physical gates remain open; no implementation/build. GripArc/Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Inherit exact approved PSX-PA-03 448×400 reference chassis and side-mounted sti
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — capability and fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
