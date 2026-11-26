@@ -156,29 +156,29 @@
       "id": "PC_ENGINE",
       "batch": "A",
       "family": "Classic retro",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
       "variants": [
         {
           "id": "digital2",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         },
         {
           "id": "digital6",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "conditional independent III–VI mapping and guest mode"
         }
       ],
-      "note": "Two- and six-button portrait/landscape candidates; Avenue Pad 3 alias remains separate open capability."
+      "note": "Owner approved Digital 2 and Digital 6 portrait/landscape/preset 27 Nov; independent six-button runtime conditional, Avenue Pad 3 alias still open."
     },
     {
       "id": "GBA",
@@ -200,16 +200,17 @@
       "id": "SNES",
       "batch": "B",
       "family": "Handheld / multi-button",
-      "design": "to_design",
-      "preset": "to_design",
+      "design": "review_candidate",
+      "preset": "candidate",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
+      "portrait": "review_candidate",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "note": "Digital 4 shoulder controller, conventional ABXY diamond, Hold Y, L+R, Turbo B, Hold X; owner review pending."
     },
     {
       "id": "GENESIS",
