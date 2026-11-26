@@ -317,8 +317,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     if (pivotBaseline == null) {
                         PivotArcResolution.Unavailable("PivotArc geometry source could not be loaded.")
                     } else if (soloProfile == null &&
-                        (requiredPivotControls == null ||
-                            (!effectiveArcMode.hasGrip && PivotArcSoloProfiles.supportsSystem(viewModel.systemId)))
+                        (
+                            requiredPivotControls == null ||
+                                (!effectiveArcMode.hasGrip && PivotArcSoloProfiles.supportsSystem(viewModel.systemId))
+                        )
                     ) {
                         PivotArcResolution.Unavailable(
                             "PivotArc controls are not supported for this system. Standard controls remain available.",
