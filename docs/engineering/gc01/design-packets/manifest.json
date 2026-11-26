@@ -462,7 +462,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -470,7 +470,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "DOS-PA-01A/B/C Sony-derived DOS_AUTO gamepad plus proposed keyboard action and mouse modes; native mapping/fit/approval pending."
+      "note": "DOS-PA-01A/B/C approved gamepad and conditional keyboard/mouse profiles; native bridge/mapping and physical gate pending."
     },
     {
       "id": "LYNX",
@@ -492,7 +492,7 @@
       "batch": "E",
       "family": "Specialist",
       "pivot": {
-        "design": "review_candidate",
+        "design": "owner_layout_locked",
         "physical": "pending"
       },
       "grip": {
@@ -500,7 +500,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "WU-PA-01A/B Sony-derived GamePad and Pro, separate touch/dual-screen/gyro capability verification, enhanced testing; approval pending."
+      "note": "WU-PA-01A/B approved GamePad/Pro Sony-derived geometry; native touch/dual-screen/gyro capability and enhanced physical gate pending."
     }
   ]
 }
