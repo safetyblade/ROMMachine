@@ -57,6 +57,25 @@ class PivotArcSoloProfilesTest {
     }
 
     @Test
+    fun xboxNativeUsesSharedSonySeatsWithNativeLegendsAndKeys() {
+        val xbox = checkNotNull(PivotArcSoloProfiles.forNativeXbox(TouchControllerID.XBOX))
+        val x360 = checkNotNull(PivotArcSoloProfiles.forNativeXbox(TouchControllerID.XBOX360))
+        assertEquals("White", xbox.seat("L")?.label)
+        assertEquals("Black", xbox.seat("R")?.label)
+        assertEquals("LB", x360.seat("L")?.label)
+        assertEquals("RB", x360.seat("R")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_A, x360.seat("B")?.keyCode)
+        assertEquals(xbox.seats.map { it.x to it.y }, x360.seats.map { it.x to it.y })
+        assertEquals(xbox.holdKeys, x360.holdKeys)
+        assertEquals(4, x360.holdKeys.size)
+        assertNull(PivotArcSoloProfiles.forNativeXbox(TouchControllerID.PSX))
+        val nunchuk = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.WII, TouchControllerID.WII_NUNCHUK))
+        assertEquals("IR pointer", nunchuk.seat("AnalogR")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, nunchuk.seat("ShakeN")?.keyCode)
+        assertEquals(3, nunchuk.holdKeys.size)
+    }
+
+    @Test
     fun fitsKeepEverySeatOrExplainFallback() {
         val profile = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.PSX, TouchControllerID.PSX))
         val safe = PivotArcBounds(8f, 8f, 620f, 1100f)

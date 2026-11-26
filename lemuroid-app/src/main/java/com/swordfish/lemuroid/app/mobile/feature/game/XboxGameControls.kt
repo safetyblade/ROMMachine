@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -25,6 +28,8 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
+import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalCartdeckControlBounds
@@ -45,6 +50,8 @@ fun XboxGameControls(
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
     presentationAspect: Float = 4f / 3f,
+    pivotGate: PivotArcHeldInputGate? = null,
+    onTogglePivotHold: (Int) -> Unit = {},
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
@@ -142,10 +149,77 @@ fun XboxGameControls(
                     null
                 }
             }
+        val pivotSettings = rememberPivotArcSettings().value
+        val safeDrawing = WindowInsets.safeDrawing
+        val safeGestures = WindowInsets.safeGestures
+        val pivotProfile =
+            if (arc?.mode == ArcControlMode.PIVOTARC && pivotGate != null && !physicalControllerConnected && !isTv) {
+                PivotArcSoloProfiles.forNativeXbox(controllerId)
+            } else {
+                null
+            }
+        val pivotPlacement =
+            if (pivotProfile != null && viewport != null && origin != null) {
+                val scale = density.density
+                val direction = androidx.compose.ui.unit.LayoutDirection.Ltr
+                val safe =
+                    PivotArcBounds(
+                        maxOf(safeDrawing.getLeft(density, direction), safeGestures.getLeft(density, direction)) /
+                            scale + 8f,
+                        maxOf(safeDrawing.getTop(density), safeGestures.getTop(density)) / scale + 8f,
+                        origin.width / scale -
+                            maxOf(safeDrawing.getRight(density, direction), safeGestures.getRight(density, direction)) /
+                            scale - 8f,
+                        origin.height / scale -
+                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                    )
+                val videoBounds =
+                    PivotArcBounds(
+                        (viewport.left - origin.left) / scale,
+                        (viewport.top - origin.top) / scale,
+                        (viewport.right - origin.left) / scale,
+                        (viewport.bottom - origin.top) / scale,
+                    )
+                (
+                    PivotArcSoloSolver.resolve(
+                        pivotProfile,
+                        safe,
+                        videoBounds,
+                        pivotSettings.hand == PivotArcHand.LEFT,
+                        pivotSettings.offsetXdp,
+                        pivotSettings.offsetYdp,
+                        landscape,
+                    ) as? PivotArcResolution.Fits
+                )?.placement
+            } else {
+                null
+            }
+        val activePivot = pivotPlacement != null
+        val holdKeys = pivotProfile?.holdKeys.orEmpty()
+        DisposableEffect(pivotGate, activePivot, holdKeys) {
+            pivotGate?.setEnabled(activePivot, holdKeys)
+            onDispose { pivotGate?.setEnabled(false) }
+        }
+        val pivotHeld = pivotGate?.holds?.collectAsState()?.value.orEmpty()
+        val measuredBounds =
+            if (pivotPlacement != null && origin != null) {
+                pivotPlacement.controls.map { (key, rect) ->
+                    val scale = density.density
+                    pivotArcHardwareSeatKey(key) to Rect(
+                        origin.left + rect.left * scale,
+                        origin.top + rect.top * scale,
+                        origin.left + rect.right * scale,
+                        origin.top + rect.bottom * scale,
+                    )
+                }.toMap()
+            } else {
+                bounds
+            }
         var fallbackShown by androidx.compose.runtime.remember(game) { androidx.compose.runtime.mutableStateOf(false) }
         val unavailable =
             arc != null && arc.mode != ArcControlMode.STANDARD &&
-                (arc.mode != ArcControlMode.STANDARD_GRIPARC || placement == null) && viewport != null
+                (arc.mode != ArcControlMode.STANDARD_GRIPARC || placement == null) &&
+                (arc.mode != ArcControlMode.PIVOTARC || pivotPlacement == null) && viewport != null
         if (unavailable && !fallbackShown) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { fallbackShown = true },
@@ -173,7 +247,7 @@ fun XboxGameControls(
                     videoBounds = video.value,
                     rootBounds = root.value,
                     isLandscape = landscape,
-                    controlBounds = bounds.values.toList(),
+                    controlBounds = measuredBounds.values.toList(),
                     patternId = resolved.patternId,
                     stampId = resolved.stampId,
                     decal = resolved.decal,
@@ -187,11 +261,12 @@ fun XboxGameControls(
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
-                    inputBounds = bounds,
+                    inputBounds = measuredBounds,
                     tokens = tokens,
                     edition = edition,
                     isDualScreen = false,
                     customColours = resolved.customColours,
+                    pivotArc = activePivot,
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                 )
@@ -254,7 +329,7 @@ fun XboxGameControls(
                             }
                         },
                     )
-                    if (placement == null && !physicalControllerConnected && !isTv) {
+                    if (placement == null && pivotPlacement == null && !physicalControllerConnected && !isTv) {
                         val config = TouchControllerID.getConfig(controllerId)
                         val effectiveSettings =
                             if (dedicatedHardwareLayout) {
@@ -276,6 +351,17 @@ fun XboxGameControls(
                             effectiveSettings,
                         )
                     }
+                }
+                if (pivotPlacement != null && pivotProfile != null) {
+                    PivotArcControlGroup(
+                        placement = pivotPlacement,
+                        system = if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX,
+                        heldKeys = pivotHeld,
+                        accent = tokens.accent,
+                        onToggleHold = onTogglePivotHold,
+                        touchController = controllerId,
+                        soloProfile = pivotProfile,
+                    )
                 }
                 if (placement != null && arc != null && !physicalControllerConnected && !isTv) {
                     GripArcCombinedControls(placement)

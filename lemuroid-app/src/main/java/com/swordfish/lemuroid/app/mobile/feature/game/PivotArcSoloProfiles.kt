@@ -400,6 +400,53 @@ object PivotArcSoloProfiles {
             },
         )
 
+    private fun nunchukWii(): PivotArcSoloProfile =
+        PivotArcSoloProfile(
+            listOf(
+                stick("AnalogL", 36, 124, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK, 64f),
+                stick("AnalogR", 36, 248, ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK, 64f)
+                    .copy(label = "IR pointer"),
+                dpad(110, 185, 72f),
+                button("X", 164, 84, x, "C"),
+                button("B", 224, 120, b, "B"),
+                button("A", 224, 272, a, "A"),
+                button("Y", 164, 318, y, "Z"),
+                hold("B", 300, 110),
+                hold("A", 300, 300),
+                hold("Y", 164, 376),
+                button("Shake", 278, 197, r2, "Shake"),
+                button("ShakeN", 332, 197, l2, "Shake N"),
+            ) + rail() +
+                listOf(
+                    utility("Minus", l, "−"),
+                    utility("Plus", r, "+"),
+                ),
+        )
+
+    /** Native host mode uses the same Android button codes as XboxPadState. */
+    fun forNativeXbox(controller: TouchControllerID): PivotArcSoloProfile? {
+        if (controller != TouchControllerID.XBOX && controller != TouchControllerID.XBOX360) return null
+        val bumpers = controller == TouchControllerID.XBOX360
+        return PivotArcSoloProfile(
+            sony(true).seats.map { seat ->
+                when (seat.id) {
+                    "Y" -> seat.copy(label = "X", keyCode = x)
+                    "X" -> seat.copy(label = "Y", keyCode = y)
+                    "B" -> seat.copy(label = "A", keyCode = a)
+                    "A" -> seat.copy(label = "B", keyCode = b)
+                    "L" -> seat.copy(label = if (bumpers) "LB" else "White")
+                    "R" -> seat.copy(label = if (bumpers) "RB" else "Black")
+                    "L2" -> seat.copy(label = "LT")
+                    "R2" -> seat.copy(label = "RT")
+                    "LS" -> seat.copy(label = "LS")
+                    "RS" -> seat.copy(label = "RS")
+                    "Select" -> seat.copy(label = "Back")
+                    else -> seat
+                }
+            },
+        )
+    }
+
     fun supportsSystem(system: SystemID): Boolean =
         system in
             setOf(
@@ -408,6 +455,7 @@ object PivotArcSoloProfiles {
                 SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.DREAMCAST,
                 SystemID.ATARI7800, SystemID.ATARI2600, SystemID.WII, SystemID.DOS,
                 SystemID.GAMECUBE, SystemID.FBNEO, SystemID.MAME2003PLUS,
+                SystemID.XBOX, SystemID.XBOX360,
             )
 
     fun forMode(
@@ -450,6 +498,7 @@ object PivotArcSoloProfiles {
                 when (controller) {
                     TouchControllerID.WII_SIDEWAYS -> sidewaysWii()
                     TouchControllerID.WII_CLASSIC -> classicWii()
+                    TouchControllerID.WII_NUNCHUK -> nunchukWii()
                     TouchControllerID.GAMECUBE -> gameCube()
                     else -> null
                 }
