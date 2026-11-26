@@ -418,7 +418,7 @@ class NativeCoreActivity : SDLActivity() {
                                 capabilities =
                                     XboxMenuCapabilities(
                                         BuildConfig.DEBUG,
-                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-grid-v1" &&
+                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-edges-outer-inner-v1" &&
                                             !pixelProbeRequested,
                                         runCatching {
                                             XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
@@ -541,7 +541,7 @@ class NativeCoreActivity : SDLActivity() {
     /** One explicit debug action; no continuous readback or image file export. */
     private fun requestPixelStageProbe() {
         if (!BuildConfig.DEBUG || pixelProbeRequested || leaving) return
-        if (engine.properties.getProperty("cartdeck.pixelProbe") != "async-grid-v1") return
+        if (engine.properties.getProperty("cartdeck.pixelProbe") != "async-edges-outer-inner-v1") return
         pixelProbeRequested = true
         surfacePixelReport = "surface_pixel_probe=requested"
         if (runCatching { nativeRequestPixelProbe() }.isFailure) {
