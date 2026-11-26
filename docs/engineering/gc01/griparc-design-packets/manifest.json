@@ -124,22 +124,38 @@
       "id": "NGP",
       "batch": "A",
       "family": "Classic retro",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Digital 2 Click shared candidate; eight-way digital movement, A/B and Option; owner review pending."
+      "note": "Owner approved 27 Nov; digital click-stick, Hold/Turbo, Option dispatch and actual fit pending engineering."
     },
     {
       "id": "NGC",
       "batch": "A",
       "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; digital click-stick, Hold/Turbo, Option dispatch and actual fit pending engineering."
+    },
+    {
+      "id": "PC_ENGINE",
+      "batch": "A",
+      "family": "Classic retro",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -150,22 +166,19 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Digital 2 Click shared candidate; eight-way digital movement, A/B and Option; owner review pending."
-    },
-    {
-      "id": "PC_ENGINE",
-      "batch": "A",
-      "family": "Classic retro",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "review_candidate",
+          "runtime": "conditional independent III–VI mapping and guest mode"
+        }
+      ],
+      "note": "Two- and six-button portrait/landscape candidates; Avenue Pad 3 alias remains separate open capability."
     },
     {
       "id": "GBA",

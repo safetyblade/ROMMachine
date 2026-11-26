@@ -1,12 +1,12 @@
-# NGP-GA-01P/L — Digital 2 Click Power User (review candidate)
+# NGP-GA-01P/L — Digital 2 Click Power User (owner layout locked)
 Neo Geo Pocket. Shared design derived from approved Sega Digital 2 and original NGP/NGC PivotARC owner-locked click-stick. Source NGP.kt blob 3def5e3c5da26a99c64c2bb672a1efd148028895: Android A displays guest B, Android B displays guest A, discrete direction, START host key (guest Option in prior approved design; verify selected core). No native shoulders, Select, separate Start, analogue axis or push-click. Use eight-way digital circular stick, segmented directional surround with clear diagonal feedback, recessed tactile cap. No physical click claim. Preserve existing directional event identities, neutral release and simultaneous directional/face inputs.
 ## Portrait (360×380 illustrative canvas)
 Digital click-stick (86,155), native B (278,129), native A (210,185), Hold A (210,60), Turbo B (318,195), Turbo A (236,252), A+B (147,260). Menu (115,330), Option (245,330). Same full-body manufactured hardware and proportions as approved Sega Digital 2. Directional well approximately 126 reference units diameter, with circular inner cap and eight directional sectors; not analogue. Preserve actual independent target size, no new input.
 ## Landscape (730×390 illustrative canvas)
 Existing CARTDECK chassis. Digital click-stick (82,159), A+B (114,253) left; Hold A (650,65), B (681,143), A (612,202), Turbo B (684,220), Turbo A (613,278), Option (674,322) right; Menu (365,365). Main CARTDECK logo centre, GripArc lower right. Protect native 160×152 (20:19 pixel ratio) game view or actual core-reported presentation; never stretch. Same programmable slot IDs across orientations; unused seats are chassis detail only.
-## Proposed factory preset
+## Owner-approved factory preset
 1 Hold A — native Android B latched DOWN until deselected; cap visibly depressed; universal GripARC Hold contract applies.
 2 Turbo B — repeat Android A while pressed.
 3 Turbo A — repeat Android B while pressed.
 4 A+B — simultaneous momentary Android B + A.
-All four programmable; functional legends update, user overrides preserved. Hold and Turbo require typed runtime support; no fake labels; verify actual Option dispatch and independent directional/face input ownership on each system. Test Pocket Tennis, King of Fighters R-1 (candidate titles, not verified). Independent 48dp+ effective touch targets, diagonal transitions, neutral release, no stuck inputs, both orientations and saves retained. Owner review pending, no runtime work or Joint approval.
+All four programmable; functional legends update, user overrides preserved. Hold and Turbo require typed runtime support; no fake labels; verify actual Option dispatch and independent directional/face input ownership on each system. Test Pocket Tennis, King of Fighters R-1 (candidate titles, not verified). Independent 48dp+ effective touch targets, diagonal transitions, neutral release, no stuck inputs, both orientations and saves retained. Owner approved portrait, landscape and preset 27 Nov 2026; no runtime work or Joint approval.
