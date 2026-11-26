@@ -180,7 +180,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val currentControllerConfig = controllerConfigState.value
         val portraitMode = CartdeckViewportPolicy.portraitMode(viewModel.systemId)
         val portraitApertureRatio =
-            CartdeckViewportPolicy.portraitApertureRatio(viewModel.systemId, maxHeight.value)
+            CartdeckViewportPolicy.portraitApertureRatio(
+                viewModel.systemId,
+                maxHeight.value,
+                compactSoloPivot = effectiveArcMode == ArcControlMode.PIVOTARC && maxWidth < 380.dp,
+            )
 
         val tiltConfiguration = viewModel.getTiltConfiguration().collectAsState(TiltConfiguration.Disabled)
         val tiltSimulatedStates = viewModel.getSimulatedTiltEvents().collectAsState(InputState())
@@ -430,6 +434,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 requestedDx = pivotSettings.offsetXdp,
                                 requestedDy = pivotSettings.offsetYdp,
                                 isLandscape = isLandscape,
+                                requireHardware = true,
                             )
                         }
                     }

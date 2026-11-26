@@ -89,6 +89,27 @@ internal data class PivotArcModulePlacement(
 internal object PivotArcModuleGeometry {
     val legacyUtilityKeys = setOf("start", "select", "menu")
 
+    fun resolveDp(
+        controls: Map<String, PivotArcBounds>,
+        viewport: PivotArcBounds,
+        safe: PivotArcBounds,
+        utilityKeys: Set<String> = legacyUtilityKeys,
+    ): PivotArcModulePlacement? {
+        // The gameplay bounds already exclude an extra 8dp inside the device insets.
+        val rootMargin = 8f
+        return resolve(
+            controls.mapKeys { pivotArcHardwareSeatKey(it.key) }.mapValues { it.value.asRect() },
+            viewport.asRect(),
+            Rect(0f, 0f, safe.right + rootMargin, safe.bottom + rootMargin),
+            PIVOT_ARC_EDGE_DP,
+            PIVOT_ARC_LABEL_HEIGHT_DP,
+            PIVOT_ARC_DISPLAY_CLEARANCE_DP,
+            utilityKeys,
+        )
+    }
+
+    private fun PivotArcBounds.asRect() = Rect(left, top, right, bottom)
+
     fun resolve(
         controls: Map<String, Rect>,
         video: Rect?,

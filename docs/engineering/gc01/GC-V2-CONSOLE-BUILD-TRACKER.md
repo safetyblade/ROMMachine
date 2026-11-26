@@ -66,15 +66,17 @@ Phase 1 chassis proof satisfied; all 33 PivotARC system designs approved (batch 
 
 ## PA-R01F verification register — PR #378
 
-The candidate uses the historical GBA/PSP renderer (source reference `a627a713`) with the approved seat profiles. The configured-mode regression enumerates port 1 from the core registry, adds the native host routes, and tests both PivotARC hands at 360×740, 393×852 and 412×915dp. The Compose capture includes GBA and PSP baseline recreations, all configured PivotARC modes and both Standard Nunchuk pointer geometries. Stick and relative IR share right-stick geometry.
+The candidate uses the historical GBA/PSP renderer (source reference `a627a713`) with the approved seat profiles. The configured-mode regression passed for port 1 from the core registry and the native host routes, with both PivotARC hands at 360×740, 393×852 and 412×915dp. Touch targets are independent and at least 48dp. The production Compose capture generated 51 images at 393×852dp, including GBA and PSP source-reference recreations, all configured PivotARC modes and both Standard Nunchuk pointer geometries. Stick and relative IR share right-stick geometry. The current GBA rendering is pixel-identical to its source-reference capture at 393×852dp. The updated PSP retains the shared finish with its revised seat layout. Original owner golden image files were unavailable for this comparison.
 
 | Gate | Candidate evidence |
 |---|---|
 | Shared hardware | The solo solver reserves the display gap, plate and wordmark, then verifies the same geometry the renderer uses. Utility metadata comes from each profile. |
-| Dreamcast | The Flycast controller registration is present. Gameplay waits for controller selection before evaluating unsupported status. Compact fixture fit passes in the standalone geometry probe. The original handset failure still needs replay. |
-| GameCube | The compact approved trigger/action positions and native half-trigger keys remain in the shared hardware plate. Thumb reach, C-stick and half/full trigger behavior need handset replay. |
+| Dreamcast | The Flycast controller registration is present. Gameplay waits for controller selection before evaluating unsupported status. Dreamcast passed all three handset fixtures for both hands. The original handset failure still needs replay. |
+| GameCube | The compact approved layout uses the shared plate. The pinned Dolphin mapping defines L2/R2 as full triggers, L3/R3 as soft triggers, and R1 as Z. Both GameCube PivotARC routes use those keys. Thumb reach, C-stick and trigger behavior need handset replay. |
 | Wii Nunchuk | The pinned Dolphin input source confirms distinct Shake keys, Home, 1/2 and +/−, and the touch and right-axis IR routes. The new Standard deck and PivotARC use those same routes. Native gameplay across titles needs replay. |
-| Visual and installation acceptance | Pending production Compose contact sheet, exact-revision connected APK gate, install-over and owner handset acceptance. |
+| Local source and visual gates | Whole-repository formatting and compilation pass. 855 Kotlin/Android unit tests and 201 native CI contract tests pass locally. The Compose suite writes the gallery and contact sheet to `build/reports/gc01-menu-screens/pivotarc-family/` in the app module. |
+| Compact glass | GB/GBC solo PivotARC uses the existing 4:3 aperture below 380dp handset width. The legacy deck retains its physical gameplay positions and reserves enough space for the wordmark. |
+| Connected APK and handset | The earlier connected attempt rejected the retained hakuX build recipe hash. A fresh individual receipt build was dispatched. Exact-revision connected APK, install-over and owner handset acceptance remain open. |
 
 ### Native capability limits
 

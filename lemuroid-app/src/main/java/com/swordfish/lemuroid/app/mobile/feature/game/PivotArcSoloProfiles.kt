@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
-import androidx.compose.ui.geometry.Rect
 import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
@@ -329,9 +328,10 @@ object PivotArcSoloProfiles {
                 stick("AnalogR", 38, 263, ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK, 64f),
                 dpad(115, 169),
                 button("Y", 140, 55, y),
-                button("L", 200, 105, l),
-                button("R", 255, 105, r),
-                button("Z", 310, 105, r2),
+                // Dolphin descGC binds full triggers to L2/R2, Z to R1, and soft presses to L3/R3.
+                button("L", 200, 105, l2),
+                button("R", 255, 105, r2),
+                button("Z", 310, 105, r),
                 button("A", 200, 169, a).copy(cap = 42f),
                 button("X", 255, 169, x),
                 button("B", 200, 235, b),
@@ -735,20 +735,7 @@ object PivotArcSoloSolver {
             ) {
                 continue
             }
-            val hardwareControls =
-                placed.map { (id, bounds) ->
-                    pivotArcHardwareSeatKey(id) to Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
-                }.toMap()
-            val hardware =
-                PivotArcModuleGeometry.resolve(
-                    hardwareControls,
-                    Rect(viewport.left, viewport.top, viewport.right, viewport.bottom),
-                    Rect(0f, 0f, safe.right + RIM, safe.bottom + RIM),
-                    PIVOT_ARC_EDGE_DP,
-                    PIVOT_ARC_LABEL_HEIGHT_DP,
-                    PIVOT_ARC_DISPLAY_CLEARANCE_DP,
-                    profile.hardwareUtilities,
-                )
+            val hardware = PivotArcModuleGeometry.resolveDp(placed, viewport, safe, profile.hardwareUtilities)
             if (hardware?.wordmark == null) continue
             return PivotArcResolution.Fits(
                 PivotArcPlacement(

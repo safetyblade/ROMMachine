@@ -113,7 +113,11 @@ class PivotArcFamilyRenderingTest {
             return PivotArcBounds(18f, 18f, device.width - 18f, 18f + device.height * 0.46f)
         }
         val (width, height) =
-            CartdeckViewportPolicy.portraitApertureRatio(mode.system, device.height)
+            CartdeckViewportPolicy.portraitApertureRatio(
+                mode.system,
+                device.height,
+                compactSoloPivot = device.width < 380f,
+            )
                 .split(':').map(String::toFloat)
         val insets = portraitHardwareInsets(device.width.dp, device.height.dp, width / height != 4f / 3f)
         val side = insets.side.value
@@ -147,6 +151,7 @@ class PivotArcFamilyRenderingTest {
                     0f,
                     0f,
                     false,
+                    requireHardware = !mode.historical,
                 )
             }
         return (result as? PivotArcResolution.Fits)?.placement

@@ -46,7 +46,9 @@ class PivotArcSoloProfilesTest {
         assertEquals(KeyEvent.KEYCODE_BUTTON_L1, atari.seat("DifficultyA")?.keyCode)
         assertEquals(KeyEvent.KEYCODE_BUTTON_L2, atari.seat("DifficultyB")?.keyCode)
         val gc = checkNotNull(PivotArcSoloProfiles.forMode(SystemID.GAMECUBE, TouchControllerID.GAMECUBE))
-        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, gc.seat("Z")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R1, gc.seat("Z")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, gc.seat("L")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, gc.seat("R")?.keyCode)
         assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBL, gc.seat("HalfL")?.keyCode)
         assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBR, gc.seat("HalfR")?.keyCode)
         assertEquals(gc, PivotArcSoloProfiles.forMode(SystemID.WII, TouchControllerID.GAMECUBE))
@@ -73,6 +75,33 @@ class PivotArcSoloProfilesTest {
         assertEquals("IR pointer", nunchuk.seat("AnalogR")?.label)
         assertEquals(KeyEvent.KEYCODE_BUTTON_L2, nunchuk.seat("ShakeN")?.keyCode)
         assertEquals(3, nunchuk.holdKeys.size)
+    }
+
+    @Test
+    fun wiiNunchukLayoutsShareVerifiedNativeKeysAndAdaptivePointer() {
+        val pivot = PivotArcSoloProfiles.wiiNunchuk(pointerStick = true)
+        val standard = PivotArcSoloProfiles.wiiNunchuk(pointerStick = true, fixedHolds = false)
+        val touch = PivotArcSoloProfiles.wiiNunchuk(pointerStick = false)
+        assertEquals(pivot.seats.filter { it.holdOf == null }, standard.seats)
+        assertEquals(
+            setOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_Y),
+            pivot.holdKeys,
+        )
+        assertTrue(standard.holdKeys.isEmpty())
+        assertEquals("1", pivot.seat("Start")?.label)
+        assertEquals("2", pivot.seat("Select")?.label)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_THUMBR, pivot.seat("Home")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_MODE, pivot.seat("Menu")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_R2, pivot.seat("Shake")?.keyCode)
+        assertEquals(KeyEvent.KEYCODE_BUTTON_L2, pivot.seat("ShakeN")?.keyCode)
+        assertNull(touch.seat("AnalogR"))
+        val device = ControlDeckDeviceFixture(360f, 740f)
+        val withStick = PivotArcSoloSolver.resolve(pivot, device.safe, device.viewport, false, 0f, 0f, false)
+        val withTouch = PivotArcSoloSolver.resolve(touch, device.safe, device.viewport, false, 0f, 0f, false)
+        assertEquals(
+            (withStick as PivotArcResolution.Fits).placement.controls - "AnalogR",
+            (withTouch as PivotArcResolution.Fits).placement.controls,
+        )
     }
 
     @Test

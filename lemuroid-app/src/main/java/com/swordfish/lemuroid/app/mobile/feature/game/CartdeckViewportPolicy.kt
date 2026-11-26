@@ -31,10 +31,15 @@ object CartdeckViewportPolicy {
     fun portraitApertureRatio(
         system: SystemID,
         availableHeightDp: Float,
+        compactSoloPivot: Boolean = false,
     ): String =
         when (system) {
             SystemID.GB, SystemID.GBC ->
-                if (availableHeightDp.isFinite() && availableHeightDp >= 720f) "10:9" else STANDARD_RATIO
+                if (!compactSoloPivot && availableHeightDp.isFinite() && availableHeightDp >= 720f) {
+                    "10:9"
+                } else {
+                    STANDARD_RATIO
+                }
             SystemID.GBA -> "3:2"
             SystemID.PSP -> "30:17"
             else -> STANDARD_RATIO
