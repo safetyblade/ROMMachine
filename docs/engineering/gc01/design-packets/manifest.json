@@ -267,6 +267,21 @@
       "batch": "C",
       "family": "Dual-screen / single-analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "N64-PA-01 owner approved; enhanced five-title physical test gate required (analogue, C directions, Z and A/B Holds); source/physical pending."
+    },
+    {
+      "id": "PSX",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -275,22 +290,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "N64-PA-01 Analogue 2 + C-Pad candidate: analogue nucleus, D-pad, A/B/Z action arc, C directional cluster, adjacent L/R, fixed A/B/Z Holds; approval and measured fit pending."
-    },
-    {
-      "id": "PSX",
-      "batch": "D",
-      "family": "Console native / analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "Separate digital and DualShock profiles."
+      "note": "PSX-PA-01A/B proposed Digital 4 and DualShock radial profiles; four fixed Holds, shoulder pairs, native mode and stick-click verification; approval and fit pending."
     },
     {
       "id": "PLAYSTATION_2",
