@@ -1,16 +1,16 @@
 # GENESIS — controller design packet
 
-**Batch:** B · **Hardware family:** Four/six-button and handheld · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** B · **Hardware family:** Four/six-button and handheld · **Status: THREE-BUTTON PIVOTARC OWNER LAYOUT LOCKED; SIX-BUTTON OPEN**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** standard_layout_locked_variants_open; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
 **Console-specific input consideration:** Distinct 3-button/6-button controller profiles.
 
-## MD-PA-01 — Digital 3 review candidate (26 Nov 2026)
+## MD-PA-01 — Digital 3 owner layout lock (26 Nov 2026)
 
-Standard Mega Drive/Genesis three-button pad: digital D-pad, A/B/C, Start. Six-button variant remains separate open study. Design derived from owner-accepted PSP radial face arrangement observed in gameplay recording; retain GBA manufactured styling for digital profile. D-pad forms central movement nucleus. Remove analogue and shoulder seats (not native); propose A in upper-right arc (less-frequent special in Streets of Rage 2), B in lower-right arc (attack), C in lower-centre arc (jump); B and C adjacent for combinations, no intervening Hold in movement-to-action corridor. Use one provisional Hold B immediately outboard/right of B (configurable to another actual face key if separately approved, with visible identity), no permanent Hold A/C by default; confirm sustained need from broader game sample. No automatic turbo, macros, or fake combo. Start and CARTDECK Menu on separate utility rail; no Select in three-button mode. Sonic A/B/C are interchangeable jump, Streets of Rage 2 A special/B attack/C jump, Golden Axe A magic/B attack/C jump (game-specific defaults, not platform-wide mandates). Preserve native identity independent of spatial position; use exact current source inventory, 48dp+ discrete targets, clear directional/thumb sweep, B+C combination tests, Hold release, mirroring, measured device fit. If holding B is not useful in game sample, remove/disable the one Hold rather than add clutter. Layout and Hold proposals awaiting owner approval; six-button profile not approved; no APK.
+Standard Mega Drive/Genesis three-button pad: digital D-pad, A/B/C, Start. Six-button variant remains separate open study. Design derived from owner-accepted PSP radial face arrangement observed in gameplay recording; retain GBA manufactured styling for digital profile. D-pad forms central movement nucleus. Remove analogue and shoulder seats (not native); owner approved A in upper-right arc (less-frequent special in Streets of Rage 2), B in lower-right arc (attack), C in lower-centre arc (jump); B and C adjacent for combinations, no intervening Hold in movement-to-action corridor. Owner approved one Hold B immediately outboard/right of B (fixed B in the approved default; any alternate assignment requires separate approval), no permanent Hold A/C by default; confirm sustained need from broader game sample. No automatic turbo, macros, or fake combo. Start and CARTDECK Menu on separate utility rail; no Select in three-button mode. Sonic A/B/C are interchangeable jump, Streets of Rage 2 A special/B attack/C jump, Golden Axe A magic/B attack/C jump (game-specific defaults, not platform-wide mandates). Preserve native identity independent of spatial position; use exact current source inventory, 48dp+ discrete targets, clear directional/thumb sweep, B+C combination tests, Hold release, mirroring, measured device fit. Do not silently alter the approved one-Hold layout; any later universal Hold extension must be separately reviewed. Owner approved MD-PA-01 on 26 Nov 2026; six-button profile remains open; exact source and physical validation pending; no APK.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -33,8 +33,8 @@ Standard Mega Drive/Genesis three-button pad: digital D-pad, A/B/C, Start. Six-b
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | THREE-BUTTON OWNER LAYOUT LOCKED; six-button open |
+| Solo PivotArc visual | THREE-BUTTON DESIGN LOCKED — handset visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
