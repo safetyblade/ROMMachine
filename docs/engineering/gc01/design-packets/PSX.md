@@ -1,8 +1,8 @@
 # PSX — controller design packet
 
-**Batch:** D · **Hardware family:** Console native / analogue · **Status: DESIGN PREPARATION ONLY**.
+**Batch:** D · **Hardware family:** Console native / analogue · **Status: OWNER LAYOUT DIRECTION LOCKED; ENGINEERING EVIDENCE PENDING**.
 
-**PivotArc:** review_candidate; owner physical pending.  
+**PivotArc:** owner_layout_locked; owner physical pending.  
 **GripArc:** to_design; owner physical pending.  
 **Joint:** DEFERRED until all solo controllers are designed, built and accepted.
 
@@ -17,6 +17,10 @@ Exact source inventory observed in engineering PSX.kt and PSXDualShock.kt: Andro
 ## PSX-PA-02A/B — revised mid-arc shoulder bank (26 Nov 2026)
 
 Owner rejected top shoulder placement for PivotArc one-handed reach and directed PSP-like placement. Supersede PA-01 upper shoulder bank and concept coordinates, retain digital/DualShock variants, PSP face order and four dedicated fixed Holds. Place a compact 2×2 shoulder bank outboard of the radial action arc between Triangle and Cross: L1/R1 upper row, L2/R2 lower row, R immediately right of corresponding L. No shoulder in main movement-to-face corridor. Proposed shared 360×400 illustrative chassis: primary D or left analogue (100,185), Square (154,90), Triangle (206,120), Cross (206,266), Circle (168,308); H Square (154,30), H Triangle (276,105), H Cross (276,292), H Circle (168,367). Shoulder centres L1 (264,169), R1 (320,169), L2 (264,225), R2 (320,225). Digital variant has no extra sticks. DualShock adds independent D-pad (54,90), right analogue (54,292), separate L3/R3 (38,376)/(94,376) only if real guest click input supported. All centres illustrative; measure effective directional/analogue envelopes, 48dp+ discrete independent targets, housing clearance, shoulder-to-face reach, no overlap, held ownership, mirroring and actual mode/guest mapping. Reduce visible caps if useful, never reduce effective targets below minimum or omit native controls. If fitting requires changing topology, return for review. Four-Hold arrangement retained as candidate, exact fit pending. Owner shoulder correction recorded; full revised designs still awaiting owner approval; no implementation or build.
+
+## PSX-PA-03 — owner layout lock (26 Nov 2026)
+
+Digital PSX-PA-02A approved unchanged. DualShock owner approved PSP-like side-mounted analogue stack instead of sticks below/main nucleus: keep D-pad in digital nucleus and face/Hold/shoulder/utility geometry unchanged relative to it; add a dedicated left-side wing with left analogue above right analogue and explicit L3/R3 next to their respective ends where supported. This supersedes all PA-01/02B analogue positions. Illustrative enlarged 448×400 body, translate PA-02A gameplay and utility geometry +88 horizontally as a group, D (188,185), left stick (63,124), right stick (63,248), L3 (63,42), R3 (63,330); visible stick radius 40, actual travel/targets measured later. Side wing is part of cohesive standalone housing; not a detached dock, no bottom row, no shoulder reposition. Primary analogue remains left stick in analogue games; D-pad independently accessible. Four fixed H unchanged. Owner approved direction by affirmative response to lock proposal; exact illustrative centres are design interpretation, not measured acceptance. Preserve mode and native input semantics, test enhanced dual-axis/stick clicks and reach; if independent 48dp targets, full stick travel or chassis fit fail, return for owner review; never crop or silently delete controls. No build. GripArc and Joint deferred.
 
 ## PivotArc — phase 2
 - [ ] Inspect installed native/PadKit input inventory and document exact source SHA, input/axis identities and required button count
@@ -39,8 +43,8 @@ Owner rejected top shoulder placement for PivotArc one-handed reach and directed
 ## Acceptance evidence
 | Gate | Result |
 |---|---|
-| Design prepared | PENDING |
-| Solo PivotArc visual | PENDING |
+| Design prepared | OWNER LAYOUT LOCKED — exact fit pending |
+| Solo PivotArc visual | DESIGN LOCKED — device visual pending |
 | Solo PivotArc input/CI | PENDING |
 | Solo GripArc visual | PENDING |
 | Solo GripArc input/CI | PENDING |
