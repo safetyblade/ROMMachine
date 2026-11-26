@@ -290,7 +290,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "PSX-PA-01A/B proposed Digital 4 and DualShock radial profiles; four fixed Holds, shoulder pairs, native mode and stick-click verification; approval and fit pending."
+      "note": "PSX-PA-02A/B revised at owner direction: reject top shoulders, PSP-style mid-arc 2×2 L1/R1 then L2/R2 bank, radial four fixed Holds, Digital/DualShock variants; approval and measured fit pending."
     },
     {
       "id": "PLAYSTATION_2",
