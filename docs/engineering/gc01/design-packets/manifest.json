@@ -327,6 +327,21 @@
       "batch": "D",
       "family": "Console native / analogue",
       "pivot": {
+        "design": "owner_layout_locked",
+        "physical": "pending"
+      },
+      "grip": {
+        "design": "to_design",
+        "physical": "pending"
+      },
+      "joint": "blocked_until_all_solos",
+      "note": "DC-PA-01 owner approved side analogue, central D-pad, radial X/Y/A/B, mid-arc triggers, fixed A/B/L/R Holds; measured fit and trigger semantics pending."
+    },
+    {
+      "id": "GAMECUBE",
+      "batch": "D",
+      "family": "Console native / analogue",
+      "pivot": {
         "design": "review_candidate",
         "physical": "pending"
       },
@@ -335,22 +350,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "DC-PA-01 candidate: side analogue, central D-pad, X/Y/A/B radial arc, mid-arc L/R triggers, fixed A/B/L/R Holds proposed; trigger semantics and fit pending."
-    },
-    {
-      "id": "GAMECUBE",
-      "batch": "D",
-      "family": "Console native / analogue",
-      "pivot": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "grip": {
-        "design": "to_design",
-        "physical": "pending"
-      },
-      "joint": "blocked_until_all_solos",
-      "note": "C-stick / Z / analogue triggers need real native input audit."
+      "note": "GC-PA-01 candidate: asymmetric A nucleus, side main/C sticks, central D-pad, mid-arc L/R/Z, conditional half presses, fixed A/B/L/R Holds; owner approval and fit pending."
     },
     {
       "id": "XBOX",
