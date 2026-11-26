@@ -230,7 +230,7 @@
         "physical": "pending"
       },
       "joint": "blocked_until_all_solos",
-      "note": "NDS-PA-01 Digital 4 Compact: preserve stacked screens/stylus; short wide band, radial ABXY, adjacent L/R, fixed Y/B Holds proposed; fit/owner approval pending."
+      "note": "NDS-PA-01B: owner approved tighter D-to-face island and smaller visible caps, preserve 48dp targets and stacked screens/stylus; revised geometry and fixed B/Y Holds awaiting full design approval; physical pending."
     },
     {
       "id": "NINTENDO_3DS",
