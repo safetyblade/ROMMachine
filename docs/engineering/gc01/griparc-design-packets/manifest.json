@@ -272,34 +272,62 @@
       "id": "WS",
       "batch": "B",
       "family": "Handheld / multi-button",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
       "variants": [
         {
           "id": "guest_horizontal",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         },
         {
           "id": "guest_vertical",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         }
       ],
-      "note": "Dual digital cursor layout, independent guest orientation and handset orientation; owner review pending."
+      "note": "Owner advanced with Next in sequential process; both guest orientations and handset layouts locked. Runtime pending."
     },
     {
       "id": "WSC",
       "batch": "B",
       "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "guest_horizontal",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "guest_vertical",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner advanced with Next in sequential process; both guest orientations and handset layouts locked. Runtime pending."
+    },
+    {
+      "id": "NDS",
+      "batch": "C",
+      "family": "Touch / single analogue",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -310,34 +338,7 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "variants": [
-        {
-          "id": "guest_horizontal",
-          "design": "review_candidate",
-          "runtime": "pending"
-        },
-        {
-          "id": "guest_vertical",
-          "design": "review_candidate",
-          "runtime": "pending"
-        }
-      ],
-      "note": "Dual digital cursor layout, independent guest orientation and handset orientation; owner review pending."
-    },
-    {
-      "id": "NDS",
-      "batch": "C",
-      "family": "Touch / single analogue",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Compact dual-screen Digital 4 with two programmable seats Hold Y/B; preserve stylus and real mic/lid actions. Owner review pending."
     },
     {
       "id": "NINTENDO_3DS",
