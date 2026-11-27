@@ -93,6 +93,9 @@ class GripArcRenderingTest {
                 SystemID.PSP to TouchControllerID.PSP,
                 SystemID.DREAMCAST to TouchControllerID.DREAMCAST,
                 SystemID.GAMECUBE to TouchControllerID.GAMECUBE,
+                SystemID.PSX to TouchControllerID.PSX,
+                SystemID.PSX to TouchControllerID.PSX_DUALSHOCK,
+                SystemID.NINTENDO_3DS to TouchControllerID.NINTENDO_3DS,
             ).map { (system, controller) -> Triple(system, controller, false) } +
                 Triple(SystemID.PSP, TouchControllerID.PSP, true)
         val width = if (wide) 740 else 393
@@ -103,11 +106,18 @@ class GripArcRenderingTest {
         compose.setContent {
             val (system, id, analogPrimary) = motion.value
             val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
-            val viewport = if (wide) PivotArcBounds(180f, 20f, 560f, 290f) else PivotArcBounds(22f, 84f, 371f, 340f)
+            val viewport =
+                when {
+                    wide -> PivotArcBounds(180f, 20f, 560f, 290f)
+                    system == SystemID.NINTENDO_3DS -> PivotArcBounds(22f, 84f, 371f, 484f)
+                    else -> PivotArcBounds(22f, 84f, 371f, 340f)
+                }
             val glass = Rect(viewport.left, viewport.top, viewport.right, viewport.bottom)
             val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(id))
             val fitted =
-                checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, wide)) {
+                checkNotNull(
+                    StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, wide, analogPrimary),
+                ) {
                     "No standalone fit for $system / $id, landscape=$wide"
                 }
             CompositionLocalProvider(

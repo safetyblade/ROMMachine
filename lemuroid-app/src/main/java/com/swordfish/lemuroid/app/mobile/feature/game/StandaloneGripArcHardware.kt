@@ -21,7 +21,11 @@ internal fun StandaloneGripArcHardware(
     landscape: Boolean,
 ) {
     if (landscape) {
-        StandaloneGripArcLandscapeMark(placement.dock.housing, tokens)
+        StandaloneGripArcLandscapeMark(
+            placement.dock.housing,
+            placement.controls.values + placement.dock.targets.values,
+            tokens,
+        )
     } else {
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
             val housing = placement.dock.housing

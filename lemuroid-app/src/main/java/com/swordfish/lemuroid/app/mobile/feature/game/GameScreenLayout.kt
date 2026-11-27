@@ -120,6 +120,7 @@ object GameScreenLayout {
         availableHeight: Dp = 393.dp,
         dualScreenSoloPivot: Boolean = false,
         independentPortraitAperture: Boolean = false,
+        standaloneGripRailInset: Dp = 0.dp,
     ): ConstraintSet {
         return when {
             !isLandscape ->
@@ -139,6 +140,7 @@ object GameScreenLayout {
                     gripArcLandscape,
                     availableWidth,
                     availableHeight,
+                    standaloneGripRailInset,
                 )
         }
     }
@@ -273,6 +275,7 @@ object GameScreenLayout {
         gripArcLandscape: Boolean,
         availableWidth: Dp,
         availableHeight: Dp,
+        standaloneGripRailInset: Dp,
     ): ConstraintSet {
         val insets = landscapeHardwareInsets(availableWidth, availableHeight)
         return ConstraintSet {
@@ -302,7 +305,7 @@ object GameScreenLayout {
                 absoluteLeft.linkTo(leftPad.absoluteRight, margin = horizontalClearance)
                 absoluteRight.linkTo(rightPad.absoluteLeft, margin = horizontalClearance)
                 top.linkTo(parent.top, margin = clearance)
-                bottom.linkTo(parent.bottom, margin = clearance)
+                bottom.linkTo(parent.bottom, margin = maxOf(clearance, standaloneGripRailInset))
                 width = Dimension.fillToConstraints // Expands between leftPad and rightPad
             }
 

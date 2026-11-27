@@ -135,8 +135,18 @@ internal fun GbaGripArcFullHousing(
 @Composable
 internal fun StandaloneGripArcLandscapeMark(
     panel: PivotArcBounds,
+    occupied: Collection<PivotArcBounds>,
     tokens: CartdeckEditionTokens,
 ) {
+    val logoWidth = 50f
+    val top = panel.bottom - 17f
+    val right = panel.right - 8f
+    val mark =
+        generateSequence(right - logoWidth) { it - 8f }
+            .takeWhile { it >= panel.centerX }
+            .map { PivotArcBounds(it, top, it + logoWidth, panel.bottom) }
+            .firstOrNull { bounds -> occupied.none { it.inset(2f).intersects(bounds) } }
+            ?: return
     Text(
         text = "GripARC",
         color = tokens.accent,
@@ -145,6 +155,6 @@ internal fun StandaloneGripArcLandscapeMark(
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.End,
         maxLines = 1,
-        modifier = Modifier.offset((panel.right - 96f).dp, (panel.bottom - 17f).dp).width(88.dp),
+        modifier = Modifier.offset(mark.left.dp, mark.top.dp).width(logoWidth.dp),
     )
 }

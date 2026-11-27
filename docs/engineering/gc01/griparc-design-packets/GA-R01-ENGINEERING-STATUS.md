@@ -7,8 +7,14 @@ descended from master `1e2e75c8`. Design authority is immutable commit
 
 ## Current coverage
 
+Standalone runtime and production renderer coverage is 20 of 33 systems and
+24 of 53 configurations (48 orientation fixtures). Handset and APK acceptance
+remain open.
+
 F01 adds measured cap growth and a shared production hardware renderer.
-Landscape reuses the production CARTDECK surround and main brand.
+Landscape reuses the production CARTDECK surround and main brand. The
+standalone landscape aperture reserves space for the measured central utility
+rail and respects the system bottom inset.
 Both orientations have dedicated coordinates for the standalone runtime entries
 below. The solver rejects layouts when the native targets, programmable targets
 and measured gameplay viewport cannot coexist. Current geometry and production render fixtures
@@ -36,12 +42,12 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
 | WSC | guest_horizontal | Pending |
 | WSC | guest_vertical | Pending |
 | NDS | base | Pending |
-| NINTENDO_3DS | base | Pending |
+| NINTENDO_3DS | base | Standalone runtime and preview; touchscreen and guest input await handset verification |
 | PSP | dpad_primary | Standalone runtime and dedicated preview source |
 | PSP | analogue_primary | Standalone runtime and dedicated preview source |
 | N64 | base | Pending |
-| PSX | digital | Pending |
-| PSX | dualshock | Pending |
+| PSX | digital | Standalone runtime and dedicated preview source |
+| PSX | dualshock | Standalone runtime and preview; conditional L3/R3 guest dispatch remains unverified |
 | PLAYSTATION_2 | base | Pending |
 | PLAYSTATION_3 | base | Pending |
 | DREAMCAST | base | Standalone runtime and dedicated preview source |
@@ -76,7 +82,10 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
   Typed Hold, Turbo and game-menu assignments extend the same profile store.
   Factory assignments apply only to an unconfigured cartridge or explicit reset.
   GripARC selection supports cartridge overrides and a global default for the
-  implemented systems. Per-native-mode programming needs further work.
+  implemented systems. Per-native-mode programming needs further work. Hold
+  uses the existing shared latch and pressed-state rendering. The PSX and 3DS
+  factory presets use that same latch and active state is cleared when inputs
+  are neutralized.
 - Cemu commit `444c585202302a7f4b319bafb4cf72156a8cac8b`
   computes a full-size DRC viewport in TV-only single-display mode.
   The patched core guards touch against `LibretroDRC_ShouldRenderScreen(true)`,

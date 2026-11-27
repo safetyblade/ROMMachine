@@ -217,7 +217,7 @@ internal fun supportsStandaloneGripActions(system: SystemID?): Boolean =
             SystemID.GBA, SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.SMS,
             SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE, SystemID.SNES,
             SystemID.GENESIS, SystemID.SEGACD, SystemID.ATARI2600, SystemID.ATARI7800, SystemID.LYNX,
-            SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PSP,
+            SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PSP, SystemID.PSX, SystemID.NINTENDO_3DS,
         )
 
 internal fun CartdeckLayoutMode.forSystem(system: SystemID?): ArcControlMode =
@@ -276,6 +276,21 @@ internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
         val face = if (system == SystemID.DREAMCAST) listOf(b, a) else listOf(a, b)
         val keys = listOf(KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2) + face
         return GripArcProfile(mappings = keys.map { listOf(it) }, behaviors = List(4) { GripArcBehavior.HOLD })
+    }
+    if (system == SystemID.NINTENDO_3DS) {
+        return GripArcProfile(
+            count = 2,
+            mappings = listOf(listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), emptyList(), emptyList()),
+            behaviors = listOf(GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
+    }
+    if (system == SystemID.PSX) {
+        return GripArcProfile(
+            mappings =
+                listOf(shoulderChord, listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), listOf(KeyEvent.KEYCODE_BUTTON_R2)),
+            behaviors =
+                listOf(GripArcBehavior.MOMENTARY, GripArcBehavior.HOLD, GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
     }
     if (system == SystemID.PSP) {
         return GripArcProfile(

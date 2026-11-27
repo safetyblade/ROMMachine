@@ -467,6 +467,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 currentControllerConfig?.touchControllerID?.takeIf(StandaloneGripArcLayout::supports)
                     ?.takeIf { !selectedPivot && supportsStandaloneGripActions(viewModel.systemId) }
                     ?.let(StandaloneGripArcLayout::inventoryFor)
+            val standaloneGripSelected =
+                effectiveArcMode == ArcControlMode.STANDARD_GRIPARC && standaloneInventory != null
             val gripResolution: GripArcFit? =
                 if (
                     effectiveArcMode.hasGrip &&
@@ -865,11 +867,27 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitApertureRatio = portraitApertureRatio,
                         hardwareLandscape = dedicatedHardwareLayout,
                         gripArcLandscape = gripArcLandscape,
+                        standaloneGripRailInset =
+                            if (gripArcLandscape && standaloneGripSelected) {
+                                // Leave one independent 48.5dp Menu target below the glass,
+                                // plus the same safety margin used by the positioning solver.
+                                val systemBottom =
+                                    maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                                (systemBottom / currentDensity.density + 60f).dp
+                            } else {
+                                0.dp
+                            },
                         availableWidth = maxWidth,
                         availableHeight = maxHeight,
                         dualScreenSoloPivot =
-                            selectedPivot && soloProfile != null &&
-                                touchControlsVisibleState.value,
+                            touchControlsVisibleState.value &&
+                                (
+                                    (selectedPivot && soloProfile != null) ||
+                                        (
+                                            standaloneGripSelected &&
+                                                standaloneInventory?.controller == TouchControllerID.NINTENDO_3DS
+                                        )
+                                ),
                         independentPortraitAperture =
                             selectedPivot && !effectiveArcMode.hasGrip && touchControlsVisibleState.value,
                         portraitBottomInset =

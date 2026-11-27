@@ -205,6 +205,58 @@ internal object StandaloneGripArcLayout {
     private val pspProgramLandscape =
         mapOf(1 to Seat(121, 43), 2 to Seat(44, 300), 3 to Seat(648, 289), 4 to Seat(114, 300))
 
+    private val playStationPortrait =
+        mapOf(
+            "L2" to Seat(55, 35), "L" to Seat(55, 88), "R2" to Seat(305, 35), "R" to Seat(305, 88),
+            "D" to Seat(78, 174, 86f),
+            "X" to Seat(253, 135), "A" to Seat(310, 188), "B" to Seat(253, 241), "Y" to Seat(196, 188),
+            "Select" to Seat(80, 347), "Menu" to Seat(180, 347), "Start" to Seat(280, 347),
+        )
+    private val playStationLandscape =
+        mapOf(
+            "L2" to Seat(46, 32), "L" to Seat(116, 32), "R" to Seat(614, 32), "R2" to Seat(684, 32),
+            "D" to Seat(82, 118, 86f),
+            "X" to Seat(648, 92), "A" to Seat(689, 150), "B" to Seat(648, 208), "Y" to Seat(607, 150),
+            "Select" to Seat(265, 365), "Menu" to Seat(365, 365), "Start" to Seat(465, 365),
+        )
+    private val dualShockPortrait =
+        playStationPortrait +
+            mapOf(
+                "AnalogL" to Seat(78, 293, 76f), "AnalogR" to Seat(266, 310, 70f),
+                "Select" to Seat(80, 430), "Menu" to Seat(180, 430), "Start" to Seat(280, 430),
+            )
+    private val dualShockLandscape =
+        playStationLandscape + mapOf("AnalogL" to Seat(82, 242, 74f), "AnalogR" to Seat(648, 275, 62f))
+
+    private fun playStationProgram(
+        landscape: Boolean,
+        dualShock: Boolean,
+    ): Map<Int, Seat> =
+        if (landscape) {
+            val y = if (dualShock) 349 else 270
+            mapOf(1 to Seat(45, y), 2 to Seat(115, y), 3 to Seat(615, y), 4 to Seat(684, y))
+        } else {
+            val y = if (dualShock) 380 else 294
+            mapOf(1 to Seat(45, y), 2 to Seat(135, y), 3 to Seat(225, y), 4 to Seat(315, y))
+        }
+
+    private val threeDsPortrait =
+        mapOf(
+            "L" to Seat(65, 28), "R" to Seat(295, 28),
+            "AnalogL" to Seat(77, 92, 78f), "D" to Seat(77, 190, 78f),
+            "X" to Seat(267, 79), "A" to Seat(316, 129), "B" to Seat(267, 179), "Y" to Seat(218, 129),
+            "Select" to Seat(64, 285), "Menu" to Seat(180, 285), "Start" to Seat(296, 285),
+        )
+    private val threeDsLandscape =
+        mapOf(
+            "L" to Seat(82, 40), "R" to Seat(648, 49),
+            "AnalogL" to Seat(82, 119, 78f), "D" to Seat(82, 222, 78f),
+            "X" to Seat(648, 109), "A" to Seat(689, 167), "B" to Seat(648, 225), "Y" to Seat(607, 167),
+            "Select" to Seat(82, 360), "Menu" to Seat(365, 365), "Start" to Seat(648, 335),
+        )
+    private val threeDsProgramPortrait = mapOf(1 to Seat(189, 234), 2 to Seat(270, 234))
+    private val threeDsProgramLandscape = mapOf(1 to Seat(44, 300), 2 to Seat(114, 300))
+
     private val controllers =
         setOf(
             TouchControllerID.GBA,
@@ -223,6 +275,9 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.DREAMCAST,
             TouchControllerID.PSP,
             TouchControllerID.GAMECUBE,
+            TouchControllerID.PSX,
+            TouchControllerID.PSX_DUALSHOCK,
+            TouchControllerID.NINTENDO_3DS,
         )
 
     fun supports(controller: TouchControllerID?): Boolean = controller in controllers
@@ -267,8 +322,8 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.ATARI2600, TouchControllerID.ATARI7800 -> atariInventory(controller)
             TouchControllerID.DREAMCAST -> analogueInventory(SystemID.DREAMCAST, controller)
             TouchControllerID.GAMECUBE -> analogueInventory(SystemID.GAMECUBE, controller)
-            TouchControllerID.PSP -> {
-                NativeControlInventory.forController(controller)?.let { inventory ->
+            TouchControllerID.PSP, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.NINTENDO_3DS -> {
+                NativeControlInventory.forHoldTray(controller)?.let { inventory ->
                     inventory.copy(
                         controls =
                             inventory.controls.map { seat ->
@@ -414,12 +469,14 @@ internal object StandaloneGripArcLayout {
         val height =
             if (landscape) {
                 390f
-            } else if (native.controller == TouchControllerID.GAMECUBE) {
+            } else if (native.controller in setOf(TouchControllerID.GAMECUBE, TouchControllerID.PSX_DUALSHOCK)) {
                 460f
             } else if (native.controller in setOf(TouchControllerID.DREAMCAST, TouchControllerID.PSP)) {
                 420f
             } else if (snes || native.controller == TouchControllerID.LYNX) {
                 400f
+            } else if (native.controller == TouchControllerID.NINTENDO_3DS) {
+                320f
             } else if (native.controller == TouchControllerID.ATARI2600) {
                 350f
             } else {
@@ -447,6 +504,12 @@ internal object StandaloneGripArcLayout {
             when {
                 gba -> if (landscape) landscapeNative else portraitNative
                 snes -> if (landscape) snesLandscape else snesPortrait
+                native.controller == TouchControllerID.NINTENDO_3DS ->
+                    if (landscape) threeDsLandscape else threeDsPortrait
+                native.controller == TouchControllerID.PSX ->
+                    if (landscape) playStationLandscape else playStationPortrait
+                native.controller == TouchControllerID.PSX_DUALSHOCK ->
+                    if (landscape) dualShockLandscape else dualShockPortrait
                 native.controller == TouchControllerID.PSP ->
                     if (landscape) pspLandscape else pspPortrait
                 native.controller == TouchControllerID.DREAMCAST ->
@@ -479,6 +542,10 @@ internal object StandaloneGripArcLayout {
         val programSeats =
             when {
                 gba -> if (landscape) landscapeProgram else portraitProgram
+                native.controller == TouchControllerID.NINTENDO_3DS ->
+                    if (landscape) threeDsProgramLandscape else threeDsProgramPortrait
+                native.controller in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK) ->
+                    playStationProgram(landscape, native.controller == TouchControllerID.PSX_DUALSHOCK)
                 native.controller == TouchControllerID.PSP -> if (landscape) pspProgramLandscape else pspProgramPortrait
                 native.controller == TouchControllerID.DREAMCAST ->
                     if (landscape) dreamcastProgramLandscape else dreamcastProgramPortrait
@@ -495,7 +562,12 @@ internal object StandaloneGripArcLayout {
         val nativeTargets =
             nativeSeats.mapValues { (key, seat) ->
                 val centralUtility =
-                    key == "Menu" || (native.controller == TouchControllerID.GAMECUBE && key == "Start")
+                    key == "Menu" ||
+                        (
+                            native.controller in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK) &&
+                                key in setOf("Select", "Start")
+                        ) ||
+                        (native.controller == TouchControllerID.GAMECUBE && key == "Start")
                 bounds(seat, menu = centralUtility)
             }
         if (nativeTargets.keys != native.controls.map { it.key }.toSet()) return null

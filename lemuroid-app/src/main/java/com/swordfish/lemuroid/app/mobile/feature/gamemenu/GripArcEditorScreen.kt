@@ -33,6 +33,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcSide
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
+import com.swordfish.lemuroid.app.mobile.feature.game.standaloneGripFactory
 import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -59,8 +60,9 @@ fun GripArcEditorScreen(
     var message by remember(game.cartridgeId) { mutableStateOf<String?>(null) }
     var slot by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
     var draft by remember(game.cartridgeId) { mutableStateOf(emptyList<Int>()) }
-    val typed = supportsStandaloneGripActions(SystemID.entries.firstOrNull { it.dbname == game.systemId })
-    val slotLimit = if (game.systemId == SystemID.ATARI2600.dbname) 2 else 4
+    val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+    val typed = supportsStandaloneGripActions(system)
+    val slotLimit = standaloneGripFactory(system)?.count ?: 4
     val labels = options.associate { it.code to it.label }
     var behavior by remember(game.cartridgeId) { mutableStateOf(GripArcBehavior.MOMENTARY) }
     var showAdvanced by remember { mutableStateOf(false) }
