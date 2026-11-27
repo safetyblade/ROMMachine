@@ -22,6 +22,24 @@ import java.io.File
 
 class SupportActivity : ComponentActivity() {
     private val store by lazy { SupportReportStore(this) }
+    private val screenshots by lazy { SupportScreenshot(this) }
+    private val chooseScreenshot =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            val report = currentReport
+            if (uri == null || report == null) return@registerForActivityResult
+            lifecycleScope.launch {
+                val digest =
+                    withContext(Dispatchers.IO) {
+                        runCatching { screenshots.importImage(report, uri) }.getOrNull()
+                    }
+                if (currentReport?.id != report.id) return@launch
+                if (digest == null) {
+                    message("Could not attach this image.")
+                } else {
+                    showPreview(report.withScreenshot(digest))
+                }
+            }
+        }
     private var exportFile: File? = null
     private val createDocument =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
@@ -109,6 +127,18 @@ class SupportActivity : ComponentActivity() {
         column.addView(category)
         column.addView(TextView(this).apply { text = "How often does it happen?" })
         column.addView(frequency)
+        val reply =
+            if (SupportTicketTransport.enabled) {
+                EditText(this).apply {
+                    hint = "Reply email address (optional)"
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                        android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                    setText(report["replyAddress"].takeUnless { it == SupportReport.NOT_CAPTURED }.orEmpty())
+                    column.addView(this)
+                }
+            } else {
+                null
+            }
         column.action("Review report") {
             val snapshot =
                 report.withPlayerDetails(
@@ -116,7 +146,16 @@ class SupportActivity : ComponentActivity() {
                     category.selectedItem.toString(),
                     frequency.selectedItem.toString(),
                 )
-            showPreview(snapshot)
+            val reviewed =
+                if (reply == null) {
+                    snapshot
+                } else {
+                    runCatching { snapshot.withReplyAddress(reply.text.toString().trim()) }.getOrElse {
+                        reply.error = "Enter a valid reply email address."
+                        return@action
+                    }
+                }
+            showPreview(reviewed)
         }
         column.action("Copy diagnostic report") { copy(report) }
         column.action("Previous reports") { showHome() }
@@ -126,8 +165,46 @@ class SupportActivity : ComponentActivity() {
         currentReport = report
         val column = screen("Diagnostic report")
         column.action("Copy diagnostic report") { copy(report) }
+        if (report.screenshotDigest == null) {
+            column.action("Attach a screenshot") {
+                AlertDialog.Builder(this)
+                    .setTitle("Attach a screenshot?")
+                    .setMessage(
+                        "Screenshots may contain personal or gameplay information. Review the image before sharing.",
+                    )
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Choose image") { _, _ -> chooseScreenshot.launch("image/*") }
+                    .show()
+            }
+        } else {
+            column.action("Remove screenshot from report") { showPreview(report.withScreenshot(null)) }
+            val image =
+                android.widget.ImageView(this).apply {
+                    adjustViewBounds = true
+                    maxHeight = (240 * resources.displayMetrics.density).toInt()
+                    contentDescription = "Selected screenshot"
+                }
+            column.addView(image)
+            lifecycleScope.launch {
+                val preview =
+                    withContext(Dispatchers.IO) {
+                        screenshots.attachment(report)?.let { android.graphics.BitmapFactory.decodeFile(it.path) }
+                    }
+                if (preview != null) image.setImageBitmap(preview)
+            }
+        }
         column.action("Save report on this device") {
             runIo("Could not save the report.") { store.save(report) }
+        }
+        if (SupportTicketTransport.enabled) {
+            column.action("Submit support ticket") {
+                AlertDialog.Builder(this)
+                    .setTitle("Submit this diagnostic report?")
+                    .setMessage("This sends the reviewed report and its selected attachments to CARTDECK Support.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Submit") { _, _ -> submitTicket(report) }
+                    .show()
+            }
         }
         column.action("Send by email") { packageFor(report) { SupportTransport.share(this, report, it, email = true) } }
         column.action("Open text-only email draft") {
@@ -160,6 +237,27 @@ class SupportActivity : ComponentActivity() {
                 setTextIsSelectable(true)
             },
         )
+    }
+
+    private fun submitTicket(report: SupportReport) {
+        lifecycleScope.launch {
+            val reference =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        store.save(report)
+                        SupportTicketTransport.send(report, store.packageReport(report))
+                    }.getOrNull()
+                }
+            if (reference == null) {
+                message("Submission could not be confirmed. Retry, email, copy or export the report.")
+            } else {
+                AlertDialog.Builder(this@SupportActivity)
+                    .setTitle("Report submitted.")
+                    .setMessage("Support reference $reference")
+                    .setPositiveButton("Close", null)
+                    .show()
+            }
+        }
     }
 
     private fun packageFor(

@@ -30,8 +30,8 @@ enum class GameMenuAction(val label: String) {
     DISPLAY("Display"),
     SETTINGS("Game Settings"),
     RETURN_TO_SHELF("Return to Shelf"),
-    ADVANCED("Advanced"),
     REPORT_PROBLEM("Report a Problem"),
+    ADVANCED("Advanced"),
 }
 
 /** Deduplicate requests from menu and Activity lifecycle without unpausing in the background. */

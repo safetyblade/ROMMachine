@@ -10,6 +10,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class SupportReportStore(context: Context) {
+    private val screenshots = SupportScreenshot(context)
     private val directory = File(context.noBackupFilesDir, "support-reports")
     private val attachments = File(context.cacheDir, "support-packages")
 
@@ -36,6 +37,7 @@ class SupportReportStore(context: Context) {
     fun delete(id: String) =
         synchronized(lock) {
             AtomicFile(reportFile(id)).delete()
+            screenshots.delete(id)
             attachments.listFiles().orEmpty().filter { it.name.startsWith("$id-") }.forEach {
                 it.deleteRecursively()
             }
@@ -65,6 +67,12 @@ class SupportReportStore(context: Context) {
                         zip.write(bytes)
                         zip.closeEntry()
                     }
+                    if (report.screenshotDigest != null) {
+                        val screenshot = checkNotNull(screenshots.attachment(report))
+                        zip.putNextEntry(ZipEntry("screenshot.png"))
+                        screenshot.inputStream().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                    }
                 }
                 check(pending.renameTo(file))
                 file
@@ -76,6 +84,7 @@ class SupportReportStore(context: Context) {
     private fun reportFile(id: String): File = File(directory, "${UUID.fromString(id)}.json")
 
     private fun prune(now: Long): List<SupportReport> {
+        screenshots.prune()
         val cutoff = now - RETENTION
         val reports =
             directory.listFiles().orEmpty().filter { it.extension == "json" }.mapNotNull { file ->

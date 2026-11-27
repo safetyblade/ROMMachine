@@ -16,6 +16,40 @@ class SupportReport private constructor(private val data: JSONObject) {
 
     operator fun get(key: String): String = data.optString(key, NOT_CAPTURED)
 
+    internal fun diagnosticValue(vararg keys: String): String {
+        val lines = this["diagnostic"].lineSequence()
+        return lines.firstNotNullOfOrNull { line ->
+            val key = line.substringBefore('=')
+            line.substringAfter('=', "").takeIf { key in keys && it.isNotBlank() }
+        } ?: NOT_CAPTURED
+    }
+
+    internal fun withReplyAddress(address: String): SupportReport {
+        val valid = address.length <= 254 && android.util.Patterns.EMAIL_ADDRESS.matcher(address).matches()
+        require(address.isBlank() || valid)
+        return SupportReport(
+            JSONObject(json).apply {
+                if (address.isBlank()) remove("replyAddress") else put("replyAddress", address)
+            },
+        )
+    }
+
+    val screenshotDigest: String?
+        get() = data.optString("screenshotSha256").takeIf { it.matches(Regex("[a-f0-9]{64}")) }
+
+    fun withScreenshot(digest: String?): SupportReport =
+        SupportReport(
+            JSONObject(json).apply {
+                if (digest == null) {
+                    remove("screenshot")
+                    remove("screenshotSha256")
+                } else {
+                    put("screenshot", "screenshot.png")
+                    put("screenshotSha256", digest)
+                }
+            },
+        )
+
     val packageName: String get() = "CARTDECK-CD-$id.zip"
     val json: String get() = data.toString(2)
 

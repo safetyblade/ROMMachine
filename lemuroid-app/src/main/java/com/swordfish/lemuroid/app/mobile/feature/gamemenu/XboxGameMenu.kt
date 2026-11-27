@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
 import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.app.shared.support.SupportReport
+import com.swordfish.lemuroid.app.shared.support.SupportTransport
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
@@ -58,6 +59,17 @@ internal fun XboxGameMenu(
     controls: @Composable () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun supportReport(): SupportReport =
+        SupportReport.create(
+            "gameplay",
+            "Game problem",
+            runCatching { supportDiagnostic?.invoke() }.getOrNull(),
+            gameTitle = playerMenuTitle(title),
+            system = console,
+            engine = engineInfo,
+        )
+
     val safeResume = canResume && capabilities.resume
     GameMenuTheme(appearance) {
         val nav = rememberNavController()
@@ -97,18 +109,8 @@ internal fun XboxGameMenu(
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
                                 GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
-                                GameMenuAction.REPORT_PROBLEM -> {
-                                    val report =
-                                        SupportReport.create(
-                                            "gameplay",
-                                            "Game problem",
-                                            runCatching { supportDiagnostic?.invoke() }.getOrNull(),
-                                            gameTitle = playerMenuTitle(title),
-                                            system = console,
-                                            engine = engineInfo,
-                                        )
-                                    context.startActivity(SupportActivity.intent(context, report))
-                                }
+                                GameMenuAction.REPORT_PROBLEM ->
+                                    context.startActivity(SupportActivity.intent(context, supportReport()))
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                                 else -> Unit // Not advertised by this backend.
@@ -146,7 +148,20 @@ internal fun XboxGameMenu(
                         Text("Engine information", style = MaterialTheme.typography.titleMedium)
                         Text(engineInfo, style = MaterialTheme.typography.bodySmall)
                         Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
-                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        val copyLabel =
+                            if (supportDiagnostic == null) "Copy engine/GPU report" else "Copy diagnostic report"
+                        GameMenuLink(copyLabel) {
+                            if (supportDiagnostic == null) {
+                                onCopyReport()
+                            } else {
+                                SupportTransport.copy(context, supportReport())
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Diagnostic report copied.",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        }
                         if (pipelineABActive != null && onQueuePipelineAB != null) {
                             Text(
                                 "Global Xbox 360 renderer/memory A/B (debug only). Active: $pipelineABActive. " +

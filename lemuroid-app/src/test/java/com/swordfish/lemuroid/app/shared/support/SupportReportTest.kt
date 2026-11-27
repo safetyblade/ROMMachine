@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 
 @RunWith(RobolectricTestRunner::class)
@@ -56,6 +57,36 @@ class SupportReportTest {
         assertEquals(1, JSONObject(report.json).getInt("schemaVersion"))
         store.delete(report.id)
         assertTrue(store.list().isEmpty())
+    }
+
+    @Test
+    fun retainedHistoryIsBoundedAndExpiredReportsAreRemoved() {
+        val store = SupportReportStore(ApplicationProvider.getApplicationContext<Context>())
+        val latest = System.currentTimeMillis()
+        repeat(12) { index ->
+            val json =
+                JSONObject(SupportReport.create("settings", "Other", null).json)
+                    .put("createdAtMillis", latest - TimeUnit.MINUTES.toMillis(index.toLong()))
+            store.save(SupportReport.parse(json.toString()))
+        }
+        val expired =
+            JSONObject(SupportReport.create("settings", "Other", null).json)
+                .put("createdAtMillis", latest - TimeUnit.DAYS.toMillis(15))
+        store.save(SupportReport.parse(expired.toString()))
+        assertEquals(10, store.list().size)
+        assertEquals(latest, store.list().first().createdAtMillis)
+        assertTrue(store.list().none { it.id == expired.getString("id") })
+    }
+
+    @Test
+    fun ticketRequiresAcknowledgementForTheSameReport() {
+        val id = SupportReport.create("settings", "Other", null).id
+        val receipt = JSONObject().put("accepted", true).put("reportId", id).put("reference", "CD-58")
+        assertEquals("CD-58", SupportTicketTransport.validateReceipt(id, receipt.toString()))
+        assertTrue(
+            runCatching { SupportTicketTransport.validateReceipt("another-report", receipt.toString()) }.isFailure,
+        )
+        assertFalse(SupportTicketTransport.enabled)
     }
 
     @Test
