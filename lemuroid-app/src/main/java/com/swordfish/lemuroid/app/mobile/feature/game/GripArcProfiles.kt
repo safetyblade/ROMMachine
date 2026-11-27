@@ -6,6 +6,7 @@ import android.view.KeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -171,14 +172,33 @@ class GripArcProfileStore(context: Context) {
                 ?: preferences.getString(legacyKey(game, game.legacySourceUri ?: game.fileUri), null)
                 ?: preferences.getString(legacyKey(game, game.fileUri), null)
                 ?: return fallback
-        return decode(raw, fallback, GripArcInputCatalog.forGame(game).map { it.code }.toSet())
+        val profile = decode(raw, fallback, GripArcInputCatalog.forGame(game).map { it.code }.toSet())
+        return if (preferences.getBoolean(layoutInheritanceKey(game), false)) {
+            profile.copy(mode = fallback.mode)
+        } else {
+            profile
+        }
     }
 
     /** Saved mode overrides global PivotArc; older unconfigured cartridges retain the existing global choice. */
     fun hasSelection(game: Game): Boolean =
-        preferences.contains(key(game)) ||
-            preferences.contains(legacyKey(game, game.legacySourceUri ?: game.fileUri)) ||
-            preferences.contains(legacyKey(game, game.fileUri))
+        !preferences.getBoolean(layoutInheritanceKey(game), false) &&
+            (
+                preferences.contains(key(game)) ||
+                    preferences.contains(legacyKey(game, game.legacySourceUri ?: game.fileUri)) ||
+                    preferences.contains(legacyKey(game, game.fileUri))
+            )
+
+    fun useGlobalLayout(game: Game): Boolean = preferences.edit().putBoolean(layoutInheritanceKey(game), true).commit()
+
+    fun saveLayout(
+        game: Game,
+        mode: ArcControlMode,
+    ): Boolean =
+        preferences.edit().putString(key(game), encode(read(game).copy(mode = mode)))
+            .remove(layoutInheritanceKey(game)).commit()
+
+    private fun layoutInheritanceKey(game: Game) = "${key(game)}:inherit_layout"
 
     fun save(
         game: Game,
@@ -187,6 +207,16 @@ class GripArcProfileStore(context: Context) {
         val checked = profile.validated(GripArcInputCatalog.forGame(game).map { it.code }.toSet())
         return preferences.edit().putString(key(game), encode(checked)).commit()
     }
+
+    fun orientationOverride(game: Game): ControlsOrientation? =
+        preferences.getString("${key(game)}:orientation", null)?.let { value ->
+            ControlsOrientation.entries.firstOrNull { it.name == value }
+        }
+
+    fun saveOrientation(
+        game: Game,
+        value: ControlsOrientation?,
+    ): Boolean = preferences.edit().putString("${key(game)}:orientation", value?.name).commit()
 
     fun listen(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         preferences.registerOnSharedPreferenceChangeListener(listener)
@@ -256,8 +286,9 @@ class GripArcProfileStore(context: Context) {
 fun rememberGripArcProfile(game: Game): State<GripArcProfile> {
     val context = LocalContext.current.applicationContext
     val store = remember(context) { GripArcProfileStore(context) }
-    val state = remember(game.cartridgeId, store) { mutableStateOf(store.read(game)) }
-    DisposableEffect(game.cartridgeId, store) {
+    val global by rememberPivotArcSettings()
+    val state = remember(game.cartridgeId, store, global.mode) { mutableStateOf(store.read(game)) }
+    DisposableEffect(game.cartridgeId, store, state) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
                 state.value = store.read(game)

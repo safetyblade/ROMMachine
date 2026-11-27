@@ -13,6 +13,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
+import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckLayoutMode
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
+import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSettingsStore
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.lib.library.GameSystem
@@ -21,6 +25,7 @@ import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,6 +67,8 @@ class LibretroGameMenuTest {
 
     @Test fun saveLoadAndControlsKeepTheirExistingRoutes() {
         val request = request(SystemID.GBA)
+        val store = GripArcProfileStore(compose.activity)
+        store.saveLayout(request.game, ArcControlMode.STANDARD_GRIPARC)
         compose.setContent {
             GameMenuTheme(ShelfAppearance()) {
                 val nav = rememberNavController()
@@ -71,7 +78,6 @@ class LibretroGameMenuTest {
                     composable(GameMenuRoute.SAVE) { androidx.compose.material3.Text("Save backend fixture") }
                     composable(GameMenuRoute.LOAD) { androidx.compose.material3.Text("Load backend fixture") }
                     composable(GameMenuRoute.CONTROLS) { GameMenuControlsScreen(nav, request, ::onResult) }
-                    composable(GameMenuRoute.GRIPARC) { androidx.compose.material3.Text("GripArc editor fixture") }
                 }
             }
         }
@@ -88,9 +94,25 @@ class LibretroGameMenuTest {
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Controls").performClick()
-        compose.onNodeWithText("PivotArc").assertIsDisplayed()
-        compose.onNodeWithText("GripArc").performScrollTo().performClick()
-        compose.onNodeWithText("GripArc editor fixture").assertIsDisplayed()
+        compose.onNodeWithText("PivotARC").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Programmable controls").performScrollTo().performClick()
+        compose.onNodeWithText("Tap a button to assign an input or a simultaneous combination.")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun inheritingLayoutKeepsProgrammableAssignments() {
+        val game = request(SystemID.GBA).game
+        val store = GripArcProfileStore(compose.activity)
+        val settings = PivotArcSettingsStore(compose.activity)
+        val initial = store.defaultFor(game)
+        val custom = initial.copy(mappings = initial.mappings.reversed(), dx = 12f)
+        assertTrue(store.save(game, custom))
+        assertTrue(store.useGlobalLayout(game))
+        settings.save(settings.read().copy(mode = CartdeckLayoutMode.ONE_HAND))
+        assertEquals(ArcControlMode.PIVOTARC, store.read(game).mode)
+        assertEquals(custom.mappings, store.read(game).mappings)
+        assertEquals(custom.dx, store.read(game).dx)
     }
 
     @Test fun wiiControlsRetainAllFourNativeChoicesAndCartridgeResult() {

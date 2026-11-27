@@ -58,7 +58,7 @@ class ControllerConfigsManager(private val sharedPreferences: Lazy<SharedPrefere
         game: Game? = null,
     ): Boolean =
         withContext(Dispatchers.IO) {
-            if ((systemId == SystemID.WII && game != null && game.systemId != systemId.dbname) ||
+            if ((game != null && game.systemId != systemId.dbname) ||
                 systemCoreConfig.controllerConfigs[port]?.none { it.name == name } != false
             ) {
                 return@withContext false
@@ -79,7 +79,7 @@ class ControllerConfigsManager(private val sharedPreferences: Lazy<SharedPrefere
             port: Int,
             game: Game?,
         ): String? =
-            game?.takeIf { systemId == SystemID.WII && it.systemId == systemId.dbname }
+            game?.takeIf { it.systemId == systemId.dbname }
                 ?.let { hashedCartridgeKey(systemId, coreID, port, "${it.systemId}\n${it.cartridgeId}") }
 
         /** Read older URI-keyed selections without mutating the player's preferences. */

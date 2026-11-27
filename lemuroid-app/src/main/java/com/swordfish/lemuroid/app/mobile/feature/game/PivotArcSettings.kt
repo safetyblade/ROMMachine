@@ -11,6 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 
 enum class CartdeckLayoutMode { STANDARD, ONE_HAND }
 
+enum class ControlsOrientation { AUTOMATIC, PORTRAIT, LANDSCAPE }
+
 enum class PivotArcHand { RIGHT, LEFT }
 
 data class PivotArcSettings(
@@ -19,6 +21,7 @@ data class PivotArcSettings(
     val offsetXdp: Float = 0f,
     val offsetYdp: Float = 0f,
     val pspAnalogPrimary: Boolean = false,
+    val orientation: ControlsOrientation = ControlsOrientation.AUTOMATIC,
 )
 
 /**
@@ -44,7 +47,11 @@ class PivotArcSettingsStore(context: Context) {
             runCatching { preferences.getFloat(key, 0f) }
                 .getOrDefault(0f).takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f
         val pspAnalogPrimary = runCatching { preferences.getBoolean("psp_analog_primary", false) }.getOrDefault(false)
-        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset("dy"), pspAnalogPrimary)
+        val orientation =
+            runCatching {
+                ControlsOrientation.valueOf(preferences.getString("orientation", null).orEmpty())
+            }.getOrDefault(ControlsOrientation.AUTOMATIC)
+        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset("dy"), pspAnalogPrimary, orientation)
     }
 
     fun save(value: PivotArcSettings) {
@@ -56,6 +63,7 @@ class PivotArcSettingsStore(context: Context) {
             .putFloat("dx", value.offsetXdp)
             .putFloat("dy", value.offsetYdp)
             .putBoolean("psp_analog_primary", value.pspAnalogPrimary)
+            .putString("orientation", value.orientation.name)
             .apply()
     }
 

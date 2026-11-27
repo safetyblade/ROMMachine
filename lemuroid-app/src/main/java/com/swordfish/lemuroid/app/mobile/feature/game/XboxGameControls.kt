@@ -259,9 +259,10 @@ fun XboxGameControls(
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                     minimal = !hardwareBorder,
+                    mountedPivotDeck = activePivot,
                 )
             }
-            if (hardwareBorder) {
+            if (hardwareBorder || activePivot) {
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
@@ -271,6 +272,8 @@ fun XboxGameControls(
                     isDualScreen = false,
                     customColours = resolved.customColours,
                     pivotArc = activePivot,
+                    contouredPivot = activePivot,
+                    pivotUtilities = pivotProfile?.hardwareUtilities ?: PivotArcModuleGeometry.legacyUtilityKeys,
                     lighting = resolved.lighting,
                     highContrast = appearance.highContrast,
                 )
@@ -376,6 +379,7 @@ fun XboxGameControls(
                         false,
                         false,
                         onGripPressed,
+                        inputLabels = GripArcInputCatalog.forSystem(hostSystem).associate { it.code to it.label },
                         drawHousing = hardwareBorder,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,

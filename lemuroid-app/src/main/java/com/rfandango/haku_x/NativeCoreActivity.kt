@@ -48,6 +48,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.XboxMenuControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
@@ -428,8 +429,9 @@ class NativeCoreActivity : SDLActivity() {
                                 capabilities =
                                     XboxMenuCapabilities(
                                         BuildConfig.DEBUG,
-                                        engine.properties.getProperty("cartdeck.pixelProbe") == "async-edges-outer-inner-v1" &&
-                                            !pixelProbeRequested,
+                                        !pixelProbeRequested &&
+                                            engine.properties.getProperty("cartdeck.pixelProbe") ==
+                                            "async-edges-outer-inner-v1",
                                         runCatching {
                                             XboxEngineStore(File(filesDir, "native-engines/xbox")).canRollback()
                                         }.getOrDefault(false),
@@ -438,6 +440,7 @@ class NativeCoreActivity : SDLActivity() {
                                 onResume = ::closeMenu,
                                 onReturnToShelf = { leave() },
                                 onCopyReport = { copyDiagnosticSnapshot() },
+                                supportDiagnostic = { diagnosticReport("Manual diagnostic snapshot", null) },
                                 onProbe = ::requestPixelStageProbe,
                                 onPreviousEngine = ::rollbackEngine,
                             ) {
@@ -453,6 +456,7 @@ class NativeCoreActivity : SDLActivity() {
                                         }
                                     },
                                     physicalMapping = { physicalMapping.Panel() },
+                                    game = registryGame(),
                                 )
                             }
                         }
@@ -915,6 +919,7 @@ class NativeCoreActivity : SDLActivity() {
     ) {
         if (leaving) return
         leaving = true
+        EngineShutdownDeadline.arm(applicationContext)
         syncPause()
         main.removeCallbacksAndMessages(null)
         if (!forwarded) {

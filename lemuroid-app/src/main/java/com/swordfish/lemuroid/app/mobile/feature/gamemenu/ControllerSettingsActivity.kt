@@ -6,14 +6,21 @@ import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.swordfish.lemuroid.app.mobile.feature.settings.layout.PivotArcSettingsScreen
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import dagger.Lazy
+import kotlinx.coroutines.launch
 
 /** Settings and cartridge entry points use the same editor, tester and store as native hosts. */
 class ControllerSettingsActivity : ComponentActivity() {
@@ -25,7 +32,9 @@ class ControllerSettingsActivity : ComponentActivity() {
         val game = intent.getSerializableExtra("cartdeck.game") as? Game
         val engine = game?.let { runCatching { EngineSelectionPreferences(this).select(it, null).engine }.getOrNull() }
         val config = engine?.config ?: game?.let { GameSystem.findById(it.systemId).systemCoreConfigs.firstOrNull() }
-        val controller = config?.controllerConfigs?.get(0)?.firstOrNull()?.touchControllerID
+        val controller =
+            config?.controllerConfigs?.get(0)?.firstOrNull()?.touchControllerID
+                ?: game?.let { nativePreviewController(GameSystem.findById(it.systemId).id) }
         val capacity =
             controllerPortCapacity(
                 engine?.host,
@@ -37,6 +46,14 @@ class ControllerSettingsActivity : ComponentActivity() {
                 this, lifecycleScope, controller, game?.cartridgeId,
                 runtime = false, portCapacity = capacity,
             ) { null }
+        if (game != null && config != null) {
+            lifecycleScope.launch {
+                val preferences = Lazy { SharedPreferencesHelper.getSharedPreferences(this@ControllerSettingsActivity) }
+                val manager = ControllerConfigsManager(preferences)
+                val selected = manager.getControllerConfigs(GameSystem.findById(game.systemId).id, config, game)[0]
+                session.updateController(selected?.touchControllerID ?: controller)
+            }
+        }
         setContent {
             GameMenuTheme {
                 GameMenuPanel(
@@ -47,7 +64,23 @@ class ControllerSettingsActivity : ComponentActivity() {
                     onBack = ::finish,
                     onResume = ::finish,
                 ) {
-                    Column(Modifier.verticalScroll(rememberScrollState())) { session.Panel() }
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        if (intent.getBooleanExtra("cartdeck.mapping_only", false)) {
+                            session.Panel()
+                        } else {
+                            UniversalControls(
+                                game,
+                                core = config,
+                                physical = { session.Panel() },
+                                advanced = {
+                                    PivotArcSettingsScreen(
+                                        Modifier.heightIn(max = 360.dp),
+                                        showLayoutChoices = false,
+                                    )
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }

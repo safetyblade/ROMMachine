@@ -20,6 +20,9 @@ class ControllerInputProbe(private val clockMillis: () -> Long = { System.nanoTi
 
     fun heldLongerThan(milliseconds: Long): Set<Int> = since.filterValues { clockMillis() - it >= milliseconds }.keys
 
+    private val observed = mutableSetOf<Int>()
+    val observedKeys: Set<Int> get() = observed.toSet()
+
     private val buttons = mutableSetOf<Int>()
     val held: Set<Int> get() = buttons.toSet()
     val axes = mutableMapOf<Int, Axis>()
@@ -32,6 +35,7 @@ class ControllerInputProbe(private val clockMillis: () -> Long = { System.nanoTi
     ) {
         physical.key(code, down)
         if (down) {
+            observed.add(code)
             if (buttons.add(code)) {
                 since[code] = clockMillis()
             } else {
@@ -59,6 +63,7 @@ class ControllerInputProbe(private val clockMillis: () -> Long = { System.nanoTi
         repeated.clear()
         physical.clear()
         buttons.clear()
+        observed.clear()
         axes.clear()
         lastEvent = "Input cleared"
     }

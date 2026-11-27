@@ -193,6 +193,7 @@ object PivotArcPositionSolver {
         requestedDx: Float,
         requestedDy: Float,
         isLandscape: Boolean,
+        requireHardware: Boolean = false,
     ): PivotArcResolution {
         if (isLandscape) {
             return PivotArcResolution.Unavailable("PivotArc currently requires portrait orientation.")
@@ -230,6 +231,7 @@ object PivotArcPositionSolver {
                         requestedDx = requestedDx,
                         requestedDy = requestedDy,
                         scale = scale,
+                        requireHardware = requireHardware,
                     )
             ) {
                 is PivotArcResolution.Fits -> return result
@@ -249,6 +251,7 @@ object PivotArcPositionSolver {
         requestedDx: Float,
         requestedDy: Float,
         scale: Float,
+        requireHardware: Boolean,
     ): PivotArcResolution {
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
@@ -335,7 +338,13 @@ object PivotArcPositionSolver {
         val minTop = max(safe.top, viewport.bottom + GAP)
         val minDx = safe.left - wholeHull.left
         val maxDx = safe.right - wholeHull.right
-        val minDy = minTop - wholeHull.top
+        val minDy =
+            if (requireHardware) {
+                val hardwareGap = PIVOT_ARC_DISPLAY_CLEARANCE_DP + PIVOT_ARC_LABEL_HEIGHT_DP + 4f
+                maxOf(minTop - wholeHull.top, viewport.bottom + hardwareGap - core.values.minOf { it.top })
+            } else {
+                minTop - wholeHull.top
+            }
         val maxDy = safe.bottom - wholeHull.bottom
         if (minDx > maxDx || minDy > maxDy) {
             return PivotArcResolution.Unavailable(
@@ -412,6 +421,9 @@ object PivotArcPositionSolver {
             }
         }
 
+        if (requireHardware && PivotArcModuleGeometry.resolveDp(positions, viewport, safe)?.wordmark == null) {
+            return PivotArcResolution.Unavailable("Insufficient space for the PivotArc housing and wordmark.")
+        }
         val visuals =
             active.associateWith { key ->
                 val source = baseline.buttonCenters.getValue(key).visual

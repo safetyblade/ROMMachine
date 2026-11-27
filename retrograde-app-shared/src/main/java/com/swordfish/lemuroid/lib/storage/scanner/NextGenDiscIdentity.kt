@@ -26,6 +26,7 @@ object NextGenDiscIdentity {
         val platform: Platform?,
         val source: String,
         val companionTracks: List<String> = emptyList(),
+        val discSerial: String? = null,
     )
 
     private val gameCubeMagic = byteArrayOf(0xc2.toByte(), 0x33, 0x9f.toByte(), 0x3d)
@@ -34,6 +35,8 @@ object NextGenDiscIdentity {
         Regex("""^\s*(\d+)\s+(\d+)\s+([04])\s+(2048|2336|2352)\s+("[^"]+"|[^\s]+)\s+(\d+)\s*$""")
     private val ps2Boot =
         Regex("""(?im)^\s*BOOT2\s*=\s*cdrom0:\\[A-Z0-9_.\\-]+(?:;\d+)?\s*$""")
+
+    private val ps2Serial = Regex("""(?i)\b([A-Z]{4})[_-](\d{3})[.](\d{2})(?=;|\s|$)""")
 
     fun probe(
         name: String,
@@ -161,8 +164,14 @@ object NextGenDiscIdentity {
                     if (config != null && config.second in 1..16384) {
                         val configBytes = readAt(source, config.first * 2048L, config.second)
                         val contents = configBytes?.let { String(it, StandardCharsets.US_ASCII) }
-                        if (contents != null && ps2Boot.containsMatchIn(contents)) {
-                            return Result(Platform.PS2, "iso9660-system-cnf-boot2")
+                        val boot = contents?.let(ps2Boot::find)
+                        if (boot != null) {
+                            val serial =
+                                ps2Serial.find(boot.value)?.let { match ->
+                                    val (_, prefix, first, last) = match.groupValues
+                                    "${prefix.uppercase(Locale.ROOT)}-$first$last"
+                                }
+                            return Result(Platform.PS2, "iso9660-system-cnf-boot2", discSerial = serial)
                         }
                     }
                 }

@@ -20,10 +20,13 @@ data class PivotArcSoloSeat(
     val holdOf: String? = null,
     val utility: Boolean = false,
     val target: Float = 48.5f,
-    val cap: Float = 36f,
+    val cap: Float = 40f,
 )
 
-data class PivotArcSoloProfile(val seats: List<PivotArcSoloSeat>) {
+data class PivotArcSoloProfile(
+    val seats: List<PivotArcSoloSeat>,
+    val inactivePointerSeat: PivotArcSoloSeat? = null,
+) {
     init {
         require(seats.map { it.id }.distinct().size == seats.size)
         require(seats.all { it.target >= 48f && it.cap <= it.target })
@@ -35,6 +38,8 @@ data class PivotArcSoloProfile(val seats: List<PivotArcSoloSeat>) {
     }
 
     fun seat(id: String): PivotArcSoloSeat? = seats.firstOrNull { it.id == id }
+
+    internal val hardwareUtilities = seats.filter { it.utility }.map { pivotArcHardwareSeatKey(it.id) }.toSet()
 
     val holdKeys: Set<Int>
         get() = seats.mapNotNull { it.holdOf?.let { key -> seat(key)?.keyCode } }.toSet()
@@ -127,15 +132,15 @@ object PivotArcSoloProfiles {
         val dx = if (dual) 88 else 0
         val seats =
             buildList {
-                add(dpad(22 + dx, 185, 72f))
-                add(button("Y", 76 + dx, 84, y, if (dos) "X" else "Square"))
-                add(button("X", 136 + dx, 120, x, if (dos) "Y" else "Triangle"))
-                add(button("B", 136 + dx, 272, b, if (dos) "A" else "Cross"))
-                add(button("A", 76 + dx, 318, a, if (dos) "B" else "Circle"))
-                add(hold("Y", 76 + dx, 24))
-                add(hold("X", 212 + dx, 110))
-                add(hold("B", 212 + dx, 300))
-                add(hold("A", 76 + dx, 376))
+                add(dpad(24 + dx, 185, 72f))
+                add(button("Y", 76 + dx, 105, y, if (dos) "X" else "Square"))
+                add(button("X", 136 + dx, 132, x, if (dos) "Y" else "Triangle"))
+                add(button("B", 136 + dx, 256, b, if (dos) "A" else "Cross"))
+                add(button("A", 76 + dx, 289, a, if (dos) "B" else "Circle"))
+                add(hold("Y", 76 + dx, 48))
+                add(hold("X", 195 + dx, 109))
+                add(hold("B", 194 + dx, 284))
+                add(hold("A", 76 + dx, 346))
                 add(button("L", 190 + dx, 173, l, "L1"))
                 add(button("R", 244 + dx, 173, r, "R1"))
                 add(button("L2", 190 + dx, 227, l2))
@@ -276,18 +281,18 @@ object PivotArcSoloProfiles {
     private fun dreamcast(): PivotArcSoloProfile =
         PivotArcSoloProfile(
             listOf(
-                stick("AnalogL", 38, 160, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
-                dpad(115, 160, 72f),
-                button("X", 174, 70, y),
-                button("Y", 230, 110, x),
-                button("A", 230, 230, b),
-                button("B", 174, 275, a),
-                button("L", 284, 150, l2),
-                button("R", 338, 150, r2),
-                hold("L", 284, 205),
-                hold("R", 338, 205),
-                hold("A", 300, 260),
-                hold("B", 174, 335),
+                stick("AnalogL", 44, 160, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK),
+                dpad(124, 160, 72f),
+                button("X", 171, 82, y),
+                button("Y", 227, 110, x),
+                button("A", 227, 224, b),
+                button("B", 170, 257, a),
+                button("L", 282, 150, l2),
+                button("R", 336, 150, r2),
+                hold("L", 282, 205),
+                hold("R", 336, 205),
+                hold("A", 285, 260),
+                hold("B", 170, 313),
             ) + rail(select = false),
         )
 
@@ -323,10 +328,11 @@ object PivotArcSoloProfiles {
                 stick("AnalogR", 38, 263, ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK, 64f),
                 dpad(115, 169),
                 button("Y", 140, 55, y),
-                button("L", 200, 105, l),
-                button("R", 255, 105, r),
-                button("Z", 310, 105, r2),
-                button("A", 200, 169, a),
+                // Dolphin descGC binds full triggers to L2/R2, Z to R1, and soft presses to L3/R3.
+                button("L", 200, 105, l2),
+                button("R", 255, 105, r2),
+                button("Z", 310, 105, r),
+                button("A", 200, 169, a).copy(cap = 42f),
                 button("X", 255, 169, x),
                 button("B", 200, 235, b),
                 hold("L", 200, 45),
@@ -382,7 +388,7 @@ object PivotArcSoloProfiles {
                 ),
         )
 
-    private fun classicWii(): PivotArcSoloProfile =
+    private fun classicWii(home: Boolean = true): PivotArcSoloProfile =
         PivotArcSoloProfile(
             sony(true).seats.filterNot { it.id in setOf("LS", "RS") }.map { seat ->
                 when (seat.id) {
@@ -398,13 +404,14 @@ object PivotArcSoloProfiles {
                     "Select" -> seat.copy(label = "−")
                     else -> seat
                 }
-            },
+            } + if (home) listOf(utility("Home", rs)) else emptyList(),
         )
 
     private fun nunchukWii(): PivotArcSoloProfile =
         PivotArcSoloProfile(
             listOf(
-                stick("AnalogL", 36, 124, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK, 64f),
+                stick("AnalogL", 36, 124, ComposeTouchLayouts.MOTION_SOURCE_LEFT_STICK, 64f)
+                    .copy(label = "Nunchuk movement"),
                 stick("AnalogR", 36, 248, ComposeTouchLayouts.MOTION_SOURCE_RIGHT_STICK, 64f)
                     .copy(label = "IR pointer"),
                 dpad(110, 185, 72f),
@@ -415,14 +422,71 @@ object PivotArcSoloProfiles {
                 hold("B", 300, 110),
                 hold("A", 300, 300),
                 hold("Y", 164, 376),
-                button("Shake", 278, 197, r2, "Shake"),
+                button("Shake", 278, 197, r2, "Shake R"),
                 button("ShakeN", 332, 197, l2, "Shake N"),
-            ) + rail() +
+            ) + rail(startLabel = "1", selectLabel = "2") +
                 listOf(
                     utility("Minus", l, "−"),
                     utility("Plus", r, "+"),
+                    utility("Home", rs),
                 ),
         )
+
+    internal fun wiiNunchuk(
+        pointerStick: Boolean,
+        fixedHolds: Boolean = true,
+    ): PivotArcSoloProfile {
+        val source = nunchukWii()
+        return PivotArcSoloProfile(
+            source.seats.filter { seat ->
+                (pointerStick || seat.id != "AnalogR") && (fixedHolds || seat.holdOf == null)
+            },
+            inactivePointerSeat = source.seat("AnalogR").takeUnless { pointerStick || !fixedHolds },
+        )
+    }
+
+    internal fun standardWiiNunchuk(
+        profile: PivotArcSoloProfile,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+    ): PivotArcPlacement? {
+        val top = safe.bottom - 290f
+        if (safe.width < 304f || top < viewport.bottom + 8f) return null
+        val centers =
+            mapOf(
+                "Shake" to (0.12f to 80f),
+                "ShakeN" to (0.32f to 80f),
+                "D" to (0.20f to 147f),
+                "AnalogL" to (0.20f to 251f),
+                "X" to (0.76f to 80f),
+                "Y" to (0.59f to 133f),
+                "A" to (0.90f to 133f),
+                "B" to (0.76f to 186f),
+                "AnalogR" to (0.76f to 251f),
+            )
+        val utilities = profile.seats.filter { it.utility }.map { it.id }
+        val bounds =
+            profile.seats.associate { seat ->
+                val (x, y) = centers[seat.id] ?: ((utilities.indexOf(seat.id) + 0.5f) / utilities.size to 25f)
+                val cx = safe.left + safe.width * x
+                val cy = top + y
+                val half = seat.target / 2f
+                seat.id to PivotArcBounds(cx - half, cy - half, cx + half, cy + half)
+            }
+        val targets = bounds.values.toList()
+        if (targets.withIndex().any { (index, target) ->
+                !target.inside(safe) || targets.drop(index + 1).any(target::intersects)
+            }
+        ) {
+            return null
+        }
+        return PivotArcPlacement(
+            controls = bounds,
+            visuals = profile.seats.associate { it.id to PivotArcSize(it.cap, it.cap) },
+            appliedDx = 0f,
+            appliedDy = 0f,
+        )
+    }
 
     /** Native host mode uses the same Android button codes as XboxPadState. */
     fun forNativeXbox(controller: TouchControllerID): PivotArcSoloProfile? {
@@ -501,7 +565,7 @@ object PivotArcSoloProfiles {
             SystemID.WII_U ->
                 if (controller == TouchControllerID.WII_CLASSIC) {
                     PivotArcSoloProfile(
-                        classicWii().seats.map { seat ->
+                        classicWii(home = false).seats.map { seat ->
                             when (seat.id) {
                                 "L" -> seat.copy(label = "L", keyCode = l2)
                                 "R" -> seat.copy(label = "R", keyCode = r2)
@@ -533,6 +597,7 @@ object PivotArcSoloProfiles {
         system: SystemID,
         controller: TouchControllerID?,
         pspAnalogPrimary: Boolean = false,
+        wiiPointerStick: Boolean = true,
     ): PivotArcSoloProfile? =
         when (system) {
             SystemID.SNES -> if (controller == TouchControllerID.SNES) snes() else null
@@ -572,7 +637,7 @@ object PivotArcSoloProfiles {
                 when (controller) {
                     TouchControllerID.WII_SIDEWAYS -> sidewaysWii()
                     TouchControllerID.WII_CLASSIC -> classicWii()
-                    TouchControllerID.WII_NUNCHUK -> nunchukWii()
+                    TouchControllerID.WII_NUNCHUK -> wiiNunchuk(wiiPointerStick)
                     TouchControllerID.GAMECUBE -> gameCube()
                     else -> null
                 }
@@ -581,11 +646,17 @@ object PivotArcSoloProfiles {
         }
 }
 
-/** Uniform centre scaling and whole-body placement. Never scale hit targets down. */
+/** Fit approved seat centres and the manufactured envelope without reducing any hit target. */
 object PivotArcSoloSolver {
-    private const val GAP = 4f
+    private const val GAP = 2f
     private const val RIM = 8f
-    private val scales = listOf(1.5f, 1.4f, 1.3f, 1.2f, 1.1f, 1f, 0.95f, 0.9f, 0.85f, 0.8f)
+    private val scales = (80..150 step 2).map { it / 100f }
+    private val centerScales =
+        scales.flatMap { horizontal ->
+            scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
+        }.sortedBy { (horizontal, vertical) ->
+            horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
+        }
 
     fun resolve(
         profile: PivotArcSoloProfile,
@@ -601,56 +672,54 @@ object PivotArcSoloSolver {
         }
         val available =
             PivotArcBounds(
-                safe.left + RIM,
-                max(safe.top, viewport.bottom + GAP) + RIM,
-                safe.right - RIM,
+                safe.left + GAP,
+                max(safe.top, viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP) +
+                    PIVOT_ARC_LABEL_HEIGHT_DP + PIVOT_ARC_EDGE_DP / 3f + 1f,
+                safe.right - GAP,
                 safe.bottom - RIM,
             )
         if (available.width <= 0f || available.height <= 0f) {
             return PivotArcResolution.Unavailable("No safe space below the game screen.")
         }
-        val game = profile.seats.filterNot { it.utility }
+        val game = profile.seats.filterNot { it.utility } + listOfNotNull(profile.inactivePointerSeat)
         val utility = profile.seats.filter { it.utility }
-        for (scale in scales) {
+        for ((horizontal, vertical) in centerScales) {
             val core =
                 game.associate { seat ->
                     val half = seat.target / 2f
-                    val cx = seat.x * scale
-                    val cy = seat.y * scale
+                    val cx = seat.x * horizontal
+                    val cy = seat.y * vertical
                     seat.id to PivotArcBounds(cx - half, cy - half, cx + half, cy + half)
                 }
-            val coreHull = hull(core.values)
+            if (!independent(core.values)) continue
+            val railGap = 8f
+            val maxCoreHeight = available.height - utility.maxOf { it.target } - railGap - 0.01f
+            val compactHeight = minOf(maxCoreHeight, hull(core.values).height * 0.88f)
+            val packed = fitHeight(core, compactHeight) ?: fitHeight(core, maxCoreHeight) ?: continue
+            val coreHull = hull(packed.values)
             val railWidth =
                 utility.sumOf { it.target.toDouble() }.toFloat() +
                     (utility.size - 1).coerceAtLeast(0) * GAP
             var cursor = coreHull.centerX - railWidth / 2f
-            val railTop = coreHull.bottom + GAP + RIM
+            val railTop = coreHull.bottom + railGap
             val rail =
                 utility.associate { seat ->
                     val rect = PivotArcBounds(cursor, railTop, cursor + seat.target, railTop + seat.target)
                     cursor += seat.target + GAP
                     seat.id to rect
                 }
-            val all = core + rail
+            val all = packed + rail
             val bounds = hull(all.values)
             if (bounds.width > available.width || bounds.height > available.height) continue
-            val rectangles = all.values.toList()
-            if (rectangles.indices.any { i ->
-                    (i + 1 until rectangles.size).any { j ->
-                        rectangles[i].inset(GAP / 2f - 0.01f).intersects(rectangles[j].inset(GAP / 2f - 0.01f))
-                    }
-                }
-            ) {
-                continue
-            }
+            if (!independent(all.values)) continue
             val dx =
-                (available.right - bounds.right + requestedDx)
+                (available.right - bounds.right - minOf(8f, available.width - bounds.width) + requestedDx)
                     .coerceIn(available.left - bounds.left, available.right - bounds.right)
             val dy =
                 (available.bottom - bounds.bottom + requestedDy)
                     .coerceIn(available.top - bounds.top, available.bottom - bounds.bottom)
             val placed =
-                all.mapValues { (_, rect) ->
+                all.filterKeys { it != profile.inactivePointerSeat?.id }.mapValues { (_, rect) ->
                     val moved = PivotArcBounds(rect.left + dx, rect.top + dy, rect.right + dx, rect.bottom + dy)
                     if (leftHanded) {
                         PivotArcBounds(
@@ -669,13 +738,27 @@ object PivotArcSoloSolver {
             ) {
                 continue
             }
+            val hardware = PivotArcModuleGeometry.resolveDp(placed, viewport, safe, profile.hardwareUtilities)
+            if (hardware?.wordmark == null) continue
             return PivotArcResolution.Fits(
                 PivotArcPlacement(
                     controls = placed,
-                    visuals = profile.seats.associate { it.id to PivotArcSize(it.cap, it.cap) },
+                    visuals =
+                        profile.seats.associate { seat ->
+                            val cap =
+                                when {
+                                    seat.utility -> 44f
+                                    seat.holdOf != null || seat.analog -> seat.cap
+                                    seat.direction != null -> seat.cap + 4f
+                                    seat.id in setOf("A", "B") -> maxOf(seat.cap, 44f)
+                                    seat.id in setOf("X", "Y", "C", "Z") -> maxOf(seat.cap, 42f)
+                                    else -> seat.cap
+                                }
+                            seat.id to PivotArcSize(cap, cap)
+                        },
                     appliedDx = dx,
                     appliedDy = dy,
-                    visualScale = scale,
+                    visualScale = minOf(horizontal, vertical),
                 ),
             )
         }
@@ -683,6 +766,44 @@ object PivotArcSoloSolver {
             "The approved PivotArc constellation cannot fit this screen with independent 48dp targets. " +
                 "Standard remains available.",
         )
+    }
+
+    private fun independent(controls: Collection<PivotArcBounds>): Boolean {
+        val expanded = controls.map { it.inset(GAP / 2f - 0.01f) }
+        return expanded.indices.none { first ->
+            (first + 1 until expanded.size).any { second -> expanded[first].intersects(expanded[second]) }
+        }
+    }
+
+    /**
+     * Compress unused vertical space while keeping the order of each column.
+     * Seats whose horizontal target spans meet must retain the full vertical gap.
+     */
+    private fun fitHeight(
+        controls: Map<String, PivotArcBounds>,
+        height: Float,
+    ): Map<String, PivotArcBounds>? {
+        if (hull(controls.values).height <= height) return controls
+
+        val packed = linkedMapOf<String, PivotArcBounds>()
+        for ((id, bounds) in controls.entries.sortedBy { it.value.centerY }) {
+            val top =
+                packed.values
+                    .filter { it.left < bounds.right + GAP - 0.01f && it.right > bounds.left - GAP + 0.01f }
+                    .maxOfOrNull { it.bottom + GAP } ?: 0f
+            packed[id] = bounds.copy(top = top, bottom = top + bounds.height)
+        }
+        val compactHeight = hull(packed.values).height
+        if (compactHeight > height) return null
+
+        val originalTop = controls.values.minOf { it.top }
+        val originalHeight = hull(controls.values).height
+        val fraction = (height - compactHeight) / (originalHeight - compactHeight)
+        return controls.mapValues { (id, bounds) ->
+            val compactTop = packed.getValue(id).top
+            val top = compactTop + (bounds.top - originalTop - compactTop) * fraction
+            bounds.copy(top = top, bottom = top + bounds.height)
+        }
     }
 
     private fun hull(rectangles: Collection<PivotArcBounds>): PivotArcBounds =

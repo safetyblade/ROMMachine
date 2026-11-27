@@ -32,6 +32,7 @@ import com.swordfish.lemuroid.lib.game.GameLoaderException
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.libretrodroid.GLRetroView
@@ -101,6 +102,9 @@ class GameViewModelRetroGameView(
             graphics = reportGraphics,
             reportedOptions = LibretroEngineReport.safeOptions(options.map { it.key to it.value }),
         )
+
+    private val wiiPointerMode = MutableStateFlow("2")
+    val activeWiiPointerMode: StateFlow<String> = wiiPointerMode
 
     private val gameState: MutableStateFlow<GameState> = MutableStateFlow(GameState.Uninitialized)
 
@@ -250,6 +254,11 @@ class GameViewModelRetroGameView(
     ): Pair<GameLoader.GameData, GLRetroView> {
         val currentState = gameState.value
         if (currentState !is GameState.Loaded) throw IllegalStateException("Game is not loaded.")
+
+        if (system.id == SystemID.WII) {
+            wiiPointerMode.value =
+                currentState.gameData.coreVariables.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: "2"
+        }
 
         reportGraphics = null
         reportCoreFrameObserved = false
@@ -467,8 +476,23 @@ class GameViewModelRetroGameView(
                     chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            val desired = options.filterNot { it.key in keys } + overrides
+            val pointerKey = "dolphin_ir_mode"
+            val pointer = display.engineOptions["$namespace:$pointerKey"]
+            val pointerOverride =
+                pointer?.takeIf { value ->
+                    system.id == SystemID.WII && pointerKey in current &&
+                        systemCoreConfig.exposedSettings.any { setting ->
+                            setting.key == pointerKey && setting.values.any { it.key == value }
+                        }
+                }?.let { CoreVariable(pointerKey, it) }
+            val desired =
+                options.filterNot { it.key in keys || it.key == pointerOverride?.key } + overrides +
+                    listOfNotNull(pointerOverride)
             updateCoreVariables(CoreOptionRefresh.changed(desired, current))
+            if (system.id == SystemID.WII) {
+                wiiPointerMode.value =
+                    desired.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: current["dolphin_ir_mode"] ?: "2"
+            }
         } catch (e: Exception) {
             Timber.e(e)
         }

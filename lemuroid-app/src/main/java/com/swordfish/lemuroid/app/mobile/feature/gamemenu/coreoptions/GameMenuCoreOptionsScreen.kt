@@ -23,7 +23,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
-import com.swordfish.lemuroid.lib.library.SystemID
 
 @Composable
 fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest) {
@@ -32,7 +31,8 @@ fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest)
     val allOptions =
         remember(gameMenuRequest) {
             gameMenuRequest.coreOptions.filterNot {
-                com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
+                it.getKey() == "dolphin_ir_mode" ||
+                    com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
             }
         }
 
@@ -109,7 +109,7 @@ private fun ControllersOptions(
             .map { it to controllers[it] }
             .filter { (port, controllers) ->
                 controllers != null && controllers.size >= 2 &&
-                    !(port == 0 && gameMenuRequest.game.systemId == SystemID.WII.dbname)
+                    port != 0
             }
 
     if (visibleControllers.isEmpty()) {

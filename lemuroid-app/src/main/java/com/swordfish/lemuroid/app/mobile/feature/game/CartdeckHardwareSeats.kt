@@ -301,6 +301,8 @@ internal fun CartdeckHardwareSeats(
     customColours: Boolean,
     pivotArc: Boolean = false,
     measuredStandard: Boolean = false,
+    contouredPivot: Boolean = false,
+    pivotUtilities: Set<String> = PivotArcModuleGeometry.legacyUtilityKeys,
     joint: CompositeControlDeckPlacement? = null,
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
@@ -354,6 +356,8 @@ internal fun CartdeckHardwareSeats(
                 root = Rect(0f, 0f, rootBounds.width, rootBounds.height),
                 tokens = tokens,
                 joint = joint,
+                utilityKeys = pivotUtilities,
+                contoured = contouredPivot,
             )
         }
 
@@ -519,6 +523,7 @@ internal fun CartdeckHardwareSeats(
         }
 
         controls.toSortedMap().forEach { (key, control) ->
+            if (contouredPivot && key in pivotUtilities) return@forEach
             val singleFaceSeat =
                 key in setOf("face-a", "face-b", "face-x", "face-y", "aux-C", "aux-Z")
             if (!singleFaceSeat && CartdeckHardwareResource.seat(edition, key) == null) {

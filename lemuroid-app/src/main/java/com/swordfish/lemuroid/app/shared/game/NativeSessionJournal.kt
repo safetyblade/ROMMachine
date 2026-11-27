@@ -1,6 +1,6 @@
 package com.swordfish.lemuroid.app.shared.game
 
-import android.app.ActivityManager
+import android.app.Application
 import android.content.Context
 import android.os.Build
 import android.os.Process
@@ -22,6 +22,7 @@ object NativeSessionJournal {
             Properties().apply {
                 setProperty("console", console)
                 setProperty("pid", Process.myPid().toString())
+                if (Build.VERSION.SDK_INT >= 28) setProperty("process", Application.getProcessName())
                 setProperty("started", System.currentTimeMillis().toString())
                 setProperty("root", root.canonicalPath)
             }
@@ -38,9 +39,16 @@ object NativeSessionJournal {
 
     fun finish(context: Context) = journal(context).delete()
 
-    fun consumeCrash(context: Context): String? {
+    fun consumeCrash(
+        context: Context,
+        expectedPid: Int? = null,
+        notBefore: Long? = null,
+    ): String? {
         val file = journal(context)
         val props = runCatching { Properties().apply { file.openRead().use { load(it) } } }.getOrNull() ?: return null
+        val pid = props.getProperty("pid")?.toIntOrNull() ?: return null
+        val started = props.getProperty("started")?.toLongOrNull() ?: return null
+        if ((expectedPid != null && pid != expectedPid) || (notBefore != null && started < notBefore)) return null
         val root = File(props.getProperty("root", "")).canonicalFile
         val report =
             buildString {
@@ -52,31 +60,19 @@ object NativeSessionJournal {
                 if (root.path.startsWith(context.filesDir.canonicalPath + File.separator)) {
                     for (name in listOf("native-stage.txt", "last-report.txt", "native-core.log")) {
                         val source = File(root, name)
-                        if (source.isFile) {
+                        if (source.isFile && source.lastModified() >= started) {
                             appendLine("\n$name:")
                             source.inputStream().use { appendLine(String(it.readBytesLimited(32768))) }
                         }
                     }
                 }
-                if (Build.VERSION.SDK_INT >= 30) {
-                    runCatching {
-                        context.getSystemService(ActivityManager::class.java)
-                            .getHistoricalProcessExitReasons(context.packageName, props.getProperty("pid").toInt(), 4)
-                            .firstOrNull { it.timestamp >= props.getProperty("started").toLong() }
-                            ?.let { exit ->
-                                appendLine(
-                                    "Android exit reason=${exit.reason} status=${exit.status} " +
-                                        "process=${exit.processName}",
-                                )
-                                appendLine(exit.description)
-                                val trace = exit.traceInputStream
-                                if (exit.reason == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE) {
-                                    appendLine(NativeCrashTrace.read(trace))
-                                } else {
-                                    trace?.use { appendLine(it.readBytesLimited(65536).toString(Charsets.UTF_8)) }
-                                }
-                            }
-                    }.onFailure { appendLine("Exit trace unavailable: ${it.javaClass.simpleName}") }
+                if (Build.VERSION.SDK_INT >= 30 && expectedPid == null) {
+                    val process = props.getProperty("process")
+                    if (process != null) {
+                        SessionExitEvidence.find(context, process, pid, started)?.let {
+                            appendLine(SessionExitEvidence.render(it))
+                        }
+                    }
                 }
             }.take(131072)
         AtomicFile(File(context.filesDir, "last-native-crash.txt")).let { target ->

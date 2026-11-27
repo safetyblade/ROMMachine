@@ -30,19 +30,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
-import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.UniversalControls
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineFallbackControls
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
-import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -146,71 +144,17 @@ private fun CartridgeControlChoices(
     game: Game,
     system: GameSystem,
 ) {
-    val context = LocalContext.current.applicationContext
-    val scope = rememberCoroutineScope()
-    com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink("Physical controller — edit and test") {
-        context.startActivity(
-            android.content.Intent(
-                context,
-                ControllerSettingsActivity::class.java,
-            )
-                .putExtra("cartdeck.game", game).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-    }
-    val store = remember(context) { GripArcProfileStore(context) }
-    var mode by remember(game.fileUri) { mutableStateOf(store.read(game).mode) }
-    var message by remember(game.fileUri) { mutableStateOf<String?>(null) }
-    var showHelp by remember(game.fileUri) { mutableStateOf(false) }
-    TextButton(onClick = { showHelp = !showHelp }) {
-        Text(if (showHelp) "Hide control help" else "Control help")
-    }
-    if (showHelp) {
-        if (system.id == SystemID.WII) {
-            Text(
-                "Choose Sideways Wii Remote, Classic, Remote + Nunchuk or GameCube Controller below. " +
-                    "GameCube input only works in Wii software that supports a GameCube pad. " +
-                    "Touch the game picture to point with Wii Remote profiles; pointer settings also offer " +
-                    "the right stick. Press the right stick for Wii Home. Shake buttons emulate motion. " +
-                    "Phone motion sensors and physical Wii Remotes are unavailable.",
+    val context = LocalContext.current
+    val preferred = EngineSelectionPreferences(context).preferred(system.id, game)
+    val config = NativeEngineRegistry.engines(system).firstOrNull { it.id == preferred }?.config
+    UniversalControls(game, core = config, physical = {
+        GameMenuLink("Open controller mapper") {
+            context.startActivity(
+                android.content.Intent(context, ControllerSettingsActivity::class.java)
+                    .putExtra("cartdeck.game", game).putExtra("cartdeck.mapping_only", true),
             )
         }
-        Text("Device fit may use Standard. Button mappings remain available in the in-game Controls menu.")
-    }
-    Text("Control layout preference")
-    ArcControlMode.values().forEach { option ->
-        TextButton(onClick = {
-            if (store.save(
-                    game,
-                    store.read(game).copy(mode = option),
-                )
-            ) {
-                mode = option
-            } else {
-                message = "Could not save layout"
-            }
-        }) { Text(option.label + if (mode == option) " · selected" else "") }
-    }
-    val manager =
-        remember(
-            context,
-        ) { ControllerConfigsManager(dagger.Lazy { SharedPreferencesHelper.getSharedPreferences(context) }) }
-    val preferred = EngineSelectionPreferences(context).preferred(system.id, game)
-    val config =
-        NativeEngineRegistry.engines(system).firstOrNull { it.id == preferred }?.config
-            ?: system.systemCoreConfigs.firstOrNull()
-    if (config == null) return
-    var controller by remember(game.fileUri) { mutableStateOf<String?>(null) }
-    LaunchedEffect(game.fileUri, config) {
-        controller = manager.getControllerConfigs(system.id, config, game)[0]?.name
-    }
-    config.controllerConfigs[0]?.takeIf { it.size > 1 }?.forEach { option ->
-        TextButton(onClick = {
-            scope.launch {
-                if (manager.selectController(system.id, config, 0, option.name, game)) controller = option.name
-            }
-        }) { Text(stringResource(option.displayName) + if (controller == option.name) " · selected" else "") }
-    }
-    message?.let { Text(it) }
+    })
 }
 
 @Composable

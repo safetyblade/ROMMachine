@@ -452,14 +452,12 @@ class GameMenuActivity : RetrogradeComponentActivity() {
                                         mappingDraft?.cancelConflict()
                                         mappingRevision++
                                     },
-                                    onReset = { device ->
+                                    onReset = { proposal ->
                                         cancelCapture()
-                                        mappingDraft?.reset(
-                                            inputDeviceManager.defaultBindings(device)
-                                                .mapKeys { it.key.keyCode }.mapValues { it.value.keyCode },
-                                        )
+                                        mappingDraft?.reset(proposal)
                                         mappingRevision++
                                     },
+                                    onDraftChanged = { mappingRevision++ },
                                     onUndo = {
                                         mappingDraft?.undo()
                                         mappingRevision++

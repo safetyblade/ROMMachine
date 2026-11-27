@@ -123,6 +123,28 @@ class CompactMenuScreensTest {
         assertEquals("Fixture game", playerMenuTitle("Fixture game.iso"))
     }
 
+    @Test
+    fun universalControlsShowsFourCardsAndRespectsOrientationAvailability() {
+        compose.setContent {
+            Box(Modifier.requiredSize(393.dp, 852.dp).testTag("fixture")) {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    UniversalControls(game = null)
+                }
+            }
+        }
+
+        compose.onNodeWithText("Standard").performScrollTo().assertIsDisplayed()
+        capture("universal-controls-portrait")
+        compose.onNodeWithText("Use PivotARC").performScrollTo().performClick()
+        compose.onNodeWithText("PivotARC").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Preview landscape").performScrollTo().performClick()
+        compose.onNodeWithText("PivotARC uses Standard controls in landscape.").performScrollTo().assertIsDisplayed()
+        capture("universal-controls-landscape")
+        compose.onNodeWithText("GripARC").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("PivotARC + GripARC").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Use Standard").performScrollTo().performClick()
+    }
+
     private fun capture(name: String) {
         val rect = compose.onNodeWithTag("fixture").getUnclippedBoundsInRoot()
         compose.runOnIdle {

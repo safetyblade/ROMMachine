@@ -42,7 +42,10 @@ class GameMenuIntegrationTest(unittest.TestCase):
         self.assertIn('Emulator save states are not available for this engine.', home)
         self.assertIn('if (gameMenuRequest.fastForwardSupported)', home)
         self.assertIn('if (gameMenuRequest.numDisks > 1)', home)
-        self.assertEqual(1, home.count('WiiControllerPicker(gameMenuRequest, onResult)'))
+        controls = home.split('fun GameMenuControlsScreen(')[1]
+        self.assertEqual(1, controls.count('UniversalControls('))
+        self.assertIn('activeController = gameMenuRequest.currentControllerName', controls)
+        self.assertIn('onResult { putExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER, name) }', controls)
         self.assertIn('GameMenuRoute.GRIPARC', activity)
         self.assertIn('GameMenuRoute.PIVOTARC', activity)
 

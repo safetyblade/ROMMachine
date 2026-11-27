@@ -5,6 +5,7 @@ import android.os.Process
 import android.util.AtomicFile
 import java.io.File
 import java.util.Properties
+import java.util.UUID
 
 /** One bounded, private cross-process record; never stores a title, URI or ROM path. */
 class PS2LaunchJournal(context: Context) {
@@ -21,14 +22,17 @@ class PS2LaunchJournal(context: Context) {
 
     private val file = AtomicFile(File(context.filesDir, "native/ps2/launch.properties"))
 
-    fun begin() {
+    fun begin(): String {
+        val started = System.currentTimeMillis().toString()
         write(
             Properties().apply {
-                setProperty("started", System.currentTimeMillis().toString())
+                setProperty("started", started)
+                setProperty("session", UUID.randomUUID().toString())
                 setProperty("stage", Stage.REQUESTED.name)
                 setProperty("pid", "0")
             },
         )
+        return started
     }
 
     fun stage(stage: Stage) =
