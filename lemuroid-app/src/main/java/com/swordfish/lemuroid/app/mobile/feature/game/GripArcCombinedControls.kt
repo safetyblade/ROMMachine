@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -8,6 +9,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
@@ -116,6 +121,31 @@ internal fun PadKitScope.GripArcCombinedControls(placement: GripArcCombinedPlace
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CartdeckDigitalBallTop(direction: Offset) {
+    val palette = LocalLemuroidPadTheme.current.palette
+    Canvas(Modifier.fillMaxSize()) {
+        val radius = size.minDimension / 2f
+        val shaft = center + direction * radius * 0.23f
+        val light = shaft - Offset(radius * 0.17f, radius * 0.2f)
+        drawCircle(palette.bezel, radius)
+        drawCircle(palette.onButton.copy(alpha = 0.32f), radius * 0.90f, style = Stroke(1.5.dp.toPx()))
+        drawCircle(palette.chassis, radius * 0.69f)
+        drawCircle(
+            Brush.radialGradient(
+                listOf(palette.onButton.copy(alpha = 0.68f), palette.button, Color.Black),
+                center = light,
+                radius = radius * 0.93f,
+            ),
+            radius * 0.56f,
+            shaft,
+        )
+        if (direction != Offset.Zero) {
+            drawCircle(palette.accent, radius * 0.06f, center + direction * radius * 0.83f)
         }
     }
 }

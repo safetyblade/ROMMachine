@@ -553,9 +553,21 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         } else if (standaloneInventory != null) {
                             nativeProfileValidated = true
                             combinedPlacement =
-                                StandaloneGripArcLayout.resolveStandalone(
-                                    standaloneInventory, safeBounds, viewportBounds, isLandscape,
-                                )
+                                remember(
+                                    standaloneInventory,
+                                    safeBounds,
+                                    viewportBounds,
+                                    isLandscape,
+                                    pivotSettings.pspAnalogPrimary,
+                                ) {
+                                    StandaloneGripArcLayout.resolveStandalone(
+                                        standaloneInventory,
+                                        safeBounds,
+                                        viewportBounds,
+                                        isLandscape,
+                                        pivotSettings.pspAnalogPrimary,
+                                    )
+                                }
                             combinedPlacement?.let { GripArcFit.Fits(it.dock) }
                                 ?: GripArcFit.Unavailable("GripARC needs more room for every seat.")
                         } else if (!selectedPivot && nativeInventory == null) {
@@ -671,6 +683,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val fittedControls =
                 combinedPlacement?.controls ?: pivotPlacement?.controls ?: measuredWiiStandard?.controls
             val fittedHardwareSeats = combinedPlacement?.hardwareSeats ?: fittedControls
+            val standaloneGrip = combinedPlacement.takeIf { standaloneInventory != null }
             val contouredPivot = pivotPlacement != null && jointPlacement == null && viewModel.systemId != SystemID.GBA
             if (showBorder) {
                 CartdeckConsoleShell(
@@ -687,6 +700,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     minimal = !hardwareBorder || fullscreenWithGamepad,
                     mountedPivotDeck = contouredPivot,
+                    continuousLandscapeBrand = standaloneGrip != null,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if (fittedControls != null && fullPos != null) {
@@ -738,44 +752,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
-            // GBA GripArc is a complete physical controller chassis. The
-            // existing native controls and G1-G4 input positions stay intact.
-            // Joined PivotArc + GripArc is intentionally NOT changed here:
-            // its final body/placement is gated after both solo styles.
-            val gbaFullGripPanel =
-                if (
-                    hardwareBorder && !isLandscape && !selectedPivot &&
-                    touchControlsVisibleState.value && !fullscreenWithGamepad && !isLoading &&
-                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
-                    standaloneInventory != null &&
-                    gripPlacement != null && fullPos != null && viewPos != null
-                ) {
-                    GbaGripArcFullBodyGeometry.resolve(
-                        fullPos,
-                        viewPos,
-                        gripPlacement.targets.values.map { bounds ->
-                            PivotArcBounds(
-                                fullPos.left + bounds.left * currentDensity.density,
-                                fullPos.top + bounds.top * currentDensity.density,
-                                fullPos.left + bounds.right * currentDensity.density,
-                                fullPos.top + bounds.bottom * currentDensity.density,
-                            )
-                        },
-                    )
-                } else {
-                    null
-                }
-            if (gbaFullGripPanel != null) {
-                GbaGripArcFullHousing(gbaFullGripPanel, shellTokens)
-            } else if (hardwareBorder && isLandscape && standaloneInventory != null && combinedPlacement != null) {
-                StandaloneGripArcLandscapeMark(combinedPlacement!!.dock.housing, shellTokens)
+            if (hardwareBorder && standaloneGrip != null && !fullscreenWithGamepad && !isLoading) {
+                StandaloneGripArcHardware(standaloneGrip, shellTokens, isLandscape)
             }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
                 currentControllerConfig != null
             ) {
-                if (hardwareBorder || (pivotPlacement != null && jointPlacement == null)) {
+                if (standaloneGrip == null && (hardwareBorder || (pivotPlacement != null && jointPlacement == null))) {
                     CartdeckHardwareSeats(
                         tokens = shellTokens,
                         edition = edition,
@@ -813,10 +798,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 hardwareBorder && jointPlacement == null && gripPlacement != null &&
                 !fullscreenWithGamepad && !isLoading
             ) {
-                if (gbaFullGripPanel == null && (standaloneInventory == null || combinedPlacement == null)) {
+                if (standaloneGrip == null) {
                     combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
                 }
-                if (gbaFullGripPanel == null && (standaloneInventory == null || combinedPlacement == null)) {
+                if (standaloneGrip == null) {
                     GripArcHousing(
                         gripPlacement,
                         shellTokens,
@@ -1030,7 +1015,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLoading = isLoading,
                 typedActions = standaloneInventory != null,
                 latchedSlots = viewModel.gripArcLatches().collectAsState().value,
-                inputLabels = GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
+                inputLabels =
+                    standaloneInventory?.let(StandaloneGripArcLayout::actionLabels)
+                        ?: GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
                 onPressed = viewModel::pressGripArcSlot,
                 drawHousing = false,
                 lighting = resolved.lighting,

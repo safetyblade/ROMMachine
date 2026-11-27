@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -32,7 +31,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControlsLayoutPreview
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckAppearance
@@ -65,9 +63,16 @@ class GripArcRenderingTest {
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun standaloneDigitalPreviewRendersTheProductionControlsInBothOrientations() {
+    fun standalonePortraitFixturesUseTheProductionRenderer() = renderStandaloneFixtures(false)
+
+    @Test
+    @Config(qualifiers = "w740dp-h360dp-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun standaloneLandscapeFixturesUseTheProductionRenderer() = renderStandaloneFixtures(true)
+
+    private fun renderStandaloneFixtures(wide: Boolean) {
         val modes =
-            linkedMapOf(
+            listOf(
                 SystemID.GBA to TouchControllerID.GBA,
                 SystemID.GB to TouchControllerID.GB,
                 SystemID.GBC to TouchControllerID.GB,
@@ -78,44 +83,88 @@ class GripArcRenderingTest {
                 SystemID.NGC to TouchControllerID.NGP,
                 SystemID.PC_ENGINE to TouchControllerID.PCE,
                 SystemID.SNES to TouchControllerID.SNES,
-            )
-        val current = mutableStateOf(modes.entries.first())
-        val landscape = mutableStateOf(false)
+                SystemID.GENESIS to TouchControllerID.GENESIS_3,
+                SystemID.GENESIS to TouchControllerID.GENESIS_6,
+                SystemID.SEGACD to TouchControllerID.GENESIS_3,
+                SystemID.SEGACD to TouchControllerID.GENESIS_6,
+                SystemID.ATARI2600 to TouchControllerID.ATARI2600,
+                SystemID.ATARI7800 to TouchControllerID.ATARI7800,
+                SystemID.LYNX to TouchControllerID.LYNX,
+                SystemID.PSP to TouchControllerID.PSP,
+                SystemID.DREAMCAST to TouchControllerID.DREAMCAST,
+                SystemID.GAMECUBE to TouchControllerID.GAMECUBE,
+            ).map { (system, controller) -> Triple(system, controller, false) } +
+                Triple(SystemID.PSP, TouchControllerID.PSP, true)
+        val width = if (wide) 740 else 393
+        val height = if (wide) 360 else 852
+        val root = Rect(0f, 0f, width.toFloat(), height.toFloat())
+        val safe = PivotArcBounds(8f, 8f, width - 8f, height - 8f)
+        val motion = mutableStateOf(modes.first())
         compose.setContent {
-            Box(Modifier.requiredSize(360.dp, 216.dp).testTag("standalone-deck")) {
-                ControlsLayoutPreview(
-                    current.value.key,
-                    current.value.value,
-                    ArcControlMode.STANDARD_GRIPARC,
-                    landscape.value,
-                    "2",
-                    standaloneGripFactory(current.value.key),
-                )
+            val (system, id, analogPrimary) = motion.value
+            val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+            val viewport = if (wide) PivotArcBounds(180f, 20f, 560f, 290f) else PivotArcBounds(22f, 84f, 371f, 340f)
+            val glass = Rect(viewport.left, viewport.top, viewport.right, viewport.bottom)
+            val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(id))
+            val fitted =
+                checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, wide)) {
+                    "No standalone fit for $system / $id, landscape=$wide"
+                }
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+            ) {
+                Box(Modifier.requiredSize(width.dp, height.dp).background(tokens.bezel).testTag("standalone-deck")) {
+                    CartdeckConsoleShell(
+                        tokens,
+                        glass,
+                        root,
+                        wide,
+                        (fitted.controls.values + fitted.dock.targets.values)
+                            .map { Rect(it.left, it.top, it.right, it.bottom) },
+                        continuousLandscapeBrand = true,
+                    )
+                    StandaloneGripArcHardware(fitted, tokens, wide)
+                    PadKit(
+                        onInputEvents = {},
+                        hapticFeedbackType = HapticFeedbackType.NONE,
+                        simulatedState = remember { mutableStateOf(InputState()) },
+                        simulatedControlIds = remember { mutableStateOf(emptySet()) },
+                    ) {
+                        GripArcCombinedControls(fitted)
+                    }
+                    GripArcAccessory(
+                        fitted.dock,
+                        checkNotNull(standaloneGripFactory(system)),
+                        tokens,
+                        fullscreenWithGamepad = false,
+                        isLoading = false,
+                        onPressed = { _, _, _ -> },
+                        drawHousing = false,
+                        inputLabels = StandaloneGripArcLayout.actionLabels(inventory),
+                        typedActions = true,
+                    )
+                }
             }
         }
-        val folder = File("build/reports/gc01-menu-screens/griparc/standalone")
+        val folder = File("build/reports/gc01-menu-screens/griparc/standalone-full-size")
         folder.mkdirs()
-        for (mode in modes.entries) {
-            for (wide in listOf(false, true)) {
-                compose.runOnIdle {
-                    current.value = mode
-                    landscape.value = wide
-                }
-                compose.onAllNodesWithText("GripARC cannot fit this reference handset.").assertCountEquals(0)
-                val rect = compose.onNodeWithTag("standalone-deck").getUnclippedBoundsInRoot()
-                compose.runOnIdle {
-                    val bitmap = Bitmap.createBitmap(360, if (wide) 132 else 216, Bitmap.Config.ARGB_8888)
-                    try {
-                        val canvas = Canvas(bitmap)
-                        canvas.translate(-rect.left.value, -rect.top.value)
-                        compose.activity.window.decorView.draw(canvas)
-                        val orientation = if (wide) "landscape" else "portrait"
-                        File(folder, "${mode.key.name.lowercase()}-$orientation.png").outputStream().use {
-                            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-                        }
-                    } finally {
-                        bitmap.recycle()
-                    }
+        for (mode in modes) {
+            val (system, controller, analogPrimary) = mode
+            compose.runOnIdle { motion.value = mode }
+            val rect = compose.onNodeWithTag("standalone-deck").getUnclippedBoundsInRoot()
+            compose.runOnIdle {
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                try {
+                    val canvas = Canvas(bitmap)
+                    canvas.translate(-rect.left.value, -rect.top.value)
+                    compose.activity.window.decorView.draw(canvas)
+                    val orientation = if (wide) "landscape" else "portrait"
+                    val priority = if (analogPrimary) "-analogue" else ""
+                    File(folder, "${system.name.lowercase()}-${controller.name.lowercase()}$priority-$orientation.png")
+                        .outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+                } finally {
+                    bitmap.recycle()
                 }
             }
         }

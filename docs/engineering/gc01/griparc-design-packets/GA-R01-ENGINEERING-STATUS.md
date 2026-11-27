@@ -7,10 +7,12 @@ descended from master `1e2e75c8`. Design authority is immutable commit
 
 ## Current coverage
 
+F01 adds measured cap growth and a shared production hardware renderer.
+Landscape reuses the production CARTDECK surround and main brand.
 Both orientations have dedicated coordinates for the standalone runtime entries
 below. The solver rejects layouts when the native targets, programmable targets
-and measured gameplay viewport cannot coexist. Current geometry and previews
-cover the listed digital modes. The Kotlin checks are not a handset result.
+and measured gameplay viewport cannot coexist. Current geometry and production render fixtures
+cover the listed digital and analogue modes. The Kotlin checks are not a handset result.
 
 | System | Configuration | State |
 | --- | --- | --- |
@@ -25,25 +27,25 @@ cover the listed digital modes. The Kotlin checks are not a handset result.
 | PC_ENGINE | digital2 | Standalone runtime and dedicated preview source |
 | PC_ENGINE | digital6 | Six-button native support and standalone layout pending |
 | SNES | base | Standalone runtime and dedicated preview source |
-| GENESIS | digital3 | Pending |
-| GENESIS | digital6 | Pending |
-| SEGACD | digital3 | Pending |
-| SEGACD | digital6 | Pending |
+| GENESIS | digital3 | Standalone runtime and dedicated preview source |
+| GENESIS | digital6 | Standalone runtime and dedicated preview source |
+| SEGACD | digital3 | Standalone runtime and dedicated preview source |
+| SEGACD | digital6 | Standalone runtime and dedicated preview source |
 | WS | guest_horizontal | Pending |
 | WS | guest_vertical | Pending |
 | WSC | guest_horizontal | Pending |
 | WSC | guest_vertical | Pending |
 | NDS | base | Pending |
 | NINTENDO_3DS | base | Pending |
-| PSP | dpad_primary | Pending |
-| PSP | analogue_primary | Pending |
+| PSP | dpad_primary | Standalone runtime and dedicated preview source |
+| PSP | analogue_primary | Standalone runtime and dedicated preview source |
 | N64 | base | Pending |
 | PSX | digital | Pending |
 | PSX | dualshock | Pending |
 | PLAYSTATION_2 | base | Pending |
 | PLAYSTATION_3 | base | Pending |
-| DREAMCAST | base | Pending |
-| GAMECUBE | base | Pending |
+| DREAMCAST | base | Standalone runtime and dedicated preview source |
+| GAMECUBE | base | Standalone runtime and dedicated preview source |
 | XBOX | base | Pending |
 | XBOX360 | base | Pending |
 | FBNEO | digital2 | Pending |
@@ -54,9 +56,9 @@ cover the listed digital modes. The Kotlin checks are not a handset result.
 | MAME2003PLUS | digital3 | Pending |
 | MAME2003PLUS | digital4 | Pending |
 | MAME2003PLUS | digital6 | Pending |
-| ATARI2600 | base | Pending |
-| ATARI7800 | base | Pending |
-| LYNX | base | Pending |
+| ATARI2600 | base | Standalone runtime and dedicated preview source |
+| ATARI7800 | base | Standalone runtime and dedicated preview source |
+| LYNX | base | Standalone runtime and dedicated preview source |
 | WII | sideways | Pending |
 | WII | classic | Pending |
 | WII | nunchuk_stick | Pending |
@@ -80,8 +82,8 @@ cover the listed digital modes. The Kotlin checks are not a handset result.
   The patched core guards touch against `LibretroDRC_ShouldRenderScreen(true)`,
   then uses its existing DRC subrectangle mapping. The Android host tracks
   a fresh finger contact and the native host gates the applied controller.
-  A matching Cemu core receipt and Vulkan host build are required before
-  claiming this behavior in an APK. GamePad and Pro GripARC layouts are pending.
+  The matching Cemu core and Vulkan host passed CI-01 run `45980505728`;
+  gameplay and consolidated APK verification remain open. GamePad and Pro GripARC layouts are pending.
 - Wii Nunchuk Aim & Fire and shared IR routing are pending. Pointer ownership
   must come from a fresh, valid contact on the rendered image or real IR-stick
   engagement before the firing owner is acquired. Existing independent Nunchuk

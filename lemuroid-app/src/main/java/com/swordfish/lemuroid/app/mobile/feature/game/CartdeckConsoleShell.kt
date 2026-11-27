@@ -59,6 +59,7 @@ internal fun CartdeckConsoleShell(
     isDualScreen: Boolean = false,
     minimal: Boolean = false,
     mountedPivotDeck: Boolean = false,
+    continuousLandscapeBrand: Boolean = false,
 ) {
     val hole = CartdeckHardwareGeometry.inRoot(videoBounds, rootBounds)
     val controls = controlBounds.mapNotNull { CartdeckHardwareGeometry.inRoot(it, rootBounds) }
@@ -522,6 +523,17 @@ internal fun CartdeckConsoleShell(
                         modifier = Modifier.width(155.dp).height(25.dp),
                     )
                 }
+            }
+        }
+        if (isLandscape && continuousLandscapeBrand && hole != null) {
+            val height = with(density) { (hole.top.toDp() - 6.dp).coerceIn(0.dp, 21.dp) }
+            if (height >= 9.dp) {
+                Icon(
+                    painter = painterResource(R.drawable.cartdeck_wordmark_native),
+                    contentDescription = "CARTDECK",
+                    tint = tokens.onChassis,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 3.dp).width(138.dp).height(height),
+                )
             }
         }
         if (footerSeat) {

@@ -63,7 +63,9 @@ internal fun GbaGripArcFullHousing(
     Box(Modifier.fillMaxSize().testTag("gba-griparc-full-hardware")) {
         Canvas(Modifier.fillMaxSize()) {
             val corner = 17.dp.toPx()
-            val lip = 5.dp.toPx()
+            val lip = 7.dp.toPx()
+            val undercut = chamferedIsland(panel, corner)
+            drawPath(undercut, tokens.bezel.copy(alpha = 0.64f), style = Stroke(6.dp.toPx()))
             drawControllerInset(
                 rim = chamferedIsland(panel, corner),
                 inset = chamferedIsland(panel.deflate(lip), corner / 2f),
@@ -71,6 +73,17 @@ internal fun GbaGripArcFullHousing(
                 tokens = tokens,
                 edge = 2.dp.toPx(),
                 housing = lerp(tokens.chassis, tokens.secondary, 0.24f),
+            )
+            val bevel = panel.deflate(3.dp.toPx())
+            drawPath(
+                chamferedIsland(bevel, corner - 2.dp.toPx()),
+                lerp(tokens.secondary, tokens.onChassis, 0.29f),
+                style = Stroke(1.4.dp.toPx()),
+            )
+            drawPath(
+                chamferedIsland(panel.deflate(lip + 3.dp.toPx()), corner / 2f),
+                tokens.bezel.copy(alpha = 0.48f),
+                style = Stroke(1.2.dp.toPx()),
             )
             // Same machined rail and fastener language as accepted PivotArc;
             // no opaque plate, overlay or hit target crosses the video aperture.

@@ -25,30 +25,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcBehavior
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInput
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInputCatalog
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcManifest
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcSide
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 
 @Composable
 fun GripArcEditorScreen(
     game: Game,
     embedded: Boolean = false,
+    controller: TouchControllerID? = null,
 ) {
     val context = LocalContext.current
     val store = remember(context) { GripArcProfileStore(context) }
     val manifest = remember(context) { GripArcManifest.load(context) }
-    val options = remember(game.systemId) { GripArcInputCatalog.forGame(game) }
+    val options =
+        remember(game.systemId, controller) {
+            controller?.takeIf(StandaloneGripArcLayout::supports)
+                ?.let(StandaloneGripArcLayout::inventoryFor)
+                ?.let(StandaloneGripArcLayout::actionLabels)
+                ?.map { (code, label) -> GripArcInput(label, code) }
+                ?: GripArcInputCatalog.forGame(game)
+        }
     val profile by rememberGripArcProfile(game)
     var message by remember(game.cartridgeId) { mutableStateOf<String?>(null) }
     var slot by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
     var draft by remember(game.cartridgeId) { mutableStateOf(emptyList<Int>()) }
     val typed = supportsStandaloneGripActions(SystemID.entries.firstOrNull { it.dbname == game.systemId })
+    val slotLimit = if (game.systemId == SystemID.ATARI2600.dbname) 2 else 4
     val labels = options.associate { it.code to it.label }
     var behavior by remember(game.cartridgeId) { mutableStateOf(GripArcBehavior.MOMENTARY) }
     var showAdvanced by remember { mutableStateOf(false) }
@@ -75,7 +87,7 @@ fun GripArcEditorScreen(
         Text("Tap a button to assign an input or a simultaneous combination.")
         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
             Box(Modifier.size(222.dp)) {
-                for (seat in manifest.slots.take(profile.count)) {
+                for (seat in manifest.slots.take(minOf(profile.count, slotLimit))) {
                     val center = if (profile.side == GripArcSide.RIGHT) seat.centerRight else seat.centerLeft
                     val assigned = profile.mappings[seat.n - 1]
                     FilterChip(
@@ -99,6 +111,7 @@ fun GripArcEditorScreen(
                 }
             }
         }
+        if (slotLimit < 4) Text("Only two seats are active here. Assignments for other seats are retained.")
         message?.let { Text(it) }
         TextButton(onClick = { resetting = true }) { Text("Restore factory assignments") }
         TextButton(onClick = { showAdvanced = !showAdvanced }) { Text("Programmable control positioning") }
@@ -113,7 +126,7 @@ fun GripArcEditorScreen(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (count in 1..4) {
+                for (count in 1..slotLimit) {
                     FilterChip(profile.count == count, { save(profile.copy(count = count)) }, { Text("$count") })
                 }
             }

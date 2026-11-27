@@ -17,6 +17,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.GameService
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAction
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelInput
@@ -219,7 +220,10 @@ class BaseGameScreenViewModel(
     ) {
         val profile = gripArcProfileState.value
         if (supportsStandaloneGripActions(systemId) && profile.mode == ArcControlMode.STANDARD_GRIPARC) {
-            val action = profile.actionFor(slot)
+            val allowed =
+                StandaloneGripArcLayout.inventoryFor(touchControls.activeTouchController())
+                    ?.controls.orEmpty().mapNotNull { it.keyCode }.toSet()
+            val action = profile.supportedActionFor(slot, allowed) ?: return
             if (action == GripArcAction.OpenMenu) {
                 if (pressed) requestGameMenuFromHardware()
             } else {

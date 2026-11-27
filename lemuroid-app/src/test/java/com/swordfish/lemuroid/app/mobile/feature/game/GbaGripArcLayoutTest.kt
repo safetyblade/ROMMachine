@@ -15,6 +15,34 @@ class GbaGripArcLayoutTest {
     private val viewport = PivotArcBounds(8f, 120f, 385f, 320f)
 
     @Test
+    fun portraitSeatSizesUseClearanceWithoutChangingApprovedCenters() {
+        val fitted = checkNotNull(StandaloneGripArcLayout.resolveStandalone(native, safe, viewport, false))
+        val action = fitted.controls.getValue("A")
+        assertTrue(fitted.visuals.getValue("A").w > 44f)
+        assertTrue(fitted.dock.visuals.values.any { it.h > 40f })
+        assertTrue(fitted.visuals.getValue("D").w > 76f)
+        val panel = fitted.dock.housing
+        assertEquals(panel.left + panel.width * 278f / 360f, action.centerX, 0.01f)
+        val all = fitted.controls.values + fitted.dock.targets.values
+        assertTrue(all.all { it.inside(panel) && !it.intersects(viewport) })
+        assertFalse(all.indices.any { i -> all.drop(i + 1).any(all[i]::intersects) })
+    }
+
+    @Test
+    fun segaModesUseSeparateInventoriesAndAtariRetainsInactiveSlots() {
+        val three = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.GENESIS_3))
+        val six = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.GENESIS_6))
+        assertFalse(three.controls.any { it.label == "Mode" })
+        assertTrue(six.controls.any { it.label == "Mode" })
+        val profile = GripArcProfile(mappings = listOf(listOf(android.view.KeyEvent.KEYCODE_BUTTON_L1)))
+        assertNull(profile.supportedActionFor(1, three.controls.mapNotNull { it.keyCode }.toSet()))
+        assertNotNull(profile.supportedActionFor(1, six.controls.mapNotNull { it.keyCode }.toSet()))
+        val atari = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.ATARI2600))
+        val layout = checkNotNull(StandaloneGripArcLayout.resolveStandalone(atari, safe, viewport, false))
+        assertEquals(setOf(1, 2), layout.dock.targets.keys)
+    }
+
+    @Test
     fun approvedDigitalPacketsUseIndependentTargetsAcrossOrientations() {
         for (id in listOf(
             TouchControllerID.GBA,

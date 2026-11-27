@@ -43,10 +43,8 @@ import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckHardwareSeats
 import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckLayoutMode
 import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.ControlsOrientation
-import com.swordfish.lemuroid.app.mobile.feature.game.GbaGripArcFullHousing
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAccessory
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcCombinedControls
-import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInputCatalog
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcBounds
@@ -59,7 +57,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcResolution
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSettingsStore
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloSolver
-import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLandscapeMark
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcHardware
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.forSystem
 import com.swordfish.lemuroid.app.mobile.feature.game.pivotArcHardwareSeatKey
@@ -67,7 +65,9 @@ import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberPivotArcSettings
 import com.swordfish.lemuroid.app.mobile.feature.game.standaloneGripFactory
 import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
+import com.swordfish.lemuroid.app.mobile.feature.shelf.CartdeckSurfaceDesign
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.rememberGameplayAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions
 import com.swordfish.lemuroid.app.shared.game.DisplaySettingsStore
@@ -290,7 +290,7 @@ internal fun UniversalControls(
         feedback?.let { Text(it) }
         if (game != null && profile?.mode?.hasGrip == true) {
             GameMenuLink("Programmable controls") { openProgrammer = !openProgrammer }
-            if (openProgrammer) GripArcEditorScreen(game, embedded = true)
+            if (openProgrammer) GripArcEditorScreen(game, embedded = true, controller = controller)
         }
         GameMenuLink("Physical controller · Map and test") { openPhysical = !openPhysical }
         if (openPhysical) physical()
@@ -476,14 +476,15 @@ internal fun ControlsLayoutPreview(
         return
     }
     val native = remember(controller) { TouchControllerID.getConfig(controller) }
-    val tokens = context.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+    val gripAppearance = if (mode == ArcControlMode.STANDARD_GRIPARC) rememberGameplayAppearance() else null
+    val tokens = gripAppearance?.tokens ?: context.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
     val grip =
         if (mode == ArcControlMode.STANDARD_GRIPARC && supportsStandaloneGripActions(system) &&
             StandaloneGripArcLayout.supports(controller)
         ) {
             val safe = if (landscape) PivotArcBounds(8f, 8f, 732f, 352f) else PivotArcBounds(8f, 32f, 385f, 820f)
             StandaloneGripArcLayout.inventoryFor(controller)?.let {
-                StandaloneGripArcLayout.resolveStandalone(it, safe, viewport, landscape)
+                StandaloneGripArcLayout.resolveStandalone(it, safe, viewport, landscape, settings.pspAnalogPrimary)
             }
         } else {
             null
@@ -504,16 +505,15 @@ internal fun ControlsLayoutPreview(
                         viewport.asRect(),
                         root.asRect(),
                         landscape,
-                        touches.values.map { it.asRect() },
+                        (grip?.let { it.controls.values + it.dock.targets.values } ?: touches.values)
+                            .map { it.asRect() },
                         mountedPivotDeck = contoured,
+                        continuousLandscapeBrand = grip != null,
+                        patternId = gripAppearance?.patternId ?: CartdeckSurfaceDesign.PATTERN_NONE,
+                        stampId = gripAppearance?.stampId ?: CartdeckSurfaceDesign.STAMP_NONE,
+                        decal = gripAppearance?.decal,
                     )
-                    if (grip != null) {
-                        if (landscape) {
-                            StandaloneGripArcLandscapeMark(grip.dock.housing, tokens)
-                        } else {
-                            GbaGripArcFullHousing(grip.dock.housing.asRect(), tokens)
-                        }
-                    }
+                    if (grip != null) StandaloneGripArcHardware(grip, tokens, landscape)
                     if (placed != null) {
                         CartdeckHardwareSeats(
                             rootBounds = root.asRect(),
@@ -535,7 +535,8 @@ internal fun ControlsLayoutPreview(
                         )
                     }
                     CompositionLocalProvider(
-                        LocalLemuroidPadTheme provides LemuroidPadTheme(),
+                        LocalLemuroidPadTheme provides
+                            (gripAppearance?.let { LemuroidPadTheme(it.controllerPalette) } ?: LemuroidPadTheme()),
                         LocalWiiNunchukPointerStick provides (pointerMode != "2"),
                     ) {
                         PadKit(
@@ -583,7 +584,7 @@ internal fun ControlsLayoutPreview(
                             isLoading = false,
                             onPressed = { _, _, _ -> },
                             drawHousing = false,
-                            inputLabels = GripArcInputCatalog.forSystem(system).associate { it.code to it.label },
+                            inputLabels = StandaloneGripArcLayout.actionLabels(grip.native),
                             typedActions = true,
                         )
                     }
