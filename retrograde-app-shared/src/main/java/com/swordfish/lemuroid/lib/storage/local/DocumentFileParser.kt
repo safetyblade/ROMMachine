@@ -89,7 +89,12 @@ object DocumentFileParser {
         val ps3 = identifyPs3(context, baseStorageFile)
         val xbox = identifyXboxDisc(context, baseStorageFile)
         val xbox360 =
-            if (xbox == null && baseStorageFile.extension.lowercase() in Xbox360ContentIdentity.formats) {
+            if (xbox == null &&
+                (
+                    baseStorageFile.extension.lowercase() in Xbox360ContentIdentity.formats ||
+                        baseStorageFile.extension.isEmpty()
+                )
+            ) {
                 runCatching {
                     context.contentResolver.openFileDescriptor(baseStorageFile.uri, "r")?.use { fd ->
                         FileInputStream(fd.fileDescriptor).channel.use {
