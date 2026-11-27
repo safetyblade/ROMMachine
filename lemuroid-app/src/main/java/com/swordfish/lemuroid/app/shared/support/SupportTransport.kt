@@ -41,8 +41,7 @@ object SupportTransport {
         email: Boolean,
     ): Intent {
         val attachment = FileProvider.getUriForFile(context, "${context.packageName}.support", file)
-        return
-        Intent(Intent.ACTION_SEND).apply {
+        return Intent(Intent.ACTION_SEND).apply {
             type = "application/zip"
             putExtra(Intent.EXTRA_STREAM, attachment)
             clipData = ClipData.newRawUri(report.packageName, attachment)
