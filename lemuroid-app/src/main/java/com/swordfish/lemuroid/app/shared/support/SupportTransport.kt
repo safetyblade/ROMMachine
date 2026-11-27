@@ -28,24 +28,33 @@ object SupportTransport {
         email: Boolean,
     ) {
         check(!email || hasEmailApp(activity)) { "No compatible email app" }
-        val attachment = FileProvider.getUriForFile(activity, "${activity.packageName}.support", file)
-        val intent =
-            Intent(Intent.ACTION_SEND).apply {
-                type = "application/zip"
-                putExtra(Intent.EXTRA_STREAM, attachment)
-                clipData = ClipData.newRawUri(report.packageName, attachment)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                if (email) {
-                    putExtra(Intent.EXTRA_EMAIL, arrayOf(EMAIL))
-                    putExtra(Intent.EXTRA_SUBJECT, subject(report))
-                    putExtra(Intent.EXTRA_TEXT, body(report))
-                    // Match apps that can handle email composition, while delivering the SEND attachment.
-                    selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
-                }
-            }
+        val intent = shareIntent(activity, report, file, email)
         activity.startActivity(
             Intent.createChooser(intent, if (email) "Open email draft" else "Share diagnostic report"),
         )
+    }
+
+    internal fun shareIntent(
+        context: Context,
+        report: SupportReport,
+        file: File,
+        email: Boolean,
+    ): Intent {
+        val attachment = FileProvider.getUriForFile(context, "${context.packageName}.support", file)
+        return
+        Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, attachment)
+            clipData = ClipData.newRawUri(report.packageName, attachment)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (email) {
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(EMAIL))
+                putExtra(Intent.EXTRA_SUBJECT, subject(report))
+                putExtra(Intent.EXTRA_TEXT, body(report))
+                // Match apps that can handle email composition, while delivering the SEND attachment.
+                selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+            }
+        }
     }
 
     private fun hasEmailApp(activity: Activity): Boolean =
@@ -86,7 +95,7 @@ object SupportTransport {
             appendLine("Process exit reason: ${report.diagnosticValue("androidProcessExit")}")
             appendLine("Last verified stage: ${report.diagnosticValue("lastVerifiedStage", "stage")}")
             appendLine("Engine version: ${report.diagnosticValue("selectedEngineVersion")}")
-            appendLine("Host version: ${report.diagnosticValue("host_build").take(200)}")
+            appendLine("Host version: ${report.diagnosticValue("host_build", "host").take(200)}")
             appendLine("Recovery status: ${report.diagnosticValue("startupRecovery")}")
             appendLine("Save status: ${report.diagnosticValue("saveWrite")}")
             if (includeAttachment) appendLine("\nDIAGNOSTIC ATTACHMENT\n${report.packageName}")

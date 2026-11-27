@@ -17,7 +17,7 @@ import java.util.UUID
 
 /** Extends the native journal to every private game process, including the shared Libretro and PC hosts. */
 internal class GameSessionCheckpoint(private val context: Context) {
-    private val file = AtomicFile(File(context.filesDir, "game-session.properties"))
+    private val file = AtomicFile(File(context.noBackupFilesDir, "game-session.properties"))
 
     fun begin(
         game: Game,

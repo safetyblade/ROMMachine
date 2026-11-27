@@ -105,7 +105,6 @@ class SupportActivity : ComponentActivity() {
                 setText(report["description"].takeUnless { it == SupportReport.NOT_CAPTURED }.orEmpty())
                 filters = arrayOf(android.text.InputFilter.LengthFilter(2_000))
             }
-        column.addView(description)
         val category =
             android.widget.Spinner(this).apply {
                 adapter =
@@ -125,6 +124,7 @@ class SupportActivity : ComponentActivity() {
             }
         column.addView(TextView(this).apply { text = "What went wrong?" })
         column.addView(category)
+        column.addView(description)
         column.addView(TextView(this).apply { text = "How often does it happen?" })
         column.addView(frequency)
         val reply =

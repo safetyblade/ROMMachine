@@ -87,8 +87,11 @@ class SupportScreensTest {
         assertTrue(Ps2Onboarding.showIfNeeded(host, game, EngineSelectionPreferences(host)) { continued = true })
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
         try {
-            capture(checkNotNull(dialog.window).decorView, "support-ps2-first-launch", 393, 510)
-            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+            val onboarding = checkNotNull(dialog.findViewById<View>(R.id.ps2Onboarding))
+            capture(onboarding, "support-ps2-first-launch", 393, 510)
+            val quickPlay = onboarding.findViewById<Button>(R.id.continuePs2WithoutBios)
+            assertTrue(quickPlay.isShown && quickPlay.height > 0 && quickPlay.isFocusable)
+            quickPlay.performClick()
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(continued)
         } finally {

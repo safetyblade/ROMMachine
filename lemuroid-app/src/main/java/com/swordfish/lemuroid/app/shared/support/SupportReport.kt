@@ -17,7 +17,7 @@ class SupportReport private constructor(private val data: JSONObject) {
     operator fun get(key: String): String = data.optString(key, NOT_CAPTURED)
 
     internal fun diagnosticValue(vararg keys: String): String {
-        val lines = this["diagnostic"].lineSequence()
+        val lines = this["diagnostic"].lineSequence().flatMap { it.split("; ").asSequence() }
         return lines.firstNotNullOfOrNull { line ->
             val key = line.substringBefore('=')
             line.substringAfter('=', "").takeIf { key in keys && it.isNotBlank() }

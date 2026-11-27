@@ -5,7 +5,10 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.provider.DocumentsContract
+import android.widget.Button
 import android.widget.Toast
+import androidx.core.view.isVisible
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -29,39 +32,27 @@ internal object Ps2Onboarding {
         }
         if (activity.isFinishing || activity.isDestroyed || active?.isShowing == true) return true
         val enhancedAvailable = Armsx2Engine.engineeringBuild
-        active =
-            AlertDialog.Builder(activity)
-                .setTitle("Welcome to PlayStation 2")
-                .setMessage(
-                    "Enhanced Compatibility uses a BIOS from your own PlayStation 2.\n\n" +
-                        "Quick Play starts without extra files. Some games may not work.\n\n" +
-                        "You can change setup in Settings.",
-                )
-                .setNeutralButton("BIOS setup") { _, _ -> showSetupActions(activity, enhancedAvailable) }
-                .setPositiveButton("Continue without BIOS") { _, _ ->
-                    prefs.edit().putBoolean("seen", true).apply()
-                    continueLaunch()
-                }
-                .setNegativeButton("Return to shelf", null)
-                .create().also { dialog ->
-                    dialog.setOnDismissListener { if (active === dialog) active = null }
-                    dialog.show()
-                }
+        val view = activity.layoutInflater.inflate(R.layout.ps2_first_launch, null)
+        val dialog = AlertDialog.Builder(activity).setView(view).create()
+        view.findViewById<Button>(R.id.addPs2Bios).apply {
+            isVisible = enhancedAvailable
+            setOnClickListener {
+                dialog.dismiss()
+                openImport(activity)
+            }
+        }
+        view.findViewById<Button>(R.id.openPs2BiosFolder).setOnClickListener { openFolder(activity) }
+        view.findViewById<Button>(R.id.learnPs2Bios).setOnClickListener { showHelp(activity, enhancedAvailable) }
+        view.findViewById<Button>(R.id.continuePs2WithoutBios).setOnClickListener {
+            prefs.edit().putBoolean("seen", true).apply()
+            dialog.dismiss()
+            continueLaunch()
+        }
+        view.findViewById<Button>(R.id.cancelPs2Setup).setOnClickListener { dialog.dismiss() }
+        dialog.setOnDismissListener { if (active === dialog) active = null }
+        active = dialog
+        dialog.show()
         return true
-    }
-
-    private fun showSetupActions(
-        activity: Activity,
-        enhancedAvailable: Boolean,
-    ) {
-        val options = linkedMapOf<String, () -> Unit>()
-        if (enhancedAvailable) options["Add PS2 BIOS"] = { openImport(activity) }
-        options["Open BIOS folder"] = { openFolder(activity) }
-        options["Learn about BIOS setup"] = { showHelp(activity, enhancedAvailable) }
-        AlertDialog.Builder(activity).setTitle("Enhanced Compatibility")
-            .setItems(options.keys.toTypedArray()) { _, index -> options.values.elementAt(index).invoke() }
-            .setNegativeButton("Close", null)
-            .show()
     }
 
     private fun openImport(activity: Activity) {

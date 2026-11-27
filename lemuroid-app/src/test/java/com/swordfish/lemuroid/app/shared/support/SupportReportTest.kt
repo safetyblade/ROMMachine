@@ -1,7 +1,10 @@
 package com.swordfish.lemuroid.app.shared.support
 
 import android.app.Application
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.swordfish.lemuroid.app.shared.game.SessionExitEvidence
 import org.json.JSONObject
@@ -76,6 +79,37 @@ class SupportReportTest {
         assertEquals(10, store.list().size)
         assertEquals(latest, store.list().first().createdAtMillis)
         assertTrue(store.list().none { it.id == expired.getString("id") })
+    }
+
+    @Test
+    fun emailCompositionUsesApprovedRecipientAndReadOnlyZip() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val report =
+            SupportReport.create(
+                "failure recovery",
+                "Crash or freeze",
+                "GL_VENDOR=Qualcomm; GL_RENDERER=Adreno (TM) 840",
+                gameTitle = "Conflict: Desert Storm",
+                system = "PS2",
+                engine = "Play!",
+            )
+        val store = SupportReportStore(context)
+        val archive = store.packageReport(report)
+        val action = SupportTransport.shareIntent(context, report, archive, email = true)
+        val uri = requireNotNull(action.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
+        assertEquals(Intent.ACTION_SEND, action.action)
+        assertEquals(Intent.ACTION_SENDTO, action.selector?.action)
+        assertEquals("application/zip", action.type)
+        assertEquals("content", uri.scheme)
+        assertEquals("${context.packageName}.support", uri.authority)
+        assertEquals(listOf(SupportTransport.EMAIL), action.getStringArrayExtra(Intent.EXTRA_EMAIL)?.toList())
+        assertTrue(action.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty().contains("PS2 | Conflict: Desert Storm"))
+        assertTrue(action.getStringExtra(Intent.EXTRA_TEXT).orEmpty().contains("Adreno (TM) 840"))
+        assertEquals(uri, action.clipData?.getItemAt(0)?.uri)
+        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, action.flags)
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+        SupportTransport.copy(context, report)
+        assertEquals(report.text, clipboard.primaryClip?.getItemAt(0)?.text)
     }
 
     @Test
