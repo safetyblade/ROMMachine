@@ -17,7 +17,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.app.shared.game.EmulatorModernAssetsProvisioner
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 /** The same choices govern console defaults and cartridge overrides. Saves are never moved here. */
@@ -38,7 +40,8 @@ fun EngineSelectionControls(
     val selected = remember(system.id, game?.fileUri, revision) { preferences.preferred(system.id, game) }
     val engines = remember(system.id, assetsReady) { NativeEngineRegistry.engines(system) }
     val eligible = engines.filter { NativeEngineRegistry.eligibility(context, it).eligible }
-    if (eligible.size <= 1) {
+    val ps2 = system.id == SystemID.PLAYSTATION_2
+    if (!ps2 && eligible.size <= 1) {
         Column {
             engines.forEach { engine ->
                 val status = NativeEngineRegistry.eligibility(context, engine)
@@ -80,33 +83,48 @@ fun EngineSelectionControls(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             if (selected == null || selected == EngineSelectionPreferences.AUTOMATIC) {
-                "Automatic engine selection"
+                if (ps2) "Automatic · Recommended" else "Automatic engine selection"
             } else {
-                "Preferred engine: ${engines.firstOrNull { it.id == selected }?.name ?: "unavailable"}"
+                val engine = engines.firstOrNull { it.id == selected }
+                if (ps2) engine?.let(::ps2ModeName) ?: "Engine unavailable" else "Preferred engine: ${engine?.name}"
             },
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            "Automatic keeps a successful engine. Changes use separate save states; existing game saves stay in place.",
+            if (ps2) {
+                "Quick Play needs no BIOS. Enhanced Compatibility uses a BIOS from your own PlayStation 2. " +
+                    "Saved progress may stay with the original engine."
+            } else {
+                "Automatic keeps a successful engine. Changes use separate save states; " +
+                    "existing game saves stay in place."
+            },
             style = MaterialTheme.typography.bodySmall,
         )
         TextButton(onClick = {
             preferences.setPreferred(system, null, game)
             revision++
         }) {
-            Text("Automatic / reset to recommended")
+            Text(if (ps2) "Automatic · Recommended" else "Automatic / reset to recommended")
         }
         engines.forEach { engine ->
             val eligibility = NativeEngineRegistry.eligibility(context, engine)
+            val label = if (ps2) ps2ModeName(engine) else engine.name
+            val biosRequired =
+                engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID &&
+                    !Armsx2Storage.hasUserBios(context.filesDir)
             OutlinedButton(
-                enabled = eligibility.eligible,
+                enabled = eligibility.eligible && !biosRequired,
                 onClick = {
                     preferences.setPreferred(system, engine.id, game)
                     revision++
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (engine.id == selected) "${engine.name} · selected" else "Use ${engine.name}") }
-            if (!eligibility.eligible) Text(eligibility.reason.orEmpty(), style = MaterialTheme.typography.bodySmall)
+            ) { Text(if (engine.id == selected) "$label · selected" else "Use $label") }
+            if (!eligibility.eligible) {
+                Text(eligibility.reason.orEmpty(), style = MaterialTheme.typography.bodySmall)
+            } else if (biosRequired) {
+                Text("Add a BIOS in PlayStation 2 setup.", style = MaterialTheme.typography.bodySmall)
+            }
         }
         if (game != null) {
             TextButton(onClick = {
@@ -130,7 +148,7 @@ fun EngineSelectionControls(
                 )
             }
         }
-        if (showFallbackPolicy) EngineFallbackControls(system)
+        if (showFallbackPolicy && !ps2) EngineFallbackControls(system)
     }
 }
 
@@ -163,3 +181,6 @@ fun EngineFallbackControls(system: GameSystem) {
         }
     }
 }
+
+private fun ps2ModeName(engine: NativeEngineRegistry.Engine): String =
+    if (engine.host == NativeEngineRegistry.Host.ARMSX2_ANDROID) "Enhanced Compatibility" else "Quick Play"

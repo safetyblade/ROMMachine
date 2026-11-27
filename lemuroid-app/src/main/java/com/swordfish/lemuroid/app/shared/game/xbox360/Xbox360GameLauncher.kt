@@ -4,8 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.shared.game.GameSessionCheckpoint
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,14 +55,16 @@ internal object Xbox360GameLauncher {
                 }
             check(provisioned) { "Another CARTDECK game or storage operation is active" }
         }
-        activity.startActivityForResult(
+        GameSessionCheckpoint.launch(
+            activity,
             Intent(activity, Xbox360Activity::class.java).putExtra("cartdeck.game", game)
                 .putExtra("cartdeck.gameUri", game.fileUri).putExtra("cartdeck.gameTitle", game.displayName())
                 .putExtra(
                     "cartdeck.leanback",
                     leanback,
                 ).putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
-            BaseGameActivity.REQUEST_PLAY_GAME,
+            game,
+            "xenia",
         )
     }
 }

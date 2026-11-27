@@ -156,9 +156,18 @@ private fun MiscSettings(
     isSaveSyncSupported: Boolean,
     navController: NavController,
 ) {
+    val context = LocalContext.current
     LemuroidCardSettingsGroup(
         title = { Text("System & advanced") },
     ) {
+        LemuroidSettingsMenuLink(
+            title = { Text("CARTDECK Support") },
+            onClick = {
+                context.startActivity(
+                    com.swordfish.lemuroid.app.shared.support.SupportActivity.intent(context),
+                )
+            },
+        )
         LemuroidSettingsMenuLink(
             title = { Text("PlayStation 3 setup") },
             subtitle = { Text("Firmware, PS3 users and save management") },
@@ -192,13 +201,11 @@ private fun MiscSettings(
             enabled = !indexingInProgress,
             onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
         )
-        if (com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine.engineeringBuild) {
-            LemuroidSettingsMenuLink(
-                title = { Text("PlayStation 2 setup") },
-                subtitle = { Text("ARMSX2 BIOS, automatic engine choice and startup-message settings") },
-                onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
-            )
-        }
+        LemuroidSettingsMenuLink(
+            title = { Text("PlayStation 2 setup") },
+            subtitle = { Text("Quick Play, Enhanced Compatibility and BIOS setup") },
+            onClick = { navController.navigateToRoute(MainRoute.SETTINGS_BIOS) },
+        )
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.settings_title_advanced_settings)) },
             subtitle = {

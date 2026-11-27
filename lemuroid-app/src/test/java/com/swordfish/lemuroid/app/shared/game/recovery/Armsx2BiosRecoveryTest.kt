@@ -121,9 +121,8 @@ class Armsx2BiosRecoveryTest {
         assertEquals("armsx2-android", preferences.ps2AutomaticEngine("play_modern", "armsx2-android", true))
         assertEquals("play_modern", preferences.ps2AutomaticEngine("play_modern", null, true))
         assertEquals(
-            "armsx2-android",
+            "play_modern",
             preferences.requestedEngine(
-                SystemID.PLAYSTATION_2,
                 null,
                 "play_modern",
                 "armsx2-android",
@@ -132,16 +131,14 @@ class Armsx2BiosRecoveryTest {
         assertEquals(
             "play_modern",
             preferences.requestedEngine(
-                SystemID.PLAYSTATION_2,
                 "play_modern",
                 "armsx2-android",
                 "armsx2-android",
             ),
         )
         assertEquals(
-            "play_modern",
+            "armsx2-android",
             preferences.requestedEngine(
-                SystemID.PLAYSTATION_2,
                 null,
                 "armsx2-android",
                 "play_modern",
@@ -150,13 +147,12 @@ class Armsx2BiosRecoveryTest {
         assertEquals(
             "armsx2-android",
             preferences.requestedEngine(
-                SystemID.PLAYSTATION_2,
                 "armsx2-android",
                 "play_modern",
                 "play_modern",
             ),
         )
-        assertEquals("prior", preferences.requestedEngine(SystemID.PSP, null, "prior", "legacy"))
+        assertEquals("prior", preferences.requestedEngine(null, "prior", "legacy"))
     }
 
     @Test fun unrelatedConsoleErrorsDoNotGetPs2Setup() {

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.shared.game.GameSessionCheckpoint
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,14 +71,16 @@ object XboxGameLauncher {
                 Toast.makeText(activity, failure.message ?: "Xbox could not start", Toast.LENGTH_LONG).show()
                 false
             } else {
-                activity.startActivityForResult(
+                GameSessionCheckpoint.launch(
+                    activity,
                     Intent(activity, com.rfandango.haku_x.NativeCoreActivity::class.java)
                         .putExtra("cartdeck.gameUri", game.fileUri)
                         .putExtra("cartdeck.gameTitle", game.displayName())
                         .putExtra("cartdeck.game", game)
                         .putExtra("cartdeck.leanback", leanback)
                         .putExtra("cartdeck.startTime", android.os.SystemClock.elapsedRealtime()),
-                    com.swordfish.lemuroid.app.shared.game.BaseGameActivity.REQUEST_PLAY_GAME,
+                    game,
+                    "hakux",
                 )
                 true
             }

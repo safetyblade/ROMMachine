@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ps2Onboarding"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/cartdeck_launcher_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Welcome to PlayStation 2"
+            android:textColor="@color/cartdeck_brand_accent"
+            android:textSize="24sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Enhanced Compatibility uses a BIOS from your own PlayStation 2."
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/addPs2Bios"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Add PS2 BIOS"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/openPs2BiosFolder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Open BIOS folder"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/learnPs2Bios"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Learn about BIOS setup"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Quick Play starts without extra files. Some games may not work. You can change setup in Settings."
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/continuePs2WithoutBios"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/cartdeck_brand_neon_cyan"
+            android:text="Continue without BIOS"
+            android:textAllCaps="false"
+            android:textColor="@color/cartdeck_launcher_background" />
+
+        <Button
+            android:id="@+id/cancelPs2Setup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Return to shelf"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+</ScrollView>

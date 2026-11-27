@@ -118,7 +118,9 @@ class NativeDiscIdentityTest {
             val ps2 = makeIso("BOOT2 = cdrom0:\\SLUS_123.45;1\r\n")
             Files.write(file, ps2)
             FileChannel.open(file, StandardOpenOption.READ).use {
-                assertEquals(NextGenDiscIdentity.Platform.PS2, probe.probePs2Iso("disc.iso", it).platform)
+                val identity = probe.probePs2Iso("disc.iso", it)
+                assertEquals(NextGenDiscIdentity.Platform.PS2, identity.platform)
+                assertEquals("SLUS-12345", identity.discSerial)
             }
             val ps1 = makeIso("BOOT = cdrom:\\SLUS_123.45;1\r\n")
             Files.write(file, ps1)

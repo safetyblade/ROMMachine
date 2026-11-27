@@ -39,12 +39,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.room.InvalidationTracker
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.gemrating.GemPs2Compatibility
 import com.swordfish.lemuroid.app.mobile.feature.product.GemRatingRow
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeFront
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartridgeViewport
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.cartridgeSystemLabel
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2DiscEvidence
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportReport
 import com.swordfish.lemuroid.lib.core.NativeCoreProvisioner
 import com.swordfish.lemuroid.lib.core.VersionedCoreStore
 import com.swordfish.lemuroid.lib.library.CoreID
@@ -252,6 +256,47 @@ private fun CartridgeEmulatorChoice(game: Game) {
     val systemId = SystemID.values().firstOrNull { it.dbname == game.systemId } ?: return
     val system = GameSystem.findById(game.systemId)
     EngineSelectionControls(system, game, showFallbackPolicy = false)
+    val context = LocalContext.current
+    var serial by remember(game.id) { mutableStateOf<String?>(null) }
+    if (systemId == SystemID.PLAYSTATION_2) {
+        LaunchedEffect(game.id, game.fileUri) {
+            serial = withContext(Dispatchers.IO) { Ps2DiscEvidence.serial(context, game) }
+        }
+        val observations =
+            remember(game.title, serial) {
+                serial?.let(GemPs2Compatibility::forVerifiedSerial) ?: GemPs2Compatibility.forTitle(game.title)
+            }
+        if (observations.isNotEmpty()) {
+            Text("External compatibility reports", style = MaterialTheme.typography.titleSmall)
+            Text(
+                if (serial == null) {
+                    "These reports match the title. Check your disc serial. CARTDECK device testing is separate."
+                } else {
+                    "Disc $serial. External reports describe their own engine and device."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+            observations.forEach { observation ->
+                Text(
+                    "${observation.engine} · ${observation.serial} · ${observation.region} · " +
+                        "${observation.classification.label}. ${observation.limitation}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+    TextButton(onClick = {
+        val report =
+            SupportReport.create(
+                "settings",
+                "Game problem",
+                null,
+                gameTitle = game.displayName(),
+                system = game.systemId,
+                serial = serial,
+            )
+        context.startActivity(SupportActivity.intent(context, report))
+    }) { Text("Report a problem with this game") }
     if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII)) {
         NativeEngineChoice(systemId, game)
     }

@@ -48,6 +48,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -56,6 +57,7 @@ import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Content
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Engine
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2PadMapping
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
+import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2BiosFolder
 import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxEngineStore
 import com.swordfish.lemuroid.app.shared.game.xbox.XboxPadState
@@ -140,64 +142,75 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                     finish()
                 }
             } else if (uri != null) {
-                lifecycleScope.launch {
-                    if (started && !failed) return@launch
-                    runCatching {
-                        withContext(Dispatchers.IO) {
-                            val root = requireNotNull(paths).bios
-                            check(root.isDirectory || root.mkdirs())
-                            val pending = File(root, ".bios.pending")
-                            var size = 0L
-                            contentResolver.openInputStream(uri)?.use { input ->
-                                FileOutputStream(pending).use { output ->
-                                    val buffer = ByteArray(8192)
-                                    while (true) {
-                                        val count = input.read(buffer)
-                                        if (count < 0) break
-                                        size += count
-                                        check(size <= 16L * 1024 * 1024) { "BIOS file exceeds import limit" }
-                                        output.write(buffer, 0, count)
-                                    }
-                                    check(size > 0) { "Empty BIOS file" }
-                                    output.fd.sync()
-                                }
-                            } ?: error("Cannot read selected BIOS")
-                            check(loaded) { "Load the verified engine before BIOS validation" }
-                            val fd =
-                                android.os.ParcelFileDescriptor.open(
-                                    pending,
-                                    android.os.ParcelFileDescriptor.MODE_READ_ONLY,
-                                ).detachFd()
-                            check(
-                                NativeApp.getBiosInfoFromFd(fd) != null,
-                            ) { "The selected file is not a supported PS2 BIOS" }
-                            check(pending.renameTo(File(root, "bios.bin")))
-                        }
-                    }.onSuccess {
-                        message = "User BIOS imported. Return to Shelf and reopen this cartridge."
-                        missingBios = false
-                        if (biosSetupMode) {
-                            failed = false
-                            if (callingActivity == null) {
-                                android.widget.Toast.makeText(
-                                    this@Armsx2RuntimeProbeActivity,
-                                    "PS2 BIOS imported. Automatic selection can now use ARMSX2.",
-                                    android.widget.Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                            report = "PS2_BIOS_IMPORTED; native_validation=PASS; memory_cards=RETAINED"
-                            leave()
-                        }
-                    }.onFailure {
-                        message = "BIOS import failed: ${it.message ?: it.javaClass.simpleName}. " +
-                            "Memory cards were retained."
-                        report = message
-                        failed = true
-                        openMenu()
-                    }
-                }
+                importBiosFrom(uri)
             }
         }
+
+    private fun importBiosFrom(uri: Uri) {
+        lifecycleScope.launch {
+            if (started && !failed) return@launch
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val root = requireNotNull(paths).bios
+                    check(root.isDirectory || root.mkdirs())
+                    val pending = File(root, ".bios.pending")
+                    try {
+                        var size = 0L
+                        contentResolver.openInputStream(uri)?.use { input ->
+                            FileOutputStream(pending).use { output ->
+                                val buffer = ByteArray(8192)
+                                while (true) {
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    size += count
+                                    check(size <= 16L * 1024 * 1024) { "BIOS file exceeds import limit" }
+                                    output.write(buffer, 0, count)
+                                }
+                                check(size > 0) { "Empty BIOS file" }
+                                output.fd.sync()
+                            }
+                        } ?: error("Cannot read selected BIOS")
+                        check(loaded) { "Load the verified engine before BIOS validation" }
+                        val fd =
+                            android.os.ParcelFileDescriptor.open(
+                                pending,
+                                android.os.ParcelFileDescriptor.MODE_READ_ONLY,
+                            ).detachFd()
+                        check(
+                            NativeApp.getBiosInfoFromFd(fd) != null,
+                        ) { "The selected file is not a supported PS2 BIOS" }
+                        val target = File(root, "bios.bin")
+                        if (!target.isFile || XboxEngineStore.hash(pending) != XboxEngineStore.hash(target)) {
+                            check(pending.renameTo(target))
+                        }
+                    } finally {
+                        pending.delete()
+                    }
+                }
+            }.onSuccess {
+                message = "User BIOS imported. Return to Shelf and reopen this cartridge."
+                missingBios = false
+                if (biosSetupMode) {
+                    failed = false
+                    if (callingActivity == null) {
+                        android.widget.Toast.makeText(
+                            this@Armsx2RuntimeProbeActivity,
+                            "PS2 BIOS imported. Automatic selection can now use ARMSX2.",
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                    report = "PS2_BIOS_IMPORTED; native_validation=PASS; memory_cards=RETAINED"
+                    leave()
+                }
+            }.onFailure {
+                message = "BIOS import failed: ${it.message ?: it.javaClass.simpleName}. " +
+                    "Memory cards were retained."
+                report = message
+                failed = true
+                openMenu()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -271,6 +284,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                 canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
+                                supportDiagnostic = { report + "\n" + viewportAudit.summary() },
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
                                 onPreviousEngine = { if (Armsx2Engine.store(filesDir).rollback()) leave() },
@@ -430,7 +444,25 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
                 if (biosSetupMode) {
                     message = "Select your user-owned PS2 BIOS. No game will be started."
-                    importBios.launch(arrayOf("*/*"))
+                    val folderCandidate =
+                        if (Armsx2Storage.hasUserBios(filesDir)) {
+                            null
+                        } else {
+                            withContext(Dispatchers.IO) {
+                                runCatching { Ps2BiosFolder.singleImportCandidate(applicationContext) }.getOrNull()
+                            }
+                        }
+                    if (folderCandidate == null) {
+                        importBios.launch(arrayOf("*/*"))
+                    } else {
+                        android.app.AlertDialog.Builder(this@Armsx2RuntimeProbeActivity)
+                            .setTitle("PS2 BIOS found in the library folder")
+                            .setMessage("Import a copy and check it for compatibility?")
+                            .setPositiveButton("Validate and import") { _, _ -> importBiosFrom(folderCandidate) }
+                            .setNegativeButton("Choose a different file") { _, _ -> importBios.launch(arrayOf("*/*")) }
+                            .setOnCancelListener { leave() }
+                            .show()
+                    }
                     return@launch
                 }
                 startIfReady()
@@ -760,6 +792,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        EngineShutdownDeadline.arm(applicationContext)
         preparation.requestCancellation()
         releaseInput()
         lifecycleScope.launch {

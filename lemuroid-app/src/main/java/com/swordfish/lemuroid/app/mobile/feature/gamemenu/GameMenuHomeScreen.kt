@@ -18,9 +18,13 @@ import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.reflect.KFunction1
 
 @Composable
@@ -29,6 +33,8 @@ fun GameMenuHomeScreen(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val capabilities =
         GameMenuCapabilities(
             controls = true,
@@ -39,6 +45,7 @@ fun GameMenuHomeScreen(
                     !com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
                 },
             advanced = true,
+            reporting = true,
         )
     SharedGameMenuHome(capabilities) { action ->
         when (action) {
@@ -47,6 +54,13 @@ fun GameMenuHomeScreen(
             GameMenuAction.DISPLAY -> navController.navigateToRoute(GameMenuRoute.DISPLAY)
             GameMenuAction.STATES -> navController.navigateToRoute(GameMenuRoute.STATES)
             GameMenuAction.SETTINGS -> navController.navigateToRoute(GameMenuRoute.OPTIONS)
+            GameMenuAction.REPORT_PROBLEM ->
+                scope.launch {
+                    val report = withContext(Dispatchers.IO) { buildLibretroSupportReport(context, gameMenuRequest) }
+                    context.startActivity(
+                        SupportActivity.intent(context, report),
+                    )
+                }
             GameMenuAction.ADVANCED -> navController.navigateToRoute(GameMenuRoute.ADVANCED)
             GameMenuAction.RETURN_TO_SHELF -> onResult { putExtra(GameMenuContract.RESULT_QUIT, true) }
         }

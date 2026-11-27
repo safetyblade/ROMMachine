@@ -10,6 +10,7 @@ import java.io.File;
 import android.content.Intent;
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity;
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock;
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline;
 import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession;
 import com.swordfish.lemuroid.lib.library.db.entity.Game;
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore;
@@ -149,7 +150,14 @@ public final class PcIntegratedActivity extends ComponentActivity {
     private void confirmExit(){
         new android.app.AlertDialog.Builder(this)
             .setMessage("Exit only after guest shutdown or writes are complete. Forced exit is not a verified clean shutdown.")
-            .setNegativeButton("Cancel",null).setPositiveButton("Return to Shelf",(d,w)->{release();setResult(RESULT_OK,new Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME,game).putExtra(BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,getIntent().getBooleanExtra("cartdeck.leanback",false)).putExtra(BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,android.os.SystemClock.elapsedRealtime()-startTime));finish();}).show();
+            .setNegativeButton("Cancel",null).setPositiveButton("Return to Shelf",(d,w)->{
+                EngineShutdownDeadline.arm(getApplicationContext());
+                release();
+                setResult(RESULT_OK,new Intent().putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME,game)
+                    .putExtra(BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,getIntent().getBooleanExtra("cartdeck.leanback",false))
+                    .putExtra(BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION,android.os.SystemClock.elapsedRealtime()-startTime));
+                finish();
+            }).show();
     }
     @Override public void onBackPressed(){if(menu!=null)closeMenu();else openMenu();}
     private void keyboard(){
