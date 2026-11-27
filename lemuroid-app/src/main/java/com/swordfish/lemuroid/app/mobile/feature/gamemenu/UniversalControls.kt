@@ -60,6 +60,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloSolver
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcHardware
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.forSystem
+import com.swordfish.lemuroid.app.mobile.feature.game.gripArcAssignmentMode
 import com.swordfish.lemuroid.app.mobile.feature.game.pivotArcHardwareSeatKey
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberPivotArcSettings
@@ -133,6 +134,12 @@ internal fun UniversalControls(
     val controller =
         (controllers.firstOrNull { it.name == nativeName } ?: controllers.firstOrNull())?.touchControllerID
             ?: nativePreviewController(system)
+    val wiiuPro =
+        system == SystemID.WII_U &&
+            context.getSharedPreferences("wiiu-runtime", android.content.Context.MODE_PRIVATE)
+                .getBoolean("pro.${game?.cartridgeId}", false)
+    val assignmentMode = gripArcAssignmentMode(controller, global.pspAnalogPrimary, wiiuPro)
+    val modeProfile = game?.let { rememberGripArcProfile(it, assignmentMode).value }
     val defaultMode = global.mode.forSystem(system)
     val selected = profile?.mode ?: defaultMode
     val inheritsLayout = game != null && !store.hasSelection(game)
@@ -228,7 +235,8 @@ internal fun UniversalControls(
                         landscape = previewLandscape,
                         supportedPivot = supportedPivot,
                         pointerMode = pointerMode,
-                        gripProfile = game?.let { profile },
+                        gripProfile = modeProfile,
+                        wiiuPro = wiiuPro,
                         onApply = {
                             if (game != null) {
                                 val saved = store.saveLayout(game, mode)
@@ -290,7 +298,9 @@ internal fun UniversalControls(
         feedback?.let { Text(it) }
         if (game != null && profile?.mode?.hasGrip == true) {
             GameMenuLink("Programmable controls") { openProgrammer = !openProgrammer }
-            if (openProgrammer) GripArcEditorScreen(game, embedded = true, controller = controller)
+            if (openProgrammer) {
+                GripArcEditorScreen(game, embedded = true, controller = controller, assignmentMode = assignmentMode)
+            }
         }
         GameMenuLink("Physical controller · Map and test") { openPhysical = !openPhysical }
         if (openPhysical) physical()
@@ -313,6 +323,7 @@ private fun ControllerLayoutCard(
     supportedPivot: Boolean,
     pointerMode: String,
     gripProfile: GripArcProfile?,
+    wiiuPro: Boolean,
     onApply: () -> Unit,
 ) {
     val (title, description) =
@@ -341,7 +352,7 @@ private fun ControllerLayoutCard(
                 controller == null -> Text("Touch preview unavailable for this engine.")
                 mode.hasPivot && !supportedPivot -> Text("PivotARC is unavailable for this controller.")
                 mode.hasPivot && landscape -> Text("PivotARC uses Standard controls in landscape.")
-                else -> ControlsLayoutPreview(system, controller, mode, landscape, pointerMode, gripProfile)
+                else -> ControlsLayoutPreview(system, controller, mode, landscape, pointerMode, gripProfile, wiiuPro)
             }
             if (available || selected) {
                 TextButton(enabled = available && (!selected || inheritsLayout), onClick = onApply) {
@@ -413,6 +424,7 @@ internal fun ControlsLayoutPreview(
     landscape: Boolean,
     pointerMode: String,
     gripProfile: GripArcProfile?,
+    wiiuPro: Boolean = false,
 ) {
     val context = LocalContext.current
     val settings by rememberPivotArcSettings()
@@ -483,7 +495,7 @@ internal fun ControlsLayoutPreview(
             StandaloneGripArcLayout.supports(controller)
         ) {
             val safe = if (landscape) PivotArcBounds(8f, 8f, 732f, 352f) else PivotArcBounds(8f, 32f, 385f, 820f)
-            StandaloneGripArcLayout.inventoryFor(controller)?.let {
+            StandaloneGripArcLayout.inventoryFor(controller, system, wiiuPro)?.let {
                 StandaloneGripArcLayout.resolveStandalone(it, safe, viewport, landscape, settings.pspAnalogPrimary)
             }
         } else {
@@ -546,7 +558,7 @@ internal fun ControlsLayoutPreview(
                             simulatedControlIds = remember { mutableStateOf(emptySet()) },
                         ) {
                             if (grip != null) {
-                                GripArcCombinedControls(grip)
+                                GripArcCombinedControls(grip, standalone = true)
                             } else if (placed == null) {
                                 val position =
                                     if (landscape) {

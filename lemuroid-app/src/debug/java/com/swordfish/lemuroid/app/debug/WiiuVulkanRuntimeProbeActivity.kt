@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeRendererAudit
 import com.swordfish.lemuroid.app.mobile.feature.game.NativeViewportPolicy
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.XboxGameControls
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPauseGate
@@ -110,6 +111,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val reportCheckpoint = NativeReportCheckpoint()
     private var gamePadPointerId: Int? = null
+    private var appliedControllerDevice: Int? = null
     private val touch = XboxPadState()
     private val pivotGate =
         PivotArcHeldInputGate { action, code ->
@@ -238,7 +240,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         proController = getSharedPreferences("wiiu-runtime", MODE_PRIVATE).getBoolean("pro.${game?.cartridgeId}", false)
         renderSurface = SurfaceView(this).also { it.holder.addCallback(this) }
         renderSurface.setOnTouchListener { view, event ->
-            if (!loaded || !started || !hostForeground || menuOpen || leaving || proController) {
+            if (!loaded || !started || !hostForeground || menuOpen || leaving ||
+                proController || appliedControllerDevice != 1
+            ) {
                 return@setOnTouchListener false
             }
             when (event.actionMasked) {
@@ -295,18 +299,9 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.CEMU),
                             game = game,
-                            onGripPressed = { slot, pressed, codes ->
-                                if (pressed && !menuOpen && hostForeground) {
-                                    gripSlots[slot] = codes
-                                } else {
-                                    gripSlots.remove(
-                                        slot,
-                                    )
-                                }
-                                grip.clear()
-                                gripSlots.values.flatten().toSet().forEach { grip.key(WiiuPad.touchKey(it), true) }
-                                sendInput()
-                            },
+                            canUseGrip = { loaded && started && !menuOpen && hostForeground && !leaving },
+                            onGripMenu = ::openMenu,
+                            wiiuPro = proController,
                         ) { viewport ->
                             viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
@@ -356,8 +351,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 GameMenuLink(
                                     "Screen: switch TV / GamePad on Resume",
                                 ) {
-                                    clearGamePadPointer()
-                                    if (loaded) nativeToggleScreen()
+                                    switchScreen()
                                 }
                                 GameMenuLink(
                                     "Controller: ${if (proController) "Pro Controller" else "GamePad"} (next frame)",
@@ -460,6 +454,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 while (!leaving) {
                     if (loaded && started) {
                         report = engineReport(nativeReport())
+                        val applied =
+                            report.lineSequence()
+                                .firstOrNull { it.startsWith("controller_device_requested=") }
+                                ?.substringAfter('=')?.toIntOrNull()
+                        if (appliedControllerDevice != applied) {
+                            clearGamePadPointer()
+                            appliedControllerDevice = applied
+                        }
                         if (menuOpen && report.contains("session_state=paused") &&
                             report.contains("pause_acknowledged=1")
                         ) {
@@ -567,6 +569,8 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                 is InputEvent.Button ->
                     if (event.id == KeyEvent.KEYCODE_BUTTON_MODE) {
                         if (!event.pressed) openMenu()
+                    } else if (event.id == StandaloneGripArcLayout.WIIU_SCREEN_ACTION) {
+                        if (!event.pressed && !proController) switchScreen()
                     } else if (!pivotGate.setSource(event.id, "native-touch", event.pressed)) {
                         touch.key(WiiuPad.touchKey(event.id), event.pressed)
                     }
@@ -597,6 +601,11 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         gripSlots.clear()
         clearGamePadPointer()
         if (loaded) sendInput()
+    }
+
+    private fun switchScreen() {
+        clearGamePadPointer()
+        if (loaded) nativeToggleScreen()
     }
 
     private fun clearGamePadPointer() {

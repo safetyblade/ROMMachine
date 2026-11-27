@@ -384,6 +384,8 @@ class NativeCoreActivity : SDLActivity() {
                         XboxGameControls(
                             game = registryGame(),
                             onInput = ::onTouchInput,
+                            canUseGrip = { ready && !leaving && !paused && !menuShowing },
+                            onGripMenu = ::showMenu,
                             pivotGate = pivotGate,
                             onTogglePivotHold = { code ->
                                 if (ready && !leaving && !paused && !menuShowing) pivotGate.toggleHold(code)

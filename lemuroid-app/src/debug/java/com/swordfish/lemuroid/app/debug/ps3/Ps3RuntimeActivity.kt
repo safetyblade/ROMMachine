@@ -208,16 +208,10 @@ class Ps3RuntimeActivity : ComponentActivity(), SurfaceHolder.Callback {
                                     pivotGate.toggleHold(code)
                                 }
                             },
-                            onGripPressed = { slot, down, codes ->
-                                if (down && !menu && this@Ps3RuntimeActivity.foreground) {
-                                    gripSlots[slot] = codes
-                                } else {
-                                    gripSlots.remove(
-                                        slot,
-                                    )
-                                }
-                                send(0)
+                            canUseGrip = {
+                                loaded && booting && !menu && this@Ps3RuntimeActivity.foreground && !leaving
                             },
+                            onGripMenu = ::openMenu,
                         ) { viewport ->
                             if (viewport.width() > 0 && viewport.height() > 0) {
                                 surface.layoutParams =

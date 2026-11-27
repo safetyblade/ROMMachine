@@ -36,6 +36,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.viewmodel.dispatchPadKitDirection
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
@@ -46,6 +47,9 @@ import gg.padkit.PadKit
 import gg.padkit.config.HapticFeedbackType
 import gg.padkit.inputevents.InputEvent
 import gg.padkit.inputstate.InputState
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -70,50 +74,191 @@ class GripArcRenderingTest {
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun standaloneLandscapeFixturesUseTheProductionRenderer() = renderStandaloneFixtures(true)
 
-    private fun renderStandaloneFixtures(wide: Boolean) {
-        val modes =
+    private val standaloneModes =
+        listOf(
+            SystemID.GBA to TouchControllerID.GBA,
+            SystemID.GB to TouchControllerID.GB,
+            SystemID.GBC to TouchControllerID.GB,
+            SystemID.NES to TouchControllerID.NES,
+            SystemID.SMS to TouchControllerID.SMS,
+            SystemID.GG to TouchControllerID.GG,
+            SystemID.NGP to TouchControllerID.NGP,
+            SystemID.NGC to TouchControllerID.NGP,
+            SystemID.PC_ENGINE to TouchControllerID.PCE,
+            SystemID.SNES to TouchControllerID.SNES,
+            SystemID.GENESIS to TouchControllerID.GENESIS_3,
+            SystemID.GENESIS to TouchControllerID.GENESIS_6,
+            SystemID.SEGACD to TouchControllerID.GENESIS_3,
+            SystemID.SEGACD to TouchControllerID.GENESIS_6,
+            SystemID.ATARI2600 to TouchControllerID.ATARI2600,
+            SystemID.ATARI7800 to TouchControllerID.ATARI7800,
+            SystemID.LYNX to TouchControllerID.LYNX,
+            SystemID.PSP to TouchControllerID.PSP,
+            SystemID.DREAMCAST to TouchControllerID.DREAMCAST,
+            SystemID.GAMECUBE to TouchControllerID.GAMECUBE,
+            SystemID.PSX to TouchControllerID.PSX,
+            SystemID.PSX to TouchControllerID.PSX_DUALSHOCK,
+            SystemID.NINTENDO_3DS to TouchControllerID.NINTENDO_3DS,
+            SystemID.WS to TouchControllerID.WS_LANDSCAPE,
+            SystemID.WS to TouchControllerID.WS_PORTRAIT,
+            SystemID.WSC to TouchControllerID.WS_LANDSCAPE,
+            SystemID.WSC to TouchControllerID.WS_PORTRAIT,
+            SystemID.FBNEO to TouchControllerID.ARCADE_4,
+            SystemID.FBNEO to TouchControllerID.ARCADE_6,
+            SystemID.MAME2003PLUS to TouchControllerID.ARCADE_4,
+            SystemID.MAME2003PLUS to TouchControllerID.ARCADE_6,
+            SystemID.N64 to TouchControllerID.N64,
+            SystemID.XBOX to TouchControllerID.XBOX,
+            SystemID.XBOX360 to TouchControllerID.XBOX360,
+            SystemID.PLAYSTATION_2 to TouchControllerID.PSX_DUALSHOCK,
+            SystemID.PLAYSTATION_3 to TouchControllerID.PSX_DUALSHOCK,
+            SystemID.DOS to TouchControllerID.DOS,
+            SystemID.WII_U to TouchControllerID.WII_CLASSIC,
+        ).map { (system, controller) -> Triple(system, controller, false) } +
             listOf(
-                SystemID.GBA to TouchControllerID.GBA,
-                SystemID.GB to TouchControllerID.GB,
-                SystemID.GBC to TouchControllerID.GB,
-                SystemID.NES to TouchControllerID.NES,
-                SystemID.SMS to TouchControllerID.SMS,
-                SystemID.GG to TouchControllerID.GG,
-                SystemID.NGP to TouchControllerID.NGP,
-                SystemID.NGC to TouchControllerID.NGP,
-                SystemID.PC_ENGINE to TouchControllerID.PCE,
-                SystemID.SNES to TouchControllerID.SNES,
-                SystemID.GENESIS to TouchControllerID.GENESIS_3,
-                SystemID.GENESIS to TouchControllerID.GENESIS_6,
-                SystemID.SEGACD to TouchControllerID.GENESIS_3,
-                SystemID.SEGACD to TouchControllerID.GENESIS_6,
-                SystemID.ATARI2600 to TouchControllerID.ATARI2600,
-                SystemID.ATARI7800 to TouchControllerID.ATARI7800,
-                SystemID.LYNX to TouchControllerID.LYNX,
-                SystemID.PSP to TouchControllerID.PSP,
-                SystemID.DREAMCAST to TouchControllerID.DREAMCAST,
-                SystemID.GAMECUBE to TouchControllerID.GAMECUBE,
-                SystemID.PSX to TouchControllerID.PSX,
-                SystemID.PSX to TouchControllerID.PSX_DUALSHOCK,
-                SystemID.NINTENDO_3DS to TouchControllerID.NINTENDO_3DS,
-            ).map { (system, controller) -> Triple(system, controller, false) } +
-                Triple(SystemID.PSP, TouchControllerID.PSP, true)
+                Triple(SystemID.PSP, TouchControllerID.PSP, true),
+                Triple(SystemID.WII_U, TouchControllerID.WII_CLASSIC, true),
+            )
+
+    @Test
+    fun reportStandaloneCoverageAgainstLockedDesignManifest() {
+        val relative = "docs/engineering/gc01/griparc-design-packets/manifest.json"
+        val manifest = JSONObject(listOf(File(relative), File("..", relative)).first(File::isFile).readText())
+        val declared =
+            manifest.getJSONArray("systems").entries().flatMap { system ->
+                val id = SystemID.valueOf(system.getString("id"))
+                val variants = system.optJSONArray("variants")?.entries()?.map { it.getString("id") } ?: listOf("base")
+                variants.map { id to it }
+            }.toSet()
+        assertEquals(53, declared.size)
+        assertEquals(33, declared.map { it.first }.toSet().size)
+
+        val fixtures =
+            standaloneModes.associateBy { (system, controller, alternate) ->
+                val variant =
+                    when (controller) {
+                        TouchControllerID.PCE -> "digital2"
+                        TouchControllerID.PSX -> "digital"
+                        TouchControllerID.PSX_DUALSHOCK -> if (system == SystemID.PSX) "dualshock" else "base"
+                        TouchControllerID.DOS -> "gamepad"
+                        TouchControllerID.WII_CLASSIC -> if (alternate) "pro" else "gamepad"
+                        TouchControllerID.PSP -> if (alternate) "analogue_primary" else "dpad_primary"
+                        TouchControllerID.WS_PORTRAIT -> "guest_vertical"
+                        TouchControllerID.WS_LANDSCAPE -> "guest_horizontal"
+                        TouchControllerID.GENESIS_3 -> "digital3"
+                        TouchControllerID.ARCADE_4 -> "digital4"
+                        TouchControllerID.GENESIS_6, TouchControllerID.ARCADE_6 -> "digital6"
+                        else -> "base"
+                    }
+                system to variant
+            }
+        assertEquals(standaloneModes.size, fixtures.size)
+        assertTrue("Fixture has no design authority", declared.containsAll(fixtures.keys))
+        val problems = mutableListOf<String>()
+        val report =
+            declared.map { key ->
+                val (system, variant) = key
+                val fixture = fixtures[key]
+                val controller = fixture?.second
+                val registration = supportsStandaloneGripActions(system) && StandaloneGripArcLayout.supports(controller)
+                val preset = fixture?.let { standaloneGripFactory(system) }
+                val inventory =
+                    controller?.let {
+                        StandaloneGripArcLayout.inventoryFor(
+                            it,
+                            system,
+                            wiiuPro = system == SystemID.WII_U && fixture?.third == true,
+                        )
+                    }
+                val portrait =
+                    inventory?.let {
+                        StandaloneGripArcLayout.resolveStandalone(
+                            it,
+                            fixtureSafe(false),
+                            fixtureViewport(system, false),
+                            false,
+                            fixture?.third == true,
+                        )
+                    }
+                val landscape =
+                    inventory?.let {
+                        StandaloneGripArcLayout.resolveStandalone(
+                            it,
+                            fixtureSafe(true),
+                            fixtureViewport(system, true),
+                            true,
+                            fixture?.third == true,
+                        )
+                    }
+                val nativeRoute =
+                    when (system) {
+                        SystemID.XBOX -> controller == TouchControllerID.XBOX
+                        SystemID.XBOX360 -> controller == TouchControllerID.XBOX360
+                        SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3 -> controller == TouchControllerID.PSX_DUALSHOCK
+                        SystemID.WII_U -> controller == TouchControllerID.WII_CLASSIC
+                        else ->
+                            controller != null &&
+                                GameSystem.findById(system.dbname).systemCoreConfigs.any { config ->
+                                    config.controllerConfigs[0].orEmpty().any { it.touchControllerID == controller }
+                                }
+                    }
+                val renderer = portrait?.complete == true && landscape?.complete == true
+                val dispatch =
+                    nativeRoute && inventory?.controls?.all {
+                        it.keyCode != null || it.motionSource != null
+                    } == true
+                val checks =
+                    linkedMapOf(
+                        "registration" to registration,
+                        "preset" to (preset != null),
+                        "portrait" to (portrait != null),
+                        "landscape" to (landscape != null),
+                        "renderer" to renderer,
+                        "dispatchRegistration" to dispatch,
+                    )
+                if (fixture != null && checks.containsValue(false)) problems += "$system/$variant $checks"
+                JSONObject(checks + mapOf("system" to system.name, "configuration" to variant))
+            }
+        val folder = File("build/reports/gc01-menu-screens/griparc")
+        folder.mkdirs()
+        File(folder, "standalone-manifest-coverage.json").writeText(JSONArray(report).toString(2))
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
+
+    private fun JSONArray.entries(): List<JSONObject> = (0 until length()).map(::getJSONObject)
+
+    private fun fixtureSafe(wide: Boolean) =
+        if (wide) PivotArcBounds(8f, 8f, 732f, 352f) else PivotArcBounds(8f, 8f, 385f, 844f)
+
+    private fun fixtureViewport(
+        system: SystemID,
+        wide: Boolean,
+    ) = when {
+        wide -> PivotArcBounds(180f, 20f, 560f, 290f)
+        system == SystemID.NINTENDO_3DS -> PivotArcBounds(22f, 84f, 371f, 484f)
+        else -> PivotArcBounds(22f, 84f, 371f, 340f)
+    }
+
+    private fun renderStandaloneFixtures(wide: Boolean) {
+        val modes = standaloneModes
         val width = if (wide) 740 else 393
         val height = if (wide) 360 else 852
         val root = Rect(0f, 0f, width.toFloat(), height.toFloat())
-        val safe = PivotArcBounds(8f, 8f, width - 8f, height - 8f)
+        val safe = fixtureSafe(wide)
         val motion = mutableStateOf(modes.first())
         compose.setContent {
             val (system, id, analogPrimary) = motion.value
             val tokens = compose.activity.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
-            val viewport =
-                when {
-                    wide -> PivotArcBounds(180f, 20f, 560f, 290f)
-                    system == SystemID.NINTENDO_3DS -> PivotArcBounds(22f, 84f, 371f, 484f)
-                    else -> PivotArcBounds(22f, 84f, 371f, 340f)
-                }
+            val viewport = fixtureViewport(system, wide)
             val glass = Rect(viewport.left, viewport.top, viewport.right, viewport.bottom)
-            val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(id))
+            val inventory =
+                checkNotNull(
+                    StandaloneGripArcLayout.inventoryFor(
+                        id,
+                        system,
+                        wiiuPro = system == SystemID.WII_U && analogPrimary,
+                    ),
+                )
             val fitted =
                 checkNotNull(
                     StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, wide, analogPrimary),
@@ -141,7 +286,7 @@ class GripArcRenderingTest {
                         simulatedState = remember { mutableStateOf(InputState()) },
                         simulatedControlIds = remember { mutableStateOf(emptySet()) },
                     ) {
-                        GripArcCombinedControls(fitted)
+                        GripArcCombinedControls(fitted, standalone = true)
                     }
                     GripArcAccessory(
                         fitted.dock,
@@ -170,7 +315,12 @@ class GripArcRenderingTest {
                     canvas.translate(-rect.left.value, -rect.top.value)
                     compose.activity.window.decorView.draw(canvas)
                     val orientation = if (wide) "landscape" else "portrait"
-                    val priority = if (analogPrimary) "-analogue" else ""
+                    val priority =
+                        when {
+                            system == SystemID.WII_U && analogPrimary -> "-pro"
+                            analogPrimary -> "-analogue"
+                            else -> ""
+                        }
                     File(folder, "${system.name.lowercase()}-${controller.name.lowercase()}$priority-$orientation.png")
                         .outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
                 } finally {

@@ -244,12 +244,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
                             game = game,
-                            onGripPressed = { slot, down, codes ->
-                                if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
-                                grip.clear()
-                                slots.values.flatten().toSet().forEach { grip.key(it, true) }
-                                sendInput()
-                            },
+                            canUseGrip = { ready && started && !menu && hostForeground && !leaving },
+                            onGripMenu = ::openMenu,
                         ) { viewport ->
                             viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {

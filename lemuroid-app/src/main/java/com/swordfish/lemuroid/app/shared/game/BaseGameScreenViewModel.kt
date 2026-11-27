@@ -12,13 +12,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GameService
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAction
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
-import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelInput
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelRetroGameView
@@ -127,6 +125,7 @@ class BaseGameScreenViewModel(
     fun isPreparingLaunch(): Boolean = retroGameView.isPreparing()
 
     private val gripArcStore = GripArcProfileStore(appContext)
+    private var gripArcAssignmentMode: String? = null
     private val gripArcProfileState = MutableStateFlow(gripArcStore.read(game))
 
     private val sideEffects = GameViewModelSideEffects(viewModelScope)
@@ -198,8 +197,15 @@ class BaseGameScreenViewModel(
 
     fun gripArcProfile(): StateFlow<GripArcProfile> = gripArcProfileState
 
+    fun setGripArcAssignmentMode(mode: String?) {
+        if (gripArcAssignmentMode == mode) return
+        pivotArcHeldInputGate.releaseGripSlots()
+        gripArcAssignmentMode = mode
+        reloadGripArcProfile()
+    }
+
     fun reloadGripArcProfile() {
-        val latest = gripArcStore.read(activeGame)
+        val latest = gripArcStore.read(activeGame, gripArcAssignmentMode)
         if (latest != gripArcProfileState.value) {
             pivotArcHeldInputGate.releaseGripSlots()
             inputs.releasePhysicalInputs()
@@ -217,13 +223,12 @@ class BaseGameScreenViewModel(
         slot: Int,
         pressed: Boolean,
         mapping: Set<Int>,
+        standalone: Boolean,
     ) {
         val profile = gripArcProfileState.value
-        if (supportsStandaloneGripActions(systemId) && profile.mode == ArcControlMode.STANDARD_GRIPARC) {
-            val allowed =
-                StandaloneGripArcLayout.inventoryFor(touchControls.activeTouchController())
-                    ?.controls.orEmpty().mapNotNull { it.keyCode }.toSet()
-            val action = profile.supportedActionFor(slot, allowed) ?: return
+        if (standalone) {
+            val inventory = StandaloneGripArcLayout.inventoryFor(touchControls.activeTouchController()) ?: return
+            val action = StandaloneGripArcLayout.guestAction(profile, slot, inventory) ?: return
             if (action == GripArcAction.OpenMenu) {
                 if (pressed) requestGameMenuFromHardware()
             } else {

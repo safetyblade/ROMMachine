@@ -32,7 +32,10 @@ import com.swordfish.touchinput.controller.R as TouchR
 
 /** Dedicated targets; same PadKit scope, motion sources and Android keys as Standard. */
 @Composable
-internal fun PadKitScope.GripArcCombinedControls(placement: GripArcCombinedPlacement) {
+internal fun PadKitScope.GripArcCombinedControls(
+    placement: GripArcCombinedPlacement,
+    standalone: Boolean = false,
+) {
     require(placement.complete) { "Incomplete native controller placement" }
     Box(Modifier.fillMaxSize()) {
         placement.native.controls.forEach { spec ->
@@ -40,23 +43,67 @@ internal fun PadKitScope.GripArcCombinedControls(placement: GripArcCombinedPlace
             val rect = placement.controls.getValue(key)
             val visual = placement.visuals.getValue(key)
             val position = Modifier.offset(rect.left.dp, rect.top.dp).size(rect.width.dp, rect.height.dp)
+            val diagonals = !standalone || key != "CDirection"
             when (spec.kind) {
                 NativeControlKind.DPAD ->
                     ControlCross(
                         modifier = position,
                         id = Id.DiscreteDirection(spec.motionSource!!),
-                        allowDiagonals = true,
+                        allowDiagonals = diagonals,
                         background = {},
                         foreground = { state ->
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                    if (placement.native.controller == TouchControllerID.NGP) {
-                                        CartdeckDigitalClickStick(
-                                            state.value,
-                                            LocalLemuroidPadTheme.current.palette.accent,
+                                    when {
+                                        standalone && placement.native.controller == TouchControllerID.NGP ->
+                                            CartdeckDigitalClickStick(
+                                                state.value,
+                                                LocalLemuroidPadTheme.current.palette.accent,
+                                            )
+                                        standalone && placement.native.controller in
+                                            setOf(
+                                                TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+                                            )
+                                        -> CartdeckDigitalBallTop(state.value)
+                                        else ->
+                                            LemuroidCrossForeground(
+                                                allowDiagonals = diagonals,
+                                                directionState = state,
+                                            )
+                                    }
+                                    if (standalone && key == "CDirection") {
+                                        val color = LocalLemuroidPadTheme.current.palette.accent
+                                        Text(
+                                            "C▲",
+                                            Modifier.align(Alignment.TopCenter),
+                                            color = color,
+                                            fontSize = 10.sp,
                                         )
-                                    } else {
-                                        LemuroidCrossForeground(allowDiagonals = true, directionState = state)
+                                        Text(
+                                            "C◀",
+                                            Modifier.align(Alignment.CenterStart),
+                                            color = color,
+                                            fontSize = 10.sp,
+                                        )
+                                        Text(
+                                            "C▶",
+                                            Modifier.align(Alignment.CenterEnd),
+                                            color = color,
+                                            fontSize = 10.sp,
+                                        )
+                                        Text(
+                                            "C▼",
+                                            Modifier.align(Alignment.BottomCenter),
+                                            color = color,
+                                            fontSize = 10.sp,
+                                        )
+                                    } else if (standalone && spec.label.endsWith(" cursor")) {
+                                        Text(
+                                            spec.label.substringBefore(' '),
+                                            modifier = Modifier.align(Alignment.Center),
+                                            fontSize = 12.sp,
+                                            color = LocalLemuroidPadTheme.current.palette.onButton,
+                                        )
                                     }
                                 }
                             }
@@ -93,7 +140,7 @@ internal fun PadKitScope.GripArcCombinedControls(placement: GripArcCombinedPlace
                             NativeControlIcon.CROSS -> TouchR.drawable.psx_cross
                             NativeControlIcon.TRIANGLE -> TouchR.drawable.psx_triangle
                             NativeControlIcon.SQUARE -> TouchR.drawable.psx_square
-                            null -> null
+                            null -> TouchR.drawable.button_keyboard.takeIf { standalone && key == "Keyboard" }
                         }
                     val shoulder = spec.kind == NativeControlKind.SHOULDER && !spec.roundButton
                     val utility = spec.kind == NativeControlKind.UTILITY

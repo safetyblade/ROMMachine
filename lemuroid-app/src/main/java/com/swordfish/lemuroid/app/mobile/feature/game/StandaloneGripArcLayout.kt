@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
+import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.settings.NativeControlIcon
 import com.swordfish.touchinput.radial.settings.NativeControlInventory
@@ -37,6 +38,29 @@ internal object StandaloneGripArcLayout {
         )
     private val landscapeProgram =
         mapOf(1 to Seat(44, 253), 2 to Seat(684, 220), 3 to Seat(613, 278), 4 to Seat(114, 253))
+
+    private val wonderSwanPortrait =
+        mapOf(
+            "D" to Seat(80, 155, 96f),
+            "Cursor2" to Seat(263, 96, 82f),
+            "B" to Seat(292, 201),
+            "A" to Seat(220, 231),
+            "Menu" to Seat(115, 350),
+            "Start" to Seat(245, 350),
+        )
+    private val wonderSwanLandscape =
+        mapOf(
+            "D" to Seat(82, 130, 96f),
+            "Cursor2" to Seat(650, 84, 82f),
+            "B" to Seat(680, 194),
+            "A" to Seat(612, 223),
+            "Start" to Seat(650, 335),
+            "Menu" to Seat(365, 365),
+        )
+    private val wonderSwanProgramPortrait =
+        mapOf(1 to Seat(80, 257), 2 to Seat(150, 294), 3 to Seat(294, 277), 4 to Seat(223, 294))
+    private val wonderSwanProgramLandscape =
+        mapOf(1 to Seat(44, 232), 2 to Seat(114, 232), 3 to Seat(680, 270), 4 to Seat(82, 298))
 
     private val digitalTwoPortrait = portraitNative - setOf("L", "R")
     private val digitalTwoLandscape = landscapeNative - setOf("L", "R")
@@ -100,6 +124,40 @@ internal object StandaloneGripArcLayout {
     private val megaDriveProgramLandscape =
         mapOf(1 to Seat(44, 239), 2 to Seat(615, 285), 3 to Seat(682, 285), 4 to Seat(114, 239))
 
+    private val arcadeFourPortrait =
+        mapOf(
+            "D" to Seat(80, 150, 90f),
+            "X" to Seat(220, 108),
+            "A" to Seat(294, 96),
+            "Y" to Seat(220, 182),
+            "B" to Seat(294, 170),
+            "Select" to Seat(80, 330),
+            "Menu" to Seat(180, 330),
+            "Start" to Seat(280, 330),
+        )
+    private val arcadeFourLandscape =
+        mapOf(
+            "D" to Seat(82, 145, 88f),
+            "X" to Seat(615, 95),
+            "A" to Seat(682, 95),
+            "Y" to Seat(615, 175),
+            "B" to Seat(682, 175),
+            "Select" to Seat(82, 322),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(650, 335),
+        )
+    private val arcadeSixPortrait =
+        megaDriveSixPortrait + ("D" to Seat(80, 150, 90f))
+    private val arcadeSixLandscape =
+        megaDriveSixLandscape +
+            mapOf(
+                "D" to Seat(82, 145, 88f), "Select" to Seat(82, 322), "Start" to Seat(650, 335),
+            )
+    private val arcadeProgramPortrait =
+        mapOf(1 to Seat(80, 252), 2 to Seat(150, 252), 3 to Seat(220, 252), 4 to Seat(290, 252))
+    private val arcadeProgramLandscape =
+        mapOf(1 to Seat(44, 239), 2 to Seat(114, 239), 3 to Seat(615, 276), 4 to Seat(682, 276))
+
     private val atari2600Portrait =
         mapOf(
             "D" to Seat(80, 145, 84f),
@@ -155,6 +213,25 @@ internal object StandaloneGripArcLayout {
             3 to Seat(615, 289),
             4 to Seat(682, 289),
         )
+
+    private val n64Portrait =
+        mapOf(
+            "L" to Seat(55, 42), "R" to Seat(305, 42), "D" to Seat(78, 116, 78f),
+            "AnalogL" to Seat(78, 222, 86f), "Z" to Seat(164, 206),
+            "CDirection" to Seat(265, 120, 88f), "B" to Seat(226, 226), "A" to Seat(300, 254),
+            "Menu" to Seat(115, 370), "Start" to Seat(245, 370),
+        )
+    private val n64Landscape =
+        mapOf(
+            "L" to Seat(49, 43), "R" to Seat(648, 43), "D" to Seat(82, 114, 72f),
+            "AnalogL" to Seat(63, 208, 82f), "Z" to Seat(136, 248),
+            "CDirection" to Seat(650, 120, 84f), "B" to Seat(612, 222), "A" to Seat(683, 250),
+            "Menu" to Seat(365, 365), "Start" to Seat(675, 335),
+        )
+    private val n64ProgramPortrait =
+        mapOf(1 to Seat(180, 42), 2 to Seat(80, 320), 3 to Seat(224, 320), 4 to Seat(155, 270))
+    private val n64ProgramLandscape =
+        mapOf(1 to Seat(121, 43), 2 to Seat(42, 320), 3 to Seat(615, 299), 4 to Seat(114, 320))
 
     private val gameCubePortrait =
         mapOf(
@@ -228,6 +305,65 @@ internal object StandaloneGripArcLayout {
     private val dualShockLandscape =
         playStationLandscape + mapOf("AnalogL" to Seat(82, 242, 74f), "AnalogR" to Seat(648, 275, 62f))
 
+    private val sonyHostPortrait =
+        dualShockPortrait + mapOf("LS" to Seat(148, 285), "RS" to Seat(205, 310))
+    private val sonyHostLandscape =
+        dualShockLandscape + mapOf("LS" to Seat(180, 365), "RS" to Seat(550, 365))
+
+    private val xboxPortrait =
+        dualShockPortrait +
+            mapOf(
+                "AnalogL" to Seat(78, 174, 84f), "D" to Seat(78, 293, 78f),
+                "X" to Seat(196, 188), "A" to Seat(253, 241), "B" to Seat(310, 188), "Y" to Seat(253, 135),
+                "LS" to Seat(145, 236), "RS" to Seat(194, 310),
+            )
+    private val xboxLandscape =
+        dualShockLandscape +
+            mapOf(
+                "AnalogL" to Seat(82, 107, 80f), "D" to Seat(82, 257, 74f),
+                "Y" to Seat(648, 89), "B" to Seat(687, 147), "A" to Seat(648, 205), "X" to Seat(609, 147),
+                "AnalogR" to Seat(648, 274, 66f), "LS" to Seat(82, 184), "RS" to Seat(550, 365),
+            )
+
+    private val dosPortrait =
+        dualShockPortrait +
+            mapOf(
+                "X" to Seat(196, 188), "A" to Seat(253, 241), "B" to Seat(310, 188), "Y" to Seat(253, 135),
+                "Select" to Seat(49, 430), "Keyboard" to Seat(135, 430),
+                "Menu" to Seat(225, 430), "Start" to Seat(311, 430),
+            )
+    private val dosLandscape =
+        dualShockLandscape +
+            mapOf(
+                "X" to Seat(609, 147), "A" to Seat(648, 205), "B" to Seat(687, 147), "Y" to Seat(648, 89),
+                "AnalogL" to Seat(82, 242, 74f), "AnalogR" to Seat(648, 274, 64f),
+                "Select" to Seat(215, 365), "Keyboard" to Seat(315, 365),
+                "Menu" to Seat(415, 365), "Start" to Seat(515, 365),
+            )
+
+    private val wiiuGamePadPortrait =
+        mapOf(
+            "L2" to Seat(55, 35), "L" to Seat(55, 88), "R2" to Seat(305, 35), "R" to Seat(305, 88),
+            "AnalogL" to Seat(78, 163, 78f), "AnalogR" to Seat(266, 163, 78f),
+            "LS" to Seat(145, 163), "RS" to Seat(196, 163), "D" to Seat(78, 280, 84f),
+            "X" to Seat(253, 230), "A" to Seat(310, 283), "B" to Seat(253, 336), "Y" to Seat(196, 283),
+            "Select" to Seat(49, 435), "Menu" to Seat(135, 435), "Screen" to Seat(225, 435), "Start" to Seat(311, 435),
+        )
+    private val wiiuGamePadLandscape =
+        mapOf(
+            "L2" to Seat(46, 32), "L" to Seat(116, 32), "R2" to Seat(684, 32), "R" to Seat(614, 32),
+            "AnalogL" to Seat(82, 107, 76f), "AnalogR" to Seat(648, 106, 66f),
+            "LS" to Seat(82, 181), "RS" to Seat(570, 365), "D" to Seat(82, 254, 76f),
+            "X" to Seat(648, 237), "A" to Seat(687, 295), "B" to Seat(648, 353), "Y" to Seat(609, 295),
+            "Select" to Seat(215, 365), "Menu" to Seat(315, 365), "Screen" to Seat(415, 365), "Start" to Seat(515, 365),
+        )
+    private val wiiuProgramPortrait =
+        mapOf(1 to Seat(45, 377), 2 to Seat(135, 377), 3 to Seat(224, 385), 4 to Seat(315, 385))
+    private val wiiuProgramLandscape =
+        mapOf(1 to Seat(45, 338), 2 to Seat(115, 338), 3 to Seat(615, 179), 4 to Seat(684, 179))
+
+    const val WIIU_SCREEN_ACTION = KeyEvent.KEYCODE_TV_INPUT
+
     private fun playStationProgram(
         landscape: Boolean,
         dualShock: Boolean,
@@ -277,13 +413,25 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.GAMECUBE,
             TouchControllerID.PSX,
             TouchControllerID.PSX_DUALSHOCK,
-            TouchControllerID.NINTENDO_3DS,
+            TouchControllerID.NINTENDO_3DS, TouchControllerID.N64,
+            TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE,
+            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+            TouchControllerID.XBOX, TouchControllerID.XBOX360, TouchControllerID.DOS, TouchControllerID.WII_CLASSIC,
         )
 
     fun supports(controller: TouchControllerID?): Boolean = controller in controllers
 
-    fun inventoryFor(controller: TouchControllerID): NativeControlInventory? =
+    fun inventoryFor(
+        controller: TouchControllerID,
+        system: SystemID? = null,
+        wiiuPro: Boolean = false,
+    ): NativeControlInventory? =
         when (controller) {
+            TouchControllerID.WII_CLASSIC ->
+                if (system == SystemID.WII_U) wiiuInventory(controller, wiiuPro) else null
+            TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE -> wonderSwanInventory(controller)
+            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6 ->
+                analogueInventory(SystemID.FBNEO, controller)
             TouchControllerID.NES ->
                 NativeControlInventory.forController(
                     TouchControllerID.GB,
@@ -322,21 +470,158 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.ATARI2600, TouchControllerID.ATARI7800 -> atariInventory(controller)
             TouchControllerID.DREAMCAST -> analogueInventory(SystemID.DREAMCAST, controller)
             TouchControllerID.GAMECUBE -> analogueInventory(SystemID.GAMECUBE, controller)
-            TouchControllerID.PSP, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.NINTENDO_3DS -> {
-                NativeControlInventory.forHoldTray(controller)?.let { inventory ->
+            TouchControllerID.N64 -> analogueInventory(SystemID.N64, controller)
+            TouchControllerID.DOS ->
+                analogueInventory(SystemID.DOS, controller).let { inventory ->
                     inventory.copy(
                         controls =
                             inventory.controls.map { seat ->
-                                if (seat.kind == NativeControlKind.ANALOG) seat.copy(pressCode = null) else seat
+                                if (seat.kind == NativeControlKind.FACE && seat.label in setOf("A", "B", "X", "Y")) {
+                                    seat.copy(key = seat.label, seat = seat.label)
+                                } else {
+                                    seat
+                                }
                             },
                     )
+                }
+            TouchControllerID.XBOX, TouchControllerID.XBOX360 -> withStickClicks(controller, "LS", "RS")
+            TouchControllerID.PSP, TouchControllerID.PSX_DUALSHOCK, TouchControllerID.NINTENDO_3DS -> {
+                if (controller == TouchControllerID.PSX_DUALSHOCK &&
+                    system in setOf(SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3)
+                ) {
+                    withStickClicks(controller, "L3", "R3")
+                } else {
+                    NativeControlInventory.forHoldTray(controller)?.let { inventory ->
+                        inventory.copy(
+                            controls =
+                                inventory.controls.map { seat ->
+                                    if (seat.kind == NativeControlKind.ANALOG) seat.copy(pressCode = null) else seat
+                                },
+                        )
+                    }
                 }
             }
             else -> NativeControlInventory.forController(controller)
         }
 
+    private fun wiiuInventory(
+        controller: TouchControllerID,
+        pro: Boolean,
+    ): NativeControlInventory {
+        val inventory = analogueInventory(SystemID.WII_U, controller)
+        val controls =
+            inventory.controls.map { seat ->
+                if (seat.kind == NativeControlKind.FACE && seat.label in setOf("A", "B", "X", "Y")) {
+                    seat.copy(key = seat.label, seat = seat.label)
+                } else {
+                    seat
+                }
+            }
+        val screen =
+            NativeControlSpec(
+                "Screen",
+                "Screen",
+                NativeControlKind.UTILITY,
+                keyCode = WIIU_SCREEN_ACTION,
+                label = "Screen",
+            )
+        return inventory.copy(controls = if (pro) controls else controls + screen)
+    }
+
+    private fun withStickClicks(
+        controller: TouchControllerID,
+        leftLabel: String,
+        rightLabel: String,
+    ): NativeControlInventory {
+        val native = checkNotNull(NativeControlInventory.forController(controller))
+        val clicks =
+            listOf(
+                NativeControlSpec(
+                    "LS",
+                    "LS",
+                    NativeControlKind.FACE,
+                    keyCode = KeyEvent.KEYCODE_BUTTON_THUMBL,
+                    label = leftLabel,
+                ),
+                NativeControlSpec(
+                    "RS",
+                    "RS",
+                    NativeControlKind.FACE,
+                    keyCode = KeyEvent.KEYCODE_BUTTON_THUMBR,
+                    label = rightLabel,
+                ),
+            )
+        return native.copy(
+            controls =
+                native.controls.map {
+                    if (it.kind == NativeControlKind.ANALOG) it.copy(pressCode = null) else it
+                } + clicks,
+        )
+    }
+
+    private fun wonderSwanInventory(controller: TouchControllerID): NativeControlInventory {
+        val input = checkNotNull(WonderSwanPivotInput.forController(controller))
+        val base = checkNotNull(NativeControlInventory.forController(TouchControllerID.GB))
+        val controls =
+            base.controls.filterNot { it.key == "Select" }.map {
+                when (it.key) {
+                    "D" -> it.copy(label = input.primaryLabel)
+                    "A" -> it.copy(keyCode = input.a)
+                    "B" -> it.copy(keyCode = input.b)
+                    else -> it
+                }
+            }
+        val cursor =
+            NativeControlSpec(
+                "Cursor2",
+                "cursor2",
+                NativeControlKind.DPAD,
+                motionSource = input.source,
+                label = input.secondaryLabel,
+            )
+        return NativeControlInventory(controller, controls + cursor)
+    }
+
+    // Preserve programmable identities when guest rotation or the arcade seat order changes.
+    private fun programmableCode(
+        native: NativeControlInventory,
+        seat: NativeControlSpec,
+    ): Int? =
+        when (native.controller) {
+            TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE ->
+                when (seat.key) {
+                    "A" -> KeyEvent.KEYCODE_BUTTON_A
+                    "B" -> KeyEvent.KEYCODE_BUTTON_B
+                    else -> seat.keyCode
+                }
+            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6 ->
+                if (seat.kind == NativeControlKind.FACE) {
+                    KeyEvent.KEYCODE_BUTTON_1 + seat.label.toInt() - 1
+                } else {
+                    seat.keyCode
+                }
+            else -> seat.keyCode
+        }
+
+    fun guestAction(
+        profile: GripArcProfile,
+        slot: Int,
+        native: NativeControlInventory,
+    ): GripArcAction? {
+        val codes =
+            native.controls.filterNot { it.key in setOf("Menu", "Keyboard", "Screen") }.mapNotNull { seat ->
+                programmableCode(native, seat)?.let { it to checkNotNull(seat.keyCode) }
+            }.toMap()
+        return when (val action = profile.supportedActionFor(slot, codes.keys)) {
+            is GripArcAction.Native -> action.copy(keys = action.keys.mapTo(linkedSetOf(), codes::getValue))
+            is GripArcAction.Hold -> action.copy(key = codes.getValue(action.key))
+            is GripArcAction.Turbo -> action.copy(key = codes.getValue(action.key))
+            GripArcAction.OpenMenu, null -> action
+        }
+    }
+
     fun actionLabels(native: NativeControlInventory): Map<Int, String> =
-        native.controls.filterNot { it.key == "Menu" }.mapNotNull { seat ->
+        native.controls.filterNot { it.key in setOf("Menu", "Keyboard", "Screen") }.mapNotNull { seat ->
             val label =
                 when (seat.icon) {
                     NativeControlIcon.CIRCLE -> "Circle"
@@ -345,7 +630,7 @@ internal object StandaloneGripArcLayout {
                     NativeControlIcon.TRIANGLE -> "Triangle"
                     else -> seat.label
                 }
-            seat.keyCode?.let { it to label }
+            programmableCode(native, seat)?.let { it to label }
         }.toMap()
 
     private fun megaDriveInventory(controller: TouchControllerID): NativeControlInventory {
@@ -419,7 +704,11 @@ internal object StandaloneGripArcLayout {
         system: SystemID,
         controller: TouchControllerID,
     ): NativeControlInventory {
-        val profile = checkNotNull(PivotArcSoloProfiles.forMode(system, controller))
+        val profile =
+            checkNotNull(
+                PivotArcSoloProfiles.forMode(system, controller)
+                    ?: PivotArcSoloProfiles.forNativeHost(system, controller),
+            )
         val controls =
             profile.seats.filter { it.holdOf == null }.map { seat ->
                 val kind =
@@ -427,7 +716,7 @@ internal object StandaloneGripArcLayout {
                         seat.analog -> NativeControlKind.ANALOG
                         seat.direction != null -> NativeControlKind.DPAD
                         seat.utility -> NativeControlKind.UTILITY
-                        seat.id in setOf("L", "R", "HalfL", "HalfR") -> NativeControlKind.SHOULDER
+                        seat.id in setOf("L", "R", "L2", "R2", "HalfL", "HalfR") -> NativeControlKind.SHOULDER
                         else -> NativeControlKind.FACE
                     }
                 val label = if (system == SystemID.GAMECUBE && seat.id == "AnalogR") "C-Stick" else seat.label
@@ -466,14 +755,28 @@ internal object StandaloneGripArcLayout {
         if (!panel.isFiniteArea()) return null
         val width = if (landscape) 730f else 360f
         val snes = native.controller == TouchControllerID.SNES
+        val wonderSwan = WonderSwanPivotInput.forController(native.controller) != null
+        val arcade = native.controller in setOf(TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6)
+        val xbox = native.controller in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)
+        val dos = native.controller == TouchControllerID.DOS
+        val wiiu = native.controller == TouchControllerID.WII_CLASSIC
+        val wiiuPro = wiiu && native.controls.none { it.key == "Screen" }
+        val sonyHost = native.controller == TouchControllerID.PSX_DUALSHOCK && native.controls.any { it.key == "LS" }
         val height =
             if (landscape) {
                 390f
-            } else if (native.controller in setOf(TouchControllerID.GAMECUBE, TouchControllerID.PSX_DUALSHOCK)) {
+            } else if (
+                xbox || dos || wiiu ||
+                native.controller in setOf(TouchControllerID.GAMECUBE, TouchControllerID.PSX_DUALSHOCK)
+            ) {
                 460f
-            } else if (native.controller in setOf(TouchControllerID.DREAMCAST, TouchControllerID.PSP)) {
+            } else if (native.controller in
+                setOf(
+                    TouchControllerID.DREAMCAST, TouchControllerID.PSP, TouchControllerID.N64,
+                )
+            ) {
                 420f
-            } else if (snes || native.controller == TouchControllerID.LYNX) {
+            } else if (snes || wonderSwan || native.controller == TouchControllerID.LYNX) {
                 400f
             } else if (native.controller == TouchControllerID.NINTENDO_3DS) {
                 320f
@@ -503,6 +806,30 @@ internal object StandaloneGripArcLayout {
         val authoredNativeSeats =
             when {
                 gba -> if (landscape) landscapeNative else portraitNative
+                xbox -> if (landscape) xboxLandscape else xboxPortrait
+                dos -> if (landscape) dosLandscape else dosPortrait
+                wiiu -> {
+                    val seats = if (landscape) wiiuGamePadLandscape else wiiuGamePadPortrait
+                    if (!wiiuPro) {
+                        seats
+                    } else if (landscape) {
+                        seats - "Screen" +
+                            mapOf(
+                                "Select" to Seat(265, 365), "Menu" to Seat(365, 365), "Start" to Seat(465, 365),
+                            )
+                    } else {
+                        seats - "Screen" +
+                            mapOf(
+                                "Select" to Seat(80, 435), "Menu" to Seat(180, 435), "Start" to Seat(280, 435),
+                            )
+                    }
+                }
+                sonyHost -> if (landscape) sonyHostLandscape else sonyHostPortrait
+                wonderSwan -> if (landscape) wonderSwanLandscape else wonderSwanPortrait
+                native.controller == TouchControllerID.ARCADE_4 ->
+                    if (landscape) arcadeFourLandscape else arcadeFourPortrait
+                native.controller == TouchControllerID.ARCADE_6 ->
+                    if (landscape) arcadeSixLandscape else arcadeSixPortrait
                 snes -> if (landscape) snesLandscape else snesPortrait
                 native.controller == TouchControllerID.NINTENDO_3DS ->
                     if (landscape) threeDsLandscape else threeDsPortrait
@@ -514,6 +841,7 @@ internal object StandaloneGripArcLayout {
                     if (landscape) pspLandscape else pspPortrait
                 native.controller == TouchControllerID.DREAMCAST ->
                     if (landscape) dreamcastLandscape else dreamcastPortrait
+                native.controller == TouchControllerID.N64 -> if (landscape) n64Landscape else n64Portrait
                 native.controller == TouchControllerID.GAMECUBE ->
                     if (landscape) gameCubeLandscape else gameCubePortrait
                 native.controller == TouchControllerID.ATARI2600 ->
@@ -542,6 +870,11 @@ internal object StandaloneGripArcLayout {
         val programSeats =
             when {
                 gba -> if (landscape) landscapeProgram else portraitProgram
+                xbox -> playStationProgram(landscape, dualShock = true)
+                dos -> playStationProgram(landscape, dualShock = true)
+                wiiu -> if (landscape) wiiuProgramLandscape else wiiuProgramPortrait
+                wonderSwan -> if (landscape) wonderSwanProgramLandscape else wonderSwanProgramPortrait
+                arcade -> if (landscape) arcadeProgramLandscape else arcadeProgramPortrait
                 native.controller == TouchControllerID.NINTENDO_3DS ->
                     if (landscape) threeDsProgramLandscape else threeDsProgramPortrait
                 native.controller in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK) ->
@@ -549,6 +882,7 @@ internal object StandaloneGripArcLayout {
                 native.controller == TouchControllerID.PSP -> if (landscape) pspProgramLandscape else pspProgramPortrait
                 native.controller == TouchControllerID.DREAMCAST ->
                     if (landscape) dreamcastProgramLandscape else dreamcastProgramPortrait
+                native.controller == TouchControllerID.N64 -> if (landscape) n64ProgramLandscape else n64ProgramPortrait
                 native.controller == TouchControllerID.GAMECUBE ->
                     if (landscape) gameCubeProgramLandscape else gameCubeProgramPortrait
                 native.controller == TouchControllerID.ATARI2600 ->
@@ -562,7 +896,10 @@ internal object StandaloneGripArcLayout {
         val nativeTargets =
             nativeSeats.mapValues { (key, seat) ->
                 val centralUtility =
-                    key == "Menu" ||
+                    key == "Menu" || (xbox && key in setOf("Select", "Start", "RS")) ||
+                        (sonyHost && key in setOf("LS", "RS")) ||
+                        (dos && key in setOf("Select", "Start", "Keyboard")) ||
+                        (wiiu && key in setOf("Select", "Start", "Screen", "RS")) ||
                         (
                             native.controller in setOf(TouchControllerID.PSX, TouchControllerID.PSX_DUALSHOCK) &&
                                 key in setOf("Select", "Start")

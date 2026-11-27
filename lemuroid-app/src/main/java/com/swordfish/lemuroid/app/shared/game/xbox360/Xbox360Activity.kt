@@ -86,8 +86,6 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             sendInputs()
         }
     private val hardware = XboxPadState()
-    private val grip = XboxPadState()
-    private val gripSlots = mutableMapOf<Int, Set<Int>>()
     private var emulator: XeniaEmulator? = null
     private lateinit var engine: XboxEngineStore.Selection
     private lateinit var surface: SurfaceView
@@ -173,18 +171,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 intent.getSerializableExtra(
                                     "cartdeck.game",
                                 ) as? Game,
-                            onGripPressed = { slot, pressed, codes ->
-                                if (pressed && !menuOpen && this@Xbox360Activity.foreground) {
-                                    gripSlots[slot] = codes
-                                } else {
-                                    gripSlots.remove(
-                                        slot,
-                                    )
-                                }
-                                grip.clear()
-                                gripSlots.values.flatten().toSet().forEach { grip.key(it, true) }
-                                sendInputs()
-                            },
+                            canUseGrip = { this@Xbox360Activity.foreground && booted && !menuOpen && !leaving },
+                            onGripMenu = ::openMenu,
                         ) { viewport ->
                             viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
@@ -355,11 +343,13 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 "--log_file=${File(data, "logs/xenia.log").absolutePath}",
                                 "--hid=android", "--vulkan_lib_path=",
                                 "--logged_profile_slot_0_xuid=${profile.xuid}",
-                                // Xenia cvar: owned XBLA/digital titles boot full, not as trials.
-                                "--license_mask=1",
-                            ) + listOfNotNull(pipelineABActive.launchOption),
+                            ) +
+                                listOfNotNull(
+                                    pipelineABActive.launchOption,
+                                    staged.packageIdentity?.fullLicenseLaunchOption(profile.xuid),
+                                ),
                         )
-                        setup_game_path(staged.absolutePath)
+                        setup_game_path(staged.file.absolutePath)
                     }
                 contentReady = true
                 bootIfReady()
@@ -423,8 +413,6 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
             if (physicalConnected) {
                 pivotGate.clear()
                 touch.clear()
-                grip.clear()
-                gripSlots.clear()
                 sendInputs()
             }
         }
@@ -499,23 +487,12 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         pivotGate.clear()
         touch.clear()
         hardware.clear()
-        grip.clear()
-        gripSlots.clear()
         if (booted) sendInputs()
     }
 
     private fun sendInputs() {
         if (!booted) return
-        val base = Xbox360Pad.merged(hardware, touch)
-        val accessory = Xbox360Pad.values(grip)
-        IntArray(
-            24,
-        ) { i ->
-            if (kotlin.math.abs(base[i]) >= kotlin.math.abs(accessory[i])) base[i] else accessory[i]
-        }.forEachIndexed {
-                index,
-                value,
-            ->
+        Xbox360Pad.merged(hardware, touch).forEachIndexed { index, value ->
             emulator?.key_event(index, value != 0, value)
         }
     }

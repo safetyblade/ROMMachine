@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcBehavior
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInput
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInputCatalog
@@ -44,25 +45,27 @@ fun GripArcEditorScreen(
     game: Game,
     embedded: Boolean = false,
     controller: TouchControllerID? = null,
+    assignmentMode: String? = null,
 ) {
     val context = LocalContext.current
     val store = remember(context) { GripArcProfileStore(context) }
     val manifest = remember(context) { GripArcManifest.load(context) }
+    val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+    val profile by rememberGripArcProfile(game, assignmentMode)
     val options =
-        remember(game.systemId, controller) {
-            controller?.takeIf(StandaloneGripArcLayout::supports)
-                ?.let(StandaloneGripArcLayout::inventoryFor)
+        remember(game.systemId, controller, profile.mode) {
+            controller?.takeIf { profile.mode == ArcControlMode.STANDARD_GRIPARC }
+                ?.takeIf(StandaloneGripArcLayout::supports)
+                ?.let { StandaloneGripArcLayout.inventoryFor(it, system) }
                 ?.let(StandaloneGripArcLayout::actionLabels)
                 ?.map { (code, label) -> GripArcInput(label, code) }
                 ?: GripArcInputCatalog.forGame(game)
         }
-    val profile by rememberGripArcProfile(game)
-    var message by remember(game.cartridgeId) { mutableStateOf<String?>(null) }
-    var slot by remember(game.cartridgeId) { mutableStateOf<Int?>(null) }
+    var message by remember(game.cartridgeId, assignmentMode) { mutableStateOf<String?>(null) }
+    var slot by remember(game.cartridgeId, assignmentMode) { mutableStateOf<Int?>(null) }
     var draft by remember(game.cartridgeId) { mutableStateOf(emptyList<Int>()) }
-    val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
-    val typed = supportsStandaloneGripActions(system)
-    val slotLimit = standaloneGripFactory(system)?.count ?: 4
+    val typed = profile.mode == ArcControlMode.STANDARD_GRIPARC && supportsStandaloneGripActions(system)
+    val slotLimit = if (typed) standaloneGripFactory(system)?.count ?: 4 else 4
     val labels = options.associate { it.code to it.label }
     var behavior by remember(game.cartridgeId) { mutableStateOf(GripArcBehavior.MOMENTARY) }
     var showAdvanced by remember { mutableStateOf(false) }
@@ -73,7 +76,8 @@ fun GripArcEditorScreen(
             .joinToString("+").ifEmpty { "Assign" }
 
     fun save(updated: GripArcProfile) {
-        message = if (store.save(game, updated)) "Saved for this cartridge." else "Could not save controls."
+        message =
+            if (store.save(game, updated, assignmentMode)) "Saved for this cartridge." else "Could not save controls."
     }
     Column(
         modifier =
@@ -221,7 +225,7 @@ fun GripArcEditorScreen(
             text = { Text("This replaces the programmable assignments on this cartridge.") },
             confirmButton = {
                 TextButton(onClick = {
-                    val defaults = store.defaultFor(game)
+                    val defaults = store.defaultFor(game, profile.mode)
                     save(
                         profile.copy(
                             mappings = defaults.mappings,

@@ -3,7 +3,9 @@ package com.swordfish.lemuroid.app.shared.game.xbox360
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.Xbox360ContentIdentity
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -73,6 +75,39 @@ class Xbox360ContentTest {
         assertFalse(probe("synthetic-xbla", badVolume))
         val truncated = ByteArray(0x100).apply { "LIVE".toByteArray().copyInto(this) }
         assertFalse(probe("synthetic-xbla", truncated))
+    }
+
+    @Test fun fullLicenseArgumentRequiresAnArcadeStfsLicenseForTheActiveProfile() {
+        val bytes = ByteArray(0x3AD).apply { "LIVE".toByteArray().copyInto(this) }
+        val header = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN)
+        val xuid = "E000000000000001"
+        header.putLong(0x22C, xuid.toULong(16).toLong())
+        header.putInt(0x344, 0xD0000)
+        header.putInt(0x360, 0x58410001)
+        val file = File.createTempFile("arcade-license", ".bin")
+        try {
+            fun packageIdentity(): Xbox360ContentIdentity.PackageIdentity {
+                file.writeBytes(bytes)
+                return file.inputStream().channel.use {
+                    checkNotNull(Xbox360ContentIdentity.probe("extensionless-arcade", it).packageIdentity)
+                }
+            }
+
+            assertNull(packageIdentity().fullLicenseLaunchOption(xuid))
+            header.putInt(0x234, 1)
+            val arcade = packageIdentity()
+            assertEquals("58410001", arcade.titleId)
+            assertEquals("--license_mask=1", arcade.fullLicenseLaunchOption(xuid))
+            assertNull(arcade.fullLicenseLaunchOption("E000000000000002"))
+            header.putInt(0x344, 0x4000)
+            assertNull(packageIdentity().fullLicenseLaunchOption(xuid))
+            header.putInt(0x344, 0xD0000)
+            header.putInt(0x3A9, 1)
+            assertTrue(packageIdentity().svod)
+            assertNull(packageIdentity().fullLicenseLaunchOption(xuid))
+        } finally {
+            file.delete()
+        }
     }
 
     @Test fun zarFooterMustMatchPinnedVersionAndFileRanges() {

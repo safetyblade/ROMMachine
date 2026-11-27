@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -18,6 +19,23 @@ class GripArcProfileTest {
     private val l = KeyEvent.KEYCODE_BUTTON_L1
     private val r = KeyEvent.KEYCODE_BUTTON_R1
     private val allowed = setOf(a, b, l, r)
+
+    @Test fun wonderSwanProgrammableFacesFollowGuestModeWithoutChangingStoredAssignments() {
+        val profile = checkNotNull(standaloneGripFactory(com.swordfish.lemuroid.lib.library.SystemID.WS))
+        val horizontal = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.WS_LANDSCAPE))
+        val vertical = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.WS_PORTRAIT))
+        assertEquals(
+            GripArcAction.Hold(KeyEvent.KEYCODE_BUTTON_B),
+            StandaloneGripArcLayout.guestAction(profile, 1, horizontal),
+        )
+        assertEquals(
+            GripArcAction.Hold(KeyEvent.KEYCODE_BUTTON_R1),
+            StandaloneGripArcLayout.guestAction(profile, 1, vertical),
+        )
+        assertEquals(StandaloneGripArcLayout.actionLabels(horizontal), StandaloneGripArcLayout.actionLabels(vertical))
+        assertEquals("X cursor", horizontal.controls.single { it.key == "D" }.label)
+        assertEquals("X cursor", vertical.controls.single { it.key == "Cursor2" }.label)
+    }
 
     @Test
     fun typedAssignmentsRoundTripAndLegacyChordsRemainMomentary() {

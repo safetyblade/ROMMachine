@@ -105,7 +105,7 @@ class LibretroGameMenuTest {
         val game = request(SystemID.GBA).game
         val store = GripArcProfileStore(compose.activity)
         val settings = PivotArcSettingsStore(compose.activity)
-        val initial = store.defaultFor(game)
+        val initial = store.defaultFor(game, ArcControlMode.STANDARD_GRIPARC)
         val custom = initial.copy(mappings = initial.mappings.reversed(), dx = 12f)
         assertTrue(store.save(game, custom))
         assertTrue(store.useGlobalLayout(game))
@@ -113,6 +113,49 @@ class LibretroGameMenuTest {
         assertEquals(ArcControlMode.PIVOTARC, store.read(game).mode)
         assertEquals(custom.mappings, store.read(game).mappings)
         assertEquals(custom.dx, store.read(game).dx)
+    }
+
+    @Test fun switchingUntouchedLayoutsDoesNotSeedLegacyJointWithStandaloneAssignments() {
+        val game = request(SystemID.GBA).game
+        val store = GripArcProfileStore(compose.activity)
+        assertTrue(store.saveLayout(game, ArcControlMode.STANDARD_GRIPARC))
+        assertEquals(store.defaultFor(game, ArcControlMode.STANDARD_GRIPARC), store.read(game))
+        assertTrue(store.saveLayout(game, ArcControlMode.PIVOTARC_GRIPARC))
+        assertEquals(store.defaultFor(game, ArcControlMode.PIVOTARC_GRIPARC), store.read(game))
+        val custom =
+            store.read(
+                game,
+            ).copy(
+                mappings =
+                    listOf(
+                        listOf(android.view.KeyEvent.KEYCODE_BUTTON_A),
+                        emptyList(),
+                        emptyList(),
+                        emptyList(),
+                    ),
+            )
+        assertTrue(store.save(game, custom))
+        assertTrue(store.saveLayout(game, ArcControlMode.STANDARD_GRIPARC))
+        assertEquals(custom.mappings, store.read(game).mappings)
+    }
+
+    @Test fun nativeModeAssignmentsKeepTheirIndependentValuesAndLegacyFallback() {
+        val game = request(SystemID.PSP).game
+        val store = GripArcProfileStore(compose.activity)
+        val layout = ArcControlMode.STANDARD_GRIPARC
+        assertTrue(store.saveLayout(game, layout))
+        val legacy = store.read(game)
+        val dpad = legacy.copy(mappings = legacy.mappings.reversed())
+        val analogue = legacy.copy(mappings = List(4) { emptyList() })
+        assertTrue(store.save(game, dpad, "PSP:dpad"))
+        assertTrue(store.save(game, analogue, "PSP:analogue"))
+        assertEquals(dpad, store.read(game, "PSP:dpad"))
+        assertEquals(analogue, store.read(game, "PSP:analogue"))
+        assertEquals(legacy, store.read(game))
+        assertTrue(store.saveLayout(game, ArcControlMode.PIVOTARC_GRIPARC))
+        assertEquals(store.read(game), store.read(game, "PSP:dpad"))
+        assertTrue(store.saveLayout(game, layout))
+        assertEquals(dpad, store.read(game, "PSP:dpad"))
     }
 
     @Test fun wiiControlsRetainAllFourNativeChoicesAndCartridgeResult() {

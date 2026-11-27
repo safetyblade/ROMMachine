@@ -196,6 +196,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val tiltSimulatedControls = remember { derivedStateOf { tiltConfiguration.value.controlIds() } }
 
         val pivotSettings = rememberPivotArcSettings().value
+        val assignmentMode =
+            gripArcAssignmentMode(currentControllerConfig?.touchControllerID, pivotSettings.pspAnalogPrimary)
+        LaunchedEffect(viewModel, assignmentMode) {
+            viewModel.setGripArcAssignmentMode(assignmentMode)
+        }
         val gripManifest =
             remember(appContext) {
                 runCatching { GripArcManifest.load(appContext) }.getOrNull()
@@ -465,10 +470,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             var nativeProfileValidated = false
             val standaloneInventory =
                 currentControllerConfig?.touchControllerID?.takeIf(StandaloneGripArcLayout::supports)
-                    ?.takeIf { !selectedPivot && supportsStandaloneGripActions(viewModel.systemId) }
-                    ?.let(StandaloneGripArcLayout::inventoryFor)
-            val standaloneGripSelected =
-                effectiveArcMode == ArcControlMode.STANDARD_GRIPARC && standaloneInventory != null
+                    ?.takeIf {
+                        effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                            supportsStandaloneGripActions(viewModel.systemId)
+                    }
+                    ?.let { StandaloneGripArcLayout.inventoryFor(it) }
+            val standaloneGripSelected = standaloneInventory != null
             val gripResolution: GripArcFit? =
                 if (
                     effectiveArcMode.hasGrip &&
@@ -669,7 +676,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // GripArc is a visual touch accessory. In controller-driven
             // fullscreen, hide it along with Standard/PivotArc controls.
             val gripEnabled = gripPlacement != null && !fullscreenWithGamepad && !isLoading
-            DisposableEffect(viewModel, gripEnabled) {
+            DisposableEffect(viewModel, gripEnabled, effectiveArcMode, standaloneInventory?.controller) {
                 viewModel.setGripArcEnabled(gripEnabled)
                 onDispose { viewModel.setGripArcEnabled(false) }
             }
@@ -1008,7 +1015,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             if (combinedPlacement != null && touchControlsVisibleState.value && !isLoading) {
                 CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
-                    GripArcCombinedControls(combinedPlacement!!)
+                    GripArcCombinedControls(combinedPlacement!!, standalone = standaloneGrip != null)
                 }
             }
             if (effectiveArcMode == ArcControlMode.STANDARD && touchControlsVisibleState.value &&
@@ -1036,7 +1043,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 inputLabels =
                     standaloneInventory?.let(StandaloneGripArcLayout::actionLabels)
                         ?: GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
-                onPressed = viewModel::pressGripArcSlot,
+                onPressed = { slot, pressed, mapping ->
+                    viewModel.pressGripArcSlot(slot, pressed, mapping, standaloneGrip != null)
+                },
                 drawHousing = false,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
