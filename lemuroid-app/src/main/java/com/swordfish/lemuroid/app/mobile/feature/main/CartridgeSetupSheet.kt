@@ -33,6 +33,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControllerSettingsActivity
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.WiiPointerOptions
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineFallbackControls
 import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -169,8 +170,8 @@ private fun CartridgeControlChoices(
             Text(
                 "Choose Sideways Wii Remote, Classic, Remote + Nunchuk or GameCube Controller below. " +
                     "GameCube input only works in Wii software that supports a GameCube pad. " +
-                    "Touch the game picture to point with Wii Remote profiles; pointer settings also offer " +
-                    "the right stick. Press the right stick for Wii Home. Shake buttons emulate motion. " +
+                    "Wii pointer settings offer direct touchscreen pointing, an absolute IR stick or relative " +
+                    "IR stick movement. Shake buttons emulate motion. " +
                     "Phone motion sensors and physical Wii Remotes are unavailable.",
             )
         }
@@ -199,6 +200,7 @@ private fun CartridgeControlChoices(
         NativeEngineRegistry.engines(system).firstOrNull { it.id == preferred }?.config
             ?: system.systemCoreConfigs.firstOrNull()
     if (config == null) return
+    WiiPointerOptions(game, config)
     var controller by remember(game.fileUri) { mutableStateOf<String?>(null) }
     LaunchedEffect(game.fileUri, config) {
         controller = manager.getControllerConfigs(system.id, config, game)[0]?.name

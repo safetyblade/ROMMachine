@@ -194,7 +194,7 @@ class GameLoader(
                     }.getOrElse { throw GameLoaderException(GameLoaderError.Saves) }
 
                 val coreVariables =
-                    coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
+                    coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig, game)
                         .toTypedArray()
 
                 // Only explicitly imported private PC cartridges use the new guest directories.

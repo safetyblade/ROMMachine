@@ -180,7 +180,7 @@ object PivotArcPositionSolver {
     private const val HOLD_TOUCH_SIZE = 48f
     private const val HOLD_VISUAL_SIZE = 28f
     private const val UTILITY_GAP = 9f
-    private const val LOWER_TRIAL_OFFSET = 18f
+    private const val LOWER_TRIAL_OFFSET = 26f
     private val utilities = setOf("Start", "Select", "Menu", "Mic", "Lid")
     private val preferredScales = listOf(1.28f, 1.18f, 1.08f, 1.0f)
 

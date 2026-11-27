@@ -257,7 +257,9 @@ class GameViewModelRetroGameView(
 
         if (system.id == SystemID.WII) {
             wiiPointerMode.value =
-                currentState.gameData.coreVariables.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: "2"
+                currentState.gameData.coreVariables.firstOrNull {
+                    it.key == CoreVariablesManager.WII_POINTER
+                }?.value ?: "2"
         }
 
         reportGraphics = null
@@ -286,6 +288,10 @@ class GameViewModelRetroGameView(
 
         if (!system.hasTouchScreen) {
             result.disableTouchEvents()
+        } else if (system.id == SystemID.WII) {
+            // Touch mode uses GLRetroView's viewport-relative native pointer.
+            // Both stick modes own the right analogue axes, including relative movement in Dolphin.
+            result.setOnTouchListener { _, _ -> wiiPointerMode.value != "2" }
         }
 
         lifecycle.lifecycle.addObserver(result)
@@ -447,7 +453,7 @@ class GameViewModelRetroGameView(
     private suspend fun initializeCoreVariablesFlow() {
         try {
             waitRetroGameViewInitialized()
-            val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
+            val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig, launchedGame)
             val namespace =
                 com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(
                     system.id.dbname,
@@ -480,7 +486,9 @@ class GameViewModelRetroGameView(
             updateCoreVariables(CoreOptionRefresh.changed(desired, current))
             if (system.id == SystemID.WII) {
                 wiiPointerMode.value =
-                    desired.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: current["dolphin_ir_mode"] ?: "2"
+                    desired.firstOrNull {
+                        it.key == CoreVariablesManager.WII_POINTER
+                    }?.value ?: current[CoreVariablesManager.WII_POINTER] ?: "2"
             }
         } catch (e: Exception) {
             Timber.e(e)

@@ -78,6 +78,33 @@ class PivotArcSoloProfilesTest {
     }
 
     @Test
+    fun approvedSonyAndXboxFaceArcAndHoldsStayTogetherAtTheBottom() {
+        val profiles =
+            listOfNotNull(
+                PivotArcSoloProfiles.forNativeXbox(TouchControllerID.XBOX),
+                PivotArcSoloProfiles.forNativeXbox(TouchControllerID.XBOX360),
+                PivotArcSoloProfiles.forMode(SystemID.PLAYSTATION_2, TouchControllerID.PSX_DUALSHOCK),
+            )
+        assertEquals(3, profiles.size)
+        val device = ControlDeckDeviceFixture(360f, 780f)
+        for (profile in profiles) {
+            val result = PivotArcSoloSolver.resolve(profile, device.safe, device.viewport, false, 0f, 0f, false)
+            val bounds = (result as PivotArcResolution.Fits).placement.controls
+            val dpad = bounds.getValue("D")
+            val faceArc = listOf("Y", "X", "B", "A").map(bounds::getValue)
+            assertTrue(faceArc.zipWithNext().all { (upper, lower) -> upper.centerY < lower.centerY })
+            assertTrue(faceArc.all { it.centerX > dpad.centerX })
+            assertTrue(faceArc[1].centerY < dpad.centerY && dpad.centerY < faceArc[2].centerY)
+            assertEquals(device.safe.bottom, bounds.values.maxOf { it.bottom }, 0.01f)
+            for (key in listOf("Y", "X", "B", "A")) {
+                val face = bounds.getValue(key)
+                val hold = bounds.getValue("Hold$key")
+                assertTrue(kotlin.math.hypot(face.centerX - hold.centerX, face.centerY - hold.centerY) < 72f)
+            }
+        }
+    }
+
+    @Test
     fun wiiNunchukLayoutsShareVerifiedNativeKeysAndAdaptivePointer() {
         val pivot = PivotArcSoloProfiles.wiiNunchuk(pointerStick = true)
         val standard = PivotArcSoloProfiles.wiiNunchuk(pointerStick = true, fixedHolds = false)

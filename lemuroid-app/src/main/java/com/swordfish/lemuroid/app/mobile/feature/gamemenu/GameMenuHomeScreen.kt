@@ -18,6 +18,7 @@ import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.WiiPointerOptions
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
 import com.swordfish.lemuroid.app.shared.input.WiiControllerCompatibility
@@ -223,6 +224,7 @@ fun GameMenuControlsScreen(
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         WiiControllerPicker(gameMenuRequest, onResult)
+        WiiPointerOptions(gameMenuRequest.game, gameMenuRequest.coreConfig)
         physicalControllerOptions()
         controllerOptions()
         TiltControls(gameMenuRequest, onResult)
