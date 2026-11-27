@@ -695,16 +695,29 @@
       "id": "WII_U",
       "batch": "E",
       "family": "Specialist",
-      "design": "to_design",
-      "preset": "to_design",
+      "design": "review_candidate",
+      "preset": "candidate",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
+      "portrait": "review_candidate",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "gamepad",
+          "design": "review_candidate",
+          "runtime": "pending; actual screen state and pointer gating"
+        },
+        {
+          "id": "pro",
+          "design": "review_candidate",
+          "runtime": "pending; native controller selection"
+        }
+      ],
+      "note": "Shared Nintendo dual analogue upper-stick topology, four face Holds, native GamePad/Pro selection; TV/GamePad switch and touch gating, no assumed concurrent dual screens or gyro."
     },
     {
       "id": "DOS",
