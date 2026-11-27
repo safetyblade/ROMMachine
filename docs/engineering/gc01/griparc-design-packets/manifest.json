@@ -652,44 +652,44 @@
       "id": "WII",
       "batch": "E",
       "family": "Specialist",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
       "variants": [
         {
           "id": "sideways",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         },
         {
           "id": "classic",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         },
         {
           "id": "nunchuk_stick",
-          "design": "review_candidate",
-          "runtime": "pending; GA-D31C-R2 two-thumb move/aim/fire and actual pointer dispatch required"
+          "design": "owner_layout_locked",
+          "runtime": "pending; GA-D31C-R3 all layouts both orientations, IR stick/touch, real concurrent guest movement/aim/fire"
         },
         {
           "id": "nunchuk_touch",
-          "design": "review_candidate",
-          "runtime": "pending; GA-D31C-R2 two-thumb move/aim/fire and actual pointer dispatch required"
+          "design": "owner_layout_locked",
+          "runtime": "pending; GA-D31C-R3 all layouts both orientations, IR stick/touch, real concurrent guest movement/aim/fire"
         },
         {
           "id": "gamecube",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending"
         }
       ],
-      "note": "Wii variants pending owner approval; revised Nunchuk GA-D31C-R2 requires two-thumb simultaneous movement, IR aiming and configurable fire coupling in both orientations; four programmable seats; IR regression remains open."
+      "note": "Owner approved all Wii designs and GA-D31C-R3 shared Nunchuk Aim & Fire across Standard/PivotARC/GripARC; actual IR regression, shared dispatch and physical fit pending."
     },
     {
       "id": "WII_U",
