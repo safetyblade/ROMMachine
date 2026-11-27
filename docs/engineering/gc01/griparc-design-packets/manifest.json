@@ -464,6 +464,22 @@
       "id": "DREAMCAST",
       "batch": "D",
       "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and preset; trigger/guest mapping and measured fit pending."
+    },
+    {
+      "id": "GAMECUBE",
+      "batch": "D",
+      "family": "Modern consoles",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -474,22 +490,7 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Single analogue primary, independent D-pad, native Y/B/A/X diamond, L/R and adjacent Hold L/R, Hold A/B. Proportional trigger support conditional; owner review pending."
-    },
-    {
-      "id": "GAMECUBE",
-      "batch": "D",
-      "family": "Modern consoles",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Asymmetric action constellation, independent main/C stick and D-pad, L/R full, explicit L½/R½ and Z; Hold A/B/L/R. Corrected pinned Dolphin mapping; owner review pending."
     },
     {
       "id": "XBOX",
