@@ -496,22 +496,38 @@
       "id": "XBOX",
       "batch": "D",
       "family": "Modern consoles",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Shared offset-stick Xbox geometry based on Sony GripARC, native face labels and White/Black or LB/RB, four face Holds; owner review pending."
+      "note": "Owner approved both orientations and four face Holds; native host capabilities and measured fit pending."
     },
     {
       "id": "XBOX360",
       "batch": "D",
       "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and four face Holds; native host capabilities and measured fit pending."
+    },
+    {
+      "id": "FBNEO",
+      "batch": "E",
+      "family": "Specialist",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -522,37 +538,67 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Shared offset-stick Xbox geometry based on Sony GripARC, native face labels and White/Black or LB/RB, four face Holds; owner review pending."
-    },
-    {
-      "id": "FBNEO",
-      "batch": "E",
-      "family": "Specialist",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "review_candidate",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital3",
+          "design": "review_candidate",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital4",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Arcade stick-style digital directions, numbered action rows; D4/D6 registered, D2/D3 conditional; owner review pending."
     },
     {
       "id": "MAME2003PLUS",
       "batch": "E",
       "family": "Specialist",
-      "design": "to_design",
-      "preset": "to_design",
+      "design": "review_candidate",
+      "preset": "candidate",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
+      "portrait": "review_candidate",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "review_candidate",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital3",
+          "design": "review_candidate",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital4",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Arcade stick-style digital directions, numbered action rows; D4/D6 registered, D2/D3 conditional; owner review pending."
     },
     {
       "id": "ATARI2600",
