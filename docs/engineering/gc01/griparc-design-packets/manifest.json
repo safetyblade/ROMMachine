@@ -676,12 +676,12 @@
         {
           "id": "nunchuk_stick",
           "design": "review_candidate",
-          "runtime": "pending"
+          "runtime": "pending; GA-D31C-R2 two-thumb move/aim/fire and actual pointer dispatch required"
         },
         {
           "id": "nunchuk_touch",
           "design": "review_candidate",
-          "runtime": "pending"
+          "runtime": "pending; GA-D31C-R2 two-thumb move/aim/fire and actual pointer dispatch required"
         },
         {
           "id": "gamecube",
@@ -689,7 +689,7 @@
           "runtime": "pending"
         }
       ],
-      "note": "Four Wii controller families, Nunchuk stick/touch pointer variants; genuine guest utilities, no simulated motion; GC inheritance. Owner review pending."
+      "note": "Wii variants pending owner approval; revised Nunchuk GA-D31C-R2 requires two-thumb simultaneous movement, IR aiming and configurable fire coupling in both orientations; four programmable seats; IR regression remains open."
     },
     {
       "id": "WII_U",
