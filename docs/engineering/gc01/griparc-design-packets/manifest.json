@@ -388,6 +388,22 @@
       "id": "N64",
       "batch": "C",
       "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved N64 both orientations and preset; measured fit, discrete C dispatch and runtime pending."
+    },
+    {
+      "id": "PSX",
+      "batch": "D",
+      "family": "Modern consoles",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -398,22 +414,19 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Analogue primary, independent D-pad and discrete C directions, Z beside movement, Hold A/B/Z and L+R; owner review pending."
-    },
-    {
-      "id": "PSX",
-      "batch": "D",
-      "family": "Modern consoles",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "digital",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "dualshock",
+          "design": "review_candidate",
+          "runtime": "pending; L3/R3 conditional guest support"
+        }
+      ],
+      "note": "Sony Digital / DualShock shared face and shoulder layout, four programmable slots; owner review pending."
     },
     {
       "id": "PLAYSTATION_2",
