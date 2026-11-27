@@ -695,6 +695,34 @@
       "id": "WII_U",
       "batch": "E",
       "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "gamepad",
+          "design": "owner_layout_locked",
+          "runtime": "pending; actual screen state and pointer gating"
+        },
+        {
+          "id": "pro",
+          "design": "owner_layout_locked",
+          "runtime": "pending; native controller selection"
+        }
+      ],
+      "note": "Owner approved GamePad and Pro, both orientations; native device/screen state, touch gating and measured fit pending."
+    },
+    {
+      "id": "DOS",
+      "batch": "E",
+      "family": "Specialist",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -709,30 +737,20 @@
         {
           "id": "gamepad",
           "design": "review_candidate",
-          "runtime": "pending; actual screen state and pointer gating"
+          "runtime": "pending; existing DOS_AUTO gamepad and keyboard access"
         },
         {
-          "id": "pro",
+          "id": "keyboard_action",
           "design": "review_candidate",
-          "runtime": "pending; native controller selection"
+          "runtime": "conditional; verify actual guest keyboard bridge and per-game binding"
+        },
+        {
+          "id": "mouse",
+          "design": "review_candidate",
+          "runtime": "conditional; verify actual guest pointer and mouse button bridge"
         }
       ],
-      "note": "Shared Nintendo dual analogue upper-stick topology, four face Holds, native GamePad/Pro selection; TV/GamePad switch and touch gating, no assumed concurrent dual screens or gyro."
-    },
-    {
-      "id": "DOS",
-      "batch": "E",
-      "family": "Specialist",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Final DOS gamepad/keyboard-action/mouse layouts. Keyboard and mouse actions require real guest dispatch, no universal game mappings."
     }
   ],
   "designGate": {
