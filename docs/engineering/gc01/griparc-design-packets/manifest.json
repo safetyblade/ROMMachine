@@ -404,6 +404,34 @@
       "id": "PSX",
       "batch": "D",
       "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "dualshock",
+          "design": "owner_layout_locked",
+          "runtime": "pending; L3/R3 conditional guest support"
+        }
+      ],
+      "note": "Owner approved Digital and DualShock both orientations and preset; guest clicks and measured fit pending."
+    },
+    {
+      "id": "PLAYSTATION_2",
+      "batch": "D",
+      "family": "Modern consoles",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -414,49 +442,23 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "variants": [
-        {
-          "id": "digital",
-          "design": "review_candidate",
-          "runtime": "pending"
-        },
-        {
-          "id": "dualshock",
-          "design": "review_candidate",
-          "runtime": "pending; L3/R3 conditional guest support"
-        }
-      ],
-      "note": "Sony Digital / DualShock shared face and shoulder layout, four programmable slots; owner review pending."
-    },
-    {
-      "id": "PLAYSTATION_2",
-      "batch": "D",
-      "family": "Modern consoles",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "note": "Exact PSX DualShock geometry inheritance; independent native engine mapping and pressure/trigger limitations; owner review pending."
     },
     {
       "id": "PLAYSTATION_3",
       "batch": "D",
       "family": "Modern consoles",
-      "design": "to_design",
-      "preset": "to_design",
+      "design": "review_candidate",
+      "preset": "candidate",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
+      "portrait": "review_candidate",
+      "landscape": "review_candidate",
       "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "landscapeInput": "pending",
+      "note": "Exact PSX DualShock geometry inheritance; independent native engine mapping and pressure/trigger limitations; owner review pending."
     },
     {
       "id": "DREAMCAST",
