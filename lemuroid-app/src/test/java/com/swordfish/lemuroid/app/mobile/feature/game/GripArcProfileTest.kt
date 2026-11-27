@@ -19,6 +19,32 @@ class GripArcProfileTest {
     private val r = KeyEvent.KEYCODE_BUTTON_R1
     private val allowed = setOf(a, b, l, r)
 
+    @Test
+    fun typedAssignmentsRoundTripAndLegacyChordsRemainMomentary() {
+        val original =
+            GripArcProfile(
+                mappings = listOf(listOf(a), listOf(b), listOf(l, r), emptyList()),
+                behaviors =
+                    listOf(
+                        GripArcBehavior.HOLD,
+                        GripArcBehavior.TURBO,
+                        GripArcBehavior.MOMENTARY,
+                        GripArcBehavior.MENU,
+                    ),
+                turboRate = 14,
+            )
+        val allowed = setOf(a, b, l, r)
+        val serialized = GripArcProfileStore.encode(original)
+        val restored = GripArcProfileStore.decode(serialized, GripArcProfile(), allowed)
+        assertEquals(GripArcAction.Hold(a), restored.actionFor(1))
+        assertEquals(GripArcAction.Turbo(b, 14), restored.actionFor(2))
+        assertEquals(GripArcAction.OpenMenu, restored.actionFor(4))
+        val legacy = org.json.JSONObject(serialized).apply { remove("behaviors") }
+        val migrated = GripArcProfileStore.decode(legacy.toString(), GripArcProfile(), allowed)
+        assertEquals(GripArcAction.Native(setOf(a)), migrated.actionFor(1))
+        assertEquals(GripArcAction.Native(setOf(l, r)), migrated.actionFor(3))
+    }
+
     @Test fun independentCartridgeModesAreExclusive() {
         assertEquals(4, ArcControlMode.values().size)
         assertFalse(ArcControlMode.STANDARD.hasGrip)
@@ -51,7 +77,7 @@ class GripArcProfileTest {
         )
 
         val ngp = GripArcInputCatalog.forSystem(SystemID.NGP)
-        assertEquals(listOf("B", "A", "Start"), ngp.map { it.label })
+        assertEquals(listOf("B", "A", "Option"), ngp.map { it.label })
         assertEquals(listOf(a, b, KeyEvent.KEYCODE_BUTTON_START), ngp.map { it.code })
         // NGC is Neo Geo Pocket Color, not the GAMECUBE console.
         assertEquals(ngp, GripArcInputCatalog.forSystem(SystemID.NGC))

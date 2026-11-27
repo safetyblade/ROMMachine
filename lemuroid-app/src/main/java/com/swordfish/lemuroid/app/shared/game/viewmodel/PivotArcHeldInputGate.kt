@@ -1,8 +1,13 @@
 package com.swordfish.lemuroid.app.shared.game.viewmodel
 
 import android.view.KeyEvent
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAction
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Shared source-ownership arbiter for PivotArc holds and GripArc momentary
@@ -14,6 +19,10 @@ class PivotArcHeldInputGate(
 ) {
     private val sources = mutableMapOf<Int, MutableSet<String>>()
     private val pressedGripSlots = mutableMapOf<Int, Set<Int>>()
+    private val turboJobs = mutableMapOf<Int, Job>()
+    private val mutableGripLatches = MutableStateFlow<Set<Int>>(emptySet())
+    val gripLatches: StateFlow<Set<Int>> = mutableGripLatches
+
     private val mutableHolds = MutableStateFlow<Set<Int>>(emptySet())
     val holds: StateFlow<Set<Int>> = mutableHolds
 
@@ -115,12 +124,59 @@ class PivotArcHeldInputGate(
     }
 
     @Synchronized
+    fun applyGripAction(
+        slot: Int,
+        pressed: Boolean,
+        action: GripArcAction,
+        scope: CoroutineScope,
+    ) {
+        if (slot !in 1..4) return
+        if (!gripEnabled) return
+        when (action) {
+            GripArcAction.OpenMenu -> return
+            is GripArcAction.Native -> setGripSlot(slot, pressed, action.keys)
+            is GripArcAction.Hold ->
+                if (pressed) {
+                    val held = slot in mutableGripLatches.value
+                    setGripSlot(slot, !held, setOf(action.key))
+                    mutableGripLatches.value =
+                        if (held) mutableGripLatches.value - slot else mutableGripLatches.value + slot
+                }
+            is GripArcAction.Turbo -> {
+                val wasRunning = turboJobs.remove(slot)?.also { it.cancel() } != null
+                if (wasRunning || !pressed) setGripSlot(slot, false)
+                if (pressed) {
+                    val key = setOf(action.key)
+                    val delayMillis = 500L / action.rate.coerceIn(3, 15)
+                    setGripSlot(slot, true, key)
+                    turboJobs[slot] =
+                        scope.launch {
+                            var down = true
+                            while (true) {
+                                delay(delayMillis)
+                                synchronized(this@PivotArcHeldInputGate) {
+                                    if (turboJobs[slot] != coroutineContext[Job]) return@launch
+                                    down = !down
+                                    setGripSlot(slot, down, key)
+                                }
+                            }
+                        }
+                }
+            }
+        }
+    }
+
+    @Synchronized
     fun releaseGripSlots() {
+        turboJobs.values.forEach(Job::cancel)
+        turboJobs.clear()
+        mutableGripLatches.value = emptySet()
         pressedGripSlots.keys.toList().forEach { setGripSlot(it, false) }
     }
 
     @Synchronized
     fun clear() {
+        releaseGripSlots()
         sources.filterValues { it.isNotEmpty() }.keys.toList().forEach { key ->
             send(KeyEvent.ACTION_UP, key)
         }

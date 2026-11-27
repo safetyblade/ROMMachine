@@ -43,6 +43,11 @@ import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckHardwareSeats
 import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckLayoutMode
 import com.swordfish.lemuroid.app.mobile.feature.game.CartdeckViewportPolicy
 import com.swordfish.lemuroid.app.mobile.feature.game.ControlsOrientation
+import com.swordfish.lemuroid.app.mobile.feature.game.GbaGripArcFullHousing
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAccessory
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcCombinedControls
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcInputCatalog
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcBounds
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcControlGroup
@@ -54,9 +59,13 @@ import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcResolution
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSettingsStore
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloSolver
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLandscapeMark
+import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
 import com.swordfish.lemuroid.app.mobile.feature.game.pivotArcHardwareSeatKey
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberPivotArcSettings
+import com.swordfish.lemuroid.app.mobile.feature.game.standaloneGripFactory
+import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckEdition
 import com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions
@@ -219,6 +228,8 @@ internal fun UniversalControls(
                         landscape = previewLandscape,
                         supportedPivot = supportedPivot,
                         pointerMode = pointerMode,
+                        gripProfile = game?.let { profile },
+                        allowGripSelection = game != null,
                         onApply = {
                             if (game != null) {
                                 val saved = store.saveLayout(game, mode)
@@ -293,6 +304,8 @@ private fun ControllerLayoutCard(
     landscape: Boolean,
     supportedPivot: Boolean,
     pointerMode: String,
+    gripProfile: GripArcProfile?,
+    allowGripSelection: Boolean,
     onApply: () -> Unit,
 ) {
     val (title, description) =
@@ -302,18 +315,26 @@ private fun ControllerLayoutCard(
             ArcControlMode.STANDARD_GRIPARC -> "GripARC" to "Power-user controls"
             ArcControlMode.PIVOTARC_GRIPARC -> "PivotARC + GripARC" to "One-handed play with extra functions"
         }
-    val available = !mode.hasGrip && controller != null && (!mode.hasPivot || (supportedPivot && !landscape))
+    val availableGrip =
+        mode == ArcControlMode.STANDARD_GRIPARC && supportsStandaloneGripActions(system) &&
+            StandaloneGripArcLayout.supports(controller)
+    val available =
+        if (mode.hasGrip) {
+            availableGrip && allowGripSelection
+        } else {
+            controller != null && (!mode.hasPivot || (supportedPivot && !landscape))
+        }
     Card(modifier) {
         Column(Modifier.padding(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(description)
             if (selected && inheritsLayout) Text("Selected via global default")
             when {
-                mode.hasGrip -> Text("Awaiting an approved hardware layout for this controller.")
+                mode.hasGrip && !availableGrip -> Text("This hardware configuration is not yet implemented.")
                 controller == null -> Text("Touch preview unavailable for this engine.")
                 mode.hasPivot && !supportedPivot -> Text("PivotARC is unavailable for this controller.")
                 mode.hasPivot && landscape -> Text("PivotARC uses Standard controls in landscape.")
-                else -> ControlsLayoutPreview(system, controller, mode, landscape, pointerMode)
+                else -> ControlsLayoutPreview(system, controller, mode, landscape, pointerMode, gripProfile)
             }
             if (available || selected) {
                 TextButton(enabled = available && (!selected || inheritsLayout), onClick = onApply) {
@@ -378,12 +399,13 @@ private fun WiiPointerControls(
 }
 
 @Composable
-private fun ControlsLayoutPreview(
+internal fun ControlsLayoutPreview(
     system: SystemID,
     controller: TouchControllerID,
     mode: ArcControlMode,
     landscape: Boolean,
     pointerMode: String,
+    gripProfile: GripArcProfile?,
 ) {
     val context = LocalContext.current
     val settings by rememberPivotArcSettings()
@@ -392,7 +414,7 @@ private fun ControlsLayoutPreview(
     val root = PivotArcBounds(0f, 0f, width.toFloat(), height.toFloat())
     val viewport =
         if (landscape) {
-            PivotArcBounds(180f, 15f, 560f, 300f)
+            PivotArcBounds(180f, 15f, 560f, if (mode.hasGrip) 290f else 300f)
         } else if (CartdeckViewportPolicy.portraitMode(system) == CartdeckViewportPolicy.PortraitMode.DUAL_SCREEN) {
             PivotArcBounds(18f, 18f, 375f, 410f)
         } else {
@@ -448,6 +470,21 @@ private fun ControlsLayoutPreview(
     }
     val native = remember(controller) { TouchControllerID.getConfig(controller) }
     val tokens = context.resolveCartdeckEdition(CartdeckEditionPreset.ORIGINAL)
+    val grip =
+        if (mode == ArcControlMode.STANDARD_GRIPARC && supportsStandaloneGripActions(system) &&
+            StandaloneGripArcLayout.supports(controller)
+        ) {
+            val safe = if (landscape) PivotArcBounds(8f, 8f, 732f, 352f) else PivotArcBounds(8f, 32f, 385f, 820f)
+            StandaloneGripArcLayout.inventoryFor(controller)?.let {
+                StandaloneGripArcLayout.resolveStandalone(it, safe, viewport, landscape)
+            }
+        } else {
+            null
+        }
+    if (mode == ArcControlMode.STANDARD_GRIPARC && grip == null) {
+        Text("GripARC cannot fit this reference handset.")
+        return
+    }
     val touches = placed?.controls.orEmpty()
     Layout(
         modifier = Modifier.fillMaxWidth().height(if (landscape) 132.dp else 216.dp).clearAndSetSemantics {},
@@ -463,6 +500,13 @@ private fun ControlsLayoutPreview(
                         touches.values.map { it.asRect() },
                         mountedPivotDeck = contoured,
                     )
+                    if (grip != null) {
+                        if (landscape) {
+                            StandaloneGripArcLandscapeMark(grip.dock.housing, tokens)
+                        } else {
+                            GbaGripArcFullHousing(grip.dock.housing.asRect(), tokens)
+                        }
+                    }
                     if (placed != null) {
                         CartdeckHardwareSeats(
                             rootBounds = root.asRect(),
@@ -493,7 +537,9 @@ private fun ControlsLayoutPreview(
                             simulatedState = remember { mutableStateOf(InputState()) },
                             simulatedControlIds = remember { mutableStateOf(emptySet()) },
                         ) {
-                            if (placed == null) {
+                            if (grip != null) {
+                                GripArcCombinedControls(grip)
+                            } else if (placed == null) {
                                 val position =
                                     if (landscape) {
                                         Modifier.align(Alignment.CenterStart)
@@ -520,6 +566,19 @@ private fun ControlsLayoutPreview(
                                 )
                             }
                         }
+                    }
+                    if (grip != null) {
+                        GripArcAccessory(
+                            grip.dock,
+                            gripProfile ?: standaloneGripFactory(system) ?: GripArcProfile(),
+                            tokens,
+                            fullscreenWithGamepad = false,
+                            isLoading = false,
+                            onPressed = { _, _, _ -> },
+                            drawHousing = false,
+                            inputLabels = GripArcInputCatalog.forSystem(system).associate { it.code to it.label },
+                            typedActions = true,
+                        )
                     }
                 }
             }

@@ -109,6 +109,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private var loadedCoreSha256 = "UNVERIFIED"
     private var report = "WIIU_PREPARING; gameplay=UNVERIFIED"
     private val reportCheckpoint = NativeReportCheckpoint()
+    private var gamePadPointerId: Int? = null
     private val touch = XboxPadState()
     private val pivotGate =
         PivotArcHeldInputGate { action, code ->
@@ -237,13 +238,38 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         proController = getSharedPreferences("wiiu-runtime", MODE_PRIVATE).getBoolean("pro.${game?.cartridgeId}", false)
         renderSurface = SurfaceView(this).also { it.holder.addCallback(this) }
         renderSurface.setOnTouchListener { view, event ->
-            if (!loaded || !started || menuOpen || view.width <= 0 || view.height <= 0) return@setOnTouchListener false
-            val pointer = WiiuViewport.pointer(event.x, event.y, view.width, view.height, frameAspect)
-            nativePointer(
-                pointer.x,
-                pointer.y,
-                pointer.inside && event.actionMasked in setOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE),
-            )
+            if (!loaded || !started || !hostForeground || menuOpen || leaving || proController) {
+                return@setOnTouchListener false
+            }
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    clearGamePadPointer()
+                    val point = WiiuViewport.pointer(event.x, event.y, view.width, view.height, frameAspect)
+                    if (!point.inside) return@setOnTouchListener false
+                    gamePadPointerId = event.getPointerId(0)
+                    nativePointer(point.x, point.y, true)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val index = gamePadPointerId?.let(event::findPointerIndex) ?: -1
+                    if (index < 0) {
+                        clearGamePadPointer()
+                    } else {
+                        val point =
+                            WiiuViewport.pointer(
+                                event.getX(index),
+                                event.getY(index),
+                                view.width,
+                                view.height,
+                                frameAspect,
+                            )
+                        if (point.inside) nativePointer(point.x, point.y, true) else clearGamePadPointer()
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> clearGamePadPointer()
+                MotionEvent.ACTION_POINTER_UP -> {
+                    if (gamePadPointerId == event.getPointerId(event.actionIndex)) clearGamePadPointer()
+                }
+            }
             if (event.actionMasked == MotionEvent.ACTION_UP) view.performClick()
             true
         }
@@ -329,10 +355,14 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                             ) {
                                 GameMenuLink(
                                     "Screen: switch TV / GamePad on Resume",
-                                ) { if (loaded) nativeToggleScreen() }
+                                ) {
+                                    clearGamePadPointer()
+                                    if (loaded) nativeToggleScreen()
+                                }
                                 GameMenuLink(
                                     "Controller: ${if (proController) "Pro Controller" else "GamePad"} (next frame)",
                                 ) {
+                                    clearGamePadPointer()
                                     proController = !proController
                                     getSharedPreferences(
                                         "wiiu-runtime",
@@ -565,10 +595,13 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
         hardware.clear()
         grip.clear()
         gripSlots.clear()
-        if (loaded) {
-            nativePointer(0, 0, false)
-            sendInput()
-        }
+        clearGamePadPointer()
+        if (loaded) sendInput()
+    }
+
+    private fun clearGamePadPointer() {
+        gamePadPointerId = null
+        if (loaded) nativePointer(0, 0, false)
     }
 
     private fun syncPause() {

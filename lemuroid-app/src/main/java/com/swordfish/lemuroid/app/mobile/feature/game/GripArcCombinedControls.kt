@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
 import com.swordfish.touchinput.radial.settings.NativeControlIcon
 import com.swordfish.touchinput.radial.settings.NativeControlKind
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.ui.CartdeckButtonShape
 import com.swordfish.touchinput.radial.ui.LemuroidButtonForeground
 import com.swordfish.touchinput.radial.ui.LemuroidControlBackground
@@ -44,7 +45,14 @@ internal fun PadKitScope.GripArcCombinedControls(placement: GripArcCombinedPlace
                         foreground = { state ->
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Box(Modifier.size(visual.w.dp, visual.h.dp)) {
-                                    LemuroidCrossForeground(allowDiagonals = true, directionState = state)
+                                    if (placement.native.controller == TouchControllerID.NGP) {
+                                        CartdeckDigitalClickStick(
+                                            state.value,
+                                            LocalLemuroidPadTheme.current.palette.accent,
+                                        )
+                                    } else {
+                                        LemuroidCrossForeground(allowDiagonals = true, directionState = state)
+                                    }
                                 }
                             }
                         },

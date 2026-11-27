@@ -56,6 +56,8 @@ internal fun GripArcAccessory(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     inputLabels: Map<Int, String> = emptyMap(),
+    typedActions: Boolean = false,
+    latchedSlots: Set<Int> = emptySet(),
 ) {
     if (placement != null && !fullscreenWithGamepad && !isLoading) {
         GripArcControlGroup(
@@ -68,6 +70,8 @@ internal fun GripArcAccessory(
             highContrast,
             feedbackStrength,
             inputLabels,
+            typedActions,
+            latchedSlots,
         )
     }
 }
@@ -88,6 +92,8 @@ internal fun GripArcControlGroup(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     inputLabels: Map<Int, String> = emptyMap(),
+    typedActions: Boolean = false,
+    latchedSlots: Set<Int> = emptySet(),
 ) {
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
@@ -97,7 +103,12 @@ internal fun GripArcControlGroup(
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
             val mapping = profile.mappings.getOrNull(slot - 1).orEmpty().toSet()
-            val label = mapping.mapNotNull(inputLabels::get).joinToString("+").ifEmpty { "—" }
+            val label =
+                if (typedActions) {
+                    profile.labelFor(slot, inputLabels).ifEmpty { "—" }
+                } else {
+                    mapping.mapNotNull(inputLabels::get).joinToString("+").ifEmpty { "—" }
+                }
             val interaction = remember(slot) { MutableInteractionSource() }
             var pressed by remember(slot) { mutableStateOf(false) }
 
@@ -128,7 +139,7 @@ internal fun GripArcControlGroup(
                             interactionSource = interaction,
                             indication = null,
                             role = Role.Button,
-                            onClickLabel = if (mapping.isEmpty()) "Unassigned button" else "Press $label",
+                            onClickLabel = if (label == "—") "Unassigned button" else "Press $label",
                         ) { },
                 contentAlignment = Alignment.Center,
             ) {
@@ -139,7 +150,7 @@ internal fun GripArcControlGroup(
                         },
                     label = label,
                     tokens = tokens,
-                    pressed = pressed,
+                    pressed = pressed || slot in latchedSlots,
                 )
             }
         }

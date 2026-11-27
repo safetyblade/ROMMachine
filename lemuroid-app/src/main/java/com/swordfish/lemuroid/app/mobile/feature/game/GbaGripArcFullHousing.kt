@@ -118,3 +118,20 @@ internal fun GbaGripArcFullHousing(
         )
     }
 }
+
+@Composable
+internal fun StandaloneGripArcLandscapeMark(
+    panel: PivotArcBounds,
+    tokens: CartdeckEditionTokens,
+) {
+    Text(
+        text = "GripARC",
+        color = tokens.accent,
+        fontSize = 11.sp,
+        fontStyle = FontStyle.Italic,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.End,
+        maxLines = 1,
+        modifier = Modifier.offset((panel.right - 96f).dp, (panel.bottom - 17f).dp).width(88.dp),
+    )
+}

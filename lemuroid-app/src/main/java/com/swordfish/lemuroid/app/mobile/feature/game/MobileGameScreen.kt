@@ -463,13 +463,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val measuredWiiStandard = standardWiiPlacement.takeIf { pivotPlacement == null }
             var combinedPlacement: GripArcCombinedPlacement? = null
             var nativeProfileValidated = false
+            val standaloneInventory =
+                currentControllerConfig?.touchControllerID?.takeIf(StandaloneGripArcLayout::supports)
+                    ?.takeIf { !selectedPivot && supportsStandaloneGripActions(viewModel.systemId) }
+                    ?.let(StandaloneGripArcLayout::inventoryFor)
             val gripResolution: GripArcFit? =
                 if (
                     effectiveArcMode.hasGrip &&
                     fullPos != null &&
                     viewPos != null
                 ) {
-                    if (selectedPivot && touchControlsVisibleState.value) {
+                    if (standaloneInventory != null && !touchControlsVisibleState.value) {
+                        null
+                    } else if (selectedPivot && touchControlsVisibleState.value) {
                         jointPlacement?.let { GripArcFit.Fits(it.dock) }
                             ?: GripArcFit.Unavailable(
                                 (compositeResolution as? CompositeDeckResolution.Unavailable)?.reason
@@ -544,30 +550,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 arcProfile.dx,
                                 arcProfile.dy,
                             )
+                        } else if (standaloneInventory != null) {
+                            nativeProfileValidated = true
+                            combinedPlacement =
+                                StandaloneGripArcLayout.resolveStandalone(
+                                    standaloneInventory, safeBounds, viewportBounds, isLandscape,
+                                )
+                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
+                                ?: GripArcFit.Unavailable("GripARC needs more room for every seat.")
                         } else if (!selectedPivot && nativeInventory == null) {
                             GripArcFit.Unavailable(
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
                                     "Standard remains available; GripArc settings are preserved.",
                             )
-                        } else if (!selectedPivot && viewModel.systemId == SystemID.GBA && !isLandscape) {
-                            // Full-piece GBA GripArc owns its complete native constellation.
-                            // Do not redistribute Standard measurements or render the old
-                            // L-dock; Joint and the approved solo PivotArc stay unchanged.
-                            nativeProfileValidated = true
-                            val gbaNative = nativeInventory!!
-                            combinedPlacement =
-                                GbaGripArcLayout.resolve(
-                                    gbaNative,
-                                    gbaNative.inputIds,
-                                    safeBounds,
-                                    viewportBounds,
-                                    effectiveArcSide,
-                                )
-                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
-                                ?: GripArcFit.Unavailable(
-                                    "The complete GBA GripArc controller cannot fit every native " +
-                                        "and programmable button safely on this display.",
-                                )
                         } else if (!selectedPivot) {
                             val liveIds = nativeInputInventory.values.flatten().toSet()
                             val liveBounds = individualInputs.toMap()
@@ -752,7 +747,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     hardwareBorder && !isLandscape && !selectedPivot &&
                     touchControlsVisibleState.value && !fullscreenWithGamepad && !isLoading &&
                     effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
-                    viewModel.systemId == SystemID.GBA &&
+                    standaloneInventory != null &&
                     gripPlacement != null && fullPos != null && viewPos != null
                 ) {
                     GbaGripArcFullBodyGeometry.resolve(
@@ -772,6 +767,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 }
             if (gbaFullGripPanel != null) {
                 GbaGripArcFullHousing(gbaFullGripPanel, shellTokens)
+            } else if (hardwareBorder && isLandscape && standaloneInventory != null && combinedPlacement != null) {
+                StandaloneGripArcLandscapeMark(combinedPlacement!!.dock.housing, shellTokens)
             }
             if (
                 touchControlsVisibleState.value &&
@@ -816,10 +813,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 hardwareBorder && jointPlacement == null && gripPlacement != null &&
                 !fullscreenWithGamepad && !isLoading
             ) {
-                if (gbaFullGripPanel == null) {
+                if (gbaFullGripPanel == null && (standaloneInventory == null || combinedPlacement == null)) {
                     combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
                 }
-                if (gbaFullGripPanel == null) {
+                if (gbaFullGripPanel == null && (standaloneInventory == null || combinedPlacement == null)) {
                     GripArcHousing(
                         gripPlacement,
                         shellTokens,
@@ -1026,12 +1023,14 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 )
             }
             GripArcAccessory(
-                inputLabels = GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
                 placement = gripPlacement,
                 profile = arcProfile,
                 tokens = shellTokens,
                 fullscreenWithGamepad = fullscreenWithGamepad,
                 isLoading = isLoading,
+                typedActions = standaloneInventory != null,
+                latchedSlots = viewModel.gripArcLatches().collectAsState().value,
+                inputLabels = GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
                 onPressed = viewModel::pressGripArcSlot,
                 drawHousing = false,
                 lighting = resolved.lighting,

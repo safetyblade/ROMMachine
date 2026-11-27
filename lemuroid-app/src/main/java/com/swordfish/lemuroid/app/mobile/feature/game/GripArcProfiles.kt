@@ -43,9 +43,10 @@ object GripArcInputCatalog {
 
     fun forSystem(system: SystemID?): List<GripArcInput> =
         when (system) {
-            SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.PC_ENGINE ->
+            SystemID.GB, SystemID.GBC, SystemID.NES ->
                 listOf(a, b, start, select)
-            SystemID.SMS -> listOf(a, b, start)
+            SystemID.PC_ENGINE -> listOf(a.copy(label = "II"), b.copy(label = "I"), start.copy(label = "Run"), select)
+            SystemID.SMS -> listOf(a.copy(label = "2"), b.copy(label = "1"), start.copy(label = "Pause"))
             SystemID.GBA -> listOf(a, b, l, r, start, select)
             // Labels follow the existing PadKit touch layouts, not guessed console ABXY.
             // Game Gear uses Button 2 on Android A and Button 1 on Android B.
@@ -55,7 +56,7 @@ object GripArcInputCatalog {
                 listOf(a, b, l.copy(label = "Option 1"), r.copy(label = "Option 2"), start.copy(label = "Pause"))
             // NGC is Neo Geo Pocket Color (not Nintendo GameCube); both use the NGP PadKit layout.
             // PadKit shows B on Android A and A on Android B. Preserve the existing guest key codes.
-            SystemID.NGP, SystemID.NGC -> listOf(a.copy(label = "B"), b.copy(label = "A"), start)
+            SystemID.NGP, SystemID.NGC -> listOf(a.copy(label = "B"), b.copy(label = "A"), start.copy(label = "Option"))
             SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS ->
                 listOf(a, b, x, y, l, r, start, select)
             SystemID.PSP ->
@@ -114,6 +115,19 @@ object GripArcInputCatalog {
         forSystem(SystemID.values().firstOrNull { it.dbname == game.systemId })
 }
 
+/** The legacy integer lists are retained as the native guest identities for all four slots. */
+enum class GripArcBehavior { MOMENTARY, HOLD, TURBO, MENU }
+
+sealed interface GripArcAction {
+    data object OpenMenu : GripArcAction
+
+    data class Native(val keys: Set<Int>) : GripArcAction
+
+    data class Hold(val key: Int) : GripArcAction
+
+    data class Turbo(val key: Int, val rate: Int = 10) : GripArcAction
+}
+
 /** All four slot mappings persist, even if only one button is currently visible. */
 data class GripArcProfile(
     val mode: ArcControlMode = ArcControlMode.STANDARD,
@@ -122,7 +136,33 @@ data class GripArcProfile(
     val mappings: List<List<Int>> = List(4) { emptyList() },
     val dx: Float = 0f,
     val dy: Float = 0f,
+    val behaviors: List<GripArcBehavior> = List(4) { GripArcBehavior.MOMENTARY },
+    val turboRate: Int = 10,
 ) {
+    fun actionFor(slot: Int): GripArcAction {
+        val keys = mappings.getOrNull(slot - 1).orEmpty()
+        val behavior = behaviors.getOrElse(slot - 1) { GripArcBehavior.MOMENTARY }
+        if (behavior == GripArcBehavior.MENU) return GripArcAction.OpenMenu
+        val key = keys.singleOrNull() ?: return GripArcAction.Native(keys.toSet())
+        return when (behavior) {
+            GripArcBehavior.MOMENTARY -> GripArcAction.Native(setOf(key))
+            GripArcBehavior.HOLD -> GripArcAction.Hold(key)
+            GripArcBehavior.TURBO -> GripArcAction.Turbo(key, turboRate.coerceIn(3, 15))
+            GripArcBehavior.MENU -> GripArcAction.OpenMenu
+        }
+    }
+
+    fun labelFor(
+        slot: Int,
+        labels: Map<Int, String>,
+    ): String =
+        when (val action = actionFor(slot)) {
+            GripArcAction.OpenMenu -> "Game menu"
+            is GripArcAction.Native -> action.keys.mapNotNull(labels::get).joinToString("+")
+            is GripArcAction.Hold -> labels[action.key]?.let { "Hold $it" }.orEmpty()
+            is GripArcAction.Turbo -> labels[action.key]?.let { "Turbo $it" }.orEmpty()
+        }
+
     fun validated(allowed: Set<Int>): GripArcProfile =
         copy(
             count = count.coerceIn(1, 4),
@@ -131,9 +171,52 @@ data class GripArcProfile(
                     mappings.getOrNull(slot).orEmpty()
                         .filter { it in allowed }.distinct().take(4)
                 },
+            behaviors = (0..3).map { behaviors.getOrElse(it) { GripArcBehavior.MOMENTARY } },
+            turboRate = turboRate.coerceIn(3, 15),
             dx = dx.takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f,
             dy = dy.takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f,
         )
+}
+
+internal fun supportsStandaloneGripActions(system: SystemID?): Boolean =
+    system in
+        setOf(
+            SystemID.GBA, SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.SMS,
+            SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE, SystemID.SNES,
+        )
+
+internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
+    if (!supportsStandaloneGripActions(system)) return null
+    val a = KeyEvent.KEYCODE_BUTTON_A
+    val b = KeyEvent.KEYCODE_BUTTON_B
+    val shoulderChord = listOf(KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1)
+    if (system == SystemID.SNES) {
+        return GripArcProfile(
+            mappings =
+                listOf(shoulderChord, listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), listOf(KeyEvent.KEYCODE_BUTTON_X)),
+            behaviors =
+                listOf(GripArcBehavior.MOMENTARY, GripArcBehavior.HOLD, GripArcBehavior.TURBO, GripArcBehavior.HOLD),
+        )
+    }
+    val gba = system == SystemID.GBA
+    val alternateLegendOrder =
+        system in setOf(SystemID.SMS, SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE)
+    return GripArcProfile(
+        mappings =
+            listOf(
+                if (gba) shoulderChord else listOf(b),
+                listOf(a),
+                listOf(b),
+                if (alternateLegendOrder) listOf(b, a) else listOf(a, b),
+            ),
+        behaviors =
+            listOf(
+                if (gba) GripArcBehavior.MOMENTARY else GripArcBehavior.HOLD,
+                GripArcBehavior.TURBO,
+                GripArcBehavior.TURBO,
+                GripArcBehavior.MOMENTARY,
+            ),
+    )
 }
 
 /**
@@ -147,6 +230,8 @@ class GripArcProfileStore(context: Context) {
         appContext.getSharedPreferences("cartdeck_arc_cartridge_profiles_v1", Context.MODE_PRIVATE)
 
     fun defaultFor(game: Game): GripArcProfile {
+        val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+        standaloneGripFactory(system)?.let { return it }
         val supported = GripArcInputCatalog.forGame(game)
         val possible = supported.map { it.code }
         val preferred =
@@ -243,6 +328,8 @@ class GripArcProfileStore(context: Context) {
                 put("mode", profile.mode.name)
                 put("side", profile.side.name)
                 put("count", profile.count)
+                put("behaviors", JSONArray(profile.behaviors.map { it.name }))
+                put("turboRate", profile.turboRate)
                 put("dx", profile.dx.toDouble())
                 put("dy", profile.dy.toDouble())
                 put(
@@ -268,6 +355,12 @@ class GripArcProfileStore(context: Context) {
                     mode = ArcControlMode.valueOf(root.getString("mode")),
                     side = GripArcSide.valueOf(root.optString("side", "RIGHT")),
                     count = root.optInt("count", 1),
+                    behaviors =
+                        (0..3).map { slot ->
+                            val value = root.optJSONArray("behaviors")?.optString(slot)
+                            GripArcBehavior.entries.firstOrNull { it.name == value } ?: GripArcBehavior.MOMENTARY
+                        },
+                    turboRate = root.optInt("turboRate", 10),
                     dx = root.optDouble("dx", 0.0).toFloat(),
                     dy = root.optDouble("dy", 0.0).toFloat(),
                     mappings =

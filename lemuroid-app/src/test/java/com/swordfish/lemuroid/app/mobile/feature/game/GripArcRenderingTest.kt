@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -31,6 +32,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.ControlsLayoutPreview
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.CartdeckEditionPreset
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveCartdeckAppearance
@@ -60,6 +62,64 @@ import java.io.File
 @Config(sdk = [28], application = Application::class, qualifiers = "w393dp-h852dp-mdpi")
 class GripArcRenderingTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun standaloneDigitalPreviewRendersTheProductionControlsInBothOrientations() {
+        val modes =
+            linkedMapOf(
+                SystemID.GBA to TouchControllerID.GBA,
+                SystemID.GB to TouchControllerID.GB,
+                SystemID.GBC to TouchControllerID.GB,
+                SystemID.NES to TouchControllerID.NES,
+                SystemID.SMS to TouchControllerID.SMS,
+                SystemID.GG to TouchControllerID.GG,
+                SystemID.NGP to TouchControllerID.NGP,
+                SystemID.NGC to TouchControllerID.NGP,
+                SystemID.PC_ENGINE to TouchControllerID.PCE,
+                SystemID.SNES to TouchControllerID.SNES,
+            )
+        val current = mutableStateOf(modes.entries.first())
+        val landscape = mutableStateOf(false)
+        compose.setContent {
+            Box(Modifier.requiredSize(360.dp, 216.dp).testTag("standalone-deck")) {
+                ControlsLayoutPreview(
+                    current.value.key,
+                    current.value.value,
+                    ArcControlMode.STANDARD_GRIPARC,
+                    landscape.value,
+                    "2",
+                    standaloneGripFactory(current.value.key),
+                )
+            }
+        }
+        val folder = File("build/reports/gc01-menu-screens/griparc/standalone")
+        folder.mkdirs()
+        for (mode in modes.entries) {
+            for (wide in listOf(false, true)) {
+                compose.runOnIdle {
+                    current.value = mode
+                    landscape.value = wide
+                }
+                compose.onAllNodesWithText("GripARC cannot fit this reference handset.").assertCountEquals(0)
+                val rect = compose.onNodeWithTag("standalone-deck").getUnclippedBoundsInRoot()
+                compose.runOnIdle {
+                    val bitmap = Bitmap.createBitmap(360, if (wide) 132 else 216, Bitmap.Config.ARGB_8888)
+                    try {
+                        val canvas = Canvas(bitmap)
+                        canvas.translate(-rect.left.value, -rect.top.value)
+                        compose.activity.window.decorView.draw(canvas)
+                        val orientation = if (wide) "landscape" else "portrait"
+                        File(folder, "${mode.key.name.lowercase()}-$orientation.png").outputStream().use {
+                            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+                        }
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+    }
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)

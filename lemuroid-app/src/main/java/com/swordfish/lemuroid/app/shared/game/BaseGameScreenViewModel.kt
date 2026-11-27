@@ -12,9 +12,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.game.ArcControlMode
 import com.swordfish.lemuroid.app.mobile.feature.game.GameService
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAction
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.GripArcProfileStore
+import com.swordfish.lemuroid.app.mobile.feature.game.supportsStandaloneGripActions
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelInput
 import com.swordfish.lemuroid.app.shared.game.viewmodel.GameViewModelRetroGameView
@@ -197,6 +200,7 @@ class BaseGameScreenViewModel(
     fun reloadGripArcProfile() {
         val latest = gripArcStore.read(activeGame)
         if (latest != gripArcProfileState.value) {
+            pivotArcHeldInputGate.releaseGripSlots()
             inputs.releasePhysicalInputs()
             gripArcProfileState.value = latest
         }
@@ -206,12 +210,24 @@ class BaseGameScreenViewModel(
         pivotArcHeldInputGate.setGripEnabled(enabled)
     }
 
+    fun gripArcLatches(): StateFlow<Set<Int>> = pivotArcHeldInputGate.gripLatches
+
     fun pressGripArcSlot(
         slot: Int,
         pressed: Boolean,
         mapping: Set<Int>,
     ) {
-        pivotArcHeldInputGate.setGripSlot(slot, pressed, mapping)
+        val profile = gripArcProfileState.value
+        if (supportsStandaloneGripActions(systemId) && profile.mode == ArcControlMode.STANDARD_GRIPARC) {
+            val action = profile.actionFor(slot)
+            if (action == GripArcAction.OpenMenu) {
+                if (pressed) requestGameMenuFromHardware()
+            } else {
+                pivotArcHeldInputGate.applyGripAction(slot, pressed, action, viewModelScope)
+            }
+        } else {
+            pivotArcHeldInputGate.setGripSlot(slot, pressed, mapping)
+        }
     }
 
     /** Read-only, game-session-only strength. Zero means ordinary static lighting. */

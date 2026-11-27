@@ -15,6 +15,45 @@ class GbaGripArcLayoutTest {
     private val viewport = PivotArcBounds(8f, 120f, 385f, 320f)
 
     @Test
+    fun approvedDigitalPacketsUseIndependentTargetsAcrossOrientations() {
+        for (id in listOf(
+            TouchControllerID.GBA,
+            TouchControllerID.GB,
+            TouchControllerID.NES,
+            TouchControllerID.SMS,
+            TouchControllerID.GG,
+            TouchControllerID.NGP,
+            TouchControllerID.PCE,
+        )) {
+            val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(id))
+            val portrait = checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, false))
+            val wideSafe = PivotArcBounds(8f, 8f, 732f, 352f)
+            val wideVideo = PivotArcBounds(180f, 15f, 560f, 290f)
+            val landscape =
+                checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, wideSafe, wideVideo, true))
+            assertEquals(portrait.controls.keys, landscape.controls.keys)
+            assertTrue(landscape.complete)
+            assertTrue(portrait.dock.targets.getValue(1).centerY < portrait.controls.getValue("D").centerY)
+            assertTrue(landscape.dock.targets.getValue(4).right < wideVideo.left)
+            assertTrue(landscape.dock.targets.getValue(2).left > wideVideo.right)
+        }
+    }
+
+    @Test
+    fun snesUsesAnIndependentFaceDiamondAndApprovedSlotIdentities() {
+        val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.SNES))
+        val wideSafe = PivotArcBounds(8f, 8f, 732f, 352f)
+        val wideVideo = PivotArcBounds(180f, 15f, 560f, 290f)
+        val result = checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, wideSafe, wideVideo, true))
+        assertTrue(result.controls.getValue("X").centerY < result.controls.getValue("A").centerY)
+        assertTrue(result.controls.getValue("A").centerY < result.controls.getValue("B").centerY)
+        assertTrue(result.controls.getValue("Y").centerX < result.controls.getValue("X").centerX)
+        assertTrue(result.controls.getValue("X").centerX < result.controls.getValue("A").centerX)
+        assertTrue(result.dock.targets.getValue(2).right < wideVideo.left)
+        assertTrue(result.dock.targets.getValue(3).left > wideVideo.right)
+    }
+
+    @Test
     fun gbaHasCompleteNativeKeysAndCompactSeparateFourSlotBank() {
         for (side in listOf(GripArcSide.RIGHT, GripArcSide.LEFT)) {
             val built = GbaGripArcLayout.resolve(native, native.inputIds, safe, viewport, side)

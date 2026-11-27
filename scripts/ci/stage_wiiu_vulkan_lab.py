@@ -34,8 +34,9 @@ def stage(work, output, readelf):
     if output.exists():
         raise ValueError("Output directory exists; refuse reuse")
     proof = json.loads((work / "native-evidence.json").read_text(encoding="utf-8"))
-    from wiiu_cemu_contract import require_guest_atomic64
+    from wiiu_cemu_contract import require_guest_atomic64, require_visible_drc_guard
     require_guest_atomic64(proof)
+    require_visible_drc_guard(proof)
     if proof.get("native_abi_pass") is not True or (
         proof.get("source", {}).get("revision") != CEMU_SHA
     ) or proof.get("vulkan_frontend_verified") is not False:
