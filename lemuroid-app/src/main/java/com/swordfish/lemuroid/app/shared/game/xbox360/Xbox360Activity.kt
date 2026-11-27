@@ -355,6 +355,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                                 "--log_file=${File(data, "logs/xenia.log").absolutePath}",
                                 "--hid=android", "--vulkan_lib_path=",
                                 "--logged_profile_slot_0_xuid=${profile.xuid}",
+                                // Xenia cvar: owned XBLA/digital titles boot full, not as trials.
+                                "--license_mask=1",
                             ) + listOfNotNull(pipelineABActive.launchOption),
                         )
                         setup_game_path(staged.absolutePath)

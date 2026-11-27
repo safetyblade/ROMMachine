@@ -4,7 +4,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.SeekableByteChannel
 
-/** Read-only bounded XEX/XDVDFS/STFS identification. Shared ISO suffixes are never console evidence. */
+/** Read-only bounded XEX/XDVDFS/STFS identification. Shared ISO suffixes are never console evidence.
+ * Extensionless files (the usual XBLA dump shape) are identified by their STFS header alone. */
 object Xbox360ContentIdentity {
     data class Result(val valid: Boolean, val reason: String)
 
@@ -38,14 +39,8 @@ object Xbox360ContentIdentity {
                     }
             return Result(valid, "ZAR archive requires a valid Xenia ZArchive footer")
         }
-        if (extension == "xcp") {
-            val packageHeader = read(channel, 0, 0x3AD)
-            val magic = packageHeader?.let { String(it, 0, 4, Charsets.US_ASCII) }
-            val volume = packageHeader?.let { ByteBuffer.wrap(it, 0x3A9, 4).order(ByteOrder.BIG_ENDIAN).int }
-            return Result(
-                magic in setOf("CON ", "LIVE", "PIRS") && volume in setOf(0, 1),
-                "Xbox 360 package requires a valid STFS/SVOD header; SVOD also requires its sibling .data folder",
-            )
+        if (extension == "xcp" || extension.isEmpty()) {
+            return probePackage(channel)
         }
         if (extension != "iso") {
             return Result(
@@ -86,6 +81,17 @@ object Xbox360ContentIdentity {
             }
         }
         return Result(false, "No Xbox 360 default.xex found; an original Xbox XBE disc is a different console")
+    }
+
+    /** STFS/SVOD package header check, shared by named .xcp packages and extensionless XBLA dumps. */
+    private fun probePackage(channel: SeekableByteChannel): Result {
+        val packageHeader = read(channel, 0, 0x3AD)
+        val magic = packageHeader?.let { String(it, 0, 4, Charsets.US_ASCII) }
+        val volume = packageHeader?.let { ByteBuffer.wrap(it, 0x3A9, 4).order(ByteOrder.BIG_ENDIAN).int }
+        return Result(
+            magic in setOf("CON ", "LIVE", "PIRS") && volume in setOf(0, 1),
+            "Xbox 360 package requires a valid STFS/SVOD header; SVOD also requires its sibling .data folder",
+        )
     }
 
     private fun isXex(header: ByteArray?): Boolean {

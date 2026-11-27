@@ -56,6 +56,25 @@ class Xbox360ContentTest {
         assertFalse(probe("bad.xcp", xex()))
     }
 
+    @Test fun extensionlessFilesAreIdentifiedByTheirStfsHeaderOnly() {
+        // XBLA dumps are usually a single extensionless STFS file; the header
+        // is the only evidence available, so it has to be a valid package.
+        val live = ByteArray(0x3AD).apply { "LIVE".toByteArray().copyInto(this) }
+        assertTrue(probe("synthetic-xbla", live))
+        val con = ByteArray(0x3AD).apply { "CON ".toByteArray().copyInto(this) }
+        assertTrue(probe("synthetic-xbla-alt", con))
+        assertFalse(probe("synthetic-xbla", xex()))
+        assertFalse(probe("synthetic-xbla", ByteArray(0x3AD)))
+        val badVolume =
+            ByteArray(0x3AD).apply {
+                "LIVE".toByteArray().copyInto(this)
+                this[0x3AC] = 2
+            }
+        assertFalse(probe("synthetic-xbla", badVolume))
+        val truncated = ByteArray(0x100).apply { "LIVE".toByteArray().copyInto(this) }
+        assertFalse(probe("synthetic-xbla", truncated))
+    }
+
     @Test fun zarFooterMustMatchPinnedVersionAndFileRanges() {
         val data = ByteArray(160)
         val b = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
