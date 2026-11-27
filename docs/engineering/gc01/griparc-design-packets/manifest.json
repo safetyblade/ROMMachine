@@ -636,6 +636,22 @@
       "id": "LYNX",
       "batch": "E",
       "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and preset; guest options/Pause, rotated input and fit pending."
+    },
+    {
+      "id": "WII",
+      "batch": "E",
+      "family": "Specialist",
       "design": "review_candidate",
       "preset": "candidate",
       "source": "not_started",
@@ -646,22 +662,34 @@
       "landscape": "review_candidate",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
-      "note": "Digital D-pad, A/B, independent Option 1/2, Pause, four programmable slots; rotated titles preserve guest orientation. Owner review pending."
-    },
-    {
-      "id": "WII",
-      "batch": "E",
-      "family": "Specialist",
-      "design": "to_design",
-      "preset": "to_design",
-      "source": "not_started",
-      "visual": "pending",
-      "input": "pending",
-      "joint": "deferred",
-      "portrait": "to_design",
-      "landscape": "to_design",
-      "landscapeVisual": "pending",
-      "landscapeInput": "pending"
+      "variants": [
+        {
+          "id": "sideways",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "classic",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "nunchuk_stick",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "nunchuk_touch",
+          "design": "review_candidate",
+          "runtime": "pending"
+        },
+        {
+          "id": "gamecube",
+          "design": "review_candidate",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Four Wii controller families, Nunchuk stick/touch pointer variants; genuine guest utilities, no simulated motion; GC inheritance. Owner review pending."
     },
     {
       "id": "WII_U",
