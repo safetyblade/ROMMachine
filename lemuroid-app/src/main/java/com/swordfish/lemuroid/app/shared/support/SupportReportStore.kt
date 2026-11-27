@@ -11,6 +11,7 @@ import java.util.zip.ZipOutputStream
 
 class SupportReportStore(context: Context) {
     private val screenshots = SupportScreenshot(context)
+    private val submissions = SupportSubmissionStore(context)
     private val directory = File(context.noBackupFilesDir, "support-reports")
     private val attachments = File(context.cacheDir, "support-packages")
 
@@ -38,6 +39,7 @@ class SupportReportStore(context: Context) {
         synchronized(lock) {
             AtomicFile(reportFile(id)).delete()
             screenshots.delete(id)
+            submissions.delete(id)
             attachments.listFiles().orEmpty().filter { it.name.startsWith("$id-") }.forEach {
                 it.deleteRecursively()
             }
