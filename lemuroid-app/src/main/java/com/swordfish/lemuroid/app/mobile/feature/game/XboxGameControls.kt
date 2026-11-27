@@ -77,7 +77,6 @@ fun XboxGameControls(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
         val border = display.effective.border(landscape)
-        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
         // SDL owns the guest surface beneath this transparent Compose overlay.
         // The maximised path must not instantiate PadKit's virtual controller.
         val isTv =
@@ -120,6 +119,8 @@ fun XboxGameControls(
         val hostSystem =
             pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
         val standalone = supportsStandaloneGripActions(hostSystem) && StandaloneGripArcLayout.supports(controllerId)
+        val gripChassis = standalone && arc?.mode == ArcControlMode.STANDARD_GRIPARC && !physicalControllerConnected
+        val hardwareBorder = gripChassis || border == DisplaySettingsStore.Border.STANDARD
         val inventory =
             remember(controllerId, hostSystem, wiiuPro) {
                 if (standalone) {
@@ -295,7 +296,7 @@ fun XboxGameControls(
             },
             onInputEvents = onInput,
         ) {
-            if (border != DisplaySettingsStore.Border.OFF) {
+            if (gripChassis || border != DisplaySettingsStore.Border.OFF) {
                 CartdeckConsoleShell(
                     tokens = tokens,
                     videoBounds = video.value,

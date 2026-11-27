@@ -85,6 +85,7 @@ class GripArcRenderingTest {
             SystemID.NGP to TouchControllerID.NGP,
             SystemID.NGC to TouchControllerID.NGP,
             SystemID.PC_ENGINE to TouchControllerID.PCE,
+            SystemID.PC_ENGINE to TouchControllerID.PCE_SIX,
             SystemID.SNES to TouchControllerID.SNES,
             SystemID.GENESIS to TouchControllerID.GENESIS_3,
             SystemID.GENESIS to TouchControllerID.GENESIS_6,
@@ -99,6 +100,7 @@ class GripArcRenderingTest {
             SystemID.PSX to TouchControllerID.PSX,
             SystemID.PSX to TouchControllerID.PSX_DUALSHOCK,
             SystemID.NINTENDO_3DS to TouchControllerID.NINTENDO_3DS,
+            SystemID.NDS to TouchControllerID.MELONDS,
             SystemID.WS to TouchControllerID.WS_LANDSCAPE,
             SystemID.WS to TouchControllerID.WS_PORTRAIT,
             SystemID.WSC to TouchControllerID.WS_LANDSCAPE,
@@ -114,6 +116,9 @@ class GripArcRenderingTest {
             SystemID.PLAYSTATION_3 to TouchControllerID.PSX_DUALSHOCK,
             SystemID.DOS to TouchControllerID.DOS,
             SystemID.WII_U to TouchControllerID.WII_CLASSIC,
+            SystemID.WII to TouchControllerID.WII_SIDEWAYS,
+            SystemID.WII to TouchControllerID.WII_CLASSIC,
+            SystemID.WII to TouchControllerID.GAMECUBE,
         ).map { (system, controller) -> Triple(system, controller, false) } +
             listOf(
                 Triple(SystemID.PSP, TouchControllerID.PSP, true),
@@ -141,13 +146,22 @@ class GripArcRenderingTest {
                         TouchControllerID.PSX -> "digital"
                         TouchControllerID.PSX_DUALSHOCK -> if (system == SystemID.PSX) "dualshock" else "base"
                         TouchControllerID.DOS -> "gamepad"
-                        TouchControllerID.WII_CLASSIC -> if (alternate) "pro" else "gamepad"
+                        TouchControllerID.WII_CLASSIC ->
+                            if (system == SystemID.WII) {
+                                "classic"
+                            } else if (alternate) {
+                                "pro"
+                            } else {
+                                "gamepad"
+                            }
+                        TouchControllerID.WII_SIDEWAYS -> "sideways"
+                        TouchControllerID.GAMECUBE -> if (system == SystemID.WII) "gamecube" else "base"
                         TouchControllerID.PSP -> if (alternate) "analogue_primary" else "dpad_primary"
                         TouchControllerID.WS_PORTRAIT -> "guest_vertical"
                         TouchControllerID.WS_LANDSCAPE -> "guest_horizontal"
                         TouchControllerID.GENESIS_3 -> "digital3"
                         TouchControllerID.ARCADE_4 -> "digital4"
-                        TouchControllerID.GENESIS_6, TouchControllerID.ARCADE_6 -> "digital6"
+                        TouchControllerID.GENESIS_6, TouchControllerID.ARCADE_6, TouchControllerID.PCE_SIX -> "digital6"
                         else -> "base"
                     }
                 system to variant
@@ -161,7 +175,7 @@ class GripArcRenderingTest {
                 val fixture = fixtures[key]
                 val controller = fixture?.second
                 val registration = supportsStandaloneGripActions(system) && StandaloneGripArcLayout.supports(controller)
-                val preset = fixture?.let { standaloneGripFactory(system) }
+                val preset = fixture?.let { standaloneGripFactory(system, controller) }
                 val inventory =
                     controller?.let {
                         StandaloneGripArcLayout.inventoryFor(
@@ -235,7 +249,7 @@ class GripArcRenderingTest {
         wide: Boolean,
     ) = when {
         wide -> PivotArcBounds(180f, 20f, 560f, 290f)
-        system == SystemID.NINTENDO_3DS -> PivotArcBounds(22f, 84f, 371f, 484f)
+        system in setOf(SystemID.NDS, SystemID.NINTENDO_3DS) -> PivotArcBounds(22f, 84f, 371f, 484f)
         else -> PivotArcBounds(22f, 84f, 371f, 340f)
     }
 
@@ -290,7 +304,7 @@ class GripArcRenderingTest {
                     }
                     GripArcAccessory(
                         fitted.dock,
-                        checkNotNull(standaloneGripFactory(system)),
+                        checkNotNull(standaloneGripFactory(system, id)),
                         tokens,
                         fullscreenWithGamepad = false,
                         isLoading = false,

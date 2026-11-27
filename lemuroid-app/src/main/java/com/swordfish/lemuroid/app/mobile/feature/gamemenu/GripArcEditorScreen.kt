@@ -225,7 +225,7 @@ fun GripArcEditorScreen(
             text = { Text("This replaces the programmable assignments on this cartridge.") },
             confirmButton = {
                 TextButton(onClick = {
-                    val defaults = store.defaultFor(game, profile.mode)
+                    val defaults = store.defaultFor(game, profile.mode, assignmentMode)
                     save(
                         profile.copy(
                             mappings = defaults.mappings,

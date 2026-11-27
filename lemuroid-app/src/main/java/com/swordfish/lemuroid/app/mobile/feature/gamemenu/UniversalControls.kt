@@ -138,7 +138,8 @@ internal fun UniversalControls(
         system == SystemID.WII_U &&
             context.getSharedPreferences("wiiu-runtime", android.content.Context.MODE_PRIVATE)
                 .getBoolean("pro.${game?.cartridgeId}", false)
-    val assignmentMode = gripArcAssignmentMode(controller, global.pspAnalogPrimary, wiiuPro)
+    val assignmentMode =
+        gripArcAssignmentMode(controller, global.pspAnalogPrimary, wiiuPro.takeIf { system == SystemID.WII_U })
     val modeProfile = game?.let { rememberGripArcProfile(it, assignmentMode).value }
     val defaultMode = global.mode.forSystem(system)
     val selected = profile?.mode ?: defaultMode
@@ -590,7 +591,7 @@ internal fun ControlsLayoutPreview(
                     if (grip != null) {
                         GripArcAccessory(
                             grip.dock,
-                            gripProfile ?: standaloneGripFactory(system) ?: GripArcProfile(),
+                            gripProfile ?: standaloneGripFactory(system, controller) ?: GripArcProfile(),
                             tokens,
                             fullscreenWithGamepad = false,
                             isLoading = false,

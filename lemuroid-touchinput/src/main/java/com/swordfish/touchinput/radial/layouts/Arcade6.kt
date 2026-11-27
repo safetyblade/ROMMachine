@@ -45,6 +45,8 @@ fun PadKitScope.Arcade6Left(
 fun PadKitScope.Arcade6Right(
     modifier: Modifier = Modifier,
     settings: TouchControllerSettingsManager.Settings,
+    labels: Map<Int, String> = emptyMap(),
+    includeStart: Boolean = false,
 ) {
     val centralAnchors = rememberCentralAnchorsForSixButtons(settings.rotation)
 
@@ -59,10 +61,18 @@ fun PadKitScope.Arcade6Right(
                 trackPointers = false,
                 idsForegrounds =
                     persistentMapOf<Id.Key, @Composable (State<Boolean>) -> Unit>(
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_X) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_A) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_B) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_Y) to { LemuroidCentralButton(pressedState = it) },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_X) to {
+                            LemuroidCentralButton(it, labels[KeyEvent.KEYCODE_BUTTON_X])
+                        },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_A) to {
+                            LemuroidCentralButton(it, labels[KeyEvent.KEYCODE_BUTTON_A])
+                        },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_B) to {
+                            LemuroidCentralButton(it, labels[KeyEvent.KEYCODE_BUTTON_B])
+                        },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_Y) to {
+                            LemuroidCentralButton(it, labels[KeyEvent.KEYCODE_BUTTON_Y])
+                        },
                     ),
             )
         },
@@ -70,11 +80,14 @@ fun PadKitScope.Arcade6Right(
             LemuroidControlButton(
                 modifier = Modifier.radialPosition(90f),
                 id = Id.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                label = labels[KeyEvent.KEYCODE_BUTTON_L1],
             )
             LemuroidControlButton(
                 modifier = Modifier.radialPosition(60f),
                 id = Id.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                label = labels[KeyEvent.KEYCODE_BUTTON_R1],
             )
+            if (includeStart) SecondaryButtonStart(position = 2)
             SecondaryButtonMenu(settings)
         },
     )

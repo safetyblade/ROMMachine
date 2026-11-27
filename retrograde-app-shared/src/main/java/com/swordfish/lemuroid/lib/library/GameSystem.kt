@@ -1101,7 +1101,7 @@ data class GameSystem(
                             CoreID.MEDNAFEN_PCE_FAST,
                             controllerConfigs =
                                 hashMapOf(
-                                    0 to arrayListOf(ControllerConfigs.PCE),
+                                    0 to arrayListOf(ControllerConfigs.PCE, ControllerConfigs.PCE_SIX),
                                 ),
                         ),
                     ),

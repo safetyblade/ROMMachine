@@ -96,8 +96,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val isLandscape = constraints.maxWidth > constraints.maxHeight
         val display = rememberDisplaySettings(viewModel.cartridgeId)
         val border = display.effective.border(isLandscape)
-        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
-        val showBorder = border != DisplaySettingsStore.Border.OFF
         val appContext = LocalContext.current
         val resolved = rememberGameplayAppearance()
         val appearance = resolved.source
@@ -126,6 +124,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val effectiveArcSide = sessionChoice.value.sideFor(arcProfile.side)
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(true)
+        val gripChassis =
+            effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                touchControlsVisibleState.value && supportsStandaloneGripActions(viewModel.systemId) &&
+                StandaloneGripArcLayout.supports(controllerConfigState.value?.touchControllerID)
+        val hardwareBorder = gripChassis || border == DisplaySettingsStore.Border.STANDARD
+        val showBorder = gripChassis || border != DisplaySettingsStore.Border.OFF
         // The existing enabled-gamepad flow already hides the main touch pad
         // on every device. Fullscreen landscape must also hide GripArc and
         // decorative physical-shell artwork while keeping game input alive.
@@ -474,7 +478,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
                             supportsStandaloneGripActions(viewModel.systemId)
                     }
-                    ?.let { StandaloneGripArcLayout.inventoryFor(it) }
+                    ?.let { StandaloneGripArcLayout.inventoryFor(it, viewModel.systemId) }
             val standaloneGripSelected = standaloneInventory != null
             val gripResolution: GripArcFit? =
                 if (
@@ -892,7 +896,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     (selectedPivot && soloProfile != null) ||
                                         (
                                             standaloneGripSelected &&
-                                                standaloneInventory?.controller == TouchControllerID.NINTENDO_3DS
+                                                viewModel.systemId in setOf(SystemID.NDS, SystemID.NINTENDO_3DS)
                                         )
                                 ),
                         independentPortraitAperture =

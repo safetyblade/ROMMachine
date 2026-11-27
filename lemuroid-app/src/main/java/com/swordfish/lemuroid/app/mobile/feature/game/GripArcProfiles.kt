@@ -221,7 +221,7 @@ internal fun supportsStandaloneGripActions(system: SystemID?): Boolean =
             SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PSP, SystemID.PSX, SystemID.NINTENDO_3DS,
             SystemID.WS, SystemID.WSC, SystemID.FBNEO, SystemID.MAME2003PLUS, SystemID.N64,
             SystemID.XBOX, SystemID.XBOX360, SystemID.DOS, SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3,
-            SystemID.WII_U,
+            SystemID.WII_U, SystemID.WII, SystemID.NDS,
         )
 
 internal fun CartdeckLayoutMode.forSystem(system: SystemID?): ArcControlMode =
@@ -232,13 +232,40 @@ internal fun CartdeckLayoutMode.forSystem(system: SystemID?): ArcControlMode =
             if (supportsStandaloneGripActions(system)) ArcControlMode.STANDARD_GRIPARC else ArcControlMode.STANDARD
     }
 
-internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
+internal fun standaloneGripFactory(
+    system: SystemID?,
+    controller: TouchControllerID? = null,
+): GripArcProfile? {
     if (!supportsStandaloneGripActions(system)) return null
     val a = KeyEvent.KEYCODE_BUTTON_A
     val b = KeyEvent.KEYCODE_BUTTON_B
     val shoulderChord = listOf(KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1)
     // DOS_AUTO guest bindings are title-specific.
     if (system == SystemID.DOS) return GripArcProfile()
+    if (system == SystemID.WII) {
+        return when (controller) {
+            TouchControllerID.GAMECUBE -> standaloneGripFactory(SystemID.GAMECUBE)
+            TouchControllerID.WII_CLASSIC -> standaloneGripFactory(SystemID.WII_U)
+            else ->
+                GripArcProfile(
+                    mappings = listOf(listOf(b), listOf(a), listOf(b, a), listOf(a)),
+                    behaviors =
+                        listOf(
+                            GripArcBehavior.HOLD,
+                            GripArcBehavior.HOLD,
+                            GripArcBehavior.MOMENTARY,
+                            GripArcBehavior.TURBO,
+                        ),
+                )
+        }
+    }
+    if (system == SystemID.NDS) {
+        return GripArcProfile(
+            count = 2,
+            mappings = listOf(listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), emptyList(), emptyList()),
+            behaviors = listOf(GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
+    }
     if (system == SystemID.PLAYSTATION_2 || system == SystemID.PLAYSTATION_3) {
         return GripArcProfile(
             mappings =
@@ -304,6 +331,18 @@ internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
         val second = KeyEvent.KEYCODE_BUTTON_2
         return GripArcProfile(
             mappings = listOf(listOf(first), listOf(first), listOf(second), listOf(first, second)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.PC_ENGINE) {
+        return GripArcProfile(
+            mappings = listOf(listOf(a), listOf(b), listOf(a), listOf(a, b)),
             behaviors =
                 listOf(
                     GripArcBehavior.HOLD,
@@ -421,11 +460,16 @@ internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
 internal fun gripArcAssignmentMode(
     controller: TouchControllerID?,
     pspAnalogPrimary: Boolean = false,
-    wiiuPro: Boolean = false,
+    wiiuPro: Boolean? = null,
 ): String? =
     when (controller) {
         TouchControllerID.PSP -> if (pspAnalogPrimary) "PSP:analogue" else "PSP:dpad"
-        TouchControllerID.WII_CLASSIC -> if (wiiuPro) "WII_U:pro" else "WII_U:gamepad"
+        TouchControllerID.WII_CLASSIC ->
+            when (wiiuPro) {
+                true -> "WII_U:pro"
+                false -> "WII_U:gamepad"
+                null -> controller.name
+            }
         else -> controller?.name
     }
 
@@ -442,10 +486,12 @@ class GripArcProfileStore(context: Context) {
     fun defaultFor(
         game: Game,
         mode: ArcControlMode,
+        assignmentMode: String? = null,
     ): GripArcProfile {
         val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
         if (mode == ArcControlMode.STANDARD_GRIPARC) {
-            standaloneGripFactory(system)?.let { return it.copy(mode = mode) }
+            val controller = TouchControllerID.entries.firstOrNull { it.name == assignmentMode }
+            standaloneGripFactory(system, controller)?.let { return it.copy(mode = mode) }
         }
         val supported = GripArcInputCatalog.forGame(game)
         val possible = supported.map { it.code }
@@ -473,7 +519,7 @@ class GripArcProfileStore(context: Context) {
             }
         val inherit = preferences.getBoolean(layoutInheritanceKey(game), false)
         val mode = if (inherit) globalMode else layoutOverride ?: globalMode
-        val fallback = defaultFor(game, mode)
+        val fallback = defaultFor(game, mode, assignmentMode)
         val raw =
             preferences.getString(key(game), null)
                 ?: preferences.getString(legacyKey(game, game.legacySourceUri ?: game.fileUri), null)
@@ -533,6 +579,20 @@ class GripArcProfileStore(context: Context) {
         val existing = GripArcInputCatalog.forGame(game).mapTo(mutableSetOf()) { it.code }
         when (game.systemId) {
             SystemID.GAMECUBE.dbname -> existing += KeyEvent.KEYCODE_BUTTON_L2
+            SystemID.PC_ENGINE.dbname ->
+                existing.addAll(
+                    setOf(
+                        KeyEvent.KEYCODE_BUTTON_X,
+                        KeyEvent.KEYCODE_BUTTON_Y,
+                        KeyEvent.KEYCODE_BUTTON_L1,
+                        KeyEvent.KEYCODE_BUTTON_R1,
+                    ),
+                )
+            SystemID.WII.dbname -> {
+                listOf(TouchControllerID.WII_SIDEWAYS, TouchControllerID.WII_CLASSIC, TouchControllerID.GAMECUBE)
+                    .mapNotNull { StandaloneGripArcLayout.inventoryFor(it, SystemID.WII) }
+                    .forEach { existing.addAll(StandaloneGripArcLayout.actionLabels(it).keys) }
+            }
             SystemID.DOS.dbname, SystemID.WII_U.dbname -> {
                 val inventory =
                     if (game.systemId == SystemID.DOS.dbname) {

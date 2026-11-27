@@ -138,6 +138,7 @@ class BaseGameScreenViewModel(
             coreVariablesManager,
             sideEffects,
             rumbleManager,
+            controllerConfigsManager,
             viewModelScope,
         )
     private val pivotArcHeldInputGate =
@@ -227,7 +228,8 @@ class BaseGameScreenViewModel(
     ) {
         val profile = gripArcProfileState.value
         if (standalone) {
-            val inventory = StandaloneGripArcLayout.inventoryFor(touchControls.activeTouchController()) ?: return
+            val controller = touchControls.activeTouchController()
+            val inventory = StandaloneGripArcLayout.inventoryFor(controller, systemId) ?: return
             val action = StandaloneGripArcLayout.guestAction(profile, slot, inventory) ?: return
             if (action == GripArcAction.OpenMenu) {
                 if (pressed) requestGameMenuFromHardware()

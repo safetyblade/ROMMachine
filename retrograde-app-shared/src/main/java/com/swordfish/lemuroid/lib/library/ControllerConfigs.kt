@@ -378,6 +378,13 @@ object ControllerConfigs {
                 ),
         )
 
+    val PCE_SIX =
+        PCE.copy(
+            name = "six_buttons",
+            displayName = R.string.controller_pce_six,
+            touchControllerID = TouchControllerID.PCE_SIX,
+        )
+
     val NGP =
         ControllerConfig(
             "default",

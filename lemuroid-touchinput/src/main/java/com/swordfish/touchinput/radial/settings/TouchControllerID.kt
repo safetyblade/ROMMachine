@@ -42,6 +42,7 @@ import com.swordfish.touchinput.radial.layouts.Nintendo3DSLeft
 import com.swordfish.touchinput.radial.layouts.Nintendo3DSRight
 import com.swordfish.touchinput.radial.layouts.PCELeft
 import com.swordfish.touchinput.radial.layouts.PCERight
+import com.swordfish.touchinput.radial.layouts.PCESixRight
 import com.swordfish.touchinput.radial.layouts.PSPLeft
 import com.swordfish.touchinput.radial.layouts.PSPRight
 import com.swordfish.touchinput.radial.layouts.PSXDualShockLeft
@@ -86,6 +87,7 @@ enum class TouchControllerID {
     LYNX,
     ATARI7800,
     PCE,
+    PCE_SIX,
     NGP,
     DOS,
     WS_LANDSCAPE,
@@ -268,6 +270,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> PCELeft(modifier, settings) },
                         { modifier, settings -> PCERight(modifier, settings) },
+                    )
+
+                PCE_SIX ->
+                    Config(
+                        { modifier, settings -> PCELeft(modifier, settings) },
+                        { modifier, settings -> PCESixRight(modifier, settings) },
                     )
 
                 NGP ->

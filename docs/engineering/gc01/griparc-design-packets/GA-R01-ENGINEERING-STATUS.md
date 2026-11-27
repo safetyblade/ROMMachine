@@ -8,9 +8,11 @@ descended from master `1e2e75c8`. Design authority is immutable commit
 ## Current coverage
 
 The consolidated starting tree recorded 20 of 33 systems and 24 of 53
-configurations. The current source candidate registers 31 systems and 40
-configurations (80 planned production fixtures), subject to the manifest
-audit, Android tests, connected APK build and handset acceptance.
+configurations. Commit `77fe3415` passed 173 focused Android tests and the
+53-entry manifest audit. Its 40 registered configurations produced 80
+production renders. The current source candidate registers 45 configurations
+across all 33 systems. Its full validation is tracked separately from that
+earlier result.
 
 F01 adds measured cap growth and a shared production hardware renderer.
 Landscape reuses the production CARTDECK surround and main brand. The
@@ -32,7 +34,7 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
 | NGP | base | Standalone runtime and dedicated preview source |
 | NGC | base | Standalone runtime and dedicated preview source |
 | PC_ENGINE | digital2 | Standalone runtime and dedicated preview source |
-| PC_ENGINE | digital6 | Pending exact port-one III–VI dispatch verification and a confirmed six-button startup selection |
+| PC_ENGINE | digital6 | Six-button startup option and port-one descriptors from the pinned ARM64 core. Both orientations in source |
 | SNES | base | Standalone runtime and dedicated preview source |
 | GENESIS | digital3 | Standalone runtime and dedicated preview source |
 | GENESIS | digital6 | Standalone runtime and dedicated preview source |
@@ -42,7 +44,7 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
 | WS | guest_vertical | Mode-aware dual cursors and logical A/B assignments in both handset orientations |
 | WSC | guest_horizontal | Mode-aware dual cursors and logical A/B assignments in both handset orientations |
 | WSC | guest_vertical | Mode-aware dual cursors and logical A/B assignments in both handset orientations |
-| NDS | base | Pending standalone lower-band geometry and preservation of core-specific mic and lid actions |
+| NDS | base | Both orientations in source. Mic and lid keep their core-specific routes in free upper-control space |
 | NINTENDO_3DS | base | Standalone runtime and preview; touchscreen and guest input await handset verification |
 | PSP | dpad_primary | Standalone runtime and dedicated preview source |
 | PSP | analogue_primary | Standalone runtime and dedicated preview source |
@@ -66,16 +68,16 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
 | ATARI2600 | base | Standalone runtime and dedicated preview source |
 | ATARI7800 | base | Standalone runtime and dedicated preview source |
 | LYNX | base | Standalone runtime and dedicated preview source |
-| WII | sideways | Pending |
-| WII | classic | Pending |
-| WII | nunchuk_stick | Pending |
-| WII | nunchuk_touch | Pending |
-| WII | gamecube | Pending |
+| WII | sideways | Both orientations in source with existing native Sideways Remote route |
+| WII | classic | Both orientations in source with existing native Classic route |
+| WII | nunchuk_stick | Pending a verified fresh IR-stick engagement and independent fire ownership |
+| WII | nunchuk_touch | Pending native viewport contact validity and independent fire ownership |
+| WII | gamecube | Both orientations in source with the Dolphin GameCube route for compatible titles |
 | WII_U | gamepad | Native layout and typed dispatch in source; verify applied screen and controller on handset |
 | WII_U | pro | Native layout and typed dispatch in source; verify applied screen and controller on handset |
 | DOS | gamepad | DOS_AUTO layout and keyboard access in source; default slots unassigned while guest bindings are unknown |
-| DOS | keyboard_action | Pending verified direct guest keyboard or mouse input and a selectable mode |
-| DOS | mouse | Pending verified direct guest keyboard or mouse input and a selectable mode |
+| DOS | keyboard_action | Pinned LibretroDroid host lacks verified direct guest keyboard or mouse dispatch for this mode |
+| DOS | mouse | Pinned LibretroDroid host lacks verified direct guest keyboard or mouse dispatch for this mode |
 
 ## Shared implementation and remaining work
 

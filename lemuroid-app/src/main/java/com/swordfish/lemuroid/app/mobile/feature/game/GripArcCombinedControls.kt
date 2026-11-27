@@ -140,7 +140,17 @@ internal fun PadKitScope.GripArcCombinedControls(
                             NativeControlIcon.CROSS -> TouchR.drawable.psx_cross
                             NativeControlIcon.TRIANGLE -> TouchR.drawable.psx_triangle
                             NativeControlIcon.SQUARE -> TouchR.drawable.psx_square
-                            null -> TouchR.drawable.button_keyboard.takeIf { standalone && key == "Keyboard" }
+                            null ->
+                                if (standalone) {
+                                    when (key) {
+                                        "Keyboard" -> TouchR.drawable.button_keyboard
+                                        "Mic" -> TouchR.drawable.button_mic
+                                        "Lid" -> TouchR.drawable.button_close_screen
+                                        else -> null
+                                    }
+                                } else {
+                                    null
+                                }
                         }
                     val shoulder = spec.kind == NativeControlKind.SHOULDER && !spec.roundButton
                     val utility = spec.kind == NativeControlKind.UTILITY

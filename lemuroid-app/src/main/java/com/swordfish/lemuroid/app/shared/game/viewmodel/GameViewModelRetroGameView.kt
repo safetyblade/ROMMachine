@@ -19,6 +19,7 @@ import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
+import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.utils.android.getGLSLVersion
 import com.swordfish.lemuroid.common.coroutines.MutableStateProperty
 import com.swordfish.lemuroid.common.coroutines.launchOnState
@@ -40,6 +41,7 @@ import com.swordfish.libretrodroid.GLRetroViewData
 import com.swordfish.libretrodroid.Variable
 import com.swordfish.libretrodroid.ViewportAlignment
 import com.swordfish.libretrodroid.VirtualFile
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -63,6 +65,7 @@ import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
 private const val WII_POINTER_KEY = "dolphin_ir_mode"
+private const val PCE_PAD_KEY = "pce_fast_default_joypad_type_p1"
 
 @OptIn(FlowPreview::class)
 class GameViewModelRetroGameView(
@@ -73,6 +76,7 @@ class GameViewModelRetroGameView(
     private val coreVariablesManager: CoreVariablesManager,
     private val sideEffects: GameViewModelSideEffects,
     private val rumbleManager: RumbleManager,
+    private val controllerConfigsManager: ControllerConfigsManager,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
     sealed interface GameState {
@@ -230,15 +234,26 @@ class GameViewModelRetroGameView(
                     if (loadingState is GameLoader.LoadingState.Ready) {
                         Timber.i("Setting state to loaded")
                         val gameData = loadingState.gameData
-                        val pointer = wiiPointerOverride(display, systemCoreConfig)
+                        val controllerMode =
+                            if (systemCoreConfig.coreID == CoreID.MEDNAFEN_PCE_FAST) {
+                                val controller =
+                                    controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig, game)[0]
+                                val six = controller?.touchControllerID == TouchControllerID.PCE_SIX
+                                CoreVariable(PCE_PAD_KEY, if (six) "6 Buttons" else "2 Buttons")
+                            } else {
+                                null
+                            }
+                        val startupOverrides =
+                            listOfNotNull(wiiPointerOverride(display, systemCoreConfig), controllerMode)
                         val launchData =
-                            if (pointer == null) {
+                            if (startupOverrides.isEmpty()) {
                                 gameData
                             } else {
+                                val keys = startupOverrides.map { it.key }.toSet()
                                 gameData.copy(
                                     coreVariables =
-                                        gameData.coreVariables.filterNot { it.key == WII_POINTER_KEY }
-                                            .plus(pointer).toTypedArray(),
+                                        (gameData.coreVariables.filterNot { it.key in keys } + startupOverrides)
+                                            .toTypedArray(),
                                 )
                             }
                         val retroViewData =
