@@ -21,8 +21,8 @@ GA-D00 Universal Controls Experience design approval FIRST, then GBA portrait an
 | B — Handheld / multi-button | GBA, SNES, GENESIS, SEGACD, WS, WSC | 6/6 |
 | C — Touch / single analogue | NDS, NINTENDO_3DS, PSP, N64 | 4/4 |
 | D — Modern consoles | PSX, PLAYSTATION_2, PLAYSTATION_3, DREAMCAST, GAMECUBE, XBOX, XBOX360 | 7/7 |
-| E — Specialist | FBNEO, MAME2003PLUS, ATARI2600, ATARI7800, LYNX, WII, WII_U, DOS | 7/8 |
-Total 32/33; batches A, B, C and D complete; Wii U GamePad/Pro approved. DOS final gamepad/keyboard-action/mouse candidate ready for review. No system design complete without both orientations. Existing PivotARC register remains historical; this charter supersedes outdated GripARC/JOIN geometry decisions only.
+| E — Specialist | FBNEO, MAME2003PLUS, ATARI2600, ATARI7800, LYNX, WII, WII_U, DOS | 8/8 |
+Total 33/33; all five batches layout-locked, both orientations and configured variants. Final DOS approval inferred from owner direction to prepare implementation handoff. Runtime, measured fit and physical acceptance remain pending; conditional variants retain capability gates. Joint deferred.
 
 ## Owner additions — 27 Nov 2026
 Unified Controls experience first, before console layout approvals. Same user-friendly hub from cartridge setup, in-game Controls and global Settings; visual layout selection, native controller mode, orientation, guided GripARC assignments and actual connected-controller capability discovery/mapping. Reference GA-D00-CONTROLS-EXPERIENCE.md. Preserve current physical input and per-device/per-cartridge profile architecture; no separate mapping system. All 33 GripARC systems require purpose-designed portrait AND landscape layouts inside existing CARTDECK landscape chassis, not rotated portrait or Standard fallback. Joint remains separate L attachment, last. No runtime work in design branch.
@@ -35,3 +35,6 @@ Hold is an assignable typed action across every GripARC system and orientation, 
 
 ## Owner-approved shared Wii correction
 GA-D31C-R3 in WII.md extends Aim & Fire to all Standard, PivotARC and GripARC Nunchuk layouts and the Universal Controls experience. Preserve approved geometry and shared input ownership; actual IR and concurrent gameplay dispatch pending. Include in consolidated engineering scope.
+
+## Consolidated design handoff
+[Complete packet index](DESIGN-INDEX.md) · [Common visual language](VISUAL-REFERENCE.md) · [Manifest](manifest.json) · [Universal Controls](GA-D00-CONTROLS-EXPERIENCE.md). All 33 Markdown system packets fetched and checked for both orientations and preset specifications. Owner requests implementation handoff, superseding the historical design-only hold for a new engineering branch. Do not edit runtime on this design branch. Historical #378 is closed without direct merge; its reference head is an ancestor of master as checked 27 Nov 2026. Current master snapshot 1e2e75c80bc3f30cd873136edee8472e6a37d6ff; engineer verifies current baseline before branching. Do not cherry-pick old runtime or reopen #378. The original chat SVG previews are not stored verbatim; written packet geometries, inheritance and common visual reference are authoritative design inputs, not measured production art. Generate production renders from these specs in engineering; no new owner design review loop.

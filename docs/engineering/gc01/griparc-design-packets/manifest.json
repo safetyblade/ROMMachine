@@ -723,34 +723,34 @@
       "id": "DOS",
       "batch": "E",
       "family": "Specialist",
-      "design": "review_candidate",
-      "preset": "candidate",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
       "source": "not_started",
       "visual": "pending",
       "input": "pending",
       "joint": "deferred",
-      "portrait": "review_candidate",
-      "landscape": "review_candidate",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
       "landscapeVisual": "pending",
       "landscapeInput": "pending",
       "variants": [
         {
           "id": "gamepad",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "pending; existing DOS_AUTO gamepad and keyboard access"
         },
         {
           "id": "keyboard_action",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "conditional; verify actual guest keyboard bridge and per-game binding"
         },
         {
           "id": "mouse",
-          "design": "review_candidate",
+          "design": "owner_layout_locked",
           "runtime": "conditional; verify actual guest pointer and mouse button bridge"
         }
       ],
-      "note": "Final DOS gamepad/keyboard-action/mouse layouts. Keyboard and mouse actions require real guest dispatch, no universal game mappings."
+      "note": "Final owner direction to prepare full implementation handoff treated as DOS design approval; all layouts locked, keyboard/mouse dispatch conditional."
     }
   ],
   "designGate": {
