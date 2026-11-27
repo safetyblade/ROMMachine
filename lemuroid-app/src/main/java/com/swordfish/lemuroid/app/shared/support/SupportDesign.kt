@@ -15,6 +15,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.swordfish.lemuroid.R
 
 /** Signature surfaces for support, native recovery and setup screens. */
@@ -41,12 +43,32 @@ internal object SupportDesign {
         ScrollView(context).apply {
             setBackgroundColor(midnight)
             isFillViewport = true
+            isFocusableInTouchMode = true
             clipToPadding = false
             val width = context.resources.displayMetrics.widthPixels
             val side = maxOf(context.dp(16), (width - context.dp(680)) / 2)
             setPadding(side, context.dp(16), side, context.dp(28))
             addView(content, ViewGroup.LayoutParams(-1, -2))
+            protectSystemBars(this, includeKeyboard = true)
+            requestFocus()
         }
+
+    fun protectSystemBars(
+        view: View,
+        includeKeyboard: Boolean = false,
+    ) {
+        val left = view.paddingLeft
+        val top = view.paddingTop
+        val right = view.paddingRight
+        val bottom = view.paddingBottom
+        val bars = WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+        val types = if (includeKeyboard) bars or WindowInsetsCompat.Type.ime() else bars
+        ViewCompat.setOnApplyWindowInsetsListener(view) { target, insets ->
+            val safe = insets.getInsets(types)
+            target.setPadding(left + safe.left, top + safe.top, right + safe.right, bottom + safe.bottom)
+            insets
+        }
+    }
 
     fun LinearLayout.header(
         title: String,

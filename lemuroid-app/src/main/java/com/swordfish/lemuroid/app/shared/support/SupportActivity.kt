@@ -64,6 +64,7 @@ class SupportActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         onBackPressedDispatcher.addCallback(this) { navigateBack() }
         attachmentFromEditor = savedInstanceState?.getBoolean("attachmentFromEditor") ?: false
         exportFile = savedInstanceState?.getString("export")?.let(::File)
@@ -251,7 +252,10 @@ class SupportActivity : ComponentActivity() {
                         isSelected = label == selected
                         SupportDesign.style(this)
                         if (icon != 0) {
-                            setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
+                            val size = this@SupportActivity.dp(18)
+                            val drawable = context.getDrawable(icon)?.mutate()
+                            drawable?.setBounds(0, 0, size, size)
+                            setCompoundDrawablesRelative(drawable, null, null, null)
                             compoundDrawablePadding = this@SupportActivity.dp(8)
                             compoundDrawableTintList = android.content.res.ColorStateList.valueOf(SupportDesign.cyan)
                         }
@@ -280,17 +284,20 @@ class SupportActivity : ComponentActivity() {
     ) {
         val game = report["game"].takeUnless { it == SupportReport.NOT_CAPTURED } ?: return
         val card = column.card()
-        val artwork = intent.getStringExtra(EXTRA_ARTWORK)
-        if (artwork != null) {
-            card.addView(
-                android.widget.ImageView(this).apply {
-                    contentDescription = "$game cover"
-                    scaleType = android.widget.ImageView.ScaleType.FIT_START
-                    load(artwork)
-                },
-                LinearLayout.LayoutParams(dp(88), dp(110)),
-            )
-        }
+        val artwork =
+            intent.getStringExtra(EXTRA_ARTWORK)
+                ?.takeIf { intent.getStringExtra(EXTRA_ARTWORK_REPORT) == report.id }
+        card.addView(
+            android.widget.ImageView(this).apply {
+                contentDescription = "$game artwork"
+                scaleType = android.widget.ImageView.ScaleType.FIT_START
+                load(artwork) {
+                    fallback(R.drawable.cartdeck_pink_front_base)
+                    error(R.drawable.cartdeck_pink_front_base)
+                }
+            },
+            LinearLayout.LayoutParams(dp(74), dp(90)),
+        )
         card.label(game, 20, bold = true)
         val metadata = listOf(report["console"], report["engine"]).filterNot { it == SupportReport.NOT_CAPTURED }
         if (metadata.isNotEmpty()) card.label(metadata.joinToString(" · "), color = SupportDesign.muted)
@@ -473,6 +480,7 @@ class SupportActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_REPORT = "support.report"
         private const val EXTRA_ARTWORK = "support.artwork"
+        private const val EXTRA_ARTWORK_REPORT = "support.artworkReport"
 
         fun intent(
             context: Context,
@@ -481,7 +489,10 @@ class SupportActivity : ComponentActivity() {
         ): Intent =
             Intent(context, SupportActivity::class.java).apply {
                 report?.let { putExtra(EXTRA_REPORT, it.json) }
-                game?.displayCoverUrl()?.let { putExtra(EXTRA_ARTWORK, it) }
+                game?.displayCoverUrl()?.let {
+                    putExtra(EXTRA_ARTWORK, it)
+                    putExtra(EXTRA_ARTWORK_REPORT, report?.id)
+                }
             }
     }
 }

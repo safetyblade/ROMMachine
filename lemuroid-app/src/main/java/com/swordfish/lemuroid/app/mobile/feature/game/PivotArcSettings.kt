@@ -51,7 +51,8 @@ class PivotArcSettingsStore(context: Context) {
             runCatching {
                 ControlsOrientation.valueOf(preferences.getString("orientation", null).orEmpty())
             }.getOrDefault(ControlsOrientation.AUTOMATIC)
-        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset("dy"), pspAnalogPrimary, orientation)
+        // Earlier builds persisted the preview's applied translation. It is not a chassis-relative offset.
+        return PivotArcSettings(mode, hand, readOffset("dx"), readOffset(CHASSIS_Y), pspAnalogPrimary, orientation)
     }
 
     fun save(value: PivotArcSettings) {
@@ -61,7 +62,7 @@ class PivotArcSettingsStore(context: Context) {
             .putString("mode", value.mode.name)
             .putString("hand", value.hand.name)
             .putFloat("dx", value.offsetXdp)
-            .putFloat("dy", value.offsetYdp)
+            .putFloat(CHASSIS_Y, value.offsetYdp)
             .putBoolean("psp_analog_primary", value.pspAnalogPrimary)
             .putString("orientation", value.orientation.name)
             .apply()
@@ -82,6 +83,7 @@ class PivotArcSettingsStore(context: Context) {
     companion object {
         private const val PREF_NAME = "cartdeck_pivotarc_v1"
         private const val VERSION = 1
+        private const val CHASSIS_Y = "chassis_dy"
     }
 }
 

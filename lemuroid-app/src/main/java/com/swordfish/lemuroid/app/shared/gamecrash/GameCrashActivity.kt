@@ -40,7 +40,11 @@ import java.util.Properties
 class GameCrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_crash)
+        findViewById<android.view.ViewGroup>(android.R.id.content).getChildAt(0)?.let {
+            SupportDesign.protectSystemBars(it)
+        }
         findViewById<TextView>(R.id.text1).text = "Game recovery"
         listOf(
             R.id.retryGame,
