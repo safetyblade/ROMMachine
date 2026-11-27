@@ -61,6 +61,7 @@ import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
 import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloSolver
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLandscapeMark
 import com.swordfish.lemuroid.app.mobile.feature.game.StandaloneGripArcLayout
+import com.swordfish.lemuroid.app.mobile.feature.game.forSystem
 import com.swordfish.lemuroid.app.mobile.feature.game.pivotArcHardwareSeatKey
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberGripArcProfile
 import com.swordfish.lemuroid.app.mobile.feature.game.rememberPivotArcSettings
@@ -132,8 +133,7 @@ internal fun UniversalControls(
     val controller =
         (controllers.firstOrNull { it.name == nativeName } ?: controllers.firstOrNull())?.touchControllerID
             ?: nativePreviewController(system)
-    val defaultMode =
-        if (global.mode == CartdeckLayoutMode.ONE_HAND) ArcControlMode.PIVOTARC else ArcControlMode.STANDARD
+    val defaultMode = global.mode.forSystem(system)
     val selected = profile?.mode ?: defaultMode
     val inheritsLayout = game != null && !store.hasSelection(game)
     var previewLandscape by remember { mutableStateOf(false) }
@@ -229,16 +229,24 @@ internal fun UniversalControls(
                         supportedPivot = supportedPivot,
                         pointerMode = pointerMode,
                         gripProfile = game?.let { profile },
-                        allowGripSelection = game != null,
                         onApply = {
                             if (game != null) {
                                 val saved = store.saveLayout(game, mode)
                                 feedback = if (saved) "Layout applied." else "Could not save layout."
                             } else {
                                 val layout =
-                                    if (mode.hasPivot) CartdeckLayoutMode.ONE_HAND else CartdeckLayoutMode.STANDARD
+                                    when (mode) {
+                                        ArcControlMode.STANDARD_GRIPARC -> CartdeckLayoutMode.GRIPARC
+                                        ArcControlMode.PIVOTARC -> CartdeckLayoutMode.ONE_HAND
+                                        else -> CartdeckLayoutMode.STANDARD
+                                    }
                                 globalStore.save(globalStore.read().copy(mode = layout))
-                                feedback = "Default layout applied."
+                                feedback =
+                                    if (layout == CartdeckLayoutMode.GRIPARC) {
+                                        "GripARC is the default for supported controllers."
+                                    } else {
+                                        "Default layout applied."
+                                    }
                             }
                         },
                     )
@@ -305,7 +313,6 @@ private fun ControllerLayoutCard(
     supportedPivot: Boolean,
     pointerMode: String,
     gripProfile: GripArcProfile?,
-    allowGripSelection: Boolean,
     onApply: () -> Unit,
 ) {
     val (title, description) =
@@ -320,7 +327,7 @@ private fun ControllerLayoutCard(
             StandaloneGripArcLayout.supports(controller)
     val available =
         if (mode.hasGrip) {
-            availableGrip && allowGripSelection
+            availableGrip
         } else {
             controller != null && (!mode.hasPivot || (supportedPivot && !landscape))
         }

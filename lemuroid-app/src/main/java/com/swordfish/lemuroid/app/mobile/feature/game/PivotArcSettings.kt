@@ -9,7 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
-enum class CartdeckLayoutMode { STANDARD, ONE_HAND }
+enum class CartdeckLayoutMode { STANDARD, ONE_HAND, GRIPARC }
 
 enum class ControlsOrientation { AUTOMATIC, PORTRAIT, LANDSCAPE }
 

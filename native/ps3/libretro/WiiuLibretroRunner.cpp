@@ -318,7 +318,6 @@ int16_t input(unsigned port, unsigned device, unsigned index, unsigned id) {
     if (device == RETRO_DEVICE_ANALOG && index < 2 && id < 2)
         return axes[port][index * 2 + id].load();
     if (device == RETRO_DEVICE_POINTER && !index) {
-        if (port != 0 || applied_controller.load() != RETRO_DEVICE_JOYPAD) return 0;
         if (id == RETRO_DEVICE_ID_POINTER_X) return pointer_x.load();
         if (id == RETRO_DEVICE_ID_POINTER_Y) return pointer_y.load();
         if (id == RETRO_DEVICE_ID_POINTER_PRESSED) return pointer_down.load();
@@ -601,16 +600,12 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeController(
     JNIEnv*, jobject, jboolean pro) {
     // Pinned RPCS3 RETRO_DEVICE_PRO = RETRO_DEVICE_SUBCLASS(JOYPAD, 1).
-    pointer_down.store(false);
     requested_controller.store(pro ? 513u : RETRO_DEVICE_JOYPAD);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeToggleScreen(
-    JNIEnv*, jobject) {
-    pointer_down.store(false);
-    screen_requests.fetch_add(1);
-}
+    JNIEnv*, jobject) { screen_requests.fetch_add(1); }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_swordfish_lemuroid_app_debug_ps3_Ps3Libretro_nativeReport(

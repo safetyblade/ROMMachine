@@ -185,6 +185,14 @@ internal fun supportsStandaloneGripActions(system: SystemID?): Boolean =
             SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE, SystemID.SNES,
         )
 
+internal fun CartdeckLayoutMode.forSystem(system: SystemID?): ArcControlMode =
+    when (this) {
+        CartdeckLayoutMode.STANDARD -> ArcControlMode.STANDARD
+        CartdeckLayoutMode.ONE_HAND -> ArcControlMode.PIVOTARC
+        CartdeckLayoutMode.GRIPARC ->
+            if (supportsStandaloneGripActions(system)) ArcControlMode.STANDARD_GRIPARC else ArcControlMode.STANDARD
+    }
+
 internal fun standaloneGripFactory(system: SystemID?): GripArcProfile? {
     if (!supportsStandaloneGripActions(system)) return null
     val a = KeyEvent.KEYCODE_BUTTON_A
@@ -247,11 +255,8 @@ class GripArcProfileStore(context: Context) {
     }
 
     fun read(game: Game): GripArcProfile {
-        val previousGlobal = PivotArcSettingsStore(appContext).read().mode == CartdeckLayoutMode.ONE_HAND
-        val fallback =
-            defaultFor(game).copy(
-                mode = if (previousGlobal) ArcControlMode.PIVOTARC else ArcControlMode.STANDARD,
-            )
+        val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+        val fallback = defaultFor(game).copy(mode = PivotArcSettingsStore(appContext).read().mode.forSystem(system))
         val raw =
             preferences.getString(key(game), null)
                 ?: preferences.getString(legacyKey(game, game.legacySourceUri ?: game.fileUri), null)

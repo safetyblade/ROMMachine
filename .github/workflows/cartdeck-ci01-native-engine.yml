@@ -134,7 +134,7 @@ jobs:
               if (!passed) continue;
               // Reject native recipe changes before downloading a large candidate.
               // Receipt verification below remains authoritative for every byte.
-              // Cemu may intentionally reuse only the attested core and rebuild its host.
+              // Cemu requires an exact receipt for the core and the host.
               if ('${{ inputs.engine }}' === 'xenia') {
                 const producer = a.name.slice(prefix.length);
                 if (!/^[0-9a-f]{40}$/.test(producer)) continue;
@@ -172,7 +172,7 @@ jobs:
             if python3 scripts/ci/ci01_remaining_engines.py --engine '${{ inputs.engine }}' --directory work/verified-reuse; then
               valid=true
               if [[ '${{ inputs.engine }}' == cemu ]]; then
-                if ! python3 -c 'import sys,json;sys.path.insert(0,"scripts/ci");from wiiu_cemu_contract import require_guest_atomic64;require_guest_atomic64(json.load(open("work/verified-reuse/native-evidence.json")))'; then valid=false; fi
+                if ! python3 -c 'import sys,json;sys.path.insert(0,"scripts/ci");from wiiu_cemu_contract import require_guest_atomic64, require_visible_drc_guard;proof=json.load(open("work/verified-reuse/native-evidence.json"));require_guest_atomic64(proof);require_visible_drc_guard(proof)'; then valid=false; fi
               fi
             fi
           fi
@@ -189,11 +189,8 @@ jobs:
           sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --install 'ndk;29.0.14206865' 'cmake;3.30.3'
           echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
-      - name: Rebuild changed Wii U host with attested unchanged core
-        if: inputs.engine == 'cemu' && steps.reuse.outputs.valid != 'true'
-        run: python3 spikes/wiiu/vulkan-host/reuse_core.py work/verified-reuse
       - name: Compile selected pinned native source only
-        if: inputs.engine != 'cemu' && steps.reuse.outputs.valid != 'true'
+        if: steps.reuse.outputs.valid != 'true'
         shell: bash
         run: bash scripts/ci/build_connected_native_inputs.sh "${{ inputs.engine }}"
       - name: Verify five-core source identity, core and assets; issue immutable receipt

@@ -73,8 +73,8 @@ cover the listed digital modes. The Kotlin checks are not a handset result.
 - Existing cartridge chord lists remain the persisted native identities.
   Typed Hold, Turbo and game-menu assignments extend the same profile store.
   Factory assignments apply only to an unconfigured cartridge or explicit reset.
-  GripARC layout selection in this branch is per cartridge. A standalone global
-  default and per-native-mode programming need further work.
+  GripARC selection supports cartridge overrides and a global default for the
+  implemented systems. Per-native-mode programming needs further work.
 - Cemu commit `444c585202302a7f4b319bafb4cf72156a8cac8b`
   computes a full-size DRC viewport in TV-only single-display mode.
   The patched core guards touch against `LibretroDRC_ShouldRenderScreen(true)`,
