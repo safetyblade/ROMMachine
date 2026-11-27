@@ -119,6 +119,7 @@ object GameScreenLayout {
         availableWidth: Dp = 852.dp,
         availableHeight: Dp = 393.dp,
         dualScreenSoloPivot: Boolean = false,
+        independentPortraitAperture: Boolean = false,
     ): ConstraintSet {
         return when {
             !isLandscape ->
@@ -129,6 +130,7 @@ object GameScreenLayout {
                     availableWidth,
                     availableHeight,
                     dualScreenSoloPivot,
+                    independentPortraitAperture,
                 )
             allowTouchOverlay -> buildConstraintSetLandscape()
             else ->
@@ -148,6 +150,7 @@ object GameScreenLayout {
         availableWidth: Dp,
         availableHeight: Dp,
         dualScreenSoloPivot: Boolean,
+        independentPortraitAperture: Boolean,
     ): ConstraintSet {
         val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
         val insets = portraitHardwareInsets(availableWidth, availableHeight, expanded)
@@ -168,7 +171,7 @@ object GameScreenLayout {
                     // its own true pixel aspect and letterboxing.
                     height = Dimension.ratio(apertureRatio)
                     top.linkTo(parent.top, margin = insets.top)
-                    bottom.linkTo(leftPad.top, margin = insets.controlGap)
+                    if (!independentPortraitAperture) bottom.linkTo(leftPad.top, margin = insets.controlGap)
                     verticalBias = 0f
                     absoluteLeft.linkTo(parent.absoluteLeft, margin = insets.side)
                     absoluteRight.linkTo(parent.absoluteRight, margin = insets.side)

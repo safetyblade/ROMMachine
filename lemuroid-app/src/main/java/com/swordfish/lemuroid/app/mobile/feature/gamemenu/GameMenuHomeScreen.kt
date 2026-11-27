@@ -58,7 +58,7 @@ fun GameMenuHomeScreen(
                 scope.launch {
                     val report = withContext(Dispatchers.IO) { buildLibretroSupportReport(context, gameMenuRequest) }
                     context.startActivity(
-                        SupportActivity.intent(context, report),
+                        SupportActivity.intent(context, report, gameMenuRequest.game),
                     )
                 }
             GameMenuAction.ADVANCED -> navController.navigateToRoute(GameMenuRoute.ADVANCED)

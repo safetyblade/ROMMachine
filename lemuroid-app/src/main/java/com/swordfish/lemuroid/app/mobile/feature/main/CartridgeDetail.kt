@@ -295,7 +295,7 @@ private fun CartridgeEmulatorChoice(game: Game) {
                 system = game.systemId,
                 serial = serial,
             )
-        context.startActivity(SupportActivity.intent(context, report))
+        context.startActivity(SupportActivity.intent(context, report, game))
     }) { Text("Report a problem with this game") }
     if (systemId in setOf(SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PLAYSTATION_2, SystemID.WII)) {
         NativeEngineChoice(systemId, game)

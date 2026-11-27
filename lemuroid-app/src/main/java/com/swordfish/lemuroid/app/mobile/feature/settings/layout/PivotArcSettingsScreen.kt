@@ -129,6 +129,7 @@ fun PivotArcSettingsScreen(
                 requestedDx = x,
                 requestedDy = y,
                 isLandscape = false,
+                seatAtChassisBottom = true,
             )
         Dialog(onDismissRequest = { adjusting = false }) {
             Surface(shape = MaterialTheme.shapes.large) {
@@ -196,8 +197,8 @@ fun PivotArcSettingsScreen(
                                 if (preview is PivotArcResolution.Fits) {
                                     store.save(
                                         current.copy(
-                                            offsetXdp = preview.placement.appliedDx,
-                                            offsetYdp = preview.placement.appliedDy,
+                                            offsetXdp = x,
+                                            offsetYdp = y,
                                         ),
                                     )
                                     adjusting = false

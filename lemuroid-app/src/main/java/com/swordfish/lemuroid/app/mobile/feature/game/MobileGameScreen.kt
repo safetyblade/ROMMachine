@@ -40,9 +40,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -51,9 +54,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -235,6 +240,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val lifecycle = LocalLifecycleOwner.current
 
             val fullScreenPosition = remember { mutableStateOf<Rect?>(null) }
+            var chassisWindowBottom by remember { mutableFloatStateOf(0f) }
+            val windowView = LocalView.current
             val viewportPosition = remember { mutableStateOf<Rect?>(null) }
             // Read-only PadKit group measurements; nothing changes their size or input.
             val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
@@ -287,7 +294,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .onGloballyPositioned { fullScreenPosition.value = it.boundsInRoot() },
+                        .onGloballyPositioned {
+                            fullScreenPosition.value = it.boundsInRoot()
+                            chassisWindowBottom = it.positionInWindow().y + it.size.height
+                        },
                 factory = {
                     viewModel.createRetroView(localContext, lifecycle)
                 },
@@ -349,6 +359,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     )
                 } else {
                     null
+                }
+            val soloSafe =
+                safeBounds?.let {
+                    val windowBottom = windowView.rootView.height
+                    val reserved = maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                    it.copy(bottom = pivotChassisBottom(it.bottom, chassisWindowBottom, windowBottom, reserved, scale))
                 }
             val standardWiiPlacement =
                 if (standardWiiProfile != null && safeBounds != null && viewportBounds != null) {
@@ -413,10 +429,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 null -> null
                             }
                         } else if (soloProfile != null) {
-                            remember(soloProfile, safeBounds, viewportBounds, pivotSettings, isLandscape) {
+                            remember(soloProfile, soloSafe, viewportBounds, pivotSettings, isLandscape) {
                                 PivotArcSoloSolver.resolve(
                                     profile = soloProfile,
-                                    safe = safeBounds,
+                                    safe = checkNotNull(soloSafe),
                                     viewport = viewportBounds,
                                     leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
                                     requestedDx = pivotSettings.offsetXdp,
@@ -428,13 +444,14 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             PivotArcPositionSolver.resolve(
                                 baseline = checkNotNull(pivotBaseline),
                                 active = checkNotNull(requiredPivotControls),
-                                safe = safeBounds,
+                                safe = checkNotNull(soloSafe),
                                 viewport = viewportBounds,
                                 leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
                                 requestedDx = pivotSettings.offsetXdp,
                                 requestedDy = pivotSettings.offsetYdp,
                                 isLandscape = isLandscape,
                                 requireHardware = true,
+                                seatAtChassisBottom = true,
                             )
                         }
                     }
@@ -871,6 +888,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         dualScreenSoloPivot =
                             selectedPivot && soloProfile != null &&
                                 touchControlsVisibleState.value,
+                        independentPortraitAperture =
+                            selectedPivot && !effectiveArcMode.hasGrip && touchControlsVisibleState.value,
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,

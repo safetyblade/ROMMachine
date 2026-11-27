@@ -22,6 +22,7 @@ import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportDesign
 import com.swordfish.lemuroid.app.shared.support.SupportReport
 import com.swordfish.lemuroid.app.shared.support.SupportReportStore
 import com.swordfish.lemuroid.app.shared.support.SupportTransport
@@ -40,7 +41,18 @@ class GameCrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crash)
-        findViewById<TextView>(R.id.text1).text = "That didn't go to plan."
+        findViewById<TextView>(R.id.text1).text = "Game recovery"
+        listOf(
+            R.id.retryGame,
+            R.id.tryOtherEngine,
+            R.id.importPs2Bios,
+            R.id.copyReport,
+            R.id.reportProblem,
+            R.id.advancedDiagnostics,
+            R.id.returnToShelf,
+        ).forEach { id ->
+            SupportDesign.style(findViewById(id), primary = id == R.id.returnToShelf)
+        }
         val detail = findViewById<TextView>(R.id.text2)
         val record = intent.getSerializableExtra(EXTRA_PLAY_RECORD) as? Properties
         val code = intent.getStringExtra(EXTRA_PLAY_CODE)
@@ -123,7 +135,7 @@ class GameCrashActivity : ComponentActivity() {
                         .setMessage("Saved progress may remain associated with the original engine.")
                         .setNegativeButton("Cancel", null)
                         .setPositiveButton(label) { _, _ -> reopen(ps2, alternative.id) }
-                        .show()
+                        .show().also(SupportDesign::style)
                 }
             }
         }
@@ -146,7 +158,7 @@ class GameCrashActivity : ComponentActivity() {
         findViewById<Button>(R.id.reportProblem).setOnClickListener {
             lifecycleScope.launch {
                 startActivity(
-                    SupportActivity.intent(this@GameCrashActivity, report.await().first),
+                    SupportActivity.intent(this@GameCrashActivity, report.await().first, cartridge),
                 )
             }
         }
@@ -156,7 +168,7 @@ class GameCrashActivity : ComponentActivity() {
                     .setTitle("Advanced diagnostics")
                     .setMessage(report.await().first.text)
                     .setPositiveButton("Close", null)
-                    .show()
+                    .show().also(SupportDesign::style)
             }
         }
         findViewById<Button>(R.id.returnToShelf).setOnClickListener { returnToShelf() }

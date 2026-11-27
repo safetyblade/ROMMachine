@@ -66,6 +66,7 @@ import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.app.shared.support.SupportDesign
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
@@ -461,7 +462,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             .setPositiveButton("Validate and import") { _, _ -> importBiosFrom(folderCandidate) }
                             .setNegativeButton("Choose a different file") { _, _ -> importBios.launch(arrayOf("*/*")) }
                             .setOnCancelListener { leave() }
-                            .show()
+                            .show().also(SupportDesign::style)
                     }
                     return@launch
                 }

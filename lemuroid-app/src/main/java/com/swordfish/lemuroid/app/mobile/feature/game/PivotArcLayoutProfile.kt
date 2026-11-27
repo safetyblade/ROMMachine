@@ -194,6 +194,7 @@ object PivotArcPositionSolver {
         requestedDy: Float,
         isLandscape: Boolean,
         requireHardware: Boolean = false,
+        seatAtChassisBottom: Boolean = false,
     ): PivotArcResolution {
         if (isLandscape) {
             return PivotArcResolution.Unavailable("PivotArc currently requires portrait orientation.")
@@ -232,6 +233,7 @@ object PivotArcPositionSolver {
                         requestedDy = requestedDy,
                         scale = scale,
                         requireHardware = requireHardware,
+                        seatAtChassisBottom = seatAtChassisBottom,
                     )
             ) {
                 is PivotArcResolution.Fits -> return result
@@ -252,6 +254,7 @@ object PivotArcPositionSolver {
         requestedDy: Float,
         scale: Float,
         requireHardware: Boolean,
+        seatAtChassisBottom: Boolean,
     ): PivotArcResolution {
         val shiftX = safe.centerX - REFERENCE_WIDTH / 2f
         val shiftY = safe.bottom - REFERENCE_HEIGHT
@@ -353,7 +356,8 @@ object PivotArcPositionSolver {
         }
 
         val dx = requestedDx.coerceIn(minDx, maxDx)
-        val dy = (requestedDy + LOWER_TRIAL_OFFSET).coerceIn(minDy, maxDy)
+        val defaultDy = if (seatAtChassisBottom) maxDy else LOWER_TRIAL_OFFSET
+        val dy = (requestedDy + defaultDy).coerceIn(minDy, maxDy)
         val moved =
             complete.mapValues { (_, rect) ->
                 PivotArcBounds(
@@ -440,4 +444,17 @@ object PivotArcPositionSolver {
             ),
         )
     }
+}
+
+// The controller host can already end above the navigation area. Subtract only the overlap.
+internal fun pivotChassisBottom(
+    fallbackBottom: Float,
+    chassisBottomInWindow: Float,
+    windowHeight: Int,
+    navigationInset: Int,
+    density: Float,
+): Float {
+    if (windowHeight <= 0 || chassisBottomInWindow <= 0f) return fallbackBottom
+    val overlap = (chassisBottomInWindow - (windowHeight - navigationInset)).coerceIn(0f, navigationInset.toFloat())
+    return fallbackBottom + (navigationInset - overlap) / density + 6f
 }

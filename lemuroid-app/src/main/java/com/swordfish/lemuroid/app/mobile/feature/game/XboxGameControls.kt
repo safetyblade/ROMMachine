@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,8 +22,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
@@ -115,6 +118,8 @@ fun XboxGameControls(
                 controllerId,
             ) { com.swordfish.touchinput.radial.settings.NativeControlInventory.forController(controllerId) }
         val viewport = video.value
+        var chassisWindowBottom by remember { mutableFloatStateOf(0f) }
+        val windowView = LocalView.current
         val origin = root.value
         val placement =
             remember(arc, manifest, inventory, viewport, origin, constraints, density) {
@@ -173,8 +178,14 @@ fun XboxGameControls(
                         origin.width / scale -
                             maxOf(safeDrawing.getRight(density, direction), safeGestures.getRight(density, direction)) /
                             scale - 8f,
-                        origin.height / scale -
-                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                        pivotChassisBottom(
+                            origin.height / scale -
+                                maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                            chassisWindowBottom,
+                            windowView.rootView.height,
+                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)),
+                            scale,
+                        ),
                     )
                 val videoBounds =
                     PivotArcBounds(
@@ -242,7 +253,10 @@ fun XboxGameControls(
             )
         }
         PadKit(
-            Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
+            Modifier.fillMaxSize().onGloballyPositioned {
+                root.value = it.boundsInRoot()
+                chassisWindowBottom = it.positionInWindow().y + it.size.height
+            },
             onInputEvents = onInput,
         ) {
             if (border != DisplaySettingsStore.Border.OFF) {
@@ -298,6 +312,7 @@ fun XboxGameControls(
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
                             hardwareLandscape = dedicatedHardwareLayout,
                             gripArcLandscape = gripArcLandscape,
+                            independentPortraitAperture = pivotProfile != null,
                             availableWidth = this@BoxWithConstraints.maxWidth,
                             availableHeight = this@BoxWithConstraints.maxHeight,
                             portraitApertureRatio =

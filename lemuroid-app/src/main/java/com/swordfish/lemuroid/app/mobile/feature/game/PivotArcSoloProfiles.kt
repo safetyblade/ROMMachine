@@ -678,8 +678,11 @@ object PivotArcSoloSolver {
                 safe.right - GAP,
                 safe.bottom,
             )
-        if (available.width <= 0f || available.height <= 0f) {
+        if (safe.bottom <= max(safe.top, viewport.bottom)) {
             return PivotArcResolution.Unavailable("No safe space below the game screen.")
+        }
+        if (available.width <= 0f || available.height <= 0f) {
+            return PivotArcResolution.Unavailable("The space below the game screen cannot fit the PivotArc housing.")
         }
         val game = profile.seats.filterNot { it.utility } + listOfNotNull(profile.inactivePointerSeat)
         val utility = profile.seats.filter { it.utility }
