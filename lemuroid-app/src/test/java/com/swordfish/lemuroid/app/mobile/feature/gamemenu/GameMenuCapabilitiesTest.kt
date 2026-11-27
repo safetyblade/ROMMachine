@@ -8,7 +8,7 @@ import org.junit.Test
 
 class GameMenuCapabilitiesTest {
     @Test fun fullBackendUsesCommonOrderWithoutDuplicateActions() {
-        val actions = GameMenuCapabilities(true, true, true, true).homeActions()
+        val actions = GameMenuCapabilities(true, true, true, true, reporting = true).homeActions()
         assertEquals(GameMenuAction.values().toList(), actions)
         assertEquals(actions.size, actions.distinct().size)
     }

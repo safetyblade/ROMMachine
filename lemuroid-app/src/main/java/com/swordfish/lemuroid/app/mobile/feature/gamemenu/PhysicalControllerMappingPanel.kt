@@ -68,7 +68,8 @@ internal fun PhysicalControllerMappingPanel(
     onSelect: (InputDevice?) -> Unit,
     onCapture: (deviceId: Int, originalKey: Int) -> Unit,
     onCancel: () -> Unit,
-    onReset: (InputDevice) -> Unit,
+    onReset: (Map<Int, Int>) -> Unit,
+    onDraftChanged: () -> Unit,
     onUndo: () -> Unit,
     onDiscard: () -> Unit,
     onResolveConflict: () -> Unit,
@@ -89,6 +90,8 @@ internal fun PhysicalControllerMappingPanel(
     var selectedId by remember { mutableIntStateOf(-1) }
     val selected = devices.firstOrNull { it.id == selectedId } ?: devices.firstOrNull()
     var testing by remember(selected?.id) { mutableStateOf(false) }
+    var showDiagnostics by remember(selected?.id) { mutableStateOf(false) }
+    var sourceToEdit by remember(selected?.id) { mutableStateOf<Int?>(null) }
     var chooseDevice by remember { mutableStateOf(false) }
     var choosePort by remember { mutableStateOf(false) }
     var pendingPort by remember(selected?.id) { mutableStateOf<Int?>(null) }
@@ -136,6 +139,12 @@ internal fun PhysicalControllerMappingPanel(
     }
     val held = remember(probeRevision) { probe.held }
     val axes = remember(probeRevision) { probe.axes.toMap() }
+    val observed = remember(probeRevision) { probe.observedKeys }
+    val mappingKeys =
+        InputDeviceManager.OUTPUT_KEYS.filter {
+            it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
+                (targets == null || it.keyCode in targets)
+        }
 
     Column {
         Text(
@@ -245,15 +254,20 @@ internal fun PhysicalControllerMappingPanel(
             }
         GameMenuLink(if (testing) "Close input tester" else "Test buttons, sticks and triggers") { testing = !testing }
         if (testing) {
-            Text("Device identity: ${selected.descriptor}", style = MaterialTheme.typography.bodySmall)
-            Text(
-                "VID ${hardware.vendor} · PID ${hardware.product} · sources ${hardware.sources}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                "Reported buttons: ${hardware.keys.joinToString { physicalName(it) }}",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            GameMenuLink(if (showDiagnostics) "Hide raw input details" else "Advanced input details") {
+                showDiagnostics = !showDiagnostics
+            }
+            if (showDiagnostics) {
+                Text("Device identity: ${selected.descriptor}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "VID ${hardware.vendor} · PID ${hardware.product} · sources ${hardware.sources}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "Reported buttons: ${hardware.keys.joinToString { physicalName(it) }}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             if (hardware.family in
                 setOf(
                     ControllerHardwareProfile.Family.GENERIC,
@@ -277,32 +291,60 @@ internal fun PhysicalControllerMappingPanel(
             }
             Text("Press a physical button to see its mapped output. Select a mapping to change it.")
             val face: @Composable (Int, String, Modifier) -> Unit = { source, name, modifier ->
-                val target = bindings[source] ?: defaults[source]
-                val used =
-                    target != null && target != KeyEvent.KEYCODE_UNKNOWN &&
-                        (targets == null || target in targets)
+                val target = bindings[source]
+                val reported = source in hardware.keys || source in observed
                 GameMenuLink(
                     "$name ${if (source in held) "●" else ""} → ${target?.let(::targetName) ?: "Unavailable"}",
                     modifier = modifier,
-                    enabled = used,
-                ) { if (target != null) onCapture(selected.id, target) }
+                    enabled = reported && draft != null && !capturing,
+                ) { sourceToEdit = source }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Row {
                     Spacer(Modifier.weight(1f))
-                    face(KeyEvent.KEYCODE_BUTTON_Y, "NORTH", Modifier.weight(1f))
+                    face(KeyEvent.KEYCODE_BUTTON_Y, physicalName(KeyEvent.KEYCODE_BUTTON_Y), Modifier.weight(1f))
                     Spacer(Modifier.weight(1f))
                 }
                 Row {
-                    face(KeyEvent.KEYCODE_BUTTON_X, "WEST", Modifier.weight(1f))
-                    face(KeyEvent.KEYCODE_BUTTON_B, "EAST", Modifier.weight(1f))
+                    face(KeyEvent.KEYCODE_BUTTON_X, physicalName(KeyEvent.KEYCODE_BUTTON_X), Modifier.weight(1f))
+                    face(KeyEvent.KEYCODE_BUTTON_B, physicalName(KeyEvent.KEYCODE_BUTTON_B), Modifier.weight(1f))
                 }
                 Row {
                     Spacer(Modifier.weight(1f))
-                    face(KeyEvent.KEYCODE_BUTTON_A, "SOUTH", Modifier.weight(1f))
+                    face(KeyEvent.KEYCODE_BUTTON_A, physicalName(KeyEvent.KEYCODE_BUTTON_A), Modifier.weight(1f))
                     Spacer(Modifier.weight(1f))
                 }
             }
+        }
+        if (testing) {
+            val extra =
+                (hardware.keys + observed).filter {
+                    it in KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_16
+                }
+            for (code in extra) {
+                GameMenuLink("Edit ${physicalName(code)}", enabled = !capturing && draft != null) {
+                    sourceToEdit = code
+                }
+            }
+            Text("Paddles that repeat another button cannot be assigned independently.")
+        }
+        sourceToEdit?.let { source ->
+            AlertDialog(
+                onDismissRequest = { sourceToEdit = null },
+                title = { Text("Map ${physicalName(source)}") },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        for (key in mappingKeys) {
+                            GameMenuLink(targetName(key.keyCode)) {
+                                draft?.assign(source, key.keyCode)
+                                sourceToEdit = null
+                                onDraftChanged()
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { sourceToEdit = null }) { Text("Cancel") } },
+            )
         }
         GameMenuLink("Configure universal menu shortcut", enabled = draft?.dirty != true) {
             context.startActivity(
@@ -374,11 +416,14 @@ internal fun PhysicalControllerMappingPanel(
         if (testing) {
             Text("Input test: ${probe.lastEvent}")
             Text("Held / simultaneous chord: ${held.joinToString(" + ") { physicalName(it) }.ifEmpty { "None" }}")
-            axes.forEach { (axis, range) ->
-                Text(
-                    "${MotionEvent.axisToString(axis)}: ${range.value} · min ${range.minimum} · max ${range.maximum}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+            if (showDiagnostics) {
+                axes.forEach { (axis, range) ->
+                    val axisName = MotionEvent.axisToString(axis)
+                    Text(
+                        "$axisName: ${range.value} · min ${range.minimum} · max ${range.maximum}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             Text(
                 "Axes show neutral, range and DPAD diagonals. Analog triggers and digital L2/R2 " +
@@ -427,11 +472,6 @@ internal fun PhysicalControllerMappingPanel(
         }
         message?.let { Text(it) }
         Text("Map buttons", style = MaterialTheme.typography.titleMedium)
-        val mappingKeys =
-            InputDeviceManager.OUTPUT_KEYS.filter {
-                it.keyCode != KeyEvent.KEYCODE_UNKNOWN && it.keyCode != KeyEvent.KEYCODE_BUTTON_MODE &&
-                    (targets == null || it.keyCode in targets)
-            }
         val step = guidedIndex
         if (step == null) {
             GameMenuLink("Start guided mapping", enabled = !editing && mappingKeys.isNotEmpty()) {
@@ -452,6 +492,21 @@ internal fun PhysicalControllerMappingPanel(
                     onCapture(selected.id, next.keyCode)
                 }
             }
+            if (step > 0) {
+                GameMenuLink("Previous button") {
+                    onCancel()
+                    guidedIndex = step - 1
+                    onCapture(selected.id, mappingKeys[step - 1].keyCode)
+                }
+            }
+            if (capturing) {
+                GameMenuLink("Skip this button") {
+                    onCancel()
+                    val next = mappingKeys.getOrNull(step + 1)
+                    guidedIndex = if (next == null) null else step + 1
+                    if (next != null) onCapture(selected.id, next.keyCode)
+                }
+            }
             GameMenuLink("Exit guided mapping") {
                 onCancel()
                 guidedIndex = null
@@ -468,7 +523,14 @@ internal fun PhysicalControllerMappingPanel(
         }
         Text("Review changes", style = MaterialTheme.typography.titleMedium)
         if (draft?.canUndo == true) GameMenuLink("Undo", onClick = onUndo)
-        GameMenuLink("Reset draft to Console Authentic", onClick = { onReset(selected) })
+        GameMenuLink("Preview automatic mapping") {
+            val proposal =
+                defaults.filter { (source, target) ->
+                    (source in hardware.keys || source in observed) &&
+                        (targets == null || target in targets || target == KeyEvent.KEYCODE_BUTTON_MODE)
+                }
+            onReset(bindings + proposal)
+        }
         if (draft?.dirty == true && draft.conflict == null) GameMenuLink("Save mappings", onClick = onSave)
         GameMenuLink("Restore saved profile / discard edits", onClick = onDiscard)
     }

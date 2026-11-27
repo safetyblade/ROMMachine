@@ -47,7 +47,10 @@ import com.swordfish.lemuroid.lib.library.SystemID
 
 /** Settings → Layout. Intentional global choice, with no per-game mutations. */
 @Composable
-fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
+fun PivotArcSettingsScreen(
+    modifier: Modifier = Modifier,
+    showLayoutChoices: Boolean = true,
+) {
     val context = LocalContext.current
     val store = remember(context) { PivotArcSettingsStore(context) }
     val current = rememberPivotArcSettings().value
@@ -69,17 +72,19 @@ fun PivotArcSettingsScreen(modifier: Modifier = Modifier) {
             Text("PivotArc systems: $supported.")
             Text("Left Hand mirrors positions without changing game or input identities.")
         }
-        LayoutChoice(
-            "Standard",
-            "Original controls",
-            current.mode == CartdeckLayoutMode.STANDARD,
-        ) { store.save(current.copy(mode = CartdeckLayoutMode.STANDARD)) }
-        LayoutChoice(
-            "One Hand Mode",
-            "PivotArc",
-            current.mode == CartdeckLayoutMode.ONE_HAND,
-        ) { store.save(current.copy(mode = CartdeckLayoutMode.ONE_HAND)) }
-        if (current.mode == CartdeckLayoutMode.ONE_HAND) {
+        if (showLayoutChoices) {
+            LayoutChoice(
+                "Standard",
+                "Original controls",
+                current.mode == CartdeckLayoutMode.STANDARD,
+            ) { store.save(current.copy(mode = CartdeckLayoutMode.STANDARD)) }
+            LayoutChoice(
+                "One Hand Mode",
+                "PivotArc",
+                current.mode == CartdeckLayoutMode.ONE_HAND,
+            ) { store.save(current.copy(mode = CartdeckLayoutMode.ONE_HAND)) }
+        }
+        if (!showLayoutChoices || current.mode == CartdeckLayoutMode.ONE_HAND) {
             HorizontalDivider()
             PivotArcWordmark(
                 ink = MaterialTheme.colorScheme.onSurface,

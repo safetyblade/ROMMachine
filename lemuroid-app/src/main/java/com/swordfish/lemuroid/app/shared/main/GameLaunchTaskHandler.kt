@@ -3,11 +3,15 @@ package com.swordfish.lemuroid.app.shared.main
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.GameSessionCheckpoint
+import com.swordfish.lemuroid.app.shared.game.NativeSessionJournal
+import com.swordfish.lemuroid.app.shared.game.PS2RecoveryActivity
+import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery
 import com.swordfish.lemuroid.app.shared.gamecrash.GameCrashActivity
 import com.swordfish.lemuroid.app.shared.savesync.SaveSyncWork
 import com.swordfish.lemuroid.app.shared.storage.cache.CacheCleanerWork
+import com.swordfish.lemuroid.app.shared.support.SupportReportStore
 import com.swordfish.lemuroid.ext.feature.review.ReviewManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -30,14 +34,49 @@ class GameLaunchTaskHandler(
         data: Intent?,
     ) {
         rescheduleBackgroundWork(activity.applicationContext)
-        val nativeCrash =
+        if (data?.getBooleanExtra(PS2RecoveryActivity.RECOVERY_DISPLAYED, false) == true) return
+        val (nativeCrash, report) =
             withContext(Dispatchers.IO) {
-                com.swordfish.lemuroid.app.shared.game.NativeSessionJournal.consumeCrash(activity)
+                val context = activity.applicationContext
+                val checkpoint = GameSessionCheckpoint(context)
+                val record = checkpoint.read()
+                val crash =
+                    if (resultCode != Activity.RESULT_OK) {
+                        runCatching {
+                            NativeSessionJournal.consumeCrash(
+                                context,
+                                expectedPid = record?.getProperty("pid")?.toIntOrNull(),
+                                notBefore = record?.getProperty("started")?.toLongOrNull(),
+                            )
+                        }.getOrNull()
+                    } else {
+                        null
+                    }
+                val captured =
+                    record?.takeUnless { resultCode == Activity.RESULT_OK }?.let {
+                        runCatching {
+                            checkpoint.failure(
+                                it,
+                                listOfNotNull(data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR), crash)
+                                    .joinToString("\n").ifBlank { null },
+                                restart = false,
+                                confirmedFailure = resultCode != Activity.RESULT_CANCELED || crash != null,
+                            )
+                        }.getOrNull()
+                    }
+                if (captured != null) runCatching { SupportReportStore(context).save(captured) }
+                if (record != null) runCatching { checkpoint.clear(record.getProperty("session")) }
+                crash to captured
             }
+        if (report != null) {
+            val game = data?.getSerializableExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME) as? Game
+            GameCrashActivity.launchReport(activity, report, Armsx2BiosRecovery.fromResult(activity, data), game)
+            return
+        }
         if (resultCode == Activity.RESULT_CANCELED && nativeCrash != null) {
             handleUnsuccessfulGameFinish(
                 activity,
-                "The native engine stopped unexpectedly. Your saves were retained.",
+                "The game stopped unexpectedly.",
                 nativeCrash,
             )
             return
@@ -47,16 +86,36 @@ class GameLaunchTaskHandler(
             BaseGameActivity.RESULT_ERROR ->
                 handleUnsuccessfulGameFinish(
                     activity,
-                    "The engine could not start or stopped unexpectedly. Your saves were retained.",
+                    "The game could not start or stopped unexpectedly.",
                     data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR) ?: nativeCrash,
-                    com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery.fromResult(activity, data),
+                    Armsx2BiosRecovery.fromResult(activity, data),
                 )
             BaseGameActivity.RESULT_UNEXPECTED_ERROR ->
                 handleUnsuccessfulGameFinish(
                     activity,
-                    activity.getString(R.string.lemuroid_crash_disclamer),
+                    "The game stopped unexpectedly.",
                     data?.getStringExtra(BaseGameActivity.PLAY_GAME_RESULT_ERROR),
                 )
+        }
+    }
+
+    suspend fun recoverInterruptedGame(activity: Activity) {
+        if (PS2RecoveryActivity.restoreInterruptedLaunch(activity)) return
+        val report =
+            withContext(Dispatchers.IO) {
+                val context = activity.applicationContext
+                val checkpoint = GameSessionCheckpoint(context)
+                runCatching { SupportReportStore(context).list() }
+                val record = checkpoint.read() ?: return@withContext null
+                runCatching {
+                    checkpoint.failure(record, null, restart = true, confirmedFailure = false)?.also {
+                        runCatching { SupportReportStore(context).save(it) }
+                        runCatching { checkpoint.clear(record.getProperty("session")) }
+                    }
+                }.getOrNull()
+            } ?: return
+        if (!activity.isFinishing && !activity.isDestroyed) {
+            GameCrashActivity.launchReport(activity, report)
         }
     }
 
@@ -89,7 +148,7 @@ class GameLaunchTaskHandler(
         val duration =
             data?.extras?.getLong(BaseGameActivity.PLAY_GAME_RESULT_SESSION_DURATION)
                 ?: 0L
-        val game = data?.extras?.getSerializable(BaseGameActivity.PLAY_GAME_RESULT_GAME) as Game
+        val game = data?.extras?.getSerializable(BaseGameActivity.PLAY_GAME_RESULT_GAME) as? Game ?: return
 
         updateGamePlayedTimestamp(game)
         if (enableRatingFlow) {

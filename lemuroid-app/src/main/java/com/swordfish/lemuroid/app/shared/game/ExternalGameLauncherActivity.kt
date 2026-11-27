@@ -49,6 +49,10 @@ class ExternalGameLauncherActivity : ImmersiveActivity() {
     @Inject
     lateinit var gameLauncher: GameLauncher
 
+    companion object {
+        internal const val EXTRA_FRESH_LAUNCH = "cartdeck.fresh-launch"
+    }
+
     private val loadingState = MutableStateFlow(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,7 +99,7 @@ class ExternalGameLauncherActivity : ImmersiveActivity() {
             gameLauncher.launchGameAsync(
                 this,
                 game,
-                true,
+                !intent.getBooleanExtra(EXTRA_FRESH_LAUNCH, false),
                 TVHelper.isTV(applicationContext),
             )
 

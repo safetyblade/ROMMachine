@@ -1007,6 +1007,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 )
             }
             GripArcAccessory(
+                inputLabels = GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
                 placement = gripPlacement,
                 profile = arcProfile,
                 tokens = shellTokens,

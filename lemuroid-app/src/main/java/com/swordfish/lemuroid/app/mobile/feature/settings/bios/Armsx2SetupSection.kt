@@ -30,7 +30,6 @@ import java.util.zip.ZipInputStream
 
 @Composable
 internal fun Armsx2SetupSection() {
-    if (!Armsx2Engine.engineeringBuild) return
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -42,8 +41,7 @@ internal fun Armsx2SetupSection() {
             scope.launch {
                 hasBios =
                     withContext(Dispatchers.IO) {
-                        Armsx2Storage.setupPaths(context.filesDir).bios.listFiles().orEmpty()
-                            .any { it.isFile && !it.name.startsWith(".") && it.length() > 0 }
+                        Armsx2Storage.hasUserBios(context.filesDir)
                     }
             }
         }
@@ -53,9 +51,16 @@ internal fun Armsx2SetupSection() {
         onDispose { lifecycle.removeObserver(observer) }
     }
     LemuroidCardSettingsGroup(title = { Text("PlayStation 2 setup") }) {
+        com.swordfish.lemuroid.app.mobile.shared.compose.ui.EngineSelectionControls(
+            com.swordfish.lemuroid.lib.library.GameSystem.findById(
+                com.swordfish.lemuroid.lib.library.SystemID.PLAYSTATION_2.dbname,
+            ),
+            assetsReady = hasBios,
+        )
+        if (!Armsx2Engine.engineeringBuild) return@LemuroidCardSettingsGroup
         Text(
-            "Automatic selection uses ARMSX2 when your PS2 BIOS is configured; otherwise it uses BIOS-free Play!. " +
-                "Explicit cartridge engine choices take priority. Play! remains available as a fallback.",
+            "Quick Play uses Play!. Enhanced Compatibility uses ARMSX2 when the required BIOS and runtime are ready. " +
+                "Automatic keeps your existing cartridge engine association.",
             Modifier.padding(16.dp),
         )
         LemuroidSettingsMenuLink(
@@ -70,6 +75,10 @@ internal fun Armsx2SetupSection() {
                 )
             },
             onClick = { context.startActivity(Armsx2BiosRecovery.fromSettings(context)) },
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text("Open BIOS folder") },
+            onClick = { com.swordfish.lemuroid.app.shared.game.ps2next.Ps2Onboarding.openFolder(context) },
         )
         Row(Modifier.padding(16.dp)) {
             Text("Show ARMSX2 startup message", Modifier.weight(1f))

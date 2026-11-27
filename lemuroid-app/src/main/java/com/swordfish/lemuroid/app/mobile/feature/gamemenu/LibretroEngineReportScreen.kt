@@ -1,8 +1,5 @@
 package com.swordfish.lemuroid.app.mobile.feature.gamemenu
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
+import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2DiscEvidence
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportReport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -25,20 +25,47 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun LibretroEngineReportScreen(request: GameMenuActivity.GameMenuRequest) {
     val context = LocalContext.current
-    var report by remember(request) { mutableStateOf<String?>(null) }
+    var report by remember(request) { mutableStateOf<SupportReport?>(null) }
     LaunchedEffect(request) {
         report =
             withContext(Dispatchers.IO) {
-                LibretroEngineReport.build(context, request.game, request.coreConfig, request.engineReportSession)
+                buildLibretroSupportReport(context, request)
             }
     }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
-        GameMenuLink("Copy report", enabled = report != null) {
-            report?.let { text ->
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("CARTDECK Engine Report", text))
+        GameMenuLink("Copy diagnostic report", enabled = report != null) {
+            report?.let { snapshot ->
+                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText("CARTDECK diagnostic report", snapshot.text),
+                )
+                android.widget.Toast.makeText(
+                    context,
+                    "Diagnostic report copied.",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
             }
         }
-        Text(report ?: "Preparing engine report…")
+        GameMenuLink("Report a problem", enabled = report != null) {
+            report?.let { context.startActivity(SupportActivity.intent(context, it)) }
+        }
+        Text(report?.text ?: "Preparing engine report…")
     }
 }
+
+internal fun buildLibretroSupportReport(
+    context: android.content.Context,
+    request: GameMenuActivity.GameMenuRequest,
+): SupportReport =
+    SupportReport.create(
+        source = "gameplay",
+        category = "Game problem",
+        diagnostic =
+            runCatching {
+                LibretroEngineReport.build(context, request.game, request.coreConfig, request.engineReportSession)
+            }.getOrNull(),
+        gameTitle = playerMenuTitle(request.game.customName ?: request.game.title),
+        system = request.game.systemId,
+        engine = request.engineReportSession?.let { request.coreConfig.coreID.coreName },
+        serial = Ps2DiscEvidence.serial(context, request.game),
+    )

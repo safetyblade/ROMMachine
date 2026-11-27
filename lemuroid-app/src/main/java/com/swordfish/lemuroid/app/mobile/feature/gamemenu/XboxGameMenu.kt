@@ -26,6 +26,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.swordfish.lemuroid.app.mobile.feature.shelf.ShelfAppearance
 import com.swordfish.lemuroid.app.shared.game.xbox360.Xbox360PipelineAB
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportReport
+import com.swordfish.lemuroid.app.shared.support.SupportTransport
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 
@@ -52,8 +55,21 @@ internal fun XboxGameMenu(
     pipelineABQueued: String = "Engine default",
     onQueuePipelineAB: ((Xbox360PipelineAB.Mode) -> Unit)? = null,
     recovery: @Composable () -> Unit = {},
+    supportDiagnostic: (() -> String?)? = null,
     controls: @Composable () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun supportReport(): SupportReport =
+        SupportReport.create(
+            "gameplay",
+            "Game problem",
+            runCatching { supportDiagnostic?.invoke() }.getOrNull(),
+            gameTitle = playerMenuTitle(title),
+            system = console,
+            engine = engineInfo,
+        )
+
     val safeResume = canResume && capabilities.resume
     GameMenuTheme(appearance) {
         val nav = rememberNavController()
@@ -86,13 +102,15 @@ internal fun XboxGameMenu(
             NavHost(nav, startDestination = GameMenuRoute.HOME.route, modifier = Modifier.fillMaxSize()) {
                 composable(GameMenuRoute.HOME) {
                     SharedGameMenuHome(
-                        capabilities = capabilities.home,
+                        capabilities = capabilities.home.copy(reporting = supportDiagnostic != null),
                         onAction = { action ->
                             when (action) {
                                 GameMenuAction.RESUME -> if (safeResume) onResume()
                                 GameMenuAction.CONTROLS -> nav.navigateToRoute(GameMenuRoute.CONTROLS)
                                 GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
+                                GameMenuAction.REPORT_PROBLEM ->
+                                    context.startActivity(SupportActivity.intent(context, supportReport()))
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                                 else -> Unit // Not advertised by this backend.
@@ -130,7 +148,20 @@ internal fun XboxGameMenu(
                         Text("Engine information", style = MaterialTheme.typography.titleMedium)
                         Text(engineInfo, style = MaterialTheme.typography.bodySmall)
                         Text(pauseFeedback, style = MaterialTheme.typography.bodySmall)
-                        GameMenuLink("Copy engine/GPU report", onClick = onCopyReport)
+                        val copyLabel =
+                            if (supportDiagnostic == null) "Copy engine/GPU report" else "Copy diagnostic report"
+                        GameMenuLink(copyLabel) {
+                            if (supportDiagnostic == null) {
+                                onCopyReport()
+                            } else {
+                                SupportTransport.copy(context, supportReport())
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Diagnostic report copied.",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        }
                         if (pipelineABActive != null && onQueuePipelineAB != null) {
                             Text(
                                 "Global Xbox 360 renderer/memory A/B (debug only). Active: $pipelineABActive. " +
@@ -196,6 +227,28 @@ internal fun XboxMenuControls(
     manager: TouchControllerSettingsManager,
     controllerId: TouchControllerID = TouchControllerID.XBOX,
     physicalMapping: @Composable () -> Unit = {},
+    game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
+    onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
+) {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+        if (game == null) {
+            physicalMapping()
+            NativeTouchAdjustments(manager, controllerId, onSave)
+        } else {
+            UniversalControls(
+                game,
+                orientationSupported = false,
+                physical = physicalMapping,
+                advanced = { NativeTouchAdjustments(manager, controllerId, onSave) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun NativeTouchAdjustments(
+    manager: TouchControllerSettingsManager,
+    controllerId: TouchControllerID,
     onSave: (TouchControllerSettingsManager.Orientation, TouchControllerSettingsManager.Settings) -> Unit,
 ) {
     var orientation by remember { mutableStateOf(TouchControllerSettingsManager.Orientation.PORTRAIT) }
@@ -205,8 +258,7 @@ internal fun XboxMenuControls(
         manager.observeSettings(controllerId, orientation, density, insets)
     }.collectAsState(TouchControllerSettingsManager.Settings())
     var edited by remember(settings, orientation) { mutableStateOf(settings) }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-        physicalMapping()
+    Column(Modifier.padding(16.dp)) {
         Text("Touch controls", style = MaterialTheme.typography.titleMedium)
         GameMenuLink(
             if (orientation == TouchControllerSettingsManager.Orientation.PORTRAIT) "Portrait" else "Landscape",

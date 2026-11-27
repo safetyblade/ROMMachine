@@ -16,16 +16,15 @@ import androidx.navigation.NavController
 import com.alorma.compose.settings.storage.memory.rememberMemoryBooleanSettingState
 import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcLayoutProfile
-import com.swordfish.lemuroid.app.mobile.feature.game.PivotArcSoloProfiles
-import com.swordfish.lemuroid.app.mobile.feature.gamemenu.coreoptions.WiiPointerOptions
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.tilt.TiltConfigurationMenuEntry
 import com.swordfish.lemuroid.app.shared.GameMenuContract
-import com.swordfish.lemuroid.app.shared.input.WiiControllerCompatibility
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
-import com.swordfish.lemuroid.lib.library.SystemID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.reflect.KFunction1
 
 @Composable
@@ -34,6 +33,8 @@ fun GameMenuHomeScreen(
     gameMenuRequest: GameMenuActivity.GameMenuRequest,
     onResult: KFunction1<Intent.() -> Unit, Unit>,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val capabilities =
         GameMenuCapabilities(
             controls = true,
@@ -44,6 +45,7 @@ fun GameMenuHomeScreen(
                     !com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
                 },
             advanced = true,
+            reporting = true,
         )
     SharedGameMenuHome(capabilities) { action ->
         when (action) {
@@ -52,6 +54,13 @@ fun GameMenuHomeScreen(
             GameMenuAction.DISPLAY -> navController.navigateToRoute(GameMenuRoute.DISPLAY)
             GameMenuAction.STATES -> navController.navigateToRoute(GameMenuRoute.STATES)
             GameMenuAction.SETTINGS -> navController.navigateToRoute(GameMenuRoute.OPTIONS)
+            GameMenuAction.REPORT_PROBLEM ->
+                scope.launch {
+                    val report = withContext(Dispatchers.IO) { buildLibretroSupportReport(context, gameMenuRequest) }
+                    context.startActivity(
+                        SupportActivity.intent(context, report),
+                    )
+                }
             GameMenuAction.ADVANCED -> navController.navigateToRoute(GameMenuRoute.ADVANCED)
             GameMenuAction.RETURN_TO_SHELF -> onResult { putExtra(GameMenuContract.RESULT_QUIT, true) }
         }
@@ -213,7 +222,6 @@ private fun TiltControls(
     }
 }
 
-/** One simple Controls page; all GripArc programming remains inside the game. */
 @Composable
 fun GameMenuControlsScreen(
     navController: NavController,
@@ -223,76 +231,24 @@ fun GameMenuControlsScreen(
     controllerOptions: @Composable () -> Unit = {},
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        WiiControllerPicker(gameMenuRequest, onResult)
-        WiiPointerOptions(gameMenuRequest.game, gameMenuRequest.coreConfig)
-        physicalControllerOptions()
-        controllerOptions()
-        TiltControls(gameMenuRequest, onResult)
-        val system = SystemID.values().firstOrNull { it.dbname == gameMenuRequest.game.systemId }
-        val pivotAvailable =
-            system != null &&
-                (PivotArcLayoutProfile.activeFor(system) != null || PivotArcSoloProfiles.supportsSystem(system))
-        if (pivotAvailable) {
-            GameMenuLink("PivotArc", R.drawable.ic_menu_controls) {
-                navController.navigateToRoute(GameMenuRoute.PIVOTARC)
-            }
-        }
-        LemuroidSettingsMenuLink(
-            title = { Text("GripArc") },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.ic_menu_controls),
-                    contentDescription = "GripArc",
-                )
+        UniversalControls(
+            gameMenuRequest.game,
+            core = gameMenuRequest.coreConfig,
+            activeController = gameMenuRequest.currentControllerName,
+            onLiveController = { name ->
+                onResult { putExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER, name) }
             },
-            onClick = { navController.navigateToRoute(GameMenuRoute.GRIPARC) },
-        )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.game_menu_edit_touch_controls)) },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.ic_menu_controls),
-                    contentDescription = stringResource(id = R.string.game_menu_edit_touch_controls),
-                )
+            physical = physicalControllerOptions,
+            advanced = {
+                controllerOptions()
+                TiltControls(gameMenuRequest, onResult)
+                GameMenuLink("PivotARC positioning and handedness") {
+                    navController.navigateToRoute(GameMenuRoute.PIVOTARC)
+                }
+                GameMenuLink(stringResource(R.string.game_menu_edit_touch_controls)) {
+                    onResult { putExtra(GameMenuContract.RESULT_EDIT_TOUCH_CONTROLS, true) }
+                }
             },
-            onClick = { onResult { putExtra(GameMenuContract.RESULT_EDIT_TOUCH_CONTROLS, true) } },
         )
     }
-}
-
-/**
- * Available under Controls; not duplicated on the Home page.
- * Selection closes the menu and updates the active Libretro controller type.
- * No game restart, ROM modification or separate emulator installation.
- */
-@Composable
-private fun WiiControllerPicker(
-    gameMenuRequest: GameMenuActivity.GameMenuRequest,
-    onResult: KFunction1<Intent.() -> Unit, Unit>,
-) {
-    if (gameMenuRequest.game.systemId != SystemID.WII.dbname) return
-    val controllers = gameMenuRequest.coreConfig.controllerConfigs[0].orEmpty()
-    if (controllers.size < 2) return
-    val chosen =
-        WiiControllerCompatibility.selectVerifiedOrFallback(
-            controllers.map { it.name },
-            gameMenuRequest.currentControllerName,
-        )
-    val selected = controllers.indexOfFirst { it.name == chosen }.coerceAtLeast(0)
-    val variant = WiiControllerCompatibility.variant(controllers[selected].name)
-    Text(
-        "Wii controller: ${WiiControllerCompatibility.help(variant)} " +
-            "CARTDECK restores your previously selected cartridge profile when supported. " +
-            "A generic Bluetooth pad does not provide Wii IR or motion automatically.",
-    )
-    LemuroidSettingsList(
-        title = { Text("Wii controller") },
-        items = controllers.map { stringResource(id = it.displayName) },
-        state = rememberMemoryIntSettingState(selected),
-        onItemSelected = { index, _ ->
-            onResult {
-                putExtra(GameMenuContract.RESULT_CHANGE_WII_CONTROLLER, controllers[index].name)
-            }
-        },
-    )
 }

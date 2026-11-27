@@ -45,6 +45,7 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.menuFeedback
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.resumeFailureFeedback
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
 import com.swordfish.lemuroid.app.shared.game.CartdeckLoadingScreen
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.game.NativeReportCheckpoint
 import com.swordfish.lemuroid.app.shared.game.viewmodel.PivotArcHeldInputGate
@@ -315,6 +316,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 canResume = !failed && !leaving,
                                 onResume = ::closeMenu,
                                 onReturnToShelf = ::leave,
+                                supportDiagnostic = { report + "\n" + viewportAudit.summary() },
                                 onCopyReport = ::copyReport,
                                 onProbe = {},
                                 onPreviousEngine = { if (WiiuEngine.store(filesDir).rollback()) leave() },
@@ -342,9 +344,12 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
                                 GameMenuLink(
                                     "Import user-owned keys.txt for next launch",
                                 ) { importKeys.launch(arrayOf("*/*")) }
-                                XboxMenuControls(settings, TouchControllerID.WII_CLASSIC, physicalMapping = {
-                                    physicalMapping.Panel()
-                                }) { orientation, edited ->
+                                XboxMenuControls(
+                                    settings,
+                                    TouchControllerID.WII_CLASSIC,
+                                    physicalMapping = { physicalMapping.Panel() },
+                                    game = game,
+                                ) { orientation, edited ->
                                     lifecycleScope.launch {
                                         settings.storeSettings(
                                             TouchControllerID.WII_CLASSIC,
@@ -745,6 +750,7 @@ class WiiuVulkanRuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callba
     private fun leave() {
         if (leaving) return
         leaving = true
+        EngineShutdownDeadline.arm(applicationContext)
         preparation.requestCancellation()
         releaseInput()
         lifecycleScope.launch {

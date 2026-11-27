@@ -55,6 +55,7 @@ internal fun GripArcAccessory(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    inputLabels: Map<Int, String> = emptyMap(),
 ) {
     if (placement != null && !fullscreenWithGamepad && !isLoading) {
         GripArcControlGroup(
@@ -66,6 +67,7 @@ internal fun GripArcAccessory(
             lighting,
             highContrast,
             feedbackStrength,
+            inputLabels,
         )
     }
 }
@@ -85,6 +87,7 @@ internal fun GripArcControlGroup(
     lighting: CartdeckLighting = CartdeckLighting(),
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
+    inputLabels: Map<Int, String> = emptyMap(),
 ) {
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
@@ -94,6 +97,7 @@ internal fun GripArcControlGroup(
         for (slot in 1..profile.count) {
             val rect = placement.targets.getValue(slot)
             val mapping = profile.mappings.getOrNull(slot - 1).orEmpty().toSet()
+            val label = mapping.mapNotNull(inputLabels::get).joinToString("+").ifEmpty { "—" }
             val interaction = remember(slot) { MutableInteractionSource() }
             var pressed by remember(slot) { mutableStateOf(false) }
 
@@ -124,7 +128,7 @@ internal fun GripArcControlGroup(
                             interactionSource = interaction,
                             indication = null,
                             role = Role.Button,
-                            onClickLabel = "Press GripArc G$slot",
+                            onClickLabel = if (mapping.isEmpty()) "Unassigned button" else "Press $label",
                         ) { },
                 contentAlignment = Alignment.Center,
             ) {
@@ -133,7 +137,7 @@ internal fun GripArcControlGroup(
                         placement.visuals.getValue(slot).let { visual ->
                             Modifier.size(visual.w.dp, visual.h.dp)
                         },
-                    label = "G$slot",
+                    label = label,
                     tokens = tokens,
                     pressed = pressed,
                 )

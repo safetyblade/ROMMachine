@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity;
 import com.swordfish.lemuroid.app.shared.game.GameProcessLock;
+import com.swordfish.lemuroid.app.shared.game.EngineShutdownDeadline;
 import com.swordfish.lemuroid.app.shared.game.pc.PcManagedSession;
 import com.swordfish.lemuroid.lib.library.db.entity.Game;
 import com.swordfish.lemuroid.lib.library.pc.PcCartridgeStore;
@@ -278,6 +279,7 @@ public final class WineNativeSession {
         new AlertDialog.Builder(activity).setTitle("Return to Shelf")
             .setMessage("Save and close your game in Windows first. Returning may stop any remaining Wine processes.")
             .setNegativeButton("Cancel",null).setPositiveButton("Return",(d,w)->{
+                EngineShutdownDeadline.arm(activity.getApplicationContext());
                 activity.setResult(Activity.RESULT_OK,new Intent()
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_GAME,game)
                     .putExtra(BaseGameActivity.PLAY_GAME_RESULT_LEANBACK,activity.getIntent().getBooleanExtra("cartdeck.leanback",false))

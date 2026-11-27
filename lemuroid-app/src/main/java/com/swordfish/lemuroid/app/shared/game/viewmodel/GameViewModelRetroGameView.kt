@@ -62,6 +62,8 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
+private const val WII_POINTER_KEY = "dolphin_ir_mode"
+
 @OptIn(FlowPreview::class)
 class GameViewModelRetroGameView(
     private val appContext: Context,
@@ -227,11 +229,23 @@ class GameViewModelRetroGameView(
                 gameState.value =
                     if (loadingState is GameLoader.LoadingState.Ready) {
                         Timber.i("Setting state to loaded")
+                        val gameData = loadingState.gameData
+                        val pointer = wiiPointerOverride(display, systemCoreConfig)
+                        val launchData =
+                            if (pointer == null) {
+                                gameData
+                            } else {
+                                gameData.copy(
+                                    coreVariables =
+                                        gameData.coreVariables.filterNot { it.key == WII_POINTER_KEY }
+                                            .plus(pointer).toTypedArray(),
+                                )
+                            }
                         val retroViewData =
                             buildRetroViewData(
                                 applicationContext,
                                 systemCoreConfig,
-                                loadingState.gameData,
+                                launchData,
                                 display,
                                 alignment,
                                 lowLatencyAudio,
@@ -239,7 +253,7 @@ class GameViewModelRetroGameView(
                                 enableMicrophone,
                             )
                         GameState.Loaded(
-                            gameData = loadingState.gameData,
+                            gameData = launchData,
                             retroViewData = retroViewData,
                         )
                     } else {
@@ -258,7 +272,7 @@ class GameViewModelRetroGameView(
         if (system.id == SystemID.WII) {
             wiiPointerMode.value =
                 currentState.gameData.coreVariables.firstOrNull {
-                    it.key == CoreVariablesManager.WII_POINTER
+                    it.key == WII_POINTER_KEY
                 }?.value ?: "2"
         }
 
@@ -450,10 +464,22 @@ class GameViewModelRetroGameView(
         }
     }
 
+    private fun wiiPointerOverride(
+        display: DisplaySettingsStore.Choices,
+        config: SystemCoreConfig,
+    ): CoreVariable? {
+        if (system.id != SystemID.WII) return null
+        val namespace = com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(system.id.dbname, config)
+        val mode = display.engineOptions["$namespace:$WII_POINTER_KEY"] ?: return null
+        return mode.takeIf { value ->
+            config.exposedSettings.any { it.key == WII_POINTER_KEY && it.values.any { it.key == value } }
+        }?.let { CoreVariable(WII_POINTER_KEY, it) }
+    }
+
     private suspend fun initializeCoreVariablesFlow() {
         try {
             waitRetroGameViewInitialized()
-            val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig, launchedGame)
+            val options = coreVariablesManager.getOptionsForCore(system.id, systemCoreConfig)
             val namespace =
                 com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(
                     system.id.dbname,
@@ -482,13 +508,16 @@ class GameViewModelRetroGameView(
                     chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            val desired = options.filterNot { it.key in keys } + overrides
+            val pointerOverride = wiiPointerOverride(display, systemCoreConfig)
+            val desired =
+                options.filterNot { it.key in keys || it.key == pointerOverride?.key } + overrides +
+                    listOfNotNull(pointerOverride)
             updateCoreVariables(CoreOptionRefresh.changed(desired, current))
             if (system.id == SystemID.WII) {
                 wiiPointerMode.value =
                     desired.firstOrNull {
-                        it.key == CoreVariablesManager.WII_POINTER
-                    }?.value ?: current[CoreVariablesManager.WII_POINTER] ?: "2"
+                        it.key == WII_POINTER_KEY
+                    }?.value ?: current[WII_POINTER_KEY] ?: "2"
             }
         } catch (e: Exception) {
             Timber.e(e)

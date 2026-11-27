@@ -90,6 +90,7 @@ object GameProcessLock {
         check(SaveStorageLease.enterGameProcess(appContext)) {
             "Save storage is busy or needs recovery. Finish the SafeSave operation before reopening the game."
         }
+        runCatching { GameSessionCheckpoint(appContext).bindProcess() }
     }
 
     @Synchronized

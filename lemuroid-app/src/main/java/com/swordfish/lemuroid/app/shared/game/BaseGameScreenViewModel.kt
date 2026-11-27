@@ -197,7 +197,7 @@ class BaseGameScreenViewModel(
     fun reloadGripArcProfile() {
         val latest = gripArcStore.read(activeGame)
         if (latest != gripArcProfileState.value) {
-            pivotArcHeldInputGate.clear()
+            inputs.releasePhysicalInputs()
             gripArcProfileState.value = latest
         }
     }
@@ -305,6 +305,7 @@ class BaseGameScreenViewModel(
     }
 
     fun onScreenOrientationChanged(orientation: TouchControllerSettingsManager.Orientation) {
+        inputs.releasePhysicalInputs()
         touchControls.updateScreenOrientation(orientation)
     }
 

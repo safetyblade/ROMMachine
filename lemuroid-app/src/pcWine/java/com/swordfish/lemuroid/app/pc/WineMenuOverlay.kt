@@ -13,6 +13,10 @@ import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuLink
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuPanel
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuTheme
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.SharedGameMenuHome
+import com.swordfish.lemuroid.app.mobile.feature.gamemenu.playerMenuTitle
+import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportReport
+import com.swordfish.lemuroid.app.shared.support.SupportTransport
 
 object WineMenuOverlay {
     @JvmStatic
@@ -24,6 +28,16 @@ object WineMenuOverlay {
         exit: Runnable,
     ): ComposeView =
         ComposeView(context).apply {
+            fun report() =
+                SupportReport.create(
+                    "gameplay",
+                    "Game problem",
+                    null,
+                    gameTitle = playerMenuTitle(title),
+                    system = "PC",
+                    engine = "Wine",
+                )
+
             setContent {
                 GameMenuTheme {
                     var page by remember { mutableStateOf("Home") }
@@ -46,11 +60,20 @@ object WineMenuOverlay {
                                     "Use the game's own save system. " +
                                         "Its Wine prefix and working directory are retained.",
                                 )
-                            "Advanced" ->
+                            "Advanced" -> {
+                                GameMenuLink("Copy diagnostic report") {
+                                    SupportTransport.copy(context, report())
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Diagnostic report copied.",
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
                                 Text(
                                     "Native ARM64 Wine and experimental PE32 translation. " +
                                         "Audio and gameplay require verification.",
                                 )
+                            }
                             else ->
                                 SharedGameMenuHome(
                                     GameMenuCapabilities(
@@ -59,11 +82,14 @@ object WineMenuOverlay {
                                         settings = false,
                                         advanced = true,
                                         display = false,
+                                        reporting = true,
                                     ),
                                 ) { action ->
                                     when (action) {
                                         GameMenuAction.RESUME -> resume.run()
                                         GameMenuAction.RETURN_TO_SHELF -> exit.run()
+                                        GameMenuAction.REPORT_PROBLEM ->
+                                            context.startActivity(SupportActivity.intent(context, report()))
                                         else -> page = action.label
                                     }
                                 }

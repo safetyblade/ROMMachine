@@ -8,13 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.alorma.compose.settings.storage.memory.rememberMemoryIntSettingState
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuActivity
 import com.swordfish.lemuroid.app.shared.coreoptions.CoreOptionsPreferenceHelper
@@ -26,10 +23,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
-import com.swordfish.lemuroid.lib.library.SystemCoreConfig
-import com.swordfish.lemuroid.lib.library.SystemID
-import com.swordfish.lemuroid.lib.library.db.entity.Game
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 
 @Composable
 fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest) {
@@ -38,8 +31,8 @@ fun GameMenuCoreOptionsScreen(gameMenuRequest: GameMenuActivity.GameMenuRequest)
     val allOptions =
         remember(gameMenuRequest) {
             gameMenuRequest.coreOptions.filterNot {
-                com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey()) ||
-                    it.getKey() == CoreVariablesManager.WII_POINTER
+                it.getKey() == "dolphin_ir_mode" ||
+                    com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.isDisplayKey(it.getKey())
             }
         }
 
@@ -116,7 +109,7 @@ private fun ControllersOptions(
             .map { it to controllers[it] }
             .filter { (port, controllers) ->
                 controllers != null && controllers.size >= 2 &&
-                    !(port == 0 && gameMenuRequest.game.systemId == SystemID.WII.dbname)
+                    port != 0
             }
 
     if (visibleControllers.isEmpty()) {
@@ -143,31 +136,4 @@ private fun ControllersOptions(
             )
         }
     }
-}
-
-@Composable
-internal fun WiiPointerOptions(
-    game: Game,
-    config: SystemCoreConfig,
-) {
-    if (game.systemId != SystemID.WII.dbname) return
-    val option = config.exposedSettings.firstOrNull { it.key == CoreVariablesManager.WII_POINTER } ?: return
-    val context = LocalContext.current
-    val manager =
-        remember(context) {
-            CoreVariablesManager(dagger.Lazy { SharedPreferencesHelper.getSharedPreferences(context) })
-        }
-    val values = option.values.map { it.key }
-    var selected by remember(game.cartridgeId, game.fileUri) {
-        mutableStateOf(manager.wiiPointerMode(game) ?: manager.defaultWiiPointerMode())
-    }
-    LemuroidSettingsList(
-        title = { Text(stringResource(option.titleId)) },
-        items = option.values.map { stringResource(it.titleId) },
-        state = rememberMemoryIntSettingState(values.indexOf(selected).coerceAtLeast(0)),
-        onItemSelected = { index, _ ->
-            selected = values[index]
-            manager.setWiiPointerMode(game, selected)
-        },
-    )
 }

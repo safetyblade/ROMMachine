@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 internal class NativeControllerMappingSession(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val controller: TouchControllerID?,
+    controller: TouchControllerID?,
     private val cartridge: String? = null,
     private val runtime: Boolean = true,
     private val portCapacity: Int = 1,
@@ -45,6 +45,15 @@ internal class NativeControllerMappingSession(
     private val clearLegacyOverride: ((InputDevice) -> Unit)? = null,
     private val playerPort: (InputDevice) -> Int?,
 ) {
+    private var controller by mutableStateOf(controller)
+
+    fun updateController(value: TouchControllerID?) {
+        if (controller != value) {
+            cancelCapture()
+            controller = value
+        }
+    }
+
     private val manager = InputDeviceManager(context, Lazy { SharedPreferencesHelper.getSharedPreferences(context) })
     private var perCartridge by mutableStateOf(cartridge != null)
     private var bindingJob: Job? = null
@@ -391,11 +400,12 @@ internal class NativeControllerMappingSession(
                 draft?.cancelConflict()
                 revision++
             },
-            onReset = { device ->
+            onReset = { proposal ->
                 cancelCapture()
-                draft?.reset(manager.defaultBindings(device).mapKeys { it.key.keyCode }.mapValues { it.value.keyCode })
+                draft?.reset(proposal)
                 revision++
             },
+            onDraftChanged = { revision++ },
             onUndo = {
                 draft?.undo()
                 revision++
