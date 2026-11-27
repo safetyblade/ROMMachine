@@ -10,9 +10,11 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
 import com.swordfish.lemuroid.app.shared.game.ExternalGameLauncherActivity
 import com.swordfish.lemuroid.app.shared.game.PlayFailureEvidence
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
@@ -23,6 +25,8 @@ import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.app.shared.support.SupportReport
 import com.swordfish.lemuroid.app.shared.support.SupportReportStore
 import com.swordfish.lemuroid.app.shared.support.SupportTransport
+import com.swordfish.lemuroid.app.tv.main.MainTVActivity
+import com.swordfish.lemuroid.app.tv.shared.TVHelper
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlinx.coroutines.CoroutineScope
@@ -155,7 +159,15 @@ class GameCrashActivity : ComponentActivity() {
                     .show()
             }
         }
-        findViewById<Button>(R.id.returnToShelf).setOnClickListener { finish() }
+        findViewById<Button>(R.id.returnToShelf).setOnClickListener { returnToShelf() }
+        onBackPressedDispatcher.addCallback(this) { returnToShelf() }
+    }
+
+    private fun returnToShelf() {
+        // A pinned shortcut can be the bottom activity of the task, with no existing shelf underneath it.
+        val shelf = if (TVHelper.isTV(this)) MainTVActivity::class.java else MainActivity::class.java
+        startActivity(Intent(this, shelf).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        finish()
     }
 
     private var completedReport: SupportReport? = null

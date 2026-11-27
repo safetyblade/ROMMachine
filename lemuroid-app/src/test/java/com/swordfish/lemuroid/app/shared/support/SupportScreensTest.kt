@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2Onboarding
 import com.swordfish.lemuroid.app.shared.gamecrash.GameCrashActivity
@@ -54,6 +55,7 @@ class SupportScreensTest {
             assertEquals("Return to shelf", shelf.text.toString())
             shelf.performClick()
             assertTrue(activity.isFinishing)
+            assertEquals(MainActivity::class.java.name, shadowOf(activity).nextStartedActivity.component?.className)
         } finally {
             controller.destroy()
         }
