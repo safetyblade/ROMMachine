@@ -121,6 +121,7 @@ object GameScreenLayout {
         dualScreenSoloPivot: Boolean = false,
         independentPortraitAperture: Boolean = false,
         standaloneGripRailInset: Dp = 0.dp,
+        standalonePortraitBottomReserve: Dp = 0.dp,
     ): ConstraintSet {
         return when {
             !isLandscape ->
@@ -132,6 +133,7 @@ object GameScreenLayout {
                     availableHeight,
                     dualScreenSoloPivot,
                     independentPortraitAperture,
+                    standalonePortraitBottomReserve,
                 )
             allowTouchOverlay -> buildConstraintSetLandscape()
             else ->
@@ -153,9 +155,19 @@ object GameScreenLayout {
         availableHeight: Dp,
         dualScreenSoloPivot: Boolean,
         independentPortraitAperture: Boolean,
+        standalonePortraitBottomReserve: Dp,
     ): ConstraintSet {
         val expanded = apertureRatio != CartdeckViewportPolicy.STANDARD_RATIO
         val insets = portraitHardwareInsets(availableWidth, availableHeight, expanded)
+        val maxApertureWidth =
+            if (standalonePortraitBottomReserve > 0.dp) {
+                val maxHeight = (availableHeight - insets.top - standalonePortraitBottomReserve).coerceAtLeast(0.dp)
+                val ratio = apertureRatio.split(':').mapNotNull(String::toFloatOrNull)
+                val aspect = if (ratio.size == 2 && ratio[1] > 0f) ratio[0] / ratio[1] else 4f / 3f
+                (maxHeight * aspect).coerceIn(1.dp, (availableWidth - insets.side * 2).coerceAtLeast(1.dp))
+            } else {
+                0.dp
+            }
         return ConstraintSet {
             val gameView = createRefFor(CONSTRAINTS_GAME_VIEW)
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
@@ -171,6 +183,7 @@ object GameScreenLayout {
                     // Portrait glass follows a known system's native frame
                     // when measured vertical space allows. The core retains
                     // its own true pixel aspect and letterboxing.
+                    if (maxApertureWidth > 0.dp) width = Dimension.value(maxApertureWidth)
                     height = Dimension.ratio(apertureRatio)
                     top.linkTo(parent.top, margin = insets.top)
                     if (!independentPortraitAperture) bottom.linkTo(leftPad.top, margin = insets.controlGap)
@@ -288,12 +301,13 @@ object GameScreenLayout {
 
             val padInset = if (hardwareLandscape) insets.padTopBottom else 0.dp
             val sideInset = if (hardwareLandscape) insets.sideInset else 0.dp
+            val gripSideWidth = (availableWidth * 0.24f).coerceIn(132.dp, 260.dp)
             constrain(leftPad) {
                 absoluteLeft.linkTo(parent.absoluteLeft, margin = sideInset)
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
+                width = if (gripArcLandscape) Dimension.value(gripSideWidth) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 
@@ -304,7 +318,8 @@ object GameScreenLayout {
                 val horizontalClearance = if (hardwareLandscape) insets.screenHorizontal else 0.dp
                 absoluteLeft.linkTo(leftPad.absoluteRight, margin = horizontalClearance)
                 absoluteRight.linkTo(rightPad.absoluteLeft, margin = horizontalClearance)
-                top.linkTo(parent.top, margin = clearance)
+                val topClearance = if (standaloneGripRailInset > 0.dp) maxOf(clearance, 25.dp) else clearance
+                top.linkTo(parent.top, margin = topClearance)
                 bottom.linkTo(parent.bottom, margin = maxOf(clearance, standaloneGripRailInset))
                 width = Dimension.fillToConstraints // Expands between leftPad and rightPad
             }
@@ -314,7 +329,7 @@ object GameScreenLayout {
                 top.linkTo(parent.top, margin = padInset)
                 bottom.linkTo(parent.bottom, margin = padInset)
                 verticalBias = 0.5f
-                width = if (gripArcLandscape) Dimension.value(180.dp) else Dimension.wrapContent
+                width = if (gripArcLandscape) Dimension.value(gripSideWidth) else Dimension.wrapContent
                 if (hardwareLandscape) height = Dimension.preferredWrapContent
             }
 

@@ -110,3 +110,34 @@ cover the listed digital and analogue modes. The Kotlin checks are not a handset
   modes, guest tests and the current-tree connected APK remain open.
 - Conditional specialist controls need native dispatch and fit evidence before
   activation. Joint is outside this implementation.
+
+## F02 owner acceptance recovery
+
+The 41-item ledger in [PR #385](https://github.com/safetyblade/ROMMachine/pull/385)
+records 22 PASS, 6 PARTIAL, 6 FAIL and 7 UNTESTED on owner APK 91756280
+(merge revision `568525d6b6f47c5e9c680d3bde11dc134b732219`). Keep those
+results as the baseline for the next physical pass. The seven open acceptance
+items are factory reset, Nintendo 64, Wii controller, Wii U controller, Wii U
+GamePad touch, Wii U pointer protection and physical controller.
+
+- Confirm cap consistency, labels, landscape hardware, and unobstructed branding
+  for GBA, SNES, Mega Drive and PS1, then launch PS2 ARMSX2, GameCube, Xbox and
+  Xbox 360 in both orientations with GripARC selected. Verify the actual safe
+  insets, gameplay aspect, independent targets and simultaneous inputs on the
+  SM-S721B. A Standard session fallback leaves the GripARC launch item open.
+- Report `b820c5e5-8bbf-4f77-a32b-01f0cc7a4fb0` captured an engine-selection
+  failure before the Xenia stager ran. The registry now uses the stager's
+  extension policy. Retest a verified extensionless STFS package through SAF,
+  then check full-game recognition with matching legitimate profile metadata.
+  Log later staging or native errors separately from engine eligibility.
+- Report `0031d0ee-0ec2-4941-8c26-a6b6b09dbb51` concerns Metroid Prime Trilogy
+  (USA) with Dolphin Modern on Wii. The report shows a core video callback and
+  synchronous shader compilation requested by the frontend. It has no guest
+  speed, audio underrun, shader timing or verified binary digest evidence. The
+  Wii report now records the count and longest observed gap from a bounded
+  core-video event window. These are frontend delivery observations. Retest
+  on the handset to relate the gaps to crackle and stutter. Wii controller
+  acceptance remains a separate item.
+- For a launch rejected before gameplay, check that recovery identifies the
+  cartridge, console, engine when selected, media format and failing stage.
+  No runtime session is assigned to a pre-launch failure.

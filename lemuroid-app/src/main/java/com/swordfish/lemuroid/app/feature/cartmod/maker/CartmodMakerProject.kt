@@ -38,7 +38,9 @@ data class MakerCondition(val variable: String, val comparison: MakerComparison,
 
 sealed interface MakerEffect {
     data class SetVariable(val variable: String, val value: Int) : MakerEffect
+
     data class AddVariable(val variable: String, val delta: Int) : MakerEffect
+
     data object Win : MakerEffect
 }
 
@@ -90,7 +92,9 @@ object MakerProjectValidator {
         val g = project.grid
         if (g.width !in 1..MakerProject.MAX_GRID_DIMENSION ||
             g.height !in 1..MakerProject.MAX_GRID_DIMENSION
-        ) errors += "grid dimensions out of bounds"
+        ) {
+            errors += "grid dimensions out of bounds"
+        }
         if (project.stepLimit !in 1..MakerProject.MAX_STEP_LIMIT) errors += "stepLimit out of bounds"
         if (project.variables.size > MakerProject.MAX_VARIABLES) errors += "too many variables"
         if (project.rules.size > MakerProject.MAX_RULES) errors += "too many rules"

@@ -56,6 +56,8 @@ internal object GbaGripArcFullBodyGeometry {
 internal fun GbaGripArcFullHousing(
     panel: Rect,
     tokens: CartdeckEditionTokens,
+    engraving: PivotArcBounds? = null,
+    standalone: Boolean = false,
 ) {
     // No pointer handlers: native PadKit owns gameplay; G1-G4 retain their
     // saved bindings, hit rectangles, hold semantics and simultaneous presses.
@@ -113,22 +115,24 @@ internal fun GbaGripArcFullHousing(
         }
         // GBA-specific full-chassis engraving, not another floating tower.
         // The wordmark is decorative only and cannot become an input owner.
-        val engravingX = with(density) { (panel.center.x - 55.dp.toPx()).toDp() }
-        val engravingY = with(density) { (panel.top + 19.dp.toPx()).toDp() }
-        Text(
-            text = "GripArc",
-            color = tokens.accent,
-            fontSize = 13.sp,
-            fontStyle = FontStyle.Italic,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier =
-                Modifier
-                    .offset(x = engravingX, y = engravingY)
-                    .width(110.dp)
-                    .testTag("gba-griparc-full-wordmark"),
-        )
+        if (!standalone || engraving != null) {
+            val engravingX = engraving?.left?.dp ?: with(density) { (panel.center.x - 55.dp.toPx()).toDp() }
+            val engravingY = engraving?.top?.dp ?: with(density) { (panel.top + 19.dp.toPx()).toDp() }
+            Text(
+                text = "GripARC",
+                color = tokens.accent,
+                fontSize = 12.sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier =
+                    Modifier
+                        .offset(x = engravingX, y = engravingY)
+                        .width(engraving?.width?.dp ?: 110.dp)
+                        .testTag("gba-griparc-full-wordmark"),
+            )
+        }
     }
 }
 

@@ -115,7 +115,9 @@ fun XboxGameControls(
                 { name, rect -> if (bounds[name] != rect) bounds[name] = rect }
             }
         val assignmentMode = gripArcAssignmentMode(controllerId, wiiuPro = wiiuPro)
-        val arc = game?.let { rememberGripArcProfile(it, assignmentMode).value }
+        var useStandardForSession by remember(game) { mutableStateOf(false) }
+        val savedArc = game?.let { rememberGripArcProfile(it, assignmentMode).value }
+        val arc = savedArc.takeUnless { useStandardForSession }
         val hostSystem =
             pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
         val standalone = supportsStandaloneGripActions(hostSystem) && StandaloneGripArcLayout.supports(controllerId)
@@ -267,24 +269,31 @@ fun XboxGameControls(
             } else {
                 bounds
             }
-        var fallbackShown by androidx.compose.runtime.remember(game) { androidx.compose.runtime.mutableStateOf(false) }
         val unavailable =
             arc != null && arc.mode != ArcControlMode.STANDARD &&
                 (arc.mode != ArcControlMode.STANDARD_GRIPARC || placement == null) &&
-                (arc.mode != ArcControlMode.PIVOTARC || pivotPlacement == null) && viewport != null
-        if (unavailable && !fallbackShown) {
+                (arc.mode != ArcControlMode.PIVOTARC || pivotPlacement == null) && viewport != null &&
+                !physicalControllerConnected && !isTv
+        var settledFailure by remember(origin, viewport, unavailable) { mutableStateOf(false) }
+        androidx.compose.runtime.LaunchedEffect(origin, viewport, unavailable) {
+            if (unavailable) {
+                kotlinx.coroutines.delay(250)
+                settledFailure = true
+            }
+        }
+        if (settledFailure && !useStandardForSession) {
             androidx.compose.material3.AlertDialog(
-                onDismissRequest = { fallbackShown = true },
-                title = { androidx.compose.material3.Text("Standard controls for this session") },
+                onDismissRequest = { useStandardForSession = true },
+                title = { androidx.compose.material3.Text("CARTDECK controller layout") },
                 text = {
                     androidx.compose.material3.Text(
-                        "This native controller layout cannot fit the selected accessory mode " +
-                            "with every input and 48dp targets. Saved cartridge settings are preserved.",
+                        "There is not enough room for the selected controller layout on this screen. " +
+                            "CARTDECK will use Standard controls for this session and keep your cartridge setting.",
                     )
                 },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
-                        fallbackShown = true
+                        useStandardForSession = true
                     }) { androidx.compose.material3.Text("Continue") }
                 },
             )
@@ -337,10 +346,11 @@ fun XboxGameControls(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,
             ) {
+                val roomyLandscape =
+                    this@BoxWithConstraints.maxWidth >= 680.dp && this@BoxWithConstraints.maxHeight >= 320.dp
                 val gripArcLandscape =
                     landscape && hardwareBorder && !physicalControllerConnected && !isTv &&
-                        arc?.mode == ArcControlMode.STANDARD_GRIPARC &&
-                        this@BoxWithConstraints.maxWidth >= 680.dp && this@BoxWithConstraints.maxHeight >= 320.dp
+                        arc?.mode == ArcControlMode.STANDARD_GRIPARC && (standalone || roomyLandscape)
                 val dedicatedHardwareLayout =
                     landscape && hardwareBorder &&
                         (arc == null || arc.mode == ArcControlMode.STANDARD || gripArcLandscape)
@@ -362,7 +372,14 @@ fun XboxGameControls(
                                 } else {
                                     0.dp
                                 },
-                            independentPortraitAperture = pivotProfile != null,
+                            independentPortraitAperture = pivotProfile != null || gripChassis,
+                            standalonePortraitBottomReserve =
+                                if (gripChassis && StandaloneGripArcLayout.densePortrait(controllerId)) {
+                                    val bottom = maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density))
+                                    (bottom / density.density + 452f).dp
+                                } else {
+                                    0.dp
+                                },
                             availableWidth = this@BoxWithConstraints.maxWidth,
                             availableHeight = this@BoxWithConstraints.maxHeight,
                             portraitApertureRatio =

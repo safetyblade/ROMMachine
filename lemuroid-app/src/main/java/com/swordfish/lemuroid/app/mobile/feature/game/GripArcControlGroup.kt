@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -370,11 +371,18 @@ private fun GripArcShoulderButton(
                 strokeWidth = 1.dp.toPx(),
             )
         }
-        val lettering = if (manufactured) (maxHeight.value * 0.28f).coerceIn(11f, 16f) else 9f
+        val lettering =
+            when {
+                !manufactured -> 9f
+                label.length > 8 -> 10f
+                else -> (maxHeight.value * 0.25f).coerceIn(10f, 13f)
+            }
         Text(
             label,
             fontSize = lettering.sp,
             lineHeight = (lettering + if (manufactured) 1f else 0f).sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = if (manufactured) Modifier.padding(horizontal = 4.dp) else Modifier,
             color = tokens.onButton,
             maxLines = if (manufactured) 2 else 1,
         )

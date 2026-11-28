@@ -32,7 +32,7 @@ internal object Xbox360Content {
         val name = component(document.name ?: error("Xbox 360 content has no filename"))
         val extension = name.substringAfterLast('.', "").lowercase()
         check(Xbox360ContentIdentity.acceptsExtension(extension)) {
-            "Xbox 360 supports verified ISO, XEX game folders, ZAR and XCP content; M3U is not supported by this engine"
+            "Xbox 360 supports verified ISO, XEX folders, ZAR, XCP and extensionless packages."
         }
         val key =
             MessageDigest.getInstance("SHA-256").digest(uri.toString().toByteArray())

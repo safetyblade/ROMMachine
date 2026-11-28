@@ -87,8 +87,7 @@ data class RiivolutionPreset(
         return sb.toString()
     }
 
-    private fun jsonString(value: String): String =
-        "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    private fun jsonString(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 }
 
 data class RiivolutionPresetPatch(

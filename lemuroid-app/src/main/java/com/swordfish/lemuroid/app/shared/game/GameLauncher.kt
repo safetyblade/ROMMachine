@@ -91,6 +91,7 @@ class GameLauncher(
         }
 
         GlobalScope.launch(Dispatchers.Main) {
+            var engineId: String? = null
             try {
                 val system = GameSystem.findById(game.systemId)
                 if (system.id == SystemID.DOS) {
@@ -132,6 +133,7 @@ class GameLauncher(
                     WiiuEngine.engineeringBuild
                 ) {
                     val engine = NativeEngineRegistry.engines(system).single()
+                    engineId = engine.id
                     val eligibility = NativeEngineRegistry.eligibility(activity, engine)
                     check(eligibility.eligible) { eligibility.reason ?: "Cemu is unavailable" }
                     EngineSelectionPreferences(activity.applicationContext).beginLaunch(game, engine)
@@ -200,6 +202,7 @@ class GameLauncher(
                         null
                     }
                 val selection = withContext(Dispatchers.IO) { enginePreferences.select(game, legacyCoreConfig) }
+                engineId = selection.engine.id
                 if (system.id == SystemID.PLAYSTATION_3) {
                     enginePreferences.beginLaunch(game, selection.engine)
                     GameSessionCheckpoint.launch(
@@ -274,9 +277,10 @@ class GameLauncher(
             } catch (error: Exception) {
                 // A failure before GameActivity starts was previously lost in an
                 // unhandled launch coroutine. Show a safe diagnostic without
-                // exposing game names, ROM paths or ContentResolver URIs.
+                // exposing ROM paths or ContentResolver URIs.
                 Timber.e(error, "CARTDECK game launch setup failed")
                 if (!activity.isFinishing && !activity.isDestroyed) {
+                    val selectionError = error as? EngineSelectionPreferences.SelectionException
                     GameCrashActivity.launch(
                         activity,
                         if (error is EngineSelectionPreferences.SelectionException) {
@@ -289,6 +293,9 @@ class GameLauncher(
                         } else {
                             error.javaClass.simpleName
                         },
+                        cartridge = game,
+                        engineId = selectionError?.engineId ?: engineId,
+                        launchStage = selectionError?.stage ?: "Launch setup",
                     )
                 }
             }

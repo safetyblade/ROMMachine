@@ -19,8 +19,10 @@ data class MakerPreviewState(
 )
 
 object CartmodMakerPreview {
-
-    fun run(project: MakerProject, actions: List<MakerAction>): MakerPreviewState {
+    fun run(
+        project: MakerProject,
+        actions: List<MakerAction>,
+    ): MakerPreviewState {
         var state = MakerPreviewState(project.start, project.variables, 0, won = false)
         for (action in actions) {
             if (state.won || state.stepsUsed >= project.stepLimit) break
@@ -29,25 +31,31 @@ object CartmodMakerPreview {
         return state
     }
 
-    private fun step(project: MakerProject, state: MakerPreviewState, action: MakerAction): MakerPreviewState {
+    private fun step(
+        project: MakerProject,
+        state: MakerPreviewState,
+        action: MakerAction,
+    ): MakerPreviewState {
         var next = state.copy(stepsUsed = state.stepsUsed + 1)
-        next = when (action) {
-            MakerAction.INTERACT -> next
-            else -> {
-                val moved = when (action) {
-                    MakerAction.UP -> MakerPoint(next.position.x, next.position.y - 1)
-                    MakerAction.DOWN -> MakerPoint(next.position.x, next.position.y + 1)
-                    MakerAction.LEFT -> MakerPoint(next.position.x - 1, next.position.y)
-                    MakerAction.RIGHT -> MakerPoint(next.position.x + 1, next.position.y)
-                    MakerAction.INTERACT -> next.position
-                }
-                if (project.grid.inside(moved) && moved !in project.grid.blocked) {
-                    next.copy(position = moved)
-                } else {
-                    next
+        next =
+            when (action) {
+                MakerAction.INTERACT -> next
+                else -> {
+                    val moved =
+                        when (action) {
+                            MakerAction.UP -> MakerPoint(next.position.x, next.position.y - 1)
+                            MakerAction.DOWN -> MakerPoint(next.position.x, next.position.y + 1)
+                            MakerAction.LEFT -> MakerPoint(next.position.x - 1, next.position.y)
+                            MakerAction.RIGHT -> MakerPoint(next.position.x + 1, next.position.y)
+                            MakerAction.INTERACT -> next.position
+                        }
+                    if (project.grid.inside(moved) && moved !in project.grid.blocked) {
+                        next.copy(position = moved)
+                    } else {
+                        next
+                    }
                 }
             }
-        }
         if (next.position == project.grid.goal) next = next.copy(won = true)
         val trigger = if (action == MakerAction.INTERACT) MakerTrigger.ON_INTERACT else MakerTrigger.ON_ENTER
         val tileId = project.grid.interactive[next.position]
@@ -56,19 +64,25 @@ object CartmodMakerPreview {
             if (trigger == MakerTrigger.ON_INTERACT && rule.tileId != tileId) continue
             if (!conditionHolds(rule.condition, next.variables)) continue
             for (effect in rule.effects) {
-                next = when (effect) {
-                    is MakerEffect.SetVariable ->
-                        next.copy(variables = next.variables + (effect.variable to effect.value))
-                    is MakerEffect.AddVariable ->
-                        next.copy(variables = next.variables + (effect.variable to (next.variables[effect.variable] ?: 0) + effect.delta))
-                    MakerEffect.Win -> next.copy(won = true)
-                }
+                next =
+                    when (effect) {
+                        is MakerEffect.SetVariable ->
+                            next.copy(variables = next.variables + (effect.variable to effect.value))
+                        is MakerEffect.AddVariable -> {
+                            val value = (next.variables[effect.variable] ?: 0) + effect.delta
+                            next.copy(variables = next.variables + (effect.variable to value))
+                        }
+                        MakerEffect.Win -> next.copy(won = true)
+                    }
             }
         }
         return next
     }
 
-    private fun conditionHolds(condition: MakerCondition?, variables: Map<String, Int>): Boolean {
+    private fun conditionHolds(
+        condition: MakerCondition?,
+        variables: Map<String, Int>,
+    ): Boolean {
         if (condition == null) return true
         val actual = variables[condition.variable] ?: 0
         return when (condition.comparison) {

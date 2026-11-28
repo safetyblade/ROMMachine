@@ -101,12 +101,25 @@ class GameViewModelRetroGameView(
     @Volatile
     private var reportCoreFrameObserved = false
 
-    /** Snapshot only on menu invocation; no continuous performance polling or disk reads. */
+    private var wiiTimingCount = 0
+    private var wiiTimingFirst = 0L
+    private var wiiTimingLast = 0L
+    private var wiiTimingLongestGap = 0L
+    private var resetWiiTiming = true
+
+    /** Snapshot only on menu invocation. The Wii timing observer keeps four bounded counters. */
     fun engineReportSession(options: List<CoreVariable>): LibretroReportSession? =
         reportSession?.copy(
             coreFrameObserved = reportCoreFrameObserved,
             graphics = reportGraphics,
             reportedOptions = LibretroEngineReport.safeOptions(options.map { it.key to it.value }),
+            coreVideoTiming =
+                if (wiiTimingCount > 1) {
+                    "Wii core video events: $wiiTimingCount over ${wiiTimingLast - wiiTimingFirst} ms, " +
+                        "longest gap $wiiTimingLongestGap ms; audio underruns unavailable"
+                } else {
+                    null
+                },
         )
 
     private val wiiPointerMode = MutableStateFlow("2")
@@ -293,6 +306,10 @@ class GameViewModelRetroGameView(
 
         reportGraphics = null
         reportCoreFrameObserved = false
+        wiiTimingCount = 0
+        wiiTimingFirst = 0L
+        wiiTimingLast = 0L
+        wiiTimingLongestGap = 0L
         reportSession =
             LibretroReportSession(
                 coreFilePath = currentState.gameData.coreLibrary,
@@ -369,6 +386,31 @@ class GameViewModelRetroGameView(
                 PS2LaunchJournal(appContext).stage(PS2LaunchJournal.Stage.CORE_FRAME)
             }
             launchedGame?.let { runCatching { EngineSelectionPreferences(appContext).recordSuccess(it) } }
+        }
+        if (system.id == SystemID.WII) {
+            // Use the verified host's existing event. It does not expose audio delivery or guest speed.
+            scope.launch(Dispatchers.Main.immediate) {
+                result.getGLRetroEvents()
+                    .filter { it.javaClass.simpleName == "CoreFrameRendered" }
+                    .collect {
+                        if (!lifecycle.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                            return@collect
+                        }
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        if (resetWiiTiming || now - wiiTimingFirst >= 10_000L) {
+                            resetWiiTiming = false
+                            wiiTimingCount = 0
+                            wiiTimingFirst = now
+                            wiiTimingLast = 0L
+                            wiiTimingLongestGap = 0L
+                        }
+                        if (wiiTimingLast != 0L) {
+                            wiiTimingLongestGap = maxOf(wiiTimingLongestGap, now - wiiTimingLast)
+                        }
+                        wiiTimingLast = now
+                        wiiTimingCount++
+                    }
+            }
         }
         retroGameViewFlow.value = result
         gameState.value = GameState.Ready
@@ -550,6 +592,7 @@ class GameViewModelRetroGameView(
     }
 
     override fun onPause(owner: LifecycleOwner) {
+        resetWiiTiming = true
         setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
         super.onPause(owner)
     }

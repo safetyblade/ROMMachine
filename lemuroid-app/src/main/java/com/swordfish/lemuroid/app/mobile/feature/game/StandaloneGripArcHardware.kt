@@ -20,23 +20,64 @@ internal fun StandaloneGripArcHardware(
     tokens: CartdeckEditionTokens,
     landscape: Boolean,
 ) {
+    val panel = placement.dock.housing
+    val occupied = placement.controls.values + placement.dock.targets.values
+    val rail =
+        if (landscape) {
+            val centralUtilities =
+                placement.native.controls.filter { it.kind == NativeControlKind.UTILITY }
+                    .map { placement.controls.getValue(it.key) }
+                    .filter { target ->
+                        target.top >= panel.bottom - 50f &&
+                            kotlin.math.abs(target.centerX - panel.centerX) < panel.width / 4f
+                    }
+            centralUtilities.takeIf { it.isNotEmpty() }?.let { seats ->
+                PivotArcBounds(
+                    (seats.minOf { it.left } - 6f).coerceAtLeast(panel.left),
+                    seats.minOf { it.top },
+                    (seats.maxOf { it.right } + 6f).coerceAtMost(panel.right),
+                    seats.maxOf { it.bottom },
+                )
+            }
+        } else {
+            null
+        }
     if (landscape) {
         StandaloneGripArcLandscapeMark(
-            placement.dock.housing,
-            placement.controls.values + placement.dock.targets.values,
+            panel,
+            occupied + listOfNotNull(rail),
             tokens,
         )
     } else {
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-            val housing = placement.dock.housing
             val scale = androidx.compose.ui.platform.LocalDensity.current.density
+            val markWidth = 62f
+            val x = panel.centerX - markWidth / 2f
+            val engraving =
+                generateSequence(panel.top + 12f) { it + 4f }
+                    .takeWhile { it + 18f <= panel.bottom - 12f }
+                    .map { y -> PivotArcBounds(x, y, x + markWidth, y + 18f) }
+                    .firstOrNull { candidate -> occupied.none { it.inset(3f).intersects(candidate) } }
             GbaGripArcFullHousing(
-                Rect(housing.left * scale, housing.top * scale, housing.right * scale, housing.bottom * scale),
+                Rect(panel.left * scale, panel.top * scale, panel.right * scale, panel.bottom * scale),
                 tokens,
+                engraving = engraving,
+                standalone = true,
             )
         }
     }
     Canvas(Modifier.fillMaxSize()) {
+        if (rail != null) {
+            val bounds = Rect(rail.left.dp.toPx(), rail.top.dp.toPx(), rail.right.dp.toPx(), rail.bottom.dp.toPx())
+            drawControllerInset(
+                chamferedIsland(bounds, 8.dp.toPx()),
+                chamferedIsland(bounds.deflate(3.dp.toPx()), 5.dp.toPx()),
+                bounds,
+                tokens,
+                1.5.dp.toPx(),
+            )
+        }
+
         fun well(
             target: PivotArcBounds,
             size: PivotArcSize,

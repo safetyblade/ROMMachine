@@ -69,6 +69,7 @@ class GameCrashActivity : ComponentActivity() {
             (savedInstanceState?.getString(EXTRA_SNAPSHOT) ?: intent.getStringExtra(EXTRA_SNAPSHOT))
                 ?.let { SupportReport.parse(it) }
         val details = intent.getStringExtra(EXTRA_MESSAGE_DETAIL)
+        val launchStage = intent.getStringExtra(EXTRA_LAUNCH_STAGE)
         val report =
             evidenceScope.async {
                 val exitReason = record?.let { PlayFailureEvidence.exitReason(context, it) }
@@ -88,9 +89,21 @@ class GameCrashActivity : ComponentActivity() {
                                 details
                             },
                         gameTitle = game,
-                        system = if (record != null) "PS2" else null,
-                        engine = if (record != null) "Play!" else null,
-                        session = record?.getProperty("session"),
+                        system = if (record != null) "PS2" else cartridge?.systemId,
+                        engine = if (record != null) "Play!" else intent.getStringExtra(EXTRA_ENGINE),
+                        session =
+                            record?.getProperty("session")
+                                ?: SupportReport.NOT_APPLICABLE.takeIf { launchStage != null },
+                        serial = if (cartridge != null && record == null) SupportReport.UNKNOWN else null,
+                        mediaFormat =
+                            cartridge?.fileName?.substringAfterLast('.', "")?.let { extension ->
+                                when {
+                                    extension.isEmpty() -> "Extensionless"
+                                    extension.matches(Regex("[A-Za-z0-9]{1,12}")) -> extension.lowercase()
+                                    else -> SupportReport.UNKNOWN
+                                }
+                            },
+                        launchStage = launchStage,
                     )
                 runCatching { SupportReportStore(context).save(value) }
                 if (record != null) {
@@ -264,6 +277,8 @@ class GameCrashActivity : ComponentActivity() {
         private const val EXTRA_PLAY_RECORD = "support.playRecord"
         private const val EXTRA_PLAY_CODE = "support.playCode"
         private const val EXTRA_GAME = "support.game"
+        private const val EXTRA_ENGINE = "support.engine"
+        private const val EXTRA_LAUNCH_STAGE = "support.launchStage"
         private const val EXTRA_SNAPSHOT = "support.snapshot"
         internal const val RECOVERY_PREFS = "support-recovery"
         internal const val RECOVERED_START = "recovered-play-start"
@@ -274,11 +289,17 @@ class GameCrashActivity : ComponentActivity() {
             message: String,
             messageDetail: String?,
             biosRecovery: Intent? = null,
+            cartridge: Game? = null,
+            engineId: String? = null,
+            launchStage: String? = null,
         ) {
             val intent =
                 Intent(activity, GameCrashActivity::class.java).apply {
                     putExtra(EXTRA_MESSAGE, message)
                     putExtra(EXTRA_MESSAGE_DETAIL, messageDetail?.take(96_000))
+                    putExtra(EXTRA_GAME, cartridge)
+                    putExtra(EXTRA_ENGINE, engineId)
+                    putExtra(EXTRA_LAUNCH_STAGE, launchStage)
                     putExtra(EXTRA_BIOS_RECOVERY, biosRecovery)
                 }
             activity.startActivity(intent)

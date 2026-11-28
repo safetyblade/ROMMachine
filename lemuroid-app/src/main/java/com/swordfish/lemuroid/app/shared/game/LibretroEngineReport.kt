@@ -24,6 +24,7 @@ data class LibretroReportSession(
     val coreFrameObserved: Boolean = false,
     val graphics: String? = null,
     val reportedOptions: ArrayList<String> = arrayListOf(),
+    val coreVideoTiming: String? = null,
 ) : Serializable
 
 object LibretroEngineReport {
@@ -144,7 +145,7 @@ object LibretroEngineReport {
             appendLine("core_video_callback_observed=${session?.coreFrameObserved?.toString() ?: UNAVAILABLE}")
             appendLine("low_latency_audio_requested=${session?.lowLatencyAudioRequested?.toString() ?: UNAVAILABLE}")
             appendLine("skip_duplicate_frames=${session?.skipDuplicateFrames?.toString() ?: UNAVAILABLE}")
-            appendLine("performance_counters=not collected")
+            appendLine("performance_counters=${session?.coreVideoTiming?.let(::safeField) ?: "not collected"}")
             if (core.equals("citra", ignoreCase = true)) {
                 appendLine("legacy_package_revision=fee2e824525daa22bcf318f96127fe43fa8a15ad")
                 appendLine("legacy_package_revision_is_not_upstream_source=true")

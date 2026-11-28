@@ -68,6 +68,17 @@ class GbaGripArcLayoutTest {
     }
 
     @Test
+    fun snesCapsStayConsistentWithinEachFamily() {
+        val snes = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.SNES))
+        val placement = checkNotNull(StandaloneGripArcLayout.resolveStandalone(snes, safe, viewport, false))
+        for (family in listOf(listOf("L", "R"), listOf("A", "B", "X", "Y"), listOf("Select", "Menu", "Start"))) {
+            assertEquals(1, family.map { placement.visuals.getValue(it) }.distinct().size)
+        }
+        assertEquals(1, placement.dock.visuals.values.distinct().size)
+        assertTrue(placement.controls.values.all { it.width >= 48f && it.height >= 48f })
+    }
+
+    @Test
     fun snesUsesAnIndependentFaceDiamondAndApprovedSlotIdentities() {
         val inventory = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.SNES))
         val wideSafe = PivotArcBounds(8f, 8f, 732f, 352f)

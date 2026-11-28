@@ -62,9 +62,12 @@ class SupportSubmissionTest {
                 attempts = 2,
                 updatedAtMillis = 123L,
             )
-        assertEquals(SupportSubmissionState.SUBMITTING, JSONObject(stale.toJson()).getString("state").let {
-            SupportSubmissionState.valueOf(it)
-        })
+        assertEquals(
+            SupportSubmissionState.SUBMITTING,
+            JSONObject(stale.toJson()).getString("state").let {
+                SupportSubmissionState.valueOf(it)
+            },
+        )
         val resolved = SupportSubmission.parse(stale.toJson())
         assertEquals(SupportSubmissionState.PENDING_SUBMISSION, resolved.state)
         assertEquals(2, resolved.attempts)

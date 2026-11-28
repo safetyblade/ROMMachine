@@ -44,11 +44,12 @@ data class SupportSubmission(
                 reportId = reportId,
                 // A stored SUBMITTING means the process may have died mid-submit; the send
                 // never completed, so the report is pending again rather than submitted.
-                state = if (state == SupportSubmissionState.SUBMITTING) {
-                    SupportSubmissionState.PENDING_SUBMISSION
-                } else {
-                    state
-                },
+                state =
+                    if (state == SupportSubmissionState.SUBMITTING) {
+                        SupportSubmissionState.PENDING_SUBMISSION
+                    } else {
+                        state
+                    },
                 reference = values.optString("reference").takeIf { it.isNotBlank() },
                 attempts = values.optInt("attempts"),
                 updatedAtMillis = values.optLong("updatedAtMillis"),

@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.shared.game.xbox360
 
+import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.scanner.NativeDiscFolderIdentity
 import com.swordfish.lemuroid.lib.storage.scanner.Xbox360ContentIdentity
@@ -56,6 +58,15 @@ class Xbox360ContentTest {
         assertFalse(probe("not-a-disc.iso", xex()))
         assertTrue(probe("synthetic.xcp", ByteArray(0x3AD).apply { "LIVE".toByteArray().copyInto(this) }))
         assertFalse(probe("bad.xcp", xex()))
+    }
+
+    @Test fun xeniaSelectionAllowsExtensionlessPackagesToReachValidation() {
+        val system = GameSystem.findById(SystemID.XBOX360.dbname)
+        val engine = NativeEngineRegistry.engines(system).single()
+        assertTrue(NativeEngineRegistry.acceptsMedia(engine, ""))
+        assertTrue(NativeEngineRegistry.acceptsMedia(engine, "XCP"))
+        assertFalse(NativeEngineRegistry.acceptsMedia(engine, "m3u"))
+        assertFalse(NativeEngineRegistry.acceptsMedia(engine, "zip"))
     }
 
     @Test fun extensionlessFilesAreIdentifiedByTheirStfsHeaderOnly() {

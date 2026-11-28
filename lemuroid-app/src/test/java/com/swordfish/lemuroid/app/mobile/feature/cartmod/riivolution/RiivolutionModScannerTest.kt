@@ -1,22 +1,22 @@
 package com.swordfish.lemuroid.app.mobile.feature.cartmod.riivolution
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /**
  * Scaffold tests for [RiivolutionModScanner]. The fixture mod is fully
  * synthetic (authored for this test): no real game mod content is used.
  */
 class RiivolutionModScannerTest {
-
     @get:Rule
     val tempFolder = TemporaryFolder()
 
-    private val fakeXml = """
+    private val fakeXml =
+        """
         <?xml version="1.0" encoding="utf-8"?>
         <wiidisc version="1">
           <id game="RFKE01"/>
@@ -26,7 +26,7 @@ class RiivolutionModScannerTest {
             <file disc="/files/missing.bin" external="FakeMod/missing.bin"/>
           </patch>
         </wiidisc>
-    """.trimIndent()
+        """.trimIndent()
 
     private fun writeFakeMod(): File {
         val root = tempFolder.newFolder("fakemod")

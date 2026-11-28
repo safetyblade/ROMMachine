@@ -91,6 +91,8 @@ class SupportReport private constructor(private val data: JSONObject) {
             engine: String? = null,
             session: String? = null,
             serial: String? = null,
+            mediaFormat: String? = null,
+            launchStage: String? = null,
         ): SupportReport =
             SupportReport(
                 JSONObject()
@@ -105,6 +107,8 @@ class SupportReport private constructor(private val data: JSONObject) {
                     .put("engine", engine?.take(200)?.let(::sanitise) ?: NOT_CAPTURED)
                     .put("session", session ?: NOT_CAPTURED)
                     .put("discSerial", serial ?: NOT_CAPTURED)
+                    .put("mediaFormat", mediaFormat?.let(::sanitise) ?: NOT_CAPTURED)
+                    .put("launchStage", launchStage?.let(::sanitise) ?: NOT_CAPTURED)
                     .put("version", BuildConfig.VERSION_NAME)
                     .put("versionCode", BuildConfig.VERSION_CODE)
                     .put("buildRevision", BuildConfig.SUPPORT_SOURCE_REVISION)

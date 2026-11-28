@@ -582,7 +582,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                     )
                                 }
                             combinedPlacement?.let { GripArcFit.Fits(it.dock) }
-                                ?: GripArcFit.Unavailable("GripARC needs more room for every seat.")
+                                ?: GripArcFit.Unavailable(
+                                    "There is not enough room for all GripARC controls on this screen.",
+                                )
                         } else if (!selectedPivot && nativeInventory == null) {
                             GripArcFit.Unavailable(
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
@@ -860,7 +862,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
                     currentControllerConfig != null &&
                     effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
-                    maxWidth >= 680.dp && maxHeight >= 320.dp
+                    (standaloneGripSelected || (maxWidth >= 680.dp && maxHeight >= 320.dp))
             val dedicatedHardwareLayout =
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
                     currentControllerConfig != null &&
@@ -899,8 +901,17 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                                 viewModel.systemId in setOf(SystemID.NDS, SystemID.NINTENDO_3DS)
                                         )
                                 ),
+                        standalonePortraitBottomReserve =
+                            if (StandaloneGripArcLayout.densePortrait(standaloneInventory?.controller)) {
+                                val bottom =
+                                    maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                                (bottom / currentDensity.density + 452f).dp
+                            } else {
+                                0.dp
+                            },
                         independentPortraitAperture =
-                            selectedPivot && !effectiveArcMode.hasGrip && touchControlsVisibleState.value,
+                            touchControlsVisibleState.value &&
+                                (standaloneGripSelected || (selectedPivot && !effectiveArcMode.hasGrip)),
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,
@@ -1069,16 +1080,23 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         nativeProfileValidated &&
                             GripArcInputCatalog.forSystem(viewModel.systemId).isNotEmpty()
                     }
-            if ((!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&
-                touchControlsVisibleState.value && !isLoading &&
-                !dismissedFallback.value
-            ) {
+            val showGripFallback =
+                (!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&
+                    touchControlsVisibleState.value && !isLoading
+            var settledGripFailure by remember(fullPos, viewPos, showGripFallback) { mutableStateOf(false) }
+            LaunchedEffect(fullPos, viewPos, showGripFallback) {
+                if (showGripFallback) {
+                    kotlinx.coroutines.delay(250)
+                    settledGripFailure = true
+                }
+            }
+            if (settledGripFailure && gripError != null && !dismissedFallback.value) {
                 AlertDialog(
                     onDismissRequest = {
                         sessionChoice.value = sessionChoice.value.useStandard()
                         dismissedFallback.value = true
                     },
-                    title = { Text("GripArc unavailable on this layout") },
+                    title = { Text("CARTDECK controller layout") },
                     text = { Text(gripError.reason) },
                     confirmButton = {
                         TextButton(onClick = {
