@@ -12,6 +12,7 @@ import com.swordfish.touchinput.radial.settings.TouchControllerID
 
 internal object StandaloneGripArcLayout {
     const val GAMECUBE_LANDSCAPE_FIT = "authored GameCube landscape panels + utility rail"
+    const val AUTHORED_LANDSCAPE_FIT = "authored landscape panels + utility rail"
 
     private data class Seat(val x: Int, val y: Int, val size: Float = 48.5f)
 
@@ -1044,15 +1045,59 @@ internal object StandaloneGripArcLayout {
                 if (authored) authoredBounds(sized, centralUtility) else bounds(sized, menu = centralUtility)
             }
         if (nativeSeats.keys != native.controls.map { it.key }.toSet()) return null
+        // C02-A: landscape resolves through authored panels and a utility
+        // rail first (the C01 architecture, generalised). See
+        // resolveAuthoredLandscape. The uniform authored transform below
+        // is the only other landscape route: the legacy seat projection
+        // and the compact directional fallback no longer run in landscape.
+        if (landscape) {
+            val zoned =
+                resolveAuthoredLandscape(native, nativeSeats, programSeats, safe, viewport, width, height)
+            if (zoned != null) return zoned
+        }
         val program = programSeats.mapKeys { (slot, _) -> "program:$slot" }
         val programTargets = program.mapValues { bounds(it.value) }
         val display = viewport.inset(1.5f)
         val authoredTargets = nativeTargets(authored = true) + program.mapValues { authoredBounds(it.value, false) }
         val authored = authoredTargets.takeIf { independentTargets(it.values.toList(), panel, display) }
+        // Landscape: authored routes only — no legacy projection, no
+        // compact directional shrink. Portrait keeps its existing routes
+        // until its authored migration lands.
+        if (landscape) {
+            val fitted = authored ?: return null
+            return placementFromFitted(
+                native, nativeSeats, programSeats, fitted, panel, safe, viewport, width, height,
+                fit = "uniform chassis transform",
+            )
+        }
         val regular = authored ?: growTargets(nativeTargets() + programTargets, panel, display)
         val fitted =
             regular ?: growTargets(nativeTargets(compact = true) + programTargets, panel, display)
                 ?: return null
+        return placementFromFitted(
+            native, nativeSeats, programSeats, fitted, panel, safe, viewport, width, height,
+            fit =
+                when {
+                    authored != null -> "uniform chassis transform"
+                    regular != null -> "legacy seat projection"
+                    else -> "legacy compact directional targets"
+                },
+        )
+    }
+
+    /** Build the placement (caps, visuals, seats, dock, geometry) from resolved target bounds. */
+    private fun placementFromFitted(
+        native: NativeControlInventory,
+        nativeSeats: Map<String, Seat>,
+        programSeats: Map<Int, Seat>,
+        fitted: Map<String, PivotArcBounds>,
+        panel: PivotArcBounds,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+        width: Float,
+        height: Float,
+        fit: String,
+    ): GripArcCombinedPlacement {
         val controls = nativeSeats.keys.associateWith(fitted::getValue)
         val programmable = programSeats.keys.associateWith { fitted.getValue("program:$it") }
         val capWidths =
@@ -1067,12 +1112,12 @@ internal object StandaloneGripArcLayout {
                 val gameCubeFace =
                     native.controller == TouchControllerID.GAMECUBE && control.kind == NativeControlKind.FACE
                 val size = if (gameCubeFace && control.key in setOf("B", "X", "Y")) cap - 5f else cap
-                val height =
+                val visualHeight =
                     when (control.kind) {
                         NativeControlKind.SHOULDER, NativeControlKind.UTILITY -> size * 0.72f
                         else -> size
                     }
-                control.key to PivotArcSize(size, height)
+                control.key to PivotArcSize(size, visualHeight)
             }
         val seats =
             native.controls.groupBy { it.seat }.mapValues { (_, controlsInSeat) ->
@@ -1104,14 +1149,104 @@ internal object StandaloneGripArcLayout {
                     },
                 safe = safe,
                 viewport = viewport,
-                fit =
-                    when {
-                        authored != null -> "uniform chassis transform"
-                        regular != null -> "legacy seat projection"
-                        else -> "legacy compact directional targets"
-                    },
+                fit = fit,
             )
         return GripArcCombinedPlacement(dock, controls, visuals, seats, native, native.inputIds, geometry)
+    }
+
+    /**
+     * C02-A — authored landscape panels + utility rail for every standalone
+     * configuration (generalising the C01 GameCube architecture).
+     *
+     * The measured viewport divides the safe area into a left hardware
+     * panel, a right hardware panel and a utility rail below the aperture.
+     * Each console keeps its own authored seat map and authentic arrangement:
+     * a seat's reference x decides its zone (left reference region → left
+     * panel, right reference region → right panel, centre region → rail),
+     * its position inside the zone is the authored proportion of that zone,
+     * its y is the authored proportion of the panel height, and all target
+     * sizes share one uniform scale — no independent x/y remap, no seat
+     * clamping into a different arrangement, and no compact shrink of the
+     * directional controls. Returns null when the arrangement does not fit
+     * its zones on the measured bounds.
+     */
+    private fun resolveAuthoredLandscape(
+        native: NativeControlInventory,
+        nativeSeats: Map<String, Seat>,
+        programSeats: Map<Int, Seat>,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+        width: Float,
+        height: Float,
+    ): GripArcCombinedPlacement? {
+        val gap = 6f
+        val leftPanel = PivotArcBounds(safe.left, safe.top, viewport.left - gap, safe.bottom)
+        val rightPanel = PivotArcBounds(viewport.right + gap, safe.top, safe.right, safe.bottom)
+        val rail = PivotArcBounds(viewport.left, viewport.bottom + gap, viewport.right, safe.bottom)
+        if (!leftPanel.isFiniteArea() || !rightPanel.isFiniteArea() || !rail.isFiniteArea()) return null
+        val zoneWidth = minOf(leftPanel.width, rightPanel.width)
+        if (zoneWidth < 120f || rail.height < 40f) return null
+        val scale = minOf(safe.height / height, zoneWidth / 200f, 1.22f)
+
+        fun place(seat: Seat): PivotArcBounds {
+            val diameter = maxOf(seat.size * scale, 42f)
+            val radius = diameter / 2f
+            val centerX: Float
+            val centerY: Float
+            when {
+                seat.x > 200 && seat.x < 530 -> {
+                    val fraction = ((seat.x - 200f) / 330f).coerceIn(0f, 1f)
+                    centerX =
+                        (rail.left + fraction * rail.width).coerceIn(rail.left + radius, rail.right - radius)
+                    centerY = safe.bottom - maxOf(radius, (height - seat.y) * scale)
+                }
+                seat.x <= 200 -> {
+                    val fraction = seat.x / 200f
+                    centerX =
+                        (leftPanel.left + fraction * leftPanel.width)
+                            .coerceIn(leftPanel.left + radius, leftPanel.right - radius)
+                    centerY =
+                        (safe.top + seat.y * (safe.height / height))
+                            .coerceIn(safe.top + radius, safe.bottom - radius)
+                }
+                else -> {
+                    val fraction = (seat.x - 530f) / 200f
+                    centerX =
+                        (rightPanel.left + fraction * rightPanel.width)
+                            .coerceIn(rightPanel.left + radius, rightPanel.right - radius)
+                    centerY =
+                        (safe.top + seat.y * (safe.height / height))
+                            .coerceIn(safe.top + radius, safe.bottom - radius)
+                }
+            }
+            return PivotArcBounds(
+                centerX - radius, centerY - radius, centerX + radius, centerY + radius,
+            )
+        }
+
+        val fitted = linkedMapOf<String, PivotArcBounds>()
+        for ((key, seat) in nativeSeats) fitted[key] = place(seat)
+        for ((slot, seat) in programSeats) fitted["program:$slot"] = place(seat)
+        // Zone containment: panel seats stay in their panel column, rail
+        // seats stay in the rail, and nothing touches the aperture.
+        for ((key, seat) in nativeSeats) {
+            val target = fitted.getValue(key)
+            val contained =
+                when {
+                    seat.x > 200 && seat.x < 530 -> target.inside(rail)
+                    seat.x <= 200 ->
+                        target.left >= leftPanel.left - 0.05f && target.right <= leftPanel.right + 0.05f
+                    else ->
+                        target.left >= rightPanel.left - 0.05f && target.right <= rightPanel.right + 0.05f
+                }
+            if (!contained) return null
+        }
+        val display = viewport.inset(1.5f)
+        if (!independentTargets(fitted.values.toList(), safe, display)) return null
+        return placementFromFitted(
+            native, nativeSeats, programSeats, fitted, safe, safe, viewport, width, height,
+            fit = AUTHORED_LANDSCAPE_FIT,
+        )
     }
 
     /**

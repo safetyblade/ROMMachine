@@ -144,6 +144,50 @@ class GripArcRenderingTest {
         assertEquals(viewport, placement.standaloneGeometry?.viewport)
     }
 
+    /**
+     * C02-A regression (priority console 1): Nintendo 64 landscape must fit
+     * through the generalised authored panels + utility rail, with its own
+     * authentic arrangement — D-pad and analogue on the left panel, C-button
+     * cluster and A/B on the right — and no legacy or compact route.
+     */
+    @Test
+    fun n64LandscapeUsesAuthoredPanelsWithoutLegacyProjection() {
+        val inventory =
+            checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.N64, SystemID.N64))
+        val safe = fixtureSafe(true)
+        val viewport = fixtureViewport(SystemID.N64, true)
+        val placement =
+            checkNotNull(
+                StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, true),
+            ) { "N64 landscape did not fit its authored panels on the reference fixture" }
+        assertTrue(placement.complete)
+        assertEquals(
+            StandaloneGripArcLayout.AUTHORED_LANDSCAPE_FIT,
+            placement.standaloneGeometry?.fit,
+        )
+        val gap = 6f
+        val leftPanel = PivotArcBounds(safe.left, safe.top, viewport.left - gap, safe.bottom)
+        val rightPanel = PivotArcBounds(viewport.right + gap, safe.top, safe.right, safe.bottom)
+        for (key in setOf("L", "D", "AnalogL", "Z")) {
+            val target = placement.controls.getValue(key)
+            assertTrue("$key is outside the left panel column", target.left >= leftPanel.left - 0.05f)
+            assertTrue("$key is outside the left panel column", target.right <= leftPanel.right + 0.05f)
+        }
+        for (key in setOf("R", "CDirection", "B", "A")) {
+            val target = placement.controls.getValue(key)
+            assertTrue("$key is outside the right panel column", target.left >= rightPanel.left - 0.05f)
+            assertTrue("$key is outside the right panel column", target.right <= rightPanel.right + 0.05f)
+        }
+        val display = viewport.inset(1.5f)
+        val allTargets = placement.controls.values.toList() + placement.dock.targets.values.toList()
+        for (target in allTargets) {
+            assertTrue("Target is outside the safe area: $target", target.inside(safe))
+            assertTrue("Target overlaps the gameplay aperture: $target", !target.intersects(display))
+        }
+        assertTrue("D-pad was compact-shrunk", placement.controls.getValue("D").width >= 58f)
+        assertTrue("Analogue stick was compact-shrunk", placement.controls.getValue("AnalogL").width >= 58f)
+    }
+
     private val standaloneModes =
         listOf(
             SystemID.GBA to TouchControllerID.GBA,
@@ -297,6 +341,18 @@ class GripArcRenderingTest {
                         "preset" to (preset != null),
                         "portrait" to (portrait != null),
                         "landscape" to (landscape != null),
+                        // C02-A: landscape must come from an authored route —
+                        // never the legacy projection or compact fallback.
+                        "landscapeAuthored" to
+                            (
+                                landscape == null ||
+                                    landscape.standaloneGeometry?.fit in
+                                    setOf(
+                                        "uniform chassis transform",
+                                        StandaloneGripArcLayout.AUTHORED_LANDSCAPE_FIT,
+                                        StandaloneGripArcLayout.GAMECUBE_LANDSCAPE_FIT,
+                                    )
+                            ),
                         "renderer" to renderer,
                         "dispatchRegistration" to dispatch,
                     )

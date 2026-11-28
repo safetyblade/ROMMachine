@@ -76,5 +76,34 @@ The earlier 41-item ledger governs inherited scope.
   viewport 180,20–560,290): left/right panels 166dp wide, rail 56dp,
   all 14 native + 4 programmable targets inside their zone, inside the
   safe area, clear of the aperture and mutually non-overlapping.
-  Hosted/targeted test execution is recorded on PR #385 with the stage
-  return; no APK was built at this stage, per protocol.
+  Hosted verification (reported by Cassia, 28 Nov 2026): Kotlin source
+  gate, Room migration, connected APK and UI merge gates PASS at
+  `c4d89b9e`; dedicated Xbox 360 engineering PASS; isolated PC runtime
+  laboratory FAIL (recorded under C06). No owner QA round on that APK.
+- C02-A — authored landscape geometry generalised (Claire, 28 Nov 2026).
+  `resolveAuthoredLandscape` now applies the C01 architecture to every
+  standalone configuration: the measured viewport divides the safe area
+  into left/right hardware panels and a utility rail; each console keeps
+  its own authored seat map and authentic arrangement (reference x picks
+  the zone, position is the authored proportion of the zone, y is the
+  authored proportion of panel height, one uniform size scale, 42dp
+  floor). Landscape no longer runs the legacy seat projection or the
+  compact directional fallback at all — the only other landscape route
+  is the uniform chassis transform, and a configuration that fits
+  neither authored route returns no fit. Portrait routes are unchanged
+  in this checkpoint (authored first; legacy projection remains the
+  portrait fallback for PSP/DS-class densities — portrait authored
+  migration is still open). Verified before push by a faithful
+  simulation of the resolver across all 45 fixtures: zone-authored
+  landscape fits 43/43 non-GameCube fixtures (the 2 GameCube-controller
+  fixtures use the C01 dedicated resolver), and the coverage regression
+  now asserts an authored landscape fit label for every fixture
+  (`landscapeAuthored`), plus a dedicated N64 landscape regression.
+  Register (C02-D, partial): 45/53 configurations implemented;
+  landscape authored 45/45 implemented configurations; portrait
+  authored-first 45/45 with legacy fallback retained on failure;
+  native dispatch unchanged from the recovered state; physical
+  acceptance unchanged (owner register governs). C02-B (eight missing
+  configurations with real dispatch), C02-C (Play!, physical
+  programmable assignments) and full C02-D verification remain open
+  and are reported as such in the C02 stage return — not claimed here.
