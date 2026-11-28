@@ -181,6 +181,18 @@ internal object StandaloneGripArcLayout {
     private val arcadeProgramLandscape =
         mapOf(1 to Seat(44, 239), 2 to Seat(114, 239), 3 to Seat(615, 276), 4 to Seat(682, 276))
 
+    // C02-B: two/three-button cabinets keep the four-button arrangement's
+    // authored positions for the seats they actually have (seat 1 = Y,
+    // 2 = B, 3 = X in the standalone inventory).
+    private val arcadeTwoPortrait =
+        arcadeFourPortrait.filterKeys { it in setOf("D", "Y", "B", "Select", "Menu", "Start") }
+    private val arcadeTwoLandscape =
+        arcadeFourLandscape.filterKeys { it in setOf("D", "Y", "B", "Select", "Menu", "Start") }
+    private val arcadeThreePortrait =
+        arcadeFourPortrait.filterKeys { it in setOf("D", "X", "Y", "B", "Select", "Menu", "Start") }
+    private val arcadeThreeLandscape =
+        arcadeFourLandscape.filterKeys { it in setOf("D", "X", "Y", "B", "Select", "Menu", "Start") }
+
     private val atari2600Portrait =
         mapOf(
             "D" to Seat(80, 145, 84f),
@@ -481,6 +493,7 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.NINTENDO_3DS, TouchControllerID.N64, TouchControllerID.MELONDS, TouchControllerID.DESMUME,
             TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE,
             TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
             TouchControllerID.XBOX, TouchControllerID.XBOX360, TouchControllerID.DOS,
             TouchControllerID.WII_CLASSIC, TouchControllerID.WII_SIDEWAYS,
         )
@@ -512,7 +525,8 @@ internal object StandaloneGripArcLayout {
                 }
             TouchControllerID.WII_SIDEWAYS -> analogueInventory(SystemID.WII, controller)
             TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE -> wonderSwanInventory(controller)
-            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6 ->
+            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3 ->
                 analogueInventory(SystemID.FBNEO, controller)
             TouchControllerID.NES ->
                 NativeControlInventory.forController(
@@ -682,7 +696,8 @@ internal object StandaloneGripArcLayout {
                     "B" -> KeyEvent.KEYCODE_BUTTON_B
                     else -> seat.keyCode
                 }
-            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6 ->
+            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3 ->
                 if (seat.kind == NativeControlKind.FACE) {
                     KeyEvent.KEYCODE_BUTTON_1 + seat.label.toInt() - 1
                 } else {
@@ -852,7 +867,12 @@ internal object StandaloneGripArcLayout {
         val width = if (landscape) 730f else 360f
         val snes = native.controller == TouchControllerID.SNES
         val wonderSwan = WonderSwanPivotInput.forController(native.controller) != null
-        val arcade = native.controller in setOf(TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6)
+        val arcade =
+            native.controller in
+                setOf(
+                    TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
+                    TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
+                )
         val xbox = native.controller in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)
         val dos = native.controller == TouchControllerID.DOS
         val ds = native.controller in setOf(TouchControllerID.MELONDS, TouchControllerID.DESMUME)
@@ -948,6 +968,10 @@ internal object StandaloneGripArcLayout {
                 }
                 sonyHost -> if (landscape) sonyHostLandscape else sonyHostPortrait
                 wonderSwan -> if (landscape) wonderSwanLandscape else wonderSwanPortrait
+                native.controller == TouchControllerID.ARCADE_2 ->
+                    if (landscape) arcadeTwoLandscape else arcadeTwoPortrait
+                native.controller == TouchControllerID.ARCADE_3 ->
+                    if (landscape) arcadeThreeLandscape else arcadeThreePortrait
                 native.controller == TouchControllerID.ARCADE_4 ->
                     if (landscape) arcadeFourLandscape else arcadeFourPortrait
                 native.controller == TouchControllerID.ARCADE_6 ->

@@ -257,6 +257,32 @@ object ControllerConfigs {
                 ),
         )
 
+    val FB_NEO_2 =
+        ControllerConfig(
+            "default_2",
+            R.string.controller_arcade_2,
+            TouchControllerID.ARCADE_2,
+            mergeDPADAndLeftStickEvents = true,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val FB_NEO_3 =
+        ControllerConfig(
+            "default_3",
+            R.string.controller_arcade_3,
+            TouchControllerID.ARCADE_3,
+            mergeDPADAndLeftStickEvents = true,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
     val FB_NEO_4 =
         ControllerConfig(
             "default_4",
@@ -275,6 +301,32 @@ object ControllerConfigs {
             "default_6",
             R.string.controller_arcade_6,
             TouchControllerID.ARCADE_6,
+            mergeDPADAndLeftStickEvents = true,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val MAME_2003_2 =
+        ControllerConfig(
+            "default_2",
+            R.string.controller_arcade_2,
+            TouchControllerID.ARCADE_2,
+            mergeDPADAndLeftStickEvents = true,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val MAME_2003_3 =
+        ControllerConfig(
+            "default_3",
+            R.string.controller_arcade_3,
+            TouchControllerID.ARCADE_3,
             mergeDPADAndLeftStickEvents = true,
             tiltConfigurations =
                 listOf(

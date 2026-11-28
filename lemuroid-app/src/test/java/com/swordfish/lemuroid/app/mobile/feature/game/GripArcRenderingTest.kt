@@ -219,8 +219,12 @@ class GripArcRenderingTest {
             SystemID.WS to TouchControllerID.WS_PORTRAIT,
             SystemID.WSC to TouchControllerID.WS_LANDSCAPE,
             SystemID.WSC to TouchControllerID.WS_PORTRAIT,
+            SystemID.FBNEO to TouchControllerID.ARCADE_2,
+            SystemID.FBNEO to TouchControllerID.ARCADE_3,
             SystemID.FBNEO to TouchControllerID.ARCADE_4,
             SystemID.FBNEO to TouchControllerID.ARCADE_6,
+            SystemID.MAME2003PLUS to TouchControllerID.ARCADE_2,
+            SystemID.MAME2003PLUS to TouchControllerID.ARCADE_3,
             SystemID.MAME2003PLUS to TouchControllerID.ARCADE_4,
             SystemID.MAME2003PLUS to TouchControllerID.ARCADE_6,
             SystemID.N64 to TouchControllerID.N64,
@@ -274,6 +278,8 @@ class GripArcRenderingTest {
                         TouchControllerID.WS_PORTRAIT -> "guest_vertical"
                         TouchControllerID.WS_LANDSCAPE -> "guest_horizontal"
                         TouchControllerID.GENESIS_3 -> "digital3"
+                        TouchControllerID.ARCADE_2 -> "digital2"
+                        TouchControllerID.ARCADE_3 -> "digital3"
                         TouchControllerID.ARCADE_4 -> "digital4"
                         TouchControllerID.GENESIS_6, TouchControllerID.ARCADE_6, TouchControllerID.PCE_SIX -> "digital6"
                         else -> "base"

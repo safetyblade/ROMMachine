@@ -884,7 +884,7 @@ data class GameSystem(
                                 ),
                             controllerConfigs =
                                 hashMapOf(
-                                    0 to arrayListOf(ControllerConfigs.FB_NEO_4, ControllerConfigs.FB_NEO_6),
+                                    0 to arrayListOf(ControllerConfigs.FB_NEO_2, ControllerConfigs.FB_NEO_3, ControllerConfigs.FB_NEO_4, ControllerConfigs.FB_NEO_6),
                                 ),
                         ),
                     ),
@@ -911,6 +911,8 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
+                                            ControllerConfigs.MAME_2003_2,
+                                            ControllerConfigs.MAME_2003_3,
                                             ControllerConfigs.MAME_2003_4,
                                             ControllerConfigs.MAME_2003_6,
                                         ),

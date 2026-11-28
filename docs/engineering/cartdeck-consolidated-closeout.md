@@ -107,3 +107,23 @@ The earlier 41-item ledger governs inherited scope.
   configurations with real dispatch), C02-C (Play!, physical
   programmable assignments) and full C02-D verification remain open
   and are reported as such in the C02 stage return — not claimed here.
+- C02-B checkpoint 1 — FBNeo/MAME digital2 + digital3 (Claire, 28 Nov
+  2026). New first-class controller variants following the PCE_SIX
+  pattern: `TouchControllerID.ARCADE_2` / `ARCADE_3` (appended to the
+  enum, existing ordinals unchanged), native layouts `Arcade2` /
+  `Arcade3` (same left side and same key events as ARCADE_4 buttons
+  1–2 / 1–3, so dispatch is identical per seat), solo profiles
+  `arcadeButtons(2|3)` = the first N numbered seats of the four-button
+  arrangement (seat 1 = Y, 2 = B, 3 = X) with their Hold companions and
+  the Coin rail, standalone inventories/seat maps derived from the
+  four-button authored maps, programmable guest codes via the existing
+  BUTTON_1 + seat-number rule, `ControllerConfigs` FB_NEO_2/3 and
+  MAME_2003_2/3 with new `controller_arcade_2/3` strings, and both
+  systems' GameSystem config lists now offer all four arcade variants.
+  Coverage fixtures added for FBNeo and MAME2003Plus digital2/digital3
+  (49/53 configurations; 4 remaining: Wii nunchuk_stick, Wii
+  nunchuk_touch, DOS keyboard_action, DOS mouse). Hosted verification
+  pending at push time. Cassia's C02-A conditions carried forward: the
+  42dp floor is a floor, not a target — explicit primary-control
+  minimums and explicit programmable-control dimensions are C02-D
+  deliverables, and portrait authored migration remains open.

@@ -2,6 +2,10 @@ package com.swordfish.touchinput.radial.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.swordfish.touchinput.radial.layouts.Arcade2Left
+import com.swordfish.touchinput.radial.layouts.Arcade2Right
+import com.swordfish.touchinput.radial.layouts.Arcade3Left
+import com.swordfish.touchinput.radial.layouts.Arcade3Right
 import com.swordfish.touchinput.radial.layouts.Arcade4Left
 import com.swordfish.touchinput.radial.layouts.Arcade4Right
 import com.swordfish.touchinput.radial.layouts.Arcade6Left
@@ -98,6 +102,8 @@ enum class TouchControllerID {
     WII_CLASSIC,
     WII_SIDEWAYS,
     WII_NUNCHUK,
+    ARCADE_2,
+    ARCADE_3,
     ;
 
     class Config(
@@ -240,6 +246,18 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> GGLeft(modifier, settings) },
                         { modifier, settings -> GGRight(modifier, settings) },
+                    )
+
+                ARCADE_2 ->
+                    Config(
+                        { modifier, settings -> Arcade2Left(modifier, settings) },
+                        { modifier, settings -> Arcade2Right(modifier, settings) },
+                    )
+
+                ARCADE_3 ->
+                    Config(
+                        { modifier, settings -> Arcade3Left(modifier, settings) },
+                        { modifier, settings -> Arcade3Right(modifier, settings) },
                     )
 
                 ARCADE_4 ->

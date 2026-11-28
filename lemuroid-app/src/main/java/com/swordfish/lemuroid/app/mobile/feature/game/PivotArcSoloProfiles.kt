@@ -376,6 +376,35 @@ object PivotArcSoloProfiles {
         return PivotArcSoloProfile(seats + rail(selectLabel = "Coin"))
     }
 
+    /**
+     * C02-B: the two- and three-button arcade cabinets are the first [count]
+     * numbered seats of the four-button arrangement (seat 1 = Y, 2 = B,
+     * 3 = X, 4 = A), with the matching Hold companions and the same Coin
+     * rail, so a game that uses fewer buttons gets exactly its own cabinet
+     * inventory and the same per-seat dispatch as ARCADE_4.
+     */
+    private fun arcadeButtons(count: Int): PivotArcSoloProfile {
+        val faces =
+            listOf(
+                button("X", 164, 64, x, "3"),
+                button("A", 217, 103, a, "4"),
+                button("B", 212, 213, b, "2"),
+                button("Y", 159, 253, y, "1"),
+            ).filter { it.label.toInt() <= count }
+        val holds =
+            listOf(
+                hold("X", 212, 64),
+                hold("A", 264, 103),
+                hold("B", 264, 213),
+                hold("Y", 159, 313),
+            ).filter { hold -> faces.any { it.id == hold.holdOf } }
+        val seats =
+            listOf(
+                dpad(136, 153, 72f, ComposeTouchLayouts.MOTION_SOURCE_DPAD_AND_LEFT_STICK),
+            ) + faces + holds
+        return PivotArcSoloProfile(seats + rail(selectLabel = "Coin"))
+    }
+
     private fun atari2600(): PivotArcSoloProfile =
         PivotArcSoloProfile(
             listOf(
@@ -630,6 +659,8 @@ object PivotArcSoloProfiles {
             SystemID.GAMECUBE -> if (controller == TouchControllerID.GAMECUBE) gameCube() else null
             SystemID.FBNEO, SystemID.MAME2003PLUS ->
                 when (controller) {
+                    TouchControllerID.ARCADE_2 -> arcadeButtons(2)
+                    TouchControllerID.ARCADE_3 -> arcadeButtons(3)
                     TouchControllerID.ARCADE_4 -> arcade(false)
                     TouchControllerID.ARCADE_6 -> arcade(true)
                     else -> null

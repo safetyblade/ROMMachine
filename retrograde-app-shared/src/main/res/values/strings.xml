@@ -2,6 +2,8 @@
 <resources>
     <string name="local_storage">Local Storage</string>
 
+    <string name="controller_arcade_2">Default (2 buttons)</string>
+    <string name="controller_arcade_3">Default (3 buttons)</string>
     <string name="controller_arcade_4">Default (4 buttons)</string>
     <string name="controller_arcade_6">Default (6 buttons)</string>
 
