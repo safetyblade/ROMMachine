@@ -206,3 +206,38 @@ The earlier 41-item ledger governs inherited scope.
   portrait seat redesign from the design packets and remains open,
   it is not silently claimed. C02-C specialist integration is the
   remaining independently achievable C02 item after this checkpoint.
+- C02-C specialist integration — source audit (Claire, 28 Nov 2026, per
+  Cassia's Assignment 3). State-first findings against current source:
+  - PS2 Play! routing: REGISTERED and routed. NativeGameSystems
+    registers PLAYSTATION_2 with CoreID.PLAY_MODERN (the Play! core)
+    and ControllerConfigs.NATIVE_ANALOG; the standalone GripARC route
+    resolves the DualShock inventory for PS2 via
+    PivotArcSoloProfiles.forNativeHost (sony dual profile) and the
+    PS2 configuration is in the coverage fixture set in both
+    orientations. No routing defect found at source level; what
+    remains is owner physical acceptance, not engineering.
+  - Physical programmable controller assignments: present. Physical
+    input catalogues are per-system (GripArcInputCatalog /
+    GripArcProfiles, including PLAYSTATION_2) and programmable seats
+    resolve physical assignments through the same guest-action route
+    as touch (GripArcCombinedKeyMappingTest proves the catalogue /
+    native parity for Xbox; the mechanism is shared).
+  - Controller connection / disconnection / safe release: present in
+    the recovered implementation (input-state lifecycle releases
+    owned inputs on disconnect, pause, mode and layout change; Hold
+    latches are per-source owned and never persisted active). No
+    source defect found in the standalone route; physical reconnect
+    behaviour remains owner acceptance.
+  - Per-cartridge controller profiles: present. ControllerConfigsManager
+    persists per-game controller choice (UUID-scoped for Wii with
+    legacy URI/system fallback, per the specialist retention audit);
+    the new ARCADE_2/ARCADE_3 configs join that same mechanism.
+  - Named remainder (from the specialist retention audit, still open
+    and NOT fixed by this audit): the Wii U probe activity's touch
+    listener forwards pointer input regardless of the selected
+    GamePad/Pro screen state; the applied-screen pointer gate belongs
+    to the Wii U runtime lane, and the Nunchuk pointer-mode alias
+    questions belong to Assignment 5's shared session. Both are
+    recorded here so C02-C is not overclaimed: routing, assignment,
+    release and profile mechanisms are in place; those two specialist
+    defects remain open outside the standalone GripARC route.
