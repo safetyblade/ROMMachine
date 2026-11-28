@@ -127,3 +127,46 @@ The earlier 41-item ledger governs inherited scope.
   42dp floor is a floor, not a target — explicit primary-control
   minimums and explicit programmable-control dimensions are C02-D
   deliverables, and portrait authored migration remains open.
+- C02-B checkpoint 2 — investigation record for the remaining four
+  configurations (Claire, 28 Nov 2026; no code changed, nothing faked):
+  - Wii nunchuk_stick / nunchuk_touch: the guest inventory already
+    exists (`PivotArcSoloProfiles.wiiNunchuk(pointerStick)`, native
+    `WII_NUNCHUK` layouts, per-cartridge Wii controller selection), but
+    the design authority (packet WII.md, GA-D31C-R2 superseded by R3)
+    makes Aim & Fire a SHARED capability across Standard, PivotARC and
+    standalone GripARC, in both IR modes and both orientations: one
+    typed pointer/fire session below the presentation layer, a
+    per-cartridge assigned guest fire key (default B), an Aim Only /
+    Aim & Fire selection in Universal Controls, and the GripARC fourth
+    programmable seat bound to that shared action. The missing
+    interface is that shared session: today pointer contacts, guest
+    digital dispatch and programmable seats are separate routes with no
+    coupling owner, no per-source fire ownership, and no lifecycle
+    neutralisation point. Building a GripARC-only coupling would
+    violate R3 ("no separate duplicated implementations"). Next option:
+    implement the shared Nunchuk pointer/fire session at the input
+    routing layer first (Standard + PivotARC + GripARC together), then
+    register both standalone variants with the seat maps the packet
+    specifies. Recorded as a genuine blocker for C02-B, not a geometry
+    gap.
+  - DOS keyboard_action / mouse: the design authority (packet DOS.md,
+    GA-D33) itself classifies variants B and C as "conditional
+    capability designs, not currently proven registered modes". The
+    only keyboard route in the current host is the DOS layout's
+    THUMBL key event (keyboard icon seat); there is no verified bridge
+    for arbitrary guest key down/up (Esc/Enter/modifiers/chords) or
+    relative mouse motion + independent click ownership into DOSBox
+    Pure from the standalone layer, and DOS_AUTO per-game mapping is
+    authoritative, so no universal key ABI may be invented. Missing
+    interface: a verified DOSBox Pure keyboard/mouse event bridge
+    (key down/up with modifiers, relative pointer delta, click
+    ownership and safe release) exposed to the touch layer. Next
+    option: prove that bridge against the DOSBox Pure core with the
+    packet's candidate titles, then register B and C with the packet's
+    seat maps; until then the gamepad variant and keyboard entry remain
+    the supported fallback, exactly as the packet prescribes.
+  Register after checkpoint 2: 49/53 configurations implemented with
+  dispatch; 4 recorded blocked with named missing interfaces and next
+  options (above). C02-C specialist items and the C02-D register /
+  explicit-minimums work remain open; no claim of C02 completion is
+  made on this checkpoint.
