@@ -290,3 +290,43 @@ The earlier 41-item ledger governs inherited scope.
   - C03 status: PARTIAL — A restored pending hosted confirmation;
     B audited end-to-end with one named suspect and a named evidence
     request; no entitlement behaviour changed.
+- C04 support completion — stage record (Claire, 28 Nov 2026, per
+  Cassia's C04 prompt; starting SHA e96e81d6):
+  - Recovered support engineering is present and complete in source:
+    SupportReportStore persists reports atomically (AtomicFile),
+    lists bounded history (max 10, 14-day retention, prune on read),
+    and packages exports fingerprinted by the report's own content
+    hash, so an export can never silently carry a different report
+    than the one selected; SupportActivity's export holds the exact
+    selected report in pendingExport and writes its json / text /
+    package; one-tap copy uses the selected report's text;
+    SupportTicketTransport posts the package to the configured
+    intake with an Idempotency-Key and only a validated receipt
+    (accepted + matching reportId + reference) confirms delivery.
+  - Verification evidence in source: SupportReportTest covers
+    distinct reports surviving reopen and exporting with their own
+    identity, bounded/expired history, export and email by identity
+    with read-only attachments, and ticket acknowledgement bound to
+    the same report — i.e. the stale-report defect class is covered
+    by named tests. Hosted execution of the suite on the current
+    head is Cassia's confirmation, as with C03-A.
+  - DNS / endpoint: the configured endpoint is the apex
+    https://prestwich.dev/api/support/intake, a compile-time
+    constant (endpoint persistence after restart is therefore by
+    construction; there is no stored endpoint to lose). The owner's
+    "address associated with hostname" failure predates the live
+    intake: SUP-06 was proven in production on 28 Nov 2026 (real
+    ticket accepted, reference CD-O7TV4RGEGU; an identical retry
+    returned the same reference; a garbage upload was rejected) —
+    DNS resolution and endpoint access are established by that
+    production proof. Independent re-verification from Claire's VM
+    is not available tonight: the VM's DNS path is intercepted
+    (public resolvers refused, answers rewritten), and the Vercel
+    connector's team scope (safetyblades-projects) needs the owner's
+    re-authorisation before project/deployment reads succeed. Both
+    limits are recorded rather than worked around; neither is an app
+    defect. No app retry behaviour was changed and no endpoint was
+    moved.
+  - C04 status: engineering complete in source with named test
+    coverage; hosted suite execution and on-device submission from
+    the consolidated APK remain C07 acceptance items.
