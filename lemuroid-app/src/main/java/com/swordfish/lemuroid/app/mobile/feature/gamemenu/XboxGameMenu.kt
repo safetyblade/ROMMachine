@@ -110,7 +110,7 @@ internal fun XboxGameMenu(
                                 GameMenuAction.DISPLAY -> nav.navigateToRoute(GameMenuRoute.DISPLAY)
                                 GameMenuAction.STATES -> nav.navigateToRoute(GameMenuRoute.STATES)
                                 GameMenuAction.REPORT_PROBLEM ->
-                                    context.startActivity(SupportActivity.intent(context, supportReport()))
+                                    context.startActivity(SupportActivity.intent(context, supportReport(), game))
                                 GameMenuAction.ADVANCED -> nav.navigateToRoute(GameMenuRoute.ADVANCED)
                                 GameMenuAction.RETURN_TO_SHELF -> onReturnToShelf()
                                 else -> Unit // Not advertised by this backend.

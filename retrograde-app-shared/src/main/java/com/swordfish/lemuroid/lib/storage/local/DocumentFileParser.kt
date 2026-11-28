@@ -89,16 +89,16 @@ object DocumentFileParser {
         val ps3 = identifyPs3(context, baseStorageFile)
         val xbox = identifyXboxDisc(context, baseStorageFile)
         val xbox360 =
-            if (xbox == null && baseStorageFile.extension.lowercase() in Xbox360ContentIdentity.formats) {
+            if (xbox == null && Xbox360ContentIdentity.acceptsExtension(baseStorageFile.extension)) {
                 runCatching {
                     context.contentResolver.openFileDescriptor(baseStorageFile.uri, "r")?.use { fd ->
                         FileInputStream(fd.fileDescriptor).channel.use {
-                            Xbox360ContentIdentity.probe(baseStorageFile.name, it).valid
+                            Xbox360ContentIdentity.probe(baseStorageFile.name, it).takeIf { result -> result.valid }
                         }
-                    } == true
-                }.getOrDefault(false)
+                    }
+                }.getOrNull()
             } else {
-                false
+                null
             }
         val discIdentity = identifyNativeDisc(context, baseStorageFile)
         val nativeSystem =
@@ -144,7 +144,7 @@ object DocumentFileParser {
                     (
                         if (xbox != null) {
                             SystemID.XBOX
-                        } else if (xbox360) {
+                        } else if (xbox360 != null) {
                             SystemID.XBOX360
                         } else {
                             null

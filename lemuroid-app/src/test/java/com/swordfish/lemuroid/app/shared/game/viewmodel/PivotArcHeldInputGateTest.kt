@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.shared.game.viewmodel
 
 import android.view.KeyEvent
+import com.swordfish.lemuroid.app.mobile.feature.game.GripArcAction
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -198,6 +200,31 @@ class PivotArcHeldInputGateTest {
         assertEquals(1, events.count { it == KeyEvent.ACTION_UP to b })
         assertEquals(1, events.count { it == KeyEvent.ACTION_UP to a })
     }
+
+    @Test
+    fun programmableLatchOwnsItsInputUntilToggledOrCleared() =
+        runBlocking {
+            gate.setGripEnabled(true)
+            gate.applyGripAction(1, true, GripArcAction.Hold(b), this)
+            gate.applyGripAction(1, false, GripArcAction.Hold(b), this)
+            assertEquals(setOf(1), gate.gripLatches.value)
+            assertEquals(listOf(KeyEvent.ACTION_DOWN to b), events)
+            gate.setSource(b, "physical", true)
+            gate.applyGripAction(1, true, GripArcAction.Hold(b), this)
+            assertTrue(gate.gripLatches.value.isEmpty())
+            assertEquals(1, events.size)
+            gate.clear()
+            assertEquals(listOf(KeyEvent.ACTION_DOWN to b, KeyEvent.ACTION_UP to b), events)
+        }
+
+    @Test
+    fun turboReleaseCancelsScheduledInputBeforeReturning() =
+        runBlocking {
+            gate.setGripEnabled(true)
+            gate.applyGripAction(1, true, GripArcAction.Turbo(a), this)
+            gate.applyGripAction(1, false, GripArcAction.Turbo(a), this)
+            assertEquals(listOf(KeyEvent.ACTION_DOWN to a, KeyEvent.ACTION_UP to a), events)
+        }
 
     @Test fun nativeStickPressAndProgrammedHalfTriggerChordShareOwnership() {
         gate.setGripEnabled(true)

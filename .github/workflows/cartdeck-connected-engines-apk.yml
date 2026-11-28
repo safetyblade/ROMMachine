@@ -743,6 +743,17 @@ jobs:
           path: dist/connected/
           if-no-files-found: error
           retention-days: 30
+      - name: Record verified engineering APK identity
+        if: ${{ !inputs.include_ps3 || (inputs.publish_apk && inputs.distribution_licensing_cleared) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence=dist/connected/evidence
+          read -r digest _ < "$evidence/sha256.txt"
+          read -r revision < "$evidence/app-source-sha.txt"
+          [[ "$CARTDECK_VERSION_CODE" =~ ^[0-9]+$ ]]
+          [[ "$digest" =~ ^[a-f0-9]{64}$ && "$revision" =~ ^[a-f0-9]{40}$ ]]
+          echo "::notice title=Verified ARM64 APK::versionCode=$CARTDECK_VERSION_CODE sha256=$digest source=$revision"
       - name: Encrypt verified PS3 owner-test APK and evidence
         if: inputs.ps3_owner_test && inputs.include_ps3 && inputs.ps3_development_integration && !inputs.publish_apk
         env:

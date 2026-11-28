@@ -4,11 +4,27 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.SeekableByteChannel
 
-/** Read-only bounded XEX/XDVDFS/STFS identification. Shared ISO suffixes are never console evidence. */
+/** Read-only bounded XEX/XDVDFS/STFS identification. Shared ISO suffixes are never console evidence.
+ * Extensionless files (the usual XBLA dump shape) are identified by their STFS header alone. */
 object Xbox360ContentIdentity {
-    data class Result(val valid: Boolean, val reason: String)
+    data class Result(
+        val valid: Boolean,
+        val reason: String,
+        val packageIdentity: PackageIdentity? = null,
+    )
+
+    data class PackageIdentity(
+        val svod: Boolean,
+        val titleId: String?,
+        val fullArcadeLicensees: Set<ULong>,
+    ) {
+        fun fullLicenseLaunchOption(xuid: String): String? =
+            "--license_mask=1".takeIf { xuid.toULongOrNull(16) in fullArcadeLicensees }
+    }
 
     val formats = setOf("iso", "xex", "xcp", "zar")
+
+    fun acceptsExtension(extension: String): Boolean = extension.isEmpty() || extension.lowercase() in formats
 
     fun probe(
         name: String,
@@ -38,14 +54,8 @@ object Xbox360ContentIdentity {
                     }
             return Result(valid, "ZAR archive requires a valid Xenia ZArchive footer")
         }
-        if (extension == "xcp") {
-            val packageHeader = read(channel, 0, 0x3AD)
-            val magic = packageHeader?.let { String(it, 0, 4, Charsets.US_ASCII) }
-            val volume = packageHeader?.let { ByteBuffer.wrap(it, 0x3A9, 4).order(ByteOrder.BIG_ENDIAN).int }
-            return Result(
-                magic in setOf("CON ", "LIVE", "PIRS") && volume in setOf(0, 1),
-                "Xbox 360 package requires a valid STFS/SVOD header; SVOD also requires its sibling .data folder",
-            )
+        if (extension == "xcp" || extension.isEmpty()) {
+            return probePackage(channel)
         }
         if (extension != "iso") {
             return Result(
@@ -86,6 +96,38 @@ object Xbox360ContentIdentity {
             }
         }
         return Result(false, "No Xbox 360 default.xex found; an original Xbox XBE disc is a different console")
+    }
+
+    /** STFS/SVOD package header check, shared by named .xcp packages and extensionless XBLA dumps. */
+    private fun probePackage(channel: SeekableByteChannel): Result {
+        val header = read(channel, 0, 0x3AD)
+        val magic = header?.let { String(it, 0, 4, Charsets.US_ASCII) }
+        val metadata = header?.let { ByteBuffer.wrap(it).order(ByteOrder.BIG_ENDIAN) }
+        val volume = metadata?.getInt(0x3A9)
+        val identity =
+            if (metadata != null && magic in setOf("CON ", "LIVE", "PIRS") && volume in setOf(0, 1)) {
+                val titleId = metadata.getInt(0x360).takeIf { it != 0 }?.let { "%08X".format(it) }
+                val licensees =
+                    if (volume == 0 && metadata.getInt(0x344) == 0xD0000) {
+                        (0 until 16).mapNotNull { index ->
+                            val offset = 0x22C + index * 16
+                            val licensee = metadata.getLong(offset).toULong()
+                            licensee.takeIf {
+                                it != 0uL && it != ULong.MAX_VALUE && metadata.getInt(offset + 8) and 1 != 0
+                            }
+                        }.toSet()
+                    } else {
+                        emptySet()
+                    }
+                PackageIdentity(volume == 1, titleId, licensees)
+            } else {
+                null
+            }
+        return Result(
+            identity != null,
+            "Xbox 360 package requires a valid STFS/SVOD header; SVOD also requires its sibling .data folder",
+            identity,
+        )
     }
 
     private fun isXex(header: ByteArray?): Boolean {

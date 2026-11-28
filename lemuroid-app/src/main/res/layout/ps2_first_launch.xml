@@ -11,10 +11,18 @@
         android:orientation="vertical"
         android:padding="24dp">
 
+        <ImageView
+            android:src="@drawable/cartdeck_wordmark_native"
+            android:contentDescription="CARTDECK"
+            android:scaleType="fitStart"
+            android:layout_width="160dp"
+            android:layout_height="34dp"
+            android:layout_marginBottom="12dp" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Welcome to PlayStation 2"
+            android:text="PlayStation 2 setup"
             android:textColor="@color/cartdeck_brand_accent"
             android:textSize="24sp" />
 
@@ -29,8 +37,9 @@
             android:id="@+id/addPs2Bios"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:text="Add PS2 BIOS"
+            android:layout_marginBottom="5dp"
             android:textAllCaps="false" />
 
         <Button
@@ -38,6 +47,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Open BIOS folder"
+            android:layout_marginBottom="5dp"
             android:textAllCaps="false" />
 
         <Button
@@ -45,6 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Learn about BIOS setup"
+            android:layout_marginBottom="5dp"
             android:textAllCaps="false" />
 
         <TextView
@@ -58,9 +69,10 @@
             android:id="@+id/continuePs2WithoutBios"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:backgroundTint="@color/cartdeck_brand_neon_cyan"
             android:text="Continue without BIOS"
+            android:layout_marginBottom="5dp"
             android:textAllCaps="false"
             android:textColor="@color/cartdeck_launcher_background" />
 
@@ -69,6 +81,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Return to shelf"
+            android:layout_marginBottom="5dp"
             android:textAllCaps="false" />
 
     </LinearLayout>

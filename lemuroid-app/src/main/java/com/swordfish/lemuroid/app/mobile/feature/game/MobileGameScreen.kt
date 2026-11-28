@@ -40,9 +40,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -51,9 +54,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -91,8 +96,6 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val isLandscape = constraints.maxWidth > constraints.maxHeight
         val display = rememberDisplaySettings(viewModel.cartridgeId)
         val border = display.effective.border(isLandscape)
-        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
-        val showBorder = border != DisplaySettingsStore.Border.OFF
         val appContext = LocalContext.current
         val resolved = rememberGameplayAppearance()
         val appearance = resolved.source
@@ -121,6 +124,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val effectiveArcSide = sessionChoice.value.sideFor(arcProfile.side)
         val controllerConfigState = viewModel.getTouchControllerConfig().collectAsState(null)
         val touchControlsVisibleState = viewModel.isTouchControllerVisible().collectAsState(true)
+        val gripChassis =
+            effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                touchControlsVisibleState.value && supportsStandaloneGripActions(viewModel.systemId) &&
+                StandaloneGripArcLayout.supports(controllerConfigState.value?.touchControllerID)
+        val hardwareBorder = gripChassis || border == DisplaySettingsStore.Border.STANDARD
+        val showBorder = gripChassis || border != DisplaySettingsStore.Border.OFF
         // The existing enabled-gamepad flow already hides the main touch pad
         // on every device. Fullscreen landscape must also hide GripArc and
         // decorative physical-shell artwork while keeping game input alive.
@@ -191,6 +200,11 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
         val tiltSimulatedControls = remember { derivedStateOf { tiltConfiguration.value.controlIds() } }
 
         val pivotSettings = rememberPivotArcSettings().value
+        val assignmentMode =
+            gripArcAssignmentMode(currentControllerConfig?.touchControllerID, pivotSettings.pspAnalogPrimary)
+        LaunchedEffect(viewModel, assignmentMode) {
+            viewModel.setGripArcAssignmentMode(assignmentMode)
+        }
         val gripManifest =
             remember(appContext) {
                 runCatching { GripArcManifest.load(appContext) }.getOrNull()
@@ -235,6 +249,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val lifecycle = LocalLifecycleOwner.current
 
             val fullScreenPosition = remember { mutableStateOf<Rect?>(null) }
+            var chassisWindowBottom by remember { mutableFloatStateOf(0f) }
+            val windowView = LocalView.current
             val viewportPosition = remember { mutableStateOf<Rect?>(null) }
             // Read-only PadKit group measurements; nothing changes their size or input.
             val leftPadBounds = remember { mutableStateOf<Rect?>(null) }
@@ -287,7 +303,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .onGloballyPositioned { fullScreenPosition.value = it.boundsInRoot() },
+                        .onGloballyPositioned {
+                            fullScreenPosition.value = it.boundsInRoot()
+                            chassisWindowBottom = it.positionInWindow().y + it.size.height
+                        },
                 factory = {
                     viewModel.createRetroView(localContext, lifecycle)
                 },
@@ -349,6 +368,12 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     )
                 } else {
                     null
+                }
+            val soloSafe =
+                safeBounds?.let {
+                    val windowBottom = windowView.rootView.height
+                    val reserved = maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                    it.copy(bottom = pivotChassisBottom(it.bottom, chassisWindowBottom, windowBottom, reserved, scale))
                 }
             val standardWiiPlacement =
                 if (standardWiiProfile != null && safeBounds != null && viewportBounds != null) {
@@ -413,10 +438,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 null -> null
                             }
                         } else if (soloProfile != null) {
-                            remember(soloProfile, safeBounds, viewportBounds, pivotSettings, isLandscape) {
+                            remember(soloProfile, soloSafe, viewportBounds, pivotSettings, isLandscape) {
                                 PivotArcSoloSolver.resolve(
                                     profile = soloProfile,
-                                    safe = safeBounds,
+                                    safe = checkNotNull(soloSafe),
                                     viewport = viewportBounds,
                                     leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
                                     requestedDx = pivotSettings.offsetXdp,
@@ -428,13 +453,14 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                             PivotArcPositionSolver.resolve(
                                 baseline = checkNotNull(pivotBaseline),
                                 active = checkNotNull(requiredPivotControls),
-                                safe = safeBounds,
+                                safe = checkNotNull(soloSafe),
                                 viewport = viewportBounds,
                                 leftHanded = pivotSettings.hand == PivotArcHand.LEFT,
                                 requestedDx = pivotSettings.offsetXdp,
                                 requestedDy = pivotSettings.offsetYdp,
                                 isLandscape = isLandscape,
                                 requireHardware = true,
+                                seatAtChassisBottom = true,
                             )
                         }
                     }
@@ -446,13 +472,23 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val measuredWiiStandard = standardWiiPlacement.takeIf { pivotPlacement == null }
             var combinedPlacement: GripArcCombinedPlacement? = null
             var nativeProfileValidated = false
+            val standaloneInventory =
+                currentControllerConfig?.touchControllerID?.takeIf(StandaloneGripArcLayout::supports)
+                    ?.takeIf {
+                        effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
+                            supportsStandaloneGripActions(viewModel.systemId)
+                    }
+                    ?.let { StandaloneGripArcLayout.inventoryFor(it, viewModel.systemId) }
+            val standaloneGripSelected = standaloneInventory != null
             val gripResolution: GripArcFit? =
                 if (
                     effectiveArcMode.hasGrip &&
                     fullPos != null &&
                     viewPos != null
                 ) {
-                    if (selectedPivot && touchControlsVisibleState.value) {
+                    if (standaloneInventory != null && !touchControlsVisibleState.value) {
+                        null
+                    } else if (selectedPivot && touchControlsVisibleState.value) {
                         jointPlacement?.let { GripArcFit.Fits(it.dock) }
                             ?: GripArcFit.Unavailable(
                                 (compositeResolution as? CompositeDeckResolution.Unavailable)?.reason
@@ -527,30 +563,33 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                 arcProfile.dx,
                                 arcProfile.dy,
                             )
+                        } else if (standaloneInventory != null) {
+                            nativeProfileValidated = true
+                            combinedPlacement =
+                                remember(
+                                    standaloneInventory,
+                                    safeBounds,
+                                    viewportBounds,
+                                    isLandscape,
+                                    pivotSettings.pspAnalogPrimary,
+                                ) {
+                                    StandaloneGripArcLayout.resolveStandalone(
+                                        standaloneInventory,
+                                        safeBounds,
+                                        viewportBounds,
+                                        isLandscape,
+                                        pivotSettings.pspAnalogPrimary,
+                                    )
+                                }
+                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
+                                ?: GripArcFit.Unavailable(
+                                    "There is not enough room for all GripARC controls on this screen.",
+                                )
                         } else if (!selectedPivot && nativeInventory == null) {
                             GripArcFit.Unavailable(
                                 "Compact Standard + GripArc is not yet defined for this controller. " +
                                     "Standard remains available; GripArc settings are preserved.",
                             )
-                        } else if (!selectedPivot && viewModel.systemId == SystemID.GBA && !isLandscape) {
-                            // Full-piece GBA GripArc owns its complete native constellation.
-                            // Do not redistribute Standard measurements or render the old
-                            // L-dock; Joint and the approved solo PivotArc stay unchanged.
-                            nativeProfileValidated = true
-                            val gbaNative = nativeInventory!!
-                            combinedPlacement =
-                                GbaGripArcLayout.resolve(
-                                    gbaNative,
-                                    gbaNative.inputIds,
-                                    safeBounds,
-                                    viewportBounds,
-                                    effectiveArcSide,
-                                )
-                            combinedPlacement?.let { GripArcFit.Fits(it.dock) }
-                                ?: GripArcFit.Unavailable(
-                                    "The complete GBA GripArc controller cannot fit every native " +
-                                        "and programmable button safely on this display.",
-                                )
                         } else if (!selectedPivot) {
                             val liveIds = nativeInputInventory.values.flatten().toSet()
                             val liveBounds = individualInputs.toMap()
@@ -643,7 +682,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             // GripArc is a visual touch accessory. In controller-driven
             // fullscreen, hide it along with Standard/PivotArc controls.
             val gripEnabled = gripPlacement != null && !fullscreenWithGamepad && !isLoading
-            DisposableEffect(viewModel, gripEnabled) {
+            DisposableEffect(viewModel, gripEnabled, effectiveArcMode, standaloneInventory?.controller) {
                 viewModel.setGripArcEnabled(gripEnabled)
                 onDispose { viewModel.setGripArcEnabled(false) }
             }
@@ -659,6 +698,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             val fittedControls =
                 combinedPlacement?.controls ?: pivotPlacement?.controls ?: measuredWiiStandard?.controls
             val fittedHardwareSeats = combinedPlacement?.hardwareSeats ?: fittedControls
+            val standaloneGrip = combinedPlacement.takeIf { standaloneInventory != null }
             val contouredPivot = pivotPlacement != null && jointPlacement == null && viewModel.systemId != SystemID.GBA
             if (showBorder) {
                 CartdeckConsoleShell(
@@ -675,6 +715,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                     isDualScreen = viewModel.systemId == SystemID.NDS,
                     minimal = !hardwareBorder || fullscreenWithGamepad,
                     mountedPivotDeck = contouredPivot,
+                    continuousLandscapeBrand = standaloneGrip != null,
                     controlBounds =
                         if (touchControlsVisibleState.value) {
                             if (fittedControls != null && fullPos != null) {
@@ -726,42 +767,15 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 } else {
                     individualInputs.toMap()
                 }
-            // GBA GripArc is a complete physical controller chassis. The
-            // existing native controls and G1-G4 input positions stay intact.
-            // Joined PivotArc + GripArc is intentionally NOT changed here:
-            // its final body/placement is gated after both solo styles.
-            val gbaFullGripPanel =
-                if (
-                    hardwareBorder && !isLandscape && !selectedPivot &&
-                    touchControlsVisibleState.value && !fullscreenWithGamepad && !isLoading &&
-                    effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
-                    viewModel.systemId == SystemID.GBA &&
-                    gripPlacement != null && fullPos != null && viewPos != null
-                ) {
-                    GbaGripArcFullBodyGeometry.resolve(
-                        fullPos,
-                        viewPos,
-                        gripPlacement.targets.values.map { bounds ->
-                            PivotArcBounds(
-                                fullPos.left + bounds.left * currentDensity.density,
-                                fullPos.top + bounds.top * currentDensity.density,
-                                fullPos.left + bounds.right * currentDensity.density,
-                                fullPos.top + bounds.bottom * currentDensity.density,
-                            )
-                        },
-                    )
-                } else {
-                    null
-                }
-            if (gbaFullGripPanel != null) {
-                GbaGripArcFullHousing(gbaFullGripPanel, shellTokens)
+            if (hardwareBorder && standaloneGrip != null && !fullscreenWithGamepad && !isLoading) {
+                StandaloneGripArcHardware(standaloneGrip, shellTokens, isLandscape)
             }
             if (
                 touchControlsVisibleState.value &&
                 touchControllerSettings != null &&
                 currentControllerConfig != null
             ) {
-                if (hardwareBorder || (pivotPlacement != null && jointPlacement == null)) {
+                if (standaloneGrip == null && (hardwareBorder || (pivotPlacement != null && jointPlacement == null))) {
                     CartdeckHardwareSeats(
                         tokens = shellTokens,
                         edition = edition,
@@ -799,10 +813,10 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 hardwareBorder && jointPlacement == null && gripPlacement != null &&
                 !fullscreenWithGamepad && !isLoading
             ) {
-                if (gbaFullGripPanel == null) {
+                if (standaloneGrip == null) {
                     combinedPlacement?.let { StandardGripArcDockJoint(it, shellTokens) }
                 }
-                if (gbaFullGripPanel == null) {
+                if (standaloneGrip == null) {
                     GripArcHousing(
                         gripPlacement,
                         shellTokens,
@@ -848,7 +862,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
                     currentControllerConfig != null &&
                     effectiveArcMode == ArcControlMode.STANDARD_GRIPARC &&
-                    maxWidth >= 680.dp && maxHeight >= 320.dp
+                    (standaloneGripSelected || (maxWidth >= 680.dp && maxHeight >= 320.dp))
             val dedicatedHardwareLayout =
                 isLandscape && hardwareBorder && touchControlsVisibleState.value &&
                     currentControllerConfig != null &&
@@ -866,11 +880,38 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         portraitApertureRatio = portraitApertureRatio,
                         hardwareLandscape = dedicatedHardwareLayout,
                         gripArcLandscape = gripArcLandscape,
+                        standaloneGripRailInset =
+                            if (gripArcLandscape && standaloneGripSelected) {
+                                // Leave one independent 48.5dp Menu target below the glass,
+                                // plus the same safety margin used by the positioning solver.
+                                val systemBottom =
+                                    maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                                (systemBottom / currentDensity.density + 60f).dp
+                            } else {
+                                0.dp
+                            },
                         availableWidth = maxWidth,
                         availableHeight = maxHeight,
                         dualScreenSoloPivot =
-                            selectedPivot && soloProfile != null &&
-                                touchControlsVisibleState.value,
+                            touchControlsVisibleState.value &&
+                                (
+                                    (selectedPivot && soloProfile != null) ||
+                                        (
+                                            standaloneGripSelected &&
+                                                viewModel.systemId in setOf(SystemID.NDS, SystemID.NINTENDO_3DS)
+                                        )
+                                ),
+                        standalonePortraitBottomReserve =
+                            if (StandaloneGripArcLayout.densePortrait(standaloneInventory?.controller)) {
+                                val bottom =
+                                    maxOf(insetSafe.getBottom(currentDensity), gestureSafe.getBottom(currentDensity))
+                                (bottom / currentDensity.density + 452f).dp
+                            } else {
+                                0.dp
+                            },
+                        independentPortraitAperture =
+                            touchControlsVisibleState.value &&
+                                (standaloneGripSelected || (selectedPivot && !effectiveArcMode.hasGrip)),
                         portraitBottomInset =
                             GameScreenLayout.portraitBottomInsetFor(
                                 viewModel.systemId,
@@ -989,7 +1030,7 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             }
             if (combinedPlacement != null && touchControlsVisibleState.value && !isLoading) {
                 CompositionLocalProvider(LocalLemuroidPadTheme provides controllerTheme) {
-                    GripArcCombinedControls(combinedPlacement!!)
+                    GripArcCombinedControls(combinedPlacement!!, standalone = standaloneGrip != null)
                 }
             }
             if (effectiveArcMode == ArcControlMode.STANDARD && touchControlsVisibleState.value &&
@@ -1007,13 +1048,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 )
             }
             GripArcAccessory(
-                inputLabels = GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
                 placement = gripPlacement,
                 profile = arcProfile,
                 tokens = shellTokens,
                 fullscreenWithGamepad = fullscreenWithGamepad,
                 isLoading = isLoading,
-                onPressed = viewModel::pressGripArcSlot,
+                typedActions = standaloneInventory != null,
+                latchedSlots = viewModel.gripArcLatches().collectAsState().value,
+                inputLabels =
+                    standaloneInventory?.let(StandaloneGripArcLayout::actionLabels)
+                        ?: GripArcInputCatalog.forSystem(viewModel.systemId).associate { it.code to it.label },
+                onPressed = { slot, pressed, mapping ->
+                    viewModel.pressGripArcSlot(slot, pressed, mapping, standaloneGrip != null)
+                },
                 drawHousing = false,
                 lighting = resolved.lighting,
                 highContrast = appearance.highContrast,
@@ -1033,16 +1080,23 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                         nativeProfileValidated &&
                             GripArcInputCatalog.forSystem(viewModel.systemId).isNotEmpty()
                     }
-            if ((!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&
-                touchControlsVisibleState.value && !isLoading &&
-                !dismissedFallback.value
-            ) {
+            val showGripFallback =
+                (!selectedPivot || effectiveArcMode.hasGrip) && gripError != null &&
+                    touchControlsVisibleState.value && !isLoading
+            var settledGripFailure by remember(fullPos, viewPos, showGripFallback) { mutableStateOf(false) }
+            LaunchedEffect(fullPos, viewPos, showGripFallback) {
+                if (showGripFallback) {
+                    kotlinx.coroutines.delay(250)
+                    settledGripFailure = true
+                }
+            }
+            if (settledGripFailure && gripError != null && !dismissedFallback.value) {
                 AlertDialog(
                     onDismissRequest = {
                         sessionChoice.value = sessionChoice.value.useStandard()
                         dismissedFallback.value = true
                     },
-                    title = { Text("GripArc unavailable on this layout") },
+                    title = { Text("CARTDECK controller layout") },
                     text = { Text(gripError.reason) },
                     confirmButton = {
                         TextButton(onClick = {

@@ -10,6 +10,7 @@ import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.lemuroid.lib.storage.scanner.Xbox360ContentIdentity
 import java.io.File
 import java.util.Properties
 
@@ -231,11 +232,13 @@ object NativeEngineRegistry {
         }
         val hardware = hardwareEligibility(engine, hardware(context))
         if (!hardware.eligible) return hardware
-        if (extension != null && extension.lowercase() !in engine.formats) {
+        // The Xenia staging path verifies the package header and any required companion data
+        // before handing the file to the native runtime, including for extensionless imports.
+        if (extension != null && !acceptsMedia(engine, extension)) {
             return Eligibility(
                 false,
                 if (engine.host == Host.XENIA_ANDROID) {
-                    "Xbox 360 supports verified ISO, XEX folders, ZAR and XCP. " +
+                    "Xbox 360 supports verified ISO, XEX folders, ZAR, XCP and extensionless packages. " +
                         "M3U disc switching is unavailable. Your cartridge and saves are retained."
                 } else {
                     "This engine does not support this file format"
@@ -277,6 +280,16 @@ object NativeEngineRegistry {
         }
         return Eligibility(true)
     }
+
+    internal fun acceptsMedia(
+        engine: Engine,
+        extension: String,
+    ): Boolean =
+        if (engine.host == Host.XENIA_ANDROID) {
+            Xbox360ContentIdentity.acceptsExtension(extension)
+        } else {
+            extension.lowercase() in engine.formats
+        }
 
     /** APK manifests are authoritative; revision strings are never inferred from a display name. */
     fun version(

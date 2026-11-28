@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.view.KeyEvent
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -18,6 +19,49 @@ class GripArcProfileTest {
     private val l = KeyEvent.KEYCODE_BUTTON_L1
     private val r = KeyEvent.KEYCODE_BUTTON_R1
     private val allowed = setOf(a, b, l, r)
+
+    @Test fun wonderSwanProgrammableFacesFollowGuestModeWithoutChangingStoredAssignments() {
+        val profile = checkNotNull(standaloneGripFactory(com.swordfish.lemuroid.lib.library.SystemID.WS))
+        val horizontal = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.WS_LANDSCAPE))
+        val vertical = checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.WS_PORTRAIT))
+        assertEquals(
+            GripArcAction.Hold(KeyEvent.KEYCODE_BUTTON_B),
+            StandaloneGripArcLayout.guestAction(profile, 1, horizontal),
+        )
+        assertEquals(
+            GripArcAction.Hold(KeyEvent.KEYCODE_BUTTON_R1),
+            StandaloneGripArcLayout.guestAction(profile, 1, vertical),
+        )
+        assertEquals(StandaloneGripArcLayout.actionLabels(horizontal), StandaloneGripArcLayout.actionLabels(vertical))
+        assertEquals("X cursor", horizontal.controls.single { it.key == "D" }.label)
+        assertEquals("X cursor", vertical.controls.single { it.key == "Cursor2" }.label)
+    }
+
+    @Test
+    fun typedAssignmentsRoundTripAndLegacyChordsRemainMomentary() {
+        val original =
+            GripArcProfile(
+                mappings = listOf(listOf(a), listOf(b), listOf(l, r), emptyList()),
+                behaviors =
+                    listOf(
+                        GripArcBehavior.HOLD,
+                        GripArcBehavior.TURBO,
+                        GripArcBehavior.MOMENTARY,
+                        GripArcBehavior.MENU,
+                    ),
+                turboRate = 14,
+            )
+        val allowed = setOf(a, b, l, r)
+        val serialized = GripArcProfileStore.encode(original)
+        val restored = GripArcProfileStore.decode(serialized, GripArcProfile(), allowed)
+        assertEquals(GripArcAction.Hold(a), restored.actionFor(1))
+        assertEquals(GripArcAction.Turbo(b, 14), restored.actionFor(2))
+        assertEquals(GripArcAction.OpenMenu, restored.actionFor(4))
+        val legacy = org.json.JSONObject(serialized).apply { remove("behaviors") }
+        val migrated = GripArcProfileStore.decode(legacy.toString(), GripArcProfile(), allowed)
+        assertEquals(GripArcAction.Native(setOf(a)), migrated.actionFor(1))
+        assertEquals(GripArcAction.Native(setOf(l, r)), migrated.actionFor(3))
+    }
 
     @Test fun independentCartridgeModesAreExclusive() {
         assertEquals(4, ArcControlMode.values().size)
@@ -51,7 +95,7 @@ class GripArcProfileTest {
         )
 
         val ngp = GripArcInputCatalog.forSystem(SystemID.NGP)
-        assertEquals(listOf("B", "A", "Start"), ngp.map { it.label })
+        assertEquals(listOf("B", "A", "Option"), ngp.map { it.label })
         assertEquals(listOf(a, b, KeyEvent.KEYCODE_BUTTON_START), ngp.map { it.code })
         // NGC is Neo Geo Pocket Color, not the GAMECUBE console.
         assertEquals(ngp, GripArcInputCatalog.forSystem(SystemID.NGC))

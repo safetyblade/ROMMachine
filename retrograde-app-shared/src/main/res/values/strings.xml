@@ -2,6 +2,8 @@
 <resources>
     <string name="local_storage">Local Storage</string>
 
+    <string name="controller_arcade_2">Default (2 buttons)</string>
+    <string name="controller_arcade_3">Default (3 buttons)</string>
     <string name="controller_arcade_4">Default (4 buttons)</string>
     <string name="controller_arcade_6">Default (6 buttons)</string>
 
@@ -9,6 +11,7 @@
     <string name="controller_genesis_6">Default (6 buttons)</string>
 
     <string name="controller_default">Default</string>
+    <string name="controller_pce_six">PC Engine six-button pad</string>
     <string name="controller_dualshock">DualShock</string>
     <string name="controller_standard">Standard</string>
     <string name="controller_landscape">Landscape</string>

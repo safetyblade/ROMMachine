@@ -131,6 +131,8 @@ class GameViewModelTouchControls(
             .distinctUntilChanged()
     }
 
+    fun activeTouchController(): TouchControllerID = touchControlId.value
+
     fun handleVirtualInputEvent(events: List<InputEvent>) {
         val menuEvent = events.firstOrNull { it is InputEvent.Button && it.id == KeyEvent.KEYCODE_BUTTON_MODE }
         if (menuEvent != null) {

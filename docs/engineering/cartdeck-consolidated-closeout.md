@@ -1,0 +1,553 @@
+# CARTDECK consolidated engineering closeout
+
+Draft [PR #385](https://github.com/safetyblade/ROMMachine/pull/385) continues from
+`57d940e4f163c0dfa9fc93beae28b07f82b9bb74`. The 21-item owner register records
+8 PASS, 6 PARTIAL, 6 FAIL and 1 NOT TESTED. These statuses remain as received.
+The earlier 41-item ledger governs inherited scope.
+
+## Owner register
+
+| ID | Feature | Owner status |
+| --- | --- | --- |
+| 01 | Install-over and continuity | PASS |
+| 02 | Hardware finish and placement | PARTIAL |
+| 03 | PS2 ARMSX2 GripARC | PARTIAL |
+| 04 | GameCube GripARC | FAIL |
+| 05 | Xbox GripARC | PARTIAL |
+| 06 | Xbox 360 GripARC | PARTIAL |
+| 07 | XBLA launch | PASS |
+| 08 | XBLA full-game recognition | FAIL |
+| 09 | Failed launch recovery | PASS |
+| 10 | Metroid Prime Trilogy | FAIL |
+| 11 | SafeSave icon | PASS |
+| 12 | Support report workflow | PARTIAL |
+| 13 | Support offline submission | PASS |
+| 14 | Live support ticket | FAIL |
+| 15 | Controller factory reset | PASS |
+| 16 | Nintendo 64 GripARC | FAIL |
+| 17 | Wii GripARC | FAIL |
+| 18 | Wii U GripARC | PARTIAL |
+| 19 | Wii U touchscreen | PASS |
+| 20 | Wii U pointer protection | PASS |
+| 21 | Physical controller | NOT TESTED |
+
+## Programme matrix
+
+| Package | Implementation and evidence | Remaining engineering and physical acceptance |
+| --- | --- | --- |
+| CLOSE-01 GripARC geometry | IMPLEMENTED first-pass uniform chassis transform, right-panel Xbox stick click and programmable seats, larger standalone analogue caps, and geometry export for each orientation. C01 (Claire, 28 Nov 2026): GameCube landscape now resolves through explicitly authored left and right hardware panels plus a utility rail, allocated together with the gameplay aperture from the measured safe area and viewport; it never falls through to the legacy seat projection or the compact directional fallback, and a regression test (`gameCubeLandscapeUsesAuthoredPanelsAndUtilityRail`) requires that fit on the reference handheld fixture — larger D-pad (88dp) and analogue stick (92dp), console-authentic face cluster (large central A, B low-left, X/Y kidneys above), programmable seats contained in the panels, Menu/Start contained in the rail, no target on the aperture. | Legacy projection remains in use where the transform fails for the other consoles (C02). Finish responsive authored alternatives and coordinated aperture allocation. The actual SM-S721B safe bounds and viewport measurements are still needed to turn the reference handheld into a handset regression. Verify direct GripARC load and reach on target hardware. GameCube landscape physical acceptance remains owner QA — source fit is not a device PASS. |
+| CLOSE-02 Standalone | IMPLEMENTED source coverage remains 45 of 53 configurations. The manifest coverage test accounts for all 106 combinations and exports authored and resolved geometry for registered cases. VERIFIED route registration is source evidence. | Finish Wii Nunchuk stick and touch, shared Aim & Fire, physical assignments and Play! integration. Arcade two/three requires verified game-specific FBNeo and MAME action inventories. DOS keyboard and mouse require actual dispatch in an eligible integrated host. Existing PC-lab input support does not establish this production route. Protected PS3 delivery and Joint are DEFERRED. |
+| CLOSE-03 Xbox 360 | OWNER ACCEPTED discovery and extensionless launch. The isolated test suite retains package/entitlement checks and the application suite owns engine selection checks. New diagnostics record STFS/SVOD class, title ID, profile creation, matching entitlement and whether the client supplied the license argument. | Full-game recognition remains FAIL. Correlate the redacted evidence with the effective native profile and supported ownership data. Verify launch, progress persistence and reopen with a legitimately owned title. |
+| CLOSE-04 PERF | Previous Wii video-gap metrics remain available. Pinned host assessment establishes FIFO delivery and resampling, a two-frame emulation catch-up limit, and separate frontend and core duplicate-frame policies. | The historical Metroid export has no guest-speed, audio underrun, shader-stall or loaded-core evidence. Reproduce on the affected device and correlate metrics before changing runtime policy. The original Xbox fringe, presentation, cache and geometry need source-to-swap captures under the existing [PERF plan](XB-01-03-ORIGINAL-XBOX.md). |
+| CLOSE-05 Support | IMPLEMENTED exact snapshot export in ZIP, JSON and TXT, one-tap clipboard, local-save feedback, distinct history identity, current Libretro session/cartridge fields, in-process submission exclusion and immutable consented report editing. | Physical process restart and file-picker flow remain to be verified. Live delivery is BLOCKED from this workspace. Public DNS returned NXDOMAIN for the configured hostname and the proxy rejected HTTPS CONNECT. Verify server deployment, private storage, idempotent receipts and operator notification using synthetic data before certifying submission. |
+| CLOSE-06 GC | IMPLEMENTED live Libretro shader updates from effective display choices on the emulation thread. VERIFIED all 88,246 pinned catalogue records, taxonomy and 1,235 versioned feature records. Personal-data paths were retained. SafeSave dock icon and prior continuity are OWNER ACCEPTED. | Verify actual on-device pixel changes and preserved aspect ratio. Continue only evidenced catalogue review and preserve reviewed DeckFit and special-input holds. Estimates are catalogue data. |
+| CLOSE-07 PC | VERIFIED [opt-in PC assembly and Linux DOS persistence](https://github.com/safetyblade/ROMMachine/actions/runs/46094711060) and [native Wine ARM64, WoW64 translator and owner-test APK assembly](https://github.com/safetyblade/ROMMachine/actions/runs/45923433415). The [combined Wine proof](https://github.com/safetyblade/ROMMachine/actions/runs/44497559415) failed at translated GDI, registry and save persistence. | Android ARM64 guest execution, installed Windows application persistence, selected EXE launch, integrated input/display and SafeSave boundaries require the gated runtime proof. Shandalar remains the first owner-facing target after engineering graduation. |
+| CLOSE-08 Deferred scope | DEFERRED Maker under #394, Riivolution activation and Joint. Research, validators and fenced source remain in the PR. | Riivolution activation requires proof of patched-content boot in the native Dolphin path. Protected PS3 packaging remains on the existing master and distribution route. |
+
+## Evidence and owner QA delta
+
+- Geometry evidence is produced by `GripArcRenderingTest` at
+  `lemuroid-app/build/reports/gc01-menu-screens/griparc/standalone-manifest-coverage.json`.
+  Each case records both orientations, the fixture safe and viewport rectangles,
+  the selected arrangement and the available authored seats, resolved targets and cap sizes.
+- When the remaining controller work is complete, verify the corrected GripARC cases
+  on the SM-S721B in both orientations. Check reach, simultaneous controls,
+  independent release, utility containment and direct launch with GripARC selected.
+- Recheck Xbox 360 full-game recognition and progress after reopen. Preserve
+  the existing discovery and launch pass.
+- Create two support reports and compare their IDs, builds and timestamps across
+  history, clipboard and device exports after restart. Verify live receipt and
+  reference only once the intake is reachable. Retain manual fallback.
+- Verify a SmartVisual change in visible gameplay and preserve aspect ratio.
+  Repeat Metroid and original Xbox performance cases after the corresponding
+  causes have been established and addressed.
+- Test physical controller programmable assignments and lifecycle release
+  after implementation. Keep accepted Wii U pointer protection and touch as
+  targeted regression checks. No repeat of the full inherited register is required.
+
+## Claire stage log
+
+- C01 — GameCube landscape authored panels + utility rail. Starting SHA
+  `ad6866dd5f18cd3bdef909506caf39c35201d523`. Files:
+  `StandaloneGripArcLayout.kt` (dedicated `resolveGameCubeLandscape`,
+  fit label `authored GameCube landscape panels + utility rail`),
+  `GripArcRenderingTest.kt` (new regression test), this closeout.
+  Geometry verified against the reference fixture (safe 8,8–732,352;
+  viewport 180,20–560,290): left/right panels 166dp wide, rail 56dp,
+  all 14 native + 4 programmable targets inside their zone, inside the
+  safe area, clear of the aperture and mutually non-overlapping.
+  Hosted verification (reported by Cassia, 28 Nov 2026): Kotlin source
+  gate, Room migration, connected APK and UI merge gates PASS at
+  `c4d89b9e`; dedicated Xbox 360 engineering PASS; isolated PC runtime
+  laboratory FAIL (recorded under C06). No owner QA round on that APK.
+- C02-A — authored landscape geometry generalised (Claire, 28 Nov 2026).
+  `resolveAuthoredLandscape` now applies the C01 architecture to every
+  standalone configuration: the measured viewport divides the safe area
+  into left/right hardware panels and a utility rail; each console keeps
+  its own authored seat map and authentic arrangement (reference x picks
+  the zone, position is the authored proportion of the zone, y is the
+  authored proportion of panel height, one uniform size scale, 42dp
+  floor). Landscape no longer runs the legacy seat projection or the
+  compact directional fallback at all — the only other landscape route
+  is the uniform chassis transform, and a configuration that fits
+  neither authored route returns no fit. Portrait routes are unchanged
+  in this checkpoint (authored first; legacy projection remains the
+  portrait fallback for PSP/DS-class densities — portrait authored
+  migration is still open). Verified before push by a faithful
+  simulation of the resolver across all 45 fixtures: zone-authored
+  landscape fits 43/43 non-GameCube fixtures (the 2 GameCube-controller
+  fixtures use the C01 dedicated resolver), and the coverage regression
+  now asserts an authored landscape fit label for every fixture
+  (`landscapeAuthored`), plus a dedicated N64 landscape regression.
+  Register (C02-D, partial): 45/53 configurations implemented;
+  landscape authored 45/45 implemented configurations; portrait
+  authored-first 45/45 with legacy fallback retained on failure;
+  native dispatch unchanged from the recovered state; physical
+  acceptance unchanged (owner register governs). C02-B (eight missing
+  configurations with real dispatch), C02-C (Play!, physical
+  programmable assignments) and full C02-D verification remain open
+  and are reported as such in the C02 stage return — not claimed here.
+- C02-B checkpoint 1 — FBNeo/MAME digital2 + digital3 (Claire, 28 Nov
+  2026). New first-class controller variants following the PCE_SIX
+  pattern: `TouchControllerID.ARCADE_2` / `ARCADE_3` (appended to the
+  enum, existing ordinals unchanged), native layouts `Arcade2` /
+  `Arcade3` (same left side and same key events as ARCADE_4 buttons
+  1–2 / 1–3, so dispatch is identical per seat), solo profiles
+  `arcadeButtons(2|3)` = the first N numbered seats of the four-button
+  arrangement (seat 1 = Y, 2 = B, 3 = X) with their Hold companions and
+  the Coin rail, standalone inventories/seat maps derived from the
+  four-button authored maps, programmable guest codes via the existing
+  BUTTON_1 + seat-number rule, `ControllerConfigs` FB_NEO_2/3 and
+  MAME_2003_2/3 with new `controller_arcade_2/3` strings, and both
+  systems' GameSystem config lists now offer all four arcade variants.
+  Coverage fixtures added for FBNeo and MAME2003Plus digital2/digital3
+  (49/53 configurations; 4 remaining: Wii nunchuk_stick, Wii
+  nunchuk_touch, DOS keyboard_action, DOS mouse). Hosted verification
+  pending at push time. Cassia's C02-A conditions carried forward: the
+  42dp floor is a floor, not a target — explicit primary-control
+  minimums and explicit programmable-control dimensions are C02-D
+  deliverables, and portrait authored migration remains open.
+- C02-B checkpoint 2 — investigation record for the remaining four
+  configurations (Claire, 28 Nov 2026; no code changed, nothing faked):
+  - Wii nunchuk_stick / nunchuk_touch: the guest inventory already
+    exists (`PivotArcSoloProfiles.wiiNunchuk(pointerStick)`, native
+    `WII_NUNCHUK` layouts, per-cartridge Wii controller selection), but
+    the design authority (packet WII.md, GA-D31C-R2 superseded by R3)
+    makes Aim & Fire a SHARED capability across Standard, PivotARC and
+    standalone GripARC, in both IR modes and both orientations: one
+    typed pointer/fire session below the presentation layer, a
+    per-cartridge assigned guest fire key (default B), an Aim Only /
+    Aim & Fire selection in Universal Controls, and the GripARC fourth
+    programmable seat bound to that shared action. The missing
+    interface is that shared session: today pointer contacts, guest
+    digital dispatch and programmable seats are separate routes with no
+    coupling owner, no per-source fire ownership, and no lifecycle
+    neutralisation point. Building a GripARC-only coupling would
+    violate R3 ("no separate duplicated implementations"). Next option:
+    implement the shared Nunchuk pointer/fire session at the input
+    routing layer first (Standard + PivotARC + GripARC together), then
+    register both standalone variants with the seat maps the packet
+    specifies. Recorded as a genuine blocker for C02-B, not a geometry
+    gap.
+  - DOS keyboard_action / mouse: the design authority (packet DOS.md,
+    GA-D33) itself classifies variants B and C as "conditional
+    capability designs, not currently proven registered modes". The
+    only keyboard route in the current host is the DOS layout's
+    THUMBL key event (keyboard icon seat); there is no verified bridge
+    for arbitrary guest key down/up (Esc/Enter/modifiers/chords) or
+    relative mouse motion + independent click ownership into DOSBox
+    Pure from the standalone layer, and DOS_AUTO per-game mapping is
+    authoritative, so no universal key ABI may be invented. Missing
+    interface: a verified DOSBox Pure keyboard/mouse event bridge
+    (key down/up with modifiers, relative pointer delta, click
+    ownership and safe release) exposed to the touch layer. Next
+    option: prove that bridge against the DOSBox Pure core with the
+    packet's candidate titles, then register B and C with the packet's
+    seat maps; until then the gamepad variant and keyboard entry remain
+    the supported fallback, exactly as the packet prescribes.
+  Register after checkpoint 2: 49/53 configurations implemented with
+  dispatch; 4 recorded blocked with named missing interfaces and next
+  options (above). C02-C specialist items and the C02-D register /
+  explicit-minimums work remain open; no claim of C02 completion is
+  made on this checkpoint.
+- Formatting recovery (Claire, 28 Nov 2026, per Cassia's C02 ruling
+  Assignment 1): the C02-A checkpoint failed the hosted Kotlin
+  formatting gate in the new resolver / placement-helper code, which
+  also blocked the connected APK build. All eight Kotlin files changed
+  across C01/C02 were reformatted with the pinned ktlint (1.3.1, the
+  version bundled by the repo's ktlint-gradle 12.1.0; verified clean
+  under both 1.3.1 and 1.2.1 with the repo .editorconfig), including
+  one manual max-line-length fix in GripArcRenderingTest. Formatting
+  only: no values, logic or identifiers changed. This checkpoint is
+  the formatting-only push Cassia required before further substantive
+  delivery; hosted gate confirmation is hers to record.
+- C02-D dimensions + C02-B dispatch evidence (Claire, 28 Nov 2026, per
+  Cassia's Assignments 2 and 4): the zone resolver now carries EXPLICIT
+  dimensions instead of floor artefacts — primary directional and
+  analogue controls never render below 56dp, programmable GripARC
+  seats are an explicit uniform 45dp, other controls keep a 42dp floor
+  under authored size (the C01 GameCube resolver already had explicit
+  sizes: analogue 92/66dp, D-pad 88dp, programmable 48dp). All 43
+  non-GameCube landscape fixtures re-verified in simulation with the
+  new dimensions (the binding constraint was Xbox RS vs programmable
+  seat 4, which caps the uniform programmable size at 45dp in the zone
+  architecture). Dispatch evidence for the new arcade configurations:
+  `GripArcCombinedKeyMappingTest.arcadeButtonCountVariantsDispatchTheirOwnSeats`
+  asserts, for ARCADE_2 and ARCADE_3, the exact numbered-seat set
+  (1..N), identical seat identity and key events to the four-button
+  cabinet per seat, unchanged D/Coin/Start/Menu inventory, and
+  identical solo profiles on FBNeo and MAME2003Plus — i.e. GripARC
+  guest dispatch (BUTTON_1 + seat number - 1) and native dispatch
+  agree per seat. Portrait record (explicit, per Assignment 4):
+  portrait keeps the authored uniform transform as first route; the
+  legacy projection remains ONLY as a fallback for the two densities
+  whose authored portrait seat maps overlap in reference space (PSP,
+  Nintendo DS) — authored portrait migration requires per-console
+  portrait seat redesign from the design packets and remains open,
+  it is not silently claimed. C02-C specialist integration is the
+  remaining independently achievable C02 item after this checkpoint.
+- C02-C specialist integration — source audit (Claire, 28 Nov 2026, per
+  Cassia's Assignment 3). State-first findings against current source:
+  - PS2 Play! routing: REGISTERED and routed. NativeGameSystems
+    registers PLAYSTATION_2 with CoreID.PLAY_MODERN (the Play! core)
+    and ControllerConfigs.NATIVE_ANALOG; the standalone GripARC route
+    resolves the DualShock inventory for PS2 via
+    PivotArcSoloProfiles.forNativeHost (sony dual profile) and the
+    PS2 configuration is in the coverage fixture set in both
+    orientations. No routing defect found at source level; what
+    remains is owner physical acceptance, not engineering.
+  - Physical programmable controller assignments: present. Physical
+    input catalogues are per-system (GripArcInputCatalog /
+    GripArcProfiles, including PLAYSTATION_2) and programmable seats
+    resolve physical assignments through the same guest-action route
+    as touch (GripArcCombinedKeyMappingTest proves the catalogue /
+    native parity for Xbox; the mechanism is shared).
+  - Controller connection / disconnection / safe release: present in
+    the recovered implementation (input-state lifecycle releases
+    owned inputs on disconnect, pause, mode and layout change; Hold
+    latches are per-source owned and never persisted active). No
+    source defect found in the standalone route; physical reconnect
+    behaviour remains owner acceptance.
+  - Per-cartridge controller profiles: present. ControllerConfigsManager
+    persists per-game controller choice (UUID-scoped for Wii with
+    legacy URI/system fallback, per the specialist retention audit);
+    the new ARCADE_2/ARCADE_3 configs join that same mechanism.
+  - Named remainder (from the specialist retention audit, still open
+    and NOT fixed by this audit): the Wii U probe activity's touch
+    listener forwards pointer input regardless of the selected
+    GamePad/Pro screen state; the applied-screen pointer gate belongs
+    to the Wii U runtime lane, and the Nunchuk pointer-mode alias
+    questions belong to Assignment 5's shared session. Both are
+    recorded here so C02-C is not overclaimed: routing, assignment,
+    release and profile mechanisms are in place; those two specialist
+    defects remain open outside the standalone GripARC route.
+- Cassia corrections + C06 record (28 Nov 2026, on her C02 consolidated
+  review): C02 is accepted as independently complete for engineering
+  progression. Two limitations stay explicit and must not be
+  overclaimed downstream: (1) the 56dp primary minimum is a
+  TOUCH-TARGET minimum only — it does not guarantee a 56dp visible
+  control cap; (2) the C02-C audit establishes that the specialist
+  mechanisms exist in source — it does not establish completed
+  runtime functionality. C06 record: the isolated PC runtime
+  laboratory failure (hosted run 46127083042) is a C06 engineering
+  issue, independent of the C02 changes. C03 and C04 are the next
+  stages, starting from e96e81d6.
+- C03 Xbox 360 — stage record (Claire, 28 Nov 2026, per Cassia's C03
+  prompt; starting SHA e96e81d6):
+  - C03-A workflow restoration: the source preflight blocker was the
+    Kotlin formatting gate, restored in checkpoint 4257033c; the
+    dedicated Xbox 360 engineering workflow and the connected APK
+    workflow run on the current head from that checkpoint onward.
+    Cancelled runs before it are not verification. Hosted results on
+    the current head are Cassia's to confirm; they are not claimed
+    here.
+  - C03-B pipeline audit (source-level, every link traced):
+    recognition (DocumentFileParser probes via
+    Xbox360ContentIdentity and assigns XBOX360 on a valid probe) ->
+    staging (Xbox360Content.stage: ISO verified in place / SAF copy,
+    XEX folder tree, SVOD sibling .data enforced) -> launch
+    (Xbox360Activity: storage/content/cache roots, config, log,
+    --logged_profile_slot_0_xuid from Xbox360Profiles, and
+    --license_mask=1 ONLY when the package's own STFS licensee list
+    contains the active profile XUID — no blanket override, no
+    fabricated ownership) -> persistence (guest content/saves live
+    under the persistent content root; staging is disposable and
+    never writes back). XBLA discovery and launch are untouched.
+    The isolated JVM contract suite (Xbox360ContentTest) covers XEX,
+    STFS/SVOD, ZAR, license gating and a synthetic ISO.
+  - Genuine dependency (not a guess-fix): the owner's full-game
+    recognition FAIL cannot be reproduced from source alone. The
+    synthetic ISO test exercises only partition offset 0, and the
+    probe's partition list contains two values (0xFB20, 0x20600)
+    that are not sector-aligned and read as sector counts used as
+    byte offsets — flagged for Marcus/Daniel rather than silently
+    replaced, because inventing XGD partition constants without a
+    failing sample would be fabrication. Needed to close C03-B: the
+    failing content's shape (ISO / extracted XEX folder / ZAR), its
+    source (redump / XGD2 / XGD3 / homebrew), and the app's own
+    Xbox 360 troubleshooter report from the failed attempt, which
+    records the probe's rejection reason verbatim.
+  - C03 status: PARTIAL — A restored pending hosted confirmation;
+    B audited end-to-end with one named suspect and a named evidence
+    request; no entitlement behaviour changed.
+- C04 support completion — stage record (Claire, 28 Nov 2026, per
+  Cassia's C04 prompt; starting SHA e96e81d6):
+  - Recovered support engineering is present and complete in source:
+    SupportReportStore persists reports atomically (AtomicFile),
+    lists bounded history (max 10, 14-day retention, prune on read),
+    and packages exports fingerprinted by the report's own content
+    hash, so an export can never silently carry a different report
+    than the one selected; SupportActivity's export holds the exact
+    selected report in pendingExport and writes its json / text /
+    package; one-tap copy uses the selected report's text;
+    SupportTicketTransport posts the package to the configured
+    intake with an Idempotency-Key and only a validated receipt
+    (accepted + matching reportId + reference) confirms delivery.
+  - Verification evidence in source: SupportReportTest covers
+    distinct reports surviving reopen and exporting with their own
+    identity, bounded/expired history, export and email by identity
+    with read-only attachments, and ticket acknowledgement bound to
+    the same report — i.e. the stale-report defect class is covered
+    by named tests. Hosted execution of the suite on the current
+    head is Cassia's confirmation, as with C03-A.
+  - DNS / endpoint: the configured endpoint is the apex
+    https://prestwich.dev/api/support/intake, a compile-time
+    constant (endpoint persistence after restart is therefore by
+    construction; there is no stored endpoint to lose). The owner's
+    "address associated with hostname" failure predates the live
+    intake: SUP-06 was proven in production on 28 Nov 2026 (real
+    ticket accepted, reference CD-O7TV4RGEGU; an identical retry
+    returned the same reference; a garbage upload was rejected) —
+    DNS resolution and endpoint access are established by that
+    production proof. Independent re-verification from Claire's VM
+    is not available tonight: the VM's DNS path is intercepted
+    (public resolvers refused, answers rewritten), and the Vercel
+    connector's team scope (safetyblades-projects) needs the owner's
+    re-authorisation before project/deployment reads succeed. Both
+    limits are recorded rather than worked around; neither is an app
+    defect. No app retry behaviour was changed and no endpoint was
+    moved.
+  - C04 status: engineering complete in source with named test
+    coverage; hosted suite execution and on-device submission from
+    the consolidated APK remain C07 acceptance items.
+- C03 SCOPE CORRECTION (Cassia, 28 Nov 2026 — supersedes the C03-B
+  framing above): the outstanding Xbox 360 defect is XBLA digital
+  games launching but not being recognised as full games. It is NOT
+  an ISO disc-discovery failure, and XGD partition-offset changes
+  are not the primary resolution; the ISO partition observation is
+  preserved as a separate potential compatibility defect requiring
+  independent evidence. The corrected investigation surface is:
+  extensionless STFS package identity, active guest profile,
+  legitimate matching ownership metadata, effective native engine
+  configuration, whether supplied launch arguments are actually
+  honoured by the pinned engine, and guest profile/progress
+  persistence. Prepared diagnostic capture requirement for
+  Marcus/Daniel, from one failed full-game XBLA launch on device:
+  (1) the launchContentEvidence line the app records (content_class,
+  content_title_id, profile_created, matching_arcade_license,
+  license_mask_argument); (2) the effective xenia.config.toml the
+  engine actually loaded, including logged_profile_slot_0_xuid;
+  (3) the xenia.log boot section for the same launch; (4) whether
+  the guest reports the profile signed in and the title as trial or
+  full. Those four items distinguish the STFS-licensee extraction,
+  the profile binding and the engine's argument handling from each
+  other; without them the cause stays honestly unknown.
+- C04 implementation (Claire, 28 Nov 2026, per Cassia's C04 prompt):
+  audited the full Capture -> Review -> Save -> Retrieve -> Export
+  -> Submit -> Acknowledge chain against C04-A/B. The recovered
+  implementation already satisfies: fresh creation with UUID +
+  UTC timestamp + installed APK identity (version, versionCode,
+  source revision, channel) and engine identity; local save
+  independent of connectivity (AtomicFile in noBackupFilesDir);
+  persistent bounded history with restart recovery via parse-on-read;
+  selected-report retrieval by identity; clear save success/failure
+  feedback; the selected report used consistently for JSON, TXT,
+  ZIP (content-fingerprinted packaging), clipboard, email, share
+  and device export; friendly game title in history with technical
+  identifiers (timestamp, build, report id) retained; submission
+  failure never deletes the local report (submission state is a
+  separate store; delete is explicit-only). One gap found and
+  FIXED in this checkpoint: one-tap diagnostic copying existed only
+  on the preview screen — it is now a first-class action on the
+  report editor itself, copying the current snapshot including the
+  player's edits (C04-B "restore first-class one-tap copying").
+  C04-C backend position is as recorded in the previous C04 entry
+  (endpoint implemented and deployed; production proof 28 Nov 2026;
+  VM/Vercel-scope verification limits recorded). C04-D: the chain
+  is verified at source + named unit tests (SupportReportTest);
+  on-device completion remains a C07 acceptance item.
+- C05-B portrait authored migration (Claire, 28 Nov 2026): the
+  uniform authored transform now carries the same explicit
+  dimension rules as the landscape zone resolver in BOTH
+  orientations — primary directional/analogue controls never below
+  56dp, programmable seats an explicit 45dp, all other controls
+  scale from their authored size with a 42dp floor (the flat 49.2dp
+  floor is gone from authored routes). The DS portrait face diamond
+  is authored at an explicit 44dp: at the generic 48.5dp its
+  diagonal neighbours cannot stay independent in the 360x280
+  reference space, which was the last fixture forcing the legacy
+  portrait fallback (PSP portrait's Select/programmable collision
+  is resolved by the explicit 45dp programmable size). Verified by
+  exhaustive simulation of the resolver rules over all 43 portrait
+  fixtures before implementation, and by a new portraitAuthored
+  assertion in the standalone coverage test: every portrait fixture
+  must now resolve through "uniform chassis transform", never the
+  legacy projection or compact fallback. The legacy portrait routes
+  remain in code as a safety net for unfixtured geometries but are
+  unreachable on the verified fixture set. C05-A additions in the
+  same checkpoint: a GameCube portrait regression test (authored
+  fit, all 18 targets inside the portrait panel and clear of the
+  aperture, D-pad >= 80dp, analogue >= 88dp) and a live-setting
+  regression proving the PSP analogue-primary setting swaps the
+  effective D-pad/analogue placement. Still open in C05: the
+  dedicated GameCube portrait panel resolver (portrait currently
+  uses the authored transform, which fits), thumb-cap authored
+  dimensions per console, and the C05-C residual assignments.
+- C05-B thumb caps (Claire, 28 Nov 2026): analogue thumb-cap sizes
+  are now explicit authored values per console — a table of cap
+  fractions of the fitted stick target (GameCube main stick 0.68,
+  C-stick 0.60; DualShock 0.66; PSP slider 0.62; N64 0.60; Xbox /
+  Xbox 360 0.66; Wii Classic 0.64; 3DS circle pad 0.70; Dreamcast
+  0.64; 0.65 default) — replacing the generic derived formula for
+  ANALOG controls in placement construction. A regression
+  assertion in the GameCube portrait test pins both GameCube cap
+  proportions. Remaining C05 position: GameCube portrait uses the
+  authored transform with its exact regression test (the dedicated
+  panel resolver is landscape's, where panels exist either side of
+  the aperture; the portrait panel is a single area below it) —
+  recorded for Cassia's ruling rather than building a redundant
+  second portrait resolver. C04-SUP notification evidence remains
+  outstanding: operator notifications are queued server-side (no
+  Resend key, owner's decision) and the Vercel team scope needs the
+  owner's re-authorisation before the queue/deployment can be read
+  from here; both are owner-side dependencies, recorded not worked
+  around.
+- C06-A rendering pipeline (Claire, 28 Nov 2026): new Compose
+  regression gameCubeStandaloneDeckAppliesLiveThemeAndLayoutChanges
+  renders the actual standalone GameCube deck (console shell,
+  hardware seats, combined controls, accessory dock) from live
+  state and proves against captured pixels: (1) the utility rail
+  renders below the aperture — the Menu control centre is drawn
+  material, not bezel; (2) a live edition (theme) change recolours
+  the displayed deck's bezel; (3) a live layout change (a measured
+  safe-area inset, as from a display cutout) moves the displayed
+  analogue stick — its old centre returns to bezel, its new centre
+  is drawn. Together with the C05 resolver-level live-setting test
+  and the existing combined-accessory recomposition/press tests,
+  this covers live settings and effective configuration reaching
+  the displayed controller at the rendering layer. Press-state
+  reflection of a physical gamepad remains a C07 on-device item.
+  The legacy portrait fallback remains in code for unfixtured
+  geometries; the claim made is fixture-bounded, as Cassia noted.
+- C06-B PC runtime laboratory (recorded 28 Nov 2026): Cassia's
+  inspection of workflow 46129077261 establishes the two failed
+  native-host jobs failed at SETUP on unavailable public
+  infrastructure, before any test executed — not a source defect.
+  The laboratory's other lines (independent PC host, DOSBox Pure
+  build, synthetic Linux DOS guest execution, separate PC
+  laboratory jobs) completed successfully and are preserved
+  unchanged. This environment has no native build toolchain and
+  the GitHub connector exposes no workflow dispatch/re-run tool,
+  so the laboratory re-verification route is the PR workflow set
+  itself, which re-runs on every push to this branch; no workflow
+  or source change is warranted by an infrastructure setup
+  failure, and none has been made.
+- C06-C PERF remainder (recorded 28 Nov 2026): the one open PERF
+  item (CLOSE-04) requires reproducing the historical Wii
+  video-gap case on the affected device and correlating guest
+  metrics, plus source-to-swap captures for the original Xbox
+  lines under the existing PERF plan. Neither is achievable from
+  source work here; no runtime policy change is justified without
+  that evidence. Recorded as device-dependent, not deferred by
+  choice.
+- C06-D residuals (recorded 28 Nov 2026): C02-NUN (shared
+  GA-D31C-R3 pointer/fire session), C02-DOS (proven DOSBox Pure
+  guest input bridge) and C03-XBLA (full-game recognition, capture
+  specified) remain open for the reasons already recorded — each
+  needs either the cross-surface session build or runtime evidence
+  that does not exist yet. No speculative implementation has been
+  substituted for that evidence.
+- C07-A regression corrections (Claire, 28 Nov 2026; connected APK
+  workflow 46131605775 on 6a59519f: 909 tests, 2 failures):
+  (1) GbaGripArcLayoutTest.portraitSeatSizesUseClearanceWithout
+  ChangingApprovedCenters — root cause: the explicit 45dp
+  programmable size in the uniform transform shrank the GBA dock
+  visuals below the approved packet's floor (dock visual height
+  derives from the smallest programmable target). Correction:
+  programmable seats in the uniform transform scale from their
+  authored size with a 42dp floor (the pre-existing approved
+  behaviour the packet was written against); the explicit 45dp
+  programmable size remains ONLY in the zone resolvers, whose
+  binding constraint lives there. The two portrait collisions the
+  45dp size had masked are instead closed with authored seat
+  clearances: PSP portrait programmable seat 2 moves 322 -> 318
+  and the DS portrait programmable seats move 205 -> 201. All 43
+  portrait fixtures re-verified against the final rules by
+  simulation before implementation. This supersedes the C05-B
+  note attributing the PSP collision fix to the 45dp size.
+  (2) GripArcRenderingTest.gameCubePortraitUsesAuthoredGeometry
+  WithExplicitSizes line 195 — Claire's own new test asserted the
+  LANDSCAPE authored sizes (analogue >= 88dp) in portrait; the
+  GameCube portrait authored sizes are 78dp analogue / 74dp D-pad
+  by design. The test now asserts the portrait authored sizes
+  un-shrunk. No production geometry changed for this failure, and
+  no pre-existing acceptance requirement was altered.
+- C07-A Wii U pointer gate (investigated 28 Nov 2026, no code
+  change): the probe activity's touch listener already gates
+  pointer forwarding on the applied controller state reported by
+  the engine (appliedControllerDevice == 1, the GamePad joypad;
+  the Pro subclass and the proController preference both block
+  it), and the native host independently serves pointer input
+  only while the applied device is the joypad, clearing the
+  pointer on device/screen switches. The remaining packet item —
+  gating on the PRESENTED screen (TV vs GamePad layout) — cannot
+  be established from the core in the pinned build: the host's
+  environment callback serves core options from a static map,
+  GET_VARIABLE_UPDATE is hard-coded false, screen toggles are
+  fire-and-forget Tab pulses the core consumes internally, and
+  the engine report exposes no layout key (its keys are
+  enumerated in WiiuLibretroRunner's nativeReport). Establishing
+  applied layout state requires a native change (host-set layout
+  option or a core-reported layout) in the Wii U host lane; it is
+  recorded here as that lane's residual, not reclassified as
+  physical acceptance and not faked with a toggle counter, which
+  could invert the gate.
+- C07-A Assignment 3 — PC laboratory integration suite (Claire,
+  28 Nov 2026): the opt-in integration job (pc-integrated-apk in
+  cartdeck-pc-native-lab.yml) runs the same 909-test Robolectric
+  unit suite as the connected APK workflow, but WITHOUT that
+  workflow's Robolectric SDK-jar cache and checksum-verified
+  prefetch steps. Its 329 failures with widespread HTTP exceptions
+  are the Robolectric android-all-instrumented jars being fetched
+  from Maven Central at test runtime in an environment where that
+  public infrastructure was failing — compilation and APK assembly
+  in the same job succeed because they never touch those jars,
+  and the PC core verification job passes because it runs no
+  Robolectric at all. Correction prepared: the connected
+  workflow's cache step and SHA-512-verified prefetch (same cache
+  key, same SDK versions and digests, both Maven mirrors) mirrored
+  verbatim into the pc-integrated-apk job ahead of its test step.
+  The corrected workflow file is staged locally but CANNOT be
+  published from here: the GitHub App lacks the workflows
+  permission (the push was refused with 403 Resource not
+  accessible by integration), the same limitation recorded for
+  this app previously. It publishes as soon as the owner grants
+  that permission or pushes the file. Checksum and provenance
+  verification are preserved exactly in the prepared change; no
+  self-hosted infrastructure introduced.
+- C07-A final build recovery (Claire, 28 Nov 2026): the one
+  remaining failure (909/910) was Claire's live-render test
+  asserting the captured corner pixel equals the edition bezel
+  token. The console shell paints its chassis layer over the root
+  background, so the corner pixel is the shell's, not the bezel
+  token's — the test's assumption, not a rendering defect. The
+  test now samples the deck background from the capture itself
+  and keeps full pixel-level evidence relative to it: rail Menu
+  centre drawn against the background, a live edition change
+  recolouring the sampled background with the rail still drawn,
+  and a live safe-area inset moving the displayed analogue stick
+  (old centre returns to the sampled background, new centre
+  drawn). The shifted fixture's inset is reduced (left 40dp) so
+  the GameCube left panel stays comfortably within its authored
+  fit, and the movement assertion is horizontal, matching the
+  inset. No production code changed.

@@ -66,6 +66,7 @@ import com.swordfish.lemuroid.app.shared.input.ControllerMenuEdge
 import com.swordfish.lemuroid.app.shared.input.GameplayControllerPresence
 import com.swordfish.lemuroid.app.shared.input.handle
 import com.swordfish.lemuroid.app.shared.input.observeControllerMenuEdges
+import com.swordfish.lemuroid.app.shared.support.SupportDesign
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
@@ -243,12 +244,8 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             presentationAspect =
                                 NativeViewportPolicy.presentationAspect(NativeViewportPolicy.Host.ARMSX2),
                             game = game,
-                            onGripPressed = { slot, down, codes ->
-                                if (down && hostForeground && !menu) slots[slot] = codes else slots.remove(slot)
-                                grip.clear()
-                                slots.values.flatten().toSet().forEach { grip.key(it, true) }
-                                sendInput()
-                            },
+                            canUseGrip = { ready && started && !menu && hostForeground && !leaving },
+                            onGripMenu = ::openMenu,
                         ) { viewport ->
                             viewportAudit.request(viewport.width(), viewport.height())
                             if (viewport.width() > 0 && viewport.height() > 0) {
@@ -461,7 +458,7 @@ class Armsx2RuntimeProbeActivity : ComponentActivity(), SurfaceHolder.Callback {
                             .setPositiveButton("Validate and import") { _, _ -> importBiosFrom(folderCandidate) }
                             .setNegativeButton("Choose a different file") { _, _ -> importBios.launch(arrayOf("*/*")) }
                             .setOnCancelListener { leave() }
-                            .show()
+                            .show().also(SupportDesign::style)
                     }
                     return@launch
                 }

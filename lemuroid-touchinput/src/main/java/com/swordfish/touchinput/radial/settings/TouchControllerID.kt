@@ -2,6 +2,10 @@ package com.swordfish.touchinput.radial.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.swordfish.touchinput.radial.layouts.Arcade2Left
+import com.swordfish.touchinput.radial.layouts.Arcade2Right
+import com.swordfish.touchinput.radial.layouts.Arcade3Left
+import com.swordfish.touchinput.radial.layouts.Arcade3Right
 import com.swordfish.touchinput.radial.layouts.Arcade4Left
 import com.swordfish.touchinput.radial.layouts.Arcade4Right
 import com.swordfish.touchinput.radial.layouts.Arcade6Left
@@ -42,6 +46,7 @@ import com.swordfish.touchinput.radial.layouts.Nintendo3DSLeft
 import com.swordfish.touchinput.radial.layouts.Nintendo3DSRight
 import com.swordfish.touchinput.radial.layouts.PCELeft
 import com.swordfish.touchinput.radial.layouts.PCERight
+import com.swordfish.touchinput.radial.layouts.PCESixRight
 import com.swordfish.touchinput.radial.layouts.PSPLeft
 import com.swordfish.touchinput.radial.layouts.PSPRight
 import com.swordfish.touchinput.radial.layouts.PSXDualShockLeft
@@ -86,6 +91,7 @@ enum class TouchControllerID {
     LYNX,
     ATARI7800,
     PCE,
+    PCE_SIX,
     NGP,
     DOS,
     WS_LANDSCAPE,
@@ -96,6 +102,8 @@ enum class TouchControllerID {
     WII_CLASSIC,
     WII_SIDEWAYS,
     WII_NUNCHUK,
+    ARCADE_2,
+    ARCADE_3,
     ;
 
     class Config(
@@ -123,8 +131,8 @@ enum class TouchControllerID {
             )
         }
 
-        private fun getNativeConfig(id: TouchControllerID): Config {
-            return when (id) {
+        private fun getNativeConfig(id: TouchControllerID): Config =
+            when (id) {
                 GB ->
                     Config(
                         { modifier, settings -> GBLeft(modifier, settings) },
@@ -240,6 +248,18 @@ enum class TouchControllerID {
                         { modifier, settings -> GGRight(modifier, settings) },
                     )
 
+                ARCADE_2 ->
+                    Config(
+                        { modifier, settings -> Arcade2Left(modifier, settings) },
+                        { modifier, settings -> Arcade2Right(modifier, settings) },
+                    )
+
+                ARCADE_3 ->
+                    Config(
+                        { modifier, settings -> Arcade3Left(modifier, settings) },
+                        { modifier, settings -> Arcade3Right(modifier, settings) },
+                    )
+
                 ARCADE_4 ->
                     Config(
                         { modifier, settings -> Arcade4Left(modifier, settings) },
@@ -268,6 +288,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> PCELeft(modifier, settings) },
                         { modifier, settings -> PCERight(modifier, settings) },
+                    )
+
+                PCE_SIX ->
+                    Config(
+                        { modifier, settings -> PCELeft(modifier, settings) },
+                        { modifier, settings -> PCESixRight(modifier, settings) },
                     )
 
                 NGP ->
@@ -311,6 +337,5 @@ enum class TouchControllerID {
                         { modifier, settings -> Nintendo3DSRight(modifier, settings) },
                     )
             }
-        }
     }
 }

@@ -1,12 +1,18 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.bios
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.support.SupportSignature
+import com.swordfish.lemuroid.app.shared.support.SupportSignatureHeader
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsPage
@@ -22,14 +28,22 @@ fun BiosScreen(
             .collectAsState()
             .value
 
-    LemuroidSettingsPage(modifier = modifier.fillMaxSize()) {
-        Armsx2SetupSection()
-        com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
-        if (uiState.detected.isNotEmpty()) {
-            DetectedEntries(uiState.detected)
-        }
-        if (uiState.notDetected.isNotEmpty()) {
-            SupportedEntries(uiState.notDetected)
+    SupportSignature {
+        LemuroidSettingsPage(
+            modifier =
+                modifier.fillMaxSize().background(
+                    MaterialTheme.colorScheme.background,
+                ).padding(horizontal = 12.dp),
+        ) {
+            SupportSignatureHeader("BIOS management", "Manage the system files used by your installed engines.")
+            Armsx2SetupSection()
+            com.swordfish.lemuroid.app.mobile.feature.settings.ps3.Ps3Management()
+            if (uiState.detected.isNotEmpty()) {
+                DetectedEntries(uiState.detected)
+            }
+            if (uiState.notDetected.isNotEmpty()) {
+                SupportedEntries(uiState.notDetected)
+            }
         }
     }
 }

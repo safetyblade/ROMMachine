@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.swordfish.lemuroid.app.mobile.feature.shelf.shelfGameKey
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -43,19 +44,40 @@ object GripArcInputCatalog {
 
     fun forSystem(system: SystemID?): List<GripArcInput> =
         when (system) {
-            SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.PC_ENGINE ->
+            SystemID.GB, SystemID.GBC, SystemID.NES ->
                 listOf(a, b, start, select)
-            SystemID.SMS -> listOf(a, b, start)
+            SystemID.PC_ENGINE -> listOf(a.copy(label = "II"), b.copy(label = "I"), start.copy(label = "Run"), select)
+            SystemID.GENESIS, SystemID.SEGACD ->
+                listOf(
+                    y.copy(label = "A"),
+                    b,
+                    a.copy(label = "C"),
+                    l.copy(label = "X"),
+                    x.copy(label = "Y"),
+                    r.copy(label = "Z"),
+                    select.copy(label = "Mode"),
+                    start,
+                )
+            SystemID.SMS -> listOf(a.copy(label = "2"), b.copy(label = "1"), start.copy(label = "Pause"))
             SystemID.GBA -> listOf(a, b, l, r, start, select)
             // Labels follow the existing PadKit touch layouts, not guessed console ABXY.
             // Game Gear uses Button 2 on Android A and Button 1 on Android B.
             SystemID.GG -> listOf(a.copy(label = "2"), b.copy(label = "1"), start)
+            SystemID.ATARI2600 ->
+                listOf(
+                    b.copy(label = "Fire"),
+                    l.copy(label = "Diff A"),
+                    l2.copy(label = "Diff B"),
+                    start.copy(label = "Reset"),
+                    select,
+                )
+            SystemID.ATARI7800 -> listOf(a.copy(label = "2"), b.copy(label = "1"), start, select)
             // Lynx Options are genuine guest L1/R1 inputs; Start is the Pause key.
             SystemID.LYNX ->
                 listOf(a, b, l.copy(label = "Option 1"), r.copy(label = "Option 2"), start.copy(label = "Pause"))
             // NGC is Neo Geo Pocket Color (not Nintendo GameCube); both use the NGP PadKit layout.
             // PadKit shows B on Android A and A on Android B. Preserve the existing guest key codes.
-            SystemID.NGP, SystemID.NGC -> listOf(a.copy(label = "B"), b.copy(label = "A"), start)
+            SystemID.NGP, SystemID.NGC -> listOf(a.copy(label = "B"), b.copy(label = "A"), start.copy(label = "Option"))
             SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS ->
                 listOf(a, b, x, y, l, r, start, select)
             SystemID.PSP ->
@@ -114,6 +136,19 @@ object GripArcInputCatalog {
         forSystem(SystemID.values().firstOrNull { it.dbname == game.systemId })
 }
 
+/** The legacy integer lists are retained as the native guest identities for all four slots. */
+enum class GripArcBehavior { MOMENTARY, HOLD, TURBO, MENU }
+
+sealed interface GripArcAction {
+    data object OpenMenu : GripArcAction
+
+    data class Native(val keys: Set<Int>) : GripArcAction
+
+    data class Hold(val key: Int) : GripArcAction
+
+    data class Turbo(val key: Int, val rate: Int = 10) : GripArcAction
+}
+
 /** All four slot mappings persist, even if only one button is currently visible. */
 data class GripArcProfile(
     val mode: ArcControlMode = ArcControlMode.STANDARD,
@@ -122,7 +157,46 @@ data class GripArcProfile(
     val mappings: List<List<Int>> = List(4) { emptyList() },
     val dx: Float = 0f,
     val dy: Float = 0f,
+    val behaviors: List<GripArcBehavior> = List(4) { GripArcBehavior.MOMENTARY },
+    val turboRate: Int = 10,
 ) {
+    fun actionFor(slot: Int): GripArcAction {
+        val keys = mappings.getOrNull(slot - 1).orEmpty()
+        val behavior = behaviors.getOrElse(slot - 1) { GripArcBehavior.MOMENTARY }
+        if (behavior == GripArcBehavior.MENU) return GripArcAction.OpenMenu
+        val key = keys.singleOrNull() ?: return GripArcAction.Native(keys.toSet())
+        return when (behavior) {
+            GripArcBehavior.MOMENTARY -> GripArcAction.Native(setOf(key))
+            GripArcBehavior.HOLD -> GripArcAction.Hold(key)
+            GripArcBehavior.TURBO -> GripArcAction.Turbo(key, turboRate.coerceIn(3, 15))
+            GripArcBehavior.MENU -> GripArcAction.OpenMenu
+        }
+    }
+
+    fun supportedActionFor(
+        slot: Int,
+        allowed: Set<Int>,
+    ): GripArcAction? {
+        val action = actionFor(slot)
+        return when (action) {
+            GripArcAction.OpenMenu -> action
+            is GripArcAction.Native -> action.takeIf { allowed.containsAll(it.keys) }
+            is GripArcAction.Hold -> action.takeIf { it.key in allowed }
+            is GripArcAction.Turbo -> action.takeIf { it.key in allowed }
+        }
+    }
+
+    fun labelFor(
+        slot: Int,
+        labels: Map<Int, String>,
+    ): String =
+        when (val action = actionFor(slot)) {
+            GripArcAction.OpenMenu -> "Game menu"
+            is GripArcAction.Native -> action.keys.mapNotNull(labels::get).joinToString("+")
+            is GripArcAction.Hold -> labels[action.key]?.let { "Hold $it" }.orEmpty()
+            is GripArcAction.Turbo -> labels[action.key]?.let { "Turbo $it" }.orEmpty()
+        }
+
     fun validated(allowed: Set<Int>): GripArcProfile =
         copy(
             count = count.coerceIn(1, 4),
@@ -131,10 +205,273 @@ data class GripArcProfile(
                     mappings.getOrNull(slot).orEmpty()
                         .filter { it in allowed }.distinct().take(4)
                 },
+            behaviors = (0..3).map { behaviors.getOrElse(it) { GripArcBehavior.MOMENTARY } },
+            turboRate = turboRate.coerceIn(3, 15),
             dx = dx.takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f,
             dy = dy.takeIf { it.isFinite() && it in -1000f..1000f } ?: 0f,
         )
 }
+
+internal fun supportsStandaloneGripActions(system: SystemID?): Boolean =
+    system in
+        setOf(
+            SystemID.GBA, SystemID.GB, SystemID.GBC, SystemID.NES, SystemID.SMS,
+            SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE, SystemID.SNES,
+            SystemID.GENESIS, SystemID.SEGACD, SystemID.ATARI2600, SystemID.ATARI7800, SystemID.LYNX,
+            SystemID.DREAMCAST, SystemID.GAMECUBE, SystemID.PSP, SystemID.PSX, SystemID.NINTENDO_3DS,
+            SystemID.WS, SystemID.WSC, SystemID.FBNEO, SystemID.MAME2003PLUS, SystemID.N64,
+            SystemID.XBOX, SystemID.XBOX360, SystemID.DOS, SystemID.PLAYSTATION_2, SystemID.PLAYSTATION_3,
+            SystemID.WII_U, SystemID.WII, SystemID.NDS,
+        )
+
+internal fun CartdeckLayoutMode.forSystem(system: SystemID?): ArcControlMode =
+    when (this) {
+        CartdeckLayoutMode.STANDARD -> ArcControlMode.STANDARD
+        CartdeckLayoutMode.ONE_HAND -> ArcControlMode.PIVOTARC
+        CartdeckLayoutMode.GRIPARC ->
+            if (supportsStandaloneGripActions(system)) ArcControlMode.STANDARD_GRIPARC else ArcControlMode.STANDARD
+    }
+
+internal fun standaloneGripFactory(
+    system: SystemID?,
+    controller: TouchControllerID? = null,
+): GripArcProfile? {
+    if (!supportsStandaloneGripActions(system)) return null
+    val a = KeyEvent.KEYCODE_BUTTON_A
+    val b = KeyEvent.KEYCODE_BUTTON_B
+    val shoulderChord = listOf(KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1)
+    // DOS_AUTO guest bindings are title-specific.
+    if (system == SystemID.DOS) return GripArcProfile()
+    if (system == SystemID.WII) {
+        return when (controller) {
+            TouchControllerID.GAMECUBE -> standaloneGripFactory(SystemID.GAMECUBE)
+            TouchControllerID.WII_CLASSIC -> standaloneGripFactory(SystemID.WII_U)
+            else ->
+                GripArcProfile(
+                    mappings = listOf(listOf(b), listOf(a), listOf(b, a), listOf(a)),
+                    behaviors =
+                        listOf(
+                            GripArcBehavior.HOLD,
+                            GripArcBehavior.HOLD,
+                            GripArcBehavior.MOMENTARY,
+                            GripArcBehavior.TURBO,
+                        ),
+                )
+        }
+    }
+    if (system == SystemID.NDS) {
+        return GripArcProfile(
+            count = 2,
+            mappings = listOf(listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), emptyList(), emptyList()),
+            behaviors = listOf(GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
+    }
+    if (system == SystemID.PLAYSTATION_2 || system == SystemID.PLAYSTATION_3) {
+        return GripArcProfile(
+            mappings =
+                listOf(
+                    shoulderChord,
+                    listOf(KeyEvent.KEYCODE_BUTTON_Y),
+                    listOf(b),
+                    listOf(KeyEvent.KEYCODE_BUTTON_R2),
+                ),
+            behaviors =
+                listOf(
+                    GripArcBehavior.MOMENTARY,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                ),
+        )
+    }
+    if (system == SystemID.WII_U) {
+        return GripArcProfile(
+            mappings =
+                listOf(
+                    listOf(KeyEvent.KEYCODE_BUTTON_Y),
+                    listOf(KeyEvent.KEYCODE_BUTTON_X),
+                    listOf(b),
+                    listOf(a),
+                ),
+            behaviors = List(4) { GripArcBehavior.HOLD },
+        )
+    }
+    if (system == SystemID.XBOX || system == SystemID.XBOX360) {
+        return GripArcProfile(
+            mappings =
+                listOf(
+                    listOf(KeyEvent.KEYCODE_BUTTON_X),
+                    listOf(KeyEvent.KEYCODE_BUTTON_Y),
+                    listOf(a),
+                    listOf(b),
+                ),
+            behaviors = List(4) { GripArcBehavior.HOLD },
+        )
+    }
+    if (system == SystemID.N64) {
+        return GripArcProfile(
+            mappings =
+                listOf(
+                    shoulderChord,
+                    listOf(b),
+                    listOf(KeyEvent.KEYCODE_BUTTON_Y),
+                    listOf(KeyEvent.KEYCODE_BUTTON_L2),
+                ),
+            behaviors =
+                listOf(
+                    GripArcBehavior.MOMENTARY,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                ),
+        )
+    }
+    if (system == SystemID.FBNEO || system == SystemID.MAME2003PLUS) {
+        val first = KeyEvent.KEYCODE_BUTTON_1
+        val second = KeyEvent.KEYCODE_BUTTON_2
+        return GripArcProfile(
+            mappings = listOf(listOf(first), listOf(first), listOf(second), listOf(first, second)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.PC_ENGINE) {
+        return GripArcProfile(
+            mappings = listOf(listOf(a), listOf(b), listOf(a), listOf(a, b)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.WS || system == SystemID.WSC) {
+        return GripArcProfile(
+            mappings = listOf(listOf(b), listOf(a), listOf(b), listOf(a, b)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.SNES) {
+        return GripArcProfile(
+            mappings =
+                listOf(shoulderChord, listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), listOf(KeyEvent.KEYCODE_BUTTON_X)),
+            behaviors =
+                listOf(GripArcBehavior.MOMENTARY, GripArcBehavior.HOLD, GripArcBehavior.TURBO, GripArcBehavior.HOLD),
+        )
+    }
+    if (system == SystemID.GENESIS || system == SystemID.SEGACD) {
+        return GripArcProfile(
+            mappings = listOf(listOf(b), listOf(b), listOf(a), listOf(b, a)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.ATARI2600) {
+        return GripArcProfile(
+            count = 2,
+            mappings = listOf(listOf(b), listOf(b), emptyList(), emptyList()),
+            behaviors = listOf(GripArcBehavior.HOLD, GripArcBehavior.TURBO),
+        )
+    }
+    if (system == SystemID.LYNX) {
+        return GripArcProfile(
+            mappings = listOf(shoulderChord, listOf(a), listOf(b), listOf(a, b)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.MOMENTARY,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.MOMENTARY,
+                ),
+        )
+    }
+    if (system == SystemID.DREAMCAST || system == SystemID.GAMECUBE) {
+        val face = if (system == SystemID.DREAMCAST) listOf(b, a) else listOf(a, b)
+        val keys = listOf(KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2) + face
+        return GripArcProfile(mappings = keys.map { listOf(it) }, behaviors = List(4) { GripArcBehavior.HOLD })
+    }
+    if (system == SystemID.NINTENDO_3DS) {
+        return GripArcProfile(
+            count = 2,
+            mappings = listOf(listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), emptyList(), emptyList()),
+            behaviors = listOf(GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
+    }
+    if (system == SystemID.PSX) {
+        return GripArcProfile(
+            mappings =
+                listOf(shoulderChord, listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), listOf(KeyEvent.KEYCODE_BUTTON_R2)),
+            behaviors =
+                listOf(GripArcBehavior.MOMENTARY, GripArcBehavior.HOLD, GripArcBehavior.HOLD, GripArcBehavior.HOLD),
+        )
+    }
+    if (system == SystemID.PSP) {
+        return GripArcProfile(
+            mappings =
+                listOf(shoulderChord, listOf(KeyEvent.KEYCODE_BUTTON_Y), listOf(b), listOf(KeyEvent.KEYCODE_BUTTON_X)),
+            behaviors =
+                listOf(
+                    GripArcBehavior.MOMENTARY,
+                    GripArcBehavior.HOLD,
+                    GripArcBehavior.TURBO,
+                    GripArcBehavior.HOLD,
+                ),
+        )
+    }
+    val gba = system == SystemID.GBA
+    val alternateLegendOrder =
+        system in setOf(SystemID.SMS, SystemID.GG, SystemID.NGP, SystemID.NGC, SystemID.PC_ENGINE, SystemID.ATARI7800)
+    return GripArcProfile(
+        mappings =
+            listOf(
+                if (gba) shoulderChord else listOf(b),
+                listOf(a),
+                listOf(b),
+                if (alternateLegendOrder) listOf(b, a) else listOf(a, b),
+            ),
+        behaviors =
+            listOf(
+                if (gba) GripArcBehavior.MOMENTARY else GripArcBehavior.HOLD,
+                GripArcBehavior.TURBO,
+                GripArcBehavior.TURBO,
+                GripArcBehavior.MOMENTARY,
+            ),
+    )
+}
+
+internal fun gripArcAssignmentMode(
+    controller: TouchControllerID?,
+    pspAnalogPrimary: Boolean = false,
+    wiiuPro: Boolean? = null,
+): String? =
+    when (controller) {
+        TouchControllerID.PSP -> if (pspAnalogPrimary) "PSP:analogue" else "PSP:dpad"
+        TouchControllerID.WII_CLASSIC ->
+            when (wiiuPro) {
+                true -> "WII_U:pro"
+                false -> "WII_U:gamepad"
+                null -> controller.name
+            }
+        else -> controller?.name
+    }
 
 /**
  * Additive, versioned per-cartridge profile. SharedPreferences provides atomic
@@ -146,7 +483,16 @@ class GripArcProfileStore(context: Context) {
     private val preferences =
         appContext.getSharedPreferences("cartdeck_arc_cartridge_profiles_v1", Context.MODE_PRIVATE)
 
-    fun defaultFor(game: Game): GripArcProfile {
+    fun defaultFor(
+        game: Game,
+        mode: ArcControlMode,
+        assignmentMode: String? = null,
+    ): GripArcProfile {
+        val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+        if (mode == ArcControlMode.STANDARD_GRIPARC) {
+            val controller = TouchControllerID.entries.firstOrNull { it.name == assignmentMode }
+            standaloneGripFactory(system, controller)?.let { return it.copy(mode = mode) }
+        }
         val supported = GripArcInputCatalog.forGame(game)
         val possible = supported.map { it.code }
         val preferred =
@@ -158,33 +504,40 @@ class GripArcProfileStore(context: Context) {
             )
         val assigned = preferred.filter { it in possible }.map { listOf(it) }
         val mappings = assigned + List(4 - assigned.size) { emptyList() }
-        return GripArcProfile(mappings = mappings)
+        return GripArcProfile(mode = mode, mappings = mappings)
     }
 
-    fun read(game: Game): GripArcProfile {
-        val previousGlobal = PivotArcSettingsStore(appContext).read().mode == CartdeckLayoutMode.ONE_HAND
-        val fallback =
-            defaultFor(game).copy(
-                mode = if (previousGlobal) ArcControlMode.PIVOTARC else ArcControlMode.STANDARD,
-            )
+    fun read(
+        game: Game,
+        assignmentMode: String? = null,
+    ): GripArcProfile {
+        val system = SystemID.entries.firstOrNull { it.dbname == game.systemId }
+        val globalMode = PivotArcSettingsStore(appContext).read().mode.forSystem(system)
+        val layoutOverride =
+            preferences.getString(layoutKey(game), null)?.let { value ->
+                ArcControlMode.entries.firstOrNull { it.name == value }
+            }
+        val inherit = preferences.getBoolean(layoutInheritanceKey(game), false)
+        val mode = if (inherit) globalMode else layoutOverride ?: globalMode
+        val fallback = defaultFor(game, mode, assignmentMode)
         val raw =
             preferences.getString(key(game), null)
                 ?: preferences.getString(legacyKey(game, game.legacySourceUri ?: game.fileUri), null)
                 ?: preferences.getString(legacyKey(game, game.fileUri), null)
-                ?: return fallback
-        val profile = decode(raw, fallback, GripArcInputCatalog.forGame(game).map { it.code }.toSet())
-        return if (preferences.getBoolean(layoutInheritanceKey(game), false)) {
-            profile.copy(mode = fallback.mode)
-        } else {
-            profile
-        }
+        val allowed = allowedCodes(game)
+        val stored = raw?.let { decode(it, fallback, allowed) } ?: fallback
+        val selected = if (inherit || layoutOverride != null) stored.copy(mode = mode) else stored
+        if (selected.mode != ArcControlMode.STANDARD_GRIPARC || assignmentMode == null) return selected
+        val scoped = preferences.getString(assignmentKey(game, assignmentMode), null) ?: return selected
+        return decode(scoped, selected, allowed).copy(mode = selected.mode)
     }
 
-    /** Saved mode overrides global PivotArc; older unconfigured cartridges retain the existing global choice. */
+    /** Saved mode overrides the global choice without materialising factory assignments. */
     fun hasSelection(game: Game): Boolean =
         !preferences.getBoolean(layoutInheritanceKey(game), false) &&
             (
-                preferences.contains(key(game)) ||
+                preferences.contains(layoutKey(game)) ||
+                    preferences.contains(key(game)) ||
                     preferences.contains(legacyKey(game, game.legacySourceUri ?: game.fileUri)) ||
                     preferences.contains(legacyKey(game, game.fileUri))
             )
@@ -195,17 +548,85 @@ class GripArcProfileStore(context: Context) {
         game: Game,
         mode: ArcControlMode,
     ): Boolean =
-        preferences.edit().putString(key(game), encode(read(game).copy(mode = mode)))
+        preferences.edit().putString(layoutKey(game), mode.name)
             .remove(layoutInheritanceKey(game)).commit()
+
+    private fun layoutKey(game: Game) = "${key(game)}:layout"
 
     private fun layoutInheritanceKey(game: Game) = "${key(game)}:inherit_layout"
 
     fun save(
         game: Game,
         profile: GripArcProfile,
+        assignmentMode: String? = null,
     ): Boolean {
-        val checked = profile.validated(GripArcInputCatalog.forGame(game).map { it.code }.toSet())
-        return preferences.edit().putString(key(game), encode(checked)).commit()
+        val checked = profile.validated(allowedCodes(game))
+        val storageKey =
+            if (profile.mode == ArcControlMode.STANDARD_GRIPARC && assignmentMode != null) {
+                assignmentKey(game, assignmentMode)
+            } else {
+                key(game)
+            }
+        return preferences.edit().putString(storageKey, encode(checked)).commit()
+    }
+
+    private fun assignmentKey(
+        game: Game,
+        mode: String,
+    ) = "${key(game)}:gripAssignments:$mode"
+
+    private fun allowedCodes(game: Game): Set<Int> {
+        val existing = GripArcInputCatalog.forGame(game).mapTo(mutableSetOf()) { it.code }
+        when (game.systemId) {
+            SystemID.GAMECUBE.dbname -> existing += KeyEvent.KEYCODE_BUTTON_L2
+            SystemID.PC_ENGINE.dbname ->
+                existing.addAll(
+                    setOf(
+                        KeyEvent.KEYCODE_BUTTON_X,
+                        KeyEvent.KEYCODE_BUTTON_Y,
+                        KeyEvent.KEYCODE_BUTTON_L1,
+                        KeyEvent.KEYCODE_BUTTON_R1,
+                    ),
+                )
+            SystemID.WII.dbname -> {
+                listOf(TouchControllerID.WII_SIDEWAYS, TouchControllerID.WII_CLASSIC, TouchControllerID.GAMECUBE)
+                    .mapNotNull { StandaloneGripArcLayout.inventoryFor(it, SystemID.WII) }
+                    .forEach { existing.addAll(StandaloneGripArcLayout.actionLabels(it).keys) }
+            }
+            SystemID.DOS.dbname, SystemID.WII_U.dbname -> {
+                val inventory =
+                    if (game.systemId == SystemID.DOS.dbname) {
+                        StandaloneGripArcLayout.inventoryFor(TouchControllerID.DOS)
+                    } else {
+                        StandaloneGripArcLayout.inventoryFor(TouchControllerID.WII_CLASSIC, SystemID.WII_U)
+                    }
+                inventory?.let { existing.addAll(StandaloneGripArcLayout.actionLabels(it).keys) }
+            }
+            SystemID.XBOX.dbname, SystemID.XBOX360.dbname,
+            SystemID.PLAYSTATION_2.dbname, SystemID.PLAYSTATION_3.dbname,
+            ->
+                existing.addAll(setOf(KeyEvent.KEYCODE_BUTTON_THUMBL, KeyEvent.KEYCODE_BUTTON_THUMBR))
+            SystemID.N64.dbname ->
+                existing.addAll(
+                    setOf(
+                        KeyEvent.KEYCODE_BUTTON_B,
+                        KeyEvent.KEYCODE_BUTTON_Y,
+                        KeyEvent.KEYCODE_BUTTON_L2,
+                        KeyEvent.KEYCODE_BUTTON_L1,
+                        KeyEvent.KEYCODE_BUTTON_R1,
+                        KeyEvent.KEYCODE_BUTTON_START,
+                    ),
+                )
+            SystemID.FBNEO.dbname, SystemID.MAME2003PLUS.dbname -> {
+                existing.addAll(KeyEvent.KEYCODE_BUTTON_1..KeyEvent.KEYCODE_BUTTON_6)
+                existing.addAll(setOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_START))
+            }
+            SystemID.WS.dbname, SystemID.WSC.dbname ->
+                existing.addAll(
+                    setOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_START),
+                )
+        }
+        return existing
     }
 
     fun orientationOverride(game: Game): ControlsOrientation? =
@@ -243,6 +664,8 @@ class GripArcProfileStore(context: Context) {
                 put("mode", profile.mode.name)
                 put("side", profile.side.name)
                 put("count", profile.count)
+                put("behaviors", JSONArray(profile.behaviors.map { it.name }))
+                put("turboRate", profile.turboRate)
                 put("dx", profile.dx.toDouble())
                 put("dy", profile.dy.toDouble())
                 put(
@@ -268,6 +691,12 @@ class GripArcProfileStore(context: Context) {
                     mode = ArcControlMode.valueOf(root.getString("mode")),
                     side = GripArcSide.valueOf(root.optString("side", "RIGHT")),
                     count = root.optInt("count", 1),
+                    behaviors =
+                        (0..3).map { slot ->
+                            val value = root.optJSONArray("behaviors")?.optString(slot)
+                            GripArcBehavior.entries.firstOrNull { it.name == value } ?: GripArcBehavior.MOMENTARY
+                        },
+                    turboRate = root.optInt("turboRate", 10),
                     dx = root.optDouble("dx", 0.0).toFloat(),
                     dy = root.optDouble("dy", 0.0).toFloat(),
                     mappings =
@@ -283,15 +712,21 @@ class GripArcProfileStore(context: Context) {
 }
 
 @Composable
-fun rememberGripArcProfile(game: Game): State<GripArcProfile> {
+fun rememberGripArcProfile(
+    game: Game,
+    assignmentMode: String? = null,
+): State<GripArcProfile> {
     val context = LocalContext.current.applicationContext
     val store = remember(context) { GripArcProfileStore(context) }
     val global by rememberPivotArcSettings()
-    val state = remember(game.cartridgeId, store, global.mode) { mutableStateOf(store.read(game)) }
+    val state =
+        remember(game.cartridgeId, store, global.mode, assignmentMode) {
+            mutableStateOf(store.read(game, assignmentMode))
+        }
     DisposableEffect(game.cartridgeId, store, state) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-                state.value = store.read(game)
+                state.value = store.read(game, assignmentMode)
             }
         store.listen(listener)
         onDispose { store.unlisten(listener) }

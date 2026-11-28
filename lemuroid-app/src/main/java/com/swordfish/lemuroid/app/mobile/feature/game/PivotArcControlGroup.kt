@@ -132,7 +132,7 @@ fun PadKitScope.PivotArcControlGroup(
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(Modifier.size(visual.w.dp, visual.h.dp)) {
                                 if (!combined && system in setOf(SystemID.NGP, SystemID.NGC)) {
-                                    PivotArcDigitalClickStick(direction.value, accent)
+                                    CartdeckDigitalClickStick(direction.value, accent)
                                 } else {
                                     LemuroidCrossForeground(
                                         allowDiagonals = seat?.diagonals ?: true,
@@ -274,7 +274,7 @@ internal fun pivotArcLegacyLabel(
 }
 
 @Composable
-private fun PivotArcDigitalClickStick(
+internal fun CartdeckDigitalClickStick(
     direction: Offset,
     accent: Color,
 ) {

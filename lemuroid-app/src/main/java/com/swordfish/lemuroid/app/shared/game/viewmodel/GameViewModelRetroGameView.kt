@@ -19,6 +19,7 @@ import com.swordfish.lemuroid.app.shared.game.PS2LaunchJournal
 import com.swordfish.lemuroid.app.shared.game.ShaderChooser
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
+import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.utils.android.getGLSLVersion
 import com.swordfish.lemuroid.common.coroutines.MutableStateProperty
 import com.swordfish.lemuroid.common.coroutines.launchOnState
@@ -40,6 +41,7 @@ import com.swordfish.libretrodroid.GLRetroViewData
 import com.swordfish.libretrodroid.Variable
 import com.swordfish.libretrodroid.ViewportAlignment
 import com.swordfish.libretrodroid.VirtualFile
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -49,6 +51,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -56,11 +59,15 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
+
+private const val WII_POINTER_KEY = "dolphin_ir_mode"
+private const val PCE_PAD_KEY = "pce_fast_default_joypad_type_p1"
 
 @OptIn(FlowPreview::class)
 class GameViewModelRetroGameView(
@@ -71,6 +78,7 @@ class GameViewModelRetroGameView(
     private val coreVariablesManager: CoreVariablesManager,
     private val sideEffects: GameViewModelSideEffects,
     private val rumbleManager: RumbleManager,
+    private val controllerConfigsManager: ControllerConfigsManager,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
     sealed interface GameState {
@@ -95,12 +103,25 @@ class GameViewModelRetroGameView(
     @Volatile
     private var reportCoreFrameObserved = false
 
-    /** Snapshot only on menu invocation; no continuous performance polling or disk reads. */
+    private var wiiTimingCount = 0
+    private var wiiTimingFirst = 0L
+    private var wiiTimingLast = 0L
+    private var wiiTimingLongestGap = 0L
+    private var resetWiiTiming = true
+
+    /** Snapshot only on menu invocation. The Wii timing observer keeps four bounded counters. */
     fun engineReportSession(options: List<CoreVariable>): LibretroReportSession? =
         reportSession?.copy(
             coreFrameObserved = reportCoreFrameObserved,
             graphics = reportGraphics,
             reportedOptions = LibretroEngineReport.safeOptions(options.map { it.key to it.value }),
+            coreVideoTiming =
+                if (wiiTimingCount > 1) {
+                    "Wii core video events: $wiiTimingCount over ${wiiTimingLast - wiiTimingFirst} ms, " +
+                        "longest gap $wiiTimingLongestGap ms; audio underruns unavailable"
+                } else {
+                    null
+                },
         )
 
     private val wiiPointerMode = MutableStateFlow("2")
@@ -227,11 +248,34 @@ class GameViewModelRetroGameView(
                 gameState.value =
                     if (loadingState is GameLoader.LoadingState.Ready) {
                         Timber.i("Setting state to loaded")
+                        val gameData = loadingState.gameData
+                        val controllerMode =
+                            if (systemCoreConfig.coreID == CoreID.MEDNAFEN_PCE_FAST) {
+                                val controller =
+                                    controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig, game)[0]
+                                val six = controller?.touchControllerID == TouchControllerID.PCE_SIX
+                                CoreVariable(PCE_PAD_KEY, if (six) "6 Buttons" else "2 Buttons")
+                            } else {
+                                null
+                            }
+                        val startupOverrides =
+                            listOfNotNull(wiiPointerOverride(display, systemCoreConfig), controllerMode)
+                        val launchData =
+                            if (startupOverrides.isEmpty()) {
+                                gameData
+                            } else {
+                                val keys = startupOverrides.map { it.key }.toSet()
+                                gameData.copy(
+                                    coreVariables =
+                                        (gameData.coreVariables.filterNot { it.key in keys } + startupOverrides)
+                                            .toTypedArray(),
+                                )
+                            }
                         val retroViewData =
                             buildRetroViewData(
                                 applicationContext,
                                 systemCoreConfig,
-                                loadingState.gameData,
+                                launchData,
                                 display,
                                 alignment,
                                 lowLatencyAudio,
@@ -239,7 +283,7 @@ class GameViewModelRetroGameView(
                                 enableMicrophone,
                             )
                         GameState.Loaded(
-                            gameData = loadingState.gameData,
+                            gameData = launchData,
                             retroViewData = retroViewData,
                         )
                     } else {
@@ -257,14 +301,21 @@ class GameViewModelRetroGameView(
 
         if (system.id == SystemID.WII) {
             wiiPointerMode.value =
-                currentState.gameData.coreVariables.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: "2"
+                currentState.gameData.coreVariables.firstOrNull {
+                    it.key == WII_POINTER_KEY
+                }?.value ?: "2"
         }
 
         reportGraphics = null
         reportCoreFrameObserved = false
+        wiiTimingCount = 0
+        wiiTimingFirst = 0L
+        wiiTimingLast = 0L
+        wiiTimingLongestGap = 0L
         reportSession =
             LibretroReportSession(
                 coreFilePath = currentState.gameData.coreLibrary,
+                sessionId = java.util.UUID.randomUUID().toString(),
                 mediaRoute =
                     when (currentState.gameData.gameFiles) {
                         is RomFiles.Standard -> "standard file path"
@@ -286,6 +337,10 @@ class GameViewModelRetroGameView(
 
         if (!system.hasTouchScreen) {
             result.disableTouchEvents()
+        } else if (system.id == SystemID.WII) {
+            // Touch mode uses GLRetroView's viewport-relative native pointer.
+            // Both stick modes own the right analogue axes, including relative movement in Dolphin.
+            result.setOnTouchListener { _, _ -> wiiPointerMode.value != "2" }
         }
 
         lifecycle.lifecycle.addObserver(result)
@@ -334,6 +389,31 @@ class GameViewModelRetroGameView(
                 PS2LaunchJournal(appContext).stage(PS2LaunchJournal.Stage.CORE_FRAME)
             }
             launchedGame?.let { runCatching { EngineSelectionPreferences(appContext).recordSuccess(it) } }
+        }
+        if (system.id == SystemID.WII) {
+            // Use the verified host's existing event. It does not expose audio delivery or guest speed.
+            scope.launch(Dispatchers.Main.immediate) {
+                result.getGLRetroEvents()
+                    .filter { it.javaClass.simpleName == "CoreFrameRendered" }
+                    .collect {
+                        if (!lifecycle.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                            return@collect
+                        }
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        if (resetWiiTiming || now - wiiTimingFirst >= 10_000L) {
+                            resetWiiTiming = false
+                            wiiTimingCount = 0
+                            wiiTimingFirst = now
+                            wiiTimingLast = 0L
+                            wiiTimingLongestGap = 0L
+                        }
+                        if (wiiTimingLast != 0L) {
+                            wiiTimingLongestGap = maxOf(wiiTimingLongestGap, now - wiiTimingLast)
+                        }
+                        wiiTimingLast = now
+                        wiiTimingCount++
+                    }
+            }
         }
         retroGameViewFlow.value = result
         gameState.value = GameState.Ready
@@ -442,6 +522,36 @@ class GameViewModelRetroGameView(
         owner.launchOnState(Lifecycle.State.RESUMED) {
             initializeRumbleFlow()
         }
+
+        owner.launchOnState(Lifecycle.State.RESUMED) {
+            applyDisplayShader()
+        }
+    }
+
+    private suspend fun applyDisplayShader() {
+        val view = retroGameViewFlow()
+        val glEsMajor = appContext.getGLSLVersion()
+        DisplaySettingsStore(appContext).observe(launchedGame?.cartridgeId)
+            .map { snapshot -> ShaderChooser.getShaderForSystem(glEsMajor, snapshot.effective, system) }
+            .distinctUntilChanged()
+            .catch { error -> Timber.w(error, "Could not observe gameplay shader settings") }
+            .collect { shader ->
+                view.queueEvent {
+                    if (view.shader != shader) view.shader = shader
+                }
+            }
+    }
+
+    private fun wiiPointerOverride(
+        display: DisplaySettingsStore.Choices,
+        config: SystemCoreConfig,
+    ): CoreVariable? {
+        if (system.id != SystemID.WII) return null
+        val namespace = com.swordfish.lemuroid.app.shared.game.DisplayEngineOptions.namespace(system.id.dbname, config)
+        val mode = display.engineOptions["$namespace:$WII_POINTER_KEY"] ?: return null
+        return mode.takeIf { value ->
+            config.exposedSettings.any { it.key == WII_POINTER_KEY && it.values.any { it.key == value } }
+        }?.let { CoreVariable(WII_POINTER_KEY, it) }
     }
 
     private suspend fun initializeCoreVariablesFlow() {
@@ -476,22 +586,16 @@ class GameViewModelRetroGameView(
                     chosen?.takeIf { it in option.values }?.let { CoreVariable(option.key, it) }
                 }
             val keys = overrides.map { it.key }.toSet()
-            val pointerKey = "dolphin_ir_mode"
-            val pointer = display.engineOptions["$namespace:$pointerKey"]
-            val pointerOverride =
-                pointer?.takeIf { value ->
-                    system.id == SystemID.WII && pointerKey in current &&
-                        systemCoreConfig.exposedSettings.any { setting ->
-                            setting.key == pointerKey && setting.values.any { it.key == value }
-                        }
-                }?.let { CoreVariable(pointerKey, it) }
+            val pointerOverride = wiiPointerOverride(display, systemCoreConfig)
             val desired =
                 options.filterNot { it.key in keys || it.key == pointerOverride?.key } + overrides +
                     listOfNotNull(pointerOverride)
             updateCoreVariables(CoreOptionRefresh.changed(desired, current))
             if (system.id == SystemID.WII) {
                 wiiPointerMode.value =
-                    desired.firstOrNull { it.key == "dolphin_ir_mode" }?.value ?: current["dolphin_ir_mode"] ?: "2"
+                    desired.firstOrNull {
+                        it.key == WII_POINTER_KEY
+                    }?.value ?: current[WII_POINTER_KEY] ?: "2"
             }
         } catch (e: Exception) {
             Timber.e(e)
@@ -509,6 +613,7 @@ class GameViewModelRetroGameView(
     }
 
     override fun onPause(owner: LifecycleOwner) {
+        resetWiiTiming = true
         setReactiveLightingSources(coreFeedback = false, controllerActivity = false)
         super.onPause(owner)
     }

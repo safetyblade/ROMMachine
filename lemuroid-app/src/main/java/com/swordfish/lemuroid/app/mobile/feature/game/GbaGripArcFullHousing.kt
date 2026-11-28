@@ -56,6 +56,8 @@ internal object GbaGripArcFullBodyGeometry {
 internal fun GbaGripArcFullHousing(
     panel: Rect,
     tokens: CartdeckEditionTokens,
+    engraving: PivotArcBounds? = null,
+    standalone: Boolean = false,
 ) {
     // No pointer handlers: native PadKit owns gameplay; G1-G4 retain their
     // saved bindings, hit rectangles, hold semantics and simultaneous presses.
@@ -63,7 +65,9 @@ internal fun GbaGripArcFullHousing(
     Box(Modifier.fillMaxSize().testTag("gba-griparc-full-hardware")) {
         Canvas(Modifier.fillMaxSize()) {
             val corner = 17.dp.toPx()
-            val lip = 5.dp.toPx()
+            val lip = 7.dp.toPx()
+            val undercut = chamferedIsland(panel, corner)
+            drawPath(undercut, tokens.bezel.copy(alpha = 0.64f), style = Stroke(6.dp.toPx()))
             drawControllerInset(
                 rim = chamferedIsland(panel, corner),
                 inset = chamferedIsland(panel.deflate(lip), corner / 2f),
@@ -71,6 +75,17 @@ internal fun GbaGripArcFullHousing(
                 tokens = tokens,
                 edge = 2.dp.toPx(),
                 housing = lerp(tokens.chassis, tokens.secondary, 0.24f),
+            )
+            val bevel = panel.deflate(3.dp.toPx())
+            drawPath(
+                chamferedIsland(bevel, corner - 2.dp.toPx()),
+                lerp(tokens.secondary, tokens.onChassis, 0.29f),
+                style = Stroke(1.4.dp.toPx()),
+            )
+            drawPath(
+                chamferedIsland(panel.deflate(lip + 3.dp.toPx()), corner / 2f),
+                tokens.bezel.copy(alpha = 0.48f),
+                style = Stroke(1.2.dp.toPx()),
             )
             // Same machined rail and fastener language as accepted PivotArc;
             // no opaque plate, overlay or hit target crosses the video aperture.
@@ -100,21 +115,50 @@ internal fun GbaGripArcFullHousing(
         }
         // GBA-specific full-chassis engraving, not another floating tower.
         // The wordmark is decorative only and cannot become an input owner.
-        val engravingX = with(density) { (panel.center.x - 55.dp.toPx()).toDp() }
-        val engravingY = with(density) { (panel.top + 19.dp.toPx()).toDp() }
-        Text(
-            text = "GripArc",
-            color = tokens.accent,
-            fontSize = 13.sp,
-            fontStyle = FontStyle.Italic,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier =
-                Modifier
-                    .offset(x = engravingX, y = engravingY)
-                    .width(110.dp)
-                    .testTag("gba-griparc-full-wordmark"),
-        )
+        if (!standalone || engraving != null) {
+            val engravingX = engraving?.left?.dp ?: with(density) { (panel.center.x - 55.dp.toPx()).toDp() }
+            val engravingY = engraving?.top?.dp ?: with(density) { (panel.top + 19.dp.toPx()).toDp() }
+            Text(
+                text = "GripARC",
+                color = tokens.accent,
+                fontSize = 12.sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier =
+                    Modifier
+                        .offset(x = engravingX, y = engravingY)
+                        .width(engraving?.width?.dp ?: 110.dp)
+                        .testTag("gba-griparc-full-wordmark"),
+            )
+        }
     }
+}
+
+@Composable
+internal fun StandaloneGripArcLandscapeMark(
+    panel: PivotArcBounds,
+    occupied: Collection<PivotArcBounds>,
+    tokens: CartdeckEditionTokens,
+) {
+    val logoWidth = 50f
+    val top = panel.bottom - 17f
+    val right = panel.right - 8f
+    val mark =
+        generateSequence(right - logoWidth) { it - 8f }
+            .takeWhile { it >= panel.centerX }
+            .map { PivotArcBounds(it, top, it + logoWidth, panel.bottom) }
+            .firstOrNull { bounds -> occupied.none { it.inset(2f).intersects(bounds) } }
+            ?: return
+    Text(
+        text = "GripARC",
+        color = tokens.accent,
+        fontSize = 11.sp,
+        fontStyle = FontStyle.Italic,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.End,
+        maxLines = 1,
+        modifier = Modifier.offset(mark.left.dp, mark.top.dp).width(logoWidth.dp),
+    )
 }

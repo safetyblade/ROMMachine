@@ -5,6 +5,7 @@ import com.swordfish.lemuroid.app.shared.game.viewmodel.WonderSwanPivotInput
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.settings.TouchControllerID
+import kotlin.math.hypot
 import kotlin.math.max
 
 /** An approved solo seat binds geometry to the actual active controller mode. */
@@ -135,12 +136,12 @@ object PivotArcSoloProfiles {
                 add(dpad(24 + dx, 185, 72f))
                 add(button("Y", 76 + dx, 105, y, if (dos) "X" else "Square"))
                 add(button("X", 136 + dx, 132, x, if (dos) "Y" else "Triangle"))
-                add(button("B", 136 + dx, 256, b, if (dos) "A" else "Cross"))
-                add(button("A", 76 + dx, 289, a, if (dos) "B" else "Circle"))
+                add(button("B", 136 + dx, 249, b, if (dos) "A" else "Cross"))
+                add(button("A", 76 + dx, 280, a, if (dos) "B" else "Circle"))
                 add(hold("Y", 76 + dx, 48))
                 add(hold("X", 195 + dx, 109))
                 add(hold("B", 194 + dx, 284))
-                add(hold("A", 76 + dx, 346))
+                add(hold("A", 76 + dx, 337))
                 add(button("L", 190 + dx, 173, l, "L1"))
                 add(button("R", 244 + dx, 173, r, "R1"))
                 add(button("L2", 190 + dx, 227, l2))
@@ -375,6 +376,35 @@ object PivotArcSoloProfiles {
         return PivotArcSoloProfile(seats + rail(selectLabel = "Coin"))
     }
 
+    /**
+     * C02-B: the two- and three-button arcade cabinets are the first [count]
+     * numbered seats of the four-button arrangement (seat 1 = Y, 2 = B,
+     * 3 = X, 4 = A), with the matching Hold companions and the same Coin
+     * rail, so a game that uses fewer buttons gets exactly its own cabinet
+     * inventory and the same per-seat dispatch as ARCADE_4.
+     */
+    private fun arcadeButtons(count: Int): PivotArcSoloProfile {
+        val faces =
+            listOf(
+                button("X", 164, 64, x, "3"),
+                button("A", 217, 103, a, "4"),
+                button("B", 212, 213, b, "2"),
+                button("Y", 159, 253, y, "1"),
+            ).filter { it.label.toInt() <= count }
+        val holds =
+            listOf(
+                hold("X", 212, 64),
+                hold("A", 264, 103),
+                hold("B", 264, 213),
+                hold("Y", 159, 313),
+            ).filter { hold -> faces.any { it.id == hold.holdOf } }
+        val seats =
+            listOf(
+                dpad(136, 153, 72f, ComposeTouchLayouts.MOTION_SOURCE_DPAD_AND_LEFT_STICK),
+            ) + faces + holds
+        return PivotArcSoloProfile(seats + rail(selectLabel = "Coin"))
+    }
+
     private fun atari2600(): PivotArcSoloProfile =
         PivotArcSoloProfile(
             listOf(
@@ -584,13 +614,29 @@ object PivotArcSoloProfiles {
     fun supportsSystem(system: SystemID): Boolean =
         system in
             setOf(
-                SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS,
-                SystemID.GENESIS, SystemID.SEGACD, SystemID.N64,
-                SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.DREAMCAST,
-                SystemID.ATARI7800, SystemID.ATARI2600, SystemID.WII, SystemID.DOS,
-                SystemID.GAMECUBE, SystemID.FBNEO, SystemID.MAME2003PLUS,
-                SystemID.XBOX, SystemID.XBOX360, SystemID.PLAYSTATION_3, SystemID.WII_U,
-                SystemID.PSP, SystemID.WS, SystemID.WSC,
+                SystemID.SNES,
+                SystemID.NDS,
+                SystemID.NINTENDO_3DS,
+                SystemID.GENESIS,
+                SystemID.SEGACD,
+                SystemID.N64,
+                SystemID.PSX,
+                SystemID.PLAYSTATION_2,
+                SystemID.DREAMCAST,
+                SystemID.ATARI7800,
+                SystemID.ATARI2600,
+                SystemID.WII,
+                SystemID.DOS,
+                SystemID.GAMECUBE,
+                SystemID.FBNEO,
+                SystemID.MAME2003PLUS,
+                SystemID.XBOX,
+                SystemID.XBOX360,
+                SystemID.PLAYSTATION_3,
+                SystemID.WII_U,
+                SystemID.PSP,
+                SystemID.WS,
+                SystemID.WSC,
             )
 
     fun forMode(
@@ -629,6 +675,8 @@ object PivotArcSoloProfiles {
             SystemID.GAMECUBE -> if (controller == TouchControllerID.GAMECUBE) gameCube() else null
             SystemID.FBNEO, SystemID.MAME2003PLUS ->
                 when (controller) {
+                    TouchControllerID.ARCADE_2 -> arcadeButtons(2)
+                    TouchControllerID.ARCADE_3 -> arcadeButtons(3)
                     TouchControllerID.ARCADE_4 -> arcade(false)
                     TouchControllerID.ARCADE_6 -> arcade(true)
                     else -> null
@@ -649,14 +697,14 @@ object PivotArcSoloProfiles {
 /** Fit approved seat centres and the manufactured envelope without reducing any hit target. */
 object PivotArcSoloSolver {
     private const val GAP = 2f
-    private const val RIM = 8f
     private val scales = (80..150 step 2).map { it / 100f }
     private val centerScales =
-        scales.flatMap { horizontal ->
-            scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
-        }.sortedBy { (horizontal, vertical) ->
-            horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
-        }
+        scales
+            .flatMap { horizontal ->
+                scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
+            }.sortedBy { (horizontal, vertical) ->
+                horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
+            }
 
     fun resolve(
         profile: PivotArcSoloProfile,
@@ -676,10 +724,13 @@ object PivotArcSoloSolver {
                 max(safe.top, viewport.bottom + PIVOT_ARC_DISPLAY_CLEARANCE_DP) +
                     PIVOT_ARC_LABEL_HEIGHT_DP + PIVOT_ARC_EDGE_DP / 3f + 1f,
                 safe.right - GAP,
-                safe.bottom - RIM,
+                safe.bottom,
             )
-        if (available.width <= 0f || available.height <= 0f) {
+        if (safe.bottom <= max(safe.top, viewport.bottom)) {
             return PivotArcResolution.Unavailable("No safe space below the game screen.")
+        }
+        if (available.width <= 0f || available.height <= 0f) {
+            return PivotArcResolution.Unavailable("The space below the game screen cannot fit the PivotArc housing.")
         }
         val game = profile.seats.filterNot { it.utility } + listOfNotNull(profile.inactivePointerSeat)
         val utility = profile.seats.filter { it.utility }
@@ -695,8 +746,14 @@ object PivotArcSoloSolver {
             val railGap = 8f
             val maxCoreHeight = available.height - utility.maxOf { it.target } - railGap - 0.01f
             val compactHeight = minOf(maxCoreHeight, hull(core.values).height * 0.88f)
-            val packed = fitHeight(core, compactHeight) ?: fitHeight(core, maxCoreHeight) ?: continue
-            val coreHull = hull(packed.values)
+            val packed =
+                fitHeight(core, compactHeight, keepRows = true)
+                    ?: fitHeight(core, maxCoreHeight, keepRows = true)
+                    ?: fitHeight(core, compactHeight)
+                    ?: fitHeight(core, maxCoreHeight)
+                    ?: continue
+            val withAdjacentHolds = bringHoldsBesideActions(game, packed)
+            val coreHull = hull(withAdjacentHolds.values)
             val railWidth =
                 utility.sumOf { it.target.toDouble() }.toFloat() +
                     (utility.size - 1).coerceAtLeast(0) * GAP
@@ -708,7 +765,7 @@ object PivotArcSoloSolver {
                     cursor += seat.target + GAP
                     seat.id to rect
                 }
-            val all = packed + rail
+            val all = withAdjacentHolds + rail
             val bounds = hull(all.values)
             if (bounds.width > available.width || bounds.height > available.height) continue
             if (!independent(all.values)) continue
@@ -768,6 +825,30 @@ object PivotArcSoloSolver {
         )
     }
 
+    /** Slide each Hold along its approved approach to the associated key while preserving the touch gap. */
+    private fun bringHoldsBesideActions(
+        seats: List<PivotArcSoloSeat>,
+        packed: Map<String, PivotArcBounds>,
+    ): Map<String, PivotArcBounds> {
+        val result = packed.toMutableMap()
+        for (seat in seats) {
+            val action = result[seat.holdOf] ?: continue
+            val hold = result.getValue(seat.id)
+            val dx = action.centerX - hold.centerX
+            val dy = action.centerY - hold.centerY
+            val distance = hypot(dx, dy)
+            val obstacles = result.filterKeys { it != seat.id }.values.map { it.inset(GAP - 0.01f) }
+            for (travel in 1..distance.toInt()) {
+                val x = dx * travel / distance
+                val y = dy * travel / distance
+                val moved = PivotArcBounds(hold.left + x, hold.top + y, hold.right + x, hold.bottom + y)
+                if (obstacles.any(moved::intersects)) break
+                result[seat.id] = moved
+            }
+        }
+        return result
+    }
+
     private fun independent(controls: Collection<PivotArcBounds>): Boolean {
         val expanded = controls.map { it.inset(GAP / 2f - 0.01f) }
         return expanded.indices.none { first ->
@@ -782,26 +863,40 @@ object PivotArcSoloSolver {
     private fun fitHeight(
         controls: Map<String, PivotArcBounds>,
         height: Float,
+        keepRows: Boolean = false,
     ): Map<String, PivotArcBounds>? {
         if (hull(controls.values).height <= height) return controls
 
         val packed = linkedMapOf<String, PivotArcBounds>()
-        for ((id, bounds) in controls.entries.sortedBy { it.value.centerY }) {
-            val top =
-                packed.values
-                    .filter { it.left < bounds.right + GAP - 0.01f && it.right > bounds.left - GAP + 0.01f }
-                    .maxOfOrNull { it.bottom + GAP } ?: 0f
-            packed[id] = bounds.copy(top = top, bottom = top + bounds.height)
+        val ordered = controls.entries.sortedBy { it.value.centerY }
+        val rows = if (keepRows) ordered.groupBy { it.value.centerY }.values else ordered.map { listOf(it) }
+        var previousCenter = 0f
+        for (row in rows) {
+            val center =
+                row
+                    .maxOf { (_, bounds) ->
+                        val minimumTop =
+                            packed.values
+                                .filter { it.left < bounds.right + GAP - 0.01f && it.right > bounds.left - GAP + 0.01f }
+                                .maxOfOrNull { it.bottom + GAP } ?: 0f
+                        minimumTop + bounds.height / 2f
+                    }.coerceAtLeast(if (keepRows) previousCenter else 0f)
+            for ((id, bounds) in row) {
+                val top = center - bounds.height / 2f
+                packed[id] = bounds.copy(top = top, bottom = top + bounds.height)
+            }
+            previousCenter = center
         }
         val compactHeight = hull(packed.values).height
         if (compactHeight > height) return null
 
+        val compactTop = packed.values.minOf { it.top }
         val originalTop = controls.values.minOf { it.top }
         val originalHeight = hull(controls.values).height
         val fraction = (height - compactHeight) / (originalHeight - compactHeight)
         return controls.mapValues { (id, bounds) ->
-            val compactTop = packed.getValue(id).top
-            val top = compactTop + (bounds.top - originalTop - compactTop) * fraction
+            val packedTop = packed.getValue(id).top - compactTop
+            val top = packedTop + (bounds.top - originalTop - packedTop) * fraction
             bounds.copy(top = top, bottom = top + bounds.height)
         }
     }

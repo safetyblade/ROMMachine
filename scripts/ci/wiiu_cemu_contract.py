@@ -47,6 +47,37 @@ def patch_android_manifest_features(root):
             "purpose": "Respect explicit ENABLE_LIBUSB=OFF; Android controllers use Libretro"}
 
 
+TOUCHSCREEN_PATH = "src/libretro/CemuLibretro.cpp"
+TOUCHSCREEN_SOURCE_SHA256 = "2857e8f6cfae1b74258bad79814f9cd06d8e6a74724bf8d5629b385a7f37db7a"
+TOUCHSCREEN_PATCHED_SHA256 = "cb61040dd9a5023396a44eb0ec1e4aa8b5e4b538de914ab5f2e4c9048b0ff98e"
+TOUCHSCREEN_GUARD = b"if (!s_input_state.touch_pressed)\n\t\treturn false;"
+TOUCHSCREEN_GUARD_FIXED = (
+    b"if (!s_input_state.touch_pressed || !LibretroDRC_ShouldRenderScreen(true))"
+    b"\n\t\treturn false;"
+)
+
+
+def patch_touchscreen_visible_drc(root):
+    """Reject TV-only contacts using the layout the core is actually rendering."""
+    path = pathlib.Path(root) / TOUCHSCREEN_PATH
+    before = path.read_bytes()
+    if hashlib.sha256(before).hexdigest() != TOUCHSCREEN_SOURCE_SHA256:
+        raise ValueError("Pinned Cemu touchscreen source drift")
+    if before.count(TOUCHSCREEN_GUARD) != 1:
+        raise ValueError("Pinned Cemu touchscreen guard missing or duplicated")
+    after = before.replace(TOUCHSCREEN_GUARD, TOUCHSCREEN_GUARD_FIXED)
+    path.write_bytes(after)
+    return {"path": TOUCHSCREEN_PATH, "before_sha256": TOUCHSCREEN_SOURCE_SHA256,
+            "after_sha256": hashlib.sha256(after).hexdigest(),
+            "purpose": "Only accept touch when the active display renders the GamePad"}
+
+
+def require_visible_drc_guard(proof):
+    entries = [p for p in proof.get("source_patches", []) if p.get("path") == TOUCHSCREEN_PATH]
+    if len(entries) != 1 or entries[0].get("after_sha256") != TOUCHSCREEN_PATCHED_SHA256:
+        raise ValueError("Cemu GamePad visibility guard absent/stale; rebuild cemu with CI-01")
+
+
 ATOMIC64_PATH = "src/Cafe/OS/libs/coreinit/coreinit_Atomic.cpp"
 ATOMIC64_SOURCE_SHA256 = "717dd1c846ab763927f7878df75d2863c75146ae88fe2b1ecb856bba871765c8"
 
@@ -143,6 +174,7 @@ def main():
         "known_limitation": "Cemu Android Vulkan Libretro frontend is not yet in CARTDECK",
     })
     require_guest_atomic64(result)
+    require_visible_drc_guard(result)
     a.report.parent.mkdir(parents=True, exist_ok=True)
     a.report.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print("Cemu Android core source + ABI checked; Vulkan host and gameplay NOT VERIFIED")

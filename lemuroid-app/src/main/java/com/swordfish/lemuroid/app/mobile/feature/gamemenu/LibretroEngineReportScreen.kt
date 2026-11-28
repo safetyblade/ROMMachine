@@ -18,6 +18,8 @@ import com.swordfish.lemuroid.app.shared.game.LibretroEngineReport
 import com.swordfish.lemuroid.app.shared.game.ps2next.Ps2DiscEvidence
 import com.swordfish.lemuroid.app.shared.support.SupportActivity
 import com.swordfish.lemuroid.app.shared.support.SupportReport
+import com.swordfish.lemuroid.app.shared.support.SupportSignature
+import com.swordfish.lemuroid.app.shared.support.SupportSignatureHeader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -32,24 +34,27 @@ internal fun LibretroEngineReportScreen(request: GameMenuActivity.GameMenuReques
                 buildLibretroSupportReport(context, request)
             }
     }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
-        GameMenuLink("Copy diagnostic report", enabled = report != null) {
-            report?.let { snapshot ->
-                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText("CARTDECK diagnostic report", snapshot.text),
-                )
-                android.widget.Toast.makeText(
-                    context,
-                    "Diagnostic report copied.",
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
+    SupportSignature {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
+            SupportSignatureHeader("Advanced diagnostics", "Review or copy the current engine report.")
+            GameMenuLink("Copy diagnostic report", enabled = report != null) {
+                report?.let { snapshot ->
+                    val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                    clipboard.setPrimaryClip(
+                        android.content.ClipData.newPlainText("CARTDECK diagnostic report", snapshot.text),
+                    )
+                    android.widget.Toast.makeText(
+                        context,
+                        "Diagnostic report copied.",
+                        android.widget.Toast.LENGTH_SHORT,
+                    ).show()
+                }
             }
+            GameMenuLink("Report a problem", enabled = report != null) {
+                report?.let { context.startActivity(SupportActivity.intent(context, it, request.game)) }
+            }
+            Text(report?.text ?: "Preparing engine report…")
         }
-        GameMenuLink("Report a problem", enabled = report != null) {
-            report?.let { context.startActivity(SupportActivity.intent(context, it)) }
-        }
-        Text(report?.text ?: "Preparing engine report…")
     }
 }
 
@@ -68,4 +73,11 @@ internal fun buildLibretroSupportReport(
         system = request.game.systemId,
         engine = request.engineReportSession?.let { request.coreConfig.coreID.coreName },
         serial = Ps2DiscEvidence.serial(context, request.game),
+        session = request.engineReportSession?.sessionId,
+        cartridgeId = request.game.cartridgeId,
+        mediaFormat =
+            request.game.fileName.substringAfterLast(
+                '.',
+                "",
+            ).takeIf { it.matches(Regex("[A-Za-z0-9]{1,12}")) },
     )

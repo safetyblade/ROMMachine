@@ -12,17 +12,21 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.swordfish.lemuroid.app.mobile.feature.gamemenu.rememberDisplaySettings
@@ -49,6 +53,9 @@ fun XboxGameControls(
     physicalControllerConnected: Boolean = false,
     game: com.swordfish.lemuroid.lib.library.db.entity.Game? = null,
     onGripPressed: (Int, Boolean, Set<Int>) -> Unit = { _, _, _ -> },
+    canUseGrip: () -> Boolean = { false },
+    wiiuPro: Boolean = false,
+    onGripMenu: () -> Unit = {},
     presentationAspect: Float = 4f / 3f,
     pivotSystem: SystemID? = null,
     pivotGate: PivotArcHeldInputGate? = null,
@@ -56,6 +63,7 @@ fun XboxGameControls(
     onViewport: (AndroidRect) -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val display = rememberDisplaySettings(game?.cartridgeId)
     val resolved = rememberGameplayAppearance()
     val appearance = resolved.source
@@ -69,7 +77,6 @@ fun XboxGameControls(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = constraints.maxWidth > constraints.maxHeight
         val border = display.effective.border(landscape)
-        val hardwareBorder = border == DisplaySettingsStore.Border.STANDARD
         // SDL owns the guest surface beneath this transparent Compose overlay.
         // The maximised path must not instantiate PadKit's virtual controller.
         val isTv =
@@ -107,54 +114,91 @@ fun XboxGameControls(
             remember(bounds) {
                 { name, rect -> if (bounds[name] != rect) bounds[name] = rect }
             }
-        val arc = game?.let { rememberGripArcProfile(it).value }
-        val manifest =
-            remember(game) { if (game != null) runCatching { GripArcManifest.load(context) }.getOrNull() else null }
-        val inventory =
-            remember(
-                controllerId,
-            ) { com.swordfish.touchinput.radial.settings.NativeControlInventory.forController(controllerId) }
-        val viewport = video.value
-        val origin = root.value
-        val placement =
-            remember(arc, manifest, inventory, viewport, origin, constraints, density) {
-                if (arc?.mode == ArcControlMode.STANDARD_GRIPARC && manifest != null && inventory != null &&
-                    viewport != null && origin != null
-                ) {
-                    val scale = density.density
-                    val safe =
-                        PivotArcBounds(
-                            insets.getLeft(density, androidx.compose.ui.unit.LayoutDirection.Ltr) / scale,
-                            insets.getTop(density) / scale,
-                            (
-                                constraints.maxWidth -
-                                    insets.getRight(density, androidx.compose.ui.unit.LayoutDirection.Ltr)
-                            ) / scale,
-                            (constraints.maxHeight - insets.getBottom(density)) / scale,
-                        )
-                    GripArcCombinedLayout.resolveDockFirst(
-                        manifest,
-                        inventory,
-                        safe,
-                        PivotArcBounds(
-                            (viewport.left - origin.left) / scale,
-                            (viewport.top - origin.top) / scale,
-                            (viewport.right - origin.left) / scale,
-                            (viewport.bottom - origin.top) / scale,
-                        ),
-                        arc.side,
-                        arc.dx,
-                        arc.dy,
-                    )?.takeIf { it.complete }
-                } else {
-                    null
-                }
-            }
-        val pivotSettings = rememberPivotArcSettings().value
-        val safeDrawing = WindowInsets.safeDrawing
-        val safeGestures = WindowInsets.safeGestures
+        val assignmentMode = gripArcAssignmentMode(controllerId, wiiuPro = wiiuPro)
+        var useStandardForSession by remember(game) { mutableStateOf(false) }
+        val savedArc = game?.let { rememberGripArcProfile(it, assignmentMode).value }
+        val arc = savedArc.takeUnless { useStandardForSession }
         val hostSystem =
             pivotSystem ?: if (controllerId == TouchControllerID.XBOX360) SystemID.XBOX360 else SystemID.XBOX
+        val standalone = supportsStandaloneGripActions(hostSystem) && StandaloneGripArcLayout.supports(controllerId)
+        val gripChassis = standalone && arc?.mode == ArcControlMode.STANDARD_GRIPARC && !physicalControllerConnected
+        val hardwareBorder = gripChassis || border == DisplaySettingsStore.Border.STANDARD
+        val inventory =
+            remember(controllerId, hostSystem, wiiuPro) {
+                if (standalone) {
+                    StandaloneGripArcLayout.inventoryFor(controllerId, hostSystem, wiiuPro)
+                } else {
+                    com.swordfish.touchinput.radial.settings.NativeControlInventory.forController(controllerId)
+                }
+            }
+        val manifest =
+            remember(game, standalone) {
+                if (game != null && !standalone) runCatching { GripArcManifest.load(context) }.getOrNull() else null
+            }
+        val viewport = video.value
+        var chassisWindowBottom by remember { mutableFloatStateOf(0f) }
+        val windowView = LocalView.current
+        val origin = root.value
+        val safeDrawing = WindowInsets.safeDrawing
+        val safeGestures = WindowInsets.safeGestures
+        val placement =
+            if (arc?.mode == ArcControlMode.STANDARD_GRIPARC && inventory != null &&
+                viewport != null && origin != null && !physicalControllerConnected && !isTv
+            ) {
+                val scale = density.density
+                val direction = androidx.compose.ui.unit.LayoutDirection.Ltr
+                val safe =
+                    PivotArcBounds(
+                        maxOf(safeDrawing.getLeft(density, direction), safeGestures.getLeft(density, direction)) /
+                            scale + 8f,
+                        maxOf(safeDrawing.getTop(density), safeGestures.getTop(density)) / scale + 8f,
+                        origin.width / scale -
+                            maxOf(safeDrawing.getRight(density, direction), safeGestures.getRight(density, direction)) /
+                            scale - 8f,
+                        origin.height / scale -
+                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                    )
+                val videoBounds =
+                    PivotArcBounds(
+                        (viewport.left - origin.left) / scale,
+                        (viewport.top - origin.top) / scale,
+                        (viewport.right - origin.left) / scale,
+                        (viewport.bottom - origin.top) / scale,
+                    )
+                if (standalone) {
+                    remember(inventory, safe, videoBounds, landscape) {
+                        StandaloneGripArcLayout.resolveStandalone(inventory, safe, videoBounds, landscape)
+                    }
+                } else {
+                    manifest?.let {
+                        val legacySafe =
+                            PivotArcBounds(
+                                insets.getLeft(density, direction) / scale,
+                                insets.getTop(density) / scale,
+                                (constraints.maxWidth - insets.getRight(density, direction)) / scale,
+                                (constraints.maxHeight - insets.getBottom(density)) / scale,
+                            )
+                        GripArcCombinedLayout.resolveDockFirst(
+                            it,
+                            inventory,
+                            legacySafe,
+                            videoBounds,
+                            arc.side,
+                            arc.dx,
+                            arc.dy,
+                        )?.takeIf { fitted -> fitted.complete }
+                    }
+                }
+            } else {
+                null
+            }
+        val gripEnabled = standalone && placement != null
+        DisposableEffect(pivotGate, gripEnabled, arc, inventory, landscape) {
+            pivotGate?.setGripEnabled(gripEnabled)
+            onDispose { pivotGate?.setGripEnabled(false) }
+        }
+        val latchedSlots = pivotGate?.gripLatches?.collectAsState()?.value.orEmpty()
+        val pivotSettings = rememberPivotArcSettings().value
         val pivotProfile =
             if (arc?.mode == ArcControlMode.PIVOTARC && pivotGate != null && !physicalControllerConnected && !isTv) {
                 PivotArcSoloProfiles.forNativeHost(hostSystem, controllerId)
@@ -173,8 +217,14 @@ fun XboxGameControls(
                         origin.width / scale -
                             maxOf(safeDrawing.getRight(density, direction), safeGestures.getRight(density, direction)) /
                             scale - 8f,
-                        origin.height / scale -
-                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                        pivotChassisBottom(
+                            origin.height / scale -
+                                maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) / scale - 8f,
+                            chassisWindowBottom,
+                            windowView.rootView.height,
+                            maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)),
+                            scale,
+                        ),
                     )
                 val videoBounds =
                     PivotArcBounds(
@@ -219,33 +269,43 @@ fun XboxGameControls(
             } else {
                 bounds
             }
-        var fallbackShown by androidx.compose.runtime.remember(game) { androidx.compose.runtime.mutableStateOf(false) }
         val unavailable =
             arc != null && arc.mode != ArcControlMode.STANDARD &&
                 (arc.mode != ArcControlMode.STANDARD_GRIPARC || placement == null) &&
-                (arc.mode != ArcControlMode.PIVOTARC || pivotPlacement == null) && viewport != null
-        if (unavailable && !fallbackShown) {
+                (arc.mode != ArcControlMode.PIVOTARC || pivotPlacement == null) && viewport != null &&
+                !physicalControllerConnected && !isTv
+        var settledFailure by remember(origin, viewport, unavailable) { mutableStateOf(false) }
+        androidx.compose.runtime.LaunchedEffect(origin, viewport, unavailable) {
+            if (unavailable) {
+                kotlinx.coroutines.delay(250)
+                settledFailure = true
+            }
+        }
+        if (settledFailure && !useStandardForSession) {
             androidx.compose.material3.AlertDialog(
-                onDismissRequest = { fallbackShown = true },
-                title = { androidx.compose.material3.Text("Standard controls for this session") },
+                onDismissRequest = { useStandardForSession = true },
+                title = { androidx.compose.material3.Text("CARTDECK controller layout") },
                 text = {
                     androidx.compose.material3.Text(
-                        "This native controller layout cannot fit the selected accessory mode " +
-                            "with every input and 48dp targets. Saved cartridge settings are preserved.",
+                        "There is not enough room for the selected controller layout on this screen. " +
+                            "CARTDECK will use Standard controls for this session and keep your cartridge setting.",
                     )
                 },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
-                        fallbackShown = true
+                        useStandardForSession = true
                     }) { androidx.compose.material3.Text("Continue") }
                 },
             )
         }
         PadKit(
-            Modifier.fillMaxSize().onGloballyPositioned { root.value = it.boundsInRoot() },
+            Modifier.fillMaxSize().onGloballyPositioned {
+                root.value = it.boundsInRoot()
+                chassisWindowBottom = it.positionInWindow().y + it.size.height
+            },
             onInputEvents = onInput,
         ) {
-            if (border != DisplaySettingsStore.Border.OFF) {
+            if (gripChassis || border != DisplaySettingsStore.Border.OFF) {
                 CartdeckConsoleShell(
                     tokens = tokens,
                     videoBounds = video.value,
@@ -260,9 +320,13 @@ fun XboxGameControls(
                     highContrast = appearance.highContrast,
                     minimal = !hardwareBorder,
                     mountedPivotDeck = activePivot,
+                    continuousLandscapeBrand = standalone && placement != null,
                 )
             }
-            if (hardwareBorder || activePivot) {
+            if (standalone && hardwareBorder && placement != null) {
+                StandaloneGripArcHardware(placement, tokens, landscape)
+            }
+            if ((!standalone || placement == null) && (hardwareBorder || activePivot)) {
                 CartdeckHardwareSeats(
                     rootBounds = root.value,
                     videoBounds = video.value,
@@ -282,10 +346,11 @@ fun XboxGameControls(
                 LocalLemuroidPadTheme provides theme,
                 LocalCartdeckControlBounds provides observe,
             ) {
+                val roomyLandscape =
+                    this@BoxWithConstraints.maxWidth >= 680.dp && this@BoxWithConstraints.maxHeight >= 320.dp
                 val gripArcLandscape =
                     landscape && hardwareBorder && !physicalControllerConnected && !isTv &&
-                        arc?.mode == ArcControlMode.STANDARD_GRIPARC &&
-                        this@BoxWithConstraints.maxWidth >= 680.dp && this@BoxWithConstraints.maxHeight >= 320.dp
+                        arc?.mode == ArcControlMode.STANDARD_GRIPARC && (standalone || roomyLandscape)
                 val dedicatedHardwareLayout =
                     landscape && hardwareBorder &&
                         (arc == null || arc.mode == ArcControlMode.STANDARD || gripArcLandscape)
@@ -298,6 +363,23 @@ fun XboxGameControls(
                             CartdeckViewportPolicy.PortraitMode.STANDARD,
                             hardwareLandscape = dedicatedHardwareLayout,
                             gripArcLandscape = gripArcLandscape,
+                            standaloneGripRailInset =
+                                if (standalone && gripArcLandscape) {
+                                    (
+                                        maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density)) /
+                                            density.density + 60f
+                                    ).dp
+                                } else {
+                                    0.dp
+                                },
+                            independentPortraitAperture = pivotProfile != null || gripChassis,
+                            standalonePortraitBottomReserve =
+                                if (gripChassis && StandaloneGripArcLayout.densePortrait(controllerId)) {
+                                    val bottom = maxOf(safeDrawing.getBottom(density), safeGestures.getBottom(density))
+                                    (bottom / density.density + 452f).dp
+                                } else {
+                                    0.dp
+                                },
                             availableWidth = this@BoxWithConstraints.maxWidth,
                             availableHeight = this@BoxWithConstraints.maxHeight,
                             portraitApertureRatio =
@@ -371,16 +453,33 @@ fun XboxGameControls(
                     )
                 }
                 if (placement != null && arc != null && !physicalControllerConnected && !isTv) {
-                    GripArcCombinedControls(placement)
+                    GripArcCombinedControls(placement, standalone = standalone)
                     GripArcAccessory(
                         placement.dock,
                         arc,
                         tokens,
                         false,
                         false,
-                        onGripPressed,
-                        inputLabels = GripArcInputCatalog.forSystem(hostSystem).associate { it.code to it.label },
-                        drawHousing = hardwareBorder,
+                        onPressed = { slot, pressed, keys ->
+                            if (!standalone) {
+                                onGripPressed(slot, pressed, keys)
+                            } else if (gripEnabled && canUseGrip()) {
+                                when (val action = StandaloneGripArcLayout.guestAction(arc, slot, placement.native)) {
+                                    GripArcAction.OpenMenu -> if (pressed) onGripMenu()
+                                    null -> Unit
+                                    else -> pivotGate?.applyGripAction(slot, pressed, action, scope)
+                                }
+                            }
+                        },
+                        inputLabels =
+                            if (standalone) {
+                                StandaloneGripArcLayout.actionLabels(placement.native)
+                            } else {
+                                GripArcInputCatalog.forSystem(hostSystem).associate { it.code to it.label }
+                            },
+                        typedActions = standalone,
+                        latchedSlots = latchedSlots,
+                        drawHousing = hardwareBorder && !standalone,
                         lighting = resolved.lighting,
                         highContrast = appearance.highContrast,
                     )

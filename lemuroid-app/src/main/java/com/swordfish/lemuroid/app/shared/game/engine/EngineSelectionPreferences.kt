@@ -16,7 +16,11 @@ import java.util.Properties
 
 /** Preferences survive install-over. Runtime outcomes are read from disk across the separate game processes. */
 class EngineSelectionPreferences(private val context: Context) {
-    class SelectionException(message: String) : IllegalStateException(message)
+    class SelectionException(
+        message: String,
+        val engineId: String? = null,
+        val stage: String = "Engine selection",
+    ) : IllegalStateException(message)
 
     enum class FallbackPolicy { ASK, NEXT_MANUAL_LAUNCH, NEVER }
 
@@ -146,13 +150,19 @@ class EngineSelectionPreferences(private val context: Context) {
         val extension =
             if (engine.manifest != null) {
                 game.fileName.substringAfterLast('.', "").lowercase().takeUnless {
-                    it == "zip"
+                    it == "zip" && engine.host != NativeEngineRegistry.Host.XENIA_ANDROID
                 }
             } else {
                 null
             }
         val eligibility = NativeEngineRegistry.eligibility(context, engine, extension)
-        if (!eligibility.eligible) throw SelectionException(eligibility.reason ?: "The selected engine is unavailable")
+        if (!eligibility.eligible) {
+            throw SelectionException(
+                eligibility.reason ?: "The selected engine is unavailable",
+                engine.id,
+                "Engine eligibility",
+            )
+        }
         val failed = event.getProperty("failed.${engine.id}") == identity(engine)
         if (failed) {
             val alternative =
@@ -176,6 +186,7 @@ class EngineSelectionPreferences(private val context: Context) {
                         "failureStage",
                         "startup",
                     )}. Choose another installed engine or explicitly retry in cartridge settings.",
+                    engine.id,
                 )
             }
             return Selection(alternative, true, "Previous successful engine selected after a confirmed failure")

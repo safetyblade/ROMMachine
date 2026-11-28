@@ -5,9 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -56,6 +58,8 @@ internal fun GripArcAccessory(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     inputLabels: Map<Int, String> = emptyMap(),
+    typedActions: Boolean = false,
+    latchedSlots: Set<Int> = emptySet(),
 ) {
     if (placement != null && !fullscreenWithGamepad && !isLoading) {
         GripArcControlGroup(
@@ -68,6 +72,8 @@ internal fun GripArcAccessory(
             highContrast,
             feedbackStrength,
             inputLabels,
+            typedActions,
+            latchedSlots,
         )
     }
 }
@@ -88,16 +94,27 @@ internal fun GripArcControlGroup(
     highContrast: Boolean = false,
     feedbackStrength: Float = 0f,
     inputLabels: Map<Int, String> = emptyMap(),
+    typedActions: Boolean = false,
+    latchedSlots: Set<Int> = emptySet(),
 ) {
     val scale = placement.scale
     Box(Modifier.fillMaxSize()) {
         if (drawHousing) {
             GripArcHousing(placement, tokens, lighting, highContrast, feedbackStrength, profile.count)
         }
-        for (slot in 1..profile.count) {
+        for (slot in placement.targets.keys.sorted().take(profile.count)) {
             val rect = placement.targets.getValue(slot)
             val mapping = profile.mappings.getOrNull(slot - 1).orEmpty().toSet()
-            val label = mapping.mapNotNull(inputLabels::get).joinToString("+").ifEmpty { "—" }
+            val label =
+                if (typedActions) {
+                    if (profile.supportedActionFor(slot, inputLabels.keys) == null) {
+                        "Unavailable"
+                    } else {
+                        profile.labelFor(slot, inputLabels).ifEmpty { "—" }
+                    }
+                } else {
+                    mapping.mapNotNull(inputLabels::get).joinToString("+").ifEmpty { "—" }
+                }
             val interaction = remember(slot) { MutableInteractionSource() }
             var pressed by remember(slot) { mutableStateOf(false) }
 
@@ -128,7 +145,7 @@ internal fun GripArcControlGroup(
                             interactionSource = interaction,
                             indication = null,
                             role = Role.Button,
-                            onClickLabel = if (mapping.isEmpty()) "Unassigned button" else "Press $label",
+                            onClickLabel = if (label == "—") "Unassigned button" else "Press $label",
                         ) { },
                 contentAlignment = Alignment.Center,
             ) {
@@ -138,8 +155,9 @@ internal fun GripArcControlGroup(
                             Modifier.size(visual.w.dp, visual.h.dp)
                         },
                     label = label,
+                    manufactured = typedActions,
                     tokens = tokens,
-                    pressed = pressed,
+                    pressed = pressed || slot in latchedSlots,
                 )
             }
         }
@@ -298,9 +316,28 @@ private fun GripArcShoulderButton(
     label: String,
     tokens: CartdeckEditionTokens,
     pressed: Boolean,
+    manufactured: Boolean,
 ) {
-    Box(modifier = modifier.clipToBounds(), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(modifier = modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
+            if (manufactured) {
+                val plate = Rect(1.dp.toPx(), 1.dp.toPx(), size.width - 1.dp.toPx(), size.height - 1.dp.toPx())
+                val cap = plate.deflate((if (pressed) 5 else 3).dp.toPx())
+                drawControllerInset(
+                    chamferedIsland(plate, 6.dp.toPx()),
+                    chamferedIsland(cap, 4.dp.toPx()),
+                    plate,
+                    tokens,
+                    1.8.dp.toPx(),
+                    if (pressed) tokens.accent.copy(alpha = 0.78f) else tokens.secondary,
+                )
+                drawPath(
+                    chamferedIsland(cap, 4.dp.toPx()),
+                    tokens.accent.copy(alpha = if (pressed) 0.92f else 0.43f),
+                    style = Stroke(1.15.dp.toPx()),
+                )
+                return@Canvas
+            }
             val r = 3.dp.toPx()
             drawRoundRect(
                 color = tokens.bezel,
@@ -334,6 +371,20 @@ private fun GripArcShoulderButton(
                 strokeWidth = 1.dp.toPx(),
             )
         }
-        Text(label, fontSize = 9.sp, lineHeight = 9.sp, color = tokens.onButton, maxLines = 1)
+        val lettering =
+            when {
+                !manufactured -> 9f
+                label.length > 8 -> 10f
+                else -> (maxHeight.value * 0.25f).coerceIn(10f, 13f)
+            }
+        Text(
+            label,
+            fontSize = lettering.sp,
+            lineHeight = (lettering + if (manufactured) 1f else 0f).sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = if (manufactured) Modifier.padding(horizontal = 4.dp) else Modifier,
+            color = tokens.onButton,
+            maxLines = if (manufactured) 2 else 1,
+        )
     }
 }

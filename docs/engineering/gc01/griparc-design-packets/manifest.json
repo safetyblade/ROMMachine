@@ -1,0 +1,768 @@
+{
+  "schema": "cartdeck.griparc.design/1",
+  "issue": 379,
+  "referenceHead": "6f68b9c3e4f81e3cabc8e5cc283ce7dea29a5b1d",
+  "sequence": [
+    "GBA",
+    "GB",
+    "GBC",
+    "NES",
+    "SMS",
+    "GG",
+    "NGP",
+    "NGC",
+    "PC_ENGINE",
+    "SNES",
+    "GENESIS",
+    "SEGACD",
+    "WS",
+    "WSC",
+    "NDS",
+    "NINTENDO_3DS",
+    "PSP",
+    "N64",
+    "PSX",
+    "PLAYSTATION_2",
+    "PLAYSTATION_3",
+    "DREAMCAST",
+    "GAMECUBE",
+    "XBOX",
+    "XBOX360",
+    "FBNEO",
+    "MAME2003PLUS",
+    "ATARI2600",
+    "ATARI7800",
+    "LYNX",
+    "WII",
+    "WII_U",
+    "DOS"
+  ],
+  "standalone": "complete programmable power-user pad",
+  "joint": "separate L-shaped attachment around immutable PivotARC; deferred",
+  "systems": [
+    {
+      "id": "GB",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; Hold B is tap-to-latch, remains depressed until deselected. Runtime/fit pending."
+    },
+    {
+      "id": "GBC",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; Hold B is tap-to-latch, remains depressed until deselected. Runtime/fit pending."
+    },
+    {
+      "id": "NES",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved NES inherited GB/GBC layout and factory preset 27 Nov 2026; Hold/Turbo and fit/runtime pending."
+    },
+    {
+      "id": "SMS",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov 2026; Hold/Turbo, guest utility mapping and measured fit pending engineering."
+    },
+    {
+      "id": "GG",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov 2026; Hold/Turbo, guest utility mapping and measured fit pending engineering."
+    },
+    {
+      "id": "NGP",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; digital click-stick, Hold/Turbo, Option dispatch and actual fit pending engineering."
+    },
+    {
+      "id": "NGC",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 27 Nov; digital click-stick, Hold/Turbo, Option dispatch and actual fit pending engineering."
+    },
+    {
+      "id": "PC_ENGINE",
+      "batch": "A",
+      "family": "Classic retro",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "owner_layout_locked",
+          "runtime": "conditional independent III–VI mapping and guest mode"
+        }
+      ],
+      "note": "Owner approved Digital 2 and Digital 6 portrait/landscape/preset 27 Nov; independent six-button runtime conditional, Avenue Pad 3 alias still open."
+    },
+    {
+      "id": "GBA",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved GBA-GA-01P/L and preset 27 Nov 2026; Turbo implementation, fit and physical gates pending."
+    },
+    {
+      "id": "SNES",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved SNES both orientations and preset; runtime and measured fit pending."
+    },
+    {
+      "id": "GENESIS",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital3",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved both variants and orientations; Mode guest routing and runtime fit pending."
+    },
+    {
+      "id": "SEGACD",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital3",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved both variants and orientations; Mode guest routing and runtime fit pending."
+    },
+    {
+      "id": "WS",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "guest_horizontal",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "guest_vertical",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner advanced with Next in sequential process; both guest orientations and handset layouts locked. Runtime pending."
+    },
+    {
+      "id": "WSC",
+      "batch": "B",
+      "family": "Handheld / multi-button",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "guest_horizontal",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "guest_vertical",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner advanced with Next in sequential process; both guest orientations and handset layouts locked. Runtime pending."
+    },
+    {
+      "id": "NDS",
+      "batch": "C",
+      "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and two-slot preset; actual screen fit, mic/lid and runtime pending."
+    },
+    {
+      "id": "NINTENDO_3DS",
+      "batch": "C",
+      "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved 3DS base portrait/landscape and two-slot preset; measured fit, guest mapping and New 3DS optional capability pending."
+    },
+    {
+      "id": "PSP",
+      "batch": "C",
+      "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "dpad_primary",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "analogue_primary",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved both movement priorities, both orientations and preset; runtime/fit pending."
+    },
+    {
+      "id": "N64",
+      "batch": "C",
+      "family": "Touch / single analogue",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved N64 both orientations and preset; measured fit, discrete C dispatch and runtime pending."
+    },
+    {
+      "id": "PSX",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "dualshock",
+          "design": "owner_layout_locked",
+          "runtime": "pending; L3/R3 conditional guest support"
+        }
+      ],
+      "note": "Owner approved Digital and DualShock both orientations and preset; guest clicks and measured fit pending."
+    },
+    {
+      "id": "PLAYSTATION_2",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved shared PSX DualShock inheritance, both orientations and preset; per-engine routing and measured fit pending."
+    },
+    {
+      "id": "PLAYSTATION_3",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved shared PSX DualShock inheritance, both orientations and preset; per-engine routing and measured fit pending."
+    },
+    {
+      "id": "DREAMCAST",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and preset; trigger/guest mapping and measured fit pending."
+    },
+    {
+      "id": "GAMECUBE",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and preset; corrected Dolphin mapping and measured fit pending."
+    },
+    {
+      "id": "XBOX",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and four face Holds; native host capabilities and measured fit pending."
+    },
+    {
+      "id": "XBOX360",
+      "batch": "D",
+      "family": "Modern consoles",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and four face Holds; native host capabilities and measured fit pending."
+    },
+    {
+      "id": "FBNEO",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital3",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital4",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved all four geometries and preset; D2/D3 remain conditional, game/core mapping and measured fit pending."
+    },
+    {
+      "id": "MAME2003PLUS",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "digital2",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital3",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; not registered, verify game and backend mapping"
+        },
+        {
+          "id": "digital4",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "digital6",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved all four geometries and preset; D2/D3 remain conditional, game/core mapping and measured fit pending."
+    },
+    {
+      "id": "ATARI2600",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved by sequential Next; both orientations and preset locked, guest switch semantics and measured fit pending."
+    },
+    {
+      "id": "ATARI7800",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved by sequential Next; both orientations and preset locked, guest switch semantics and measured fit pending."
+    },
+    {
+      "id": "LYNX",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "note": "Owner approved both orientations and preset; guest options/Pause, rotated input and fit pending."
+    },
+    {
+      "id": "WII",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "sideways",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "classic",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        },
+        {
+          "id": "nunchuk_stick",
+          "design": "owner_layout_locked",
+          "runtime": "pending; GA-D31C-R3 all layouts both orientations, IR stick/touch, real concurrent guest movement/aim/fire"
+        },
+        {
+          "id": "nunchuk_touch",
+          "design": "owner_layout_locked",
+          "runtime": "pending; GA-D31C-R3 all layouts both orientations, IR stick/touch, real concurrent guest movement/aim/fire"
+        },
+        {
+          "id": "gamecube",
+          "design": "owner_layout_locked",
+          "runtime": "pending"
+        }
+      ],
+      "note": "Owner approved all Wii designs and GA-D31C-R3 shared Nunchuk Aim & Fire across Standard/PivotARC/GripARC; actual IR regression, shared dispatch and physical fit pending."
+    },
+    {
+      "id": "WII_U",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "gamepad",
+          "design": "owner_layout_locked",
+          "runtime": "pending; actual screen state and pointer gating"
+        },
+        {
+          "id": "pro",
+          "design": "owner_layout_locked",
+          "runtime": "pending; native controller selection"
+        }
+      ],
+      "note": "Owner approved GamePad and Pro, both orientations; native device/screen state, touch gating and measured fit pending."
+    },
+    {
+      "id": "DOS",
+      "batch": "E",
+      "family": "Specialist",
+      "design": "owner_layout_locked",
+      "preset": "owner_layout_locked",
+      "source": "not_started",
+      "visual": "pending",
+      "input": "pending",
+      "joint": "deferred",
+      "portrait": "owner_layout_locked",
+      "landscape": "owner_layout_locked",
+      "landscapeVisual": "pending",
+      "landscapeInput": "pending",
+      "variants": [
+        {
+          "id": "gamepad",
+          "design": "owner_layout_locked",
+          "runtime": "pending; existing DOS_AUTO gamepad and keyboard access"
+        },
+        {
+          "id": "keyboard_action",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; verify actual guest keyboard bridge and per-game binding"
+        },
+        {
+          "id": "mouse",
+          "design": "owner_layout_locked",
+          "runtime": "conditional; verify actual guest pointer and mouse button bridge"
+        }
+      ],
+      "note": "Final owner direction to prepare full implementation handoff treated as DOS design approval; all layouts locked, keyboard/mouse dispatch conditional."
+    }
+  ],
+  "designGate": {
+    "id": "GA-D00",
+    "status": "owner_layout_locked",
+    "scope": "Universal Controls Hub, physical controller discovery/mapping and portrait/landscape GripARC design standard",
+    "note": "Approved with PivotARC description On-the-go play and CARTDECK primary landscape logo, GripARC secondary hardware wordmark. GA-R00 Controls UI implementation separately authorized; no console layout or Joint implementation authority."
+  },
+  "holdAction": {
+    "status": "owner_approved_requirement",
+    "semantics": "tap latch DOWN; next tap release; visible depressed state; lifecycle safe release",
+    "scope": "all GripARC supported digital inputs, both orientations",
+    "runtime": "pending"
+  }
+}

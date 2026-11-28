@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.game.engine.EngineSelectionPreferences
+import com.swordfish.lemuroid.app.shared.support.SupportDesign
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
@@ -52,6 +53,19 @@ internal object Ps2Onboarding {
         dialog.setOnDismissListener { if (active === dialog) active = null }
         active = dialog
         dialog.show()
+        SupportDesign.style(dialog)
+        listOf(
+            R.id.addPs2Bios,
+            R.id.openPs2BiosFolder,
+            R.id.learnPs2Bios,
+            R.id.continuePs2WithoutBios,
+            R.id.cancelPs2Setup,
+        ).forEach { id ->
+            SupportDesign.style(
+                view.findViewById(id),
+                primary = id == if (enhancedAvailable) R.id.addPs2Bios else R.id.continuePs2WithoutBios,
+            )
+        }
         return true
     }
 
@@ -87,7 +101,7 @@ internal object Ps2Onboarding {
                             runCatching { context.startActivity(Armsx2BiosRecovery.fromSettings(context)) }
                         }
                     }
-                    builder.show()
+                    builder.show().also(SupportDesign::style)
                 }
             }
         }
@@ -107,6 +121,6 @@ internal object Ps2Onboarding {
                 )
                 .setNegativeButton("Close", null)
         if (enhancedAvailable) builder.setPositiveButton("Add PS2 BIOS") { _, _ -> openImport(activity) }
-        builder.show()
+        builder.show().also(SupportDesign::style)
     }
 }

@@ -7,18 +7,18 @@ import javax.net.ssl.HttpsURLConnection
 
 /** Client contract for the future private CARTDECK intake. Credentials belong to the server. */
 internal object SupportTicketTransport {
-    // Set only after the approved intake and private storage have passed production verification.
-    private const val VERIFIED_ENDPOINT = ""
+    // Configured SUP-06 intake endpoint. Only a validated receipt confirms delivery.
+    private const val INTAKE_ENDPOINT = "https://prestwich.dev/api/support/intake"
     private const val MAX_UPLOAD_BYTES = 4_000_000L
     private const val MAX_RECEIPT_BYTES = 4096
-    val enabled: Boolean get() = VERIFIED_ENDPOINT.isNotBlank()
+    val enabled: Boolean get() = INTAKE_ENDPOINT.isNotBlank()
 
     fun send(
         report: SupportReport,
         archive: File,
     ): String {
         check(enabled)
-        val endpoint = URL(VERIFIED_ENDPOINT)
+        val endpoint = URL(INTAKE_ENDPOINT)
         require(
             endpoint.protocol == "https" && endpoint.host == "prestwich.dev" &&
                 endpoint.userInfo == null && endpoint.ref == null && endpoint.query == null,
@@ -38,7 +38,8 @@ internal object SupportTicketTransport {
             archive.inputStream().use { input ->
                 connection.outputStream.use { output -> input.copyTo(output) }
             }
-            check(connection.responseCode in setOf(200, 201, 202))
+            val status = connection.responseCode
+            check(status in setOf(200, 201, 202)) { "Support intake returned HTTP $status." }
             val receipt =
                 connection.inputStream.use { input ->
                     val bytes = ByteArray(MAX_RECEIPT_BYTES + 1)

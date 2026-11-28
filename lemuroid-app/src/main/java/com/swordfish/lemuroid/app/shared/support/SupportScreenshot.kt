@@ -58,6 +58,20 @@ internal class SupportScreenshot(private val context: Context) {
             }
         }
 
+    /** Copies a stored screenshot to a new report id (used when a submitted report is forked for editing). */
+    fun copyFor(
+        sourceReportId: String,
+        digest: String,
+        targetReportId: String,
+    ): Boolean =
+        synchronized(lock) {
+            val source = file(sourceReportId, digest)
+            if (!source.isFile || source.length() !in 1L..MAX_BYTES) return@synchronized false
+            val target = file(targetReportId, digest)
+            if (!target.isFile) source.copyTo(target, overwrite = false)
+            target.isFile
+        }
+
     fun attachment(report: SupportReport): File? =
         report.screenshotDigest?.let { digest ->
             file(report.id, digest).takeIf { it.isFile && it.length() in 1L..MAX_BYTES }

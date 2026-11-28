@@ -11,24 +11,28 @@ import java.security.MessageDigest
 
 /** Read-only SAF import. Only disposable staging changes; guest content and saves are never touched. */
 internal object Xbox360Content {
+    data class Staged(val file: File, val packageIdentity: Xbox360ContentIdentity.PackageIdentity?)
+
     fun stage(
         context: Context,
         uri: Uri,
         checkCancelled: () -> Unit,
-    ): File {
+    ): Staged {
         if (uri.scheme == "file") {
             val file = File(requireNotNull(uri.path))
-            file.inputStream().channel.use {
-                val result = Xbox360ContentIdentity.probe(file.name, it)
-                check(result.valid) { result.reason }
+            val identity = verify(file)
+            if (identity?.svod == true) {
+                check(File(file.parentFile, "${file.name}.data").isDirectory) {
+                    "Xbox 360 SVOD package is incomplete: sibling .data folder missing"
+                }
             }
-            return file
+            return Staged(file, identity)
         }
         val document = DocumentFile.fromSingleUri(context, uri) ?: error("Xbox 360 content is no longer accessible")
         val name = component(document.name ?: error("Xbox 360 content has no filename"))
         val extension = name.substringAfterLast('.', "").lowercase()
-        check(extension in Xbox360ContentIdentity.formats) {
-            "Xbox 360 supports verified ISO, XEX game folders, ZAR and XCP content; M3U is not supported by this engine"
+        check(Xbox360ContentIdentity.acceptsExtension(extension)) {
+            "Xbox 360 supports verified ISO, XEX folders, ZAR, XCP and extensionless packages."
         }
         val key =
             MessageDigest.getInstance("SHA-256").digest(uri.toString().toByteArray())
@@ -90,53 +94,51 @@ internal object Xbox360Content {
             } ?: error("Cannot read the extracted Xbox 360 game folder")
         } else {
             copy(document, target, 0)
-            if (extension == "xcp") {
-                val volume =
-                    java.io.RandomAccessFile(target, "r").use { file ->
-                        check(file.length() >= 0x3AD) { "Xbox 360 package header is truncated" }
-                        file.seek(0x3A9)
-                        file.readInt()
+            val packageIdentity = verify(target)
+            if (packageIdentity?.svod == true) {
+                check(
+                    DocumentsContract.isTreeUri(uri),
+                ) { "Xbox 360 SVOD requires its sibling .data folder permission" }
+                val id = DocumentsContract.getDocumentId(uri)
+                check('/' in id) { "Select the Xbox 360 package folder when granting ROM access" }
+                val children = DocumentsContract.buildChildDocumentsUriUsingTree(uri, id.substringBeforeLast('/'))
+                var found = false
+                context.contentResolver.query(
+                    children,
+                    arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    ),
+                    null,
+                    null,
+                    null,
+                )?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) != "$name.data") continue
+                        val siblingUri = DocumentsContract.buildDocumentUriUsingTree(uri, cursor.getString(0))
+                        val sibling =
+                            DocumentFile.fromSingleUri(context, siblingUri)
+                                ?: error("Xbox 360 SVOD data folder is inaccessible")
+                        check(sibling.isDirectory) { "Xbox 360 SVOD requires a .data directory" }
+                        copyTree(context, sibling, File(root, "$name.data"), 0, checkCancelled) { ++count <= 50000 }
+                        found = true
                     }
-                if (volume == 1) {
-                    check(
-                        DocumentsContract.isTreeUri(uri),
-                    ) { "Xbox 360 SVOD requires its sibling .data folder permission" }
-                    val id = DocumentsContract.getDocumentId(uri)
-                    check('/' in id) { "Select the Xbox 360 package folder when granting ROM access" }
-                    val children = DocumentsContract.buildChildDocumentsUriUsingTree(uri, id.substringBeforeLast('/'))
-                    var found = false
-                    context.contentResolver.query(
-                        children,
-                        arrayOf(
-                            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                        ),
-                        null,
-                        null,
-                        null,
-                    )?.use { cursor ->
-                        while (cursor.moveToNext()) {
-                            if (cursor.getString(1) != "$name.data") continue
-                            val siblingUri = DocumentsContract.buildDocumentUriUsingTree(uri, cursor.getString(0))
-                            val sibling =
-                                DocumentFile.fromSingleUri(context, siblingUri)
-                                    ?: error("Xbox 360 SVOD data folder is inaccessible")
-                            check(sibling.isDirectory) { "Xbox 360 SVOD requires a .data directory" }
-                            copyTree(context, sibling, File(root, "$name.data"), 0, checkCancelled) { ++count <= 50000 }
-                            found = true
-                        }
-                    }
-                    check(found) { "Xbox 360 SVOD package is incomplete: sibling .data folder missing" }
                 }
+                check(found) { "Xbox 360 SVOD package is incomplete: sibling .data folder missing" }
             }
+            checkCancelled()
+            return Staged(target, packageIdentity)
         }
         checkCancelled()
-        target.inputStream().channel.use {
-            val result = Xbox360ContentIdentity.probe(name, it)
-            check(result.valid) { result.reason }
-        }
-        return target
+        return Staged(target, verify(target))
     }
+
+    private fun verify(file: File): Xbox360ContentIdentity.PackageIdentity? =
+        file.inputStream().channel.use {
+            val result = Xbox360ContentIdentity.probe(file.name, it)
+            check(result.valid) { result.reason }
+            result.packageIdentity
+        }
 
     private fun copyTree(
         context: Context,

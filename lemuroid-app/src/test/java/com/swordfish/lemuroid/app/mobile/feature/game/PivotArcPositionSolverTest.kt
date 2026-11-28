@@ -37,6 +37,31 @@ class PivotArcPositionSolverTest {
             landscape,
         )
 
+    @Test
+    fun bottomSeatingUsesTheChassisAndKeepsTheAssemblyRigid() {
+        assertEquals(782f, pivotChassisBottom(776f, 808f, 808, 24, 1f), 0.01f)
+        assertEquals(782f, pivotChassisBottom(752f, 784f, 808, 24, 1f), 0.01f)
+
+        fun place(
+            offset: Float,
+            left: Boolean,
+        ): PivotArcPlacement =
+            (
+                PivotArcPositionSolver.resolve(
+                    baseline, PivotArcLayoutProfile.activeFor(SystemID.GBA).orEmpty(), referenceSafe,
+                    referenceViewport, left, 0f, offset, false, seatAtChassisBottom = true,
+                ) as PivotArcResolution.Fits
+            ).placement
+        for (left in listOf(false, true)) {
+            val docked = place(0f, left)
+            val raised = place(-12f, left)
+            assertEquals(referenceSafe.bottom, docked.controls.values.maxOf { it.bottom }, 0.01f)
+            for ((key, seat) in docked.controls) {
+                assertEquals(12f, seat.bottom - raised.controls.getValue(key).bottom, 0.01f)
+            }
+        }
+    }
+
     @Test fun candidateCUsesLargerManufacturedButtonsWhenSpacePermits() {
         val placement = (resolve(SystemID.GBA) as PivotArcResolution.Fits).placement
         assertTrue(placement.visualScale > 1f)

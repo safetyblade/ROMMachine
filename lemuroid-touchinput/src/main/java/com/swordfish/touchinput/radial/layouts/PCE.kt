@@ -62,3 +62,22 @@ fun PadKitScope.PCERight(
         },
     )
 }
+
+/** Port-one descriptors from the bundled PCE Fast core. */
+val pceSixButtonLabels =
+    mapOf(
+        KeyEvent.KEYCODE_BUTTON_A to "I",
+        KeyEvent.KEYCODE_BUTTON_B to "II",
+        KeyEvent.KEYCODE_BUTTON_Y to "III",
+        KeyEvent.KEYCODE_BUTTON_X to "IV",
+        KeyEvent.KEYCODE_BUTTON_L1 to "V",
+        KeyEvent.KEYCODE_BUTTON_R1 to "VI",
+    )
+
+@Composable
+fun PadKitScope.PCESixRight(
+    modifier: Modifier = Modifier,
+    settings: TouchControllerSettingsManager.Settings,
+) {
+    Arcade6Right(modifier, settings, labels = pceSixButtonLabels, includeStart = true)
+}

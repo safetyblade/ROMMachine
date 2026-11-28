@@ -22,6 +22,7 @@ import com.swordfish.lemuroid.app.shared.game.engine.NativeEngineRegistry
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2BiosRecovery
 import com.swordfish.lemuroid.app.shared.game.ps2next.Armsx2Storage
 import com.swordfish.lemuroid.app.shared.support.SupportActivity
+import com.swordfish.lemuroid.app.shared.support.SupportDesign
 import com.swordfish.lemuroid.app.shared.support.SupportReport
 import com.swordfish.lemuroid.app.shared.support.SupportReportStore
 import com.swordfish.lemuroid.app.shared.support.SupportTransport
@@ -39,8 +40,23 @@ import java.util.Properties
 class GameCrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_crash)
-        findViewById<TextView>(R.id.text1).text = "That didn't go to plan."
+        findViewById<android.view.ViewGroup>(android.R.id.content).getChildAt(0)?.let {
+            SupportDesign.protectSystemBars(it)
+        }
+        findViewById<TextView>(R.id.text1).text = "Game recovery"
+        listOf(
+            R.id.retryGame,
+            R.id.tryOtherEngine,
+            R.id.importPs2Bios,
+            R.id.copyReport,
+            R.id.reportProblem,
+            R.id.advancedDiagnostics,
+            R.id.returnToShelf,
+        ).forEach { id ->
+            SupportDesign.style(findViewById(id), primary = id == R.id.returnToShelf)
+        }
         val detail = findViewById<TextView>(R.id.text2)
         val record = intent.getSerializableExtra(EXTRA_PLAY_RECORD) as? Properties
         val code = intent.getStringExtra(EXTRA_PLAY_CODE)
@@ -53,6 +69,7 @@ class GameCrashActivity : ComponentActivity() {
             (savedInstanceState?.getString(EXTRA_SNAPSHOT) ?: intent.getStringExtra(EXTRA_SNAPSHOT))
                 ?.let { SupportReport.parse(it) }
         val details = intent.getStringExtra(EXTRA_MESSAGE_DETAIL)
+        val launchStage = intent.getStringExtra(EXTRA_LAUNCH_STAGE)
         val report =
             evidenceScope.async {
                 val exitReason = record?.let { PlayFailureEvidence.exitReason(context, it) }
@@ -72,9 +89,22 @@ class GameCrashActivity : ComponentActivity() {
                                 details
                             },
                         gameTitle = game,
-                        system = if (record != null) "PS2" else null,
-                        engine = if (record != null) "Play!" else null,
-                        session = record?.getProperty("session"),
+                        system = if (record != null) "PS2" else cartridge?.systemId,
+                        engine = if (record != null) "Play!" else intent.getStringExtra(EXTRA_ENGINE),
+                        session =
+                            record?.getProperty("session")
+                                ?: SupportReport.NOT_APPLICABLE.takeIf { launchStage != null },
+                        serial = if (cartridge != null && record == null) SupportReport.UNKNOWN else null,
+                        mediaFormat =
+                            cartridge?.fileName?.substringAfterLast('.', "")?.let { extension ->
+                                when {
+                                    extension.isEmpty() -> "Extensionless"
+                                    extension.matches(Regex("[A-Za-z0-9]{1,12}")) -> extension.lowercase()
+                                    else -> SupportReport.UNKNOWN
+                                }
+                            },
+                        launchStage = launchStage,
+                        cartridgeId = cartridge?.cartridgeId,
                     )
                 runCatching { SupportReportStore(context).save(value) }
                 if (record != null) {
@@ -123,7 +153,7 @@ class GameCrashActivity : ComponentActivity() {
                         .setMessage("Saved progress may remain associated with the original engine.")
                         .setNegativeButton("Cancel", null)
                         .setPositiveButton(label) { _, _ -> reopen(ps2, alternative.id) }
-                        .show()
+                        .show().also(SupportDesign::style)
                 }
             }
         }
@@ -146,7 +176,7 @@ class GameCrashActivity : ComponentActivity() {
         findViewById<Button>(R.id.reportProblem).setOnClickListener {
             lifecycleScope.launch {
                 startActivity(
-                    SupportActivity.intent(this@GameCrashActivity, report.await().first),
+                    SupportActivity.intent(this@GameCrashActivity, report.await().first, cartridge),
                 )
             }
         }
@@ -156,7 +186,7 @@ class GameCrashActivity : ComponentActivity() {
                     .setTitle("Advanced diagnostics")
                     .setMessage(report.await().first.text)
                     .setPositiveButton("Close", null)
-                    .show()
+                    .show().also(SupportDesign::style)
             }
         }
         findViewById<Button>(R.id.returnToShelf).setOnClickListener { returnToShelf() }
@@ -248,6 +278,8 @@ class GameCrashActivity : ComponentActivity() {
         private const val EXTRA_PLAY_RECORD = "support.playRecord"
         private const val EXTRA_PLAY_CODE = "support.playCode"
         private const val EXTRA_GAME = "support.game"
+        private const val EXTRA_ENGINE = "support.engine"
+        private const val EXTRA_LAUNCH_STAGE = "support.launchStage"
         private const val EXTRA_SNAPSHOT = "support.snapshot"
         internal const val RECOVERY_PREFS = "support-recovery"
         internal const val RECOVERED_START = "recovered-play-start"
@@ -258,11 +290,17 @@ class GameCrashActivity : ComponentActivity() {
             message: String,
             messageDetail: String?,
             biosRecovery: Intent? = null,
+            cartridge: Game? = null,
+            engineId: String? = null,
+            launchStage: String? = null,
         ) {
             val intent =
                 Intent(activity, GameCrashActivity::class.java).apply {
                     putExtra(EXTRA_MESSAGE, message)
                     putExtra(EXTRA_MESSAGE_DETAIL, messageDetail?.take(96_000))
+                    putExtra(EXTRA_GAME, cartridge)
+                    putExtra(EXTRA_ENGINE, engineId)
+                    putExtra(EXTRA_LAUNCH_STAGE, launchStage)
                     putExtra(EXTRA_BIOS_RECOVERY, biosRecovery)
                 }
             activity.startActivity(intent)

@@ -1,5 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
+import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -17,7 +19,10 @@ class UniDLayoutSourceContractTest {
     @Test fun bothGameplayHostsUseTheSharedLandscapeGripArcReservation() {
         val common = source("GameScreenLayout.kt")
         assertTrue(common.contains("gripArcLandscape: Boolean = false"))
-        assertTrue(common.contains("Dimension.value(180.dp)"))
+        assertEquals(132f, GameScreenLayout.gripArcLandscapeSideWidth(520.dp).value, 0.01f)
+        assertEquals(177.6f, GameScreenLayout.gripArcLandscapeSideWidth(740.dp).value, 0.01f)
+        assertEquals(260f, GameScreenLayout.gripArcLandscapeSideWidth(1280.dp).value, 0.01f)
+        assertEquals(2, "Dimension.value(gripSideWidth)".toRegex(RegexOption.LITERAL).findAll(common).count())
         for (name in listOf("MobileGameScreen.kt", "XboxGameControls.kt")) {
             val host = source(name)
             assertTrue(
