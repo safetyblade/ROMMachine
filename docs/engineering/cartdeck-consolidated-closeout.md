@@ -181,3 +181,28 @@ The earlier 41-item ledger governs inherited scope.
   only: no values, logic or identifiers changed. This checkpoint is
   the formatting-only push Cassia required before further substantive
   delivery; hosted gate confirmation is hers to record.
+- C02-D dimensions + C02-B dispatch evidence (Claire, 28 Nov 2026, per
+  Cassia's Assignments 2 and 4): the zone resolver now carries EXPLICIT
+  dimensions instead of floor artefacts — primary directional and
+  analogue controls never render below 56dp, programmable GripARC
+  seats are an explicit uniform 45dp, other controls keep a 42dp floor
+  under authored size (the C01 GameCube resolver already had explicit
+  sizes: analogue 92/66dp, D-pad 88dp, programmable 48dp). All 43
+  non-GameCube landscape fixtures re-verified in simulation with the
+  new dimensions (the binding constraint was Xbox RS vs programmable
+  seat 4, which caps the uniform programmable size at 45dp in the zone
+  architecture). Dispatch evidence for the new arcade configurations:
+  `GripArcCombinedKeyMappingTest.arcadeButtonCountVariantsDispatchTheirOwnSeats`
+  asserts, for ARCADE_2 and ARCADE_3, the exact numbered-seat set
+  (1..N), identical seat identity and key events to the four-button
+  cabinet per seat, unchanged D/Coin/Start/Menu inventory, and
+  identical solo profiles on FBNeo and MAME2003Plus — i.e. GripARC
+  guest dispatch (BUTTON_1 + seat number - 1) and native dispatch
+  agree per seat. Portrait record (explicit, per Assignment 4):
+  portrait keeps the authored uniform transform as first route; the
+  legacy projection remains ONLY as a fallback for the two densities
+  whose authored portrait seat maps overlap in reference space (PSP,
+  Nintendo DS) — authored portrait migration requires per-console
+  portrait seat redesign from the design packets and remains open,
+  it is not silently claimed. C02-C specialist integration is the
+  remaining independently achievable C02 item after this checkpoint.

@@ -1461,8 +1461,25 @@ internal object StandaloneGripArcLayout {
         if (zoneWidth < 120f || rail.height < 40f) return null
         val scale = minOf(safe.height / height, zoneWidth / 200f, 1.22f)
 
-        fun place(seat: Seat): PivotArcBounds {
-            val diameter = maxOf(seat.size * scale, 42f)
+        // C02-D explicit dimensions (not artefacts of a general floor):
+        // primary directional and analogue controls never render below
+        // 56dp, programmable GripARC seats are an explicit uniform 45dp,
+        // and every other control keeps a 42dp floor under its authored
+        // size. Verified against all 43 non-GameCube landscape fixtures.
+        val primaryKinds = setOf(NativeControlKind.DPAD, NativeControlKind.ANALOG)
+        val kindByKey = native.controls.associate { it.key to it.kind }
+
+        fun place(
+            seat: Seat,
+            primary: Boolean,
+            programmable: Boolean,
+        ): PivotArcBounds {
+            val diameter =
+                when {
+                    programmable -> 45f
+                    primary -> maxOf(seat.size * scale, 56f)
+                    else -> maxOf(seat.size * scale, 42f)
+                }
             val radius = diameter / 2f
             val centerX: Float
             val centerY: Float
@@ -1501,8 +1518,12 @@ internal object StandaloneGripArcLayout {
         }
 
         val fitted = linkedMapOf<String, PivotArcBounds>()
-        for ((key, seat) in nativeSeats) fitted[key] = place(seat)
-        for ((slot, seat) in programSeats) fitted["program:$slot"] = place(seat)
+        for ((key, seat) in nativeSeats) {
+            fitted[key] = place(seat, primary = kindByKey[key] in primaryKinds, programmable = false)
+        }
+        for ((slot, seat) in programSeats) {
+            fitted["program:$slot"] = place(seat, primary = false, programmable = true)
+        }
         // Zone containment: panel seats stay in their panel column, rail
         // seats stay in the rail, and nothing touches the aperture.
         for ((key, seat) in nativeSeats) {
