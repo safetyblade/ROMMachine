@@ -25,6 +25,7 @@ data class LibretroReportSession(
     val graphics: String? = null,
     val reportedOptions: ArrayList<String> = arrayListOf(),
     val coreVideoTiming: String? = null,
+    val sessionId: String? = null,
 ) : Serializable
 
 object LibretroEngineReport {

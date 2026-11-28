@@ -93,6 +93,7 @@ class SupportReport private constructor(private val data: JSONObject) {
             serial: String? = null,
             mediaFormat: String? = null,
             launchStage: String? = null,
+            cartridgeId: String? = null,
         ): SupportReport =
             SupportReport(
                 JSONObject()
@@ -107,6 +108,7 @@ class SupportReport private constructor(private val data: JSONObject) {
                     .put("engine", engine?.take(200)?.let(::sanitise) ?: NOT_CAPTURED)
                     .put("session", session ?: NOT_CAPTURED)
                     .put("discSerial", serial ?: NOT_CAPTURED)
+                    .put("cartridgeId", cartridgeId?.takeIf { UUID_PATTERN.matches(it) } ?: NOT_CAPTURED)
                     .put("mediaFormat", mediaFormat?.let(::sanitise) ?: NOT_CAPTURED)
                     .put("launchStage", launchStage?.let(::sanitise) ?: NOT_CAPTURED)
                     .put("version", BuildConfig.VERSION_NAME)
@@ -122,6 +124,8 @@ class SupportReport private constructor(private val data: JSONObject) {
                     .put("frequency", NOT_CAPTURED)
                     .put("diagnostic", diagnostic?.let(::sanitise) ?: NOT_CAPTURED),
             )
+
+        private val UUID_PATTERN = Regex("[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}")
 
         private fun utcTimestamp(): String =
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT).apply {

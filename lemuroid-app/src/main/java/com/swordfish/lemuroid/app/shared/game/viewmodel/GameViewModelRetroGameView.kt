@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -58,6 +59,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -313,6 +315,7 @@ class GameViewModelRetroGameView(
         reportSession =
             LibretroReportSession(
                 coreFilePath = currentState.gameData.coreLibrary,
+                sessionId = java.util.UUID.randomUUID().toString(),
                 mediaRoute =
                     when (currentState.gameData.gameFiles) {
                         is RomFiles.Standard -> "standard file path"
@@ -519,6 +522,24 @@ class GameViewModelRetroGameView(
         owner.launchOnState(Lifecycle.State.RESUMED) {
             initializeRumbleFlow()
         }
+
+        owner.launchOnState(Lifecycle.State.RESUMED) {
+            applyDisplayShader()
+        }
+    }
+
+    private suspend fun applyDisplayShader() {
+        val view = retroGameViewFlow()
+        val glEsMajor = appContext.getGLSLVersion()
+        DisplaySettingsStore(appContext).observe(launchedGame?.cartridgeId)
+            .map { snapshot -> ShaderChooser.getShaderForSystem(glEsMajor, snapshot.effective, system) }
+            .distinctUntilChanged()
+            .catch { error -> Timber.w(error, "Could not observe gameplay shader settings") }
+            .collect { shader ->
+                view.queueEvent {
+                    if (view.shader != shader) view.shader = shader
+                }
+            }
     }
 
     private fun wiiPointerOverride(

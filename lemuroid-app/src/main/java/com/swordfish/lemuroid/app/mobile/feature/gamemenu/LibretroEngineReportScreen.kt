@@ -73,4 +73,11 @@ internal fun buildLibretroSupportReport(
         system = request.game.systemId,
         engine = request.engineReportSession?.let { request.coreConfig.coreID.coreName },
         serial = Ps2DiscEvidence.serial(context, request.game),
+        session = request.engineReportSession?.sessionId,
+        cartridgeId = request.game.cartridgeId,
+        mediaFormat =
+            request.game.fileName.substringAfterLast(
+                '.',
+                "",
+            ).takeIf { it.matches(Regex("[A-Za-z0-9]{1,12}")) },
     )

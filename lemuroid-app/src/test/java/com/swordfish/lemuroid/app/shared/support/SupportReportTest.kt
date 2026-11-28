@@ -22,6 +22,45 @@ import java.util.zip.ZipFile
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class SupportReportTest {
+    private fun assertDistinctReportsSurviveReopenAndExportWithTheirOwnIdentity(context: Context) {
+        val current = SupportReport.create("gameplay", "Sound", "frame_window=current", gameTitle = "Second cartridge")
+        val historical = SupportReport.create("gameplay", "Sound", "frame_window=old", gameTitle = "First cartridge")
+        val older =
+            SupportReport.parse(
+                JSONObject(historical.json)
+                    .put("createdAtMillis", current.createdAtMillis - 1_000L)
+                    .put("createdAt", "2026-11-27T20:00:00.000Z")
+                    .put("versionCode", 91756280)
+                    .toString(),
+            )
+        val store = SupportReportStore(context)
+        store.save(older)
+        store.save(current)
+        val reopened = SupportReportStore(context)
+        val retrieved = reopened.list().associateBy { it.id }
+
+        assertEquals(setOf(older.id, current.id), retrieved.keys)
+        for (report in listOf(older, current)) {
+            val selected = retrieved.getValue(report.id)
+            assertEquals(report.createdAtMillis, selected.createdAtMillis)
+            assertEquals(report["versionCode"], selected["versionCode"])
+            assertEquals(report["createdAt"], selected["createdAt"])
+            assertEquals(report["diagnostic"], selected["diagnostic"])
+            val archive = reopened.packageReport(selected)
+            assertEquals(report.packageName, archive.name)
+            ZipFile(archive).use { zip ->
+                assertEquals(report.json, zip.getInputStream(zip.getEntry("report.json")).bufferedReader().readText())
+                assertEquals(report.text, zip.getInputStream(zip.getEntry("report.txt")).bufferedReader().readText())
+            }
+            SupportTransport.copy(context, selected)
+            val clipboard = context.getSystemService(ClipboardManager::class.java)
+            assertEquals(report.text, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+            val email = SupportTransport.shareIntent(context, selected, archive, email = true)
+            assertTrue(email.getStringExtra(Intent.EXTRA_TEXT).orEmpty().contains(report.id))
+            assertTrue(email.getParcelableExtra<Uri>(Intent.EXTRA_STREAM).toString().endsWith(report.packageName))
+        }
+    }
+
     @Test
     fun previewAndArchiveShareTheSameRedactedSnapshot() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -82,8 +121,10 @@ class SupportReportTest {
     }
 
     @Test
-    fun emailCompositionUsesApprovedRecipientAndReadOnlyZip() {
+    fun persistedReportsExportAndEmailByIdentityWithReadOnlyAttachments() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        // FileProvider caches its canonical root per authority. Exercise all attachments in this sandbox.
+        assertDistinctReportsSurviveReopenAndExportWithTheirOwnIdentity(context)
         val report =
             SupportReport.create(
                 "failure recovery",

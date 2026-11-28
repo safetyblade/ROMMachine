@@ -321,6 +321,19 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                     }
                 if (leaving) return@launch
+                val packageIdentity = staged.packageIdentity
+                val licenseOption = packageIdentity?.fullLicenseLaunchOption(profile.xuid)
+                val contentClass =
+                    when (packageIdentity?.svod) {
+                        true -> "SVOD"
+                        false -> "STFS"
+                        null -> "DISC_OR_EXECUTABLE"
+                    }
+                val licenseSource = if (licenseOption != null) "MATCHING_ARCADE_METADATA" else "ENGINE_DEFAULT"
+                launchContentEvidence =
+                    "content_class=$contentClass; content_title_id=${packageIdentity?.titleId ?: "UNAVAILABLE"}; " +
+                    "profile_created=${profile.created}; matching_arcade_license=${licenseOption != null}; " +
+                    "license_mask_argument=$licenseSource"
                 // System.load uses immutable verified package paths; never use downloaded APK code or a custom driver.
                 System.load(engine.core.absolutePath)
                 emulator =
@@ -346,7 +359,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                             ) +
                                 listOfNotNull(
                                     pipelineABActive.launchOption,
-                                    staged.packageIdentity?.fullLicenseLaunchOption(profile.xuid),
+                                    licenseOption,
                                 ),
                         )
                         setup_game_path(staged.file.absolutePath)
@@ -587,6 +600,8 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
         return super.dispatchGenericMotionEvent(event)
     }
 
+    private var launchContentEvidence = "content_class=UNAVAILABLE"
+
     private fun saveReport(native: String) {
         val info =
             if (::engine.isInitialized) {
@@ -620,7 +635,7 @@ class Xbox360Activity : ComponentActivity(), SurfaceHolder.Callback {
                 "abi=${android.os.Build.SUPPORTED_ABIS.joinToString()}; available_memory=${memory.availMem}\n" +
                 "process_rss_bytes=${rssBytes ?: "UNAVAILABLE"}; thermal_status=$thermal; " +
                 "native_heap_bytes=${android.os.Debug.getNativeHeapAllocatedSize()}\n" +
-                "$info\n" +
+                "$info\n$launchContentEvidence\n" +
                 "pipeline_ab_scope=GLOBAL_XBOX360_ONE_LAUNCH; " +
                 "pipeline_ab_active=${pipelineABActive.name}; " +
                 "pipeline_ab_launch_option=${pipelineABActive.launchOption ?: "ENGINE_DEFAULT"}\n" +

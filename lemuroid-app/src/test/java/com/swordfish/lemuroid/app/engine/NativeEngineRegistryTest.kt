@@ -13,6 +13,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NativeEngineRegistryTest {
+    @Test fun xeniaSelectionAllowsExtensionlessPackagesToReachValidation() {
+        val system = GameSystem.findById(SystemID.XBOX360.dbname)
+        val engine = NativeEngineRegistry.engines(system).single()
+        assertTrue(NativeEngineRegistry.acceptsMedia(engine, ""))
+        assertTrue(NativeEngineRegistry.acceptsMedia(engine, "XCP"))
+        assertFalse(NativeEngineRegistry.acceptsMedia(engine, "m3u"))
+        assertFalse(NativeEngineRegistry.acceptsMedia(engine, "zip"))
+    }
+
     @Test
     fun everyRegisteredSystemHasOnlyCompatibleIntegratedEnginePaths() {
         val systems = (GameSystem.all() + NativeGameSystems.configurations()).distinctBy { it.id }

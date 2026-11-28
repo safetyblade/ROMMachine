@@ -12,6 +12,7 @@ internal data class GripArcCombinedPlacement(
     val seats: Map<String, PivotArcBounds>,
     val native: NativeControlInventory,
     val observedInputIds: Set<String>,
+    val standaloneGeometry: StandaloneGripArcGeometry? = null,
 ) {
     val hardwareSeats: Map<String, PivotArcBounds>
         get() =
@@ -29,6 +30,14 @@ internal data class GripArcCombinedPlacement(
         controls.keys == native.controls.map { it.key }.toSet() && visuals.keys == controls.keys &&
             native.matchesNativeInputs(observedInputIds)
 }
+
+internal data class StandaloneGripArcGeometry(
+    val reference: PivotArcSize,
+    val authoredSeats: Map<String, PivotArcBounds>,
+    val safe: PivotArcBounds,
+    val viewport: PivotArcBounds,
+    val fit: String,
+)
 
 internal object GripArcCombinedLayout {
     // Measured Standard constellations take priority over dock-first free-space packing.

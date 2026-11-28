@@ -104,6 +104,7 @@ class GameCrashActivity : ComponentActivity() {
                                 }
                             },
                         launchStage = launchStage,
+                        cartridgeId = cartridge?.cartridgeId,
                     )
                 runCatching { SupportReportStore(context).save(value) }
                 if (record != null) {

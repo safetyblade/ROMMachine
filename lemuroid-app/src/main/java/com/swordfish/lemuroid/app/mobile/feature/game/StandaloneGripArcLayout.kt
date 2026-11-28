@@ -342,7 +342,7 @@ internal object StandaloneGripArcLayout {
             mapOf(
                 "AnalogL" to Seat(82, 107, 80f), "D" to Seat(82, 257, 74f),
                 "Y" to Seat(648, 89), "B" to Seat(687, 147), "A" to Seat(648, 205), "X" to Seat(609, 147),
-                "AnalogR" to Seat(648, 274, 66f), "LS" to Seat(82, 184), "RS" to Seat(550, 365),
+                "AnalogR" to Seat(648, 274, 66f), "LS" to Seat(82, 184), "RS" to Seat(650, 349),
             )
 
     private val dosPortrait =
@@ -878,6 +878,25 @@ internal object StandaloneGripArcLayout {
                 380f
             }
 
+        val scale = minOf(panel.width / width, panel.height / height, 1.22f)
+        val deckLeft = panel.centerX - width * scale / 2f
+        val deckTop = panel.centerY - height * scale / 2f
+
+        fun authoredBounds(
+            seat: Seat,
+            rail: Boolean,
+        ): PivotArcBounds {
+            val radius = maxOf(seat.size, seat.size * scale, 49.2f) / 2f
+            val x = deckLeft + seat.x * scale
+            val y =
+                if (rail && landscape) {
+                    panel.bottom - maxOf(radius, (height - seat.y) * scale)
+                } else {
+                    deckTop + seat.y * scale
+                }
+            return PivotArcBounds(x - radius, y - radius, x + radius, y + radius)
+        }
+
         fun bounds(
             seat: Seat,
             menu: Boolean = false,
@@ -967,7 +986,12 @@ internal object StandaloneGripArcLayout {
                 ds -> if (landscape) dsProgramLandscape else dsProgramPortrait
                 native.controller == TouchControllerID.PCE_SIX ->
                     if (landscape) pceSixProgramLandscape else pceSixProgramPortrait
-                xbox -> playStationProgram(landscape, dualShock = true)
+                xbox ->
+                    if (landscape) {
+                        mapOf(1 to Seat(45, 349), 2 to Seat(115, 349), 3 to Seat(588, 349), 4 to Seat(711, 349))
+                    } else {
+                        playStationProgram(landscape = false, dualShock = true)
+                    }
                 dos || wiiClassic -> playStationProgram(landscape, dualShock = true)
                 wiiSideways -> if (landscape) wiiSidewaysProgramLandscape else wiiSidewaysProgramPortrait
                 wiiu -> if (landscape) wiiuProgramLandscape else wiiuProgramPortrait
@@ -992,10 +1016,13 @@ internal object StandaloneGripArcLayout {
                 else -> if (landscape) digitalTwoProgramLandscape else digitalTwoProgramPortrait
             }
 
-        fun nativeTargets(compact: Boolean): Map<String, PivotArcBounds> =
+        fun nativeTargets(
+            compact: Boolean = false,
+            authored: Boolean = false,
+        ): Map<String, PivotArcBounds> =
             nativeSeats.mapValues { (key, seat) ->
                 val centralUtility =
-                    key == "Menu" || (xbox && key in setOf("Select", "Start", "RS")) ||
+                    key == "Menu" || (xbox && key in setOf("Select", "Start")) ||
                         (sonyHost && key in setOf("LS", "RS")) ||
                         (dos && key in setOf("Select", "Start", "Keyboard")) ||
                         ((wiiClassic || wiiSideways) && key in setOf("Select", "Start", "Home")) ||
@@ -1006,22 +1033,29 @@ internal object StandaloneGripArcLayout {
                         ) ||
                         (native.controller == TouchControllerID.GAMECUBE && key == "Start")
                 val sized = if (compact) seat.copy(size = minOf(seat.size, 58f)) else seat
-                bounds(sized, menu = centralUtility)
+                if (authored) authoredBounds(sized, centralUtility) else bounds(sized, menu = centralUtility)
             }
         if (nativeSeats.keys != native.controls.map { it.key }.toSet()) return null
-        val programTargets = programSeats.mapKeys { (slot, _) -> "program:$slot" }.mapValues { bounds(it.value) }
+        val program = programSeats.mapKeys { (slot, _) -> "program:$slot" }
+        val programTargets = program.mapValues { bounds(it.value) }
         val display = viewport.inset(1.5f)
+        val authoredTargets = nativeTargets(authored = true) + program.mapValues { authoredBounds(it.value, false) }
+        val authored = authoredTargets.takeIf { independentTargets(it.values.toList(), panel, display) }
+        val regular = authored ?: growTargets(nativeTargets() + programTargets, panel, display)
         val fitted =
-            growTargets(nativeTargets(compact = false) + programTargets, panel, display)
-                ?: growTargets(nativeTargets(compact = true) + programTargets, panel, display)
+            regular ?: growTargets(nativeTargets(compact = true) + programTargets, panel, display)
                 ?: return null
         val controls = nativeSeats.keys.associateWith(fitted::getValue)
         val programmable = programSeats.keys.associateWith { fitted.getValue("program:$it") }
+        val capWidths =
+            native.controls.groupBy { control -> control.kind to nativeSeats.getValue(control.key).size }
+                .flatMap { (family, members) ->
+                    val cap = minOf(family.second + 7f, members.minOf { controls.getValue(it.key).width } - 5f)
+                    members.map { it.key to cap }
+                }.toMap()
         val visuals =
             native.controls.associate { control ->
-                val target = controls.getValue(control.key)
-                val baseSize = nativeSeats.getValue(control.key).size
-                val cap = minOf(baseSize - 5f + 12f, target.width - 5f)
+                val cap = capWidths.getValue(control.key)
                 val gameCubeFace =
                     native.controller == TouchControllerID.GAMECUBE && control.kind == NativeControlKind.FACE
                 val size = if (gameCubeFace && control.key in setOf("B", "X", "Y")) cap - 5f else cap
@@ -1042,20 +1076,34 @@ internal object StandaloneGripArcLayout {
                     rectangles.maxOf { it.bottom },
                 )
             }
+        val programWidth = programmable.values.minOf { it.width }.coerceAtMost(60.5f)
         val dock =
             GripArcPlacement(
                 housing = panel,
                 targets = programmable,
-                visuals =
-                    programmable.mapValues {
-                            (_, target) ->
-                        val size = target.width.coerceAtMost(60.5f)
-                        PivotArcSize(size - 5f, size * 0.82f)
-                    },
+                visuals = programmable.mapValues { PivotArcSize(programWidth - 5f, programWidth * 0.82f) },
                 scale = 1f,
                 side = GripArcSide.RIGHT,
             )
-        return GripArcCombinedPlacement(dock, controls, visuals, seats, native, native.inputIds)
+        val geometry =
+            StandaloneGripArcGeometry(
+                reference = PivotArcSize(width, height),
+                authoredSeats =
+                    (nativeSeats + programSeats.mapKeys { (slot, _) -> "program:$slot" }).mapValues { (_, seat) ->
+                        val x = seat.x.toFloat()
+                        val y = seat.y.toFloat()
+                        PivotArcBounds(x, y, x, y).inset(seat.size / 2f)
+                    },
+                safe = safe,
+                viewport = viewport,
+                fit =
+                    when {
+                        authored != null -> "uniform chassis transform"
+                        regular != null -> "legacy seat projection"
+                        else -> "legacy compact directional targets"
+                    },
+            )
+        return GripArcCombinedPlacement(dock, controls, visuals, seats, native, native.inputIds, geometry)
     }
 
     /** Expand all hit regions together to preserve the proportions of the authored seats. */
@@ -1064,15 +1112,7 @@ internal object StandaloneGripArcLayout {
         panel: PivotArcBounds,
         display: PivotArcBounds,
     ): Map<String, PivotArcBounds>? {
-        fun allowed(bounds: PivotArcBounds): Boolean = bounds.inside(panel) && !bounds.intersects(display)
-
-        fun independent(targets: List<PivotArcBounds>): Boolean =
-            targets.all(::allowed) &&
-                targets.indices.all { index ->
-                    targets.drop(index + 1).none { targets[index].intersects(it) }
-                }
-
-        if (!independent(minimum.values.toList())) return null
+        if (!independentTargets(minimum.values.toList(), panel, display)) return null
         val limit = 6f
 
         fun largestGrowth(fits: (Float) -> Boolean): Float {
@@ -1085,7 +1125,20 @@ internal object StandaloneGripArcLayout {
             return low
         }
 
-        val shared = largestGrowth { growth -> independent(minimum.values.map { it.inset(growth) }) }
+        val shared =
+            largestGrowth { growth ->
+                independentTargets(minimum.values.map { it.inset(growth) }, panel, display)
+            }
         return minimum.mapValues { (_, target) -> target.inset(shared) }
     }
+
+    private fun independentTargets(
+        targets: List<PivotArcBounds>,
+        panel: PivotArcBounds,
+        display: PivotArcBounds,
+    ): Boolean =
+        targets.all { it.inside(panel) && !it.intersects(display) } &&
+            targets.indices.all { index ->
+                (index + 1 until targets.size).none { targets[index].intersects(targets[it]) }
+            }
 }

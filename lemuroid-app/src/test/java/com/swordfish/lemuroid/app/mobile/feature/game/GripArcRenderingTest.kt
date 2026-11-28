@@ -232,11 +232,54 @@ class GripArcRenderingTest {
                     )
                 if (fixture != null && checks.containsValue(false)) problems += "$system/$variant $checks"
                 JSONObject(checks + mapOf("system" to system.name, "configuration" to variant))
+                    .put("portraitGeometry", geometryEvidence(system, false, portrait))
+                    .put("landscapeGeometry", geometryEvidence(system, true, landscape))
             }
         val folder = File("build/reports/gc01-menu-screens/griparc")
         folder.mkdirs()
         File(folder, "standalone-manifest-coverage.json").writeText(JSONArray(report).toString(2))
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
+
+    private fun geometryEvidence(
+        system: SystemID,
+        wide: Boolean,
+        placement: GripArcCombinedPlacement?,
+    ): JSONObject {
+        fun bounds(rect: PivotArcBounds) = JSONArray(listOf(rect.left, rect.top, rect.right, rect.bottom))
+        val geometry = placement?.standaloneGeometry
+        val evidence =
+            JSONObject()
+                .put("units", "dp")
+                .put("fixture", "reference handheld, no device measurements")
+                .put("safe", bounds(fixtureSafe(wide)))
+                .put("viewport", bounds(fixtureViewport(system, wide)))
+        if (placement == null || geometry == null) return evidence.put("fit", "unregistered or no fit")
+        val touches = placement.controls + placement.dock.targets.mapKeys { (slot, _) -> "program:$slot" }
+        val caps = placement.visuals + placement.dock.visuals.mapKeys { (slot, _) -> "program:$slot" }
+        val routes =
+            placement.native.controls.associate { control ->
+                control.key to
+                    JSONObject()
+                        .put("keyCode", control.keyCode ?: JSONObject.NULL)
+                        .put("motionSource", control.motionSource ?: JSONObject.NULL)
+            }
+        return evidence
+            .put("fit", geometry.fit)
+            .put("panel", bounds(placement.dock.housing))
+            .put("authoredPanelSize", JSONArray(listOf(geometry.reference.w, geometry.reference.h)))
+            .put("authoredSeats", JSONObject(geometry.authoredSeats.mapValues { bounds(it.value) }))
+            .put("touchTargets", JSONObject(touches.mapValues { bounds(it.value) }))
+            .put("capSizes", JSONObject(caps.mapValues { JSONArray(listOf(it.value.w, it.value.h)) }))
+            .put("configuredNativeRoutes", JSONObject(routes))
+            .put(
+                "analogueThumbCapDiameter",
+                JSONObject(
+                    placement.native.controls
+                        .filter { it.kind == com.swordfish.touchinput.radial.settings.NativeControlKind.ANALOG }
+                        .associate { it.key to (placement.visuals.getValue(it.key).w * 0.52f) },
+                ),
+            )
     }
 
     private fun JSONArray.entries(): List<JSONObject> = (0 until length()).map(::getJSONObject)

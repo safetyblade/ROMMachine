@@ -59,25 +59,58 @@ class SupportActivity : ComponentActivity() {
         }
     private var attachmentFromEditor = false
     private var navigateBack: () -> Unit = { finish() }
-    private var exportFile: File? = null
-    private val createDocument =
-        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-            val file = exportFile
-            exportFile = null
-            if (uri == null || file == null) return@registerForActivityResult
-            runIo("Could not export the diagnostic package.") {
-                checkNotNull(contentResolver.openOutputStream(uri)).use { output ->
-                    file.inputStream().use { it.copyTo(output) }
+    private var pendingExport: SupportReport? = null
+    private val exportZip =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) {
+            finishExport(it, "zip")
+        }
+    private val exportJson =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {
+            finishExport(it, "json")
+        }
+    private val exportText =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) {
+            finishExport(it, "txt")
+        }
+
+    private fun startExport(
+        report: SupportReport,
+        name: String,
+        launcher: androidx.activity.result.ActivityResultLauncher<String>,
+    ) {
+        if (pendingExport != null) return
+        pendingExport = report
+        runCatching { launcher.launch(name) }.onFailure {
+            pendingExport = null
+            message("Could not open device storage. You can still copy or share the report.")
+        }
+    }
+
+    private fun finishExport(
+        uri: android.net.Uri?,
+        extension: String,
+    ) {
+        val report = pendingExport
+        pendingExport = null
+        if (uri == null || report == null) return
+        runIo("Report exported to the selected location.", "Could not export the selected report.") {
+            checkNotNull(contentResolver.openOutputStream(uri, "wt")).use { output ->
+                when (extension) {
+                    "json" -> output.write(report.json.toByteArray())
+                    "txt" -> output.write(report.text.toByteArray())
+                    else -> store.packageReport(report).inputStream().use { it.copyTo(output) }
                 }
             }
         }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         onBackPressedDispatcher.addCallback(this) { navigateBack() }
         attachmentFromEditor = savedInstanceState?.getBoolean("attachmentFromEditor") ?: false
-        exportFile = savedInstanceState?.getString("export")?.let(::File)
+        pendingExport =
+            savedInstanceState?.getString("export")?.let { runCatching { SupportReport.parse(it) }.getOrNull() }
         val report =
             (savedInstanceState?.getString(EXTRA_REPORT) ?: intent.getStringExtra(EXTRA_REPORT))
                 ?.let { runCatching { SupportReport.parse(it) }.getOrNull() }
@@ -143,7 +176,7 @@ class SupportActivity : ComponentActivity() {
         outState.putBoolean("attachmentFromEditor", attachmentFromEditor)
         outState.putBoolean("preview", preview)
         editorSnapshot?.invoke()?.let { currentReport = it }
-        exportFile?.let { outState.putString("export", it.path) }
+        pendingExport?.let { outState.putString("export", it.json) }
         currentReport?.let { outState.putString(EXTRA_REPORT, it.json) }
         super.onSaveInstanceState(outState)
     }
@@ -184,7 +217,11 @@ class SupportActivity : ComponentActivity() {
         column.action("Back", onClick = returnTo)
         val reportsCard = column.card()
         lifecycleScope.launch {
-            val reports = withContext(Dispatchers.IO) { runCatching { store.list() }.getOrDefault(emptyList()) }
+            val reports = withContext(Dispatchers.IO) { runCatching { store.list() }.getOrNull() }
+            if (reports == null) {
+                reportsCard.label("Could not read saved reports.", color = SupportDesign.muted)
+                return@launch
+            }
             if (reports.isEmpty()) reportsCard.label("No saved reports.", color = SupportDesign.muted)
             reports.forEach { report ->
                 val subject = report["game"].takeUnless { it == SupportReport.NOT_CAPTURED } ?: report["category"]
@@ -197,7 +234,8 @@ class SupportActivity : ComponentActivity() {
                             " · ${submission.state.label} · ${submission.reference}"
                         else -> " · ${submission.state.label}"
                     }
-                reportsCard.action("$subject · ${report["createdAt"].take(10)}$stateSuffix") {
+                val identity = "${report["createdAt"]} · ${report["versionCode"]} · ${report.id.take(8)}"
+                reportsCard.action("$subject · $identity$stateSuffix") {
                     showPreview(report, saved = true)
                 }
             }
@@ -407,12 +445,15 @@ class SupportActivity : ComponentActivity() {
         navigateBack = if (saved) ({ showHistory() }) else ({ showReport(report) })
         column.action("Back", onClick = navigateBack)
         cartridge(column, report)
+        val draft = report.id !in activeSubmissions && submissions.load(report.id).state == SupportSubmissionState.DRAFT
         if (report.screenshotDigest == null) {
-            column.action("Attach a screenshot") {
-                chooseAttachment(report, fromEditor = false)
+            if (draft) {
+                column.action("Attach a screenshot") {
+                    chooseAttachment(report, fromEditor = false)
+                }
             }
         } else {
-            column.action("Remove screenshot from report") { showPreview(report.withScreenshot(null)) }
+            if (draft) column.action("Remove screenshot from report") { showPreview(report.withScreenshot(null)) }
             val image =
                 android.widget.ImageView(this).apply {
                     adjustViewBounds = true
@@ -428,11 +469,23 @@ class SupportActivity : ComponentActivity() {
                 if (preview != null) image.setImageBitmap(preview)
             }
         }
-        column.action("Save report on this device") {
-            runIo("Could not save the report.") { store.save(report) }
+        column.action("Save report in CARTDECK") {
+            runIo("Report saved in CARTDECK. Find it in Previous reports.", "Could not save the report.") {
+                store.save(report)
+            }
+        }
+        column.action("Copy diagnostic report") { copy(report) }
+        column.action("Export diagnostic package") {
+            startExport(report, report.packageName, exportZip)
         }
         if (SupportTicketTransport.enabled) {
-            val submission = submissions.load(report.id)
+            val stored = submissions.load(report.id)
+            val submission =
+                if (report.id in activeSubmissions && stored.state != SupportSubmissionState.SUBMITTED) {
+                    stored.copy(state = SupportSubmissionState.SUBMITTING)
+                } else {
+                    stored
+                }
             column.card().apply {
                 label("Submission", 18, SupportDesign.cyan, bold = true)
                 label("Status: ${submission.state.label}")
@@ -451,15 +504,18 @@ class SupportActivity : ComponentActivity() {
                 else -> column.action("Submit support ticket", primary = true) { confirmSubmit(report) }
             }
         }
-        column.action("Delete local report") {
-            AlertDialog.Builder(this).setTitle("Delete this local report?")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Delete") { _, _ ->
-                    lifecycleScope.launch {
-                        val deleted = withContext(Dispatchers.IO) { runCatching { store.delete(report.id) }.isSuccess }
-                        if (deleted) showHome() else message("Could not delete the local report.")
-                    }
-                }.show().also(SupportDesign::style)
+        if (report.id !in activeSubmissions) {
+            column.action("Delete local report") {
+                AlertDialog.Builder(this).setTitle("Delete this local report?")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Delete") { _, _ ->
+                        lifecycleScope.launch {
+                            val deleted =
+                                withContext(Dispatchers.IO) { runCatching { store.delete(report.id) }.isSuccess }
+                            if (deleted) showHome() else message("Could not delete the local report.")
+                        }
+                    }.show().also(SupportDesign::style)
+            }
         }
         column.action("Edit report") { editReport(report) }
         column.action("Previous reports") { showHistory() }
@@ -472,12 +528,11 @@ class SupportActivity : ComponentActivity() {
                 advancedExpanded = !advancedExpanded
                 if (advancedExpanded) {
                     advancedToggle.text = "Hide advanced diagnostics"
-                    advanced.action("Copy diagnostic report") { copy(report) }
-                    advanced.action("Export diagnostic package") {
-                        packageFor(report) {
-                            exportFile = it
-                            createDocument.launch(report.packageName)
-                        }
+                    advanced.action("Export JSON report") {
+                        startExport(report, "CARTDECK-CD-${report.id}.json", exportJson)
+                    }
+                    advanced.action("Export text report") {
+                        startExport(report, "CARTDECK-CD-${report.id}.txt", exportText)
                     }
                     advanced.action("Share diagnostic package") {
                         packageFor(report) { SupportTransport.share(this@SupportActivity, report, it, email = false) }
@@ -510,7 +565,7 @@ class SupportActivity : ComponentActivity() {
 
     /** Editing a submitted report forks a new draft; the submitted report stays on record untouched. */
     private fun editReport(report: SupportReport) {
-        if (submissions.load(report.id).state != SupportSubmissionState.SUBMITTED) {
+        if (report.id !in activeSubmissions && submissions.load(report.id).state == SupportSubmissionState.DRAFT) {
             showReport(report)
             return
         }
@@ -537,7 +592,7 @@ class SupportActivity : ComponentActivity() {
             if (fork == null) {
                 message("Could not start a new draft from this report.")
             } else {
-                message("Editing a copy — the submitted report stays on record.")
+                message("Editing a copy. The original report stays on record.")
                 showReport(fork)
             }
         }
@@ -546,14 +601,19 @@ class SupportActivity : ComponentActivity() {
     private fun submitTicket(report: SupportReport) {
         if (!hasActiveNetwork()) {
             lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        store.save(report)
-                        submissions.transition(report.id, SupportSubmissionState.PENDING_SUBMISSION)
+                val queued =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            store.save(report)
+                            submissions.transition(report.id, SupportSubmissionState.PENDING_SUBMISSION)
+                        }.isSuccess
                     }
+                if (queued) {
+                    message("Report saved in CARTDECK and queued for submission.")
+                    if (currentReport?.id == report.id) showPreview(report, saved = true)
+                } else {
+                    message("Could not save or queue the report. You can still copy or export it.")
                 }
-                message("No connection. This report will submit when you are back online.")
-                showPreview(report, saved = true)
             }
             return
         }
@@ -565,46 +625,68 @@ class SupportActivity : ComponentActivity() {
         silent: Boolean,
     ) {
         lifecycleScope.launch {
-            submissions.transition(report.id, SupportSubmissionState.SUBMITTING)
-            if (!silent && currentReport?.id == report.id) showPreview(report, saved = true)
-            val outcome =
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        store.save(report)
-                        SupportTicketTransport.send(report, store.packageReport(report))
-                    }
+            if (!activeSubmissions.add(report.id)) return@launch
+            var savedLocally = false
+            try {
+                val state = withContext(Dispatchers.IO) { submissions.load(report.id).state }
+                if (state == SupportSubmissionState.SUBMITTED ||
+                    (silent && state == SupportSubmissionState.DRAFT)
+                ) {
+                    return@launch
                 }
-            outcome.fold(
-                onSuccess = { reference ->
-                    // SUBMITTED is only ever set from a receipt the transport has already validated.
-                    submissions.transition(
-                        report.id,
-                        SupportSubmissionState.SUBMITTED,
-                        reference = reference,
-                    )
-                    if (silent) {
-                        message("Report submitted. Support reference $reference")
-                    } else {
-                        if (currentReport?.id == report.id) showPreview(report, saved = true)
-                        AlertDialog.Builder(this@SupportActivity)
-                            .setTitle("Report submitted.")
-                            .setMessage("Support reference $reference")
-                            .setPositiveButton("Close", null)
-                            .show().also(SupportDesign::style)
+                if (!silent && currentReport?.id == report.id) showPreview(report)
+                savedLocally = withContext(Dispatchers.IO) { runCatching { store.save(report) }.isSuccess }
+                if (!savedLocally) {
+                    if (!silent) message("Could not save the report. You can still copy or export it.")
+                    return@launch
+                }
+                val outcome =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            submissions.transition(report.id, SupportSubmissionState.SUBMITTING)
+                            SupportTicketTransport.send(report, store.packageReport(report))
+                        }
                     }
-                },
-                onFailure = { error ->
-                    submissions.transition(
-                        report.id,
-                        SupportSubmissionState.SUBMISSION_FAILED,
-                        lastError = error.message ?: "Submission could not be confirmed.",
-                    )
-                    if (!silent) {
-                        message("Submission could not be confirmed. Retry, email, copy or export the report.")
-                        if (currentReport?.id == report.id) showPreview(report, saved = true)
-                    }
-                },
-            )
+                outcome.fold(
+                    onSuccess = { reference ->
+                        // SUBMITTED is only ever set from a receipt the transport has already validated.
+                        submissions.transition(
+                            report.id,
+                            SupportSubmissionState.SUBMITTED,
+                            reference = reference,
+                        )
+                        if (silent) {
+                            message("Report submitted. Support reference $reference")
+                        } else {
+                            AlertDialog.Builder(this@SupportActivity)
+                                .setTitle("Report submitted.")
+                                .setMessage("Support reference $reference")
+                                .setPositiveButton("Close", null)
+                                .show().also(SupportDesign::style)
+                        }
+                    },
+                    onFailure = { error ->
+                        submissions.transition(
+                            report.id,
+                            SupportSubmissionState.SUBMISSION_FAILED,
+                            lastError =
+                                when (error) {
+                                    is java.net.UnknownHostException -> "Could not resolve the support server."
+                                    is javax.net.ssl.SSLException ->
+                                        "Could not establish a secure connection to support."
+                                    is java.net.SocketTimeoutException -> "The support server did not respond in time."
+                                    else -> "Submission could not be confirmed."
+                                },
+                        )
+                        if (!silent) {
+                            message("Submission could not be confirmed. Retry, email, copy or export the report.")
+                        }
+                    },
+                )
+            } finally {
+                activeSubmissions.remove(report.id)
+                if (!silent && currentReport?.id == report.id && preview) showPreview(report, saved = savedLocally)
+            }
         }
     }
 
@@ -625,12 +707,13 @@ class SupportActivity : ComponentActivity() {
     }
 
     private fun runIo(
+        success: String,
         error: String,
         action: () -> Unit,
     ) {
         lifecycleScope.launch {
             val completed = withContext(Dispatchers.IO) { runCatching(action).isSuccess }
-            message(if (completed) "Report saved." else error)
+            message(if (completed) success else error)
         }
     }
 
@@ -655,6 +738,7 @@ class SupportActivity : ComponentActivity() {
     }
 
     companion object {
+        private val activeSubmissions = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
         private const val EXTRA_REPORT = "support.report"
         private const val EXTRA_ARTWORK = "support.artwork"
         private const val EXTRA_ARTWORK_REPORT = "support.artworkReport"
