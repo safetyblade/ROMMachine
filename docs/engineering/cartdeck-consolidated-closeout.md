@@ -330,3 +330,49 @@ The earlier 41-item ledger governs inherited scope.
   - C04 status: engineering complete in source with named test
     coverage; hosted suite execution and on-device submission from
     the consolidated APK remain C07 acceptance items.
+- C03 SCOPE CORRECTION (Cassia, 28 Nov 2026 — supersedes the C03-B
+  framing above): the outstanding Xbox 360 defect is XBLA digital
+  games launching but not being recognised as full games. It is NOT
+  an ISO disc-discovery failure, and XGD partition-offset changes
+  are not the primary resolution; the ISO partition observation is
+  preserved as a separate potential compatibility defect requiring
+  independent evidence. The corrected investigation surface is:
+  extensionless STFS package identity, active guest profile,
+  legitimate matching ownership metadata, effective native engine
+  configuration, whether supplied launch arguments are actually
+  honoured by the pinned engine, and guest profile/progress
+  persistence. Prepared diagnostic capture requirement for
+  Marcus/Daniel, from one failed full-game XBLA launch on device:
+  (1) the launchContentEvidence line the app records (content_class,
+  content_title_id, profile_created, matching_arcade_license,
+  license_mask_argument); (2) the effective xenia.config.toml the
+  engine actually loaded, including logged_profile_slot_0_xuid;
+  (3) the xenia.log boot section for the same launch; (4) whether
+  the guest reports the profile signed in and the title as trial or
+  full. Those four items distinguish the STFS-licensee extraction,
+  the profile binding and the engine's argument handling from each
+  other; without them the cause stays honestly unknown.
+- C04 implementation (Claire, 28 Nov 2026, per Cassia's C04 prompt):
+  audited the full Capture -> Review -> Save -> Retrieve -> Export
+  -> Submit -> Acknowledge chain against C04-A/B. The recovered
+  implementation already satisfies: fresh creation with UUID +
+  UTC timestamp + installed APK identity (version, versionCode,
+  source revision, channel) and engine identity; local save
+  independent of connectivity (AtomicFile in noBackupFilesDir);
+  persistent bounded history with restart recovery via parse-on-read;
+  selected-report retrieval by identity; clear save success/failure
+  feedback; the selected report used consistently for JSON, TXT,
+  ZIP (content-fingerprinted packaging), clipboard, email, share
+  and device export; friendly game title in history with technical
+  identifiers (timestamp, build, report id) retained; submission
+  failure never deletes the local report (submission state is a
+  separate store; delete is explicit-only). One gap found and
+  FIXED in this checkpoint: one-tap diagnostic copying existed only
+  on the preview screen — it is now a first-class action on the
+  report editor itself, copying the current snapshot including the
+  player's edits (C04-B "restore first-class one-tap copying").
+  C04-C backend position is as recorded in the previous C04 entry
+  (endpoint implemented and deployed; production proof 28 Nov 2026;
+  VM/Vercel-scope verification limits recorded). C04-D: the chain
+  is verified at source + named unit tests (SupportReportTest);
+  on-device completion remains a C07 acceptance item.

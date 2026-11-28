@@ -106,7 +106,8 @@ class SupportActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowCompat
+            .setDecorFitsSystemWindows(window, false)
         onBackPressedDispatcher.addCallback(this) { navigateBack() }
         attachmentFromEditor = savedInstanceState?.getBoolean("attachmentFromEditor") ?: false
         pendingExport =
@@ -136,7 +137,8 @@ class SupportActivity : ComponentActivity() {
     private fun hasActiveNetwork(): Boolean {
         val manager = getSystemService(ConnectivityManager::class.java)
         val network = manager.activeNetwork ?: return false
-        return manager.getNetworkCapabilities(network)
+        return manager
+            .getNetworkCapabilities(network)
             ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 
@@ -323,6 +325,10 @@ class SupportActivity : ComponentActivity() {
             attachments.action("Remove screenshot") { snapshot()?.let { showReport(it.withScreenshot(null)) } }
         }
         column.action("Review report", primary = true) { snapshot()?.let { showPreview(it) } }
+        // C04-B: one-tap diagnostic copying is first-class on the editor
+        // itself, not only behind Review — it copies the current snapshot,
+        // including the player's edits, exactly as preview/export would.
+        column.action("Copy diagnostic report") { snapshot()?.let { copy(it) } }
         column.action("Previous reports") { snapshot()?.let { draft -> showHistory { showReport(draft) } } }
         column.action("Support home") { showHome() }
         privacy(column)
@@ -366,7 +372,9 @@ class SupportActivity : ComponentActivity() {
                             drawable?.setBounds(0, 0, size, size)
                             setCompoundDrawablesRelative(drawable, null, null, null)
                             compoundDrawablePadding = this@SupportActivity.dp(8)
-                            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(SupportDesign.cyan)
+                            compoundDrawableTintList =
+                                android.content.res.ColorStateList
+                                    .valueOf(SupportDesign.cyan)
                         }
                         setOnClickListener {
                             buttons[selected]?.isSelected = false
@@ -394,7 +402,8 @@ class SupportActivity : ComponentActivity() {
         val game = report["game"].takeUnless { it == SupportReport.NOT_CAPTURED } ?: return
         val card = column.card()
         val artwork =
-            intent.getStringExtra(EXTRA_ARTWORK)
+            intent
+                .getStringExtra(EXTRA_ARTWORK)
                 ?.takeIf { intent.getStringExtra(EXTRA_ARTWORK_REPORT) == report.id }
         card.addView(
             android.widget.ImageView(this).apply {
@@ -427,12 +436,14 @@ class SupportActivity : ComponentActivity() {
     ) {
         currentReport = report
         attachmentFromEditor = fromEditor
-        AlertDialog.Builder(this)
+        AlertDialog
+            .Builder(this)
             .setTitle("Attach a screenshot")
             .setMessage("Review your image for personal information before sharing.")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Choose image") { _, _ -> chooseScreenshot.launch("image/*") }
-            .show().also(SupportDesign::style)
+            .show()
+            .also(SupportDesign::style)
     }
 
     private fun showPreview(
@@ -492,7 +503,8 @@ class SupportActivity : ComponentActivity() {
                 if (submission.state == SupportSubmissionState.SUBMITTED && submission.reference != null) {
                     label("Support reference ${submission.reference}", color = SupportDesign.cyan)
                 }
-                submission.lastError?.takeIf { submission.state == SupportSubmissionState.SUBMISSION_FAILED }
+                submission.lastError
+                    ?.takeIf { submission.state == SupportSubmissionState.SUBMISSION_FAILED }
                     ?.let { label(it, color = SupportDesign.muted) }
             }
             when (submission.state) {
@@ -506,7 +518,9 @@ class SupportActivity : ComponentActivity() {
         }
         if (report.id !in activeSubmissions) {
             column.action("Delete local report") {
-                AlertDialog.Builder(this).setTitle("Delete this local report?")
+                AlertDialog
+                    .Builder(this)
+                    .setTitle("Delete this local report?")
                     .setNegativeButton("Cancel", null)
                     .setPositiveButton("Delete") { _, _ ->
                         lifecycleScope.launch {
@@ -514,7 +528,8 @@ class SupportActivity : ComponentActivity() {
                                 withContext(Dispatchers.IO) { runCatching { store.delete(report.id) }.isSuccess }
                             if (deleted) showHome() else message("Could not delete the local report.")
                         }
-                    }.show().also(SupportDesign::style)
+                    }.show()
+                    .also(SupportDesign::style)
             }
         }
         column.action("Edit report") { editReport(report) }
@@ -555,12 +570,14 @@ class SupportActivity : ComponentActivity() {
     }
 
     private fun confirmSubmit(report: SupportReport) {
-        AlertDialog.Builder(this)
+        AlertDialog
+            .Builder(this)
             .setTitle("Submit this diagnostic report?")
             .setMessage("This sends the reviewed report and its selected attachments to CARTDECK Support.")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Submit") { _, _ -> submitTicket(report) }
-            .show().also(SupportDesign::style)
+            .show()
+            .also(SupportDesign::style)
     }
 
     /** Editing a submitted report forks a new draft; the submitted report stays on record untouched. */
@@ -575,9 +592,10 @@ class SupportActivity : ComponentActivity() {
                     runCatching {
                         val now = System.currentTimeMillis()
                         val createdAt =
-                            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT).apply {
-                                timeZone = TimeZone.getTimeZone("UTC")
-                            }.format(Date(now))
+                            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT)
+                                .apply {
+                                    timeZone = TimeZone.getTimeZone("UTC")
+                                }.format(Date(now))
                         val forked =
                             SupportReport.parse(
                                 SupportSubmission.forkJson(report.json, UUID.randomUUID().toString(), now, createdAt),
@@ -658,11 +676,13 @@ class SupportActivity : ComponentActivity() {
                         if (silent) {
                             message("Report submitted. Support reference $reference")
                         } else {
-                            AlertDialog.Builder(this@SupportActivity)
+                            AlertDialog
+                                .Builder(this@SupportActivity)
                                 .setTitle("Report submitted.")
                                 .setMessage("Support reference $reference")
                                 .setPositiveButton("Close", null)
-                                .show().also(SupportDesign::style)
+                                .show()
+                                .also(SupportDesign::style)
                         }
                     },
                     onFailure = { error ->
@@ -738,7 +758,9 @@ class SupportActivity : ComponentActivity() {
     }
 
     companion object {
-        private val activeSubmissions = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        private val activeSubmissions =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<String>()
         private const val EXTRA_REPORT = "support.report"
         private const val EXTRA_ARTWORK = "support.artwork"
         private const val EXTRA_ARTWORK_REPORT = "support.artworkReport"
