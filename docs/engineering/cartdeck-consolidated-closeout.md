@@ -403,3 +403,22 @@ The earlier 41-item ledger governs inherited scope.
   dedicated GameCube portrait panel resolver (portrait currently
   uses the authored transform, which fits), thumb-cap authored
   dimensions per console, and the C05-C residual assignments.
+- C05-B thumb caps (Claire, 28 Nov 2026): analogue thumb-cap sizes
+  are now explicit authored values per console — a table of cap
+  fractions of the fitted stick target (GameCube main stick 0.68,
+  C-stick 0.60; DualShock 0.66; PSP slider 0.62; N64 0.60; Xbox /
+  Xbox 360 0.66; Wii Classic 0.64; 3DS circle pad 0.70; Dreamcast
+  0.64; 0.65 default) — replacing the generic derived formula for
+  ANALOG controls in placement construction. A regression
+  assertion in the GameCube portrait test pins both GameCube cap
+  proportions. Remaining C05 position: GameCube portrait uses the
+  authored transform with its exact regression test (the dedicated
+  panel resolver is landscape's, where panels exist either side of
+  the aperture; the portrait panel is a single area below it) —
+  recorded for Cassia's ruling rather than building a redundant
+  second portrait resolver. C04-SUP notification evidence remains
+  outstanding: operator notifications are queued server-side (no
+  Resend key, owner's decision) and the Vercel team scope needs the
+  owner's re-authorisation before the queue/deployment can be read
+  from here; both are owner-side dependencies, recorded not worked
+  around.

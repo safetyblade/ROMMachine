@@ -194,6 +194,18 @@ class GripArcRenderingTest {
         }
         assertTrue("D-pad below its authored size", placement.controls.getValue("D").width >= 80f)
         assertTrue("Analogue below its authored size", placement.controls.getValue("AnalogL").width >= 88f)
+        // C05-B: thumb caps come from the explicit per-console authored
+        // table — GameCube main stick 0.68, C-stick 0.60 of the target.
+        assertEquals(
+            placement.controls.getValue("AnalogL").width * 0.68f,
+            placement.visuals.getValue("AnalogL").w,
+            0.01f,
+        )
+        assertEquals(
+            placement.controls.getValue("AnalogR").width * 0.60f,
+            placement.visuals.getValue("AnalogR").w,
+            0.01f,
+        )
         assertEquals(viewport, placement.standaloneGeometry?.viewport)
     }
 

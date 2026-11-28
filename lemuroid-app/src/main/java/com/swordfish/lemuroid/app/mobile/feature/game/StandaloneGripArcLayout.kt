@@ -20,6 +20,30 @@ internal object StandaloneGripArcLayout {
         val size: Float = 48.5f,
     )
 
+    /**
+     * C05-B: explicit authored analogue thumb-cap proportions per
+     * console — the cap diameter as a fraction of the fitted stick
+     * target. These replace the generic derived cap formula for
+     * analogue controls, so each console's thumb caps are an authored
+     * property of that console (the GameCube C-stick cap is smaller
+     * than its main stick cap; the 3DS circle pad is nearly full).
+     * Consoles without an entry use [DEFAULT_ANALOGUE_CAP_FRACTION].
+     */
+    private val analogueCapFractions =
+        mapOf(
+            TouchControllerID.GAMECUBE to mapOf("AnalogL" to 0.68f, "AnalogR" to 0.60f),
+            TouchControllerID.PSX_DUALSHOCK to mapOf("AnalogL" to 0.66f, "AnalogR" to 0.66f),
+            TouchControllerID.PSP to mapOf("AnalogL" to 0.62f),
+            TouchControllerID.N64 to mapOf("AnalogL" to 0.60f),
+            TouchControllerID.XBOX to mapOf("AnalogL" to 0.66f, "AnalogR" to 0.66f),
+            TouchControllerID.XBOX360 to mapOf("AnalogL" to 0.66f, "AnalogR" to 0.66f),
+            TouchControllerID.WII_CLASSIC to mapOf("AnalogL" to 0.64f, "AnalogR" to 0.64f),
+            TouchControllerID.NINTENDO_3DS to mapOf("AnalogL" to 0.70f),
+            TouchControllerID.DREAMCAST to mapOf("AnalogL" to 0.64f),
+        )
+
+    private const val DEFAULT_ANALOGUE_CAP_FRACTION = 0.65f
+
     private val portraitNative =
         mapOf(
             "L" to Seat(55, 60),
@@ -1408,7 +1432,19 @@ internal object StandaloneGripArcLayout {
                 val cap = capWidths.getValue(control.key)
                 val gameCubeFace =
                     native.controller == TouchControllerID.GAMECUBE && control.kind == NativeControlKind.FACE
-                val size = if (gameCubeFace && control.key in setOf("B", "X", "Y")) cap - 5f else cap
+                // C05-B: analogue thumb caps come from the explicit
+                // per-console authored table, not the derived formula.
+                val size =
+                    when {
+                        control.kind == NativeControlKind.ANALOG -> {
+                            val fraction =
+                                analogueCapFractions[native.controller]?.get(control.key)
+                                    ?: DEFAULT_ANALOGUE_CAP_FRACTION
+                            controls.getValue(control.key).width * fraction
+                        }
+                        gameCubeFace && control.key in setOf("B", "X", "Y") -> cap - 5f
+                        else -> cap
+                    }
                 val visualHeight =
                     when (control.kind) {
                         NativeControlKind.SHOULDER, NativeControlKind.UTILITY -> size * 0.72f
@@ -1612,7 +1648,12 @@ internal object StandaloneGripArcLayout {
             centerY: Float,
             size: Float,
         ): PivotArcBounds =
-            PivotArcBounds(centerX - size / 2f, centerY - size / 2f, centerX + size / 2f, centerY + size / 2f)
+            PivotArcBounds(
+                centerX - size / 2f,
+                centerY - size / 2f,
+                centerX + size / 2f,
+                centerY + size / 2f,
+            )
 
         fun panelX(
             panel: PivotArcBounds,
