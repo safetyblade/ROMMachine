@@ -11,6 +11,8 @@ import com.swordfish.touchinput.radial.settings.NativeControlSpec
 import com.swordfish.touchinput.radial.settings.TouchControllerID
 
 internal object StandaloneGripArcLayout {
+    const val GAMECUBE_LANDSCAPE_FIT = "authored GameCube landscape panels + utility rail"
+
     private data class Seat(val x: Int, val y: Int, val size: Float = 48.5f)
 
     private val portraitNative =
@@ -840,6 +842,12 @@ internal object StandaloneGripArcLayout {
                 )
             }
         if (!panel.isFiniteArea()) return null
+        // C01: GameCube landscape never falls through to the legacy seat
+        // projection or the compact directional fallback below. It either
+        // fits its authored panels and utility rail, or it does not fit.
+        if (landscape && native.controller == TouchControllerID.GAMECUBE) {
+            return resolveGameCubeLandscape(native, safe, viewport)
+        }
         val width = if (landscape) 730f else 360f
         val snes = native.controller == TouchControllerID.SNES
         val wonderSwan = WonderSwanPivotInput.forController(native.controller) != null
@@ -1102,6 +1110,145 @@ internal object StandaloneGripArcLayout {
                         regular != null -> "legacy seat projection"
                         else -> "legacy compact directional targets"
                     },
+            )
+        return GripArcCombinedPlacement(dock, controls, visuals, seats, native, native.inputIds, geometry)
+    }
+
+    /**
+     * C01 — authored GameCube landscape.
+     *
+     * The gameplay aperture and the controller space are allocated together
+     * from the measured safe area and viewport: the space left of the
+     * aperture is the left hardware panel, the space right of it is the
+     * right hardware panel, and the strip below the aperture is a utility
+     * rail for Menu and Start. Every target is authored inside one of
+     * those three zones, so no target can cross a panel outline, sit on
+     * the aperture, or be shrunk by the legacy projection / compact
+     * fallback. Directional and analogue controls are deliberately larger
+     * than the face buttons; the GameCube face cluster keeps its console
+     * arrangement (large central A, B low-left, X/Y kidneys above), and
+     * the programmable GripARC seats are contained in the panels.
+     * Returns null when the measured zones cannot hold this arrangement.
+     */
+    private fun resolveGameCubeLandscape(
+        native: NativeControlInventory,
+        safe: PivotArcBounds,
+        viewport: PivotArcBounds,
+    ): GripArcCombinedPlacement? {
+        val gap = 6f
+        val leftPanel = PivotArcBounds(safe.left, safe.top, viewport.left - gap, safe.bottom)
+        val rightPanel = PivotArcBounds(viewport.right + gap, safe.top, safe.right, safe.bottom)
+        val rail = PivotArcBounds(viewport.left, viewport.bottom + gap, viewport.right, safe.bottom)
+        if (!leftPanel.isFiniteArea() || !rightPanel.isFiniteArea() || !rail.isFiniteArea()) return null
+        if (leftPanel.width < 160f || rightPanel.width < 160f) return null
+        if (rail.height < 48f || rail.width < 120f) return null
+
+        fun target(
+            centerX: Float,
+            centerY: Float,
+            size: Float,
+        ): PivotArcBounds =
+            PivotArcBounds(centerX - size / 2f, centerY - size / 2f, centerX + size / 2f, centerY + size / 2f)
+
+        fun panelX(
+            panel: PivotArcBounds,
+            fraction: Float,
+        ): Float = panel.left + panel.width * fraction
+
+        val controls = linkedMapOf<String, PivotArcBounds>()
+
+        fun place(
+            key: String,
+            centerX: Float,
+            centerY: Float,
+            size: Float,
+        ) {
+            controls[key] = target(centerX, centerY, size)
+        }
+
+        // Left hardware panel: shoulders, large analogue stick, large D-pad.
+        place("L", panelX(leftPanel, 0.181f), safe.top + 28f, 48f)
+        place("HalfL", panelX(leftPanel, 0.819f), safe.top + 28f, 48f)
+        place("AnalogL", panelX(leftPanel, 0.5f), safe.top + 110f, 92f)
+        place("D", panelX(leftPanel, 0.5f), safe.top + 228f, 88f)
+        // Right hardware panel: shoulders and Z, then the face cluster
+        // (Y/X kidneys above the large central A, B low-left) and C-stick.
+        place("HalfR", panelX(rightPanel, 0.181f), safe.top + 28f, 48f)
+        place("Z", panelX(rightPanel, 0.5f), safe.top + 28f, 44f)
+        place("R", panelX(rightPanel, 0.819f), safe.top + 28f, 48f)
+        place("Y", panelX(rightPanel, 0.229f), safe.top + 96f, 52f)
+        place("X", panelX(rightPanel, 0.771f), safe.top + 96f, 52f)
+        place("A", panelX(rightPanel, 0.5f), safe.top + 168f, 72f)
+        place("B", panelX(rightPanel, 0.211f), safe.top + 240f, 52f)
+        place("AnalogR", panelX(rightPanel, 0.711f), safe.top + 240f, 66f)
+        // Utility rail below the aperture: Menu and Start, contained.
+        place("Menu", viewport.centerX - 40f, safe.bottom - 26f, 46f)
+        place("Start", viewport.centerX + 40f, safe.bottom - 26f, 46f)
+        if (controls.keys != native.controls.map { it.key }.toSet()) return null
+
+        // Programmable GripARC seats stay inside the hardware panels.
+        val programmable =
+            linkedMapOf(
+                1 to target(panelX(leftPanel, 0.181f), safe.bottom - 32f, 48f),
+                2 to target(panelX(leftPanel, 0.819f), safe.bottom - 32f, 48f),
+                3 to target(panelX(rightPanel, 0.181f), safe.bottom - 32f, 48f),
+                4 to target(panelX(rightPanel, 0.819f), safe.bottom - 32f, 48f),
+            )
+        val leftKeys = setOf("L", "HalfL", "AnalogL", "D")
+        val rightKeys = setOf("HalfR", "Z", "R", "Y", "X", "A", "B", "AnalogR")
+        if (leftKeys.any { !controls.getValue(it).inside(leftPanel) }) return null
+        if (rightKeys.any { !controls.getValue(it).inside(rightPanel) }) return null
+        if (setOf("Menu", "Start").any { !controls.getValue(it).inside(rail) }) return null
+        if (programmable.any { (slot, bounds) -> !bounds.inside(if (slot <= 2) leftPanel else rightPanel) }) {
+            return null
+        }
+        val display = viewport.inset(1.5f)
+        val allTargets = controls.values.toList() + programmable.values.toList()
+        if (!independentTargets(allTargets, safe, display)) return null
+
+        val capWidths =
+            native.controls.groupBy { control -> control.kind to controls.getValue(control.key).width }
+                .flatMap { (family, members) ->
+                    val cap = minOf(family.second + 7f, members.minOf { controls.getValue(it.key).width } - 5f)
+                    members.map { it.key to cap }
+                }.toMap()
+        val visuals =
+            native.controls.associate { control ->
+                val cap = capWidths.getValue(control.key)
+                val size = if (control.key in setOf("B", "X", "Y")) cap - 5f else cap
+                val height =
+                    when (control.kind) {
+                        NativeControlKind.SHOULDER, NativeControlKind.UTILITY -> size * 0.72f
+                        else -> size
+                    }
+                control.key to PivotArcSize(size, height)
+            }
+        val seats =
+            native.controls.groupBy { it.seat }.mapValues { (_, controlsInSeat) ->
+                val rectangles = controlsInSeat.map { controls.getValue(it.key) }
+                PivotArcBounds(
+                    rectangles.minOf { it.left },
+                    rectangles.minOf { it.top },
+                    rectangles.maxOf { it.right },
+                    rectangles.maxOf { it.bottom },
+                )
+            }
+        val programWidth = programmable.values.minOf { it.width }.coerceAtMost(60.5f)
+        val dock =
+            GripArcPlacement(
+                housing = safe,
+                targets = programmable,
+                visuals = programmable.mapValues { PivotArcSize(programWidth - 5f, programWidth * 0.82f) },
+                scale = 1f,
+                side = GripArcSide.RIGHT,
+            )
+        val geometry =
+            StandaloneGripArcGeometry(
+                reference = PivotArcSize(safe.width, safe.height),
+                authoredSeats = controls + programmable.mapKeys { (slot, _) -> "program:$slot" },
+                safe = safe,
+                viewport = viewport,
+                fit = GAMECUBE_LANDSCAPE_FIT,
             )
         return GripArcCombinedPlacement(dock, controls, visuals, seats, native, native.inputIds, geometry)
     }

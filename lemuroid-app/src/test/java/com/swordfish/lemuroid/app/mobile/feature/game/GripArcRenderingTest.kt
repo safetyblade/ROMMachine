@@ -74,6 +74,76 @@ class GripArcRenderingTest {
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun standaloneLandscapeFixturesUseTheProductionRenderer() = renderStandaloneFixtures(true)
 
+    /**
+     * C01 regression: GameCube landscape must fit the reference handheld
+     * fixture through its authored left/right hardware panels and utility
+     * rail — never the legacy seat projection and never compact
+     * directional targets — with the aperture allocated together with the
+     * controller space.
+     */
+    @Test
+    fun gameCubeLandscapeUsesAuthoredPanelsAndUtilityRail() {
+        val inventory =
+            checkNotNull(
+                StandaloneGripArcLayout.inventoryFor(TouchControllerID.GAMECUBE, SystemID.GAMECUBE),
+            )
+        val safe = fixtureSafe(true)
+        val viewport = fixtureViewport(SystemID.GAMECUBE, true)
+        val placement =
+            checkNotNull(
+                StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, true),
+            ) { "GameCube landscape did not fit its authored panels on the reference fixture" }
+        assertTrue(placement.complete)
+        val fit = checkNotNull(placement.standaloneGeometry).fit
+        assertEquals(StandaloneGripArcLayout.GAMECUBE_LANDSCAPE_FIT, fit)
+        assertTrue("Legacy projection used for GameCube landscape: $fit", !fit.contains("legacy"))
+        assertTrue("Compact fallback used for GameCube landscape: $fit", !fit.contains("compact"))
+
+        val gap = 6f
+        val leftPanel = PivotArcBounds(safe.left, safe.top, viewport.left - gap, safe.bottom)
+        val rightPanel = PivotArcBounds(viewport.right + gap, safe.top, safe.right, safe.bottom)
+        val rail = PivotArcBounds(viewport.left, viewport.bottom + gap, viewport.right, safe.bottom)
+        val leftKeys = setOf("L", "HalfL", "AnalogL", "D")
+        val rightKeys = setOf("HalfR", "Z", "R", "Y", "X", "A", "B", "AnalogR")
+        for (key in leftKeys) {
+            assertTrue("$key is outside the left panel", placement.controls.getValue(key).inside(leftPanel))
+        }
+        for (key in rightKeys) {
+            assertTrue("$key is outside the right panel", placement.controls.getValue(key).inside(rightPanel))
+        }
+        for (key in setOf("Menu", "Start")) {
+            assertTrue("$key is outside the utility rail", placement.controls.getValue(key).inside(rail))
+        }
+        for ((slot, target) in placement.dock.targets) {
+            val panel = if (slot <= 2) leftPanel else rightPanel
+            assertTrue("program:$slot is outside its panel", target.inside(panel))
+        }
+        val display = viewport.inset(1.5f)
+        val allTargets = placement.controls.values.toList() + placement.dock.targets.values.toList()
+        for (target in allTargets) {
+            assertTrue("Target is outside the safe area: $target", target.inside(safe))
+            assertTrue("Target overlaps the gameplay aperture: $target", !target.intersects(display))
+        }
+        for (index in allTargets.indices) {
+            for (other in index + 1 until allTargets.size) {
+                assertTrue(
+                    "Targets overlap: ${allTargets[index]} / ${allTargets[other]}",
+                    !allTargets[index].intersects(allTargets[other]),
+                )
+            }
+        }
+        // Larger directional and analogue controls; no compact shrink.
+        assertTrue("D-pad was compact-shrunk", placement.controls.getValue("D").width >= 80f)
+        assertTrue("Analogue stick was compact-shrunk", placement.controls.getValue("AnalogL").width >= 88f)
+        // Console-authentic face cluster: A is the large central button.
+        val a = placement.visuals.getValue("A")
+        for (key in setOf("B", "X", "Y")) {
+            assertTrue("GameCube A must stay larger than $key", a.w > placement.visuals.getValue(key).w)
+        }
+        // The gameplay aperture itself is untouched by the allocation.
+        assertEquals(viewport, placement.standaloneGeometry?.viewport)
+    }
+
     private val standaloneModes =
         listOf(
             SystemID.GBA to TouchControllerID.GBA,
