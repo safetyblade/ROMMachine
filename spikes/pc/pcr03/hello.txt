@@ -1,0 +1,4 @@
+CARTDECK PC-R03 SYNTHETIC PAYLOAD MARKER
+This file is synthetic test content authored for the PC-R03 gate.
+It contains no DOS system files, no game data and no third-party material.
+Marker: PCR03-SYNTHETIC-HELLO-20261128
