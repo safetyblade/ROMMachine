@@ -120,7 +120,7 @@ class SupportReportTest {
         assertTrue(
             runCatching { SupportTicketTransport.validateReceipt("another-report", receipt.toString()) }.isFailure,
         )
-        assertFalse(SupportTicketTransport.enabled)
+        assertTrue(SupportTicketTransport.enabled)
     }
 
     @Test

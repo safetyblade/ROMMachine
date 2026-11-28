@@ -117,6 +117,23 @@ class LibraryRefreshRoundTripTest {
             }
         }
 
+    @Test fun largeLibraryIsFullyRetainedAcrossRepeatedSuccessfulRefreshes() =
+        runBlocking {
+            withLibrary { library, db, provider ->
+                val games = (1..500).map { file("game$it.gba", "game$it") }
+                provider.files = games
+                assertEquals(500, library.indexLibrary().added)
+                assertEquals(500, db.gameDao().selectShelfGames().first().size)
+                val retained = library.indexLibrary()
+                assertEquals(0, retained.added)
+                assertEquals(0, retained.removed)
+                assertEquals(500, db.gameDao().selectShelfGames().first().size)
+                provider.files = games.drop(1)
+                assertEquals(1, library.indexLibrary().removed)
+                assertEquals(499, db.gameDao().selectShelfGames().first().size)
+            }
+        }
+
     @Test fun failureInsideCommitRollsBackInsertsUpdatesAndCleanupTogether() =
         runBlocking {
             withLibrary { library, db, provider ->

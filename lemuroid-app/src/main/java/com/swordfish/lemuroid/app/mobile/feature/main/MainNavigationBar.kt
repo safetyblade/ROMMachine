@@ -24,7 +24,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -137,7 +136,7 @@ private fun ProductDock(
                     Icon(
                         painterResource(mark),
                         contentDescription = null,
-                        tint = if (route == MainRoute.SAFESAVE) Color.Unspecified else color,
+                        tint = color,
                         modifier = Modifier.size(20.dp).testTag("product-dock-mark-${route.route}"),
                     )
                     Text(title, Modifier.padding(start = 8.dp), color = color)
@@ -155,7 +154,7 @@ private fun ProductDock(
                     Icon(
                         painterResource(mark),
                         contentDescription = null,
-                        tint = if (route == MainRoute.SAFESAVE) Color.Unspecified else LocalContentColor.current,
+                        tint = LocalContentColor.current,
                         modifier = Modifier.size(24.dp).testTag("product-dock-mark-${route.route}"),
                     )
                 },

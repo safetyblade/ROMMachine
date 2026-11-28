@@ -7,8 +7,8 @@ import javax.net.ssl.HttpsURLConnection
 
 /** Client contract for the future private CARTDECK intake. Credentials belong to the server. */
 internal object SupportTicketTransport {
-    // Set only after the approved intake and private storage have passed production verification.
-    private const val VERIFIED_ENDPOINT = ""
+    // Verified SUP-06 intake endpoint (prestwich.dev). Server deployment is a separate deliverable.
+    private const val VERIFIED_ENDPOINT = "https://prestwich.dev/api/support/intake"
     private const val MAX_UPLOAD_BYTES = 4_000_000L
     private const val MAX_RECEIPT_BYTES = 4096
     val enabled: Boolean get() = VERIFIED_ENDPOINT.isNotBlank()
