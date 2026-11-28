@@ -467,3 +467,48 @@ The earlier 41-item ledger governs inherited scope.
   needs either the cross-surface session build or runtime evidence
   that does not exist yet. No speculative implementation has been
   substituted for that evidence.
+- C07-A regression corrections (Claire, 28 Nov 2026; connected APK
+  workflow 46131605775 on 6a59519f: 909 tests, 2 failures):
+  (1) GbaGripArcLayoutTest.portraitSeatSizesUseClearanceWithout
+  ChangingApprovedCenters — root cause: the explicit 45dp
+  programmable size in the uniform transform shrank the GBA dock
+  visuals below the approved packet's floor (dock visual height
+  derives from the smallest programmable target). Correction:
+  programmable seats in the uniform transform scale from their
+  authored size with a 42dp floor (the pre-existing approved
+  behaviour the packet was written against); the explicit 45dp
+  programmable size remains ONLY in the zone resolvers, whose
+  binding constraint lives there. The two portrait collisions the
+  45dp size had masked are instead closed with authored seat
+  clearances: PSP portrait programmable seat 2 moves 322 -> 318
+  and the DS portrait programmable seats move 205 -> 201. All 43
+  portrait fixtures re-verified against the final rules by
+  simulation before implementation. This supersedes the C05-B
+  note attributing the PSP collision fix to the 45dp size.
+  (2) GripArcRenderingTest.gameCubePortraitUsesAuthoredGeometry
+  WithExplicitSizes line 195 — Claire's own new test asserted the
+  LANDSCAPE authored sizes (analogue >= 88dp) in portrait; the
+  GameCube portrait authored sizes are 78dp analogue / 74dp D-pad
+  by design. The test now asserts the portrait authored sizes
+  un-shrunk. No production geometry changed for this failure, and
+  no pre-existing acceptance requirement was altered.
+- C07-A Wii U pointer gate (investigated 28 Nov 2026, no code
+  change): the probe activity's touch listener already gates
+  pointer forwarding on the applied controller state reported by
+  the engine (appliedControllerDevice == 1, the GamePad joypad;
+  the Pro subclass and the proController preference both block
+  it), and the native host independently serves pointer input
+  only while the applied device is the joypad, clearing the
+  pointer on device/screen switches. The remaining packet item —
+  gating on the PRESENTED screen (TV vs GamePad layout) — cannot
+  be established from the core in the pinned build: the host's
+  environment callback serves core options from a static map,
+  GET_VARIABLE_UPDATE is hard-coded false, screen toggles are
+  fire-and-forget Tab pulses the core consumes internally, and
+  the engine report exposes no layout key (its keys are
+  enumerated in WiiuLibretroRunner's nativeReport). Establishing
+  applied layout state requires a native change (host-set layout
+  option or a core-reported layout) in the Wii U host lane; it is
+  recorded here as that lane's residual, not reclassified as
+  physical acceptance and not faked with a toggle counter, which
+  could invert the gate.

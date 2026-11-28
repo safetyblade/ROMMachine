@@ -192,8 +192,11 @@ class GripArcRenderingTest {
                 )
             }
         }
-        assertTrue("D-pad below its authored size", placement.controls.getValue("D").width >= 80f)
-        assertTrue("Analogue below its authored size", placement.controls.getValue("AnalogL").width >= 88f)
+        // Portrait authored sizes are 74dp (D-pad) and 78dp (analogue) —
+        // smaller than the landscape authored sizes by design, and they
+        // must not be compact-shrunk below them.
+        assertTrue("D-pad below its authored size", placement.controls.getValue("D").width >= 74f)
+        assertTrue("Analogue below its authored size", placement.controls.getValue("AnalogL").width >= 78f)
         // C05-B: thumb caps come from the explicit per-console authored
         // table — GameCube main stick 0.68, C-stick 0.60 of the target.
         assertEquals(

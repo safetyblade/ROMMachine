@@ -437,7 +437,7 @@ internal object StandaloneGripArcLayout {
                 "Start" to Seat(648, 348),
             )
     private val pspProgramPortrait =
-        mapOf(1 to Seat(180, 60), 2 to Seat(79, 322), 3 to Seat(253, 297), 4 to Seat(151, 302))
+        mapOf(1 to Seat(180, 60), 2 to Seat(79, 318), 3 to Seat(253, 297), 4 to Seat(151, 302))
     private val pspProgramLandscape =
         mapOf(1 to Seat(121, 43), 2 to Seat(44, 300), 3 to Seat(648, 289), 4 to Seat(114, 300))
 
@@ -670,7 +670,7 @@ internal object StandaloneGripArcLayout {
             "Menu" to Seat(365, 365),
             "Start" to Seat(648, 335),
         )
-    private val dsProgramPortrait = mapOf(1 to Seat(76, 205), 2 to Seat(182, 205))
+    private val dsProgramPortrait = mapOf(1 to Seat(76, 201), 2 to Seat(182, 201))
     private val dsProgramLandscape = mapOf(1 to Seat(44, 242), 2 to Seat(114, 242))
 
     private val threeDsPortrait =
@@ -1333,8 +1333,7 @@ internal object StandaloneGripArcLayout {
                     // transform (same rules as the landscape zone
                     // resolver): primary directional/analogue controls
                     // never below 56dp, everything else scales from its
-                    // authored size with a 42dp floor. Programmable
-                    // seats are an explicit 45dp (see authoredTargets).
+                    // authored size with a 42dp floor.
                     val kind = native.controls.firstOrNull { it.key == key }?.kind
                     val diameter =
                         if (kind == NativeControlKind.DPAD || kind == NativeControlKind.ANALOG) {
@@ -1361,8 +1360,16 @@ internal object StandaloneGripArcLayout {
         val program = programSeats.mapKeys { (slot, _) -> "program:$slot" }
         val programTargets = program.mapValues { bounds(it.value) }
         val display = viewport.inset(1.5f)
+        // Programmable seats in the uniform transform scale from their
+        // authored size with a 42dp floor — the approved GBA packet's
+        // dock visuals are sized from these targets, and the explicit
+        // 45dp programmable size applies in the zone resolvers, whose
+        // binding constraint (Xbox RS vs seat 4) lives there. The PSP
+        // and DS portrait authored seats below carry the small
+        // clearances this sizing requires.
         val authoredTargets =
-            nativeTargets(authored = true) + program.mapValues { authoredBounds(it.value, false, 45f) }
+            nativeTargets(authored = true) +
+                program.mapValues { authoredBounds(it.value, false, maxOf(it.value.size * scale, 42f)) }
         val authored = authoredTargets.takeIf { independentTargets(it.values.toList(), panel, display) }
         // Landscape: authored routes only — no legacy projection, no
         // compact directional shrink. Portrait keeps its existing routes
