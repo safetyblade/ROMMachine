@@ -131,8 +131,8 @@ enum class TouchControllerID {
             )
         }
 
-        private fun getNativeConfig(id: TouchControllerID): Config {
-            return when (id) {
+        private fun getNativeConfig(id: TouchControllerID): Config =
+            when (id) {
                 GB ->
                     Config(
                         { modifier, settings -> GBLeft(modifier, settings) },
@@ -337,6 +337,5 @@ enum class TouchControllerID {
                         { modifier, settings -> Nintendo3DSRight(modifier, settings) },
                     )
             }
-        }
     }
 }

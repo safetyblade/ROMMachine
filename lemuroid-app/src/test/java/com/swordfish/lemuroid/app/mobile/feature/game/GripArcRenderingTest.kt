@@ -119,7 +119,10 @@ class GripArcRenderingTest {
             assertTrue("program:$slot is outside its panel", target.inside(panel))
         }
         val display = viewport.inset(1.5f)
-        val allTargets = placement.controls.values.toList() + placement.dock.targets.values.toList()
+        val allTargets =
+            placement.controls.values.toList() +
+                placement.dock.targets.values
+                    .toList()
         for (target in allTargets) {
             assertTrue("Target is outside the safe area: $target", target.inside(safe))
             assertTrue("Target overlaps the gameplay aperture: $target", !target.intersects(display))
@@ -179,7 +182,10 @@ class GripArcRenderingTest {
             assertTrue("$key is outside the right panel column", target.right <= rightPanel.right + 0.05f)
         }
         val display = viewport.inset(1.5f)
-        val allTargets = placement.controls.values.toList() + placement.dock.targets.values.toList()
+        val allTargets =
+            placement.controls.values.toList() +
+                placement.dock.targets.values
+                    .toList()
         for (target in allTargets) {
             assertTrue("Target is outside the safe area: $target", target.inside(safe))
             assertTrue("Target overlaps the gameplay aperture: $target", !target.intersects(display))
@@ -246,13 +252,20 @@ class GripArcRenderingTest {
     @Test
     fun reportStandaloneCoverageAgainstLockedDesignManifest() {
         val relative = "docs/engineering/gc01/griparc-design-packets/manifest.json"
-        val manifest = JSONObject(listOf(File(relative), File("..", relative)).first(File::isFile).readText())
+        val manifest =
+            JSONObject(
+                listOf(File(relative), File("..", relative)).first(File::isFile).readText(),
+            )
         val declared =
-            manifest.getJSONArray("systems").entries().flatMap { system ->
-                val id = SystemID.valueOf(system.getString("id"))
-                val variants = system.optJSONArray("variants")?.entries()?.map { it.getString("id") } ?: listOf("base")
-                variants.map { id to it }
-            }.toSet()
+            manifest
+                .getJSONArray("systems")
+                .entries()
+                .flatMap { system ->
+                    val id = SystemID.valueOf(system.getString("id"))
+                    val variants =
+                        system.optJSONArray("variants")?.entries()?.map { it.getString("id") } ?: listOf("base")
+                    variants.map { id to it }
+                }.toSet()
         assertEquals(53, declared.size)
         assertEquals(33, declared.map { it.first }.toSet().size)
 
@@ -338,9 +351,10 @@ class GripArcRenderingTest {
                     }
                 val renderer = portrait?.complete == true && landscape?.complete == true
                 val dispatch =
-                    nativeRoute && inventory?.controls?.all {
-                        it.keyCode != null || it.motionSource != null
-                    } == true
+                    nativeRoute &&
+                        inventory?.controls?.all {
+                            it.keyCode != null || it.motionSource != null
+                        } == true
                 val checks =
                     linkedMapOf(
                         "registration" to registration,
@@ -502,7 +516,8 @@ class GripArcRenderingTest {
                 try {
                     val canvas = Canvas(bitmap)
                     canvas.translate(-rect.left.value, -rect.top.value)
-                    compose.activity.window.decorView.draw(canvas)
+                    compose.activity.window.decorView
+                        .draw(canvas)
                     val orientation = if (wide) "landscape" else "portrait"
                     val priority =
                         when {
@@ -511,7 +526,8 @@ class GripArcRenderingTest {
                             else -> ""
                         }
                     File(folder, "${system.name.lowercase()}-${controller.name.lowercase()}$priority-$orientation.png")
-                        .outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+                        .outputStream()
+                        .use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
                 } finally {
                     bitmap.recycle()
                 }
@@ -593,7 +609,8 @@ class GripArcRenderingTest {
             val bitmap = Bitmap.createBitmap(393, 852, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             canvas.translate(-rect.left.value, -rect.top.value)
-            compose.activity.window.decorView.draw(canvas)
+            compose.activity.window.decorView
+                .draw(canvas)
             val image = File("build/reports/gc01-menu-screens/griparc", "psp-pivotarc-griparc.png")
             image.parentFile!!.mkdirs()
             image.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
@@ -653,9 +670,12 @@ class GripArcRenderingTest {
         for (backend in listOf(TouchControllerID.MELONDS, TouchControllerID.DESMUME)) {
             compose.runOnIdle { controller.value = backend }
             for (key in listOf("Mic", "Lid")) {
-                compose.onNodeWithContentDescription(
-                    key,
-                ).assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+                compose
+                    .onNodeWithContentDescription(
+                        key,
+                    ).assertIsDisplayed()
+                    .assertWidthIsAtLeast(48.dp)
+                    .assertHeightIsAtLeast(48.dp)
                 val bounds = placement.controls.getValue(key)
                 val code = pivotArcDsAuxiliaryKey(backend, key)
                 deck.performTouchInput { down(Offset(bounds.centerX, bounds.centerY)) }
@@ -737,9 +757,10 @@ class GripArcRenderingTest {
                             rootBounds = root,
                             videoBounds = video,
                             inputBounds =
-                                controls.map { (key, bounds) ->
-                                    (if (mode.hasPivot) pivotArcHardwareSeatKey(key) else key) to bounds.asRect()
-                                }.toMap(),
+                                controls
+                                    .map { (key, bounds) ->
+                                        (if (mode.hasPivot) pivotArcHardwareSeatKey(key) else key) to bounds.asRect()
+                                    }.toMap(),
                             tokens = tokens,
                             edition = CartdeckEditionPreset.ORIGINAL,
                             isDualScreen = false,
@@ -779,8 +800,11 @@ class GripArcRenderingTest {
         for (fixtureMode in listOf(ArcControlMode.STANDARD_GRIPARC, ArcControlMode.PIVOTARC_GRIPARC)) {
             compose.runOnIdle { mode = fixtureMode }
             for (slot in 1..4) {
-                compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
-                    .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+                compose
+                    .onNodeWithTag("griparc-slot-$slot")
+                    .assertIsDisplayed()
+                    .assertWidthIsAtLeast(48.dp)
+                    .assertHeightIsAtLeast(48.dp)
             }
             val expectedPivotWordmarks = if (fixtureMode.hasPivot) 1 else 0
             val wordmarks = compose.onAllNodesWithText("PivotArc").fetchSemanticsNodes()
@@ -947,7 +971,8 @@ class GripArcRenderingTest {
             val bitmap = Bitmap.createBitmap(393, 852, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             canvas.translate(-rect.left.value, -rect.top.value)
-            compose.activity.window.decorView.draw(canvas)
+            compose.activity.window.decorView
+                .draw(canvas)
             assertTrue("Hardware must render at the measured control", hasHardware(bitmap))
             assertTrue(
                 "Controller material reached the viewport",
@@ -990,9 +1015,17 @@ class GripArcRenderingTest {
                     null
                 }
             val dock =
-                joint?.dock ?: GripArcCombinedLayout.resolveDockFirst(
-                    manifest, native, device.safe, device.viewport, profile.side, 0f, 0f,
-                )!!.dock
+                joint?.dock ?: GripArcCombinedLayout
+                    .resolveDockFirst(
+                        manifest,
+                        native,
+                        device.safe,
+                        device.viewport,
+                        profile.side,
+                        0f,
+                        0f,
+                    )!!
+                    .dock
             val tokens = compose.activity.resolveCartdeckEdition(edition)
             CompositionLocalProvider(LocalDensity provides Density(1f)) {
                 Box(Modifier.requiredSize(393.dp, 852.dp)) {
@@ -1010,18 +1043,25 @@ class GripArcRenderingTest {
             }
         }
         for (mode in listOf(ArcControlMode.STANDARD_GRIPARC, ArcControlMode.PIVOTARC_GRIPARC)) {
-            for (side in GripArcSide.values()) for (count in 1..4) for (theme in CartdeckEditionPreset.values()) {
-                compose.runOnIdle {
-                    edition = theme
-                    profile = GripArcProfile(mode, side, count, List(4) { listOf(KeyEvent.KEYCODE_BUTTON_A) })
-                }
-                for (slot in 1..count) {
-                    compose.onNodeWithTag("griparc-slot-$slot").assertIsDisplayed()
-                        .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
-                }
-                for (slot in count + 1..4) compose.onNodeWithTag("griparc-slot-$slot").assertDoesNotExist()
-                if (mode == ArcControlMode.STANDARD_GRIPARC) {
-                    compose.onNodeWithTag("griparc-housing").assertIsDisplayed()
+            for (side in GripArcSide.values()) {
+                for (count in 1..4) {
+                    for (theme in CartdeckEditionPreset.values()) {
+                        compose.runOnIdle {
+                            edition = theme
+                            profile = GripArcProfile(mode, side, count, List(4) { listOf(KeyEvent.KEYCODE_BUTTON_A) })
+                        }
+                        for (slot in 1..count) {
+                            compose
+                                .onNodeWithTag("griparc-slot-$slot")
+                                .assertIsDisplayed()
+                                .assertWidthIsAtLeast(48.dp)
+                                .assertHeightIsAtLeast(48.dp)
+                        }
+                        for (slot in count + 1..4) compose.onNodeWithTag("griparc-slot-$slot").assertDoesNotExist()
+                        if (mode == ArcControlMode.STANDARD_GRIPARC) {
+                            compose.onNodeWithTag("griparc-housing").assertIsDisplayed()
+                        }
+                    }
                 }
             }
         }

@@ -170,3 +170,14 @@ The earlier 41-item ledger governs inherited scope.
   options (above). C02-C specialist items and the C02-D register /
   explicit-minimums work remain open; no claim of C02 completion is
   made on this checkpoint.
+- Formatting recovery (Claire, 28 Nov 2026, per Cassia's C02 ruling
+  Assignment 1): the C02-A checkpoint failed the hosted Kotlin
+  formatting gate in the new resolver / placement-helper code, which
+  also blocked the connected APK build. All eight Kotlin files changed
+  across C01/C02 were reformatted with the pinned ktlint (1.3.1, the
+  version bundled by the repo's ktlint-gradle 12.1.0; verified clean
+  under both 1.3.1 and 1.2.1 with the repo .editorconfig), including
+  one manual max-line-length fix in GripArcRenderingTest. Formatting
+  only: no values, logic or identifiers changed. This checkpoint is
+  the formatting-only push Cassia required before further substantive
+  delivery; hosted gate confirmation is hers to record.

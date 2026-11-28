@@ -884,7 +884,13 @@ data class GameSystem(
                                 ),
                             controllerConfigs =
                                 hashMapOf(
-                                    0 to arrayListOf(ControllerConfigs.FB_NEO_2, ControllerConfigs.FB_NEO_3, ControllerConfigs.FB_NEO_4, ControllerConfigs.FB_NEO_6),
+                                    0 to
+                                        arrayListOf(
+                                            ControllerConfigs.FB_NEO_2,
+                                            ControllerConfigs.FB_NEO_3,
+                                            ControllerConfigs.FB_NEO_4,
+                                            ControllerConfigs.FB_NEO_6,
+                                        ),
                                 ),
                         ),
                     ),
@@ -1329,13 +1335,14 @@ data class GameSystem(
 
         fun all() = SYSTEMS
 
-        fun getSupportedExtensions(): List<String> {
-            return SYSTEMS.flatMap { it.supportedExtensions }
-        }
+        fun getSupportedExtensions(): List<String> = SYSTEMS.flatMap { it.supportedExtensions }
 
-        fun findSystemForCore(coreID: CoreID): List<GameSystem> {
-            return all().filter { system -> system.systemCoreConfigs.any { it.coreID == coreID } }
-        }
+        fun findSystemForCore(coreID: CoreID): List<GameSystem> =
+            all().filter { system ->
+                system.systemCoreConfigs.any {
+                    it.coreID == coreID
+                }
+            }
 
         fun findByUniqueFileExtension(fileExtension: String): GameSystem? =
             byExtensionCache[fileExtension.toLowerCase(Locale.US)]

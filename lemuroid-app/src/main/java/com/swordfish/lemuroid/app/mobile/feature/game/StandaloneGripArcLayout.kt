@@ -14,7 +14,11 @@ internal object StandaloneGripArcLayout {
     const val GAMECUBE_LANDSCAPE_FIT = "authored GameCube landscape panels + utility rail"
     const val AUTHORED_LANDSCAPE_FIT = "authored landscape panels + utility rail"
 
-    private data class Seat(val x: Int, val y: Int, val size: Float = 48.5f)
+    private data class Seat(
+        val x: Int,
+        val y: Int,
+        val size: Float = 48.5f,
+    )
 
     private val portraitNative =
         mapOf(
@@ -76,15 +80,29 @@ internal object StandaloneGripArcLayout {
 
     private val snesPortrait =
         mapOf(
-            "L" to Seat(55, 60), "R" to Seat(305, 60), "D" to Seat(77, 163, 80f),
-            "X" to Seat(250, 110), "A" to Seat(309, 166), "B" to Seat(250, 222), "Y" to Seat(191, 166),
-            "Select" to Seat(80, 350), "Menu" to Seat(180, 350), "Start" to Seat(280, 350),
+            "L" to Seat(55, 60),
+            "R" to Seat(305, 60),
+            "D" to Seat(77, 163, 80f),
+            "X" to Seat(250, 110),
+            "A" to Seat(309, 166),
+            "B" to Seat(250, 222),
+            "Y" to Seat(191, 166),
+            "Select" to Seat(80, 350),
+            "Menu" to Seat(180, 350),
+            "Start" to Seat(280, 350),
         )
     private val snesLandscape =
         mapOf(
-            "L" to Seat(82, 47), "D" to Seat(82, 145, 80f), "Select" to Seat(114, 318),
-            "R" to Seat(648, 47), "X" to Seat(648, 108), "A" to Seat(687, 169), "Y" to Seat(609, 169),
-            "B" to Seat(648, 230), "Start" to Seat(648, 347), "Menu" to Seat(365, 365),
+            "L" to Seat(82, 47),
+            "D" to Seat(82, 145, 80f),
+            "Select" to Seat(114, 318),
+            "R" to Seat(648, 47),
+            "X" to Seat(648, 108),
+            "A" to Seat(687, 169),
+            "Y" to Seat(609, 169),
+            "B" to Seat(648, 230),
+            "Start" to Seat(648, 347),
+            "Menu" to Seat(365, 365),
         )
     private val snesProgramPortrait =
         mapOf(1 to Seat(180, 60), 2 to Seat(77, 268), 3 to Seat(250, 293), 4 to Seat(148, 268))
@@ -112,16 +130,28 @@ internal object StandaloneGripArcLayout {
     private val megaDriveSixPortrait =
         mapOf(
             "D" to Seat(80, 155, 80f),
-            "X" to Seat(200, 113), "Y" to Seat(258, 113), "Z" to Seat(316, 113),
-            "A" to Seat(200, 180), "B" to Seat(258, 180), "C" to Seat(316, 180),
-            "Select" to Seat(80, 330), "Menu" to Seat(180, 330), "Start" to Seat(280, 330),
+            "X" to Seat(200, 113),
+            "Y" to Seat(258, 113),
+            "Z" to Seat(316, 113),
+            "A" to Seat(200, 180),
+            "B" to Seat(258, 180),
+            "C" to Seat(316, 180),
+            "Select" to Seat(80, 330),
+            "Menu" to Seat(180, 330),
+            "Start" to Seat(280, 330),
         )
     private val megaDriveSixLandscape =
         mapOf(
-            "D" to Seat(82, 145, 80f), "Select" to Seat(82, 49),
-            "X" to Seat(615, 72), "Y" to Seat(615, 140), "Z" to Seat(615, 208),
-            "A" to Seat(682, 72), "B" to Seat(682, 140), "C" to Seat(682, 208),
-            "Start" to Seat(650, 343), "Menu" to Seat(365, 365),
+            "D" to Seat(82, 145, 80f),
+            "Select" to Seat(82, 49),
+            "X" to Seat(615, 72),
+            "Y" to Seat(615, 140),
+            "Z" to Seat(615, 208),
+            "A" to Seat(682, 72),
+            "B" to Seat(682, 140),
+            "C" to Seat(682, 208),
+            "Start" to Seat(650, 343),
+            "Menu" to Seat(365, 365),
         )
     private val megaDriveProgramPortrait =
         mapOf(1 to Seat(80, 252), 2 to Seat(220, 252), 3 to Seat(290, 252), 4 to Seat(150, 252))
@@ -131,16 +161,28 @@ internal object StandaloneGripArcLayout {
     private val pceSixPortrait =
         mapOf(
             "D" to Seat(80, 155, 86f),
-            "IV" to Seat(200, 113), "V" to Seat(258, 113), "VI" to Seat(316, 113),
-            "I" to Seat(200, 180), "II" to Seat(258, 180), "III" to Seat(316, 180),
-            "Select" to Seat(80, 330), "Menu" to Seat(180, 330), "Start" to Seat(280, 330),
+            "IV" to Seat(200, 113),
+            "V" to Seat(258, 113),
+            "VI" to Seat(316, 113),
+            "I" to Seat(200, 180),
+            "II" to Seat(258, 180),
+            "III" to Seat(316, 180),
+            "Select" to Seat(80, 330),
+            "Menu" to Seat(180, 330),
+            "Start" to Seat(280, 330),
         )
     private val pceSixLandscape =
         mapOf(
             "D" to Seat(82, 159, 86f),
-            "IV" to Seat(615, 72), "V" to Seat(682, 72), "VI" to Seat(615, 140),
-            "I" to Seat(682, 140), "II" to Seat(615, 208), "III" to Seat(682, 208),
-            "Select" to Seat(82, 322), "Menu" to Seat(365, 365), "Start" to Seat(650, 335),
+            "IV" to Seat(615, 72),
+            "V" to Seat(682, 72),
+            "VI" to Seat(615, 140),
+            "I" to Seat(682, 140),
+            "II" to Seat(615, 208),
+            "III" to Seat(682, 208),
+            "Select" to Seat(82, 322),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(650, 335),
         )
     private val pceSixProgramPortrait =
         mapOf(1 to Seat(80, 252), 4 to Seat(150, 252), 3 to Seat(220, 252), 2 to Seat(290, 252))
@@ -174,7 +216,9 @@ internal object StandaloneGripArcLayout {
     private val arcadeSixLandscape =
         megaDriveSixLandscape +
             mapOf(
-                "D" to Seat(82, 145, 88f), "Select" to Seat(82, 322), "Start" to Seat(650, 335),
+                "D" to Seat(82, 145, 88f),
+                "Select" to Seat(82, 322),
+                "Start" to Seat(650, 335),
             )
     private val arcadeProgramPortrait =
         mapOf(1 to Seat(80, 252), 2 to Seat(150, 252), 3 to Seat(220, 252), 4 to Seat(290, 252))
@@ -222,17 +266,29 @@ internal object StandaloneGripArcLayout {
 
     private val dreamcastPortrait =
         mapOf(
-            "L" to Seat(55, 60), "R" to Seat(305, 60),
-            "AnalogL" to Seat(79, 135, 74f), "D" to Seat(79, 238, 76f),
-            "Y" to Seat(253, 111), "B" to Seat(309, 169), "A" to Seat(253, 227), "X" to Seat(197, 169),
-            "Menu" to Seat(115, 370), "Start" to Seat(245, 370),
+            "L" to Seat(55, 60),
+            "R" to Seat(305, 60),
+            "AnalogL" to Seat(79, 135, 74f),
+            "D" to Seat(79, 238, 76f),
+            "Y" to Seat(253, 111),
+            "B" to Seat(309, 169),
+            "A" to Seat(253, 227),
+            "X" to Seat(197, 169),
+            "Menu" to Seat(115, 370),
+            "Start" to Seat(245, 370),
         )
     private val dreamcastLandscape =
         mapOf(
-            "L" to Seat(46, 43), "R" to Seat(684, 43),
-            "AnalogL" to Seat(82, 119, 74f), "D" to Seat(82, 222, 76f),
-            "Y" to Seat(648, 106), "B" to Seat(687, 169), "A" to Seat(648, 231), "X" to Seat(609, 169),
-            "Start" to Seat(648, 348), "Menu" to Seat(365, 365),
+            "L" to Seat(46, 43),
+            "R" to Seat(684, 43),
+            "AnalogL" to Seat(82, 119, 74f),
+            "D" to Seat(82, 222, 76f),
+            "Y" to Seat(648, 106),
+            "B" to Seat(687, 169),
+            "A" to Seat(648, 231),
+            "X" to Seat(609, 169),
+            "Start" to Seat(648, 348),
+            "Menu" to Seat(365, 365),
         )
     private val dreamcastProgramPortrait =
         mapOf(
@@ -251,17 +307,29 @@ internal object StandaloneGripArcLayout {
 
     private val n64Portrait =
         mapOf(
-            "L" to Seat(55, 42), "R" to Seat(305, 42), "D" to Seat(78, 116, 78f),
-            "AnalogL" to Seat(78, 222, 86f), "Z" to Seat(164, 206),
-            "CDirection" to Seat(265, 120, 88f), "B" to Seat(226, 226), "A" to Seat(300, 254),
-            "Menu" to Seat(115, 370), "Start" to Seat(245, 370),
+            "L" to Seat(55, 42),
+            "R" to Seat(305, 42),
+            "D" to Seat(78, 116, 78f),
+            "AnalogL" to Seat(78, 222, 86f),
+            "Z" to Seat(164, 206),
+            "CDirection" to Seat(265, 120, 88f),
+            "B" to Seat(226, 226),
+            "A" to Seat(300, 254),
+            "Menu" to Seat(115, 370),
+            "Start" to Seat(245, 370),
         )
     private val n64Landscape =
         mapOf(
-            "L" to Seat(49, 43), "R" to Seat(648, 43), "D" to Seat(82, 114, 72f),
-            "AnalogL" to Seat(63, 208, 82f), "Z" to Seat(136, 248),
-            "CDirection" to Seat(650, 120, 84f), "B" to Seat(612, 222), "A" to Seat(683, 250),
-            "Menu" to Seat(365, 365), "Start" to Seat(675, 335),
+            "L" to Seat(49, 43),
+            "R" to Seat(648, 43),
+            "D" to Seat(82, 114, 72f),
+            "AnalogL" to Seat(63, 208, 82f),
+            "Z" to Seat(136, 248),
+            "CDirection" to Seat(650, 120, 84f),
+            "B" to Seat(612, 222),
+            "A" to Seat(683, 250),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(675, 335),
         )
     private val n64ProgramPortrait =
         mapOf(1 to Seat(180, 42), 2 to Seat(80, 320), 3 to Seat(224, 320), 4 to Seat(155, 270))
@@ -270,17 +338,37 @@ internal object StandaloneGripArcLayout {
 
     private val gameCubePortrait =
         mapOf(
-            "L" to Seat(48, 35), "HalfL" to Seat(124, 35), "HalfR" to Seat(236, 35), "R" to Seat(312, 35),
-            "Z" to Seat(236, 91), "AnalogL" to Seat(78, 177, 78f), "D" to Seat(78, 292, 74f),
-            "A" to Seat(255, 205), "B" to Seat(192, 242), "Y" to Seat(227, 140), "X" to Seat(313, 164),
-            "AnalogR" to Seat(267, 310, 66f), "Menu" to Seat(115, 430), "Start" to Seat(245, 430),
+            "L" to Seat(48, 35),
+            "HalfL" to Seat(124, 35),
+            "HalfR" to Seat(236, 35),
+            "R" to Seat(312, 35),
+            "Z" to Seat(236, 91),
+            "AnalogL" to Seat(78, 177, 78f),
+            "D" to Seat(78, 292, 74f),
+            "A" to Seat(255, 205),
+            "B" to Seat(192, 242),
+            "Y" to Seat(227, 140),
+            "X" to Seat(313, 164),
+            "AnalogR" to Seat(267, 310, 66f),
+            "Menu" to Seat(115, 430),
+            "Start" to Seat(245, 430),
         )
     private val gameCubeLandscape =
         mapOf(
-            "L" to Seat(46, 32), "HalfL" to Seat(116, 32), "HalfR" to Seat(614, 32), "R" to Seat(684, 32),
-            "Z" to Seat(614, 90), "AnalogL" to Seat(82, 170, 78f), "D" to Seat(82, 272, 70f),
-            "A" to Seat(648, 209), "B" to Seat(610, 268), "Y" to Seat(614, 150), "X" to Seat(684, 150),
-            "AnalogR" to Seat(650, 338, 60f), "Menu" to Seat(365, 365), "Start" to Seat(465, 365),
+            "L" to Seat(46, 32),
+            "HalfL" to Seat(116, 32),
+            "HalfR" to Seat(614, 32),
+            "R" to Seat(684, 32),
+            "Z" to Seat(614, 90),
+            "AnalogL" to Seat(82, 170, 78f),
+            "D" to Seat(82, 272, 70f),
+            "A" to Seat(648, 209),
+            "B" to Seat(610, 268),
+            "Y" to Seat(614, 150),
+            "X" to Seat(684, 150),
+            "AnalogR" to Seat(650, 338, 60f),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(465, 365),
         )
     private val gameCubeProgramPortrait =
         mapOf(
@@ -300,17 +388,29 @@ internal object StandaloneGripArcLayout {
     private val pspPortrait =
         dreamcastPortrait +
             mapOf(
-                "D" to Seat(79, 135, 74f), "AnalogL" to Seat(79, 238, 74f),
-                "X" to Seat(253, 111), "A" to Seat(309, 169), "B" to Seat(253, 227), "Y" to Seat(197, 169),
-                "Select" to Seat(80, 370), "Menu" to Seat(180, 370), "Start" to Seat(280, 370),
+                "D" to Seat(79, 135, 74f),
+                "AnalogL" to Seat(79, 238, 74f),
+                "X" to Seat(253, 111),
+                "A" to Seat(309, 169),
+                "B" to Seat(253, 227),
+                "Y" to Seat(197, 169),
+                "Select" to Seat(80, 370),
+                "Menu" to Seat(180, 370),
+                "Start" to Seat(280, 370),
             )
     private val pspLandscape =
         dreamcastLandscape +
             mapOf(
-                "L" to Seat(49, 43), "R" to Seat(648, 49),
-                "D" to Seat(82, 119, 74f), "AnalogL" to Seat(82, 222, 74f),
-                "X" to Seat(648, 107), "A" to Seat(687, 169), "B" to Seat(648, 231), "Y" to Seat(609, 169),
-                "Select" to Seat(82, 359), "Start" to Seat(648, 348),
+                "L" to Seat(49, 43),
+                "R" to Seat(648, 49),
+                "D" to Seat(82, 119, 74f),
+                "AnalogL" to Seat(82, 222, 74f),
+                "X" to Seat(648, 107),
+                "A" to Seat(687, 169),
+                "B" to Seat(648, 231),
+                "Y" to Seat(609, 169),
+                "Select" to Seat(82, 359),
+                "Start" to Seat(648, 348),
             )
     private val pspProgramPortrait =
         mapOf(1 to Seat(180, 60), 2 to Seat(79, 322), 3 to Seat(253, 297), 4 to Seat(151, 302))
@@ -319,23 +419,42 @@ internal object StandaloneGripArcLayout {
 
     private val playStationPortrait =
         mapOf(
-            "L2" to Seat(55, 35), "L" to Seat(55, 88), "R2" to Seat(305, 35), "R" to Seat(305, 88),
+            "L2" to Seat(55, 35),
+            "L" to Seat(55, 88),
+            "R2" to Seat(305, 35),
+            "R" to Seat(305, 88),
             "D" to Seat(78, 174, 86f),
-            "X" to Seat(253, 135), "A" to Seat(310, 188), "B" to Seat(253, 241), "Y" to Seat(196, 188),
-            "Select" to Seat(80, 347), "Menu" to Seat(180, 347), "Start" to Seat(280, 347),
+            "X" to Seat(253, 135),
+            "A" to Seat(310, 188),
+            "B" to Seat(253, 241),
+            "Y" to Seat(196, 188),
+            "Select" to Seat(80, 347),
+            "Menu" to Seat(180, 347),
+            "Start" to Seat(280, 347),
         )
     private val playStationLandscape =
         mapOf(
-            "L2" to Seat(46, 32), "L" to Seat(116, 32), "R" to Seat(614, 32), "R2" to Seat(684, 32),
+            "L2" to Seat(46, 32),
+            "L" to Seat(116, 32),
+            "R" to Seat(614, 32),
+            "R2" to Seat(684, 32),
             "D" to Seat(82, 118, 86f),
-            "X" to Seat(648, 92), "A" to Seat(689, 150), "B" to Seat(648, 208), "Y" to Seat(607, 150),
-            "Select" to Seat(265, 365), "Menu" to Seat(365, 365), "Start" to Seat(465, 365),
+            "X" to Seat(648, 92),
+            "A" to Seat(689, 150),
+            "B" to Seat(648, 208),
+            "Y" to Seat(607, 150),
+            "Select" to Seat(265, 365),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(465, 365),
         )
     private val dualShockPortrait =
         playStationPortrait +
             mapOf(
-                "AnalogL" to Seat(78, 293, 76f), "AnalogR" to Seat(266, 310, 70f),
-                "Select" to Seat(80, 430), "Menu" to Seat(180, 430), "Start" to Seat(280, 430),
+                "AnalogL" to Seat(78, 293, 76f),
+                "AnalogR" to Seat(266, 310, 70f),
+                "Select" to Seat(80, 430),
+                "Menu" to Seat(180, 430),
+                "Start" to Seat(280, 430),
             )
     private val dualShockLandscape =
         playStationLandscape + mapOf("AnalogL" to Seat(82, 242, 74f), "AnalogR" to Seat(648, 275, 62f))
@@ -348,49 +467,81 @@ internal object StandaloneGripArcLayout {
     private val xboxPortrait =
         dualShockPortrait +
             mapOf(
-                "AnalogL" to Seat(78, 174, 84f), "D" to Seat(78, 293, 78f),
-                "X" to Seat(196, 188), "A" to Seat(253, 241), "B" to Seat(310, 188), "Y" to Seat(253, 135),
-                "LS" to Seat(145, 236), "RS" to Seat(194, 310),
+                "AnalogL" to Seat(78, 174, 84f),
+                "D" to Seat(78, 293, 78f),
+                "X" to Seat(196, 188),
+                "A" to Seat(253, 241),
+                "B" to Seat(310, 188),
+                "Y" to Seat(253, 135),
+                "LS" to Seat(145, 236),
+                "RS" to Seat(194, 310),
             )
     private val xboxLandscape =
         dualShockLandscape +
             mapOf(
-                "AnalogL" to Seat(82, 107, 80f), "D" to Seat(82, 257, 74f),
-                "Y" to Seat(648, 89), "B" to Seat(687, 147), "A" to Seat(648, 205), "X" to Seat(609, 147),
-                "AnalogR" to Seat(648, 274, 66f), "LS" to Seat(82, 184), "RS" to Seat(650, 349),
+                "AnalogL" to Seat(82, 107, 80f),
+                "D" to Seat(82, 257, 74f),
+                "Y" to Seat(648, 89),
+                "B" to Seat(687, 147),
+                "A" to Seat(648, 205),
+                "X" to Seat(609, 147),
+                "AnalogR" to Seat(648, 274, 66f),
+                "LS" to Seat(82, 184),
+                "RS" to Seat(650, 349),
             )
 
     private val dosPortrait =
         dualShockPortrait +
             mapOf(
-                "X" to Seat(196, 188), "A" to Seat(253, 241), "B" to Seat(310, 188), "Y" to Seat(253, 135),
-                "Select" to Seat(49, 430), "Keyboard" to Seat(135, 430),
-                "Menu" to Seat(225, 430), "Start" to Seat(311, 430),
+                "X" to Seat(196, 188),
+                "A" to Seat(253, 241),
+                "B" to Seat(310, 188),
+                "Y" to Seat(253, 135),
+                "Select" to Seat(49, 430),
+                "Keyboard" to Seat(135, 430),
+                "Menu" to Seat(225, 430),
+                "Start" to Seat(311, 430),
             )
     private val dosLandscape =
         dualShockLandscape +
             mapOf(
-                "X" to Seat(609, 147), "A" to Seat(648, 205), "B" to Seat(687, 147), "Y" to Seat(648, 89),
-                "AnalogL" to Seat(82, 242, 74f), "AnalogR" to Seat(648, 274, 64f),
-                "Select" to Seat(215, 365), "Keyboard" to Seat(315, 365),
-                "Menu" to Seat(415, 365), "Start" to Seat(515, 365),
+                "X" to Seat(609, 147),
+                "A" to Seat(648, 205),
+                "B" to Seat(687, 147),
+                "Y" to Seat(648, 89),
+                "AnalogL" to Seat(82, 242, 74f),
+                "AnalogR" to Seat(648, 274, 64f),
+                "Select" to Seat(215, 365),
+                "Keyboard" to Seat(315, 365),
+                "Menu" to Seat(415, 365),
+                "Start" to Seat(515, 365),
             )
 
     private val wiiSidewaysPortrait =
         mapOf(
-            "D" to Seat(80, 155, 86f), "Shake" to Seat(145, 70),
-            "X" to Seat(220, 95), "Y" to Seat(295, 95),
-            "B" to Seat(220, 170), "A" to Seat(295, 170),
-            "Select" to Seat(49, 330), "Home" to Seat(135, 330),
-            "Menu" to Seat(225, 330), "Start" to Seat(311, 330),
+            "D" to Seat(80, 155, 86f),
+            "Shake" to Seat(145, 70),
+            "X" to Seat(220, 95),
+            "Y" to Seat(295, 95),
+            "B" to Seat(220, 170),
+            "A" to Seat(295, 170),
+            "Select" to Seat(49, 330),
+            "Home" to Seat(135, 330),
+            "Menu" to Seat(225, 330),
+            "Start" to Seat(311, 330),
         )
     private val wiiSidewaysLandscape =
         mapOf(
-            "D" to Seat(82, 145, 86f), "Shake" to Seat(82, 49),
-            "X" to Seat(615, 95), "Y" to Seat(682, 95),
-            "B" to Seat(615, 175), "A" to Seat(682, 175),
-            "Select" to Seat(215, 365), "Home" to Seat(315, 365),
-            "Menu" to Seat(415, 365), "Start" to Seat(515, 365),
+            "D" to Seat(82, 145, 86f),
+            "Shake" to Seat(82, 49),
+            "X" to Seat(615, 95),
+            "Y" to Seat(682, 95),
+            "B" to Seat(615, 175),
+            "A" to Seat(682, 175),
+            "Select" to Seat(215, 365),
+            "Home" to Seat(315, 365),
+            "Menu" to Seat(415, 365),
+            "Start" to Seat(515, 365),
         )
     private val wiiSidewaysProgramPortrait =
         mapOf(1 to Seat(80, 252), 2 to Seat(150, 252), 3 to Seat(220, 252), 4 to Seat(290, 252))
@@ -403,19 +554,43 @@ internal object StandaloneGripArcLayout {
 
     private val wiiuGamePadPortrait =
         mapOf(
-            "L2" to Seat(55, 35), "L" to Seat(55, 88), "R2" to Seat(305, 35), "R" to Seat(305, 88),
-            "AnalogL" to Seat(78, 163, 78f), "AnalogR" to Seat(266, 163, 78f),
-            "LS" to Seat(145, 163), "RS" to Seat(196, 163), "D" to Seat(78, 280, 84f),
-            "X" to Seat(253, 230), "A" to Seat(310, 283), "B" to Seat(253, 336), "Y" to Seat(196, 283),
-            "Select" to Seat(49, 435), "Menu" to Seat(135, 435), "Screen" to Seat(225, 435), "Start" to Seat(311, 435),
+            "L2" to Seat(55, 35),
+            "L" to Seat(55, 88),
+            "R2" to Seat(305, 35),
+            "R" to Seat(305, 88),
+            "AnalogL" to Seat(78, 163, 78f),
+            "AnalogR" to Seat(266, 163, 78f),
+            "LS" to Seat(145, 163),
+            "RS" to Seat(196, 163),
+            "D" to Seat(78, 280, 84f),
+            "X" to Seat(253, 230),
+            "A" to Seat(310, 283),
+            "B" to Seat(253, 336),
+            "Y" to Seat(196, 283),
+            "Select" to Seat(49, 435),
+            "Menu" to Seat(135, 435),
+            "Screen" to Seat(225, 435),
+            "Start" to Seat(311, 435),
         )
     private val wiiuGamePadLandscape =
         mapOf(
-            "L2" to Seat(46, 32), "L" to Seat(116, 32), "R2" to Seat(684, 32), "R" to Seat(614, 32),
-            "AnalogL" to Seat(82, 107, 76f), "AnalogR" to Seat(648, 106, 66f),
-            "LS" to Seat(82, 181), "RS" to Seat(570, 365), "D" to Seat(82, 254, 76f),
-            "X" to Seat(648, 237), "A" to Seat(687, 295), "B" to Seat(648, 353), "Y" to Seat(609, 295),
-            "Select" to Seat(215, 365), "Menu" to Seat(315, 365), "Screen" to Seat(415, 365), "Start" to Seat(515, 365),
+            "L2" to Seat(46, 32),
+            "L" to Seat(116, 32),
+            "R2" to Seat(684, 32),
+            "R" to Seat(614, 32),
+            "AnalogL" to Seat(82, 107, 76f),
+            "AnalogR" to Seat(648, 106, 66f),
+            "LS" to Seat(82, 181),
+            "RS" to Seat(570, 365),
+            "D" to Seat(82, 254, 76f),
+            "X" to Seat(648, 237),
+            "A" to Seat(687, 295),
+            "B" to Seat(648, 353),
+            "Y" to Seat(609, 295),
+            "Select" to Seat(215, 365),
+            "Menu" to Seat(315, 365),
+            "Screen" to Seat(415, 365),
+            "Start" to Seat(515, 365),
         )
     private val wiiuProgramPortrait =
         mapOf(1 to Seat(45, 377), 2 to Seat(135, 377), 3 to Seat(224, 385), 4 to Seat(315, 385))
@@ -438,34 +613,64 @@ internal object StandaloneGripArcLayout {
 
     private val dsPortrait =
         mapOf(
-            "L" to Seat(65, 28), "Mic" to Seat(140, 28), "Lid" to Seat(220, 28), "R" to Seat(295, 28),
+            "L" to Seat(65, 28),
+            "Mic" to Seat(140, 28),
+            "Lid" to Seat(220, 28),
+            "R" to Seat(295, 28),
             "D" to Seat(76, 119, 82f),
-            "X" to Seat(266, 75), "A" to Seat(315, 125), "B" to Seat(266, 175), "Y" to Seat(217, 125),
-            "Select" to Seat(64, 253), "Menu" to Seat(180, 253), "Start" to Seat(296, 253),
+            "X" to Seat(266, 75),
+            "A" to Seat(315, 125),
+            "B" to Seat(266, 175),
+            "Y" to Seat(217, 125),
+            "Select" to Seat(64, 253),
+            "Menu" to Seat(180, 253),
+            "Start" to Seat(296, 253),
         )
     private val dsLandscape =
         mapOf(
-            "L" to Seat(82, 49), "Mic" to Seat(146, 49), "Lid" to Seat(594, 49), "R" to Seat(648, 49),
+            "L" to Seat(82, 49),
+            "Mic" to Seat(146, 49),
+            "Lid" to Seat(594, 49),
+            "R" to Seat(648, 49),
             "D" to Seat(82, 145, 82f),
-            "X" to Seat(648, 112), "A" to Seat(687, 170), "B" to Seat(648, 228), "Y" to Seat(609, 170),
-            "Select" to Seat(82, 322), "Menu" to Seat(365, 365), "Start" to Seat(648, 335),
+            "X" to Seat(648, 112),
+            "A" to Seat(687, 170),
+            "B" to Seat(648, 228),
+            "Y" to Seat(609, 170),
+            "Select" to Seat(82, 322),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(648, 335),
         )
     private val dsProgramPortrait = mapOf(1 to Seat(76, 205), 2 to Seat(182, 205))
     private val dsProgramLandscape = mapOf(1 to Seat(44, 242), 2 to Seat(114, 242))
 
     private val threeDsPortrait =
         mapOf(
-            "L" to Seat(65, 28), "R" to Seat(295, 28),
-            "AnalogL" to Seat(77, 92, 78f), "D" to Seat(77, 190, 78f),
-            "X" to Seat(267, 79), "A" to Seat(316, 129), "B" to Seat(267, 179), "Y" to Seat(218, 129),
-            "Select" to Seat(64, 285), "Menu" to Seat(180, 285), "Start" to Seat(296, 285),
+            "L" to Seat(65, 28),
+            "R" to Seat(295, 28),
+            "AnalogL" to Seat(77, 92, 78f),
+            "D" to Seat(77, 190, 78f),
+            "X" to Seat(267, 79),
+            "A" to Seat(316, 129),
+            "B" to Seat(267, 179),
+            "Y" to Seat(218, 129),
+            "Select" to Seat(64, 285),
+            "Menu" to Seat(180, 285),
+            "Start" to Seat(296, 285),
         )
     private val threeDsLandscape =
         mapOf(
-            "L" to Seat(82, 40), "R" to Seat(648, 49),
-            "AnalogL" to Seat(82, 119, 78f), "D" to Seat(82, 222, 78f),
-            "X" to Seat(648, 109), "A" to Seat(689, 167), "B" to Seat(648, 225), "Y" to Seat(607, 167),
-            "Select" to Seat(82, 360), "Menu" to Seat(365, 365), "Start" to Seat(648, 335),
+            "L" to Seat(82, 40),
+            "R" to Seat(648, 49),
+            "AnalogL" to Seat(82, 119, 78f),
+            "D" to Seat(82, 222, 78f),
+            "X" to Seat(648, 109),
+            "A" to Seat(689, 167),
+            "B" to Seat(648, 225),
+            "Y" to Seat(607, 167),
+            "Select" to Seat(82, 360),
+            "Menu" to Seat(365, 365),
+            "Start" to Seat(648, 335),
         )
     private val threeDsProgramPortrait = mapOf(1 to Seat(189, 234), 2 to Seat(270, 234))
     private val threeDsProgramLandscape = mapOf(1 to Seat(44, 300), 2 to Seat(114, 300))
@@ -478,7 +683,8 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.SMS,
             TouchControllerID.GG,
             TouchControllerID.NGP,
-            TouchControllerID.PCE, TouchControllerID.PCE_SIX,
+            TouchControllerID.PCE,
+            TouchControllerID.PCE_SIX,
             TouchControllerID.SNES,
             TouchControllerID.GENESIS_3,
             TouchControllerID.GENESIS_6,
@@ -490,12 +696,21 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.GAMECUBE,
             TouchControllerID.PSX,
             TouchControllerID.PSX_DUALSHOCK,
-            TouchControllerID.NINTENDO_3DS, TouchControllerID.N64, TouchControllerID.MELONDS, TouchControllerID.DESMUME,
-            TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE,
-            TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
-            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
-            TouchControllerID.XBOX, TouchControllerID.XBOX360, TouchControllerID.DOS,
-            TouchControllerID.WII_CLASSIC, TouchControllerID.WII_SIDEWAYS,
+            TouchControllerID.NINTENDO_3DS,
+            TouchControllerID.N64,
+            TouchControllerID.MELONDS,
+            TouchControllerID.DESMUME,
+            TouchControllerID.WS_PORTRAIT,
+            TouchControllerID.WS_LANDSCAPE,
+            TouchControllerID.ARCADE_4,
+            TouchControllerID.ARCADE_6,
+            TouchControllerID.ARCADE_2,
+            TouchControllerID.ARCADE_3,
+            TouchControllerID.XBOX,
+            TouchControllerID.XBOX360,
+            TouchControllerID.DOS,
+            TouchControllerID.WII_CLASSIC,
+            TouchControllerID.WII_SIDEWAYS,
         )
 
     fun densePortrait(controller: TouchControllerID?): Boolean =
@@ -526,12 +741,14 @@ internal object StandaloneGripArcLayout {
             TouchControllerID.WII_SIDEWAYS -> analogueInventory(SystemID.WII, controller)
             TouchControllerID.WS_PORTRAIT, TouchControllerID.WS_LANDSCAPE -> wonderSwanInventory(controller)
             TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
-            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3 ->
+            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
+            ->
                 analogueInventory(SystemID.FBNEO, controller)
             TouchControllerID.NES ->
-                NativeControlInventory.forController(
-                    TouchControllerID.GB,
-                )?.copy(controller = controller)
+                NativeControlInventory
+                    .forController(
+                        TouchControllerID.GB,
+                    )?.copy(controller = controller)
             TouchControllerID.PCE_SIX -> {
                 val inventory = checkNotNull(inventoryFor(TouchControllerID.PCE))
                 val faces =
@@ -697,7 +914,8 @@ internal object StandaloneGripArcLayout {
                     else -> seat.keyCode
                 }
             TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
-            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3 ->
+            TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
+            ->
                 if (seat.kind == NativeControlKind.FACE) {
                     KeyEvent.KEYCODE_BUTTON_1 + seat.label.toInt() - 1
                 } else {
@@ -712,7 +930,8 @@ internal object StandaloneGripArcLayout {
         native: NativeControlInventory,
     ): GripArcAction? {
         val codes =
-            native.controls.filterNot { it.key in setOf("Menu", "Keyboard", "Screen", "Mic", "Lid") }
+            native.controls
+                .filterNot { it.key in setOf("Menu", "Keyboard", "Screen", "Mic", "Lid") }
                 .mapNotNull { seat ->
                     programmableCode(native, seat)?.let { it to checkNotNull(seat.keyCode) }
                 }.toMap()
@@ -725,7 +944,8 @@ internal object StandaloneGripArcLayout {
     }
 
     fun actionLabels(native: NativeControlInventory): Map<Int, String> =
-        native.controls.filterNot { it.key in setOf("Menu", "Keyboard", "Screen", "Mic", "Lid") }
+        native.controls
+            .filterNot { it.key in setOf("Menu", "Keyboard", "Screen", "Mic", "Lid") }
             .mapNotNull { seat ->
                 val label =
                     when (seat.icon) {
@@ -870,8 +1090,10 @@ internal object StandaloneGripArcLayout {
         val arcade =
             native.controller in
                 setOf(
-                    TouchControllerID.ARCADE_4, TouchControllerID.ARCADE_6,
-                    TouchControllerID.ARCADE_2, TouchControllerID.ARCADE_3,
+                    TouchControllerID.ARCADE_4,
+                    TouchControllerID.ARCADE_6,
+                    TouchControllerID.ARCADE_2,
+                    TouchControllerID.ARCADE_3,
                 )
         val xbox = native.controller in setOf(TouchControllerID.XBOX, TouchControllerID.XBOX360)
         val dos = native.controller == TouchControllerID.DOS
@@ -885,13 +1107,18 @@ internal object StandaloneGripArcLayout {
             if (landscape) {
                 390f
             } else if (
-                xbox || dos || wiiu || wiiClassic ||
+                xbox ||
+                dos ||
+                wiiu ||
+                wiiClassic ||
                 native.controller in setOf(TouchControllerID.GAMECUBE, TouchControllerID.PSX_DUALSHOCK)
             ) {
                 460f
             } else if (native.controller in
                 setOf(
-                    TouchControllerID.DREAMCAST, TouchControllerID.PSP, TouchControllerID.N64,
+                    TouchControllerID.DREAMCAST,
+                    TouchControllerID.PSP,
+                    TouchControllerID.N64,
                 )
             ) {
                 420f
@@ -957,12 +1184,16 @@ internal object StandaloneGripArcLayout {
                     } else if (landscape) {
                         seats - "Screen" +
                             mapOf(
-                                "Select" to Seat(265, 365), "Menu" to Seat(365, 365), "Start" to Seat(465, 365),
+                                "Select" to Seat(265, 365),
+                                "Menu" to Seat(365, 365),
+                                "Start" to Seat(465, 365),
                             )
                     } else {
                         seats - "Screen" +
                             mapOf(
-                                "Select" to Seat(80, 435), "Menu" to Seat(180, 435), "Start" to Seat(280, 435),
+                                "Select" to Seat(80, 435),
+                                "Menu" to Seat(180, 435),
+                                "Start" to Seat(280, 435),
                             )
                     }
                 }
@@ -1055,7 +1286,8 @@ internal object StandaloneGripArcLayout {
         ): Map<String, PivotArcBounds> =
             nativeSeats.mapValues { (key, seat) ->
                 val centralUtility =
-                    key == "Menu" || (xbox && key in setOf("Select", "Start")) ||
+                    key == "Menu" ||
+                        (xbox && key in setOf("Select", "Start")) ||
                         (sonyHost && key in setOf("LS", "RS")) ||
                         (dos && key in setOf("Select", "Start", "Keyboard")) ||
                         ((wiiClassic || wiiSideways) && key in setOf("Select", "Start", "Home")) ||
@@ -1090,7 +1322,15 @@ internal object StandaloneGripArcLayout {
         if (landscape) {
             val fitted = authored ?: return null
             return placementFromFitted(
-                native, nativeSeats, programSeats, fitted, panel, safe, viewport, width, height,
+                native,
+                nativeSeats,
+                programSeats,
+                fitted,
+                panel,
+                safe,
+                viewport,
+                width,
+                height,
                 fit = "uniform chassis transform",
             )
         }
@@ -1099,7 +1339,15 @@ internal object StandaloneGripArcLayout {
             regular ?: growTargets(nativeTargets(compact = true) + programTargets, panel, display)
                 ?: return null
         return placementFromFitted(
-            native, nativeSeats, programSeats, fitted, panel, safe, viewport, width, height,
+            native,
+            nativeSeats,
+            programSeats,
+            fitted,
+            panel,
+            safe,
+            viewport,
+            width,
+            height,
             fit =
                 when {
                     authored != null -> "uniform chassis transform"
@@ -1125,7 +1373,8 @@ internal object StandaloneGripArcLayout {
         val controls = nativeSeats.keys.associateWith(fitted::getValue)
         val programmable = programSeats.keys.associateWith { fitted.getValue("program:$it") }
         val capWidths =
-            native.controls.groupBy { control -> control.kind to nativeSeats.getValue(control.key).size }
+            native.controls
+                .groupBy { control -> control.kind to nativeSeats.getValue(control.key).size }
                 .flatMap { (family, members) ->
                     val cap = minOf(family.second + 7f, members.minOf { controls.getValue(it.key).width } - 5f)
                     members.map { it.key to cap }
@@ -1244,7 +1493,10 @@ internal object StandaloneGripArcLayout {
                 }
             }
             return PivotArcBounds(
-                centerX - radius, centerY - radius, centerX + radius, centerY + radius,
+                centerX - radius,
+                centerY - radius,
+                centerX + radius,
+                centerY + radius,
             )
         }
 
@@ -1268,7 +1520,15 @@ internal object StandaloneGripArcLayout {
         val display = viewport.inset(1.5f)
         if (!independentTargets(fitted.values.toList(), safe, display)) return null
         return placementFromFitted(
-            native, nativeSeats, programSeats, fitted, safe, safe, viewport, width, height,
+            native,
+            nativeSeats,
+            programSeats,
+            fitted,
+            safe,
+            safe,
+            viewport,
+            width,
+            height,
             fit = AUTHORED_LANDSCAPE_FIT,
         )
     }
@@ -1366,7 +1626,8 @@ internal object StandaloneGripArcLayout {
         if (!independentTargets(allTargets, safe, display)) return null
 
         val capWidths =
-            native.controls.groupBy { control -> control.kind to controls.getValue(control.key).width }
+            native.controls
+                .groupBy { control -> control.kind to controls.getValue(control.key).width }
                 .flatMap { (family, members) ->
                     val cap = minOf(family.second + 7f, members.minOf { controls.getValue(it.key).width } - 5f)
                     members.map { it.key to cap }

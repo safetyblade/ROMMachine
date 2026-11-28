@@ -614,13 +614,29 @@ object PivotArcSoloProfiles {
     fun supportsSystem(system: SystemID): Boolean =
         system in
             setOf(
-                SystemID.SNES, SystemID.NDS, SystemID.NINTENDO_3DS,
-                SystemID.GENESIS, SystemID.SEGACD, SystemID.N64,
-                SystemID.PSX, SystemID.PLAYSTATION_2, SystemID.DREAMCAST,
-                SystemID.ATARI7800, SystemID.ATARI2600, SystemID.WII, SystemID.DOS,
-                SystemID.GAMECUBE, SystemID.FBNEO, SystemID.MAME2003PLUS,
-                SystemID.XBOX, SystemID.XBOX360, SystemID.PLAYSTATION_3, SystemID.WII_U,
-                SystemID.PSP, SystemID.WS, SystemID.WSC,
+                SystemID.SNES,
+                SystemID.NDS,
+                SystemID.NINTENDO_3DS,
+                SystemID.GENESIS,
+                SystemID.SEGACD,
+                SystemID.N64,
+                SystemID.PSX,
+                SystemID.PLAYSTATION_2,
+                SystemID.DREAMCAST,
+                SystemID.ATARI7800,
+                SystemID.ATARI2600,
+                SystemID.WII,
+                SystemID.DOS,
+                SystemID.GAMECUBE,
+                SystemID.FBNEO,
+                SystemID.MAME2003PLUS,
+                SystemID.XBOX,
+                SystemID.XBOX360,
+                SystemID.PLAYSTATION_3,
+                SystemID.WII_U,
+                SystemID.PSP,
+                SystemID.WS,
+                SystemID.WSC,
             )
 
     fun forMode(
@@ -683,11 +699,12 @@ object PivotArcSoloSolver {
     private const val GAP = 2f
     private val scales = (80..150 step 2).map { it / 100f }
     private val centerScales =
-        scales.flatMap { horizontal ->
-            scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
-        }.sortedBy { (horizontal, vertical) ->
-            horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
-        }
+        scales
+            .flatMap { horizontal ->
+                scales.sortedBy { kotlin.math.abs(it - horizontal) }.map { vertical -> horizontal to vertical }
+            }.sortedBy { (horizontal, vertical) ->
+                horizontal + vertical + kotlin.math.abs(horizontal - vertical) / 2f
+            }
 
     fun resolve(
         profile: PivotArcSoloProfile,
@@ -856,13 +873,14 @@ object PivotArcSoloSolver {
         var previousCenter = 0f
         for (row in rows) {
             val center =
-                row.maxOf { (_, bounds) ->
-                    val minimumTop =
-                        packed.values
-                            .filter { it.left < bounds.right + GAP - 0.01f && it.right > bounds.left - GAP + 0.01f }
-                            .maxOfOrNull { it.bottom + GAP } ?: 0f
-                    minimumTop + bounds.height / 2f
-                }.coerceAtLeast(if (keepRows) previousCenter else 0f)
+                row
+                    .maxOf { (_, bounds) ->
+                        val minimumTop =
+                            packed.values
+                                .filter { it.left < bounds.right + GAP - 0.01f && it.right > bounds.left - GAP + 0.01f }
+                                .maxOfOrNull { it.bottom + GAP } ?: 0f
+                        minimumTop + bounds.height / 2f
+                    }.coerceAtLeast(if (keepRows) previousCenter else 0f)
             for ((id, bounds) in row) {
                 val top = center - bounds.height / 2f
                 packed[id] = bounds.copy(top = top, bottom = top + bounds.height)
