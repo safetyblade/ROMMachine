@@ -234,6 +234,126 @@ class GripArcRenderingTest {
     }
 
     /**
+     * C06-A: the standalone GameCube deck is rendered from live state,
+     * not a cached calculation. Changing the edition (theme) recolours
+     * the displayed deck, and changing the measured safe area moves the
+     * displayed utility-rail controls — both proven against captured
+     * pixels of the actual composed deck, with the rail controls
+     * (Menu/Start) rendered below the aperture.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun gameCubeStandaloneDeckAppliesLiveThemeAndLayoutChanges() {
+        var edition by mutableStateOf(CartdeckEditionPreset.ORIGINAL)
+        var shifted by mutableStateOf(false)
+        var latestPlacement: GripArcCombinedPlacement? = null
+        var bezelArgb = 0
+        compose.setContent {
+            val tokens = compose.activity.resolveCartdeckEdition(edition)
+            bezelArgb = tokens.bezel.toArgb()
+            val safe =
+                if (shifted) PivotArcBounds(64f, 8f, 732f, 352f) else fixtureSafe(true)
+            val viewport = fixtureViewport(SystemID.GAMECUBE, true)
+            val glass = Rect(viewport.left, viewport.top, viewport.right, viewport.bottom)
+            val inventory =
+                checkNotNull(
+                    StandaloneGripArcLayout.inventoryFor(TouchControllerID.GAMECUBE, SystemID.GAMECUBE),
+                )
+            val fitted =
+                checkNotNull(StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, true)) {
+                    "No standalone GameCube fit for the live-render fixture"
+                }
+            latestPlacement = fitted
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f),
+                LocalLemuroidPadTheme provides LemuroidPadTheme(),
+            ) {
+                Box(Modifier.requiredSize(740.dp, 360.dp).background(tokens.bezel).testTag("gc-live-deck")) {
+                    CartdeckConsoleShell(
+                        tokens,
+                        glass,
+                        Rect(0f, 0f, 740f, 360f),
+                        true,
+                        (fitted.controls.values + fitted.dock.targets.values)
+                            .map { Rect(it.left, it.top, it.right, it.bottom) },
+                        continuousLandscapeBrand = true,
+                    )
+                    StandaloneGripArcHardware(fitted, tokens, true)
+                    PadKit(
+                        onInputEvents = {},
+                        hapticFeedbackType = HapticFeedbackType.NONE,
+                        simulatedState = remember { mutableStateOf(InputState()) },
+                        simulatedControlIds = remember { mutableStateOf(emptySet()) },
+                    ) {
+                        GripArcCombinedControls(fitted, standalone = true)
+                    }
+                    GripArcAccessory(
+                        fitted.dock,
+                        checkNotNull(standaloneGripFactory(SystemID.GAMECUBE, TouchControllerID.GAMECUBE)),
+                        tokens,
+                        fullscreenWithGamepad = false,
+                        isLoading = false,
+                        onPressed = { _, _, _ -> },
+                        drawHousing = false,
+                        inputLabels = StandaloneGripArcLayout.actionLabels(inventory),
+                        typedActions = true,
+                    )
+                }
+            }
+        }
+
+        fun capture(): Bitmap {
+            val rect = compose.onNodeWithTag("gc-live-deck").getUnclippedBoundsInRoot()
+            lateinit var bitmap: Bitmap
+            compose.runOnIdle {
+                bitmap = Bitmap.createBitmap(740, 360, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                canvas.translate(-rect.left.value, -rect.top.value)
+                compose.activity.window.decorView
+                    .draw(canvas)
+            }
+            return bitmap
+        }
+        // The utility rail renders below the aperture: the Menu control
+        // centre is drawn material, not the bezel background.
+        val menuBefore = checkNotNull(latestPlacement).controls.getValue("Menu")
+        val first = capture()
+        assertEquals("Deck background is not the edition bezel", bezelArgb, first.getPixel(2, 2))
+        assertTrue(
+            "Utility rail Menu control did not render below the aperture",
+            first.getPixel(menuBefore.centerX.toInt(), menuBefore.centerY.toInt()) != bezelArgb,
+        )
+        first.recycle()
+        // A live theme change recolours the displayed deck.
+        val otherEdition = CartdeckEditionPreset.values().first { it != CartdeckEditionPreset.ORIGINAL }
+        compose.runOnIdle { edition = otherEdition }
+        val second = capture()
+        assertEquals("Theme change did not reach the displayed deck", bezelArgb, second.getPixel(2, 2))
+        second.recycle()
+        // A live layout change (a measured safe-area inset, as from a
+        // display cutout) moves the displayed controls: the analogue
+        // stick's old centre is bezel again, its new centre is drawn.
+        val analogBefore = checkNotNull(latestPlacement).controls.getValue("AnalogL")
+        compose.runOnIdle { shifted = true }
+        val analogAfter = checkNotNull(latestPlacement).controls.getValue("AnalogL")
+        assertTrue(
+            "Layout change did not move the displayed analogue stick",
+            analogAfter.centerX > analogBefore.centerX + 20f,
+        )
+        val third = capture()
+        assertEquals(
+            "Old analogue position still drawn after the layout change",
+            bezelArgb,
+            third.getPixel(analogBefore.centerX.toInt(), analogBefore.centerY.toInt()),
+        )
+        assertTrue(
+            "Analogue stick did not render at its new position",
+            third.getPixel(analogAfter.centerX.toInt(), analogAfter.centerY.toInt()) != bezelArgb,
+        )
+        third.recycle()
+    }
+
+    /**
      * C02-A regression (priority console 1): Nintendo 64 landscape must fit
      * through the generalised authored panels + utility rail, with its own
      * authentic arrangement — D-pad and analogue on the left panel, C-button

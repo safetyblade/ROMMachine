@@ -422,3 +422,48 @@ The earlier 41-item ledger governs inherited scope.
   owner's re-authorisation before the queue/deployment can be read
   from here; both are owner-side dependencies, recorded not worked
   around.
+- C06-A rendering pipeline (Claire, 28 Nov 2026): new Compose
+  regression gameCubeStandaloneDeckAppliesLiveThemeAndLayoutChanges
+  renders the actual standalone GameCube deck (console shell,
+  hardware seats, combined controls, accessory dock) from live
+  state and proves against captured pixels: (1) the utility rail
+  renders below the aperture — the Menu control centre is drawn
+  material, not bezel; (2) a live edition (theme) change recolours
+  the displayed deck's bezel; (3) a live layout change (a measured
+  safe-area inset, as from a display cutout) moves the displayed
+  analogue stick — its old centre returns to bezel, its new centre
+  is drawn. Together with the C05 resolver-level live-setting test
+  and the existing combined-accessory recomposition/press tests,
+  this covers live settings and effective configuration reaching
+  the displayed controller at the rendering layer. Press-state
+  reflection of a physical gamepad remains a C07 on-device item.
+  The legacy portrait fallback remains in code for unfixtured
+  geometries; the claim made is fixture-bounded, as Cassia noted.
+- C06-B PC runtime laboratory (recorded 28 Nov 2026): Cassia's
+  inspection of workflow 46129077261 establishes the two failed
+  native-host jobs failed at SETUP on unavailable public
+  infrastructure, before any test executed — not a source defect.
+  The laboratory's other lines (independent PC host, DOSBox Pure
+  build, synthetic Linux DOS guest execution, separate PC
+  laboratory jobs) completed successfully and are preserved
+  unchanged. This environment has no native build toolchain and
+  the GitHub connector exposes no workflow dispatch/re-run tool,
+  so the laboratory re-verification route is the PR workflow set
+  itself, which re-runs on every push to this branch; no workflow
+  or source change is warranted by an infrastructure setup
+  failure, and none has been made.
+- C06-C PERF remainder (recorded 28 Nov 2026): the one open PERF
+  item (CLOSE-04) requires reproducing the historical Wii
+  video-gap case on the affected device and correlating guest
+  metrics, plus source-to-swap captures for the original Xbox
+  lines under the existing PERF plan. Neither is achievable from
+  source work here; no runtime policy change is justified without
+  that evidence. Recorded as device-dependent, not deferred by
+  choice.
+- C06-D residuals (recorded 28 Nov 2026): C02-NUN (shared
+  GA-D31C-R3 pointer/fire session), C02-DOS (proven DOSBox Pure
+  guest input bridge) and C03-XBLA (full-game recognition, capture
+  specified) remain open for the reasons already recorded — each
+  needs either the cross-surface session build or runtime evidence
+  that does not exist yet. No speculative implementation has been
+  substituted for that evidence.
