@@ -50,10 +50,10 @@ data class SupportSubmission(
                     } else {
                         state
                     },
-                reference = values.optString("reference").takeIf { it.isNotBlank() },
+                reference = values.optString("reference").takeIf { !values.isNull("reference") && it.isNotBlank() },
                 attempts = values.optInt("attempts"),
                 updatedAtMillis = values.optLong("updatedAtMillis"),
-                lastError = values.optString("lastError").takeIf { it.isNotBlank() },
+                lastError = values.optString("lastError").takeIf { !values.isNull("lastError") && it.isNotBlank() },
             )
         }
 

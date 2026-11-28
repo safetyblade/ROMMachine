@@ -108,6 +108,8 @@ object GameScreenLayout {
         return settings.copy(scale = minOf(settings.scale, maximumSetting))
     }
 
+    internal fun gripArcLandscapeSideWidth(availableWidth: Dp): Dp = (availableWidth * 0.24f).coerceIn(132.dp, 260.dp)
+
     fun buildConstraintSet(
         isLandscape: Boolean,
         allowTouchOverlay: Boolean,
@@ -301,7 +303,7 @@ object GameScreenLayout {
 
             val padInset = if (hardwareLandscape) insets.padTopBottom else 0.dp
             val sideInset = if (hardwareLandscape) insets.sideInset else 0.dp
-            val gripSideWidth = (availableWidth * 0.24f).coerceIn(132.dp, 260.dp)
+            val gripSideWidth = gripArcLandscapeSideWidth(availableWidth)
             constrain(leftPad) {
                 absoluteLeft.linkTo(parent.absoluteLeft, margin = sideInset)
                 top.linkTo(parent.top, margin = padInset)
