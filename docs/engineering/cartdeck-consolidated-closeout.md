@@ -252,3 +252,41 @@ The earlier 41-item ledger governs inherited scope.
   laboratory failure (hosted run 46127083042) is a C06 engineering
   issue, independent of the C02 changes. C03 and C04 are the next
   stages, starting from e96e81d6.
+- C03 Xbox 360 — stage record (Claire, 28 Nov 2026, per Cassia's C03
+  prompt; starting SHA e96e81d6):
+  - C03-A workflow restoration: the source preflight blocker was the
+    Kotlin formatting gate, restored in checkpoint 4257033c; the
+    dedicated Xbox 360 engineering workflow and the connected APK
+    workflow run on the current head from that checkpoint onward.
+    Cancelled runs before it are not verification. Hosted results on
+    the current head are Cassia's to confirm; they are not claimed
+    here.
+  - C03-B pipeline audit (source-level, every link traced):
+    recognition (DocumentFileParser probes via
+    Xbox360ContentIdentity and assigns XBOX360 on a valid probe) ->
+    staging (Xbox360Content.stage: ISO verified in place / SAF copy,
+    XEX folder tree, SVOD sibling .data enforced) -> launch
+    (Xbox360Activity: storage/content/cache roots, config, log,
+    --logged_profile_slot_0_xuid from Xbox360Profiles, and
+    --license_mask=1 ONLY when the package's own STFS licensee list
+    contains the active profile XUID — no blanket override, no
+    fabricated ownership) -> persistence (guest content/saves live
+    under the persistent content root; staging is disposable and
+    never writes back). XBLA discovery and launch are untouched.
+    The isolated JVM contract suite (Xbox360ContentTest) covers XEX,
+    STFS/SVOD, ZAR, license gating and a synthetic ISO.
+  - Genuine dependency (not a guess-fix): the owner's full-game
+    recognition FAIL cannot be reproduced from source alone. The
+    synthetic ISO test exercises only partition offset 0, and the
+    probe's partition list contains two values (0xFB20, 0x20600)
+    that are not sector-aligned and read as sector counts used as
+    byte offsets — flagged for Marcus/Daniel rather than silently
+    replaced, because inventing XGD partition constants without a
+    failing sample would be fabrication. Needed to close C03-B: the
+    failing content's shape (ISO / extracted XEX folder / ZAR), its
+    source (redump / XGD2 / XGD3 / homebrew), and the app's own
+    Xbox 360 troubleshooter report from the failed attempt, which
+    records the probe's rejection reason verbatim.
+  - C03 status: PARTIAL — A restored pending hosted confirmation;
+    B audited end-to-end with one named suspect and a named evidence
+    request; no entitlement behaviour changed.
