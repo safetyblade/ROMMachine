@@ -241,3 +241,14 @@ The earlier 41-item ledger governs inherited scope.
     recorded here so C02-C is not overclaimed: routing, assignment,
     release and profile mechanisms are in place; those two specialist
     defects remain open outside the standalone GripARC route.
+- Cassia corrections + C06 record (28 Nov 2026, on her C02 consolidated
+  review): C02 is accepted as independently complete for engineering
+  progression. Two limitations stay explicit and must not be
+  overclaimed downstream: (1) the 56dp primary minimum is a
+  TOUCH-TARGET minimum only — it does not guarantee a 56dp visible
+  control cap; (2) the C02-C audit establishes that the specialist
+  mechanisms exist in source — it does not establish completed
+  runtime functionality. C06 record: the isolated PC runtime
+  laboratory failure (hosted run 46127083042) is a C06 engineering
+  issue, independent of the C02 changes. C03 and C04 are the next
+  stages, starting from e96e81d6.
