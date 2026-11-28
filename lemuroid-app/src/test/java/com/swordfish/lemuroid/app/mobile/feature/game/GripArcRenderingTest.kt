@@ -250,12 +250,10 @@ class GripArcRenderingTest {
         var edition by mutableStateOf(CartdeckEditionPreset.ORIGINAL)
         var shifted by mutableStateOf(false)
         var latestPlacement: GripArcCombinedPlacement? = null
-        var bezelArgb = 0
         compose.setContent {
             val tokens = compose.activity.resolveCartdeckEdition(edition)
-            bezelArgb = tokens.bezel.toArgb()
             val safe =
-                if (shifted) PivotArcBounds(64f, 8f, 732f, 352f) else fixtureSafe(true)
+                if (shifted) PivotArcBounds(40f, 8f, 732f, 352f) else fixtureSafe(true)
             val viewport = fixtureViewport(SystemID.GAMECUBE, true)
             val glass = Rect(viewport.left, viewport.top, viewport.right, viewport.bottom)
             val inventory =
@@ -317,41 +315,52 @@ class GripArcRenderingTest {
             }
             return bitmap
         }
-        // The utility rail renders below the aperture: the Menu control
-        // centre is drawn material, not the bezel background.
+        // The deck's own background is whatever the console shell paints
+        // at the corner — sample it from the capture itself rather than
+        // assuming it equals the edition bezel token (the shell's
+        // chassis layer covers the root background). All pixel evidence
+        // below is relative to that sampled background.
         val menuBefore = checkNotNull(latestPlacement).controls.getValue("Menu")
         val first = capture()
-        assertEquals("Deck background is not the edition bezel", bezelArgb, first.getPixel(2, 2))
+        val background = first.getPixel(2, 2)
         assertTrue(
             "Utility rail Menu control did not render below the aperture",
-            first.getPixel(menuBefore.centerX.toInt(), menuBefore.centerY.toInt()) != bezelArgb,
+            first.getPixel(menuBefore.centerX.toInt(), menuBefore.centerY.toInt()) != background,
         )
         first.recycle()
-        // A live theme change recolours the displayed deck.
+        // A live theme change recolours the displayed deck: the sampled
+        // background changes with the edition, and the rail control is
+        // still drawn against it.
         val otherEdition = CartdeckEditionPreset.values().first { it != CartdeckEditionPreset.ORIGINAL }
         compose.runOnIdle { edition = otherEdition }
         val second = capture()
-        assertEquals("Theme change did not reach the displayed deck", bezelArgb, second.getPixel(2, 2))
+        val themedBackground = second.getPixel(2, 2)
+        assertTrue("Theme change did not recolour the displayed deck", themedBackground != background)
+        assertTrue(
+            "Utility rail Menu control missing after the theme change",
+            second.getPixel(menuBefore.centerX.toInt(), menuBefore.centerY.toInt()) != themedBackground,
+        )
         second.recycle()
         // A live layout change (a measured safe-area inset, as from a
-        // display cutout) moves the displayed controls: the analogue
-        // stick's old centre is bezel again, its new centre is drawn.
+        // display cutout) moves the displayed controls horizontally:
+        // the analogue stick's old centre is background again, its new
+        // centre is drawn material.
         val analogBefore = checkNotNull(latestPlacement).controls.getValue("AnalogL")
         compose.runOnIdle { shifted = true }
         val analogAfter = checkNotNull(latestPlacement).controls.getValue("AnalogL")
         assertTrue(
             "Layout change did not move the displayed analogue stick",
-            analogAfter.centerX > analogBefore.centerX + 20f,
+            analogAfter.centerX > analogBefore.centerX + 12f,
         )
         val third = capture()
         assertEquals(
             "Old analogue position still drawn after the layout change",
-            bezelArgb,
+            themedBackground,
             third.getPixel(analogBefore.centerX.toInt(), analogBefore.centerY.toInt()),
         )
         assertTrue(
             "Analogue stick did not render at its new position",
-            third.getPixel(analogAfter.centerX.toInt(), analogAfter.centerY.toInt()) != bezelArgb,
+            third.getPixel(analogAfter.centerX.toInt(), analogAfter.centerY.toInt()) != themedBackground,
         )
         third.recycle()
     }

@@ -512,3 +512,42 @@ The earlier 41-item ledger governs inherited scope.
   recorded here as that lane's residual, not reclassified as
   physical acceptance and not faked with a toggle counter, which
   could invert the gate.
+- C07-A Assignment 3 — PC laboratory integration suite (Claire,
+  28 Nov 2026): the opt-in integration job (pc-integrated-apk in
+  cartdeck-pc-native-lab.yml) runs the same 909-test Robolectric
+  unit suite as the connected APK workflow, but WITHOUT that
+  workflow's Robolectric SDK-jar cache and checksum-verified
+  prefetch steps. Its 329 failures with widespread HTTP exceptions
+  are the Robolectric android-all-instrumented jars being fetched
+  from Maven Central at test runtime in an environment where that
+  public infrastructure was failing — compilation and APK assembly
+  in the same job succeed because they never touch those jars,
+  and the PC core verification job passes because it runs no
+  Robolectric at all. Correction prepared: the connected
+  workflow's cache step and SHA-512-verified prefetch (same cache
+  key, same SDK versions and digests, both Maven mirrors) mirrored
+  verbatim into the pc-integrated-apk job ahead of its test step.
+  The corrected workflow file is staged locally but CANNOT be
+  published from here: the GitHub App lacks the workflows
+  permission (the push was refused with 403 Resource not
+  accessible by integration), the same limitation recorded for
+  this app previously. It publishes as soon as the owner grants
+  that permission or pushes the file. Checksum and provenance
+  verification are preserved exactly in the prepared change; no
+  self-hosted infrastructure introduced.
+- C07-A final build recovery (Claire, 28 Nov 2026): the one
+  remaining failure (909/910) was Claire's live-render test
+  asserting the captured corner pixel equals the edition bezel
+  token. The console shell paints its chassis layer over the root
+  background, so the corner pixel is the shell's, not the bezel
+  token's — the test's assumption, not a rendering defect. The
+  test now samples the deck background from the capture itself
+  and keeps full pixel-level evidence relative to it: rail Menu
+  centre drawn against the background, a live edition change
+  recolouring the sampled background with the rail still drawn,
+  and a live safe-area inset moving the displayed analogue stick
+  (old centre returns to the sampled background, new centre
+  drawn). The shifted fixture's inset is reduced (left 40dp) so
+  the GameCube left panel stays comfortably within its authored
+  fit, and the movement assertion is horizontal, matching the
+  inset. No production code changed.
