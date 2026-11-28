@@ -618,10 +618,15 @@ internal object StandaloneGripArcLayout {
             "Lid" to Seat(220, 28),
             "R" to Seat(295, 28),
             "D" to Seat(76, 119, 82f),
-            "X" to Seat(266, 75),
-            "A" to Seat(315, 125),
-            "B" to Seat(266, 175),
-            "Y" to Seat(217, 125),
+            // C05-B: the DS portrait face diamond is authored at an
+            // explicit 44dp — at the generic 48.5dp the diamond's
+            // diagonal neighbours cannot stay independent in the
+            // 360x280 reference space, which forced the legacy
+            // fallback for this configuration.
+            "X" to Seat(266, 75, 44f),
+            "A" to Seat(315, 125, 44f),
+            "B" to Seat(266, 175, 44f),
+            "Y" to Seat(217, 125, 44f),
             "Select" to Seat(64, 253),
             "Menu" to Seat(180, 253),
             "Start" to Seat(296, 253),
@@ -1141,8 +1146,9 @@ internal object StandaloneGripArcLayout {
         fun authoredBounds(
             seat: Seat,
             rail: Boolean,
+            diameter: Float = maxOf(seat.size, seat.size * scale, 49.2f),
         ): PivotArcBounds {
-            val radius = maxOf(seat.size, seat.size * scale, 49.2f) / 2f
+            val radius = diameter / 2f
             val x = deckLeft + seat.x * scale
             val y =
                 if (rail && landscape) {
@@ -1298,7 +1304,24 @@ internal object StandaloneGripArcLayout {
                         ) ||
                         (native.controller == TouchControllerID.GAMECUBE && key == "Start")
                 val sized = if (compact) seat.copy(size = minOf(seat.size, 58f)) else seat
-                if (authored) authoredBounds(sized, centralUtility) else bounds(sized, menu = centralUtility)
+                if (authored) {
+                    // C05-B explicit authored dimensions in the uniform
+                    // transform (same rules as the landscape zone
+                    // resolver): primary directional/analogue controls
+                    // never below 56dp, everything else scales from its
+                    // authored size with a 42dp floor. Programmable
+                    // seats are an explicit 45dp (see authoredTargets).
+                    val kind = native.controls.firstOrNull { it.key == key }?.kind
+                    val diameter =
+                        if (kind == NativeControlKind.DPAD || kind == NativeControlKind.ANALOG) {
+                            maxOf(seat.size * scale, 56f)
+                        } else {
+                            maxOf(seat.size * scale, 42f)
+                        }
+                    authoredBounds(sized, centralUtility, diameter)
+                } else {
+                    bounds(sized, menu = centralUtility)
+                }
             }
         if (nativeSeats.keys != native.controls.map { it.key }.toSet()) return null
         // C02-A: landscape resolves through authored panels and a utility
@@ -1314,7 +1337,8 @@ internal object StandaloneGripArcLayout {
         val program = programSeats.mapKeys { (slot, _) -> "program:$slot" }
         val programTargets = program.mapValues { bounds(it.value) }
         val display = viewport.inset(1.5f)
-        val authoredTargets = nativeTargets(authored = true) + program.mapValues { authoredBounds(it.value, false) }
+        val authoredTargets =
+            nativeTargets(authored = true) + program.mapValues { authoredBounds(it.value, false, 45f) }
         val authored = authoredTargets.takeIf { independentTargets(it.values.toList(), panel, display) }
         // Landscape: authored routes only — no legacy projection, no
         // compact directional shrink. Portrait keeps its existing routes

@@ -148,6 +148,80 @@ class GripArcRenderingTest {
     }
 
     /**
+     * C05-A: GameCube portrait uses the authored transform with explicit
+     * dimensions — all 14 native and four programmable targets inside the
+     * portrait panel, aperture untouched, analogue and D-pad at their
+     * authored sizes (no compact shrink, no legacy route).
+     */
+    @Test
+    fun gameCubePortraitUsesAuthoredGeometryWithExplicitSizes() {
+        val inventory =
+            checkNotNull(
+                StandaloneGripArcLayout.inventoryFor(TouchControllerID.GAMECUBE, SystemID.GAMECUBE),
+            )
+        val safe = fixtureSafe(false)
+        val viewport = fixtureViewport(SystemID.GAMECUBE, false)
+        val placement =
+            checkNotNull(
+                StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, false),
+            ) { "GameCube portrait did not fit its authored geometry on the reference fixture" }
+        assertTrue(placement.complete)
+        assertEquals("uniform chassis transform", checkNotNull(placement.standaloneGeometry).fit)
+        val panel =
+            PivotArcBounds(
+                safe.left + 4f,
+                maxOf(safe.top, viewport.bottom + 16f),
+                safe.right - 4f,
+                safe.bottom - 12f,
+            )
+        val display = viewport.inset(1.5f)
+        val allTargets =
+            placement.controls.values.toList() +
+                placement.dock.targets.values
+                    .toList()
+        assertEquals(18, allTargets.size)
+        for (target in allTargets) {
+            assertTrue("Target is outside the portrait panel: $target", target.inside(panel))
+            assertTrue("Target overlaps the gameplay aperture: $target", !target.intersects(display))
+        }
+        for (index in allTargets.indices) {
+            for (other in index + 1 until allTargets.size) {
+                assertTrue(
+                    "Targets overlap: ${allTargets[index]} / ${allTargets[other]}",
+                    !allTargets[index].intersects(allTargets[other]),
+                )
+            }
+        }
+        assertTrue("D-pad below its authored size", placement.controls.getValue("D").width >= 80f)
+        assertTrue("Analogue below its authored size", placement.controls.getValue("AnalogL").width >= 88f)
+        assertEquals(viewport, placement.standaloneGeometry?.viewport)
+    }
+
+    /**
+     * C05-A live-setting regression: the PSP analogue-primary setting is a
+     * live layout input — flipping it must change the effective placement
+     * (D-pad and analogue swap seats), proving a setting change reaches
+     * the displayed controller rather than a cached calculation.
+     */
+    @Test
+    fun pspAnaloguePrimarySettingChangesEffectivePlacement() {
+        val inventory =
+            checkNotNull(StandaloneGripArcLayout.inventoryFor(TouchControllerID.PSP, SystemID.PSP))
+        val safe = fixtureSafe(true)
+        val viewport = fixtureViewport(SystemID.PSP, true)
+        val standard =
+            checkNotNull(
+                StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, true, pspAnalogPrimary = false),
+            )
+        val swapped =
+            checkNotNull(
+                StandaloneGripArcLayout.resolveStandalone(inventory, safe, viewport, true, pspAnalogPrimary = true),
+            )
+        assertEquals(standard.controls.getValue("AnalogL"), swapped.controls.getValue("D"))
+        assertEquals(standard.controls.getValue("D"), swapped.controls.getValue("AnalogL"))
+    }
+
+    /**
      * C02-A regression (priority console 1): Nintendo 64 landscape must fit
      * through the generalised authored panels + utility rail, with its own
      * authentic arrangement — D-pad and analogue on the left panel, C-button
@@ -372,6 +446,14 @@ class GripArcRenderingTest {
                                         StandaloneGripArcLayout.AUTHORED_LANDSCAPE_FIT,
                                         StandaloneGripArcLayout.GAMECUBE_LANDSCAPE_FIT,
                                     )
+                            ),
+                        // C05-B: portrait must also come from the authored
+                        // transform — never the legacy projection or the
+                        // compact directional fallback.
+                        "portraitAuthored" to
+                            (
+                                portrait == null ||
+                                    portrait.standaloneGeometry?.fit == "uniform chassis transform"
                             ),
                         "renderer" to renderer,
                         "dispatchRegistration" to dispatch,

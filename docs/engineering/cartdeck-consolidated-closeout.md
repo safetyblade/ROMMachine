@@ -376,3 +376,30 @@ The earlier 41-item ledger governs inherited scope.
   VM/Vercel-scope verification limits recorded). C04-D: the chain
   is verified at source + named unit tests (SupportReportTest);
   on-device completion remains a C07 acceptance item.
+- C05-B portrait authored migration (Claire, 28 Nov 2026): the
+  uniform authored transform now carries the same explicit
+  dimension rules as the landscape zone resolver in BOTH
+  orientations — primary directional/analogue controls never below
+  56dp, programmable seats an explicit 45dp, all other controls
+  scale from their authored size with a 42dp floor (the flat 49.2dp
+  floor is gone from authored routes). The DS portrait face diamond
+  is authored at an explicit 44dp: at the generic 48.5dp its
+  diagonal neighbours cannot stay independent in the 360x280
+  reference space, which was the last fixture forcing the legacy
+  portrait fallback (PSP portrait's Select/programmable collision
+  is resolved by the explicit 45dp programmable size). Verified by
+  exhaustive simulation of the resolver rules over all 43 portrait
+  fixtures before implementation, and by a new portraitAuthored
+  assertion in the standalone coverage test: every portrait fixture
+  must now resolve through "uniform chassis transform", never the
+  legacy projection or compact fallback. The legacy portrait routes
+  remain in code as a safety net for unfixtured geometries but are
+  unreachable on the verified fixture set. C05-A additions in the
+  same checkpoint: a GameCube portrait regression test (authored
+  fit, all 18 targets inside the portrait panel and clear of the
+  aperture, D-pad >= 80dp, analogue >= 88dp) and a live-setting
+  regression proving the PSP analogue-primary setting swaps the
+  effective D-pad/analogue placement. Still open in C05: the
+  dedicated GameCube portrait panel resolver (portrait currently
+  uses the authored transform, which fits), thumb-cap authored
+  dimensions per console, and the C05-C residual assignments.
